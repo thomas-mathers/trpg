@@ -397,13 +397,15 @@ internal static class Builders
     public static CrimeWitness MakeCrimeWitness(
         Guid crimeId,
         Guid creatureId,
-        Guid? worldId = null
+        Guid? worldId = null,
+        CrimeWitnessResolution resolution = CrimeWitnessResolution.Pending
     ) =>
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
             CrimeId = crimeId,
             CreatureId = creatureId,
+            Resolution = resolution,
         };
 
     public static Key MakeKey(

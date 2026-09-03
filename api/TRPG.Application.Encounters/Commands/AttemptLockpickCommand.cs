@@ -50,7 +50,6 @@ internal class AttemptLockpickCommandHandler(
         IReadOnlyDictionary<Guid, DoorConnector>
     > getDoorConnectorsByConnectorIds,
     SkillCheckService skillCheckService,
-    ICommandHandler<SetDoorConnectorLockedCommand> setDoorConnectorLocked,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     IQueryHandler<GetGuardAtLocationQuery, Creature?> getGuardAtLocation,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
@@ -90,11 +89,8 @@ internal class AttemptLockpickCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var doorsByConnectorId = await getDoorConnectorsByConnectorIds.Handle(
-            new GetDoorConnectorsByConnectorIdsQuery { ConnectorIds = [command.ConnectorId] },
-            cancellationToken
-        );
-        if (!doorsByConnectorId.TryGetValue(command.ConnectorId, out var door) || !door.IsLocked)
+        var door = await GetLockedDoor(command.ConnectorId, cancellationToken);
+        if (door == null)
         {
             transaction.Complete();
             return new AttemptLockpickResult(LockpickAttemptOutcome.NothingToPick);
@@ -115,67 +111,23 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
 
-        BreakingAndEnteringCrime? crime = null;
-
-        if (opened)
-        {
-            await setDoorConnectorLocked.Handle(
-                new SetDoorConnectorLockedCommand
-                {
-                    ConnectorId = command.ConnectorId,
-                    IsLocked = false,
-                },
-                cancellationToken
-            );
-            await adjustCreatureSkills.Handle(
-                new AdjustCreatureSkillsCommand
-                {
-                    WorldId = command.WorldId,
-                    CreatureId = player.Id,
-                    UsageCounts = new Dictionary<Skill, int> { [Skill.Lockpicking] = 1 },
-                },
-                cancellationToken
-            );
-
-            crime = await RecordBreakIn(command, player, door.Id, cancellationToken);
-        }
+        var crime = opened ? await OpenDoor(command, player, door.Id, cancellationToken) : null;
 
         var currentLocation = await getLocationById.Handle(
             new GetLocationByIdQuery { Id = player.LocationId },
             cancellationToken
         );
 
-        GuardEncounter? guardEncounter = null;
-        HostileEncounter? hostileEncounter = null;
-
-        if (currentLocation!.RoomId == null)
-        {
-            guardEncounter = await EvaluateExteriorDetection(
-                command,
-                player,
-                currentLocation,
-                crime,
-                cancellationToken
-            );
-        }
-        else
-        {
-            hostileEncounter = await evaluateTrespassingEncounter.Handle(
-                new EvaluateTrespassingEncounterCommand
-                {
-                    WorldId = command.WorldId,
-                    PlayerId = player.Id,
-                },
-                cancellationToken
-            );
-        }
+        var encounter = await DetectPlayer(
+            command,
+            player,
+            currentLocation!,
+            crime,
+            cancellationToken
+        );
 
         await publishEncounterStarted.Handle(
-            new PublishEncounterStartedCommand
-            {
-                PlayerId = player.Id,
-                Encounter = guardEncounter ?? (Encounter?)hostileEncounter,
-            },
+            new PublishEncounterStartedCommand { PlayerId = player.Id, Encounter = encounter },
             cancellationToken
         );
 
@@ -183,8 +135,72 @@ internal class AttemptLockpickCommandHandler(
 
         return new AttemptLockpickResult(
             opened ? LockpickAttemptOutcome.Opened : LockpickAttemptOutcome.Failed,
-            guardEncounter,
-            hostileEncounter
+            encounter as GuardEncounter,
+            encounter as HostileEncounter
+        );
+    }
+
+    private async Task<DoorConnector?> GetLockedDoor(
+        Guid connectorId,
+        CancellationToken cancellationToken
+    )
+    {
+        var doorsByConnectorId = await getDoorConnectorsByConnectorIds.Handle(
+            new GetDoorConnectorsByConnectorIdsQuery { ConnectorIds = [connectorId] },
+            cancellationToken
+        );
+        return doorsByConnectorId.TryGetValue(connectorId, out var door) && door.IsLocked
+            ? door
+            : null;
+    }
+
+    private async Task<BreakingAndEnteringCrime?> OpenDoor(
+        AttemptLockpickCommand command,
+        Creature player,
+        Guid doorConnectorRowId,
+        CancellationToken cancellationToken
+    )
+    {
+        await adjustCreatureSkills.Handle(
+            new AdjustCreatureSkillsCommand
+            {
+                WorldId = command.WorldId,
+                CreatureId = player.Id,
+                UsageCounts = new Dictionary<Skill, int> { [Skill.Lockpicking] = 1 },
+            },
+            cancellationToken
+        );
+
+        // IsLocked stays schedule-owned; only the key RecordBreakIn grants keeps this door passable afterward.
+        return await RecordBreakIn(command, player, doorConnectorRowId, cancellationToken);
+    }
+
+    private async Task<Encounter?> DetectPlayer(
+        AttemptLockpickCommand command,
+        Creature player,
+        Location currentLocation,
+        BreakingAndEnteringCrime? crime,
+        CancellationToken cancellationToken
+    )
+    {
+        if (currentLocation.RoomId == null)
+        {
+            return await EvaluateExteriorDetection(
+                command,
+                player,
+                currentLocation,
+                crime,
+                cancellationToken
+            );
+        }
+
+        return await evaluateTrespassingEncounter.Handle(
+            new EvaluateTrespassingEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = player.Id,
+            },
+            cancellationToken
         );
     }
 
@@ -215,9 +231,6 @@ internal class AttemptLockpickCommandHandler(
             return null;
         }
 
-        // A picked lock's IsLocked flip is cosmetic/immediate only — schedule sync (business hours)
-        // recomputes IsLocked from scratch on every later move and knows nothing about the pick, so
-        // this key is what keeps the door genuinely passable afterward, the same way a found key would.
         var pickedLockKey = new Key
         {
             WorldId = command.WorldId,

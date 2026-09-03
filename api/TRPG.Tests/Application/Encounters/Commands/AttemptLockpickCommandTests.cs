@@ -112,11 +112,6 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         Assert.Null(result.HostileEncounter);
 
         await using var verifyContext = db.CreateContext();
-        var door = await verifyContext.DoorConnectors.FirstAsync(
-            d => d.ConnectorId == connectorId,
-            TestContext.Current.CancellationToken
-        );
-        Assert.False(door.IsLocked);
         var lockpicking = await verifyContext.CreatureSkills.FirstAsync(
             s => s.CreatureId == _player.Id && s.Skill == Skill.Lockpicking,
             TestContext.Current.CancellationToken
@@ -368,8 +363,8 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     [Fact]
     public async Task Handle_GrantsAHiddenUntradeableKey_WhenTheDoorOpens()
     {
-        // Arrange — the key is what keeps the door passable after schedule sync later re-locks it
-        // on an unrelated move attempt; picking the lock alone only flips IsLocked immediately.
+        // Arrange — the door's raw IsLocked flag is schedule-owned and never touched by a pick, so
+        // the key is the only thing that keeps a picked door passable afterward.
         var destinationLocationId = Guid.NewGuid();
         var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
         var room = Builders.MakeRoom(

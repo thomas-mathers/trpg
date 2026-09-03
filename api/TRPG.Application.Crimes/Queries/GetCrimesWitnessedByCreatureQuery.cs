@@ -34,61 +34,44 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
         CancellationToken cancellationToken = default
     )
     {
-        var kills = await (
+        var crimes = await (
             from witness in context.CrimeWitnesses.AsNoTracking()
             where
                 witness.WorldId == query.WorldId
                 && witness.CreatureId == query.WitnessCreatureId
                 && witness.Resolution != CrimeWitnessResolution.Dead
-            join crime in context.Crimes.OfType<KillCrime>().AsNoTracking()
-                on witness.CrimeId equals crime.Id
+            join crime in context.Crimes.AsNoTracking() on witness.CrimeId equals crime.Id
             where crime.PlayerId == query.PlayerId
-            select new WitnessedCrime(
-                crime.OccurredAt,
-                WitnessedCrimeKind.Kill,
-                crime.VictimName,
-                null
-            )
+            select crime
         ).ToArrayAsync(cancellationToken);
 
-        var thefts = await (
-            from witness in context.CrimeWitnesses.AsNoTracking()
-            where
-                witness.WorldId == query.WorldId
-                && witness.CreatureId == query.WitnessCreatureId
-                && witness.Resolution != CrimeWitnessResolution.Dead
-            join crime in context.Crimes.OfType<TheftCrime>().AsNoTracking()
-                on witness.CrimeId equals crime.Id
-            where crime.PlayerId == query.PlayerId
-            select new WitnessedCrime(
-                crime.OccurredAt,
-                WitnessedCrimeKind.Theft,
-                crime.OwnerName,
-                crime.Outcome
-            )
-        ).ToArrayAsync(cancellationToken);
-
-        var breakIns = await (
-            from witness in context.CrimeWitnesses.AsNoTracking()
-            where
-                witness.WorldId == query.WorldId
-                && witness.CreatureId == query.WitnessCreatureId
-                && witness.Resolution != CrimeWitnessResolution.Dead
-            join crime in context.Crimes.OfType<BreakingAndEnteringCrime>().AsNoTracking()
-                on witness.CrimeId equals crime.Id
-            where crime.PlayerId == query.PlayerId
-            select new WitnessedCrime(
-                crime.OccurredAt,
-                WitnessedCrimeKind.BreakingAndEntering,
-                crime.BuildingName,
-                null
-            )
-        ).ToArrayAsync(cancellationToken);
-
-        return kills
-            .Concat(thefts)
-            .Concat(breakIns)
+        return crimes
+            .Select(ToWitnessedCrime)
             .OrderByDescending(crime => crime.OccurredAt)
             .ToArray();
     }
+
+    private static WitnessedCrime ToWitnessedCrime(Crime crime) =>
+        crime switch
+        {
+            KillCrime kill => new WitnessedCrime(
+                kill.OccurredAt,
+                WitnessedCrimeKind.Kill,
+                kill.VictimName,
+                null
+            ),
+            TheftCrime theft => new WitnessedCrime(
+                theft.OccurredAt,
+                WitnessedCrimeKind.Theft,
+                theft.OwnerName,
+                theft.Outcome
+            ),
+            BreakingAndEnteringCrime breakIn => new WitnessedCrime(
+                breakIn.OccurredAt,
+                WitnessedCrimeKind.BreakingAndEntering,
+                breakIn.BuildingName,
+                null
+            ),
+            _ => throw new InvalidOperationException($"Unhandled crime type {crime.GetType()}"),
+        };
 }
