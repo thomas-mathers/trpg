@@ -157,12 +157,27 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     public async Task Handle_StartsGuardEncounter_WhenAGuardSpotsTheExteriorPick()
     {
         // Arrange
+        var destinationLocationId = Guid.NewGuid();
+        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
+        var room = Builders.MakeRoom(
+            building.Id,
+            worldId: _worldId,
+            locationId: destinationLocationId
+        );
+        var location = Builders.MakeLocation(
+            worldId: _worldId,
+            id: destinationLocationId,
+            roomId: room.Id
+        );
         var guard = Builders.MakeCreature(
             _worldId,
             profession: Profession.Guard,
             locationId: _exteriorLocationId
         );
         var faction = Builders.MakeFaction(worldId: _worldId, isCityFaction: true);
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(location);
         _context.Creatures.Add(guard);
         _context.Factions.Add(faction);
         _context.FactionMembers.Add(Builders.MakeFactionMember(_worldId, faction.Id, guard.Id));
@@ -180,7 +195,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
                 PlayerId = _player.Id,
                 WorldId = _worldId,
                 ConnectorId = connectorId,
-                DestinationLocationId = Guid.NewGuid(),
+                DestinationLocationId = destinationLocationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -297,6 +312,62 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             TestContext.Current.CancellationToken
         );
         Assert.Null(session.TrespassingBuildingId);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotStartAGuardEncounter_WhenAGuardWatchesTheOwnerPickTheirOwnDoor()
+    {
+        // Arrange — a guard witnessing the pick must not fabricate a crime against an authorized owner.
+        var destinationLocationId = Guid.NewGuid();
+        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
+        var room = Builders.MakeRoom(
+            building.Id,
+            worldId: _worldId,
+            locationId: destinationLocationId
+        );
+        var location = Builders.MakeLocation(
+            worldId: _worldId,
+            id: destinationLocationId,
+            roomId: room.Id
+        );
+        var guard = Builders.MakeCreature(
+            _worldId,
+            profession: Profession.Guard,
+            locationId: _exteriorLocationId
+        );
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(location);
+        _context.Creatures.Add(guard);
+        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(building.Id, _player.Id, _worldId));
+        var connectorId = Guid.NewGuid();
+        _context.DoorConnectors.Add(
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _chanceRoller.Result = true;
+
+        // Act
+        var result = await _handler.Handle(
+            new AttemptLockpickCommand
+            {
+                PlayerId = _player.Id,
+                WorldId = _worldId,
+                ConnectorId = connectorId,
+                DestinationLocationId = destinationLocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result.GuardEncounter);
+
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext
+                .Crimes.OfType<BreakingAndEnteringCrime>()
+                .AnyAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]

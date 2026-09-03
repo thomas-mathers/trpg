@@ -111,17 +111,42 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
 
-        var crime = opened ? await OpenDoor(command, player, door.Id, cancellationToken) : null;
+        if (opened)
+        {
+            await adjustCreatureSkills.Handle(
+                new AdjustCreatureSkillsCommand
+                {
+                    WorldId = command.WorldId,
+                    CreatureId = player.Id,
+                    UsageCounts = new Dictionary<Skill, int> { [Skill.Lockpicking] = 1 },
+                },
+                cancellationToken
+            );
+        }
+
+        // Owning the destination building, or there being no building there at all, means opening
+        // this specific door can never itself be a crime - though the room the player is already
+        // standing in (checked below) is a separate question with its own authorization.
+        var building = await GetBuildingIfNotOwnedByPlayer(
+            command.DestinationLocationId,
+            player.Id,
+            cancellationToken
+        );
+
+        var crime =
+            opened && building != null
+                ? await RecordBreakIn(command, player, door.Id, building, cancellationToken)
+                : null;
 
         var currentLocation = await getLocationById.Handle(
             new GetLocationByIdQuery { Id = player.LocationId },
             cancellationToken
         );
-
         var encounter = await DetectPlayer(
             command,
             player,
             currentLocation!,
+            building,
             crime,
             cancellationToken
         );
@@ -154,68 +179,16 @@ internal class AttemptLockpickCommandHandler(
             : null;
     }
 
-    private async Task<BreakingAndEnteringCrime?> OpenDoor(
-        AttemptLockpickCommand command,
-        Creature player,
-        Guid doorConnectorRowId,
-        CancellationToken cancellationToken
-    )
-    {
-        await adjustCreatureSkills.Handle(
-            new AdjustCreatureSkillsCommand
-            {
-                WorldId = command.WorldId,
-                CreatureId = player.Id,
-                UsageCounts = new Dictionary<Skill, int> { [Skill.Lockpicking] = 1 },
-            },
-            cancellationToken
-        );
-
-        // IsLocked stays schedule-owned; only the key RecordBreakIn grants keeps this door passable afterward.
-        return await RecordBreakIn(command, player, doorConnectorRowId, cancellationToken);
-    }
-
-    private async Task<Encounter?> DetectPlayer(
-        AttemptLockpickCommand command,
-        Creature player,
-        Location currentLocation,
-        BreakingAndEnteringCrime? crime,
-        CancellationToken cancellationToken
-    )
-    {
-        if (currentLocation.RoomId == null)
-        {
-            return await EvaluateExteriorDetection(
-                command,
-                player,
-                currentLocation,
-                crime,
-                cancellationToken
-            );
-        }
-
-        return await evaluateTrespassingEncounter.Handle(
-            new EvaluateTrespassingEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = player.Id,
-            },
-            cancellationToken
-        );
-    }
-
-    private async Task<BreakingAndEnteringCrime?> RecordBreakIn(
-        AttemptLockpickCommand command,
-        Creature player,
-        Guid doorConnectorRowId,
+    private async Task<BuildingIdentity?> GetBuildingIfNotOwnedByPlayer(
+        Guid destinationLocationId,
+        Guid playerId,
         CancellationToken cancellationToken
     )
     {
         var building = await getBuildingByLocationId.Handle(
-            new GetBuildingByLocationIdQuery { LocationId = command.DestinationLocationId },
+            new GetBuildingByLocationIdQuery { LocationId = destinationLocationId },
             cancellationToken
         );
-
         if (building == null)
         {
             return null;
@@ -226,11 +199,52 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
 
-        if (owners.Any(owner => owner.OwnerId == player.Id))
+        return owners.Any(owner => owner.OwnerId == playerId) ? null : building;
+    }
+
+    private async Task<Encounter?> DetectPlayer(
+        AttemptLockpickCommand command,
+        Creature player,
+        Location currentLocation,
+        BuildingIdentity? building,
+        BreakingAndEnteringCrime? crime,
+        CancellationToken cancellationToken
+    )
+    {
+        if (currentLocation.RoomId == null)
         {
-            return null;
+            // A door with no unauthorized building behind it can't be witnessed as a break-in.
+            return building == null
+                ? null
+                : await EvaluateExteriorDetection(
+                    command,
+                    player,
+                    currentLocation,
+                    building,
+                    crime,
+                    cancellationToken
+                );
         }
 
+        // Whether the player's current room is unauthorized doesn't depend on what this specific door leads to.
+        return await evaluateTrespassingEncounter.Handle(
+            new EvaluateTrespassingEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = player.Id,
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task<BreakingAndEnteringCrime> RecordBreakIn(
+        AttemptLockpickCommand command,
+        Creature player,
+        Guid doorConnectorRowId,
+        BuildingIdentity building,
+        CancellationToken cancellationToken
+    )
+    {
         var pickedLockKey = new Key
         {
             WorldId = command.WorldId,
@@ -288,6 +302,7 @@ internal class AttemptLockpickCommandHandler(
         AttemptLockpickCommand command,
         Creature player,
         Location currentLocation,
+        BuildingIdentity building,
         BreakingAndEnteringCrime? crime,
         CancellationToken cancellationToken
     )
@@ -325,21 +340,17 @@ internal class AttemptLockpickCommandHandler(
                 $"Guard {guard.Id} has no city faction membership."
             );
 
-        // A failed pick never went through RecordBreakIn, so there's no crime yet to attach the guard's witness to.
+        // Reaching here means the pick failed - a successful one already recorded the crime via RecordBreakIn.
         if (crime == null)
         {
-            var building = await getBuildingByLocationId.Handle(
-                new GetBuildingByLocationIdQuery { LocationId = command.DestinationLocationId },
-                cancellationToken
-            );
             crime = new BreakingAndEnteringCrime
             {
                 WorldId = command.WorldId,
                 PlayerId = player.Id,
                 LocationId = player.LocationId,
-                BuildingId = building?.Id ?? Guid.Empty,
-                BuildingName = building?.Name ?? "",
-                OwnerFactionId = building?.FactionId ?? cityFactionId,
+                BuildingId = building.Id,
+                BuildingName = building.Name,
+                OwnerFactionId = building.FactionId,
             };
             await addBreakingAndEnteringCrimes.Handle(
                 new AddBreakingAndEnteringCrimesCommand { Crimes = [crime] },
