@@ -294,6 +294,30 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
     }
 
     [Fact]
+    public async Task Handle_Throws_WhenPickpocketingALiveNonHumanoidCreature()
+    {
+        // Arrange
+        var beast = Builders.MakeCreature(
+            WorldId,
+            locationId: _theftLocationId,
+            creatureType: CreatureType.Beast
+        );
+        var item = await SeedItem(beast.Id, OwnerType.Creature);
+        _context.Creatures.Add(beast);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            AttemptTheft(new ItemOwnerReference(beast.Id, OwnerType.Creature), item)
+        );
+
+        Assert.Equal(
+            $"{beast.Name} cannot be pickpocketed; only humanoid creatures can be.",
+            exception.Message
+        );
+    }
+
+    [Fact]
     public async Task Handle_Throws_WhenContainerOwnerDoesNotExist()
     {
         var container = Builders.MakeContainer(WorldId, _theftLocationId);

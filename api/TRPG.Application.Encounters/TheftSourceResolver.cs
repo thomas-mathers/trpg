@@ -47,6 +47,16 @@ internal class TheftSourceResolver(
     {
         var owner = await GetCreatureOrThrow(from.Id, worldId, cancellationToken);
 
+        if (
+            owner.State != CreatureState.Dead
+            && !CreatureTypes.Humanoid.Contains(owner.CreatureType)
+        )
+        {
+            throw new InvalidOperationException(
+                $"{owner.Name} cannot be pickpocketed; only humanoid creatures can be."
+            );
+        }
+
         return owner.State == CreatureState.Dead
             ? null
             : new TheftSource(
