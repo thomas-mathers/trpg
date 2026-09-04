@@ -234,7 +234,8 @@ internal static class Builders
         int naturalWeaponMinDamage = 3,
         int naturalWeaponMaxDamage = 3,
         Guid? playerCorpseOwnerId = null,
-        Guid? spawnerId = null
+        Guid? spawnerId = null,
+        bool isSneaking = false
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -253,6 +254,7 @@ internal static class Builders
             State = state,
             PlayerCorpseOwnerId = playerCorpseOwnerId,
             SpawnerId = spawnerId,
+            IsSneaking = isSneaking,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,

@@ -153,6 +153,7 @@ public record CreatureStatusSnapshot(
     int Level,
     int Age,
     CreatureState? State,
+    bool IsSneaking,
     int Gold,
     int CurrentHp,
     int MaximumHp,

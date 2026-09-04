@@ -23,6 +23,7 @@ internal static class CreatureMapper
             creature.BirthYear,
             creature.State,
             creature.PlayerCorpseOwnerId,
+            creature.IsSneaking,
             gold,
             stateId,
             creature.LocationId,

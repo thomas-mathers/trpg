@@ -32,7 +32,7 @@ internal class EvaluateTrespassingEncounterCommandHandler(
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
     > getLiveHumanoidWitnessesAtLocation,
-    SkillCheckService skillCheckService,
+    SneakDetectionService sneakDetectionService,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
     ICommandHandler<AddBreakingAndEnteringCrimesCommand> addBreakingAndEnteringCrimes,
@@ -101,9 +101,10 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             return null;
         }
 
-        var isDetected = await skillCheckService.Roll(
+        var isDetected = await sneakDetectionService.RollDetection(
+            command.WorldId,
             player.Id,
-            Skill.Sneak,
+            player.IsSneaking,
             LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
             cancellationToken
         );

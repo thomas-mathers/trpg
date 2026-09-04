@@ -42,6 +42,7 @@ internal class AttemptLockpickCommandHandler(
         IReadOnlyDictionary<Guid, DoorConnector>
     > getDoorConnectorsByConnectorIds,
     SkillCheckService skillCheckService,
+    SneakDetectionService sneakDetectionService,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     IQueryHandler<GetGuardAtLocationQuery, Creature?> getGuardAtLocation,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
@@ -268,9 +269,10 @@ internal class AttemptLockpickCommandHandler(
             return null;
         }
 
-        var isDetected = await skillCheckService.Roll(
+        var isDetected = await sneakDetectionService.RollDetection(
+            command.WorldId,
             player.Id,
-            Skill.Sneak,
+            player.IsSneaking,
             LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
             cancellationToken
         );

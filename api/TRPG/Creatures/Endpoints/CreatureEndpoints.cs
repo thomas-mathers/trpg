@@ -54,6 +54,8 @@ internal static class CreatureEndpoints
             .WithName("EquipCreatureItem");
         app.MapDelete("/creatures/{creatureId:guid}/equipment/{slot}", UnequipItem)
             .WithName("UnequipCreatureItem");
+        app.MapPut("/creatures/{creatureId:guid}/sneaking", SetSneaking)
+            .WithName("SetCreatureSneaking");
         app.MapGet("/creatures/{creatureId:guid}/equipment/preview", GetEquipItemStats)
             .WithName("PreviewCreatureEquipment");
         app.MapGet(
@@ -274,6 +276,21 @@ internal static class CreatureEndpoints
 
         await unequipInventoryItem.Handle(
             new UnequipInventoryItemCommand { CreatureId = creatureId, Slot = slot.ToDataModel() },
+            cancellationToken
+        );
+
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<NoContent> SetSneaking(
+        Guid creatureId,
+        SetSneakingRequest request,
+        [FromServices] ICommandHandler<SetSneakingCommand> setSneaking,
+        CancellationToken cancellationToken
+    )
+    {
+        await setSneaking.Handle(
+            new SetSneakingCommand { CreatureId = creatureId, IsSneaking = request.IsSneaking },
             cancellationToken
         );
 

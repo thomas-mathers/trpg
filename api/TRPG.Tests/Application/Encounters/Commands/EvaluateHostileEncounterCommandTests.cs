@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Creatures;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -12,6 +13,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db) : I
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
+    private readonly TestChanceRoller _chanceRoller = new() { Result = true };
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private EvaluateHostileEncounterCommandHandler _handler = null!;
@@ -23,12 +25,17 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db) : I
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .AddSingleton<IChanceRoller>(_chanceRoller)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<EvaluateHostileEncounterCommandHandler>();
 
         _player.LocationId = _location.Id;
         _context.Locations.Add(_location);
         _context.Creatures.Add(_player);
+        _context.GameSessions.Add(Builders.MakeGameSession(WorldId, _player.Id));
+        _context.CreatureSkills.Add(
+            Builders.MakeCreatureSkill(_player.Id, Skill.Sneak, level: 1, worldId: WorldId)
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -160,5 +167,86 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db) : I
 
         // Assert
         Assert.Equal(awakeMonster.Name, Assert.Single(result!.Members).Name);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNull_WhenSneakingAndTheDetectionRollAvoidsTheGroup()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 1
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, monster.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(monster);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        _player.IsSneaking = true;
+        _chanceRoller.Result = false;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result);
+        await using var verifyContext = db.CreateContext();
+        var sneak = await verifyContext.CreatureSkills.SingleAsync(
+            s => s.CreatureId == _player.Id && s.Skill == Skill.Sneak,
+            TestContext.Current.CancellationToken
+        );
+        Assert.True(sneak.Experience > 0);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesEncounterAndClearsSneaking_WhenSneakingButDetected()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 1
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, monster.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(monster);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        _player.IsSneaking = true;
+        _chanceRoller.Result = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result);
+        await using var verifyContext = db.CreateContext();
+        var persistedPlayer = await verifyContext.Creatures.SingleAsync(
+            c => c.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.False(persistedPlayer.IsSneaking);
+    }
+
+    private sealed class TestChanceRoller : IChanceRoller
+    {
+        public bool Result { get; set; } = true;
+
+        public bool Roll(float chance) => Result;
     }
 }

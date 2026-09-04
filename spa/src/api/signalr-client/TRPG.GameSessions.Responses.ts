@@ -80,6 +80,8 @@ export type CreatureStatusSnapshot = {
     age: number;
     /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
     state?: CreatureState;
+    /** Transpiled from bool */
+    isSneaking: boolean;
     /** Transpiled from int */
     gold: number;
     /** Transpiled from int */

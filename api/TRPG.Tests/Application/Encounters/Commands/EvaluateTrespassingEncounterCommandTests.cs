@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
@@ -25,7 +26,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _player = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        _player = Builders.MakeCreature(WorldId, locationId: _roomLocationId, isSneaking: true);
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsMonitor<LockpickingOptions>>(
@@ -52,6 +53,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
+        _context.GameSessions.Add(Builders.MakeGameSession(WorldId, _player.Id));
         _context.CreatureSkills.Add(
             Builders.MakeCreatureSkill(_player.Id, Skill.Sneak, level: 1, worldId: WorldId)
         );
@@ -197,6 +199,39 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Assert
         Assert.Null(result);
+        await using var verifyContext = db.CreateContext();
+        var sneak = await verifyContext.CreatureSkills.SingleAsync(
+            s => s.CreatureId == _player.Id && s.Skill == Skill.Sneak,
+            TestContext.Current.CancellationToken
+        );
+        Assert.True(sneak.Experience > 0);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsHostileEncounter_WhenPlayerIsNotSneaking_RegardlessOfRoll()
+    {
+        // Arrange — no sneak stance means no chance to avoid detection, whatever the roll says.
+        var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
+        _context.Creatures.Add(occupant);
+        _context.Factions.Add(faction);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
+        await SeedBreakInCrime();
+        await SeedFrontDoor(isLocked: true);
+        _player.IsSneaking = false;
+        _chanceRoller.Result = false;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result);
+        var member = Assert.Single(result.Members);
+        Assert.Equal(occupant.Id, member.Id);
     }
 
     private async Task SeedBreakInCrime()
