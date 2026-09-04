@@ -6,6 +6,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
@@ -49,6 +50,8 @@ internal class AttemptTheftCommandHandler(
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     SkillCheckService skillCheckService,
+    SneakDetectionService sneakDetectionService,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<
@@ -145,14 +148,13 @@ internal class AttemptTheftCommandHandler(
             equippedItemCount
         );
 
-        var isDetected =
-            requiresTheftDetectionRoll
-            && await skillCheckService.Roll(
-                command.PlayerId,
-                source.Skill,
-                curve,
-                cancellationToken
-            );
+        var isDetected = await RollDetection(
+            command,
+            source,
+            requiresTheftDetectionRoll,
+            curve,
+            cancellationToken
+        );
 
         if (isDetected)
         {
@@ -184,6 +186,43 @@ internal class AttemptTheftCommandHandler(
         return undetectedTheft;
     }
 
+    private async Task<bool> RollDetection(
+        AttemptTheftCommand command,
+        TheftSource source,
+        bool requiresTheftDetectionRoll,
+        SkillCheckCurve curve,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!requiresTheftDetectionRoll)
+        {
+            return false;
+        }
+
+        if (source.Skill != Skill.Sneak)
+        {
+            return await skillCheckService.Roll(
+                command.PlayerId,
+                source.Skill,
+                curve,
+                cancellationToken
+            );
+        }
+
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = command.PlayerId },
+            cancellationToken
+        );
+
+        return await sneakDetectionService.RollDetection(
+            command.WorldId,
+            command.PlayerId,
+            player!.IsSneaking,
+            curve,
+            cancellationToken
+        );
+    }
+
     private async Task<TheftAttemptResult> ResolveUndetectedTheft(
         AttemptTheftCommand command,
         TheftSource source,
@@ -211,7 +250,8 @@ internal class AttemptTheftCommandHandler(
             cancellationToken
         );
 
-        if (requiresTheftDetectionRoll)
+        // Sneak-sourced theft already grants its XP inside SneakDetectionService.RollDetection.
+        if (requiresTheftDetectionRoll && source.Skill != Skill.Sneak)
         {
             await adjustCreatureSkills.Handle(
                 new AdjustCreatureSkillsCommand

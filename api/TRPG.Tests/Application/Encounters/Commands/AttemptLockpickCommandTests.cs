@@ -25,7 +25,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _player = Builders.MakeCreature(WorldId, locationId: _exteriorLocationId);
+        _player = Builders.MakeCreature(WorldId, locationId: _exteriorLocationId, isSneaking: true);
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsMonitor<LockpickingOptions>>(
@@ -200,6 +200,59 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         var guardEncounter = Assert.IsType<GuardEncounter>(result.Encounter);
         Assert.Equal(guard.Id, guardEncounter.GuardCreatureId);
         Assert.Equal(faction.Id, guardEncounter.CityFactionId);
+    }
+
+    [Fact]
+    public async Task Handle_StartsGuardEncounter_WhenPlayerIsNotSneaking_RegardlessOfRoll()
+    {
+        // Arrange — no sneak stance means no chance to avoid detection, whatever the roll says.
+        var destinationLocationId = Guid.NewGuid();
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
+        var room = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            locationId: destinationLocationId
+        );
+        var location = Builders.MakeLocation(
+            worldId: WorldId,
+            id: destinationLocationId,
+            roomId: room.Id
+        );
+        var guard = Builders.MakeCreature(
+            WorldId,
+            profession: Profession.Guard,
+            locationId: _exteriorLocationId
+        );
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(location);
+        _context.Creatures.Add(guard);
+        _context.Factions.Add(faction);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, guard.Id));
+        var connectorId = Guid.NewGuid();
+        _context.DoorConnectors.Add(
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
+        );
+        _player.IsSneaking = false;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _chanceRoller.Result = false;
+
+        // Act
+        var result = await _handler.Handle(
+            new AttemptLockpickCommand
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                ConnectorId = connectorId,
+                DestinationLocationId = destinationLocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var guardEncounter = Assert.IsType<GuardEncounter>(result.Encounter);
+        Assert.Equal(guard.Id, guardEncounter.GuardCreatureId);
     }
 
     [Fact]

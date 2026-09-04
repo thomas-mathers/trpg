@@ -9,6 +9,7 @@ import {
   handleGetCreatureInventory,
   handleGetQuestJournal,
   handleGetTrade,
+  handleGetWorkstationInventory,
 } from '@/api/client/msw.gen';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
@@ -183,6 +184,29 @@ describe('NearbyPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Transfer Items' })).toBeVisible();
     expect(screen.getByRole('region', { name: "Wooden Chest's inventory" })).toBeVisible();
+  });
+
+  it('opens a nearby trade workstation inventory when clicked', async () => {
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+      handleGetWorkstationInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+    );
+    const sceneWithWorkstation = {
+      ...scene(undefined),
+      nearbyProps: [
+        { id: 'workstation-id', name: 'Trading Counter', description: '', type: 'Trade' },
+      ],
+    };
+    const { user } = renderPanel(sceneWithWorkstation);
+
+    await user.click(screen.getByRole('button', { name: 'Trading Counter' }));
+
+    expect(await screen.findByRole('heading', { name: 'Transfer Items' })).toBeVisible();
+    expect(screen.getByRole('region', { name: "Trading Counter's inventory" })).toBeVisible();
   });
 
   it('opens the sleep dialog from a nearby bed', async () => {

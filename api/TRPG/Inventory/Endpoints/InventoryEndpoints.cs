@@ -51,6 +51,8 @@ internal static class InventoryEndpoints
             .WithName("GetSessionItem");
         app.MapGet("/containers/{containerId:guid}/inventory", GetContainerInventory)
             .WithName("GetContainerInventory");
+        app.MapGet("/workstations/{workstationId:guid}/inventory", GetWorkstationInventory)
+            .WithName("GetWorkstationInventory");
     }
 
     private static async Task<Ok<InventorySummary>> GetContainerInventory(
@@ -63,6 +65,23 @@ internal static class InventoryEndpoints
             new GetInventoryByOwnerQuery
             {
                 Owner = new ItemOwnerReference(containerId, OwnerType.Container),
+            },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(snapshot.ToSummary([]));
+    }
+
+    private static async Task<Ok<InventorySummary>> GetWorkstationInventory(
+        Guid workstationId,
+        [FromServices] IQueryHandler<GetInventoryByOwnerQuery, InventoryResult> getInventoryByOwner,
+        CancellationToken cancellationToken
+    )
+    {
+        var snapshot = await getInventoryByOwner.Handle(
+            new GetInventoryByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(workstationId, OwnerType.Workstation),
             },
             cancellationToken
         );

@@ -162,6 +162,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
     entityType: 'Building' as const,
   }));
   const nearbyContainers = scene.nearbyProps.filter((prop) => prop.type === 'Container');
+  const nearbyTradeWorkstations = scene.nearbyProps.filter((prop) => prop.type === 'Trade');
   const nearbyBeds = scene.nearbyProps.filter((prop) => prop.type === 'Bed');
 
   return (
@@ -240,6 +241,35 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                   className="cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2"
                 >
                   {container.name}
+                </button>
+              </span>
+            </div>
+          ))
+        )}
+      </Section>
+
+      <Section title="Nearby Workstations">
+        {nearbyTradeWorkstations.length === 0 ? (
+          <EmptyState />
+        ) : (
+          nearbyTradeWorkstations.map((workstation) => (
+            <div key={workstation.id} className="flex items-center justify-between gap-2 py-1.5">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <GiShoppingBag className="text-muted-foreground size-[18px] shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInventoryTarget({
+                      id: workstation.id,
+                      name: workstation.name,
+                      ownerType: 'Workstation',
+                      transfersEnabled: true,
+                    });
+                    setIsTransferOpen(true);
+                  }}
+                  className="cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2"
+                >
+                  {workstation.name}
                 </button>
               </span>
             </div>

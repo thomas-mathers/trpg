@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptQuest, allocateCreatureAttributePoints, completeQuest, completeTrade, createSession, createWorld, dropInventoryItem, dropWorld, equipCreatureItem, getAbilitiesBySkill, getContainerInventory, getCreatureAbilities, getCreatureAttributePoints, getCreatureAttributes, getCreatureBaseAttributes, getCreatureBasicAttackDamage, getCreatureConsumables, getCreatureGenerationOptions, getCreatureInventory, getCreatureLevel, getCreatureSkills, getJob, getNearbyCorpses, getPlayerFight, getPlayerFightAbilities, getQuestJournal, getSessionItem, getSessionLoreAnchor, getSessionScene, getTheftDetectionChance, getTrade, getWorldMap, listSessionLoreAnchors, listWorlds, type Options, previewCreatureBasicAttackDamage, previewCreatureEquipment, proposeTrade, setQuestTracking, transferInventory, unequipCreatureItem } from '../sdk.gen';
-import type { AcceptQuestData, AcceptQuestError, AcceptQuestResponse, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponse, CompleteQuestData, CompleteQuestError, CompleteQuestResponse, CompleteTradeData, CompleteTradeResponse, CreateSessionData, CreateSessionResponse, CreateWorldData, CreateWorldResponse, DropInventoryItemData, DropInventoryItemError, DropInventoryItemResponse, DropWorldData, DropWorldResponse, EquipCreatureItemData, EquipCreatureItemResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetContainerInventoryData, GetContainerInventoryResponse, GetCreatureAbilitiesData, GetCreatureAbilitiesResponse, GetCreatureAttributePointsData, GetCreatureAttributePointsResponse, GetCreatureAttributesData, GetCreatureAttributesResponse, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponse, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponse, GetCreatureConsumablesData, GetCreatureConsumablesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreatureInventoryData, GetCreatureInventoryResponse, GetCreatureLevelData, GetCreatureLevelResponse, GetCreatureSkillsData, GetCreatureSkillsResponse, GetJobData, GetJobResponse, GetNearbyCorpsesData, GetNearbyCorpsesResponse, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponse, GetPlayerFightData, GetPlayerFightResponse, GetQuestJournalData, GetQuestJournalResponse, GetSessionItemData, GetSessionItemResponse, GetSessionLoreAnchorData, GetSessionLoreAnchorResponse, GetSessionSceneData, GetSessionSceneResponse, GetTheftDetectionChanceData, GetTheftDetectionChanceResponse, GetTradeData, GetTradeResponse, GetWorldMapData, GetWorldMapResponse, ListSessionLoreAnchorsData, ListSessionLoreAnchorsResponse, ListWorldsData, ListWorldsResponse, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponse, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponse, ProposeTradeData, ProposeTradeResponse, SetQuestTrackingData, SetQuestTrackingError, SetQuestTrackingResponse, TransferInventoryData, TransferInventoryError, TransferInventoryResponse, UnequipCreatureItemData, UnequipCreatureItemResponse } from '../types.gen';
+import { acceptQuest, allocateCreatureAttributePoints, completeQuest, completeTrade, createSession, createWorld, dropInventoryItem, dropWorld, equipCreatureItem, getAbilitiesBySkill, getContainerInventory, getCreatureAbilities, getCreatureAttributePoints, getCreatureAttributes, getCreatureBaseAttributes, getCreatureBasicAttackDamage, getCreatureConsumables, getCreatureGenerationOptions, getCreatureInventory, getCreatureLevel, getCreatureSkills, getJob, getNearbyCorpses, getPlayerFight, getPlayerFightAbilities, getQuestJournal, getSessionItem, getSessionLoreAnchor, getSessionScene, getTheftDetectionChance, getTrade, getWorkstationInventory, getWorldMap, listSessionLoreAnchors, listWorlds, type Options, previewCreatureBasicAttackDamage, previewCreatureEquipment, proposeTrade, setCreatureSneaking, setQuestTracking, transferInventory, unequipCreatureItem } from '../sdk.gen';
+import type { AcceptQuestData, AcceptQuestError, AcceptQuestResponse, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponse, CompleteQuestData, CompleteQuestError, CompleteQuestResponse, CompleteTradeData, CompleteTradeResponse, CreateSessionData, CreateSessionResponse, CreateWorldData, CreateWorldResponse, DropInventoryItemData, DropInventoryItemError, DropInventoryItemResponse, DropWorldData, DropWorldResponse, EquipCreatureItemData, EquipCreatureItemResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetContainerInventoryData, GetContainerInventoryResponse, GetCreatureAbilitiesData, GetCreatureAbilitiesResponse, GetCreatureAttributePointsData, GetCreatureAttributePointsResponse, GetCreatureAttributesData, GetCreatureAttributesResponse, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponse, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponse, GetCreatureConsumablesData, GetCreatureConsumablesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreatureInventoryData, GetCreatureInventoryResponse, GetCreatureLevelData, GetCreatureLevelResponse, GetCreatureSkillsData, GetCreatureSkillsResponse, GetJobData, GetJobResponse, GetNearbyCorpsesData, GetNearbyCorpsesResponse, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponse, GetPlayerFightData, GetPlayerFightResponse, GetQuestJournalData, GetQuestJournalResponse, GetSessionItemData, GetSessionItemResponse, GetSessionLoreAnchorData, GetSessionLoreAnchorResponse, GetSessionSceneData, GetSessionSceneResponse, GetTheftDetectionChanceData, GetTheftDetectionChanceResponse, GetTradeData, GetTradeResponse, GetWorkstationInventoryData, GetWorkstationInventoryResponse, GetWorldMapData, GetWorldMapResponse, ListSessionLoreAnchorsData, ListSessionLoreAnchorsResponse, ListWorldsData, ListWorldsResponse, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponse, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponse, ProposeTradeData, ProposeTradeResponse, SetCreatureSneakingData, SetCreatureSneakingResponse, SetQuestTrackingData, SetQuestTrackingError, SetQuestTrackingResponse, TransferInventoryData, TransferInventoryError, TransferInventoryResponse, UnequipCreatureItemData, UnequipCreatureItemResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -264,6 +264,20 @@ export const unequipCreatureItemMutation = (options?: Partial<Options<UnequipCre
     const mutationOptions: UseMutationOptions<UnequipCreatureItemResponse, DefaultError, Options<UnequipCreatureItemData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await unequipCreatureItem({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const setCreatureSneakingMutation = (options?: Partial<Options<SetCreatureSneakingData>>): UseMutationOptions<SetCreatureSneakingResponse, DefaultError, Options<SetCreatureSneakingData>> => {
+    const mutationOptions: UseMutationOptions<SetCreatureSneakingResponse, DefaultError, Options<SetCreatureSneakingData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await setCreatureSneaking({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -566,6 +580,21 @@ export const getContainerInventoryOptions = (options: Options<GetContainerInvent
         return data;
     },
     queryKey: getContainerInventoryQueryKey(options)
+});
+
+export const getWorkstationInventoryQueryKey = (options: Options<GetWorkstationInventoryData>) => createQueryKey('getWorkstationInventory', options);
+
+export const getWorkstationInventoryOptions = (options: Options<GetWorkstationInventoryData>) => queryOptions<GetWorkstationInventoryResponse, DefaultError, GetWorkstationInventoryResponse, ReturnType<typeof getWorkstationInventoryQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWorkstationInventory({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWorkstationInventoryQueryKey(options)
 });
 
 export const getQuestJournalQueryKey = (options: Options<GetQuestJournalData>) => createQueryKey('getQuestJournal', options);

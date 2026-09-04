@@ -190,6 +190,7 @@ export type CreatureStatusSnapshot = {
     level: number;
     age: number;
     state: null | CreatureState;
+    isSneaking: boolean;
     gold: number;
     currentHp: number;
     maximumHp: number;
@@ -685,6 +686,10 @@ export type SetQuestTrackingRequest = {
     isTracked: boolean;
 };
 
+export type SetSneakingRequest = {
+    isSneaking: boolean;
+};
+
 export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Pickpocketing' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking' | 'Lockpicking';
 
 export type SkillProgressSummary = {
@@ -1030,6 +1035,24 @@ export type UnequipCreatureItemResponses = {
 };
 
 export type UnequipCreatureItemResponse = UnequipCreatureItemResponses[keyof UnequipCreatureItemResponses];
+
+export type SetCreatureSneakingData = {
+    body: SetSneakingRequest;
+    path: {
+        creatureId: string;
+    };
+    query?: never;
+    url: '/creatures/{creatureId}/sneaking';
+};
+
+export type SetCreatureSneakingResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type SetCreatureSneakingResponse = SetCreatureSneakingResponses[keyof SetCreatureSneakingResponses];
 
 export type PreviewCreatureEquipmentData = {
     body?: never;
@@ -1482,6 +1505,24 @@ export type GetContainerInventoryResponses = {
 };
 
 export type GetContainerInventoryResponse = GetContainerInventoryResponses[keyof GetContainerInventoryResponses];
+
+export type GetWorkstationInventoryData = {
+    body?: never;
+    path: {
+        workstationId: string;
+    };
+    query?: never;
+    url: '/workstations/{workstationId}/inventory';
+};
+
+export type GetWorkstationInventoryResponses = {
+    /**
+     * OK
+     */
+    200: InventorySummary;
+};
+
+export type GetWorkstationInventoryResponse = GetWorkstationInventoryResponses[keyof GetWorkstationInventoryResponses];
 
 export type GetQuestJournalData = {
     body?: never;

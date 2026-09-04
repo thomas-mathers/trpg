@@ -12,6 +12,7 @@ public record CreatureResult(
     int BirthYear,
     CreatureState State,
     Guid? PlayerCorpseOwnerId,
+    bool IsSneaking,
     int Gold,
     Guid StateId,
     Guid LocationId,

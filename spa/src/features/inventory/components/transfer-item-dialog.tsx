@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Eye, User } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { GiChest, GiTombstone } from 'react-icons/gi';
+import { GiChest, GiShoppingBag, GiTombstone } from 'react-icons/gi';
 
 import {
   getContainerInventoryOptions,
   getCreatureInventoryOptions,
   getTheftDetectionChance,
+  getWorkstationInventoryOptions,
   transferInventoryMutation,
 } from '@/api/client';
 import type { ItemDetail, OwnerType } from '@/api/client';
@@ -101,13 +102,23 @@ function TransferDialogBody({
     ...getContainerInventoryOptions({ path: { containerId: target.id } }),
     enabled: target.ownerType === 'Container',
   });
+  const targetWorkstationInventory = useQuery({
+    ...getWorkstationInventoryOptions({ path: { workstationId: target.id } }),
+    enabled: target.ownerType === 'Workstation',
+  });
   const targetInventoryOptions =
     target.ownerType === 'Creature'
       ? getCreatureInventoryOptions({ path: { creatureId: target.id } })
-      : getContainerInventoryOptions({ path: { containerId: target.id } });
+      : target.ownerType === 'Container'
+        ? getContainerInventoryOptions({ path: { containerId: target.id } })
+        : getWorkstationInventoryOptions({ path: { workstationId: target.id } });
   const playerInventory = useQuery(getCreatureInventoryOptions({ path: { creatureId: playerId } }));
   const targetInventory =
-    target.ownerType === 'Creature' ? targetCreatureInventory : targetContainerInventory;
+    target.ownerType === 'Creature'
+      ? targetCreatureInventory
+      : target.ownerType === 'Container'
+        ? targetContainerInventory
+        : targetWorkstationInventory;
   const transfer = useMutation(transferInventoryMutation());
   const transferDraft = useTransferDraft(playerInventory.data?.items, targetInventory.data?.items);
   const theftItems = [...transferDraft.otherSelection].map(([itemId, quantity]) => ({
@@ -255,8 +266,10 @@ function TransferDialogBody({
             <>
               {target.ownerType === 'Creature' ? (
                 <GiTombstone className="text-muted-foreground size-4" />
-              ) : (
+              ) : target.ownerType === 'Container' ? (
                 <GiChest className="text-muted-foreground size-4" />
+              ) : (
+                <GiShoppingBag className="text-muted-foreground size-4" />
               )}{' '}
               {target.name}
             </>

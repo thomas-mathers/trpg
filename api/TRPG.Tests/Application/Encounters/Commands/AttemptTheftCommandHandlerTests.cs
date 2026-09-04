@@ -29,7 +29,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _player = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        _player = Builders.MakeCreature(WorldId, locationId: _theftLocationId, isSneaking: true);
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsMonitor<TheftOptions>>(
@@ -219,6 +219,28 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db) : IAsync
                 .CrimeWitnesses.Where(crimeWitness => crimeWitness.CreatureId == witness.Id)
                 .ToArrayAsync(TestContext.Current.CancellationToken)
         );
+    }
+
+    [Fact]
+    public async Task Handle_DetectsContainerTheft_WhenPlayerIsNotSneaking_RegardlessOfRoll()
+    {
+        // Arrange — no sneak stance means no chance to avoid detection, whatever the roll says.
+        var owner = Builders.MakeCreature(WorldId, locationId: _theftLocationId);
+        var container = Builders.MakeContainer(WorldId, _theftLocationId);
+        container.OwnerCreatureId = owner.Id;
+        var item = await SeedItem(container.Id, OwnerType.Container);
+        _context.Creatures.Add(owner);
+        _context.Props.Add(container);
+        _player.IsSneaking = false;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _chanceRoller.Result = false;
+
+        var result = await AttemptTheft(
+            new ItemOwnerReference(container.Id, OwnerType.Container),
+            item
+        );
+
+        Assert.Equal(TheftAttemptOutcome.EncounterPending, result.Outcome);
     }
 
     [Fact]

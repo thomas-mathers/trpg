@@ -120,6 +120,7 @@ public class Creature
     public TimeSpan? RestedUntilPlaytime { get; set; }
     public Guid? SpawnerId { get; set; }
     public CreatureState State { get; set; }
+    public bool IsSneaking { get; set; }
     public Guid WorldId { get; init; }
 
     public int Strength { get; set; }

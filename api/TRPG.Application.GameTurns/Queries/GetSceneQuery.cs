@@ -181,6 +181,7 @@ internal class GetSceneQueryHandler(
             currentYear - creature.BirthYear,
             factionNames,
             state,
+            creature.IsSneaking,
             reputation,
             creature.Gold,
             creature.CurrentHp,

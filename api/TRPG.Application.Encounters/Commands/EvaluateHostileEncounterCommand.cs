@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
+using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Reputations.Queries;
@@ -26,7 +29,9 @@ internal class EvaluateHostileEncounterCommandHandler(
         IReadOnlyCollection<Reputation>
     > getReputationsByCreatureId,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
-    ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter
+    ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
+    SneakDetectionService sneakDetectionService,
+    IOptionsMonitor<SneakOptions> sneakOptions
 ) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(
@@ -98,6 +103,18 @@ internal class EvaluateHostileEncounterCommandHandler(
 
         var selectedGroupId = HostileEncounterInitiationResolver.Resolve(player!.Level, candidates);
         if (selectedGroupId == null)
+        {
+            return null;
+        }
+
+        var isDetected = await sneakDetectionService.RollDetection(
+            command.WorldId,
+            player.Id,
+            player.IsSneaking,
+            SneakChanceCalculator.BuildHostileDetectionCurve(sneakOptions.CurrentValue),
+            cancellationToken
+        );
+        if (!isDetected)
         {
             return null;
         }
