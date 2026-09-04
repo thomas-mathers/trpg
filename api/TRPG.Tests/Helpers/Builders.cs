@@ -983,8 +983,7 @@ internal static class Builders
     public static GameSession MakeGameSession(
         Guid worldId,
         Guid playerId,
-        TimeSpan playtime = default,
-        Guid? trespassingBuildingId = null
+        TimeSpan playtime = default
     )
     {
         return new GameSession
@@ -992,7 +991,6 @@ internal static class Builders
             WorldId = worldId,
             PlayerId = playerId,
             Playtime = playtime,
-            TrespassingBuildingId = trespassingBuildingId,
         };
     }
 

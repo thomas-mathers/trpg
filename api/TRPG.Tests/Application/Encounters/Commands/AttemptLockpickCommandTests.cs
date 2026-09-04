@@ -13,10 +13,7 @@ namespace TRPG.Tests.Application.Encounters.Commands;
 [Collection("Database")]
 public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    // Instance field, not the usual shared static: SetTrespassingBuildingCommand/
-    // GetTrespassingBuildingIdQuery treat GameSession as one-per-world, so a WorldId shared across
-    // every [Fact] in this class would leave multiple GameSession rows under the same WorldId.
-    private readonly Guid _worldId = Guid.NewGuid();
+    private static readonly Guid WorldId = Guid.NewGuid();
 
     private readonly Guid _exteriorLocationId = Guid.NewGuid();
     private readonly TestChanceRoller _chanceRoller = new() { Result = true };
@@ -28,7 +25,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _player = Builders.MakeCreature(_worldId, locationId: _exteriorLocationId);
+        _player = Builders.MakeCreature(WorldId, locationId: _exteriorLocationId);
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsMonitor<LockpickingOptions>>(
@@ -42,11 +39,11 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         _handler = _serviceProvider.GetRequiredService<AttemptLockpickCommandHandler>();
 
         _context.Creatures.Add(_player);
-        _context.Locations.Add(Builders.MakeLocation(worldId: _worldId, id: _exteriorLocationId));
-        _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _player.Id));
+        _context.Locations.Add(Builders.MakeLocation(worldId: WorldId, id: _exteriorLocationId));
+        _context.GameSessions.Add(Builders.MakeGameSession(WorldId, _player.Id));
         _context.CreatureSkills.AddRange(
-            Builders.MakeCreatureSkill(_player.Id, Skill.Lockpicking, level: 1, worldId: _worldId),
-            Builders.MakeCreatureSkill(_player.Id, Skill.Sneak, level: 1, worldId: _worldId)
+            Builders.MakeCreatureSkill(_player.Id, Skill.Lockpicking, level: 1, worldId: WorldId),
+            Builders.MakeCreatureSkill(_player.Id, Skill.Sneak, level: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -63,7 +60,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         // Arrange
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: false, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: false, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -72,7 +69,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = Guid.NewGuid(),
             },
@@ -89,7 +86,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         // Arrange
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = true;
@@ -99,7 +96,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = Guid.NewGuid(),
             },
@@ -125,7 +122,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         // Arrange
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = false;
@@ -135,7 +132,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = Guid.NewGuid(),
             },
@@ -158,32 +155,32 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     {
         // Arrange
         var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
         var room = Builders.MakeRoom(
             building.Id,
-            worldId: _worldId,
+            worldId: WorldId,
             locationId: destinationLocationId
         );
         var location = Builders.MakeLocation(
-            worldId: _worldId,
+            worldId: WorldId,
             id: destinationLocationId,
             roomId: room.Id
         );
         var guard = Builders.MakeCreature(
-            _worldId,
+            WorldId,
             profession: Profession.Guard,
             locationId: _exteriorLocationId
         );
-        var faction = Builders.MakeFaction(worldId: _worldId, isCityFaction: true);
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
         _context.Creatures.Add(guard);
         _context.Factions.Add(faction);
-        _context.FactionMembers.Add(Builders.MakeFactionMember(_worldId, faction.Id, guard.Id));
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, guard.Id));
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = true;
@@ -193,7 +190,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = destinationLocationId,
             },
@@ -213,27 +210,44 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         // Arrange — the player already broke into this building earlier, and is now picking a
         // second, interior lock while still inside.
         var roomLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
-        var room = Builders.MakeRoom(building.Id, worldId: _worldId, locationId: roomLocationId);
-        var location = Builders.MakeLocation(
-            worldId: _worldId,
-            id: roomLocationId,
-            roomId: room.Id
-        );
-        var occupant = Builders.MakeCreature(_worldId, locationId: roomLocationId);
-        var faction = Builders.MakeFaction(worldId: _worldId, isCityFaction: true);
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
+        var room = Builders.MakeRoom(building.Id, worldId: WorldId, locationId: roomLocationId);
+        var location = Builders.MakeLocation(worldId: WorldId, id: roomLocationId, roomId: room.Id);
+        var occupant = Builders.MakeCreature(WorldId, locationId: roomLocationId);
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
         _player.LocationId = roomLocationId;
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
         _context.Creatures.Add(occupant);
         _context.Factions.Add(faction);
-        _context.FactionMembers.Add(Builders.MakeFactionMember(_worldId, faction.Id, occupant.Id));
-        _context.GameSessions.Single(s => s.WorldId == _worldId).TrespassingBuildingId =
-            building.Id;
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
+        _context.Crimes.Add(
+            new BreakingAndEnteringCrime
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = roomLocationId,
+                BuildingId = building.Id,
+                BuildingName = building.Name,
+            }
+        );
+        var frontDoorOriginLocationId = Guid.NewGuid();
+        _context.Locations.Add(
+            Builders.MakeLocation(worldId: WorldId, id: frontDoorOriginLocationId)
+        );
+        var frontDoorConnector = Builders.MakeLocationConnector(
+            frontDoorOriginLocationId,
+            roomLocationId,
+            worldId: WorldId
+        );
+        _context.LocationConnectors.Add(frontDoorConnector);
+        _context.DoorConnectors.Add(
+            Builders.MakeDoorConnector(frontDoorConnector.Id, isLocked: true, worldId: WorldId)
+        );
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = true;
@@ -243,7 +257,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = Guid.NewGuid(),
             },
@@ -258,28 +272,28 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     [Fact]
-    public async Task Handle_DoesNotRecordCrimeOrFlagTrespassing_WhenTheBuildingIsOwnedByThePlayer()
+    public async Task Handle_DoesNotRecordCrime_WhenTheBuildingIsOwnedByThePlayer()
     {
         // Arrange
         var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
         var room = Builders.MakeRoom(
             building.Id,
-            worldId: _worldId,
+            worldId: WorldId,
             locationId: destinationLocationId
         );
         var location = Builders.MakeLocation(
-            worldId: _worldId,
+            worldId: WorldId,
             id: destinationLocationId,
             roomId: room.Id
         );
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
-        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(building.Id, _player.Id, _worldId));
+        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(building.Id, _player.Id, WorldId));
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = true;
@@ -289,7 +303,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = destinationLocationId,
             },
@@ -307,11 +321,6 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
                 .Crimes.OfType<BreakingAndEnteringCrime>()
                 .AnyAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken)
         );
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.WorldId == _worldId,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Null(session.TrespassingBuildingId);
     }
 
     [Fact]
@@ -319,19 +328,19 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     {
         // Arrange — a guard witnessing the pick must not fabricate a crime against an authorized owner.
         var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
         var room = Builders.MakeRoom(
             building.Id,
-            worldId: _worldId,
+            worldId: WorldId,
             locationId: destinationLocationId
         );
         var location = Builders.MakeLocation(
-            worldId: _worldId,
+            worldId: WorldId,
             id: destinationLocationId,
             roomId: room.Id
         );
         var guard = Builders.MakeCreature(
-            _worldId,
+            WorldId,
             profession: Profession.Guard,
             locationId: _exteriorLocationId
         );
@@ -339,10 +348,10 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
         _context.Creatures.Add(guard);
-        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(building.Id, _player.Id, _worldId));
+        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(building.Id, _player.Id, WorldId));
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = true;
@@ -352,7 +361,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = destinationLocationId,
             },
@@ -371,18 +380,18 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     [Fact]
-    public async Task Handle_RecordsCrimeAndFlagsTrespassing_WhenTheDoorOpensIntoAnUnauthorizedBuildingWithNoWitnesses()
+    public async Task Handle_RecordsCrime_WhenTheDoorOpensIntoAnUnauthorizedBuildingWithNoWitnesses()
     {
         // Arrange — a clean, unwitnessed break-in should still leave a permanent record.
         var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
         var room = Builders.MakeRoom(
             building.Id,
-            worldId: _worldId,
+            worldId: WorldId,
             locationId: destinationLocationId
         );
         var location = Builders.MakeLocation(
-            worldId: _worldId,
+            worldId: WorldId,
             id: destinationLocationId,
             roomId: room.Id
         );
@@ -391,7 +400,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Locations.Add(location);
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: _worldId)
+            Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _chanceRoller.Result = true;
@@ -401,7 +410,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = destinationLocationId,
             },
@@ -424,11 +433,6 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
                 TestContext.Current.CancellationToken
             )
         );
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.WorldId == _worldId,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(building.Id, session.TrespassingBuildingId);
     }
 
     [Fact]
@@ -437,14 +441,14 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         // Arrange — the door's raw IsLocked flag is schedule-owned and never touched by a pick, so
         // the key is the only thing that keeps a picked door passable afterward.
         var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.House);
+        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
         var room = Builders.MakeRoom(
             building.Id,
-            worldId: _worldId,
+            worldId: WorldId,
             locationId: destinationLocationId
         );
         var location = Builders.MakeLocation(
-            worldId: _worldId,
+            worldId: WorldId,
             id: destinationLocationId,
             roomId: room.Id
         );
@@ -458,7 +462,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
                 connectorId,
                 isLocked: true,
                 lockLevel: 1,
-                worldId: _worldId,
+                worldId: WorldId,
                 id: doorId
             )
         );
@@ -470,7 +474,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             new AttemptLockpickCommand
             {
                 PlayerId = _player.Id,
-                WorldId = _worldId,
+                WorldId = WorldId,
                 ConnectorId = connectorId,
                 DestinationLocationId = destinationLocationId,
             },

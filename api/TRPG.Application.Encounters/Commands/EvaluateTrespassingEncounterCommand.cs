@@ -5,9 +5,8 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
+using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Factions.Queries;
-using TRPG.Application.GameSessions.Commands;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -25,8 +24,12 @@ internal class EvaluateTrespassingEncounterCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
-    IQueryHandler<GetTrespassingBuildingIdQuery, Guid?> getTrespassingBuildingId,
-    ICommandHandler<SetTrespassingBuildingCommand> setTrespassingBuilding,
+    IQueryHandler<
+        GetBuildingOwnersByBuildingIdQuery,
+        IReadOnlyCollection<BuildingOwner>
+    > getBuildingOwnersByBuildingId,
+    IQueryHandler<HasPlayerBrokenIntoBuildingQuery, bool> hasPlayerBrokenIntoBuilding,
+    IQueryHandler<GetFrontDoorLockedByBuildingIdQuery, bool?> getFrontDoorLockedByBuildingId,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
@@ -53,23 +56,35 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             new GetBuildingByLocationIdQuery { LocationId = player!.LocationId },
             cancellationToken
         );
-
-        var trespassingBuildingId = await getTrespassingBuildingId.Handle(
-            new GetTrespassingBuildingIdQuery { WorldId = command.WorldId },
-            cancellationToken
-        );
-        if (trespassingBuildingId == null)
+        if (building == null)
         {
             return null;
         }
 
-        if (building == null || building.Id != trespassingBuildingId)
+        var owners = await getBuildingOwnersByBuildingId.Handle(
+            new GetBuildingOwnersByBuildingIdQuery { BuildingId = building.Id },
+            cancellationToken
+        );
+        if (owners.Any(owner => owner.OwnerId == player.Id))
         {
-            // The player has moved on from the building they broke into — the flag no longer applies.
-            await setTrespassingBuilding.Handle(
-                new SetTrespassingBuildingCommand { WorldId = command.WorldId, BuildingId = null },
-                cancellationToken
-            );
+            return null;
+        }
+
+        var hasBrokenIn = await hasPlayerBrokenIntoBuilding.Handle(
+            new HasPlayerBrokenIntoBuildingQuery { PlayerId = player.Id, BuildingId = building.Id },
+            cancellationToken
+        );
+        if (!hasBrokenIn)
+        {
+            return null;
+        }
+
+        var isFrontDoorLocked = await getFrontDoorLockedByBuildingId.Handle(
+            new GetFrontDoorLockedByBuildingIdQuery { BuildingId = building.Id },
+            cancellationToken
+        );
+        if (isFrontDoorLocked != true)
+        {
             return null;
         }
 

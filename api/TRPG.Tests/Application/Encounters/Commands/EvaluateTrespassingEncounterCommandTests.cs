@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
@@ -13,10 +12,7 @@ namespace TRPG.Tests.Application.Encounters.Commands;
 [Collection("Database")]
 public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db) : IAsyncLifetime
 {
-    // Instance field, not the usual shared static: SetTrespassingBuildingCommand/
-    // GetTrespassingBuildingIdQuery treat GameSession as one-per-world, so a WorldId shared across
-    // every [Fact] in this class would leave multiple GameSession rows under the same WorldId.
-    private readonly Guid _worldId = Guid.NewGuid();
+    private static readonly Guid WorldId = Guid.NewGuid();
 
     private readonly TestChanceRoller _chanceRoller = new() { Result = true };
     private readonly Guid _buildingId = Guid.NewGuid();
@@ -29,7 +25,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _player = Builders.MakeCreature(_worldId, locationId: _roomLocationId);
+        _player = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsMonitor<LockpickingOptions>>(
@@ -41,13 +37,13 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
             _serviceProvider.GetRequiredService<EvaluateTrespassingEncounterCommandHandler>();
 
         var building = Builders.MakeBuilding(
-            worldId: _worldId,
+            worldId: WorldId,
             buildingType: BuildingType.House,
             id: _buildingId
         );
-        var room = Builders.MakeRoom(_buildingId, worldId: _worldId, locationId: _roomLocationId);
+        var room = Builders.MakeRoom(_buildingId, worldId: WorldId, locationId: _roomLocationId);
         var location = Builders.MakeLocation(
-            worldId: _worldId,
+            worldId: WorldId,
             id: _roomLocationId,
             roomId: room.Id
         );
@@ -57,7 +53,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
         _context.CreatureSkills.Add(
-            Builders.MakeCreatureSkill(_player.Id, Skill.Sneak, level: 1, worldId: _worldId)
+            Builders.MakeCreatureSkill(_player.Id, Skill.Sneak, level: 1, worldId: WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -69,18 +65,70 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ReturnsNull_WhenNotFlaggedAsTrespassing()
+    public async Task Handle_ReturnsNull_WhenPlayerIsNotInsideAnyBuilding()
     {
-        // Arrange — an ordinary visit (e.g. a shop through an unlocked door): no lock was ever
-        // picked, so no GameSession row flags the player as trespassing here, even with an occupant present.
-        var occupant = Builders.MakeCreature(_worldId, locationId: _roomLocationId);
-        _context.Creatures.Add(occupant);
-        _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _player.Id));
+        // Arrange
+        _player.LocationId = Guid.NewGuid();
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = _worldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNull_WhenThePlayerOwnsTheBuilding()
+    {
+        // Arrange — owning the building means it can never be trespassing, regardless of history.
+        await SeedBreakInCrime();
+        await SeedFrontDoor(isLocked: true);
+        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(_buildingId, _player.Id, WorldId));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNull_WhenThePlayerHasNeverBrokenIntoThisBuilding()
+    {
+        // Arrange — an ordinary visit through a currently-locked door isn't suspicious on its own;
+        // it only matters for a player who has actually forced entry here before.
+        await SeedFrontDoor(isLocked: true);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNull_WhenTheFrontDoorIsCurrentlyUnlocked()
+    {
+        // Arrange — a known past break-in doesn't matter while the building is open to the public.
+        var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        _context.Creatures.Add(occupant);
+        await SeedBreakInCrime();
+        await SeedFrontDoor(isLocked: false);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -92,14 +140,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     public async Task Handle_ReturnsNull_WhenNoOneIsPresent()
     {
         // Arrange
-        _context.GameSessions.Add(
-            Builders.MakeGameSession(_worldId, _player.Id, trespassingBuildingId: _buildingId)
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedBreakInCrime();
+        await SeedFrontDoor(isLocked: true);
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = _worldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -111,20 +157,18 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     public async Task Handle_ReturnsHostileEncounterWithTheOccupant_WhenTrespassingAndDetected()
     {
         // Arrange
-        var occupant = Builders.MakeCreature(_worldId, locationId: _roomLocationId);
-        var faction = Builders.MakeFaction(worldId: _worldId, isCityFaction: true);
+        var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
         _context.Creatures.Add(occupant);
         _context.Factions.Add(faction);
-        _context.FactionMembers.Add(Builders.MakeFactionMember(_worldId, faction.Id, occupant.Id));
-        _context.GameSessions.Add(
-            Builders.MakeGameSession(_worldId, _player.Id, trespassingBuildingId: _buildingId)
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
+        await SeedBreakInCrime();
+        await SeedFrontDoor(isLocked: true);
         _chanceRoller.Result = true;
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = _worldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -139,17 +183,15 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     public async Task Handle_ReturnsNull_WhenNotDetected()
     {
         // Arrange
-        var occupant = Builders.MakeCreature(_worldId, locationId: _roomLocationId);
+        var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
         _context.Creatures.Add(occupant);
-        _context.GameSessions.Add(
-            Builders.MakeGameSession(_worldId, _player.Id, trespassingBuildingId: _buildingId)
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedBreakInCrime();
+        await SeedFrontDoor(isLocked: true);
         _chanceRoller.Result = false;
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = _worldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -157,31 +199,35 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         Assert.Null(result);
     }
 
-    [Fact]
-    public async Task Handle_ClearsTheFlag_WhenPlayerHasLeftTheFlaggedBuilding()
+    private async Task SeedBreakInCrime()
     {
-        // Arrange — the session still says the player broke into some other building, but they're
-        // now standing in a different one (or outside), so the flag is stale and should be cleared.
-        var otherBuildingId = Guid.NewGuid();
-        _context.GameSessions.Add(
-            Builders.MakeGameSession(_worldId, _player.Id, trespassingBuildingId: otherBuildingId)
+        _context.Crimes.Add(
+            new BreakingAndEnteringCrime
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = _roomLocationId,
+                BuildingId = _buildingId,
+                BuildingName = "Test Building",
+            }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 
-        // Act
-        var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = _worldId, PlayerId = _player.Id },
-            TestContext.Current.CancellationToken
+    private async Task SeedFrontDoor(bool isLocked)
+    {
+        var originLocationId = Guid.NewGuid();
+        _context.Locations.Add(Builders.MakeLocation(worldId: WorldId, id: originLocationId));
+        var connector = Builders.MakeLocationConnector(
+            originLocationId,
+            _roomLocationId,
+            worldId: WorldId
         );
-
-        // Assert
-        Assert.Null(result);
-        await using var verifyContext = db.CreateContext();
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.WorldId == _worldId,
-            TestContext.Current.CancellationToken
+        _context.LocationConnectors.Add(connector);
+        _context.DoorConnectors.Add(
+            Builders.MakeDoorConnector(connector.Id, isLocked: isLocked, worldId: WorldId)
         );
-        Assert.Null(session.TrespassingBuildingId);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     private sealed class TestOptionsMonitor<T>(T value) : IOptionsMonitor<T>
