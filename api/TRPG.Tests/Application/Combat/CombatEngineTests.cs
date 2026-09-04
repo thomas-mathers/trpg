@@ -797,6 +797,8 @@ public class CombatEngineTests
 
         // Assert
         Assert.Equal(CombatOutcome.Ongoing, state.Outcome);
+        var fleeFailed = Assert.Single(state.Events);
+        Assert.Equal(new FleeFailed(player.Name), fleeFailed);
     }
 
     [Fact]

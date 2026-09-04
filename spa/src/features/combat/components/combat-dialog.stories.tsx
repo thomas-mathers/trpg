@@ -268,6 +268,7 @@ function WorkbenchProviders({
             gameEventBus.emit('CombatUpdated', {
               combatants: current,
               actions: [],
+              messages: [],
               regenerations: [],
               resourceStates: [],
               outcome: 'Fled',
@@ -442,6 +443,7 @@ function simulateRound(fight: CombatantState[], action: SimulatedCombatAction) {
       combatant.isPlayer ? { ...combatant, currentHp: playerHp, isAlive: playerHp > 0 } : combatant,
     ),
     actions,
+    messages: [],
     regenerations: [],
     resourceStates: [],
     outcome: 'Ongoing' as const,

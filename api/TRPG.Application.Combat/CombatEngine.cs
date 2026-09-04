@@ -713,7 +713,7 @@ public class CombatEngine(
                 .OrderByDescending(combatant => combatant.TurnOrder)
                 .Select(combatant => combatant.ToCombatantResult())
                 .ToArray(),
-            Events: [],
+            Events: isCaught ? [new FleeFailed(player.Name)] : [],
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts
         );

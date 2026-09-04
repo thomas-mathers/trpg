@@ -1,6 +1,7 @@
 import type { IStreamResult } from '@microsoft/signalr';
 import { ShieldAlert } from 'lucide-react';
 import { useEffect, useReducer, useState } from 'react';
+import { GiSparkles } from 'react-icons/gi';
 import { toast } from 'sonner';
 
 import type {
@@ -327,6 +328,11 @@ export function useCombat() {
     });
     const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
       dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
+      for (const message of payload.messages) {
+        toast.custom((toastId) => (
+          <GameToast toastId={toastId} icon={GiSparkles} title="Combat" description={message} />
+        ));
+      }
       if (payload.outcome !== 'Ongoing') {
         gameEventBus.emit('CombatOutcomeKnown', payload.outcome);
       }

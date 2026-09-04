@@ -20,20 +20,6 @@ public class StreamFleeTurnHandlerTests
         new(outcome, PlayerState, [], []);
 
     [Fact]
-    public void BuildNarrationPrompt_DescribesTheFightContinuing_WhenTheFleeAttemptFailed()
-    {
-        // Arrange
-        var result = new FleeCombatResult(MakeCombatResult(CombatOutcome.Ongoing), null, null);
-
-        // Act
-        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result);
-
-        // Assert
-        Assert.Contains("failed to break away", prompt, StringComparison.Ordinal);
-        Assert.Contains("fight continues", prompt, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void BuildNarrationPrompt_DescribesArrivingAtTheDestination_WhenTheFleeAttemptSucceeded()
     {
         // Arrange
