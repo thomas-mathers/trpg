@@ -18,12 +18,37 @@ public class CombatEngine(
 {
     public CombatState ProcessRound(
         IReadOnlyList<Combatant> combatants,
-        ResolvedCombatAction action
+        ResolvedCombatAction action,
+        bool isSurpriseRound = false
     )
     {
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
+        var combatEvents = isSurpriseRound
+            ? ProcessTurn(player, action)
+            : ProcessNormalRound(combatants, player, action);
+
+        var outcome = GetCurrentOutcome(player, enemies);
+
+        return new CombatState(
+            Outcome: outcome,
+            Combatants: combatants
+                .OrderByDescending(combatant => combatant.TurnOrder)
+                .Select(combatant => combatant.ToCombatantResult())
+                .ToArray(),
+            Events: combatEvents,
+            WeaponSwingCounts: player.WeaponSwingCounts,
+            SkillUsageCounts: player.SkillUsageCounts
+        );
+    }
+
+    private List<CombatResolution> ProcessNormalRound(
+        IReadOnlyList<Combatant> combatants,
+        Combatant player,
+        ResolvedCombatAction action
+    )
+    {
         var turnOrder = combatants.OrderByTurnOrder();
 
         var combatEvents = turnOrder
@@ -43,18 +68,7 @@ public class CombatEngine(
             }
         }
 
-        var outcome = GetCurrentOutcome(player, enemies);
-
-        return new CombatState(
-            Outcome: outcome,
-            Combatants: combatants
-                .OrderByDescending(combatant => combatant.TurnOrder)
-                .Select(combatant => combatant.ToCombatantResult())
-                .ToArray(),
-            Events: combatEvents,
-            WeaponSwingCounts: player.WeaponSwingCounts,
-            SkillUsageCounts: player.SkillUsageCounts
-        );
+        return combatEvents;
     }
 
     private List<CombatResolution> ProcessTurn(Combatant actor, ResolvedCombatAction action)
@@ -436,7 +450,13 @@ public class CombatEngine(
             );
         }
 
-        var damageResult = damageCalculator.CalculateDamage(attacker, ability, defender, weapon);
+        var damageResult = damageCalculator.CalculateDamage(
+            attacker,
+            ability,
+            defender,
+            weapon,
+            attacker.IsSurpriseAttacker
+        );
         var damage = damageResult.Amount;
 
         defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);

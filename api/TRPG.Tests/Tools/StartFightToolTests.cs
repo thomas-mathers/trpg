@@ -72,6 +72,94 @@ public sealed class StartFightToolTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Invoke_StartsAFightWithASurpriseRound_WhenTheTargetIsSleeping()
+    {
+        // Arrange
+        var target = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: LocationId,
+            name: "Sleeping Wolf",
+            state: CreatureState.Sleeping
+        );
+        _context.Creatures.Add(target);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke(target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var fight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(
+                fight => fight.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.True(fight.HasSurpriseRound);
+    }
+
+    [Fact]
+    public async Task Invoke_StartsAFightWithASurpriseRound_WhenThePlayerIsSneaking()
+    {
+        // Arrange
+        var target = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: LocationId,
+            name: "Alert Wolf",
+            state: CreatureState.Idle
+        );
+        _context.Creatures.Add(target);
+        _player.IsSneaking = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke(target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var fight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(
+                fight => fight.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.True(fight.HasSurpriseRound);
+    }
+
+    [Fact]
+    public async Task Invoke_StartsAFightWithoutASurpriseRound_WhenNeitherSneakingNorTargetAsleep()
+    {
+        // Arrange
+        var target = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: LocationId,
+            name: "Alert Wolf",
+            state: CreatureState.Idle
+        );
+        _context.Creatures.Add(target);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke(target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var fight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(
+                fight => fight.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.False(fight.HasSurpriseRound);
+    }
+
+    [Fact]
     public async Task Invoke_AlertsTheWholeGroup_WhenAtLeastOneMemberIsAwake()
     {
         // Arrange

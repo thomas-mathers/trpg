@@ -377,6 +377,67 @@ public class DamageCalculatorTests
     }
 
     [Fact]
+    public void CalculateDamage_AppliesSneakAttackMultiplier_ForPhysicalAbilities()
+    {
+        // Arrange — 10 base x 2x sneak multiplier = 20
+        var settings = new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions { CritChancePerDexterityPoint = 0f, SneakAttackDamageMultiplier = 2f }
+        );
+        var weapon = MakeFixedRangeWeapon(10);
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithItem(weapon)
+            .WithCombatOptions(settings.Value)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var calculator = new DamageCalculator(settings);
+
+        // Act
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageAmount: 100),
+            defender,
+            isSneakAttack: true
+        );
+
+        // Assert
+        Assert.Equal(20, damage.Amount);
+    }
+
+    [Fact]
+    public void CalculateDamage_IgnoresSneakAttackMultiplier_ForMagicAbilities()
+    {
+        // Arrange — 20 base magic damage, untouched by the sneak-attack multiplier unlike physical
+        var settings = new TestOptionsSnapshot<CombatOptions>(
+            new CombatOptions
+            {
+                CritChancePerDexterityPoint = 0f,
+                IntelligenceDamageLogDivisor = 50f,
+                SneakAttackDamageMultiplier = 2f,
+            }
+        );
+        var attacker = Builders
+            .NewCombatant()
+            .WithWorldId(_worldId)
+            .WithCombatOptions(settings.Value)
+            .Build();
+        var defender = Builders.NewCombatant().WithWorldId(_worldId).Build();
+        var calculator = new DamageCalculator(settings);
+
+        // Act
+        var damage = calculator.CalculateDamage(
+            attacker,
+            Builders.MakeAttackAbility(damageType: DamageType.Magic, damageAmount: 20),
+            defender,
+            isSneakAttack: true
+        );
+
+        // Assert
+        Assert.Equal(20, damage.Amount);
+    }
+
+    [Fact]
     public void EstimateDamage_AppliesExpectedCritBonus_BasedOnDexterity()
     {
         // Arrange — 20 base magic damage, crit chance 100 x 0.01 = 100% capped at 50%; the

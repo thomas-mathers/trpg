@@ -60,6 +60,7 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 EnemyCreatureIds = [_enemy.Id],
+                HasSurpriseRound = false,
             },
             TestContext.Current.CancellationToken
         );

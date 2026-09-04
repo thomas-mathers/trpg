@@ -204,6 +204,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = [command.GuardCreatureId],
+                HasSurpriseRound = false,
             },
             cancellationToken
         );

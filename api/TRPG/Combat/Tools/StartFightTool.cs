@@ -78,6 +78,8 @@ internal class StartFightTool(
             );
         }
 
+        var hasSurpriseRound = player.IsSneaking || target.State == CreatureState.Sleeping;
+
         var enemyCreatureIds = await getEncounterGroupCreatureIds.Handle(
             new GetEncounterGroupCreatureIdsQuery
             {
@@ -103,6 +105,7 @@ internal class StartFightTool(
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
+                HasSurpriseRound = hasSurpriseRound,
             },
             cancellationToken
         );
