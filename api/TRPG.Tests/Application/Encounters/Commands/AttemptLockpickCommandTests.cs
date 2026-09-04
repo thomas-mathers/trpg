@@ -105,8 +105,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
 
         // Assert
         Assert.Equal(LockpickAttemptOutcome.Opened, result.Outcome);
-        Assert.Null(result.GuardEncounter);
-        Assert.Null(result.HostileEncounter);
+        Assert.Null(result.Encounter);
 
         await using var verifyContext = db.CreateContext();
         var lockpicking = await verifyContext.CreatureSkills.FirstAsync(
@@ -198,10 +197,9 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         );
 
         // Assert
-        Assert.NotNull(result.GuardEncounter);
-        Assert.Null(result.HostileEncounter);
-        Assert.Equal(guard.Id, result.GuardEncounter.GuardCreatureId);
-        Assert.Equal(faction.Id, result.GuardEncounter.CityFactionId);
+        var guardEncounter = Assert.IsType<GuardEncounter>(result.Encounter);
+        Assert.Equal(guard.Id, guardEncounter.GuardCreatureId);
+        Assert.Equal(faction.Id, guardEncounter.CityFactionId);
     }
 
     [Fact]
@@ -265,9 +263,8 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         );
 
         // Assert
-        Assert.Null(result.GuardEncounter);
-        Assert.NotNull(result.HostileEncounter);
-        var member = Assert.Single(result.HostileEncounter.Members);
+        var hostileEncounter = Assert.IsType<HostileEncounter>(result.Encounter);
+        var member = Assert.Single(hostileEncounter.Members);
         Assert.Equal(occupant.Id, member.Id);
     }
 
@@ -312,8 +309,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
 
         // Assert
         Assert.Equal(LockpickAttemptOutcome.Opened, result.Outcome);
-        Assert.Null(result.GuardEncounter);
-        Assert.Null(result.HostileEncounter);
+        Assert.Null(result.Encounter);
 
         await using var verifyContext = db.CreateContext();
         Assert.False(
@@ -369,7 +365,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         );
 
         // Assert
-        Assert.Null(result.GuardEncounter);
+        Assert.Null(result.Encounter);
 
         await using var verifyContext = db.CreateContext();
         Assert.False(
@@ -419,8 +415,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
 
         // Assert
         Assert.Equal(LockpickAttemptOutcome.Opened, result.Outcome);
-        Assert.Null(result.GuardEncounter);
-        Assert.Null(result.HostileEncounter);
+        Assert.Null(result.Encounter);
 
         await using var verifyContext = db.CreateContext();
         var crime = await verifyContext

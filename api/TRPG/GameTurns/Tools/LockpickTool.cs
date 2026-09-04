@@ -85,8 +85,8 @@ internal class LockpickTool(
 
         return new LockpickToolResult(
             result.Outcome == LockpickAttemptOutcome.Opened,
-            result.GuardEncounter?.ToMoveToolSummary(),
-            result.HostileEncounter?.ToMoveToolSummary()
+            (result.Encounter as GuardEncounter)?.ToMoveToolSummary(),
+            (result.Encounter as HostileEncounter)?.ToMoveToolSummary()
         );
     }
 }

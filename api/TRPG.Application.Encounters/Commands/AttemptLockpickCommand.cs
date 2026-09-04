@@ -24,11 +24,7 @@ public enum LockpickAttemptOutcome
     Opened,
 }
 
-public record AttemptLockpickResult(
-    LockpickAttemptOutcome Outcome,
-    GuardEncounter? GuardEncounter = null,
-    HostileEncounter? HostileEncounter = null
-);
+public record AttemptLockpickResult(LockpickAttemptOutcome Outcome, Encounter? Encounter = null);
 
 public class AttemptLockpickCommand
 {
@@ -168,11 +164,7 @@ internal class AttemptLockpickCommandHandler(
 
         transaction.Complete();
 
-        return new AttemptLockpickResult(
-            outcome,
-            encounter as GuardEncounter,
-            encounter as HostileEncounter
-        );
+        return new AttemptLockpickResult(outcome, encounter);
     }
 
     private async Task<DoorConnector?> GetLockedDoor(

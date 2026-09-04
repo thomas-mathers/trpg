@@ -9,13 +9,9 @@ public class EvaluateEncountersCommand
     public required Guid PlayerId { get; init; }
 }
 
-public record EncounterEvaluationResult(
-    HostileEncounter? HostileEncounter,
-    GuardEncounter? GuardEncounter,
-    HostileEncounter? TrespassingEncounter = null
-)
+public record EncounterEvaluationResult(Encounter? Encounter)
 {
-    public static readonly EncounterEvaluationResult None = new(null, null);
+    public static readonly EncounterEvaluationResult None = new((Encounter?)null);
 }
 
 internal class EvaluateEncountersCommandHandler(
@@ -42,7 +38,7 @@ internal class EvaluateEncountersCommandHandler(
         );
         if (hostileEncounter != null)
         {
-            return new EncounterEvaluationResult(hostileEncounter, null);
+            return new EncounterEvaluationResult(hostileEncounter);
         }
 
         var guardEncounter = await evaluateGuardEncounter.Handle(
@@ -55,7 +51,7 @@ internal class EvaluateEncountersCommandHandler(
         );
         if (guardEncounter != null)
         {
-            return new EncounterEvaluationResult(null, guardEncounter);
+            return new EncounterEvaluationResult(guardEncounter);
         }
 
         var trespassingEncounter = await evaluateTrespassingEncounter.Handle(
@@ -67,6 +63,6 @@ internal class EvaluateEncountersCommandHandler(
             cancellationToken
         );
 
-        return new EncounterEvaluationResult(null, null, trespassingEncounter);
+        return new EncounterEvaluationResult(trespassingEncounter);
     }
 }
