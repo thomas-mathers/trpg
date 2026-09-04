@@ -25,7 +25,8 @@ internal class EvaluateHostileEncounterCommandHandler(
         GetReputationsByCreatureIdQuery,
         IReadOnlyCollection<Reputation>
     > getReputationsByCreatureId,
-    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter
 ) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(
@@ -115,27 +116,26 @@ internal class EvaluateHostileEncounterCommandHandler(
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Location {player.LocationId} not found.");
 
-        var encounter = new HostileEncounter
-        {
-            WorldId = command.WorldId,
-            PlayerId = command.PlayerId,
-            LocationId = player.LocationId,
-            FactionId = selectedFaction.Id,
-            FactionName = selectedFaction.Name,
-            LocationName = location.Name,
-            Members = selectedLivingMembers
-                .Select(member => new HostileEncounterMemberSnapshot(
-                    member.Id,
-                    member.Name,
-                    member.CreatureType,
-                    member.Level
-                ))
-                .ToList(),
-        };
-        context.Encounters.Add(encounter);
-        await context.SaveChangesAsync(cancellationToken);
-
-        return encounter;
+        return await createHostileEncounter.Handle(
+            new CreateHostileEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                PlayerLocationId = player.LocationId,
+                LocationName = location.Name,
+                FactionId = selectedFaction.Id,
+                FactionName = selectedFaction.Name,
+                Members = selectedLivingMembers
+                    .Select(member => new HostileEncounterMemberSnapshot(
+                        member.Id,
+                        member.Name,
+                        member.CreatureType,
+                        member.Level
+                    ))
+                    .ToArray(),
+            },
+            cancellationToken
+        );
     }
 
     private static HostileEncounterCandidateGroup BuildCandidate(

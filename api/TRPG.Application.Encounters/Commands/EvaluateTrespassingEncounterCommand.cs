@@ -8,7 +8,6 @@ using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -20,7 +19,6 @@ public class EvaluateTrespassingEncounterCommand
 }
 
 internal class EvaluateTrespassingEncounterCommandHandler(
-    IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
@@ -39,6 +37,7 @@ internal class EvaluateTrespassingEncounterCommandHandler(
     IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
     ICommandHandler<AddBreakingAndEnteringCrimesCommand> addBreakingAndEnteringCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
+    ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
     IOptionsMonitor<LockpickingOptions> lockpickingOptions
 ) : ICommandHandler<EvaluateTrespassingEncounterCommand, HostileEncounter?>
 {
@@ -169,27 +168,26 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             cancellationToken
         );
 
-        var encounter = new HostileEncounter
-        {
-            WorldId = command.WorldId,
-            PlayerId = player.Id,
-            LocationId = player.LocationId,
-            LocationName = location?.Name,
-            FactionId = faction.Id,
-            FactionName = faction.Name,
-            Members =
-            [
-                new HostileEncounterMemberSnapshot(
-                    occupant.Id,
-                    occupant.Name,
-                    occupant.CreatureType,
-                    occupant.Level
-                ),
-            ],
-        };
-        context.Encounters.Add(encounter);
-        await context.SaveChangesAsync(cancellationToken);
-
-        return encounter;
+        return await createHostileEncounter.Handle(
+            new CreateHostileEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = player.Id,
+                PlayerLocationId = player.LocationId,
+                LocationName = location?.Name,
+                FactionId = faction.Id,
+                FactionName = faction.Name,
+                Members =
+                [
+                    new HostileEncounterMemberSnapshot(
+                        occupant.Id,
+                        occupant.Name,
+                        occupant.CreatureType,
+                        occupant.Level
+                    ),
+                ],
+            },
+            cancellationToken
+        );
     }
 }
