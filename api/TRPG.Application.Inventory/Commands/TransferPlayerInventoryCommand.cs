@@ -16,7 +16,7 @@ internal class TransferPlayerInventoryCommandHandler(
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
     > transferInventoryItems,
-    QuestItemGuard questItemGuard
+    TradeGuard tradeGuard
 ) : ICommandHandler<TransferPlayerInventoryCommand>
 {
     public async Task Handle(
@@ -34,7 +34,7 @@ internal class TransferPlayerInventoryCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        await questItemGuard.EnsureNotActiveQuestItems(
+        await tradeGuard.EnsureAllTradeable(
             command.Items.Select(item => item.ItemId).ToArray(),
             cancellationToken
         );

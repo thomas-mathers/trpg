@@ -57,7 +57,7 @@ internal class MoveTool(
 
     [DisplayName("move")]
     [Description(
-        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationRoomName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationRoomName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session."
+        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationRoomName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationRoomName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -111,9 +111,9 @@ internal class MoveTool(
 
         var result = new MoveToolResult(
             scene,
-            moveResult.Encounter?.ToMoveToolSummary(),
-            moveResult.GuardEncounter?.ToMoveToolSummary(),
-            moveResult.OverdueRoomKeyEncounter?.ToMoveToolSummary()
+            (moveResult.Encounter as HostileEncounter)?.ToMoveToolSummary(),
+            (moveResult.Encounter as GuardEncounter)?.ToMoveToolSummary(),
+            (moveResult.Encounter as TheftEncounter)?.ToMoveToolSummary()
         );
 
         logger.LogInformation(

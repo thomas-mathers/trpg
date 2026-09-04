@@ -816,8 +816,8 @@ namespace TRPG.Migrations
 
                     b.Property<string>("crime_type")
                         .IsRequired()
-                        .HasMaxLength(5)
-                        .HasColumnType("character varying(5)")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
                         .HasColumnName("crime_type");
 
                     b.HasKey("Id")
@@ -952,6 +952,10 @@ namespace TRPG.Migrations
                     b.Property<bool>("IsLocked")
                         .HasColumnType("boolean")
                         .HasColumnName("is_locked");
+
+                    b.Property<int>("LockLevel")
+                        .HasColumnType("integer")
+                        .HasColumnName("lock_level");
 
                     b.Property<TimeSpan?>("UnlocksAtPlaytime")
                         .HasColumnType("interval")
@@ -1260,6 +1264,10 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool>("CanTrade")
+                        .HasColumnType("boolean")
+                        .HasColumnName("can_trade");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1269,9 +1277,9 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("gold_value");
 
-                    b.Property<bool>("IsQuestItem")
+                    b.Property<bool>("IsHidden")
                         .HasColumnType("boolean")
-                        .HasColumnName("is_quest_item");
+                        .HasColumnName("is_hidden");
 
                     b.Property<string>("Modifiers")
                         .IsRequired()
@@ -2131,6 +2139,28 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_worlds_name");
 
                     b.ToTable("worlds", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.BreakingAndEnteringCrime", b =>
+                {
+                    b.HasBaseType("TRPG.Domain.Models.Crime");
+
+                    b.Property<Guid>("BuildingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("building_id");
+
+                    b.Property<string>("BuildingName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("building_name");
+
+                    b.Property<Guid?>("OwnerFactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("break_enter_owner_faction_id");
+
+                    b.ToTable("crimes", (string)null);
+
+                    b.HasDiscriminator().HasValue("BreakEnter");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.KillCrime", b =>

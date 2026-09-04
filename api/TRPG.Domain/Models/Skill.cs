@@ -13,4 +13,5 @@ public enum Skill
     Alteration,
     General,
     Blocking,
+    Lockpicking,
 }

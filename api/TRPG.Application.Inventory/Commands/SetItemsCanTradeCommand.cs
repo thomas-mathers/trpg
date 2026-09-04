@@ -4,17 +4,17 @@ using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Inventory.Commands;
 
-public class SetItemsQuestLockedCommand
+public class SetItemsCanTradeCommand
 {
     public required IReadOnlyCollection<Guid> ItemIds { get; init; }
-    public required bool IsQuestItem { get; init; }
+    public required bool CanTrade { get; init; }
 }
 
-internal class SetItemsQuestLockedCommandHandler(IInventoryDbContext context)
-    : ICommandHandler<SetItemsQuestLockedCommand>
+internal class SetItemsCanTradeCommandHandler(IInventoryDbContext context)
+    : ICommandHandler<SetItemsCanTradeCommand>
 {
     public async Task Handle(
-        SetItemsQuestLockedCommand command,
+        SetItemsCanTradeCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -26,7 +26,7 @@ internal class SetItemsQuestLockedCommandHandler(IInventoryDbContext context)
         await context
             .Items.Where(item => command.ItemIds.Contains(item.Id))
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(item => item.IsQuestItem, command.IsQuestItem),
+                setters => setters.SetProperty(item => item.CanTrade, command.CanTrade),
                 cancellationToken
             );
     }

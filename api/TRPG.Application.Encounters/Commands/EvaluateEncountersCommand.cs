@@ -9,17 +9,18 @@ public class EvaluateEncountersCommand
     public required Guid PlayerId { get; init; }
 }
 
-public record EncounterEvaluationResult(
-    HostileEncounter? HostileEncounter,
-    GuardEncounter? GuardEncounter
-)
+public record EncounterEvaluationResult(Encounter? Encounter)
 {
-    public static readonly EncounterEvaluationResult None = new(null, null);
+    public static readonly EncounterEvaluationResult None = new((Encounter?)null);
 }
 
 internal class EvaluateEncountersCommandHandler(
     ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?> evaluateHostileEncounter,
-    ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter
+    ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter,
+    ICommandHandler<
+        EvaluateTrespassingEncounterCommand,
+        HostileEncounter?
+    > evaluateTrespassingEncounter
 ) : ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult>
 {
     public async Task<EncounterEvaluationResult> Handle(
@@ -37,7 +38,7 @@ internal class EvaluateEncountersCommandHandler(
         );
         if (hostileEncounter != null)
         {
-            return new EncounterEvaluationResult(hostileEncounter, null);
+            return new EncounterEvaluationResult(hostileEncounter);
         }
 
         var guardEncounter = await evaluateGuardEncounter.Handle(
@@ -48,7 +49,20 @@ internal class EvaluateEncountersCommandHandler(
             },
             cancellationToken
         );
+        if (guardEncounter != null)
+        {
+            return new EncounterEvaluationResult(guardEncounter);
+        }
 
-        return new EncounterEvaluationResult(null, guardEncounter);
+        var trespassingEncounter = await evaluateTrespassingEncounter.Handle(
+            new EvaluateTrespassingEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+            },
+            cancellationToken
+        );
+
+        return new EncounterEvaluationResult(trespassingEncounter);
     }
 }

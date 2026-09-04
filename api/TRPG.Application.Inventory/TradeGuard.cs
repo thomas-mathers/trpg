@@ -3,22 +3,22 @@ using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Inventory;
 
-internal class QuestItemGuard(IInventoryDbContext context)
+internal class TradeGuard(IInventoryDbContext context)
 {
-    public async Task EnsureNotActiveQuestItems(
+    public async Task EnsureAllTradeable(
         IReadOnlyCollection<Guid> itemIds,
         CancellationToken cancellationToken
     )
     {
-        var questItemId = await context
-            .Items.Where(item => itemIds.Contains(item.Id) && item.IsQuestItem)
+        var untradeableItemId = await context
+            .Items.Where(item => itemIds.Contains(item.Id) && !item.CanTrade)
             .Select(item => item.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (questItemId != Guid.Empty)
+        if (untradeableItemId != Guid.Empty)
         {
             throw new InvalidOperationException(
-                $"Item {questItemId} is required for an active quest and cannot be removed from your inventory."
+                $"Item {untradeableItemId} cannot be traded away right now."
             );
         }
     }

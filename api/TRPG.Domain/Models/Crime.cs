@@ -51,6 +51,13 @@ public class TheftCrime : Crime
 
 public record TheftCrimeItem(string Name, int Quantity);
 
+public class BreakingAndEnteringCrime : Crime
+{
+    public Guid BuildingId { get; init; }
+    public string BuildingName { get; init; } = "";
+    public Guid? OwnerFactionId { get; init; }
+}
+
 public class CrimeWitness
 {
     public Guid Id { get; init; } = Guid.NewGuid();

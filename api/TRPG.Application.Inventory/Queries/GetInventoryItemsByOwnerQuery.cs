@@ -24,6 +24,7 @@ internal class GetInventoryItemsByOwnerQueryHandler(IInventoryDbContext context)
                 i.Ownership.OwnerType == query.Owner.Type
                 && i.Ownership.OwnerId == query.Owner.Id
                 && i.Quantity > 0
+                && !i.IsHidden
             )
             .OrderBy(i => i.Ownership.AcquiredAt)
             .ToArrayAsync(cancellationToken);

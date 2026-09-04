@@ -4,4 +4,5 @@ public enum CrimeKind
 {
     Theft,
     Killing,
+    BreakingAndEntering,
 }

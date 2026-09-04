@@ -71,6 +71,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddGameTurnsServices()
             .AddGameTool<LookTool>()
             .AddGameTool<MoveTool>()
+            .AddGameTool<LockpickTool>()
             .AddGameTool<CreatureInspectTool>()
             .AddGameTool<LookupTool>()
             .Decorate(typeof(ICommandHandler<>), typeof(ValidatingCommandHandlerDecorator<>))

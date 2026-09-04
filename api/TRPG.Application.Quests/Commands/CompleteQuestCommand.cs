@@ -23,7 +23,7 @@ internal class CompleteQuestCommandHandler(
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
-    ICommandHandler<SetItemsQuestLockedCommand> setItemsQuestLocked
+    ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade
 ) : ICommandHandler<CompleteQuestCommand>
 {
     public async Task Handle(
@@ -83,8 +83,8 @@ internal class CompleteQuestCommandHandler(
 
         await context.SaveChangesAsync(cancellationToken);
 
-        await setItemsQuestLocked.Handle(
-            new SetItemsQuestLockedCommand { ItemIds = requiredItemIds, IsQuestItem = false },
+        await setItemsCanTrade.Handle(
+            new SetItemsCanTradeCommand { ItemIds = requiredItemIds, CanTrade = true },
             cancellationToken
         );
 

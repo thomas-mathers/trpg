@@ -18,6 +18,7 @@ internal record BuildingSpec(
     BuildingType Type,
     IReadOnlyList<RoomSpec> Rooms,
     bool IsLockable,
+    int LockLevel,
     IdleDestinationSpec? IdleDestination
 );
 
@@ -59,6 +60,27 @@ internal static class BuildingSpecCatalog
 
         var isLockable = buildingType is not (BuildingType.Inn or BuildingType.Tavern);
 
+        var lockLevel = buildingType switch
+        {
+            BuildingType.House
+            or BuildingType.GeneralGoods
+            or BuildingType.Bakery
+            or BuildingType.Tailor
+            or BuildingType.Carpenter
+            or BuildingType.Stable
+            or BuildingType.Inn
+            or BuildingType.Tavern => 1,
+            BuildingType.Apothecary
+            or BuildingType.Blacksmith
+            or BuildingType.Jeweler
+            or BuildingType.ArcaneShop
+            or BuildingType.Library
+            or BuildingType.GuildHall
+            or BuildingType.Temple => 2,
+            BuildingType.Barracks or BuildingType.Castle or BuildingType.Jail => 3,
+            _ => 0,
+        };
+
         var idleDestination = buildingType switch
         {
             BuildingType.Jail
@@ -75,7 +97,7 @@ internal static class BuildingSpecCatalog
             ),
         };
 
-        return new BuildingSpec(buildingType, rooms, isLockable, idleDestination);
+        return new BuildingSpec(buildingType, rooms, isLockable, lockLevel, idleDestination);
     }
 
     private static RoomSpec[] GetBlacksmithSpecs(Guid? ownerId)
