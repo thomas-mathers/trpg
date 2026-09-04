@@ -4,7 +4,6 @@ namespace TRPG.Combat.Responses;
 public record CombatUpdated(
     IReadOnlyCollection<CombatantState> Combatants,
     IReadOnlyList<CombatActionResult> Actions,
-    IReadOnlyList<string> Messages,
     IReadOnlyList<CombatRegeneration> Regenerations,
     IReadOnlyList<CombatResourceState> ResourceStates,
     CombatOutcome Outcome

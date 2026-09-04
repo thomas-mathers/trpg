@@ -1,6 +1,7 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
 using TRPG.Combat.Responses;
+using TRPG.Domain.Models;
 
 namespace TRPG.Combat.Mappers;
 
@@ -16,6 +17,11 @@ internal static class CombatActionResultMapper
                     Hit hit => hit.ToCombatActionResult(),
                     Miss miss => miss.ToCombatActionResult(),
                     Block block => block.ToCombatActionResult(),
+                    Healed healed => healed.ToCombatActionResult(),
+                    HealOverTimeApplied hot => hot.ToCombatActionResult(),
+                    BuffApplied buff => buff.ToCombatActionResult(),
+                    ConsumedPotion potion => potion.ToCombatActionResult(),
+                    FleeFailed fleeFailed => fleeFailed.ToCombatActionResult(),
                     _ => null,
                 }
             )
@@ -37,6 +43,9 @@ internal static class CombatActionResultMapper
             hit.TargetRemainingHp,
             hit.TargetMaximumHp,
             hit.AppliedConditions.Select(condition => condition.ToContract()).ToArray(),
+            null,
+            null,
+            null,
             CombatNarration.Describe(hit) ?? string.Empty
         );
 
@@ -48,6 +57,9 @@ internal static class CombatActionResultMapper
             miss.AbilityName,
             miss.TargetId,
             miss.TargetName,
+            null,
+            null,
+            null,
             null,
             null,
             null,
@@ -73,6 +85,120 @@ internal static class CombatActionResultMapper
             null,
             null,
             null,
+            null,
+            null,
+            null,
             CombatNarration.Describe(block) ?? string.Empty
+        );
+
+    private static CombatActionResult ToCombatActionResult(this Healed healed) =>
+        new(
+            CombatActionOutcome.Heal,
+            healed.SourceId,
+            healed.SourceName,
+            healed.AbilityName,
+            healed.TargetId,
+            healed.TargetName,
+            null,
+            null,
+            null,
+            false,
+            healed.TargetRemainingHp,
+            healed.TargetMaximumHp,
+            null,
+            null,
+            null,
+            null,
+            CombatNarration.Describe(healed) ?? string.Empty
+        );
+
+    private static CombatActionResult ToCombatActionResult(this HealOverTimeApplied hot) =>
+        new(
+            CombatActionOutcome.HealOverTime,
+            hot.SourceId,
+            hot.SourceName,
+            hot.AbilityName,
+            hot.TargetId,
+            hot.TargetName,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null,
+            null,
+            null,
+            hot.AmountPerTurn,
+            hot.Duration,
+            CombatNarration.Describe(hot) ?? string.Empty
+        );
+
+    private static CombatActionResult ToCombatActionResult(this BuffApplied buff) =>
+        new(
+            CombatActionOutcome.Buff,
+            buff.SourceId,
+            buff.SourceName,
+            buff.AbilityName,
+            buff.TargetId,
+            buff.TargetName,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null,
+            null,
+            buff.AppliedModifiers.Select(modifier => new CombatActionBuffModifier(
+                    modifier.Attribute.ToContract(),
+                    modifier.Amount,
+                    modifier.AmountType.ToContract(),
+                    modifier.RemainingTurns
+                ))
+                .ToArray(),
+            null,
+            null,
+            CombatNarration.Describe(buff) ?? string.Empty
+        );
+
+    private static CombatActionResult ToCombatActionResult(this ConsumedPotion potion) =>
+        new(
+            CombatActionOutcome.ConsumePotion,
+            potion.CreatureId,
+            potion.CreatureName,
+            potion.ItemName,
+            potion.CreatureId,
+            potion.CreatureName,
+            null,
+            null,
+            null,
+            false,
+            potion.Resource == ResourceType.Hp ? potion.RemainingValue : null,
+            potion.Resource == ResourceType.Hp ? potion.MaximumValue : null,
+            null,
+            null,
+            null,
+            null,
+            CombatNarration.Describe(potion) ?? string.Empty
+        );
+
+    private static CombatActionResult ToCombatActionResult(this FleeFailed fleeFailed) =>
+        new(
+            CombatActionOutcome.FleeFailed,
+            fleeFailed.CreatureId,
+            fleeFailed.CreatureName,
+            "Flee",
+            fleeFailed.CreatureId,
+            fleeFailed.CreatureName,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            CombatNarration.Describe(fleeFailed) ?? string.Empty
         );
 }

@@ -21,6 +21,8 @@ public sealed class EndpointTestFixture : IAsyncLifetime
 
     public FakeChatClient ChatClient { get; } = new();
 
+    internal string ConnectionString => _databaseFixture.ConnectionString;
+
     public HttpClient CreateClient() => Factory.CreateClient();
 
     public TestApiClient CreateApiClient() =>

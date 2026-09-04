@@ -54,7 +54,7 @@ internal class ResolveFleeCombatCommandHandler(
         if (combatants.Count == 0)
             return null;
 
-        var state = combatEngine.ResolveFlee(combatants);
+        var state = combatEngine.ProcessRound(combatants, new ResolvedFleeAction());
         var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {

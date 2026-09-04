@@ -34,6 +34,7 @@ interface EnemyRowProps {
   targetable?: boolean;
   onSelectTarget?: (id: string) => void;
   activeAttackerId?: string | null;
+  activeActionIsAttack?: boolean;
   activeDefenderId?: string | null;
   combatFlashes?: Record<string, CombatFlash>;
 }
@@ -90,6 +91,7 @@ function EnemyRow({
   targetable = false,
   onSelectTarget,
   activeAttackerId = null,
+  activeActionIsAttack = false,
   activeDefenderId = null,
   combatFlashes = {},
 }: EnemyRowProps) {
@@ -101,7 +103,7 @@ function EnemyRow({
           active={activeAttackerId === enemy.id}
           targetable={targetable}
           offset={
-            activeAttackerId === enemy.id
+            activeAttackerId === enemy.id && activeActionIsAttack
               ? -14
               : activeDefenderId === enemy.id &&
                   (combatFlashes[enemy.id]?.kind === 'hit' ||
@@ -129,6 +131,7 @@ export function CombatDialog() {
   const {
     fight,
     activeAttackerId,
+    activeActionIsAttack,
     activeDefenderId,
     activeCombatEvent,
     combatFlashes,
@@ -337,7 +340,7 @@ export function CombatDialog() {
                   <CombatantFrame
                     active={activeAttackerId === player.id}
                     offset={
-                      activeAttackerId === player.id
+                      activeAttackerId === player.id && activeActionIsAttack
                         ? 14
                         : activeDefenderId === player.id &&
                             (combatFlashes[player.id]?.kind === 'hit' ||
@@ -363,6 +366,7 @@ export function CombatDialog() {
                     targetable={pendingAbility !== null}
                     onSelectTarget={chooseTarget}
                     activeAttackerId={activeAttackerId}
+                    activeActionIsAttack={activeActionIsAttack}
                     activeDefenderId={activeDefenderId}
                     combatFlashes={combatFlashes}
                   />

@@ -1,7 +1,6 @@
 import type { IStreamResult } from '@microsoft/signalr';
 import { ShieldAlert } from 'lucide-react';
 import { useEffect, useReducer, useState } from 'react';
-import { GiSparkles } from 'react-icons/gi';
 import { toast } from 'sonner';
 
 import type {
@@ -31,10 +30,13 @@ export interface CombatFlash {
   nonce: number;
 }
 
+const ATTACK_OUTCOMES = new Set(['Hit', 'Miss', 'Block']);
+
 type AnimationStep =
   | {
       kind: 'begin';
       attackerId: string;
+      isAttack: boolean;
       resourceState?: CombatResourceState;
       delayMs: number;
     }
@@ -50,6 +52,7 @@ interface CombatState {
   fightId: string | null;
   fight: CombatantState[] | null;
   activeAttackerId: string | null;
+  activeActionIsAttack: boolean;
   activeDefenderId: string | null;
   activeCombatEvent: CombatActionResult | null;
   combatFlashes: Record<string, CombatFlash>;
@@ -70,6 +73,7 @@ const initialState: CombatState = {
   fightId: null,
   fight: null,
   activeAttackerId: null,
+  activeActionIsAttack: false,
   activeDefenderId: null,
   activeCombatEvent: null,
   combatFlashes: {},
@@ -84,26 +88,55 @@ function applyRoundEventToFight(
   fight: CombatantState[],
   event: CombatActionResult,
 ): CombatantState[] {
-  const { killed, targetMaximumHp, targetRemainingHp } = event;
-  if (
-    event.outcome !== 'Hit' ||
-    targetRemainingHp === undefined ||
-    targetMaximumHp === undefined ||
-    killed === undefined
-  ) {
-    return fight;
-  }
+  return fight.map((combatant) => {
+    if (combatant.id !== event.targetId) {
+      return combatant;
+    }
 
-  return fight.map((combatant) =>
-    combatant.id === event.targetId
-      ? {
-          ...combatant,
-          currentHp: targetRemainingHp,
-          maximumHp: targetMaximumHp,
-          isAlive: !killed,
-        }
-      : combatant,
-  );
+    let next = combatant;
+
+    const { killed, targetMaximumHp, targetRemainingHp } = event;
+    if (targetRemainingHp !== undefined && targetMaximumHp !== undefined && killed !== undefined) {
+      next = {
+        ...next,
+        currentHp: targetRemainingHp,
+        maximumHp: targetMaximumHp,
+        isAlive: !killed,
+      };
+    }
+
+    if (event.appliedBuffs && event.appliedBuffs.length > 0) {
+      next = {
+        ...next,
+        activeBuffs: [
+          ...next.activeBuffs.filter((buff) => buff.abilityName !== event.abilityName),
+          ...event.appliedBuffs.map((modifier) => ({
+            abilityName: event.abilityName,
+            attribute: modifier.attribute,
+            amount: modifier.amount,
+            amountType: modifier.amountType,
+            remainingTurns: modifier.remainingTurns,
+          })),
+        ],
+      };
+    }
+
+    if (event.hotAmountPerTurn !== undefined && event.hotDuration !== undefined) {
+      next = {
+        ...next,
+        activeHots: [
+          ...next.activeHots.filter((hot) => hot.abilityName !== event.abilityName),
+          {
+            abilityName: event.abilityName,
+            amount: event.hotAmountPerTurn,
+            remainingTurns: event.hotDuration,
+          },
+        ],
+      };
+    }
+
+    return next;
+  });
 }
 
 function applyRegenerationToFight(
@@ -144,7 +177,7 @@ function applyResourceStateToFight(
   );
 }
 
-function toCombatFlash(event: CombatActionResult, nonce: number): CombatFlash {
+function toCombatFlash(event: CombatActionResult, nonce: number): CombatFlash | null {
   switch (event.outcome) {
     case 'Hit':
       return {
@@ -156,6 +189,8 @@ function toCombatFlash(event: CombatActionResult, nonce: number): CombatFlash {
       return { kind: 'miss', nonce };
     case 'Block':
       return { kind: 'block', nonce };
+    default:
+      return null;
   }
 }
 
@@ -174,6 +209,7 @@ function buildRoundSteps(payload: CombatUpdated): AnimationStep[] {
     steps.push({
       kind: 'begin',
       attackerId: event.attackerId,
+      isAttack: ATTACK_OUTCOMES.has(event.outcome),
       resourceState: resourceStatesByCombatantId.get(event.attackerId),
       delayMs: index === 0 ? 0 : BETWEEN_TURNS_MS,
     });
@@ -202,6 +238,7 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
       return {
         ...state,
         activeAttackerId: step.attackerId,
+        activeActionIsAttack: step.isAttack,
         activeDefenderId: null,
         activeCombatEvent: null,
         fight:
@@ -209,24 +246,30 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
             ? applyResourceStateToFight(state.fight, step.resourceState)
             : state.fight,
       };
-    case 'apply':
+    case 'apply': {
+      const flash = toCombatFlash(step.event, state.eventCounter + 1);
       return {
         ...state,
         fight: state.fight ? applyRoundEventToFight(state.fight, step.event) : state.fight,
         activeDefenderId: step.event.targetId,
         activeCombatEvent: step.event,
-        combatFlashes: {
-          ...state.combatFlashes,
-          [step.event.targetId]: toCombatFlash(step.event, state.eventCounter + 1),
-        },
+        combatFlashes: flash
+          ? { ...state.combatFlashes, [step.event.targetId]: flash }
+          : state.combatFlashes,
         eventCounter: state.eventCounter + 1,
       };
+    }
     case 'toast':
       return state;
     case 'defenderRecovery':
       return { ...state, activeDefenderId: null };
     case 'attackerRecovery':
-      return { ...state, activeAttackerId: null, activeCombatEvent: null };
+      return {
+        ...state,
+        activeAttackerId: null,
+        activeActionIsAttack: false,
+        activeCombatEvent: null,
+      };
     case 'prepareRegeneration':
       return {
         ...state,
@@ -308,7 +351,6 @@ export function useCombat() {
   const [state, dispatch] = useReducer(combatReducer, initialState);
   const { isStreaming, submitNarratedTurn } = useGameChat();
   const chatHub = useChatHub();
-  const submitFlee = () => submitNarratedTurn(null, chatHub.sendFlee());
   const [isActionPending, setIsActionPending] = useState(false);
   // Exclude our own combat action's isStreaming flip so an ordinary round doesn't hide the dialog; a concluding fight closes it via state.fight going null instead.
   const isRevealed = useDelayedReveal(!!state.fight && !(isStreaming && !isActionPending));
@@ -328,11 +370,6 @@ export function useCombat() {
     });
     const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
       dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
-      for (const message of payload.messages) {
-        toast.custom((toastId) => (
-          <GameToast toastId={toastId} icon={GiSparkles} title="Combat" description={message} />
-        ));
-      }
       if (payload.outcome !== 'Ongoing') {
         gameEventBus.emit('CombatOutcomeKnown', payload.outcome);
       }
@@ -380,11 +417,14 @@ export function useCombat() {
   const submitUseItemCombatAction = (itemName: string) =>
     submitCombatAction(chatHub.resolveUseItemCombatAction(itemName));
 
+  const submitFlee = () => submitCombatAction(chatHub.sendFlee());
+
   const disabled = state.isPlayingBack || isActionPending || isStreaming;
 
   return {
     fight: state.fight,
     activeAttackerId: state.activeAttackerId,
+    activeActionIsAttack: state.activeActionIsAttack,
     activeDefenderId: state.activeDefenderId,
     activeCombatEvent: state.activeCombatEvent,
     combatFlashes: state.combatFlashes,

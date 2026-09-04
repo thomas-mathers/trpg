@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Extensions;
+using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Extensions;
 using TRPG.Application.Configuration;
 using TRPG.Domain.Models;
@@ -26,6 +27,18 @@ public class CombatEngine(
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
+        // A successful flee returns immediately below; a failed one falls through to the normal round, chasers included.
+        if (action is ResolvedFleeAction && !IsFleeCaught(player, enemies))
+        {
+            return new CombatState(
+                Outcome: CombatOutcome.Fled,
+                Combatants: ToOrderedCombatantResults(combatants),
+                Events: [],
+                WeaponSwingCounts: player.WeaponSwingCounts,
+                SkillUsageCounts: player.SkillUsageCounts
+            );
+        }
+
         var combatEvents = isSurpriseRound
             ? ProcessTurn(player, action)
             : ProcessNormalRound(combatants, player, action);
@@ -34,15 +47,30 @@ public class CombatEngine(
 
         return new CombatState(
             Outcome: outcome,
-            Combatants: combatants
-                .OrderByDescending(combatant => combatant.TurnOrder)
-                .Select(combatant => combatant.ToCombatantResult())
-                .ToArray(),
+            Combatants: ToOrderedCombatantResults(combatants),
             Events: combatEvents,
             WeaponSwingCounts: player.WeaponSwingCounts,
             SkillUsageCounts: player.SkillUsageCounts
         );
     }
+
+    private bool IsFleeCaught(Combatant player, IReadOnlyList<Combatant> enemies)
+    {
+        var catchChance = EvadeChanceCalculator.CatchChance(
+            fleeOptionsSnapshot.Value,
+            ToEvadeParticipant(player),
+            enemies.Where(e => e.IsAlive).Select(ToEvadeParticipant).ToArray()
+        );
+        return Random.Shared.NextDouble() < catchChance;
+    }
+
+    private static IReadOnlyList<CombatantResult> ToOrderedCombatantResults(
+        IReadOnlyList<Combatant> combatants
+    ) =>
+        combatants
+            .OrderByDescending(combatant => combatant.TurnOrder)
+            .Select(combatant => combatant.ToCombatantResult())
+            .ToArray();
 
     private List<CombatResolution> ProcessNormalRound(
         IReadOnlyList<Combatant> combatants,
@@ -60,16 +88,25 @@ public class CombatEngine(
             )
             .ToList();
 
+        combatEvents.AddRange(TickRegeneration(combatants));
+
+        return combatEvents;
+    }
+
+    private List<CombatResolution> TickRegeneration(IReadOnlyList<Combatant> combatants)
+    {
+        var regenerationEvents = new List<CombatResolution>();
+
         foreach (var combatant in combatants.Where(c => c.IsAlive))
         {
             var regeneration = TickInCombatResourceRegeneration(combatant);
             if (regeneration is not null)
             {
-                combatEvents.Add(regeneration);
+                regenerationEvents.Add(regeneration);
             }
         }
 
-        return combatEvents;
+        return regenerationEvents;
     }
 
     private List<CombatResolution> ProcessTurn(Combatant actor, ResolvedCombatAction action)
@@ -99,6 +136,8 @@ public class CombatEngine(
         {
             ResolvedUseAbilityAction resolved => ProcessAbility(actor, resolved),
             ResolvedUseItemAction resolved => ProcessItem(actor, resolved.Item),
+            // Reached only when the flee attempt was caught — a successful escape already returned above.
+            ResolvedFleeAction => [new FleeFailed(actor.CreatureId, actor.Name)],
             _ => [],
         };
 
@@ -200,6 +239,7 @@ public class CombatEngine(
         return
         [
             new ConsumedPotion(
+                actor.CreatureId,
                 actor.Name,
                 item.Name,
                 item.Resource,
@@ -297,8 +337,10 @@ public class CombatEngine(
         target.CurrentHp = Math.Min(target.CurrentHp + amount, target.MaximumHp);
 
         return new Healed(
+            actor.CreatureId,
             actor.Name,
             ability.Name,
+            target.CreatureId,
             target.Name,
             amount,
             target.CurrentHp,
@@ -329,8 +371,10 @@ public class CombatEngine(
         );
 
         return new HealOverTimeApplied(
+            actor.CreatureId,
             actor.Name,
             abilityName,
+            target.CreatureId,
             target.Name,
             amountPerTurn,
             hot.Duration
@@ -367,7 +411,14 @@ public class CombatEngine(
             );
         }
 
-        return new BuffApplied(actor.Name, abilityName, target.Name, appliedModifiers);
+        return new BuffApplied(
+            actor.CreatureId,
+            actor.Name,
+            abilityName,
+            target.CreatureId,
+            target.Name,
+            appliedModifiers
+        );
     }
 
     private List<CombatResolution> ApplyAttack(
@@ -560,8 +611,10 @@ public class CombatEngine(
 
             healEvents.Add(
                 new Healed(
+                    actor.CreatureId,
                     actor.Name,
                     hot.AbilityName,
+                    actor.CreatureId,
                     actor.Name,
                     hot.Amount,
                     actor.CurrentHp,
@@ -693,30 +746,6 @@ public class CombatEngine(
         }
 
         return CombatOutcome.Ongoing;
-    }
-
-    public CombatState ResolveFlee(IReadOnlyList<Combatant> combatants)
-    {
-        var player = combatants.Single(c => c.IsPlayer);
-        var livingChasers = combatants.Where(c => !c.IsPlayer && c.IsAlive).ToArray();
-
-        var catchChance = EvadeChanceCalculator.CatchChance(
-            fleeOptionsSnapshot.Value,
-            ToEvadeParticipant(player),
-            livingChasers.Select(ToEvadeParticipant).ToArray()
-        );
-        var isCaught = Random.Shared.NextDouble() < catchChance;
-
-        return new CombatState(
-            Outcome: isCaught ? CombatOutcome.Ongoing : CombatOutcome.Fled,
-            Combatants: combatants
-                .OrderByDescending(combatant => combatant.TurnOrder)
-                .Select(combatant => combatant.ToCombatantResult())
-                .ToArray(),
-            Events: isCaught ? [new FleeFailed(player.Name)] : [],
-            WeaponSwingCounts: player.WeaponSwingCounts,
-            SkillUsageCounts: player.SkillUsageCounts
-        );
     }
 
     private static EvadeParticipant ToEvadeParticipant(Combatant combatant) =>
