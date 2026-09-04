@@ -10,11 +10,9 @@ using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Encounters;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -41,7 +39,6 @@ public class AttemptLockpickCommand
 }
 
 internal class AttemptLockpickCommandHandler(
-    IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<
@@ -60,23 +57,17 @@ internal class AttemptLockpickCommandHandler(
     ICommandHandler<AddDoorConnectorKeyCommand> addDoorConnectorKey,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
-    IQueryHandler<
-        GetRecentReputationLogQuery,
-        IReadOnlyCollection<ReputationLogEntry>
-    > getRecentReputationLog,
     ICommandHandler<AddBreakingAndEnteringCrimesCommand> addBreakingAndEnteringCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<
         EvaluateTrespassingEncounterCommand,
         HostileEncounter?
     > evaluateTrespassingEncounter,
+    ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IOptionsMonitor<LockpickingOptions> lockpickingOptions,
-    IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
+    IOptionsMonitor<LockpickingOptions> lockpickingOptions
 ) : ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult>
 {
-    private const int RecentOffenseLimit = 3;
-
     public async Task<AttemptLockpickResult> Handle(
         AttemptLockpickCommand command,
         CancellationToken cancellationToken = default
@@ -343,37 +334,19 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
 
-        var recentOffenses = await getRecentReputationLog.Handle(
-            new GetRecentReputationLogQuery
+        return await createGuardEncounter.Handle(
+            new CreateGuardEncounterCommand
             {
-                CreatureId = player.Id,
-                Targets = [new ReputationLogTarget(cityFactionId, ReputationTargetType.Faction)],
-                Limit = RecentOffenseLimit,
-                NegativeOnly = true,
+                WorldId = command.WorldId,
+                PlayerId = player.Id,
+                PlayerLocationId = player.LocationId,
+                LocationName = currentLocation.Name,
+                GuardCreatureId = guard.Id,
+                GuardName = guard.Name,
+                CityFactionId = cityFactionId,
+                ReputationScore = score,
             },
             cancellationToken
         );
-
-        var options = guardEncounterOptions.CurrentValue;
-        var encounter = new GuardEncounter
-        {
-            WorldId = command.WorldId,
-            PlayerId = player.Id,
-            LocationId = player.LocationId,
-            LocationName = currentLocation.Name,
-            GuardCreatureId = guard.Id,
-            CityFactionId = cityFactionId,
-            GuardName = guard.Name,
-            ReputationScore = score,
-            FineAmount = GuardEncounterCalculator.ComputeFineGold(score, options),
-            JailHours = GuardEncounterCalculator.ComputeJailHours(score, options),
-            RecentOffenses = recentOffenses
-                .Select(entry => entry.Detail ?? entry.Reason.ToDisplayText())
-                .ToList(),
-        };
-        context.Encounters.Add(encounter);
-        await context.SaveChangesAsync(cancellationToken);
-
-        return encounter;
     }
 }

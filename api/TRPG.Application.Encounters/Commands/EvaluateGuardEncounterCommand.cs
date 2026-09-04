@@ -4,10 +4,8 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Factions.Queries;
-using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -19,21 +17,15 @@ public class EvaluateGuardEncounterCommand
 }
 
 internal class EvaluateGuardEncounterCommandHandler(
-    IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetGuardAtLocationQuery, Creature?> getGuardAtLocation,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
-    IQueryHandler<
-        GetRecentReputationLogQuery,
-        IReadOnlyCollection<ReputationLogEntry>
-    > getRecentReputationLog,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
 ) : ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?>
 {
-    private const int RecentOffenseLimit = 3;
-
     public async Task<GuardEncounter?> Handle(
         EvaluateGuardEncounterCommand command,
         CancellationToken cancellationToken = default
@@ -94,39 +86,19 @@ internal class EvaluateGuardEncounterCommandHandler(
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Location {player!.LocationId} not found.");
 
-        var recentOffenses = await getRecentReputationLog.Handle(
-            new GetRecentReputationLogQuery
+        return await createGuardEncounter.Handle(
+            new CreateGuardEncounterCommand
             {
-                CreatureId = command.PlayerId,
-                Targets =
-                [
-                    new ReputationLogTarget(cityFactionId.Value, ReputationTargetType.Faction),
-                ],
-                Limit = RecentOffenseLimit,
-                NegativeOnly = true,
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                PlayerLocationId = player!.LocationId,
+                LocationName = location.Name,
+                GuardCreatureId = guard.Id,
+                GuardName = guard.Name,
+                CityFactionId = cityFactionId.Value,
+                ReputationScore = score,
             },
             cancellationToken
         );
-
-        var encounter = new GuardEncounter
-        {
-            WorldId = command.WorldId,
-            PlayerId = command.PlayerId,
-            LocationId = player!.LocationId,
-            GuardCreatureId = guard.Id,
-            CityFactionId = cityFactionId.Value,
-            GuardName = guard.Name,
-            LocationName = location.Name,
-            ReputationScore = score,
-            FineAmount = GuardEncounterCalculator.ComputeFineGold(score, options),
-            JailHours = GuardEncounterCalculator.ComputeJailHours(score, options),
-            RecentOffenses = recentOffenses
-                .Select(entry => entry.Detail ?? entry.Reason.ToDisplayText())
-                .ToList(),
-        };
-        context.Encounters.Add(encounter);
-        await context.SaveChangesAsync(cancellationToken);
-
-        return encounter;
     }
 }
