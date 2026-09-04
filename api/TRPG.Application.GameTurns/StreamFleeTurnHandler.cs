@@ -2,6 +2,7 @@ using System.Text.Json;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
 
@@ -51,12 +52,17 @@ internal class StreamFleeTurnHandler(
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(result), IncludeTools: false);
     }
 
-    private static string BuildNarrationPrompt(FleeCombatResult result)
+    internal static string BuildNarrationPrompt(FleeCombatResult result)
     {
         var serializedResult = JsonSerializer.Serialize(
             result.CombatResult,
             TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
         );
+
+        if (result.CombatResult.Outcome != CombatOutcome.Fled)
+        {
+            return $"The player attempted to flee combat but failed to break away. Result: {serializedResult}. The fight continues. Narrate the attempt failing — their attacker stayed on them and the confrontation is still ongoing. Do not call any tools.";
+        }
 
         return result.DestinationLocationName != null
             ? $"The player attempted to flee combat. Result: {serializedResult}. Fleeing broke off the fight and carried the player to {result.DestinationLocationName}. Narrate them breaking away from their attacker, putting distance between themselves and the danger, and arriving there. Do not call any tools."

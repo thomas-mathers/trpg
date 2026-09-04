@@ -1,5 +1,8 @@
+using Microsoft.Extensions.Options;
+using TRPG.Application.Combat;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Results;
@@ -21,9 +24,11 @@ public class ResolveHostileEncounterActionCommand
 
 internal class ResolveHostileEncounterActionCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<StartFightCommand> startFight
+    ICommandHandler<StartFightCommand> startFight,
+    IOptionsSnapshot<FleeOptions> fleeOptions
 ) : ICommandHandler<ResolveHostileEncounterActionCommand, HostileEncounterActionResult>
 {
     public async Task<HostileEncounterActionResult> Handle(
@@ -36,13 +41,19 @@ internal class ResolveHostileEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var groupPower = command.Members.Sum(member => member.Level);
+        var memberIds = command.Members.Select(member => member.Id).ToArray();
+        var membersById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = memberIds },
+            cancellationToken
+        );
+
         var actionKind = ToActionKind(command.Action);
         var outcome = HostileEncounterActionResolver.Resolve(
             actionKind,
-            player!.Level,
-            groupPower,
-            Random.Shared.Next(100)
+            fleeOptions.Value,
+            ToEvadeParticipant(player!),
+            memberIds.Select(id => ToEvadeParticipant(membersById[id])).ToArray(),
+            Random.Shared.NextDouble()
         );
 
         await completeEncounter.Handle(
@@ -121,6 +132,15 @@ internal class ResolveHostileEncounterActionCommandHandler(
             cancellationToken
         );
     }
+
+    private static EvadeParticipant ToEvadeParticipant(Creature creature) =>
+        new(
+            creature.Dexterity,
+            creature.CurrentHp,
+            creature.MaximumHp,
+            creature.CurrentAp,
+            creature.MaximumAp
+        );
 
     private static HostileEncounterActionKind ToActionKind(HostileEncounterAction action) =>
         action switch

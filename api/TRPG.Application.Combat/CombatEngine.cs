@@ -11,6 +11,7 @@ namespace TRPG.Application.Combat;
 
 public class CombatEngine(
     IOptionsSnapshot<CombatOptions> optionsSnapshot,
+    IOptionsSnapshot<FleeOptions> fleeOptionsSnapshot,
     HitCalculator hitCalculator,
     DamageCalculator damageCalculator,
     EnemyCombatActionResolver enemyCombatActionResolver
@@ -697,9 +698,17 @@ public class CombatEngine(
     public CombatState ResolveFlee(IReadOnlyList<Combatant> combatants)
     {
         var player = combatants.Single(c => c.IsPlayer);
+        var livingChasers = combatants.Where(c => !c.IsPlayer && c.IsAlive).ToArray();
+
+        var catchChance = EvadeChanceCalculator.CatchChance(
+            fleeOptionsSnapshot.Value,
+            ToEvadeParticipant(player),
+            livingChasers.Select(ToEvadeParticipant).ToArray()
+        );
+        var isCaught = Random.Shared.NextDouble() < catchChance;
 
         return new CombatState(
-            Outcome: CombatOutcome.Fled,
+            Outcome: isCaught ? CombatOutcome.Ongoing : CombatOutcome.Fled,
             Combatants: combatants
                 .OrderByDescending(combatant => combatant.TurnOrder)
                 .Select(combatant => combatant.ToCombatantResult())
@@ -709,6 +718,15 @@ public class CombatEngine(
             SkillUsageCounts: player.SkillUsageCounts
         );
     }
+
+    private static EvadeParticipant ToEvadeParticipant(Combatant combatant) =>
+        new(
+            combatant.Dexterity,
+            combatant.CurrentHp,
+            combatant.MaximumHp,
+            combatant.CurrentAp,
+            combatant.MaximumAp
+        );
 }
 
 internal static class CombatantExtensions

@@ -45,7 +45,23 @@ public class CombatEngineTests
 
     private static readonly string[] CleaveTargets = ["Husk", "Wraith"];
 
-    private static CombatEngine MakeEngine(IOptionsSnapshot<CombatOptions> optionsSnapshot)
+    private static readonly IOptionsSnapshot<FleeOptions> DefaultFleeOptions =
+        new TestOptionsSnapshot<FleeOptions>(new FleeOptions());
+
+    private static readonly IOptionsSnapshot<FleeOptions> AlwaysEvades =
+        new TestOptionsSnapshot<FleeOptions>(
+            new FleeOptions { MinimumCatchChance = 0f, MaximumCatchChance = 0f }
+        );
+
+    private static readonly IOptionsSnapshot<FleeOptions> AlwaysCaught =
+        new TestOptionsSnapshot<FleeOptions>(
+            new FleeOptions { MinimumCatchChance = 1f, MaximumCatchChance = 1f }
+        );
+
+    private static CombatEngine MakeEngine(
+        IOptionsSnapshot<CombatOptions> optionsSnapshot,
+        IOptionsSnapshot<FleeOptions>? fleeOptionsSnapshot = null
+    )
     {
         var hitCalculator = new HitCalculator(optionsSnapshot);
         var damageCalculator = new DamageCalculator(optionsSnapshot);
@@ -56,6 +72,7 @@ public class CombatEngineTests
         );
         return new CombatEngine(
             optionsSnapshot,
+            fleeOptionsSnapshot ?? DefaultFleeOptions,
             hitCalculator,
             damageCalculator,
             enemyCombatActionResolver
@@ -748,13 +765,13 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void ResolveFlee_EndsTheFightWithoutResolvingARound()
+    public void ResolveFlee_EndsTheFightWithoutResolvingARound_WhenTheFleeAttemptSucceeds()
     {
         // Arrange
         var player = MakeCombatant("Hero").AsPlayer().Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
         IReadOnlyList<Combatant> combatants = [player, monster];
-        var engine = MakeEngine(AlwaysHit);
+        var engine = MakeEngine(AlwaysHit, AlwaysEvades);
 
         // Act
         var state = engine.ResolveFlee(combatants);
@@ -764,6 +781,22 @@ public class CombatEngineTests
         Assert.Empty(state.Events);
         var playerState = state.Combatants.Single(c => c.IsPlayer);
         Assert.Equal(playerState.MaximumHp, playerState.CurrentHp);
+    }
+
+    [Fact]
+    public void ResolveFlee_LeavesTheFightOngoing_WhenTheFleeAttemptIsCaught()
+    {
+        // Arrange
+        var player = MakeCombatant("Hero").AsPlayer().Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit, AlwaysCaught);
+
+        // Act
+        var state = engine.ResolveFlee(combatants);
+
+        // Assert
+        Assert.Equal(CombatOutcome.Ongoing, state.Outcome);
     }
 
     [Fact]

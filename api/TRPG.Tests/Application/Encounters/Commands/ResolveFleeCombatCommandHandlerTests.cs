@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using TRPG.Application.Configuration;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -31,6 +33,13 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            // Guarantees the flee roll succeeds — these tests are about destination
+            // resolution, not the catch-chance mechanic, which gets its own dedicated tests.
+            .AddSingleton<IOptionsSnapshot<FleeOptions>>(
+                new TestOptionsSnapshot<FleeOptions>(
+                    new FleeOptions { MinimumCatchChance = 0f, MaximumCatchChance = 0f }
+                )
+            )
             .BuildServiceProvider();
 
         _startFight = _serviceProvider.GetRequiredService<StartFightCommandHandler>();
@@ -233,6 +242,50 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
         // Assert
         Assert.Equal(lockedDestination.Id, result!.DestinationLocationId);
         Assert.Equal(lockedDestination.Name, result.DestinationLocationName);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNoDestination_WhenTheFleeAttemptIsCaught()
+    {
+        // Arrange
+        var previousLocation = Builders.MakeLocation(WorldId, StateId);
+        _context.Locations.Add(previousLocation);
+        var trackedPlayer = await _context.Creatures.SingleAsync(
+            c => c.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        trackedPlayer.PreviousLocationId = previousLocation.Id;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+
+        await using var caughtContext = db.CreateContext();
+        var caughtProvider = new ServiceCollection()
+            .AddTrpgTestServices(caughtContext)
+            .AddSingleton<IOptionsSnapshot<FleeOptions>>(
+                new TestOptionsSnapshot<FleeOptions>(
+                    new FleeOptions { MinimumCatchChance = 1f, MaximumCatchChance = 1f }
+                )
+            )
+            .BuildServiceProvider();
+        var caughtHandler = caughtProvider.GetRequiredService<ResolveFleeCombatCommandHandler>();
+
+        // Act
+        var result = await caughtHandler.Handle(
+            new ResolveFleeCombatCommand
+            {
+                SessionId = _session.Id,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — caught mid-flee: the fight continues and the player hasn't moved
+        Assert.Equal(CombatOutcome.Ongoing, result!.CombatResult.Outcome);
+        Assert.Null(result.DestinationLocationId);
+        Assert.Null(result.DestinationLocationName);
+
+        await caughtProvider.DisposeAsync();
     }
 
     [Fact]

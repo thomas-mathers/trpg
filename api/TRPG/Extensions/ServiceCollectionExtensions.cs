@@ -394,6 +394,7 @@ internal static class ServiceCollectionExtensions
             .Configure<TheftOptions>(configuration.GetSection("Theft"))
             .Configure<LockpickingOptions>(configuration.GetSection("Lockpicking"))
             .Configure<SneakOptions>(configuration.GetSection("Sneak"))
+            .Configure<FleeOptions>(configuration.GetSection("Flee"))
             .Configure<InnOptions>(configuration.GetSection("Inn"));
     }
 

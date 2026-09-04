@@ -67,6 +67,11 @@ internal class ResolveFleeCombatCommandHandler(
             cancellationToken
         );
 
+        if (state.Outcome != CombatOutcome.Fled)
+        {
+            return new FleeCombatResult(combatResult, null, null);
+        }
+
         var destinationLocationId = await ResolveDestination(command, cancellationToken);
         if (destinationLocationId == null)
         {
