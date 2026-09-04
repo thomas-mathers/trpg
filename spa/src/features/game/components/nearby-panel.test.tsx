@@ -165,6 +165,33 @@ describe('NearbyPanel', () => {
     expect(await screen.findByRole('checkbox', { name: 'Select Silver coins' })).toBeEnabled();
   });
 
+  it('shows a nearby beast inventory as read-only', async () => {
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [], weight: 0, carryingCapacity: null },
+      }),
+    );
+    const sceneWithBeast = {
+      ...scene(undefined),
+      nearbyCreatures: [
+        {
+          id: 'wolf-id',
+          name: 'Ravenous Snarler',
+          creatureType: 'Beast',
+          level: 3,
+          state: 'Idle',
+          reputation: null,
+          tradeWorkstationId: undefined,
+        },
+      ],
+    } as unknown as SceneSnapshot;
+    const { user } = renderPanel(sceneWithBeast);
+
+    await user.click(screen.getByRole('button', { name: 'Ravenous Snarler' }));
+
+    expect(await screen.findByRole('heading', { name: 'Inspect Inventory' })).toBeVisible();
+  });
+
   it('opens a nearby container inventory when clicked', async () => {
     server.use(
       handleGetCreatureInventory({

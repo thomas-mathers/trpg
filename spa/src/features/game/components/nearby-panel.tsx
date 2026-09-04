@@ -76,6 +76,15 @@ import { TransferItemDialog } from '@/features/inventory/components/transfer-ite
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
 
+const HUMANOID_CREATURE_TYPES: ReadonlySet<CreatureType> = new Set([
+  'Human',
+  'Elf',
+  'Dwarf',
+  'Orc',
+  'Halfling',
+  'Gnome',
+]);
+
 const CREATURE_TYPE_ICON: Record<CreatureType, IconType> = {
   Human: GiPerson,
   Elf: GiElfHelmet,
@@ -200,7 +209,8 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                   id: creature.id,
                   name: creature.name,
                   ownerType: 'Creature',
-                  transfersEnabled: true,
+                  transfersEnabled:
+                    creature.state === 'Dead' || HUMANOID_CREATURE_TYPES.has(creature.creatureType),
                 });
                 setIsTransferOpen(true);
               }}
