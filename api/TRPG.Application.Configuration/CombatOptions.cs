@@ -18,4 +18,5 @@ public class CombatOptions
     public float CritChancePerDexterityPoint { get; init; } = 0.002f;
     public float MaxCritChance { get; init; } = 0.5f;
     public float CritDamageMultiplier { get; init; } = 2.5f;
+    public float SneakAttackDamageMultiplier { get; init; } = 2.0f;
 }

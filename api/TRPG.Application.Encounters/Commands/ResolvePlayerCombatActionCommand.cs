@@ -3,6 +3,7 @@ using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Domain.Models;
 
@@ -27,9 +28,11 @@ internal class ResolvePlayerCombatActionCommandHandler(
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
-    ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound
+    ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
+    ICommandHandler<IncrementFightEncounterRoundCommand> incrementFightEncounterRound
 ) : ICommandHandler<ResolvePlayerCombatActionCommand, PlayerCombatActionResult>
 {
     public async Task<PlayerCombatActionResult> Handle(
@@ -49,10 +52,21 @@ internal class ResolvePlayerCombatActionCommandHandler(
         var combatants = await combatantLoader.Load(command.PlayerId, cancellationToken);
         if (combatants.Count == 0)
             throw new InvalidOperationException("There's no fight to act in right now.");
+
+        var fight = await getActiveFight.Handle(
+            new GetActiveFightQuery { PlayerId = command.PlayerId },
+            cancellationToken
+        );
+        var isSurpriseRound = fight is { RoundsResolved: 0, HasSurpriseRound: true };
+        if (isSurpriseRound)
+        {
+            combatants.Single(c => c.IsPlayer).IsSurpriseAttacker = true;
+        }
+
         var resolved = new PlayerCombatActionResolver(combatants).Resolve(command.Action);
         if (resolved.ErrorMessage is not null)
             throw new InvalidOperationException(resolved.ErrorMessage);
-        var state = combatEngine.ProcessRound(combatants, resolved.Result!);
+        var state = combatEngine.ProcessRound(combatants, resolved.Result!, isSurpriseRound);
         var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {
@@ -62,6 +76,10 @@ internal class ResolvePlayerCombatActionCommandHandler(
                 Combatants = combatants,
                 State = state,
             },
+            cancellationToken
+        );
+        await incrementFightEncounterRound.Handle(
+            new IncrementFightEncounterRoundCommand { FightEncounterId = fight!.Id },
             cancellationToken
         );
 

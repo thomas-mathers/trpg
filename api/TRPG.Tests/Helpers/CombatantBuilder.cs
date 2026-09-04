@@ -37,6 +37,7 @@ internal sealed class CombatantBuilder
     private int? _naturalWeaponMinDamage;
     private int? _naturalWeaponMaxDamage;
     private CombatOptions _combatOptions = new();
+    private bool _isSurpriseAttacker;
 
     public CombatantBuilder WithWorldId(Guid worldId)
     {
@@ -194,6 +195,12 @@ internal sealed class CombatantBuilder
         return this;
     }
 
+    public CombatantBuilder WithIsSurpriseAttacker(bool isSurpriseAttacker)
+    {
+        _isSurpriseAttacker = isSurpriseAttacker;
+        return this;
+    }
+
     public Combatant Build()
     {
         var creature = Builders.MakeCreature(
@@ -237,7 +244,7 @@ internal sealed class CombatantBuilder
         );
         creature.ActiveBuffs = _activeBuffs;
 
-        return Combatant.FromCreature(
+        var combatant = Combatant.FromCreature(
             _combatOptions,
             _isPlayer,
             creature,
@@ -245,5 +252,8 @@ internal sealed class CombatantBuilder
             _items,
             _weaponProficiencies
         );
+        combatant.IsSurpriseAttacker = _isSurpriseAttacker;
+
+        return combatant;
     }
 }

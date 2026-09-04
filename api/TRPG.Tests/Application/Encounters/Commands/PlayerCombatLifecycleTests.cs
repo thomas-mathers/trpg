@@ -113,6 +113,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
                 WorldId = worldId,
                 PlayerId = playerResult.Creature.Id,
                 EnemyCreatureIds = [enemy.Id],
+                HasSurpriseRound = false,
             },
             TestContext.Current.CancellationToken
         );
@@ -150,5 +151,59 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db) : IAsyncLifet
         );
         Assert.Equal(maximumHpAtCreation, updatedPlayer!.MaximumHp);
         Assert.True(updatedPlayer.CurrentHp <= currentHpAtCreation);
+    }
+
+    [Fact]
+    public async Task ResolvePlayerCombatAction_OnlyAppliesTheSurpriseRound_ToTheFirstAction()
+    {
+        // Arrange — a fight flagged with a surprise round from a sneak attack
+        var worldId = Guid.NewGuid();
+        var location = Builders.MakeLocation(worldId);
+        var player = Builders.MakeCreature(worldId, locationId: location.Id, isSneaking: true);
+        var enemy = Builders.MakeCreature(
+            worldId,
+            creatureType: CreatureType.Beast,
+            locationId: location.Id
+        );
+        var session = Builders.MakeGameSession(worldId, player.Id);
+        _context.Locations.Add(location);
+        _context.Creatures.AddRange(player, enemy);
+        _context.GameSessions.Add(session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _startFight.Handle(
+            new StartFightCommand
+            {
+                SessionId = session.Id,
+                WorldId = worldId,
+                PlayerId = player.Id,
+                EnemyCreatureIds = [enemy.Id],
+                HasSurpriseRound = true,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        var resolveAction =
+            _serviceProvider.GetRequiredService<ResolvePlayerCombatActionCommandHandler>();
+        var action = new ResolvePlayerCombatActionCommand
+        {
+            SessionId = session.Id,
+            WorldId = worldId,
+            PlayerId = player.Id,
+            Action = new UseAbilityAction(enemy.Id, "Strike"),
+        };
+
+        // Act — the first submitted action is the surprise round: only the player acts
+        var firstRound = await resolveAction.Handle(action, TestContext.Current.CancellationToken);
+
+        // Assert — the enemy never got a turn, so the player took no damage
+        var playerAfterFirstRound = firstRound.CombatResult.Player;
+        Assert.Equal(playerAfterFirstRound.MaximumHp, playerAfterFirstRound.CurrentHp);
+
+        // Act — the second submitted action is a normal round: the enemy now acts too
+        var secondRound = await resolveAction.Handle(action, TestContext.Current.CancellationToken);
+
+        // Assert — the enemy finally struck back
+        Assert.True(secondRound.CombatResult.Player.CurrentHp < playerAfterFirstRound.CurrentHp);
     }
 }

@@ -18,6 +18,7 @@ public class StartFightCommand
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required IReadOnlyCollection<Guid> EnemyCreatureIds { get; init; }
+    public required bool HasSurpriseRound { get; init; }
 }
 
 internal class StartFightCommandHandler(
@@ -69,6 +70,7 @@ internal class StartFightCommandHandler(
             PlayerId = command.PlayerId,
             LocationId = player!.LocationId,
             CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
+            HasSurpriseRound = command.HasSurpriseRound,
         };
         context.Encounters.Add(fight);
         await context.SaveChangesAsync(cancellationToken);

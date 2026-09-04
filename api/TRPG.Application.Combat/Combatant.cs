@@ -71,6 +71,7 @@ public class Combatant
     public int CurrentHp { get; set; }
     public int CurrentAp { get; set; }
     public int CurrentMp { get; set; }
+    public bool IsSurpriseAttacker { get; set; }
     public IReadOnlyList<Item> EquippedItems { get; init; } = [];
     public IReadOnlyList<ConsumableItemSnapshot> ConsumableItemSnapshots { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponProficiencies { get; init; } = [];

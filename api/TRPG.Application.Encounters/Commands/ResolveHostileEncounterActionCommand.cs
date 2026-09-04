@@ -116,6 +116,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
+                HasSurpriseRound = false,
             },
             cancellationToken
         );

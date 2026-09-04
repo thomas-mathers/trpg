@@ -65,12 +65,13 @@ public class CombatEngineTests
     private static CombatState Resolve(
         CombatEngine engine,
         IReadOnlyList<Combatant> combatants,
-        PlayerCombatAction action
+        PlayerCombatAction action,
+        bool isSurpriseRound = false
     )
     {
         var resolution = new PlayerCombatActionResolver(combatants).Resolve(action);
         Assert.NotNull(resolution.Result);
-        return engine.ProcessRound(combatants, resolution.Result);
+        return engine.ProcessRound(combatants, resolution.Result, isSurpriseRound);
     }
 
     private static AttackAbility MakeAttack(
@@ -150,6 +151,68 @@ public class CombatEngineTests
         Assert.Equal("Wraith", hits[1].AttackerName);
         var playerState = state.Combatants.Single(c => c.IsPlayer);
         Assert.True(playerState.CurrentHp < playerState.MaximumHp);
+    }
+
+    [Fact]
+    public void ProcessRound_OnlyPlayerActs_DuringASurpriseRound()
+    {
+        // Arrange — the monster's Dexterity would normally put it first in turn order
+        var player = MakeCombatant("Hero").AsPlayer().WithDexterity(1).Build();
+        var monster = MakeCombatant("Wraith")
+            .WithDexterity(100)
+            .WithAbilities(MakeAttack())
+            .Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysHit);
+
+        // Act
+        var state = Resolve(
+            engine,
+            combatants,
+            new UseAbilityAction(monster.CreatureId, "Strike"),
+            isSurpriseRound: true
+        );
+
+        // Assert — the enemy never gets a turn during a surprise round
+        var attackerNames = state.Events.OfType<Hit>().Select(hit => hit.AttackerName).ToArray();
+        Assert.DoesNotContain("Wraith", attackerNames);
+        var monsterState = state.Combatants.Single(c => c.Name == "Wraith");
+        Assert.True(monsterState.CurrentHp < monsterState.MaximumHp);
+    }
+
+    [Fact]
+    public void ProcessRound_DoublesDamage_WhenTheAttackerIsMarkedAsASurpriseAttacker()
+    {
+        // Arrange — 5 base weapon damage x 2x sneak multiplier = 10
+        var options = new CombatOptions
+        {
+            MinHitChance = 1f,
+            MaxHitChance = 1f,
+            CritChancePerDexterityPoint = 0f,
+            SneakAttackDamageMultiplier = 2f,
+        };
+        var weapon = Builders.MakeWeapon(minDamage: 5, maxDamage: 5);
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithItem(weapon)
+            .WithCombatOptions(options)
+            .WithIsSurpriseAttacker(true)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithCombatOptions(options).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(new TestOptionsSnapshot<CombatOptions>(options));
+
+        // Act
+        var state = Resolve(
+            engine,
+            combatants,
+            new UseAbilityAction(monster.CreatureId, "Strike"),
+            isSurpriseRound: true
+        );
+
+        // Assert
+        var hit = Assert.Single(state.Events.OfType<Hit>());
+        Assert.Equal(10, hit.Damage);
     }
 
     [Fact]

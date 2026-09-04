@@ -13,7 +13,8 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
         Combatant attacker,
         AttackAbility ability,
         Combatant defender,
-        Weapon? weapon = null
+        Weapon? weapon = null,
+        bool isSneakAttack = false
     )
     {
         var rawDamage =
@@ -28,8 +29,14 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
                 : CalculateMagicRawDamage(attacker, ability);
 
         var withBonus = ApplyCreatureTypeBonus(rawDamage, ability, defender);
+        var withSneakBonus =
+            isSneakAttack && ability.DamageType == DamageType.Physical
+                ? withBonus * optionsSnapshot.Value.SneakAttackDamageMultiplier
+                : withBonus;
         var isCritical = Random.Shared.NextDouble() < attacker.CritChance;
-        var critedDamage = isCritical ? withBonus * attacker.CritDamageMultiplier : withBonus;
+        var critedDamage = isCritical
+            ? withSneakBonus * attacker.CritDamageMultiplier
+            : withSneakBonus;
         var elementalDamage = CalculateElementalDamage(attacker, ability, weapon, defender);
         return new DamageResult(
             CalculateDamage(critedDamage, ability.DamageType, defender) + elementalDamage,

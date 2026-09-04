@@ -44,6 +44,8 @@ public class FightEncounter : Encounter
 {
     public List<Guid> CombatantIds { get; init; } = [];
     public CombatOutcome Outcome { get; set; } = CombatOutcome.Ongoing;
+    public int RoundsResolved { get; set; }
+    public bool HasSurpriseRound { get; init; }
 }
 
 public class GuardEncounter : Encounter
