@@ -32,6 +32,7 @@ public class FightSimulator
     {
         _combatOptions = combatOptions ?? new CombatOptions();
         var combatOptionsSnapshot = new FixedOptionsSnapshot<CombatOptions>(_combatOptions);
+        var fleeOptionsSnapshot = new FixedOptionsSnapshot<FleeOptions>(new FleeOptions());
         var hitCalculator = new HitCalculator(combatOptionsSnapshot);
         var damageCalculator = new DamageCalculator(combatOptionsSnapshot);
         _resolver = new EnemyCombatActionResolver(
@@ -41,6 +42,7 @@ public class FightSimulator
         );
         _engine = new CombatEngine(
             combatOptionsSnapshot,
+            fleeOptionsSnapshot,
             hitCalculator,
             damageCalculator,
             _resolver

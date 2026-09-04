@@ -1,18 +1,31 @@
+using TRPG.Application.Combat;
+using TRPG.Application.Configuration;
 using TRPG.Application.Encounters;
 
 namespace TRPG.Tests.Application.Encounters;
 
 public class HostileEncounterActionResolverTests
 {
+    private static readonly FleeOptions Options = new();
+
+    private static EvadeParticipant MakeParticipant(
+        float dexterity,
+        int currentHp = 10,
+        int maximumHp = 10,
+        int currentAp = 10,
+        int maximumAp = 10
+    ) => new(dexterity, currentHp, maximumHp, currentAp, maximumAp);
+
     [Fact]
-    public void Resolve_ReturnsAttacked_RegardlessOfLevelsOrRoll()
+    public void Resolve_ReturnsAttacked_RegardlessOfParticipantsOrRoll()
     {
         // Act
         var outcome = HostileEncounterActionResolver.Resolve(
             HostileEncounterActionKind.Attack,
-            playerLevel: 1,
-            groupPower: 999,
-            roll: 99
+            Options,
+            MakeParticipant(dexterity: 1),
+            [MakeParticipant(dexterity: 999)],
+            roll: 0.99
         );
 
         // Assert
@@ -20,18 +33,19 @@ public class HostileEncounterActionResolverTests
     }
 
     [Theory]
-    [InlineData(49, true)]
-    [InlineData(50, false)]
-    public void Resolve_ResolvesEvade_AtTheSuccessChanceBoundary_ForAnEvenMatchup(
-        int roll,
+    [InlineData(0.49, false)]
+    [InlineData(0.5, true)]
+    public void Resolve_ResolvesEvade_AtTheCatchChanceBoundary_ForAnEvenMatchup(
+        double roll,
         bool expectSuccess
     )
     {
-        // Act — equal player level and group power yields the base 50% chance
+        // Act — equal Dexterity yields the base 50% catch chance
         var outcome = HostileEncounterActionResolver.Resolve(
             HostileEncounterActionKind.Evade,
-            playerLevel: 5,
-            groupPower: 5,
+            Options,
+            MakeParticipant(dexterity: 10),
+            [MakeParticipant(dexterity: 10)],
             roll
         );
 
@@ -45,18 +59,19 @@ public class HostileEncounterActionResolverTests
     }
 
     [Theory]
-    [InlineData(39, true)]
-    [InlineData(40, false)]
-    public void Resolve_ResolvesRetreat_AtTheSuccessChanceBoundary_ForAnEvenMatchup(
-        int roll,
+    [InlineData(0.49, false)]
+    [InlineData(0.5, true)]
+    public void Resolve_ResolvesRetreat_AtTheCatchChanceBoundary_ForAnEvenMatchup(
+        double roll,
         bool expectSuccess
     )
     {
-        // Act — equal player level and group power yields the base 40% chance
+        // Act — equal Dexterity yields the base 50% catch chance
         var outcome = HostileEncounterActionResolver.Resolve(
             HostileEncounterActionKind.Retreat,
-            playerLevel: 5,
-            groupPower: 5,
+            Options,
+            MakeParticipant(dexterity: 10),
+            [MakeParticipant(dexterity: 10)],
             roll
         );
 
@@ -70,54 +85,42 @@ public class HostileEncounterActionResolverTests
     }
 
     [Fact]
-    public void EvadeSuccessChance_ClampsToMaximum_WhenPlayerFarOutlevelsTheGroup()
+    public void Resolve_UsesTheFastestGroupMember_WhenComparingAgainstThePlayer()
     {
+        // Arrange — the slow member alone would yield a low catch chance, but the fast member
+        // in the same group should dominate the comparison
+        var slowMember = MakeParticipant(dexterity: 1);
+        var fastMember = MakeParticipant(dexterity: 100);
+
         // Act
-        var chance = HostileEncounterActionResolver.EvadeSuccessChance(
-            playerLevel: 20,
-            groupPower: 1
+        var outcome = HostileEncounterActionResolver.Resolve(
+            HostileEncounterActionKind.Evade,
+            Options,
+            MakeParticipant(dexterity: 10),
+            [slowMember, fastMember],
+            roll: 0.94
         );
 
-        // Assert
-        Assert.Equal(90, chance);
+        // Assert — clamp(100/10*0.5, 0.05, 0.95) = 0.95, so a 0.94 roll is still caught
+        Assert.Equal(HostileEncounterActionOutcome.EvadeFailed, outcome);
     }
 
     [Fact]
-    public void EvadeSuccessChance_ClampsToMinimum_WhenGroupFarOutlevelsThePlayer()
+    public void Resolve_ReducesAGroupMembersEffectiveDexterity_WhenItIsWounded()
     {
+        // Arrange — 100 Dexterity at 10% HP behaves like 10 Dexterity
+        var woundedMember = MakeParticipant(dexterity: 100, currentHp: 1, maximumHp: 10);
+
         // Act
-        var chance = HostileEncounterActionResolver.EvadeSuccessChance(
-            playerLevel: 1,
-            groupPower: 20
+        var outcome = HostileEncounterActionResolver.Resolve(
+            HostileEncounterActionKind.Evade,
+            Options,
+            MakeParticipant(dexterity: 10),
+            [woundedMember],
+            roll: 0.5
         );
 
-        // Assert
-        Assert.Equal(10, chance);
-    }
-
-    [Fact]
-    public void RetreatSuccessChance_ClampsToMaximum_WhenPlayerFarOutlevelsTheGroup()
-    {
-        // Act
-        var chance = HostileEncounterActionResolver.RetreatSuccessChance(
-            playerLevel: 20,
-            groupPower: 1
-        );
-
-        // Assert
-        Assert.Equal(85, chance);
-    }
-
-    [Fact]
-    public void RetreatSuccessChance_ClampsToMinimum_WhenGroupFarOutlevelsThePlayer()
-    {
-        // Act
-        var chance = HostileEncounterActionResolver.RetreatSuccessChance(
-            playerLevel: 1,
-            groupPower: 20
-        );
-
-        // Assert
-        Assert.Equal(10, chance);
+        // Assert — clamp(10/10*0.5, 0.05, 0.95) = 0.5, so a 0.5 roll is not caught
+        Assert.Equal(HostileEncounterActionOutcome.Evaded, outcome);
     }
 }

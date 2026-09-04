@@ -1,3 +1,6 @@
+using TRPG.Application.Combat;
+using TRPG.Application.Configuration;
+
 namespace TRPG.Application.Encounters;
 
 public enum HostileEncounterActionKind
@@ -18,44 +21,30 @@ internal enum HostileEncounterActionOutcome
 
 internal static class HostileEncounterActionResolver
 {
-    private const int EvadeBaseChance = 50;
-    private const int EvadeMaximumChance = 90;
-    private const int RetreatBaseChance = 40;
-    private const int RetreatMaximumChance = 85;
-    private const int MinimumChance = 10;
-    private const int LevelDifferenceMultiplier = 5;
-
-    public static int EvadeSuccessChance(int playerLevel, int groupPower) =>
-        Math.Clamp(
-            EvadeBaseChance + (playerLevel - groupPower) * LevelDifferenceMultiplier,
-            MinimumChance,
-            EvadeMaximumChance
-        );
-
-    public static int RetreatSuccessChance(int playerLevel, int groupPower) =>
-        Math.Clamp(
-            RetreatBaseChance + (playerLevel - groupPower) * LevelDifferenceMultiplier,
-            MinimumChance,
-            RetreatMaximumChance
-        );
-
-    // roll (0-99) is caller-supplied rather than rolled internally, so this stays pure and testable.
+    // roll [0,1) is caller-supplied rather than rolled internally, so this stays pure and testable.
     public static HostileEncounterActionOutcome Resolve(
         HostileEncounterActionKind action,
-        int playerLevel,
-        int groupPower,
-        int roll
+        FleeOptions fleeOptions,
+        EvadeParticipant player,
+        IReadOnlyCollection<EvadeParticipant> groupMembers,
+        double roll
     ) =>
         action switch
         {
             HostileEncounterActionKind.Attack => HostileEncounterActionOutcome.Attacked,
-            HostileEncounterActionKind.Evade => roll < EvadeSuccessChance(playerLevel, groupPower)
-                ? HostileEncounterActionOutcome.Evaded
-                : HostileEncounterActionOutcome.EvadeFailed,
-            HostileEncounterActionKind.Retreat => roll
-            < RetreatSuccessChance(playerLevel, groupPower)
-                ? HostileEncounterActionOutcome.Retreated
-                : HostileEncounterActionOutcome.RetreatFailed,
+            HostileEncounterActionKind.Evade => IsCaught(fleeOptions, player, groupMembers, roll)
+                ? HostileEncounterActionOutcome.EvadeFailed
+                : HostileEncounterActionOutcome.Evaded,
+            HostileEncounterActionKind.Retreat => IsCaught(fleeOptions, player, groupMembers, roll)
+                ? HostileEncounterActionOutcome.RetreatFailed
+                : HostileEncounterActionOutcome.Retreated,
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
+
+    private static bool IsCaught(
+        FleeOptions fleeOptions,
+        EvadeParticipant player,
+        IReadOnlyCollection<EvadeParticipant> groupMembers,
+        double roll
+    ) => roll < EvadeChanceCalculator.CatchChance(fleeOptions, player, groupMembers);
 }

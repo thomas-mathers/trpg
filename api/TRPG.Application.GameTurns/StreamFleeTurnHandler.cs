@@ -2,6 +2,7 @@ using System.Text.Json;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
 
@@ -35,6 +36,13 @@ internal class StreamFleeTurnHandler(
             return new GameTurnPrompt.Reply("There's no fight to flee from right now.");
         }
 
+        // A failed attempt changes nothing worth narrating — ResolveFleeCombatCommand's
+        // CombatUpdatedEvent already carries a FleeFailed toast message to the client.
+        if (result.CombatResult.Outcome != CombatOutcome.Fled)
+        {
+            return new GameTurnPrompt.None();
+        }
+
         if (result.DestinationLocationId != null)
         {
             await movePlayer.Handle(
@@ -51,7 +59,9 @@ internal class StreamFleeTurnHandler(
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(result), IncludeTools: false);
     }
 
-    private static string BuildNarrationPrompt(FleeCombatResult result)
+    // Only ever called when the flee attempt succeeded — a failed attempt returns
+    // GameTurnPrompt.None before reaching this, so there's nothing to narrate for it.
+    internal static string BuildNarrationPrompt(FleeCombatResult result)
     {
         var serializedResult = JsonSerializer.Serialize(
             result.CombatResult,

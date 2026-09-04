@@ -114,6 +114,12 @@ public sealed class EndpointTestFixture : IAsyncLifetime
                         new Dictionary<string, string?>
                         {
                             ["ConnectionStrings:Trpg"] = _databaseFixture.ConnectionString,
+                            // Guarantees flee always succeeds — hub tests exercise the flee
+                            // flow's narration and scene-relocation behavior, not the
+                            // catch-chance mechanic, which has its own dedicated tests at the
+                            // CombatEngine/ResolveFleeCombatCommand level.
+                            ["Flee:MinimumCatchChance"] = "0",
+                            ["Flee:MaximumCatchChance"] = "0",
                         }
                     );
                 }

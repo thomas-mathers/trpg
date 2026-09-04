@@ -21,6 +21,10 @@ public static class CombatNarration
             Healed healed =>
                 $"{healed.SourceName} restores {healed.Amount} HP to {healed.TargetName}.",
             ConsumedPotion potion => $"{potion.CreatureName} uses {potion.ItemName}.",
+            BuffApplied buff => $"{buff.SourceName} uses {buff.AbilityName} on {buff.TargetName}.",
+            HealOverTimeApplied hot =>
+                $"{hot.SourceName} applies {hot.AbilityName} to {hot.TargetName}.",
+            FleeFailed failed => $"{failed.CreatureName} fails to break away.",
             _ => null,
         };
 }

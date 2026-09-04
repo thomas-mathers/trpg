@@ -190,6 +190,8 @@ export type CombatUpdated = {
     combatants: CombatantState[];
     /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatActionResult> */
     actions: CombatActionResult[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyList<string> */
+    messages: string[];
     /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatRegeneration> */
     regenerations: CombatRegeneration[];
     /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatResourceState> */
