@@ -29,6 +29,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<MovePlayerCommand> movePlayer,
     ICommandHandler<StartFightCommand> startFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
@@ -132,11 +133,12 @@ internal class ResolveGuardEncounterActionCommandHandler(
         );
         var unlocksAt = playtime + GameClock.RealTimePerInGameHour * encounter.JailHours;
 
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand
+        await movePlayer.Handle(
+            new MovePlayerCommand
             {
-                CreatureIds = [command.PlayerId],
-                LocationId = jail.CellsLocationId,
+                PlayerId = command.PlayerId,
+                DestinationLocationId = jail.CellsLocationId,
+                Playtime = playtime,
             },
             cancellationToken
         );

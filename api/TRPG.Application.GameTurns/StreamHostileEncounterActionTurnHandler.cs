@@ -20,6 +20,7 @@ internal class StreamHostileEncounterActionTurnHandler(
         HostileEncounterResolutionFact
     > resolveHostileEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
@@ -27,7 +28,7 @@ internal class StreamHostileEncounterActionTurnHandler(
         HostileEncounter,
         HostileEncounterAction,
         HostileEncounterResolutionFact
-    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
+    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getPlaytime, gameEvents)
 {
     protected override async Task<HostileEncounterResolutionFact> Resolve(
         GameTurnSession session,

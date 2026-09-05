@@ -4,6 +4,9 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain.Models;
 
@@ -15,7 +18,10 @@ internal class StreamRespawnTurnHandler(
     ICommandHandler<ResolvePlayerRespawnCommand, PlayerRespawnFact> resolvePlayerRespawn,
     ICommandHandler<RestoreCreatureResourcesCommand> restoreCreatureResources,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<MovePlayerCommand, MovePlayerResult> movePlayer
+    ICommandHandler<MovePlayerCommand> movePlayer,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -39,6 +45,11 @@ internal class StreamRespawnTurnHandler(
         }
 
         PlayerRespawnFact fact;
+
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
 
         using (
             var transaction = new TransactionScope(
@@ -74,14 +85,28 @@ internal class StreamRespawnTurnHandler(
                 new MovePlayerCommand
                 {
                     PlayerId = session.PlayerId,
-                    SessionId = session.SessionId,
                     DestinationLocationId = fact.SanctuaryLocationId,
+                    Playtime = playtime,
                 },
                 cancellationToken
             );
 
             transaction.Complete();
         }
+
+        var startedEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
+            cancellationToken
+        );
+
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = session.PlayerId,
+                Encounter = startedEncounter,
+            },
+            cancellationToken
+        );
 
         return new GameTurnPrompt.Narrate(BuildNarrationPrompt(fact), IncludeTools: false);
     }

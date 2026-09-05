@@ -18,5 +18,9 @@ public static class LocationSimulationServiceCollectionExtensions
             .AddTransient<PlayerMovedAlertedCreatureResetEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedAlertedCreatureResetEventHandler>()
+            )
+            .AddTransient<PlayerMovedArrivalEventHandler>()
+            .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<PlayerMovedArrivalEventHandler>()
             );
 }
