@@ -43,7 +43,7 @@ public sealed class SetBedAssignmentCommandHandlerTests(DatabaseFixture db) : IA
 
         // Act
         await _handler.Handle(
-            new SetBedAssignmentCommand { BedId = _bed.Id, AssignedCreatureId = creatureId },
+            new SetBedAssignmentCommand { BedIds = [_bed.Id], AssignedCreatureId = creatureId },
             TestContext.Current.CancellationToken
         );
 
@@ -60,13 +60,13 @@ public sealed class SetBedAssignmentCommandHandlerTests(DatabaseFixture db) : IA
     {
         // Arrange
         await _handler.Handle(
-            new SetBedAssignmentCommand { BedId = _bed.Id, AssignedCreatureId = Guid.NewGuid() },
+            new SetBedAssignmentCommand { BedIds = [_bed.Id], AssignedCreatureId = Guid.NewGuid() },
             TestContext.Current.CancellationToken
         );
 
         // Act
         await _handler.Handle(
-            new SetBedAssignmentCommand { BedId = _bed.Id, AssignedCreatureId = null },
+            new SetBedAssignmentCommand { BedIds = [_bed.Id], AssignedCreatureId = null },
             TestContext.Current.CancellationToken
         );
 

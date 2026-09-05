@@ -27,11 +27,11 @@ internal class CatchUpLocationCommandHandler(
         IReadOnlyList<Guid>
     > getCreatureIdsWithJobInLocation,
     IQueryHandler<
-        GetCreatureJobsByCreatureIdQuery,
-        IReadOnlyList<CreatureJob>
-    > getAllJobsByCreatureId,
+        GetCreatureJobsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
+    > getJobsByCreatureIds,
     IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>> getCreatureIdsByDistrict,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<ExecuteCreatureJobCommand> executeJob,
     IQueryHandler<
         GetWorkstationsByLocationIdQuery,
@@ -83,8 +83,8 @@ internal class CatchUpLocationCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        await AdvanceJobsTargetingLocation(
-            command.LocationId,
+        await AdvanceDueJobs(
+            await ResolveScheduledCreatureIds(command, location, cancellationToken),
             command.CurrentDate,
             cancellationToken
         );
@@ -94,18 +94,43 @@ internal class CatchUpLocationCommandHandler(
             await SynchronizeFrontDoorLock(command, cancellationToken);
         }
 
+        await SynchronizeCreatureSpawner(command, cancellationToken);
+        await SynchronizeRestockPolicy(command, cancellationToken);
+    }
+
+    // Creatures whose job targets this location and creatures already standing in its district
+    // overlap, so they are unioned to avoid advancing the same creature's schedule twice.
+    private async Task<IReadOnlyCollection<Guid>> ResolveScheduledCreatureIds(
+        CatchUpLocationCommand command,
+        Location location,
+        CancellationToken cancellationToken
+    )
+    {
+        var creatureIds = new HashSet<Guid>(
+            await getCreatureIdsWithJobInLocation.Handle(
+                new GetCreatureIdsWithCreatureJobInLocationQuery
+                {
+                    LocationId = command.LocationId,
+                },
+                cancellationToken
+            )
+        );
+
         if (location.DistrictId != null)
         {
-            await AdvanceJobsForCreaturesInDistrict(
-                command.WorldId,
-                location.DistrictId.Value,
-                command.CurrentDate,
-                cancellationToken
+            creatureIds.UnionWith(
+                await getCreatureIdsByDistrict.Handle(
+                    new GetCreatureIdsByDistrictQuery
+                    {
+                        WorldId = command.WorldId,
+                        DistrictId = location.DistrictId.Value,
+                    },
+                    cancellationToken
+                )
             );
         }
 
-        await SynchronizeCreatureSpawner(command, cancellationToken);
-        await SynchronizeRestockPolicy(command, cancellationToken);
+        return creatureIds;
     }
 
     private async Task SynchronizeFrontDoorLock(
@@ -155,66 +180,46 @@ internal class CatchUpLocationCommandHandler(
         );
     }
 
-    private async Task AdvanceJobsTargetingLocation(
-        Guid locationId,
-        InGameDate currentDate,
-        CancellationToken cancellationToken
-    )
-    {
-        var creatureIds = await getCreatureIdsWithJobInLocation.Handle(
-            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = locationId },
-            cancellationToken
-        );
-        await AdvanceDueJobs(creatureIds, currentDate, cancellationToken);
-    }
-
-    private async Task AdvanceJobsForCreaturesInDistrict(
-        Guid worldId,
-        Guid districtId,
-        InGameDate currentDate,
-        CancellationToken cancellationToken
-    )
-    {
-        var creatureIds = await getCreatureIdsByDistrict.Handle(
-            new GetCreatureIdsByDistrictQuery { WorldId = worldId, DistrictId = districtId },
-            cancellationToken
-        );
-        await AdvanceDueJobs(creatureIds, currentDate, cancellationToken);
-    }
-
     private async Task AdvanceDueJobs(
         IReadOnlyCollection<Guid> creatureIds,
         InGameDate currentDate,
         CancellationToken cancellationToken
     )
     {
+        if (creatureIds.Count == 0)
+        {
+            return;
+        }
+
+        var jobsByCreatureId = await getJobsByCreatureIds.Handle(
+            new GetCreatureJobsByCreatureIdsQuery { CreatureIds = creatureIds },
+            cancellationToken
+        );
+
+        var dueJobsByCreatureId = creatureIds
+            .Select(creatureId => new
+            {
+                CreatureId = creatureId,
+                DueJob = FindDueJob(jobsByCreatureId, creatureId, currentDate),
+            })
+            .Where(entry => entry.DueJob != null)
+            .ToDictionary(entry => entry.CreatureId, entry => entry.DueJob!);
+
+        if (dueJobsByCreatureId.Count == 0)
+        {
+            return;
+        }
+
+        var creaturesById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = dueJobsByCreatureId.Keys.ToArray() },
+            cancellationToken
+        );
+
         var workingCreaturesByLocationId = new Dictionary<Guid, List<Guid>>();
 
-        foreach (var creatureId in creatureIds)
+        foreach (var (creatureId, dueJob) in dueJobsByCreatureId)
         {
-            var jobs = await getAllJobsByCreatureId.Handle(
-                new GetCreatureJobsByCreatureIdQuery { CreatureId = creatureId },
-                cancellationToken
-            );
-
-            var dueJob = jobs.Where(j =>
-                    CreatureJobScheduling.IsActiveAtHour(j, currentDate.Weekday, currentDate.Hour)
-                )
-                .OrderByDescending(j => j.Priority)
-                .ThenBy(j => j.Id)
-                .FirstOrDefault();
-
-            if (dueJob == null)
-            {
-                continue;
-            }
-
-            var creature = await getCreatureById.Handle(
-                new GetCreatureByIdQuery { Id = creatureId },
-                cancellationToken
-            );
-
-            if (creature != null)
+            if (creaturesById.TryGetValue(creatureId, out var creature))
             {
                 await executeJob.Handle(
                     new ExecuteCreatureJobCommand
@@ -241,6 +246,20 @@ internal class CatchUpLocationCommandHandler(
             await AssignWorkstations(locationId, presentCreatureIds, cancellationToken);
         }
     }
+
+    private static CreatureJob? FindDueJob(
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
+        Guid creatureId,
+        InGameDate currentDate
+    ) =>
+        jobsByCreatureId.TryGetValue(creatureId, out var jobs)
+            ? jobs.Where(job =>
+                    CreatureJobScheduling.IsActiveAtHour(job, currentDate.Weekday, currentDate.Hour)
+                )
+                .OrderByDescending(job => job.Priority)
+                .ThenBy(job => job.Id)
+                .FirstOrDefault()
+            : null;
 
     private async Task AssignWorkstations(
         Guid locationId,

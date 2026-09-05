@@ -17,7 +17,7 @@ public class DeleteRoomBookingsCommand
 internal class DeleteRoomBookingsCommandHandler(
     IRoomBookingsDbContext context,
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
-    IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
+    IQueryHandler<GetBedsByLocationIdsQuery, IReadOnlyDictionary<Guid, Bed>> getBedsByLocationIds,
     ICommandHandler<SetBedAssignmentCommand> setBedAssignment
 ) : ICommandHandler<DeleteRoomBookingsCommand>
 {
@@ -34,24 +34,7 @@ internal class DeleteRoomBookingsCommandHandler(
 
         if (roomIds.Length > 0)
         {
-            var rooms = await getRoomsByIds.Handle(
-                new GetRoomsByIdsQuery { Ids = roomIds },
-                cancellationToken
-            );
-            foreach (var room in rooms.Values)
-            {
-                var bed = await getBedByLocationId.Handle(
-                    new GetBedByLocationIdQuery { LocationId = room.LocationId },
-                    cancellationToken
-                );
-                if (bed != null)
-                {
-                    await setBedAssignment.Handle(
-                        new SetBedAssignmentCommand { BedId = bed.Id, AssignedCreatureId = null },
-                        cancellationToken
-                    );
-                }
-            }
+            await ClearBedAssignments(roomIds, cancellationToken);
         }
 
         await context
@@ -59,5 +42,33 @@ internal class DeleteRoomBookingsCommandHandler(
                 command.RoomBookingIds.AsEnumerable().Contains(booking.Id)
             )
             .ExecuteDeleteAsync(cancellationToken);
+    }
+
+    private async Task ClearBedAssignments(
+        IReadOnlyCollection<Guid> roomIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var rooms = await getRoomsByIds.Handle(
+            new GetRoomsByIdsQuery { Ids = roomIds },
+            cancellationToken
+        );
+
+        var beds = await getBedsByLocationIds.Handle(
+            new GetBedsByLocationIdsQuery
+            {
+                LocationIds = rooms.Values.Select(room => room.LocationId).ToArray(),
+            },
+            cancellationToken
+        );
+
+        await setBedAssignment.Handle(
+            new SetBedAssignmentCommand
+            {
+                BedIds = beds.Values.Select(bed => bed.Id).ToArray(),
+                AssignedCreatureId = null,
+            },
+            cancellationToken
+        );
     }
 }
