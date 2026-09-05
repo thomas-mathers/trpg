@@ -131,6 +131,18 @@ describe('NearbyPanel', () => {
     expect(screen.queryByRole('menuitem', { name: 'Trade' })).not.toBeInTheDocument();
   });
 
+  it('does not show trade while the player is sneaking', async () => {
+    const sneakingScene = {
+      ...scene('workstation-id'),
+      playerStatus: { id: 'player-id', level: 1, isSneaking: true },
+    } as unknown as SceneSnapshot;
+    const { user } = renderPanel(sneakingScene);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Tessa' }));
+
+    expect(screen.queryByRole('menuitem', { name: 'Trade' })).not.toBeInTheDocument();
+  });
+
   it('allows transferring items from a nearby living creature', async () => {
     server.use(
       handleGetCreatureInventory(async ({ params }) =>

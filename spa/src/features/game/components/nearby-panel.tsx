@@ -223,7 +223,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                   setIsTradeOpen(true);
                 }
               }}
-              tradeEnabled={Boolean(creature.tradeWorkstationId)}
+              tradeEnabled={Boolean(creature.tradeWorkstationId) && !scene.playerStatus.isSneaking}
             />
           ))
         )}
