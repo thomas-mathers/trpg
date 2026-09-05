@@ -7,7 +7,7 @@ namespace TRPG.Application.Props.Commands;
 
 public class SetBedAssignmentCommand
 {
-    public required Guid BedId { get; init; }
+    public required IReadOnlyCollection<Guid> BedIds { get; init; }
     public required Guid? AssignedCreatureId { get; init; }
 }
 
@@ -19,11 +19,16 @@ internal class SetBedAssignmentCommandHandler(IPropsDbContext context)
         CancellationToken cancellationToken = default
     )
     {
+        if (command.BedIds.Count == 0)
+        {
+            return;
+        }
+
         await context
             .Props.OfType<Bed>()
-            .Where(b => b.Id == command.BedId)
+            .Where(bed => command.BedIds.AsEnumerable().Contains(bed.Id))
             .ExecuteUpdateAsync(
-                s => s.SetProperty(b => b.AssignedCreatureId, command.AssignedCreatureId),
+                s => s.SetProperty(bed => bed.AssignedCreatureId, command.AssignedCreatureId),
                 cancellationToken
             );
     }

@@ -159,7 +159,11 @@ internal class BookRoomCommandHandler(
         );
 
         await setBedAssignment.Handle(
-            new SetBedAssignmentCommand { BedId = bed.Id, AssignedCreatureId = command.PlayerId },
+            new SetBedAssignmentCommand
+            {
+                BedIds = [bed.Id],
+                AssignedCreatureId = command.PlayerId,
+            },
             cancellationToken
         );
 

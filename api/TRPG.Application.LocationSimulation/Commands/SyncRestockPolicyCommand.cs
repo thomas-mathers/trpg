@@ -66,39 +66,37 @@ internal class SyncRestockPolicyCommandHandler(
             return;
         }
 
-        foreach (var workstation in workstations)
+        var workstationIds = workstations.Select(workstation => workstation.Id).ToArray();
+        var policies = await context
+            .RestockPolicies.Where(policy =>
+                workstationIds.AsEnumerable().Contains(policy.WorkstationId)
+            )
+            .ToArrayAsync(cancellationToken);
+
+        var duePolicies = policies.Where(policy =>
+            RecurringScheduling.HasTriggered(
+                policy.TriggerHour,
+                policy.SpecificDay,
+                policy.LastSyncPlaytime,
+                command.CurrentPlaytime
+            )
+        );
+
+        foreach (var policy in duePolicies)
         {
-            await SyncWorkstation(workstation.Id, building, command, cancellationToken);
+            await SyncWorkstation(policy, building, command, cancellationToken);
         }
     }
 
     private async Task SyncWorkstation(
-        Guid workstationId,
+        RestockPolicy policy,
         BuildingIdentity building,
         SyncRestockPolicyCommand command,
         CancellationToken cancellationToken
     )
     {
         var buildingType = building.BuildingType;
-        var policy = await context.RestockPolicies.FirstOrDefaultAsync(
-            p => p.WorkstationId == workstationId,
-            cancellationToken
-        );
-        if (policy == null)
-        {
-            return;
-        }
-
-        var hasTriggered = RecurringScheduling.HasTriggered(
-            policy.TriggerHour,
-            policy.SpecificDay,
-            policy.LastSyncPlaytime,
-            command.CurrentPlaytime
-        );
-        if (!hasTriggered)
-        {
-            return;
-        }
+        var workstationId = policy.WorkstationId;
 
         var currentItems = await getInventoryItemsByOwner.Handle(
             new GetInventoryItemsByOwnerQuery
