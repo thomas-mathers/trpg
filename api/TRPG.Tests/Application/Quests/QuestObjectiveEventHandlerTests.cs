@@ -195,7 +195,13 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db) : IAsync
                 _serviceProvider
                     .GetRequiredService<PlayerMovedQuestEventHandler>()
                     .Handle(
-                        new PlayerMovedEvent(_player.Id, WorldId, locationId),
+                        new PlayerMovedEvent(
+                            _player.Id,
+                            WorldId,
+                            Guid.NewGuid(),
+                            locationId,
+                            TimeSpan.Zero
+                        ),
                         cancellationToken
                     ),
             ObjectiveKind.SpeakToCreature => cancellationToken =>

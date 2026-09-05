@@ -2,11 +2,11 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Factions.Queries;
+using TRPG.Application.Reputations.Commands;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Reputations.Commands;
+namespace TRPG.Application.Crimes.Commands;
 
 public class ApplyReputationPenaltyForKillsCommand
 {
@@ -17,11 +17,7 @@ public class ApplyReputationPenaltyForKillsCommand
 
 internal class ApplyReputationPenaltyForKillsCommandHandler(
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
-    IOptionsMonitor<ReputationOptions> reputationOptions,
-    IQueryHandler<
-        GetFactionIdsByCreatureIdsQuery,
-        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
-    > getFactionIdsByCreatureIds
+    IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ApplyReputationPenaltyForKillsCommand>
 {
     public async Task Handle(
@@ -46,13 +42,8 @@ internal class ApplyReputationPenaltyForKillsCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var victimIds = command.Kills.Select(kill => kill.VictimId).ToArray();
-        var factionIdsByCreature = await getFactionIdsByCreatureIds.Handle(
-            new GetFactionIdsByCreatureIdsQuery { CreatureIds = victimIds },
-            cancellationToken
-        );
-        var killedFactionIds = factionIdsByCreature
-            .Values.SelectMany(ids => ids)
+        var killedFactionIds = command
+            .Kills.SelectMany(kill => kill.VictimFactionIds)
             .Distinct()
             .ToArray();
 

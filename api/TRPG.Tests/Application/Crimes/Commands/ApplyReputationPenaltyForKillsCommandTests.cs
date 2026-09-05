@@ -1,11 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Crimes.Commands;
-using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Reputations.Commands;
+namespace TRPG.Tests.Application.Crimes.Commands;
 
 [Collection("Database")]
 public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture db) : IAsyncLifetime
@@ -43,11 +42,8 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
         var victim = Builders.MakeCreature(WorldId);
         var factionOne = Builders.MakeFaction(WorldId);
         var factionTwo = Builders.MakeFaction(WorldId);
-        var membershipOne = Builders.MakeFactionMember(WorldId, factionOne.Id, victim.Id);
-        var membershipTwo = Builders.MakeFactionMember(WorldId, factionTwo.Id, victim.Id);
         _context.Creatures.Add(victim);
         _context.Factions.AddRange(factionOne, factionTwo);
-        _context.FactionMembers.AddRange(membershipOne, membershipTwo);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -56,7 +52,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             {
                 KillerId = _killer.Id,
                 WorldId = WorldId,
-                Kills = [new KillCrimeReport(victim.Id, [])],
+                Kills = [new KillCrimeReport(victim.Id, [factionOne.Id, factionTwo.Id], [])],
             },
             TestContext.Current.CancellationToken
         );
@@ -103,7 +99,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             {
                 KillerId = _killer.Id,
                 WorldId = WorldId,
-                Kills = [new KillCrimeReport(victim.Id, [])],
+                Kills = [new KillCrimeReport(victim.Id, [], [])],
             },
             TestContext.Current.CancellationToken
         );
@@ -127,7 +123,7 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             {
                 KillerId = _killer.Id,
                 WorldId = WorldId,
-                Kills = [new KillCrimeReport(victim.Id, [witness.Id])],
+                Kills = [new KillCrimeReport(victim.Id, [], [witness.Id])],
             },
             TestContext.Current.CancellationToken
         );
@@ -137,6 +133,34 @@ public sealed class ApplyReputationPenaltyForKillsCommandTests(DatabaseFixture d
             r.CreatureId == _killer.Id
             && r.TargetType == ReputationTargetType.Creature
             && r.TargetId == witness.Id
+        );
+        Assert.Equal(-100, reputation.Score);
+    }
+
+    [Fact]
+    public async Task Handle_StillPenalizesTheVictimsFactions_WhenTheVictimHasAlreadyBeenDeleted()
+    {
+        // Arrange — the corpse and its faction rows are gone, as they would be after cleanup
+        var faction = Builders.MakeFaction(WorldId);
+        _context.Factions.Add(faction);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ApplyReputationPenaltyForKillsCommand
+            {
+                KillerId = _killer.Id,
+                WorldId = WorldId,
+                Kills = [new KillCrimeReport(Guid.NewGuid(), [faction.Id], [])],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var reputation = _context.Reputations.Single(r =>
+            r.CreatureId == _killer.Id
+            && r.TargetType == ReputationTargetType.Faction
+            && r.TargetId == faction.Id
         );
         Assert.Equal(-100, reputation.Score);
     }

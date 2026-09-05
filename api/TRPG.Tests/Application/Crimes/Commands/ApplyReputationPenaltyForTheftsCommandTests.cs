@@ -1,11 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Crimes.Commands;
-using TRPG.Application.Reputations.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Reputations.Commands;
+namespace TRPG.Tests.Application.Crimes.Commands;
 
 [Collection("Database")]
 public sealed class ApplyReputationPenaltyForTheftsCommandTests(DatabaseFixture db) : IAsyncLifetime

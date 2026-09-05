@@ -258,6 +258,71 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
     }
 
     [Fact]
+    public async Task Handle_LeavesCrimesUnreported_WhenTheOverdueRoomKeyConfrontationBlocksTheMove()
+    {
+        // Arrange — a pending crime with a live witness in the guest room the player is trying to
+        // leave; the overdue key stops them at the door, so they never actually depart it
+        var player = Builders.MakeCreature(WorldId);
+        var inn = await SeedOverdueInnBooking(player.Id);
+        player.LocationId = inn.GuestRoomLocationId;
+        var witness = Builders.MakeCreature(WorldId, locationId: inn.GuestRoomLocationId);
+        var outside = Builders.MakeLocation(WorldId, _stateId);
+        var faction = Builders.MakeFaction(WorldId);
+        var crime = new TheftCrime
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            LocationId = inn.GuestRoomLocationId,
+            OwnerFactionId = faction.Id,
+            OwnerCreatureId = witness.Id,
+            OwnerName = witness.Name,
+            Outcome = TheftCrimeOutcome.Taken,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+        };
+        _context.Creatures.AddRange(player, witness);
+        _context.Locations.Add(outside);
+        _context.Factions.Add(faction);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = crime.Id,
+                CreatureId = witness.Id,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                SessionId = _session.Id,
+                DestinationLocationId = outside.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — departure consequences only apply to a departure that actually happened
+        Assert.IsType<TheftEncounter>(result.Encounter);
+
+        await using var verifyContext = db.CreateContext();
+        var persistedCrime = await verifyContext.Crimes.FindAsync(
+            [crime.Id],
+            TestContext.Current.CancellationToken
+        );
+        var persistedWitness = await verifyContext.CrimeWitnesses.SingleAsync(
+            candidate => candidate.CrimeId == crime.Id,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.NotEqual(CrimeResolution.Reported, persistedCrime!.Resolution);
+        Assert.NotEqual(CrimeWitnessResolution.Reported, persistedWitness.Resolution);
+    }
+
+    [Fact]
     public async Task Handle_ConfrontsThePlayer_WhenReturningToTheInnAfterTheKeyBecameOverdue()
     {
         // Arrange — the player left before checkout and is only now walking back in

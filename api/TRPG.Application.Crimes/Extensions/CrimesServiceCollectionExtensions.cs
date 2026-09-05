@@ -12,5 +12,9 @@ public static class CrimesServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureKilledCrimeWitnessEventHandler>()
             )
+            .AddTransient<PlayerMovedCrimeConsequencesEventHandler>()
+            .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<PlayerMovedCrimeConsequencesEventHandler>()
+            )
             .AddTransient<PendingCrimeWitnessResolutionService>();
 }
