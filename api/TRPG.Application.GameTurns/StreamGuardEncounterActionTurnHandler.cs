@@ -20,6 +20,7 @@ internal class StreamGuardEncounterActionTurnHandler(
         GuardEncounterResolutionFact
     > resolveGuardEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
@@ -27,7 +28,7 @@ internal class StreamGuardEncounterActionTurnHandler(
         GuardEncounter,
         GuardEncounterAction,
         GuardEncounterResolutionFact
-    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
+    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getPlaytime, gameEvents)
 {
     protected override async Task<GuardEncounterResolutionFact> Resolve(
         GameTurnSession session,

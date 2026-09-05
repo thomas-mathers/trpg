@@ -4,6 +4,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data.ModuleContexts;
@@ -16,6 +17,7 @@ public class ResolveTheftEncounterActionCommand : IEncounterResolutionCommand
     public required TheftEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
 }
 
@@ -27,7 +29,8 @@ internal class ResolveTheftEncounterActionCommandHandler(
     > transferInventoryItems,
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    ICommandHandler<MovePlayerCommand> movePlayer
 )
     : EncounterResolutionCommandHandlerBase<
         TheftEncounter,
@@ -112,11 +115,17 @@ internal class ResolveTheftEncounterActionCommandHandler(
 
         if (player.LocationId != encounter.LocationId)
         {
-            await updateCreatures.Handle(
-                new UpdateCreaturesCommand
+            var playtime = await getPlaytime.Handle(
+                new GetPlaytimeQuery { SessionId = command.SessionId },
+                cancellationToken
+            );
+
+            await movePlayer.Handle(
+                new MovePlayerCommand
                 {
-                    CreatureIds = [command.PlayerId],
-                    LocationId = encounter.LocationId,
+                    PlayerId = command.PlayerId,
+                    DestinationLocationId = encounter.LocationId,
+                    Playtime = playtime,
                 },
                 cancellationToken
             );

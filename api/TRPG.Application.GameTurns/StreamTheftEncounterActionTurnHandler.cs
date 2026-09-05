@@ -20,6 +20,7 @@ internal class StreamTheftEncounterActionTurnHandler(
         TheftEncounterResolutionFact
     > resolveTheftEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
@@ -27,7 +28,7 @@ internal class StreamTheftEncounterActionTurnHandler(
         TheftEncounter,
         TheftEncounterAction,
         TheftEncounterResolutionFact
-    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
+    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getPlaytime, gameEvents)
 {
     protected override async Task<TheftEncounterResolutionFact> Resolve(
         GameTurnSession session,
@@ -40,6 +41,7 @@ internal class StreamTheftEncounterActionTurnHandler(
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
+                SessionId = session.SessionId,
                 Action = action,
                 EncounterId = encounter.Id,
             },

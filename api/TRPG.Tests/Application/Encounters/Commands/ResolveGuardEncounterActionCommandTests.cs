@@ -67,6 +67,39 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             EncounterId = encounterId,
         };
 
+    private async Task<JailFixture> SeedJail()
+    {
+        var cityId = Guid.NewGuid();
+        var jailLocation = Builders.MakeLocation(cityId: cityId);
+        var jail = Builders.MakeBuilding(
+            exteriorLocationId: jailLocation.Id,
+            buildingType: BuildingType.Jail
+        );
+        var guardStationRoom = Builders.MakeRoom(jail.Id, name: "Guard Station");
+        var cellsRoom = Builders.MakeRoom(jail.Id, name: JailRoomNames.Cells);
+        var exitConnector = Builders.MakeLocationConnector(
+            cellsRoom.LocationId,
+            destinationLocationId: guardStationRoom.LocationId
+        );
+        var exitDoor = Builders.MakeDoorConnector(exitConnector.Id);
+        var encounterLocation = Builders.MakeLocation(cityId: cityId);
+
+        _context.Locations.AddRange(jailLocation, encounterLocation);
+        _context.Buildings.Add(jail);
+        _context.Rooms.AddRange(guardStationRoom, cellsRoom);
+        _context.LocationConnectors.Add(exitConnector);
+        _context.DoorConnectors.Add(exitDoor);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return new JailFixture(cellsRoom.LocationId, exitDoor.Id, encounterLocation.Id);
+    }
+
+    private sealed record JailFixture(
+        Guid CellsLocationId,
+        Guid ExitDoorId,
+        Guid EncounterLocationId
+    );
+
     private async Task<GuardEncounter> SeedActiveEncounter(Guid locationId)
     {
         var encounter = new GuardEncounter
@@ -203,26 +236,8 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
     public async Task Handle_GoToJail_MovesThePlayerToTheCellsAndLocksTheExitUntilTheSentenceEnds()
     {
         // Arrange
-        var cityId = Guid.NewGuid();
-        var jailLocation = Builders.MakeLocation(cityId: cityId);
-        var jail = Builders.MakeBuilding(
-            exteriorLocationId: jailLocation.Id,
-            buildingType: BuildingType.Jail
-        );
-        var guardStationRoom = Builders.MakeRoom(jail.Id, name: "Guard Station");
-        var cellsRoom = Builders.MakeRoom(jail.Id, name: JailRoomNames.Cells);
-        var exitConnector = Builders.MakeLocationConnector(
-            cellsRoom.LocationId,
-            destinationLocationId: guardStationRoom.LocationId
-        );
-        var exitDoor = Builders.MakeDoorConnector(exitConnector.Id);
-        var encounterLocation = Builders.MakeLocation(cityId: cityId);
-        _context.Locations.AddRange(jailLocation, encounterLocation);
-        _context.Buildings.Add(jail);
-        _context.Rooms.AddRange(guardStationRoom, cellsRoom);
-        _context.LocationConnectors.Add(exitConnector);
-        _context.DoorConnectors.Add(exitDoor);
-        var encounter = await SeedActiveEncounter(encounterLocation.Id);
+        var jail = await SeedJail();
+        var encounter = await SeedActiveEncounter(jail.EncounterLocationId);
 
         // Act
         await _handler.Handle(
@@ -236,10 +251,10 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             [_player.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(cellsRoom.LocationId, updatedPlayer!.LocationId);
+        Assert.Equal(jail.CellsLocationId, updatedPlayer!.LocationId);
 
         var updatedDoor = await verifyContext.DoorConnectors.FindAsync(
-            [exitDoor.Id],
+            [jail.ExitDoorId],
             TestContext.Current.CancellationToken
         );
         Assert.True(updatedDoor!.IsLocked);
@@ -247,6 +262,67 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             _session.Playtime + GameClock.RealTimePerInGameHour * 24,
             updatedDoor.UnlocksAtPlaytime
         );
+    }
+
+    [Fact]
+    public async Task Handle_GoToJail_ResolvesWitnessedCrimesAtTheLocationThePlayerIsTakenFrom()
+    {
+        // Arrange
+        var jail = await SeedJail();
+        _player.LocationId = jail.EncounterLocationId;
+        var witness = Builders.MakeCreature(WorldId, locationId: jail.EncounterLocationId);
+        var faction = Builders.MakeFaction(WorldId);
+        var crime = new TheftCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = jail.EncounterLocationId,
+            OwnerFactionId = faction.Id,
+            OwnerCreatureId = witness.Id,
+            OwnerName = witness.Name,
+            Outcome = TheftCrimeOutcome.Taken,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+        };
+        _context.Creatures.Add(witness);
+        _context.Factions.Add(faction);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = crime.Id,
+                CreatureId = witness.Id,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedActiveEncounter(jail.EncounterLocationId);
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(new GoToJailEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var persistedCrime = await verifyContext.Crimes.FindAsync(
+            [crime.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CrimeResolution.Reported, persistedCrime!.Resolution);
+
+        var updatedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(jail.CellsLocationId, updatedPlayer!.LocationId);
+
+        var activeEncounters = await verifyContext.Encounters.CountAsync(
+            e => e.PlayerId == _player.Id && e.State == EncounterState.Active,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(0, activeEncounters);
     }
 
     [Fact]

@@ -26,6 +26,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     private Creature _confronter = null!;
     private Creature _owner = null!;
     private Creature _player = null!;
+    private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -34,7 +35,12 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         _confronter = Builders.MakeCreature(WorldId, locationId: _locationId, name: "Tessa");
         _owner = Builders.MakeCreature(WorldId, locationId: _locationId, name: "Mara");
 
+        _session = Builders.MakeGameSession(WorldId, _player.Id);
+        var location = Builders.MakeLocation(WorldId, id: _locationId);
+
         _context.Creatures.AddRange(_player, _confronter, _owner);
+        _context.GameSessions.Add(_session);
+        _context.Locations.Add(location);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _serviceProvider = new ServiceCollection()
@@ -199,7 +205,10 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     {
         // Arrange — mirrors a blocked departure: the encounter's location is where the player
         // was trying to go, not where they're actually standing
-        var destinationLocationId = Guid.NewGuid();
+        var destination = Builders.MakeLocation(WorldId);
+        var destinationLocationId = destination.Id;
+        _context.Locations.Add(destination);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var encounter = await SeedEncounter(
             sourceOwnerId: _owner.Id,
             sourceOwnerType: OwnerType.Creature,
@@ -323,6 +332,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             Action = new FleeTheftEncounterAction(),
             EncounterId = encounter.Id,
             PlayerId = _player.Id,
+            SessionId = _session.Id,
             WorldId = Guid.NewGuid(),
         };
 
@@ -346,6 +356,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             Action = new FleeTheftEncounterAction(),
             EncounterId = encounter.Id,
             PlayerId = Guid.NewGuid(),
+            SessionId = _session.Id,
             WorldId = WorldId,
         };
 
@@ -387,6 +398,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             Action = action,
             EncounterId = encounterId,
             PlayerId = _player.Id,
+            SessionId = _session.Id,
             WorldId = WorldId,
         };
 

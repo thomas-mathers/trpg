@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
@@ -12,6 +13,7 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
     GameTurnStreamer streamer,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
@@ -53,6 +55,22 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
         var resolution = await Resolve(session, typedEncounter, action, cancellationToken);
 
         gameEvents.Enqueue(BuildResolvedEvent(resolution));
+
+        // A resolution that relocates the player can start a fresh encounter on arrival; announce it
+        // only after the resolved event so the client never sees the new one before the old one closes.
+        var startedEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
+            cancellationToken
+        );
+
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = session.PlayerId,
+                Encounter = startedEncounter,
+            },
+            cancellationToken
+        );
 
         var playtime = await getPlaytime.Handle(
             new GetPlaytimeQuery { SessionId = session.SessionId },

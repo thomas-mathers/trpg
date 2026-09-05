@@ -3,11 +3,18 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
@@ -52,7 +59,16 @@ internal class MoveTool(
         ResolveMoveDestinationCommand,
         ResolveMoveDestinationResult
     > resolveMoveDestination,
-    ICommandHandler<MovePlayerCommand, MovePlayerResult> movePlayer,
+    ICommandHandler<
+        ConfrontOverdueRoomKeyOnMoveCommand,
+        ConfrontOverdueRoomKeyResult
+    > confrontOverdueRoomKeyOnMove,
+    ICommandHandler<MovePlayerCommand> movePlayer,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
+    IQueryHandler<GetSceneQuery, SceneResult> getScene,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -98,26 +114,72 @@ internal class MoveTool(
             return error;
         }
 
-        var moveResult = await movePlayer.Handle(
+        var player =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = turnContext.PlayerId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), turnContext.PlayerId);
+
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+
+        // Leaving under your own steam is what an innkeeper can intervene in; being relocated by an
+        // encounter is not, so this gate lives with the player-initiated walk rather than the move itself.
+        var confrontation = await ConfrontOverdueRoomKey(
+            player.LocationId,
+            destinationResult.DestinationLocationId!.Value,
+            playtime,
+            cancellationToken
+        );
+        if (confrontation != null)
+        {
+            return confrontation;
+        }
+
+        await movePlayer.Handle(
             new MovePlayerCommand
             {
                 PlayerId = turnContext.PlayerId,
-                SessionId = turnContext.SessionId,
                 DestinationLocationId = destinationResult.DestinationLocationId!.Value,
+                Playtime = playtime,
             },
             cancellationToken
         );
 
         turnContext.PlayerMoved = true;
 
-        var scene = moveResult.Scene;
+        var startedEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
+            cancellationToken
+        );
+
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = turnContext.PlayerId,
+                Encounter = startedEncounter,
+            },
+            cancellationToken
+        );
+
+        var scene = await getScene.Handle(
+            new GetSceneQuery
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                CurrentDate = GameClock.GetCurrentInGameDate(playtime),
+            },
+            cancellationToken
+        );
 
         var result = new MoveToolResult(
             scene,
-            (moveResult.Encounter as HostileEncounter)?.ToMoveToolSummary(),
-            (moveResult.Encounter as GuardEncounter)?.ToMoveToolSummary(),
-            (moveResult.Encounter as TheftEncounter)?.ToMoveToolSummary(),
-            (moveResult.Encounter as SuspicionEncounter)?.ToMoveToolSummary()
+            (startedEncounter as HostileEncounter)?.ToMoveToolSummary(),
+            (startedEncounter as GuardEncounter)?.ToMoveToolSummary(),
+            (startedEncounter as TheftEncounter)?.ToMoveToolSummary(),
+            (startedEncounter as SuspicionEncounter)?.ToMoveToolSummary()
         );
 
         logger.LogInformation(
@@ -129,5 +191,56 @@ internal class MoveTool(
             )
         );
         return result;
+    }
+
+    private async Task<MoveToolResult?> ConfrontOverdueRoomKey(
+        Guid fromLocationId,
+        Guid destinationLocationId,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    )
+    {
+        var confrontation = await confrontOverdueRoomKeyOnMove.Handle(
+            new ConfrontOverdueRoomKeyOnMoveCommand
+            {
+                WorldId = turnContext.WorldId,
+                Playtime = playtime,
+                PlayerId = turnContext.PlayerId,
+                FromLocationId = fromLocationId,
+                ToLocationId = destinationLocationId,
+            },
+            cancellationToken
+        );
+        if (confrontation.Encounter == null)
+        {
+            return null;
+        }
+
+        var refreshed = await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
+
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = turnContext.PlayerId,
+                Encounter = confrontation.Encounter,
+            },
+            cancellationToken
+        );
+
+        return new MoveToolResult(
+            refreshed.Scene,
+            null,
+            null,
+            confrontation.Encounter.ToMoveToolSummary(),
+            null
+        );
     }
 }

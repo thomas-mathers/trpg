@@ -6,6 +6,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -25,6 +26,8 @@ internal class ResolveHostileEncounterActionCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<MovePlayerCommand> movePlayer,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<StartFightCommand> startFight,
     IOptionsSnapshot<FleeOptions> fleeOptions
 )
@@ -89,11 +92,17 @@ internal class ResolveHostileEncounterActionCommandHandler(
             && player.PreviousLocationId is { } originLocationId
         )
         {
-            await updateCreatures.Handle(
-                new UpdateCreaturesCommand
+            var playtime = await getPlaytime.Handle(
+                new GetPlaytimeQuery { SessionId = command.SessionId },
+                cancellationToken
+            );
+
+            await movePlayer.Handle(
+                new MovePlayerCommand
                 {
-                    CreatureIds = [player.Id],
-                    LocationId = originLocationId,
+                    PlayerId = player.Id,
+                    DestinationLocationId = originLocationId,
+                    Playtime = playtime,
                 },
                 cancellationToken
             );

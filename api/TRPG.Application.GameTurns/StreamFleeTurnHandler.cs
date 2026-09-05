@@ -1,7 +1,10 @@
 using System.Text.Json;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Commands;
-using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -9,7 +12,10 @@ namespace TRPG.Application.GameTurns;
 internal class StreamFleeTurnHandler(
     GameTurnStreamer streamer,
     ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?> resolveFleeCombat,
-    ICommandHandler<MovePlayerCommand, MovePlayerResult> movePlayer
+    ICommandHandler<MovePlayerCommand> movePlayer,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -42,21 +48,38 @@ internal class StreamFleeTurnHandler(
             return new GameTurnPrompt.None();
         }
 
-        var didMove = false;
+        var didMove = result.DestinationLocationId != null;
 
-        if (result.DestinationLocationId != null)
+        if (didMove)
         {
-            var moveResult = await movePlayer.Handle(
+            var playtime = await getPlaytime.Handle(
+                new GetPlaytimeQuery { SessionId = session.SessionId },
+                cancellationToken
+            );
+
+            await movePlayer.Handle(
                 new MovePlayerCommand
                 {
                     PlayerId = session.PlayerId,
-                    SessionId = session.SessionId,
-                    DestinationLocationId = result.DestinationLocationId.Value,
+                    DestinationLocationId = result.DestinationLocationId!.Value,
+                    Playtime = playtime,
                 },
                 cancellationToken
             );
 
-            didMove = moveResult.PlayerLocationId == result.DestinationLocationId.Value;
+            var startedEncounter = await getActiveEncounter.Handle(
+                new GetActiveEncounterQuery { PlayerId = session.PlayerId },
+                cancellationToken
+            );
+
+            await publishEncounterStarted.Handle(
+                new PublishEncounterStartedCommand
+                {
+                    PlayerId = session.PlayerId,
+                    Encounter = startedEncounter,
+                },
+                cancellationToken
+            );
         }
 
         return new GameTurnPrompt.Narrate(

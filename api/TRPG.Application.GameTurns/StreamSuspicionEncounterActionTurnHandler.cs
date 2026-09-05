@@ -20,6 +20,7 @@ internal class StreamSuspicionEncounterActionTurnHandler(
         SuspicionEncounterResolutionFact
     > resolveSuspicionEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
@@ -27,7 +28,7 @@ internal class StreamSuspicionEncounterActionTurnHandler(
         SuspicionEncounter,
         SuspicionEncounterAction,
         SuspicionEncounterResolutionFact
-    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
+    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getPlaytime, gameEvents)
 {
     protected override async Task<SuspicionEncounterResolutionFact> Resolve(
         GameTurnSession session,
