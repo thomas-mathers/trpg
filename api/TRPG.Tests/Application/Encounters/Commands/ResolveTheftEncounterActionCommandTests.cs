@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Encounters;
@@ -25,7 +26,6 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     private Creature _confronter = null!;
     private Creature _owner = null!;
     private Creature _player = null!;
-    private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -33,10 +33,8 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         _player = Builders.MakeCreature(WorldId, locationId: _locationId);
         _confronter = Builders.MakeCreature(WorldId, locationId: _locationId, name: "Tessa");
         _owner = Builders.MakeCreature(WorldId, locationId: _locationId, name: "Mara");
-        _session = Builders.MakeGameSession(WorldId, _player.Id);
 
         _context.Creatures.AddRange(_player, _confronter, _owner);
-        _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _serviceProvider = new ServiceCollection()
@@ -299,6 +297,87 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         Assert.Equal(OwnerType.Container, returnedPlayerStack.Ownership.OwnerType);
     }
 
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterDoesNotExist()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(
+                MakeCommand(new FleeTheftEncounterAction(), Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterBelongsToAnotherWorld()
+    {
+        // Arrange
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter
+        );
+        var command = new ResolveTheftEncounterActionCommand
+        {
+            Action = new FleeTheftEncounterAction(),
+            EncounterId = encounter.Id,
+            PlayerId = _player.Id,
+            WorldId = Guid.NewGuid(),
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(command, TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterBelongsToAnotherPlayer()
+    {
+        // Arrange
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter
+        );
+        var command = new ResolveTheftEncounterActionCommand
+        {
+            Action = new FleeTheftEncounterAction(),
+            EncounterId = encounter.Id,
+            PlayerId = Guid.NewGuid(),
+            WorldId = WorldId,
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(command, TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsInvalidOperation_WhenTheEncounterIsAlreadyCompleted()
+    {
+        // Arrange
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter
+        );
+        await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
     private ResolveTheftEncounterActionCommand MakeCommand(
         TheftEncounterAction action,
         Guid encounterId
@@ -308,7 +387,6 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             Action = action,
             EncounterId = encounterId,
             PlayerId = _player.Id,
-            SessionId = _session.Id,
             WorldId = WorldId,
         };
 

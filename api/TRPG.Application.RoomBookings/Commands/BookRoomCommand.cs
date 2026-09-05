@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -89,6 +90,13 @@ internal class BookRoomCommandHandler(
         var (spareKeyDoor, spareKeyItemId) = spareKey.Value;
         var workstationId = workstationIdsByItemId[spareKeyItemId];
 
+        var bed =
+            await getBedByLocationId.Handle(
+                new GetBedByLocationIdQuery { LocationId = spareKeyDoor.LocationId },
+                cancellationToken
+            )
+            ?? throw new InvalidOperationException($"Guest room {spareKeyDoor.RoomId} has no bed.");
+
         var rate = innOptions.Value.RoomRatePerNight;
         var playerGold = await getGoldQuantity.Handle(
             new GetGoldQuantityQuery
@@ -101,6 +109,11 @@ internal class BookRoomCommandHandler(
         {
             return new BookRoomResult(BookRoomOutcome.InsufficientGold);
         }
+
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
 
         await removeGold.Handle(
             new RemoveGoldCommand
@@ -145,16 +158,12 @@ internal class BookRoomCommandHandler(
             cancellationToken
         );
 
-        var bed =
-            await getBedByLocationId.Handle(
-                new GetBedByLocationIdQuery { LocationId = spareKeyDoor.LocationId },
-                cancellationToken
-            )
-            ?? throw new InvalidOperationException($"Guest room {spareKeyDoor.RoomId} has no bed.");
         await setBedAssignment.Handle(
             new SetBedAssignmentCommand { BedId = bed.Id, AssignedCreatureId = command.PlayerId },
             cancellationToken
         );
+
+        transaction.Complete();
 
         return new BookRoomResult(BookRoomOutcome.Booked, spareKeyDoor.RoomName, rate);
     }

@@ -100,6 +100,10 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
             .QuestObjectives.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
+        await context
+            .QuestReputationRewards.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
         await context.Quests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
 
         await context
@@ -154,6 +158,31 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
 
         await context
             .Creatures.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        var sessionIds = await context
+            .GameSessions.Where(x => x.WorldId == worldId)
+            .Select(x => x.Id)
+            .ToArrayAsync(cancellationToken);
+
+        await context
+            .ChatMessages.Where(x => sessionIds.AsEnumerable().Contains(x.SessionId))
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .NpcConversationSessionStates.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .GameSessions.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .CreatureSpawners.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .RestockPolicies.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context.Worlds.Where(x => x.Id == worldId).ExecuteDeleteAsync(cancellationToken);

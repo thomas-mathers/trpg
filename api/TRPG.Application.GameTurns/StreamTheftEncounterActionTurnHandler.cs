@@ -23,68 +23,34 @@ internal class StreamTheftEncounterActionTurnHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
+    : EncounterActionTurnHandlerBase<
+        TheftEncounter,
+        TheftEncounterAction,
+        TheftEncounterResolutionFact
+    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
 {
-    public IAsyncEnumerable<string> Handle(
+    protected override async Task<TheftEncounterResolutionFact> Resolve(
         GameTurnSession session,
-        TheftEncounterAction action,
-        CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
-
-    private async Task<GameTurnPrompt> ResolveTurn(
-        GameTurnSession session,
+        TheftEncounter encounter,
         TheftEncounterAction action,
         CancellationToken cancellationToken
-    )
-    {
-        var encounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        if (
-            encounter is not TheftEncounter theftEncounter
-            || theftEncounter.WorldId != session.WorldId
-        )
-        {
-            return new GameTurnPrompt.Reply("There's no theft encounter to resolve right now.");
-        }
-
-        var resolution = await resolveTheftEncounterAction.Handle(
+    ) =>
+        await resolveTheftEncounterAction.Handle(
             new ResolveTheftEncounterActionCommand
             {
-                SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
-                EncounterId = theftEncounter.Id,
+                EncounterId = encounter.Id,
             },
             cancellationToken
         );
 
-        gameEvents.Enqueue(new TheftEncounterResolvedEvent(resolution));
+    protected override GameClientEvent BuildResolvedEvent(
+        TheftEncounterResolutionFact resolution
+    ) => new TheftEncounterResolvedEvent(resolution);
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
-            cancellationToken
-        );
-
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                Playtime = playtime,
-            },
-            cancellationToken
-        );
-
-        return new GameTurnPrompt.Narrate(
-            BuildNarrationPrompt(action, resolution),
-            IncludeTools: false
-        );
-    }
-
-    private static string BuildNarrationPrompt(
+    protected override string BuildNarrationPrompt(
         TheftEncounterAction action,
         TheftEncounterResolutionFact resolution
     ) =>

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Configuration;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
@@ -55,25 +56,15 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
     private ResolveGuardEncounterActionCommand MakeCommand(
         GuardEncounterAction action,
-        Guid encounterId,
-        Guid encounterLocationId
+        Guid encounterId
     ) =>
         new()
         {
             SessionId = _session.Id,
-            Playtime = _session.Playtime,
             WorldId = WorldId,
             PlayerId = _player.Id,
             Action = action,
             EncounterId = encounterId,
-            GuardCreatureId = _guard.Id,
-            CityFactionId = _cityFaction.Id,
-            GuardName = _guard.Name,
-            EncounterLocationId = encounterLocationId,
-            LocationName = "Market Square",
-            ReputationScore = -50,
-            FineAmount = 250,
-            JailHours = 24,
         };
 
     private async Task<GuardEncounter> SeedActiveEncounter(Guid locationId)
@@ -113,7 +104,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new PayFineEncounterAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new PayFineEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -160,7 +151,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new PayFineEncounterAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new PayFineEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -195,7 +186,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new PayFineEncounterAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new PayFineEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -235,7 +226,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new GoToJailEncounterAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new GoToJailEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -295,7 +286,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new GoToJailEncounterAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new GoToJailEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -318,7 +309,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new ResistArrestEncounterAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new ResistArrestEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -344,7 +335,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
 
         // Act
         var fact = await _handler.Handle(
-            MakeCommand(new ResistArrestEncounterAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new ResistArrestEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -352,5 +343,76 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
         Assert.Equal(GuardEncounterResolutionOutcome.ResistedArrest, fact.Outcome);
         Assert.Null(fact.FineAmount);
         Assert.Null(fact.JailHours);
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterDoesNotExist()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(
+                MakeCommand(new ResistArrestEncounterAction(), Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterBelongsToAnotherWorld()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        var command = new ResolveGuardEncounterActionCommand
+        {
+            SessionId = _session.Id,
+            WorldId = Guid.NewGuid(),
+            PlayerId = _player.Id,
+            Action = new ResistArrestEncounterAction(),
+            EncounterId = encounter.Id,
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(command, TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterBelongsToAnotherPlayer()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        var command = new ResolveGuardEncounterActionCommand
+        {
+            SessionId = _session.Id,
+            WorldId = WorldId,
+            PlayerId = Guid.NewGuid(),
+            Action = new ResistArrestEncounterAction(),
+            EncounterId = encounter.Id,
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(command, TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsInvalidOperation_WhenTheEncounterIsAlreadyCompleted()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        await _handler.Handle(
+            MakeCommand(new ResistArrestEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                MakeCommand(new ResistArrestEncounterAction(), encounter.Id),
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 }

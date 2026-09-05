@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Configuration;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
@@ -20,7 +21,6 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
     private ServiceProvider _serviceProvider = null!;
     private ResolveSuspicionEncounterActionCommandHandler _handler = null!;
     private readonly Faction _cityFaction = Builders.MakeFaction(WorldId, isCityFaction: true);
-    private readonly GameSession _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
     private Creature _player = null!;
     private Creature _guard = null!;
 
@@ -38,7 +38,6 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
         _guard = Builders.MakeCreature(WorldId, profession: Profession.Guard);
         _context.Creatures.AddRange(_player, _guard);
         _context.Factions.Add(_cityFaction);
-        _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -50,21 +49,14 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
 
     private ResolveSuspicionEncounterActionCommand MakeCommand(
         SuspicionEncounterAction action,
-        Guid encounterId,
-        Guid encounterLocationId
+        Guid encounterId
     ) =>
         new()
         {
-            SessionId = _session.Id,
             WorldId = WorldId,
             PlayerId = _player.Id,
             Action = action,
             EncounterId = encounterId,
-            GuardCreatureId = _guard.Id,
-            GuardName = _guard.Name,
-            CityFactionId = _cityFaction.Id,
-            EncounterLocationId = encounterLocationId,
-            LocationName = "Market Square",
         };
 
     private async Task<SuspicionEncounter> SeedActiveEncounter(Guid locationId)
@@ -109,7 +101,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new ComplySuspicionAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new ComplySuspicionAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -130,7 +122,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
 
         // Act
         await _handler.Handle(
-            MakeCommand(new ComplySuspicionAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new ComplySuspicionAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -152,7 +144,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
 
         // Act
         var fact = await handler.Handle(
-            MakeCommand(new FleeSuspicionAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new FleeSuspicionAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -176,7 +168,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
 
         // Act
         var fact = await handler.Handle(
-            MakeCommand(new FleeSuspicionAction(), encounter.Id, encounter.LocationId),
+            MakeCommand(new FleeSuspicionAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -199,5 +191,74 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
             TestContext.Current.CancellationToken
         );
         Assert.True(reputation.Score < 0);
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterDoesNotExist()
+    {
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(
+                MakeCommand(new ComplySuspicionAction(), Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterBelongsToAnotherWorld()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        var command = new ResolveSuspicionEncounterActionCommand
+        {
+            WorldId = Guid.NewGuid(),
+            PlayerId = _player.Id,
+            Action = new ComplySuspicionAction(),
+            EncounterId = encounter.Id,
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(command, TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsEntityNotFound_WhenTheEncounterBelongsToAnotherPlayer()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        var command = new ResolveSuspicionEncounterActionCommand
+        {
+            WorldId = WorldId,
+            PlayerId = Guid.NewGuid(),
+            Action = new ComplySuspicionAction(),
+            EncounterId = encounter.Id,
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(command, TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsInvalidOperation_WhenTheEncounterIsAlreadyCompleted()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        await _handler.Handle(
+            MakeCommand(new ComplySuspicionAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                MakeCommand(new ComplySuspicionAction(), encounter.Id),
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 }

@@ -204,4 +204,106 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLife
         // Assert
         Assert.Equal(BookRoomOutcome.NoVacancy, result.Outcome);
     }
+
+    [Fact]
+    public async Task Handle_ChargesNoGoldAndCreatesNoBooking_WhenTheGuestRoomHasNoBed()
+    {
+        // Arrange
+        var gold = Builders.MakeGold(
+            WorldId,
+            quantity: 10,
+            ownerId: _player.Id,
+            ownerType: OwnerType.Creature
+        );
+        _context.Items.Add(gold);
+        _context.Props.Remove(_bed);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new BookRoomCommand
+                {
+                    PlayerId = _player.Id,
+                    WorldId = WorldId,
+                    Playtime = _session.Playtime,
+                    LocationId = _lobbyLocationId,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var unchangedGold = await verifyContext
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                i => i.Ownership.OwnerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(10, unchangedGold.Quantity);
+
+        Assert.False(
+            await verifyContext.RoomBookings.AnyAsync(
+                b => b.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        var unchangedKey = await verifyContext.Items.SingleAsync(
+            i => i.Id == _spareKey.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(OwnerType.Workstation, unchangedKey.Ownership.OwnerType);
+    }
+
+    [Fact]
+    public async Task Handle_RollsBackTheGoldCharge_WhenTheKeyTransferFailsAfterPaymentIsTaken()
+    {
+        // Arrange — the key still passes the vacancy check (it's still workstation-owned) but has
+        // no quantity left, so the transfer fails only after gold has already changed hands
+        var gold = Builders.MakeGold(
+            WorldId,
+            quantity: 10,
+            ownerId: _player.Id,
+            ownerType: OwnerType.Creature
+        );
+        _context.Items.Add(gold);
+        _spareKey.Quantity = 0;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new BookRoomCommand
+                {
+                    PlayerId = _player.Id,
+                    WorldId = WorldId,
+                    Playtime = _session.Playtime,
+                    LocationId = _lobbyLocationId,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var unchangedGold = await verifyContext
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                i => i.Ownership.OwnerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(10, unchangedGold.Quantity);
+
+        Assert.False(
+            await verifyContext.RoomBookings.AnyAsync(
+                b => b.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        var unchangedBed = await verifyContext
+            .Props.OfType<Bed>()
+            .SingleAsync(b => b.Id == _bed.Id, TestContext.Current.CancellationToken);
+        Assert.Null(unchangedBed.AssignedCreatureId);
+    }
 }

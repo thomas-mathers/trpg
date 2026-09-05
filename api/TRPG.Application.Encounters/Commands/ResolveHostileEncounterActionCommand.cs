@@ -1,11 +1,15 @@
+using System.Transactions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Results;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -17,12 +21,10 @@ public class ResolveHostileEncounterActionCommand
     public required Guid PlayerId { get; init; }
     public required HostileEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
-    public required string FactionName { get; init; }
-    public required string LocationName { get; init; }
-    public required IReadOnlyCollection<HostileEncounterMemberSnapshot> Members { get; init; }
 }
 
 internal class ResolveHostileEncounterActionCommandHandler(
+    IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<CompleteEncounterCommand> completeEncounter,
@@ -36,40 +38,58 @@ internal class ResolveHostileEncounterActionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var memberIds = command.Members.Select(member => member.Id).ToArray();
-        var membersById = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = memberIds },
-            cancellationToken
-        );
-
-        var actionKind = ToActionKind(command.Action);
-        var outcome = HostileEncounterActionResolver.Resolve(
-            actionKind,
-            fleeOptions.Value,
-            ToEvadeParticipant(player!),
-            memberIds.Select(id => ToEvadeParticipant(membersById[id])).ToArray(),
-            Random.Shared.NextDouble()
-        );
+        var encounter = await GetEncounter(command, cancellationToken);
 
         await completeEncounter.Handle(
             new CompleteEncounterCommand { EncounterId = command.EncounterId },
             cancellationToken
         );
 
-        await ApplyEncounterOutcome(outcome, command, player, cancellationToken);
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = command.PlayerId },
+            cancellationToken
+        );
+        if (player == null)
+        {
+            throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
+        }
+
+        var memberIds = encounter.Members.Select(member => member.Id).ToArray();
+        var membersById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = memberIds },
+            cancellationToken
+        );
+        var missingMemberIds = memberIds.Where(id => !membersById.ContainsKey(id)).ToArray();
+        if (missingMemberIds.Length > 0)
+        {
+            throw new EntityNotFoundException(nameof(Creature), missingMemberIds[0]);
+        }
+
+        var actionKind = ToActionKind(command.Action);
+        var outcome = HostileEncounterActionResolver.Resolve(
+            actionKind,
+            fleeOptions.Value,
+            ToEvadeParticipant(player),
+            memberIds.Select(id => ToEvadeParticipant(membersById[id])).ToArray(),
+            Random.Shared.NextDouble()
+        );
+
+        await ApplyEncounterOutcome(outcome, command, encounter, player, cancellationToken);
 
         var fact = new HostileEncounterResolutionFact(
             EncounterId: command.EncounterId,
             Outcome: ToResolutionOutcome(outcome),
-            FactionName: command.FactionName,
-            LocationName: command.LocationName,
-            MemberNames: command.Members.Select(member => member.Name).ToArray()
+            FactionName: encounter.FactionName,
+            LocationName: encounter.LocationName!,
+            MemberNames: encounter.Members.Select(member => member.Name).ToArray()
         );
+
+        transaction.Complete();
 
         return new HostileEncounterActionResult(actionKind, fact);
     }
@@ -77,6 +97,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
     private async Task ApplyEncounterOutcome(
         HostileEncounterActionOutcome outcome,
         ResolveHostileEncounterActionCommand command,
+        HostileEncounter encounter,
         Creature player,
         CancellationToken cancellationToken
     )
@@ -109,7 +130,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
             return;
         }
 
-        var enemyCreatureIds = command.Members.Select(member => member.Id).ToArray();
+        var enemyCreatureIds = encounter.Members.Select(member => member.Id).ToArray();
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
@@ -131,6 +152,33 @@ internal class ResolveHostileEncounterActionCommandHandler(
             },
             cancellationToken
         );
+    }
+
+    private async Task<HostileEncounter> GetEncounter(
+        ResolveHostileEncounterActionCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var encounter = await context
+            .Encounters.OfType<HostileEncounter>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                item =>
+                    item.Id == command.EncounterId
+                    && item.WorldId == command.WorldId
+                    && item.PlayerId == command.PlayerId,
+                cancellationToken
+            );
+        if (encounter == null)
+        {
+            throw new EntityNotFoundException(nameof(HostileEncounter), command.EncounterId);
+        }
+        if (encounter.State != EncounterState.Active)
+        {
+            throw new InvalidOperationException("The hostile encounter has already been resolved.");
+        }
+
+        return encounter;
     }
 
     private static EvadeParticipant ToEvadeParticipant(Creature creature) =>

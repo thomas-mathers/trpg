@@ -30,7 +30,7 @@ public class MovePlayerCommand
     public required Guid DestinationLocationId { get; init; }
 }
 
-public record MovePlayerResult(Creature Player, Encounter? Encounter, SceneResult Scene);
+public record MovePlayerResult(Guid PlayerLocationId, Encounter? Encounter, SceneResult Scene);
 
 internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
@@ -216,7 +216,11 @@ internal class MovePlayerCommandHandler(
                     cancellationToken
                 );
 
-                return new MovePlayerResult(player, overdueRoomKeyEncounter, refreshed.Scene);
+                return new MovePlayerResult(
+                    player.LocationId,
+                    overdueRoomKeyEncounter,
+                    refreshed.Scene
+                );
             }
 
             await updateCreatures.Handle(
@@ -264,7 +268,11 @@ internal class MovePlayerCommandHandler(
             cancellationToken
         );
 
-        return new MovePlayerResult(player, evaluation.Encounter, refreshed.Scene);
+        return new MovePlayerResult(
+            command.DestinationLocationId,
+            evaluation.Encounter,
+            refreshed.Scene
+        );
     }
 
     private async Task<RefreshSceneResult> RefreshSceneWithoutMoving(

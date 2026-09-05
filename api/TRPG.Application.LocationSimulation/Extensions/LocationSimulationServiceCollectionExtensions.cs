@@ -6,5 +6,5 @@ public static class LocationSimulationServiceCollectionExtensions
 {
     public static IServiceCollection AddLocationSimulationServices(
         this IServiceCollection serviceCollection
-    ) => serviceCollection.AddTransient<LocationCatchUpCache>();
+    ) => serviceCollection.AddSingleton<LocationCatchUpCache>();
 }

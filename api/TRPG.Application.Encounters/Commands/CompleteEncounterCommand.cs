@@ -13,16 +13,25 @@ public class CompleteEncounterCommand
 internal class CompleteEncounterCommandHandler(IEncountersDbContext context)
     : ICommandHandler<CompleteEncounterCommand>
 {
-    public Task Handle(
+    public async Task Handle(
         CompleteEncounterCommand command,
         CancellationToken cancellationToken = default
-    ) =>
-        context
-            .Encounters.Where(e => e.Id == command.EncounterId)
+    )
+    {
+        var rowsAffected = await context
+            .Encounters.Where(e => e.Id == command.EncounterId && e.State == EncounterState.Active)
             .ExecuteUpdateAsync(
                 s =>
                     s.SetProperty(e => e.State, EncounterState.Completed)
                         .SetProperty(e => e.CompletedAt, DateTime.UtcNow),
                 cancellationToken
             );
+
+        if (rowsAffected != 1)
+        {
+            throw new InvalidOperationException(
+                $"Encounter {command.EncounterId} is not active and cannot be resolved."
+            );
+        }
+    }
 }

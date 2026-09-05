@@ -18,12 +18,12 @@ public class ResolveTheftEncounterActionCommand
     public required TheftEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
 }
 
 internal class ResolveTheftEncounterActionCommandHandler(
     IEncountersDbContext context,
+    ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
@@ -45,6 +45,11 @@ internal class ResolveTheftEncounterActionCommandHandler(
 
         var encounter = await GetEncounter(command, cancellationToken);
 
+        await completeEncounter.Handle(
+            new CompleteEncounterCommand { EncounterId = command.EncounterId },
+            cancellationToken
+        );
+
         var resolution = command.Action switch
         {
             ApologizeTheftEncounterAction => await ResolveApology(
@@ -55,10 +60,6 @@ internal class ResolveTheftEncounterActionCommandHandler(
             FleeTheftEncounterAction => await ResolveFlee(encounter, command, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
-
-        encounter.State = EncounterState.Completed;
-        encounter.CompletedAt = DateTime.UtcNow;
-        await context.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
 
@@ -122,7 +123,12 @@ internal class ResolveTheftEncounterActionCommandHandler(
             new GetCreatureByIdQuery { Id = command.PlayerId },
             cancellationToken
         );
-        if (player!.LocationId != encounter.LocationId)
+        if (player == null)
+        {
+            throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
+        }
+
+        if (player.LocationId != encounter.LocationId)
         {
             await updateCreatures.Handle(
                 new UpdateCreaturesCommand
@@ -159,6 +165,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
     {
         var encounter = await context
             .Encounters.OfType<TheftEncounter>()
+            .AsNoTracking()
             .FirstOrDefaultAsync(
                 item =>
                     item.Id == command.EncounterId

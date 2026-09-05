@@ -23,69 +23,34 @@ internal class StreamSuspicionEncounterActionTurnHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
+    : EncounterActionTurnHandlerBase<
+        SuspicionEncounter,
+        SuspicionEncounterAction,
+        SuspicionEncounterResolutionFact
+    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
 {
-    public IAsyncEnumerable<string> Handle(
+    protected override async Task<SuspicionEncounterResolutionFact> Resolve(
         GameTurnSession session,
-        SuspicionEncounterAction action,
-        CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
-
-    private async Task<GameTurnPrompt> ResolveTurn(
-        GameTurnSession session,
+        SuspicionEncounter encounter,
         SuspicionEncounterAction action,
         CancellationToken cancellationToken
-    )
-    {
-        var encounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        if (encounter is not SuspicionEncounter suspicionEncounter)
-        {
-            return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
-        }
-
-        var resolution = await resolveSuspicionEncounterAction.Handle(
+    ) =>
+        await resolveSuspicionEncounterAction.Handle(
             new ResolveSuspicionEncounterActionCommand
             {
-                SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
-                EncounterId = suspicionEncounter.Id,
-                GuardCreatureId = suspicionEncounter.GuardCreatureId,
-                GuardName = suspicionEncounter.GuardName,
-                CityFactionId = suspicionEncounter.CityFactionId,
-                EncounterLocationId = suspicionEncounter.LocationId,
-                LocationName = suspicionEncounter.LocationName!,
+                EncounterId = encounter.Id,
             },
             cancellationToken
         );
 
-        gameEvents.Enqueue(new SuspicionEncounterResolvedEvent(resolution));
+    protected override GameClientEvent BuildResolvedEvent(
+        SuspicionEncounterResolutionFact resolution
+    ) => new SuspicionEncounterResolvedEvent(resolution);
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
-            cancellationToken
-        );
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                Playtime = playtime,
-            },
-            cancellationToken
-        );
-
-        return new GameTurnPrompt.Narrate(
-            BuildNarrationPrompt(action, resolution),
-            IncludeTools: false
-        );
-    }
-
-    private static string BuildNarrationPrompt(
+    protected override string BuildNarrationPrompt(
         SuspicionEncounterAction action,
         SuspicionEncounterResolutionFact resolution
     )

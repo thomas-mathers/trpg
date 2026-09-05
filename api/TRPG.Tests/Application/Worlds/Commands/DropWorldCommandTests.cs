@@ -16,6 +16,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private DropWorldCommandHandler _handler = null!;
+    private readonly Dictionary<Guid, Guid> _sessionIdByWorldId = [];
 
     public async ValueTask InitializeAsync()
     {
@@ -94,6 +95,30 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
             CrimeId = crime.Id,
             CreatureId = creature.Id,
         };
+        var session = Builders.MakeGameSession(worldId, creature.Id);
+        var chatMessage = new ChatMessage
+        {
+            SessionId = session.Id,
+            Ordinal = 0,
+            Role = "user",
+            MessageJson = "{}",
+        };
+        var npcConversationSessionState = new NpcConversationSessionState
+        {
+            SessionId = session.Id,
+            WorldId = worldId,
+        };
+        var creatureSpawner = Builders.MakeCreatureSpawner(worldId, location.Id);
+        var restockPolicy = Builders.MakeRestockPolicy(worldId, Guid.NewGuid());
+        var quest = Builders.MakeQuest(creature.Id, worldId: worldId);
+        var questReputationReward = new QuestReputationReward
+        {
+            QuestId = quest.Id,
+            Score = 1,
+            TargetId = faction.Id,
+            TargetType = ReputationTargetType.Faction,
+            WorldId = worldId,
+        };
 
         _context.Creatures.Add(creature);
         _context.Factions.Add(faction);
@@ -110,7 +135,16 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         _context.Encounters.Add(encounter);
         _context.Crimes.Add(crime);
         _context.CrimeWitnesses.Add(crimeWitness);
+        _context.GameSessions.Add(session);
+        _context.ChatMessages.Add(chatMessage);
+        _context.NpcConversationSessionStates.Add(npcConversationSessionState);
+        _context.CreatureSpawners.Add(creatureSpawner);
+        _context.RestockPolicies.Add(restockPolicy);
+        _context.Quests.Add(quest);
+        _context.QuestReputationRewards.Add(questReputationReward);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        _sessionIdByWorldId[worldId] = session.Id;
     }
 
     [Fact]
@@ -206,6 +240,50 @@ public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
         Assert.Equal(
             expected,
             await verifyContext.CrimeWitnesses.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.GameSessions.AnyAsync(x => x.WorldId == worldId, cancellationToken)
+        );
+        var sessionId = _sessionIdByWorldId[worldId];
+        Assert.Equal(
+            expected,
+            await verifyContext.ChatMessages.AnyAsync(
+                x => x.SessionId == sessionId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.NpcConversationSessionStates.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.CreatureSpawners.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.RestockPolicies.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.Quests.AnyAsync(x => x.WorldId == worldId, cancellationToken)
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.QuestReputationRewards.AnyAsync(
                 x => x.WorldId == worldId,
                 cancellationToken
             )

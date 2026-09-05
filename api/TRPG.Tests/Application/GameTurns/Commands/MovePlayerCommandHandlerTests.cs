@@ -247,7 +247,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         // Assert — the confrontation stops the player before the move happens at all
         var overdueRoomKeyEncounter = Assert.IsType<TheftEncounter>(result.Encounter);
         Assert.Equal(inn.InnkeeperId, overdueRoomKeyEncounter.ConfrontingCreatureId);
-        Assert.Equal(inn.GuestRoomLocationId, result.Player.LocationId);
+        Assert.Equal(inn.GuestRoomLocationId, result.PlayerLocationId);
 
         await using var verifyContext = db.CreateContext();
         var updatedPlayer = await verifyContext.Creatures.SingleAsync(
@@ -283,7 +283,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
         // Assert — the confrontation stops the player before the move happens at all
         var overdueRoomKeyEncounter = Assert.IsType<TheftEncounter>(result.Encounter);
         Assert.Equal(inn.InnkeeperId, overdueRoomKeyEncounter.ConfrontingCreatureId);
-        Assert.Equal(outside.Id, result.Player.LocationId);
+        Assert.Equal(outside.Id, result.PlayerLocationId);
 
         await using var verifyContext = db.CreateContext();
         var updatedPlayer = await verifyContext.Creatures.SingleAsync(
@@ -316,6 +316,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db) : IAsyncLi
 
         // Assert
         Assert.Null(result.Encounter);
+        Assert.Equal(inn.LobbyLocationId, result.PlayerLocationId);
     }
 
     private async Task<OverdueInnFixture> SeedOverdueInnBooking(Guid playerId)

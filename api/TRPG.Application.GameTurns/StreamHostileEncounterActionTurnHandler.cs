@@ -24,65 +24,38 @@ internal class StreamHostileEncounterActionTurnHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
+    : EncounterActionTurnHandlerBase<
+        HostileEncounter,
+        HostileEncounterAction,
+        HostileEncounterActionResult
+    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
 {
-    public IAsyncEnumerable<string> Handle(
+    protected override async Task<HostileEncounterActionResult> Resolve(
         GameTurnSession session,
-        HostileEncounterAction action,
-        CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
-
-    private async Task<GameTurnPrompt> ResolveTurn(
-        GameTurnSession session,
+        HostileEncounter encounter,
         HostileEncounterAction action,
         CancellationToken cancellationToken
-    )
-    {
-        var encounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        if (encounter is not HostileEncounter hostileEncounter)
-        {
-            return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
-        }
-
-        var resolution = await resolveHostileEncounterAction.Handle(
+    ) =>
+        await resolveHostileEncounterAction.Handle(
             new ResolveHostileEncounterActionCommand
             {
                 SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
-                EncounterId = hostileEncounter.Id,
-                FactionName = hostileEncounter.FactionName,
-                LocationName = hostileEncounter.LocationName!,
-                Members = hostileEncounter.Members,
+                EncounterId = encounter.Id,
             },
             cancellationToken
         );
 
-        gameEvents.Enqueue(new HostileEncounterResolvedEvent(resolution.Fact));
+    protected override GameClientEvent BuildResolvedEvent(
+        HostileEncounterActionResult resolution
+    ) => new HostileEncounterResolvedEvent(resolution.Fact);
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
-            cancellationToken
-        );
-
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                Playtime = playtime,
-            },
-            cancellationToken
-        );
-
-        return new GameTurnPrompt.Narrate(BuildNarrationPrompt(resolution), IncludeTools: false);
-    }
-
-    private static string BuildNarrationPrompt(HostileEncounterActionResult resolution) =>
+    protected override string BuildNarrationPrompt(
+        HostileEncounterAction action,
+        HostileEncounterActionResult resolution
+    ) =>
         resolution.Fact.Outcome switch
         {
             HostileEncounterResolutionOutcome.Attacked
