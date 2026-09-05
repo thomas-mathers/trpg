@@ -1,5 +1,3 @@
-using System.Transactions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Common.Commands;
@@ -7,6 +5,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data.ModuleContexts;
@@ -14,7 +13,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class ResolveSuspicionEncounterActionCommand
+public class ResolveSuspicionEncounterActionCommand : IEncounterResolutionCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
@@ -24,7 +23,6 @@ public class ResolveSuspicionEncounterActionCommand
 
 internal class ResolveSuspicionEncounterActionCommandHandler(
     IEncountersDbContext context,
-    ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
@@ -32,36 +30,24 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsSnapshot<FleeOptions> fleeOptions,
     IOptionsMonitor<SuspicionOptions> suspicionOptions
-) : ICommandHandler<ResolveSuspicionEncounterActionCommand, SuspicionEncounterResolutionFact>
+)
+    : EncounterResolutionCommandHandlerBase<
+        SuspicionEncounter,
+        ResolveSuspicionEncounterActionCommand,
+        SuspicionEncounterResolutionFact
+    >(context)
 {
-    public async Task<SuspicionEncounterResolutionFact> Handle(
+    protected override async Task<SuspicionEncounterResolutionFact> Resolve(
         ResolveSuspicionEncounterActionCommand command,
-        CancellationToken cancellationToken = default
-    )
-    {
-        using var transaction = new TransactionScope(
-            TransactionScopeOption.Required,
-            TransactionScopeAsyncFlowOption.Enabled
-        );
-
-        var encounter = await GetEncounter(command, cancellationToken);
-
-        await completeEncounter.Handle(
-            new CompleteEncounterCommand { EncounterId = command.EncounterId },
-            cancellationToken
-        );
-
-        var fact = command.Action switch
+        SuspicionEncounter encounter,
+        CancellationToken cancellationToken
+    ) =>
+        command.Action switch
         {
             ComplySuspicionAction => await ResolveComply(command, encounter, cancellationToken),
             FleeSuspicionAction => await ResolveFlee(command, encounter, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
-
-        transaction.Complete();
-
-        return fact;
-    }
 
     private async Task<SuspicionEncounterResolutionFact> ResolveComply(
         ResolveSuspicionEncounterActionCommand command,
@@ -104,28 +90,22 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
-        );
-        if (player == null)
-        {
-            throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
-        }
+        var player =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = command.PlayerId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
 
-        var guard = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = encounter.GuardCreatureId },
-            cancellationToken
-        );
-        if (guard == null)
-        {
-            throw new EntityNotFoundException(nameof(Creature), encounter.GuardCreatureId);
-        }
+        var guard =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = encounter.GuardCreatureId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), encounter.GuardCreatureId);
 
         var catchChance = EvadeChanceCalculator.CatchChance(
             fleeOptions.Value,
-            ToEvadeParticipant(player),
-            [ToEvadeParticipant(guard)]
+            player.ToEvadeParticipant(),
+            [guard.ToEvadeParticipant()]
         );
         var isCaught = Random.Shared.NextDouble() < catchChance;
 
@@ -202,42 +182,4 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
             guardEncounter.Id
         );
     }
-
-    private async Task<SuspicionEncounter> GetEncounter(
-        ResolveSuspicionEncounterActionCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var encounter = await context
-            .Encounters.OfType<SuspicionEncounter>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                item =>
-                    item.Id == command.EncounterId
-                    && item.WorldId == command.WorldId
-                    && item.PlayerId == command.PlayerId,
-                cancellationToken
-            );
-        if (encounter == null)
-        {
-            throw new EntityNotFoundException(nameof(SuspicionEncounter), command.EncounterId);
-        }
-        if (encounter.State != EncounterState.Active)
-        {
-            throw new InvalidOperationException(
-                "The suspicion encounter has already been resolved."
-            );
-        }
-
-        return encounter;
-    }
-
-    private static EvadeParticipant ToEvadeParticipant(Creature creature) =>
-        new(
-            creature.Dexterity,
-            creature.CurrentHp,
-            creature.MaximumHp,
-            creature.CurrentAp,
-            creature.MaximumAp
-        );
 }

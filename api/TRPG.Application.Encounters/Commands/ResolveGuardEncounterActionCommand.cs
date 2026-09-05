@@ -1,8 +1,5 @@
-using System.Transactions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
@@ -18,7 +15,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class ResolveGuardEncounterActionCommand
+public class ResolveGuardEncounterActionCommand : IEncounterResolutionCommand
 {
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
@@ -29,7 +26,6 @@ public class ResolveGuardEncounterActionCommand
 
 internal class ResolveGuardEncounterActionCommandHandler(
     IEncountersDbContext context,
-    ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
@@ -39,26 +35,19 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
-) : ICommandHandler<ResolveGuardEncounterActionCommand, GuardEncounterResolutionFact>
+)
+    : EncounterResolutionCommandHandlerBase<
+        GuardEncounter,
+        ResolveGuardEncounterActionCommand,
+        GuardEncounterResolutionFact
+    >(context)
 {
-    public async Task<GuardEncounterResolutionFact> Handle(
+    protected override async Task<GuardEncounterResolutionFact> Resolve(
         ResolveGuardEncounterActionCommand command,
-        CancellationToken cancellationToken = default
-    )
-    {
-        using var transaction = new TransactionScope(
-            TransactionScopeOption.Required,
-            TransactionScopeAsyncFlowOption.Enabled
-        );
-
-        var encounter = await GetEncounter(command, cancellationToken);
-
-        await completeEncounter.Handle(
-            new CompleteEncounterCommand { EncounterId = command.EncounterId },
-            cancellationToken
-        );
-
-        var fact = command.Action switch
+        GuardEncounter encounter,
+        CancellationToken cancellationToken
+    ) =>
+        command.Action switch
         {
             PayFineEncounterAction => await ResolvePayFine(command, encounter, cancellationToken),
             GoToJailEncounterAction => await ResolveGoToJail(command, encounter, cancellationToken),
@@ -69,11 +58,6 @@ internal class ResolveGuardEncounterActionCommandHandler(
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
-
-        transaction.Complete();
-
-        return fact;
-    }
 
     private async Task<GuardEncounterResolutionFact> ResolvePayFine(
         ResolveGuardEncounterActionCommand command,
@@ -227,32 +211,5 @@ internal class ResolveGuardEncounterActionCommandHandler(
             null,
             null
         );
-    }
-
-    private async Task<GuardEncounter> GetEncounter(
-        ResolveGuardEncounterActionCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var encounter = await context
-            .Encounters.OfType<GuardEncounter>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                item =>
-                    item.Id == command.EncounterId
-                    && item.WorldId == command.WorldId
-                    && item.PlayerId == command.PlayerId,
-                cancellationToken
-            );
-        if (encounter == null)
-        {
-            throw new EntityNotFoundException(nameof(GuardEncounter), command.EncounterId);
-        }
-        if (encounter.State != EncounterState.Active)
-        {
-            throw new InvalidOperationException("The guard encounter has already been resolved.");
-        }
-
-        return encounter;
     }
 }

@@ -21,7 +21,7 @@ public class HostileEncounterActionResolverTests
     {
         // Act
         var outcome = HostileEncounterActionResolver.Resolve(
-            HostileEncounterActionKind.Attack,
+            new AttackEncounterAction(),
             Options,
             MakeParticipant(dexterity: 1),
             [MakeParticipant(dexterity: 999)],
@@ -29,7 +29,7 @@ public class HostileEncounterActionResolverTests
         );
 
         // Assert
-        Assert.Equal(HostileEncounterActionOutcome.Attacked, outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.Attacked, outcome);
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public class HostileEncounterActionResolverTests
     {
         // Act — equal Dexterity yields the base 50% catch chance
         var outcome = HostileEncounterActionResolver.Resolve(
-            HostileEncounterActionKind.Evade,
+            new EvadeEncounterAction(),
             Options,
             MakeParticipant(dexterity: 10),
             [MakeParticipant(dexterity: 10)],
@@ -52,8 +52,8 @@ public class HostileEncounterActionResolverTests
         // Assert
         Assert.Equal(
             expectSuccess
-                ? HostileEncounterActionOutcome.Evaded
-                : HostileEncounterActionOutcome.EvadeFailed,
+                ? HostileEncounterResolutionOutcome.Evaded
+                : HostileEncounterResolutionOutcome.EvadeFailed,
             outcome
         );
     }
@@ -68,7 +68,7 @@ public class HostileEncounterActionResolverTests
     {
         // Act — equal Dexterity yields the base 50% catch chance
         var outcome = HostileEncounterActionResolver.Resolve(
-            HostileEncounterActionKind.Retreat,
+            new RetreatEncounterAction(),
             Options,
             MakeParticipant(dexterity: 10),
             [MakeParticipant(dexterity: 10)],
@@ -78,8 +78,8 @@ public class HostileEncounterActionResolverTests
         // Assert
         Assert.Equal(
             expectSuccess
-                ? HostileEncounterActionOutcome.Retreated
-                : HostileEncounterActionOutcome.RetreatFailed,
+                ? HostileEncounterResolutionOutcome.Retreated
+                : HostileEncounterResolutionOutcome.RetreatFailed,
             outcome
         );
     }
@@ -94,7 +94,7 @@ public class HostileEncounterActionResolverTests
 
         // Act
         var outcome = HostileEncounterActionResolver.Resolve(
-            HostileEncounterActionKind.Evade,
+            new EvadeEncounterAction(),
             Options,
             MakeParticipant(dexterity: 10),
             [slowMember, fastMember],
@@ -102,7 +102,7 @@ public class HostileEncounterActionResolverTests
         );
 
         // Assert — clamp(100/10*0.5, 0.05, 0.95) = 0.95, so a 0.94 roll is still caught
-        Assert.Equal(HostileEncounterActionOutcome.EvadeFailed, outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.EvadeFailed, outcome);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class HostileEncounterActionResolverTests
 
         // Act
         var outcome = HostileEncounterActionResolver.Resolve(
-            HostileEncounterActionKind.Evade,
+            new EvadeEncounterAction(),
             Options,
             MakeParticipant(dexterity: 10),
             [woundedMember],
@@ -121,6 +121,6 @@ public class HostileEncounterActionResolverTests
         );
 
         // Assert — clamp(10/10*0.5, 0.05, 0.95) = 0.5, so a 0.5 roll is not caught
-        Assert.Equal(HostileEncounterActionOutcome.Evaded, outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.Evaded, outcome);
     }
 }

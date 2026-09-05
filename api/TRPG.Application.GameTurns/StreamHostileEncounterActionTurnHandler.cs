@@ -6,7 +6,6 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
-using TRPG.Application.Encounters.Results;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain.Models;
@@ -18,7 +17,7 @@ internal class StreamHostileEncounterActionTurnHandler(
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<
         ResolveHostileEncounterActionCommand,
-        HostileEncounterActionResult
+        HostileEncounterResolutionFact
     > resolveHostileEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
@@ -27,10 +26,10 @@ internal class StreamHostileEncounterActionTurnHandler(
     : EncounterActionTurnHandlerBase<
         HostileEncounter,
         HostileEncounterAction,
-        HostileEncounterActionResult
+        HostileEncounterResolutionFact
     >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
 {
-    protected override async Task<HostileEncounterActionResult> Resolve(
+    protected override async Task<HostileEncounterResolutionFact> Resolve(
         GameTurnSession session,
         HostileEncounter encounter,
         HostileEncounterAction action,
@@ -49,29 +48,29 @@ internal class StreamHostileEncounterActionTurnHandler(
         );
 
     protected override GameClientEvent BuildResolvedEvent(
-        HostileEncounterActionResult resolution
-    ) => new HostileEncounterResolvedEvent(resolution.Fact);
+        HostileEncounterResolutionFact resolution
+    ) => new HostileEncounterResolvedEvent(resolution);
 
     protected override string BuildNarrationPrompt(
         HostileEncounterAction action,
-        HostileEncounterActionResult resolution
+        HostileEncounterResolutionFact resolution
     ) =>
-        resolution.Fact.Outcome switch
+        resolution.Outcome switch
         {
             HostileEncounterResolutionOutcome.Attacked
             or HostileEncounterResolutionOutcome.EvadeFailed
             or HostileEncounterResolutionOutcome.RetreatFailed =>
-                $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter, and it has erupted into a fight. Narrate only the confrontation beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
+                $"The player chose to {DescribeAction(action)} the {resolution.FactionName} encounter, and it has erupted into a fight. Narrate only the confrontation beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
             _ =>
-                $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+                $"The player chose to {DescribeAction(action)} the {resolution.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
         };
 
-    private static string DescribeAction(HostileEncounterActionKind actionKind) =>
-        actionKind switch
+    private static string DescribeAction(HostileEncounterAction action) =>
+        action switch
         {
-            HostileEncounterActionKind.Attack => "attack",
-            HostileEncounterActionKind.Evade => "evade",
-            HostileEncounterActionKind.Retreat => "retreat from",
-            _ => throw new ArgumentOutOfRangeException(nameof(actionKind)),
+            AttackEncounterAction => "attack",
+            EvadeEncounterAction => "evade",
+            RetreatEncounterAction => "retreat from",
+            _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
 }

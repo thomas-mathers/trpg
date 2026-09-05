@@ -117,7 +117,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         );
 
         // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.Attacked, result.Fact.Outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.Attacked, result.Outcome);
         await using var verifyContext = db.CreateContext();
         var updatedEnemy = await verifyContext.Creatures.FindAsync(
             [_enemy.Id],
@@ -149,7 +149,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         );
 
         // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.Evaded, result.Fact.Outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.Evaded, result.Outcome);
         await using var verifyContext = db.CreateContext();
         Assert.False(
             await verifyContext
@@ -172,7 +172,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         );
 
         // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.EvadeFailed, result.Fact.Outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.EvadeFailed, result.Outcome);
         await using var verifyContext = db.CreateContext();
         Assert.True(
             await verifyContext
@@ -195,7 +195,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         );
 
         // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.Retreated, result.Fact.Outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.Retreated, result.Outcome);
         await using var verifyContext = db.CreateContext();
         var updatedPlayer = await verifyContext.Creatures.FindAsync(
             [_player.Id],
@@ -218,7 +218,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         );
 
         // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.RetreatFailed, result.Fact.Outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.RetreatFailed, result.Outcome);
         await using var verifyContext = db.CreateContext();
         Assert.True(
             await verifyContext

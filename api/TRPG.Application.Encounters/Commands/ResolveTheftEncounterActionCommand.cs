@@ -1,5 +1,3 @@
-using System.Transactions;
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
@@ -13,7 +11,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class ResolveTheftEncounterActionCommand
+public class ResolveTheftEncounterActionCommand : IEncounterResolutionCommand
 {
     public required TheftEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
@@ -23,7 +21,6 @@ public class ResolveTheftEncounterActionCommand
 
 internal class ResolveTheftEncounterActionCommandHandler(
     IEncountersDbContext context,
-    ICommandHandler<CompleteEncounterCommand> completeEncounter,
     ICommandHandler<
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
@@ -31,26 +28,19 @@ internal class ResolveTheftEncounterActionCommandHandler(
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures
-) : ICommandHandler<ResolveTheftEncounterActionCommand, TheftEncounterResolutionFact>
+)
+    : EncounterResolutionCommandHandlerBase<
+        TheftEncounter,
+        ResolveTheftEncounterActionCommand,
+        TheftEncounterResolutionFact
+    >(context)
 {
-    public async Task<TheftEncounterResolutionFact> Handle(
+    protected override async Task<TheftEncounterResolutionFact> Resolve(
         ResolveTheftEncounterActionCommand command,
-        CancellationToken cancellationToken = default
-    )
-    {
-        using var transaction = new TransactionScope(
-            TransactionScopeOption.Required,
-            TransactionScopeAsyncFlowOption.Enabled
-        );
-
-        var encounter = await GetEncounter(command, cancellationToken);
-
-        await completeEncounter.Handle(
-            new CompleteEncounterCommand { EncounterId = command.EncounterId },
-            cancellationToken
-        );
-
-        var resolution = command.Action switch
+        TheftEncounter encounter,
+        CancellationToken cancellationToken
+    ) =>
+        command.Action switch
         {
             ApologizeTheftEncounterAction => await ResolveApology(
                 encounter,
@@ -60,11 +50,6 @@ internal class ResolveTheftEncounterActionCommandHandler(
             FleeTheftEncounterAction => await ResolveFlee(encounter, command, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
-
-        transaction.Complete();
-
-        return resolution;
-    }
 
     private async Task<TheftEncounterResolutionFact> ResolveApology(
         TheftEncounter encounter,
@@ -119,14 +104,11 @@ internal class ResolveTheftEncounterActionCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
-        );
-        if (player == null)
-        {
-            throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
-        }
+        var player =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = command.PlayerId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
 
         if (player.LocationId != encounter.LocationId)
         {
@@ -156,32 +138,5 @@ internal class ResolveTheftEncounterActionCommandHandler(
             encounter.ItemNames.ToArray(),
             false
         );
-    }
-
-    private async Task<TheftEncounter> GetEncounter(
-        ResolveTheftEncounterActionCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var encounter = await context
-            .Encounters.OfType<TheftEncounter>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                item =>
-                    item.Id == command.EncounterId
-                    && item.WorldId == command.WorldId
-                    && item.PlayerId == command.PlayerId,
-                cancellationToken
-            );
-        if (encounter == null)
-        {
-            throw new EntityNotFoundException(nameof(TheftEncounter), command.EncounterId);
-        }
-        if (encounter.State != EncounterState.Active)
-        {
-            throw new InvalidOperationException("The theft encounter has already been resolved.");
-        }
-
-        return encounter;
     }
 }
