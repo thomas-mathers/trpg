@@ -9,6 +9,8 @@ internal sealed record ResolvedUseAbilityAction(Ability Ability, IReadOnlyList<C
 
 internal sealed record ResolvedUseItemAction(ConsumableItemSnapshot Item) : ResolvedCombatAction;
 
+public sealed record ResolvedFleeAction : ResolvedCombatAction;
+
 public class PlayerCombatActionResolverResult
 {
     public ResolvedCombatAction? Result { get; }

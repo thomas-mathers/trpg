@@ -1,10 +1,17 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Json;
 using System.Text;
+using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using TRPG.Application.Common.Serialization;
+using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -144,7 +151,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         return builder.ToString();
     }
 
-    private async Task<ChatMessage> GetChatMessage(Guid sessionId, string role)
+    private async Task<TRPG.Domain.Models.ChatMessage> GetChatMessage(Guid sessionId, string role)
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
@@ -635,6 +642,110 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
         Assert.Equal(TRPG.Combat.Responses.CombatOutcome.Fled, updated.Outcome);
+    }
+
+    [Fact]
+    public async Task SendFlee_StreamsNoNarration_WhenTheFleeAttemptFails()
+    {
+        // Arrange — EndpointTestFixture pins Flee:MinimumCatchChance/MaximumCatchChance to 0
+        // (guaranteed success) for every other test, so this one spins up its own factory
+        // against the same already-migrated database with the opposite bounds (guaranteed
+        // catch) to exercise the failure path.
+        var enemy = await SeedHostileCreature();
+        var sessionId = await StartSession();
+
+        var chatClient = new FakeChatClient();
+        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration(
+                (_, config) =>
+                {
+                    config.AddInMemoryCollection(
+                        new Dictionary<string, string?>
+                        {
+                            ["ConnectionStrings:Trpg"] = fixture.ConnectionString,
+                            ["Flee:MinimumCatchChance"] = "1",
+                            ["Flee:MaximumCatchChance"] = "1",
+                        }
+                    );
+                }
+            );
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<DbContextOptions<TrpgDbContext>>();
+                services.AddDbContext<TrpgDbContext>(options =>
+                    options.UseNpgsql(fixture.ConnectionString)
+                );
+
+                services.RemoveAll<IChatClient>();
+                services.AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, chatClient);
+                services.AddKeyedSingleton<IChatClient>(
+                    LlmRoleKeys.Gameplay,
+                    (_, _) => chatClient.AsBuilder().UseFunctionInvocation().Build()
+                );
+            });
+        });
+
+        chatClient.PendingToolCallName = "attack";
+        chatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["abilityName"] = "Strike",
+            ["targetName"] = enemy.Name,
+        };
+        await using (var setupHub = ConnectHub(factory, sessionId))
+        {
+            await setupHub.StartAsync(TestContext.Current.CancellationToken);
+            await Drain(
+                setupHub.StreamAsync<string>(
+                    "SendChat",
+                    $"I attack {enemy.Name}",
+                    TestContext.Current.CancellationToken
+                )
+            );
+        }
+
+        await using var gameHub = ConnectHub(factory, sessionId);
+        await gameHub.StartAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Empty(narration);
+        return;
+
+        static HubConnection ConnectHub(WebApplicationFactory<Program> factory, Guid sessionId)
+        {
+            var uri = new Uri(factory.Server.BaseAddress, $"/hubs/chat?sessionId={sessionId}");
+            return new HubConnectionBuilder()
+                .WithUrl(
+                    uri,
+                    options =>
+                    {
+                        options.HttpMessageHandlerFactory = _ => factory.Server.CreateHandler();
+                        options.Transports = HttpTransportType.LongPolling;
+                    }
+                )
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.PropertyNamingPolicy = TrpgJsonOptions
+                        .Default
+                        .PropertyNamingPolicy;
+                    options.PayloadSerializerOptions.PropertyNameCaseInsensitive = TrpgJsonOptions
+                        .Default
+                        .PropertyNameCaseInsensitive;
+                    options.PayloadSerializerOptions.DefaultIgnoreCondition = TrpgJsonOptions
+                        .Default
+                        .DefaultIgnoreCondition;
+                    foreach (var converter in TrpgJsonOptions.Default.Converters)
+                    {
+                        options.PayloadSerializerOptions.Converters.Add(converter);
+                    }
+                })
+                .Build();
+        }
     }
 
     [Fact]

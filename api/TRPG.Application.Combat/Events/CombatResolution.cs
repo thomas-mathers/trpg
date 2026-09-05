@@ -70,15 +70,19 @@ public record BuffModifierInfo(
 );
 
 public sealed record BuffApplied(
+    [property: JsonIgnore] Guid SourceId,
     string SourceName,
     string AbilityName,
+    [property: JsonIgnore] Guid TargetId,
     string TargetName,
     IReadOnlyList<BuffModifierInfo> AppliedModifiers
 ) : CombatResolution;
 
 public sealed record Healed(
+    [property: JsonIgnore] Guid SourceId,
     string SourceName,
     string AbilityName,
+    [property: JsonIgnore] Guid TargetId,
     string TargetName,
     int Amount,
     int TargetRemainingHp,
@@ -86,14 +90,17 @@ public sealed record Healed(
 ) : CombatResolution;
 
 public sealed record HealOverTimeApplied(
+    [property: JsonIgnore] Guid SourceId,
     string SourceName,
     string AbilityName,
+    [property: JsonIgnore] Guid TargetId,
     string TargetName,
     int AmountPerTurn,
     int Duration
 ) : CombatResolution;
 
 public sealed record ConsumedPotion(
+    [property: JsonIgnore] Guid CreatureId,
     string CreatureName,
     string ItemName,
     ResourceType Resource,
@@ -122,4 +129,5 @@ public sealed record ResourceStateUpdated(
     int MaximumMp
 ) : CombatResolution;
 
-public sealed record FleeFailed(string CreatureName) : CombatResolution;
+public sealed record FleeFailed([property: JsonIgnore] Guid CreatureId, string CreatureName)
+    : CombatResolution;

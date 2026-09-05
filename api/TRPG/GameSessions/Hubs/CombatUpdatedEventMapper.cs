@@ -11,7 +11,6 @@ internal sealed class CombatUpdatedEventMapper : GameClientEventMapper<CombatUpd
             new CombatUpdated(
                 gameEvent.Combatants.ToCombatantStates(),
                 gameEvent.Events.ToCombatActionResults(),
-                gameEvent.Events.ToCombatMessages(),
                 gameEvent.Events.ToCombatRegenerations(),
                 gameEvent.Events.ToCombatResourceStates(),
                 gameEvent.Outcome.ToContract()

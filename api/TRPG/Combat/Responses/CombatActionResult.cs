@@ -8,7 +8,20 @@ public enum CombatActionOutcome
     Hit,
     Miss,
     Block,
+    Heal,
+    HealOverTime,
+    Buff,
+    ConsumePotion,
+    FleeFailed,
 }
+
+[TranspilationSource]
+public record CombatActionBuffModifier(
+    AttributeName Attribute,
+    float Amount,
+    AmountType AmountType,
+    int RemainingTurns
+);
 
 [TranspilationSource]
 public record CombatActionResult(
@@ -25,5 +38,8 @@ public record CombatActionResult(
     int? TargetRemainingHp,
     int? TargetMaximumHp,
     IReadOnlyCollection<ConditionType>? AppliedConditions,
+    IReadOnlyCollection<CombatActionBuffModifier>? AppliedBuffs,
+    int? HotAmountPerTurn,
+    int? HotDuration,
     string Narration
 );

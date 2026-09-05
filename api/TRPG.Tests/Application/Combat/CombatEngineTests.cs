@@ -765,7 +765,7 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void ResolveFlee_EndsTheFightWithoutResolvingARound_WhenTheFleeAttemptSucceeds()
+    public void ProcessRound_EndsTheFightWithoutResolvingARound_WhenTheFleeAttemptSucceeds()
     {
         // Arrange
         var player = MakeCombatant("Hero").AsPlayer().Build();
@@ -774,7 +774,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit, AlwaysEvades);
 
         // Act
-        var state = engine.ResolveFlee(combatants);
+        var state = engine.ProcessRound(combatants, new ResolvedFleeAction());
 
         // Assert
         Assert.Equal(CombatOutcome.Fled, state.Outcome);
@@ -784,7 +784,7 @@ public class CombatEngineTests
     }
 
     [Fact]
-    public void ResolveFlee_LeavesTheFightOngoing_WhenTheFleeAttemptIsCaught()
+    public void ProcessRound_LetsChasersActAndDealDamage_WhenTheFleeAttemptIsCaught()
     {
         // Arrange
         var player = MakeCombatant("Hero").AsPlayer().Build();
@@ -793,12 +793,15 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit, AlwaysCaught);
 
         // Act
-        var state = engine.ResolveFlee(combatants);
+        var state = engine.ProcessRound(combatants, new ResolvedFleeAction());
 
-        // Assert
+        // Assert — turn order between the tied-Dexterity player and monster is randomized, so
+        // FleeFailed and the monster's Hit can land in either order.
         Assert.Equal(CombatOutcome.Ongoing, state.Outcome);
-        var fleeFailed = Assert.Single(state.Events);
-        Assert.Equal(new FleeFailed(player.Name), fleeFailed);
+        Assert.Contains(state.Events, combatEvent => combatEvent is FleeFailed);
+        Assert.Contains(state.Events, combatEvent => combatEvent is Hit);
+        var playerState = state.Combatants.Single(c => c.IsPlayer);
+        Assert.True(playerState.CurrentHp < playerState.MaximumHp);
     }
 
     [Fact]

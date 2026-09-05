@@ -25,7 +25,19 @@ export type ActiveConditions = {
 }
 
 /** Transpiled from TRPG.Combat.Responses.CombatActionOutcome */
-export type CombatActionOutcome = "Hit" | "Miss" | "Block";
+export type CombatActionOutcome = "Hit" | "Miss" | "Block" | "Heal" | "HealOverTime" | "Buff" | "ConsumePotion" | "FleeFailed";
+
+/** Transpiled from TRPG.Combat.Responses.CombatActionBuffModifier */
+export type CombatActionBuffModifier = {
+    /** Transpiled from TRPG.Combat.Responses.AttributeName */
+    attribute: AttributeName;
+    /** Transpiled from float */
+    amount: number;
+    /** Transpiled from TRPG.Combat.Responses.AmountType */
+    amountType: AmountType;
+    /** Transpiled from int */
+    remainingTurns: number;
+}
 
 /** Transpiled from TRPG.Combat.Responses.CombatActionResult */
 export type CombatActionResult = {
@@ -55,6 +67,12 @@ export type CombatActionResult = {
     targetMaximumHp?: number;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.ConditionType>? */
     appliedConditions?: ConditionType[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.CombatActionBuffModifier>? */
+    appliedBuffs?: CombatActionBuffModifier[];
+    /** Transpiled from int */
+    hotAmountPerTurn?: number;
+    /** Transpiled from int */
+    hotDuration?: number;
     /** Transpiled from string */
     narration: string;
 }
@@ -190,8 +208,6 @@ export type CombatUpdated = {
     combatants: CombatantState[];
     /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatActionResult> */
     actions: CombatActionResult[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyList<string> */
-    messages: string[];
     /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatRegeneration> */
     regenerations: CombatRegeneration[];
     /** Transpiled from System.Collections.Generic.IReadOnlyList<TRPG.Combat.Responses.CombatResourceState> */
