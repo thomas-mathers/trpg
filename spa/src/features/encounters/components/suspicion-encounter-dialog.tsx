@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { SuspicionEncounterActionName } from '@/features/encounters/encounter';
+import type { SuspicionCause, SuspicionEncounterActionName } from '@/features/encounters/encounter';
 import { useSuspicionEncounterState } from '@/features/encounters/hooks/use-suspicion-encounter-state';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
@@ -18,6 +18,11 @@ const ACTION_NAMES: readonly SuspicionEncounterActionName[] = ['Comply', 'Flee']
 function isSuspicionEncounterActionName(name: string): name is SuspicionEncounterActionName {
   return (ACTION_NAMES as readonly string[]).includes(name);
 }
+
+const CAUSE_DESCRIPTIONS: Record<SuspicionCause, string> = {
+  Sneaking: 'noticing you moving furtively, as if trying not to be seen',
+  CastingMagicInPublic: 'catching you casting magic openly in public',
+};
 
 export function SuspicionEncounterDialog() {
   const encounter = useSuspicionEncounterState();
@@ -60,7 +65,8 @@ export function SuspicionEncounterDialog() {
           </DialogTitle>
         </DialogHeader>
         <DialogDescription className="px-5 pt-3">
-          {encounter.guardName} notices you and stops you at {encounter.locationName}.
+          {encounter.guardName} stops you at {encounter.locationName},{' '}
+          {CAUSE_DESCRIPTIONS[encounter.cause]}.
         </DialogDescription>
 
         <div className="space-y-5 p-5">

@@ -60,13 +60,6 @@ internal class StartConversationTool(
             cancellationToken
         );
 
-        if (player!.IsSneaking)
-        {
-            return new ToolError(
-                "You can't strike up a conversation while sneaking — stop sneaking first."
-            );
-        }
-
         var npc = await getCreatureByNameAtLocation.Handle(
             new GetCreatureByNameAtLocationQuery
             {

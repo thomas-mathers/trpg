@@ -72,6 +72,20 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     }
 
     [Fact]
+    public async Task Handle_ReturnsThePlayersSneakingStance()
+    {
+        // Arrange
+        _player.IsSneaking = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.RuntimeState.PlayerIsSneaking);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsProfileData_WhenAProfileExists()
     {
         // Arrange
