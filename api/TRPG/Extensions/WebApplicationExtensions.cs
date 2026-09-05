@@ -29,9 +29,16 @@ internal static class WebApplicationExtensions
 
         _ = Task.Run(async () =>
         {
-            await using var scope = app.Services.CreateAsyncScope();
-            var warmupContext = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            await warmupContext.Database.CanConnectAsync();
+            try
+            {
+                await using var scope = app.Services.CreateAsyncScope();
+                var warmupContext = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+                await warmupContext.Database.CanConnectAsync();
+            }
+            catch (Exception exception)
+            {
+                app.Logger.LogWarning(exception, "Database connection warmup failed.");
+            }
         });
 
         app.Logger.LogInformation(

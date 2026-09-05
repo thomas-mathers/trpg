@@ -1,32 +1,28 @@
-using System.Transactions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class ResolveSuspicionEncounterActionCommand
+public class ResolveSuspicionEncounterActionCommand : IEncounterResolutionCommand
 {
-    public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required SuspicionEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
-    public required Guid GuardCreatureId { get; init; }
-    public required string GuardName { get; init; }
-    public required Guid CityFactionId { get; init; }
-    public required Guid EncounterLocationId { get; init; }
-    public required string LocationName { get; init; }
 }
 
 internal class ResolveSuspicionEncounterActionCommandHandler(
-    ICommandHandler<CompleteEncounterCommand> completeEncounter,
+    IEncountersDbContext context,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
@@ -34,37 +30,28 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsSnapshot<FleeOptions> fleeOptions,
     IOptionsMonitor<SuspicionOptions> suspicionOptions
-) : ICommandHandler<ResolveSuspicionEncounterActionCommand, SuspicionEncounterResolutionFact>
+)
+    : EncounterResolutionCommandHandlerBase<
+        SuspicionEncounter,
+        ResolveSuspicionEncounterActionCommand,
+        SuspicionEncounterResolutionFact
+    >(context)
 {
-    public async Task<SuspicionEncounterResolutionFact> Handle(
+    protected override async Task<SuspicionEncounterResolutionFact> Resolve(
         ResolveSuspicionEncounterActionCommand command,
-        CancellationToken cancellationToken = default
-    )
-    {
-        using var transaction = new TransactionScope(
-            TransactionScopeOption.Required,
-            TransactionScopeAsyncFlowOption.Enabled
-        );
-
-        var fact = command.Action switch
+        SuspicionEncounter encounter,
+        CancellationToken cancellationToken
+    ) =>
+        command.Action switch
         {
-            ComplySuspicionAction => await ResolveComply(command, cancellationToken),
-            FleeSuspicionAction => await ResolveFlee(command, cancellationToken),
+            ComplySuspicionAction => await ResolveComply(command, encounter, cancellationToken),
+            FleeSuspicionAction => await ResolveFlee(command, encounter, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
 
-        await completeEncounter.Handle(
-            new CompleteEncounterCommand { EncounterId = command.EncounterId },
-            cancellationToken
-        );
-
-        transaction.Complete();
-
-        return fact;
-    }
-
     private async Task<SuspicionEncounterResolutionFact> ResolveComply(
         ResolveSuspicionEncounterActionCommand command,
+        SuspicionEncounter encounter,
         CancellationToken cancellationToken
     )
     {
@@ -77,13 +64,13 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
                 Adjustments =
                 [
                     new ReputationAdjustment(
-                        command.CityFactionId,
+                        encounter.CityFactionId,
                         -options.ComplyReputationPenalty
                     ),
                 ],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.CaughtSneaking,
-                Detail = $"Caught sneaking near {command.GuardName}",
+                Detail = $"Caught sneaking near {encounter.GuardName}",
             },
             cancellationToken
         );
@@ -91,30 +78,34 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
         return new SuspicionEncounterResolutionFact(
             command.EncounterId,
             SuspicionEncounterResolutionOutcome.Complied,
-            command.GuardName,
-            command.LocationName,
+            encounter.GuardName,
+            encounter.LocationName!,
             null
         );
     }
 
     private async Task<SuspicionEncounterResolutionFact> ResolveFlee(
         ResolveSuspicionEncounterActionCommand command,
+        SuspicionEncounter encounter,
         CancellationToken cancellationToken
     )
     {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
-        );
-        var guard = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.GuardCreatureId },
-            cancellationToken
-        );
+        var player =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = command.PlayerId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
+
+        var guard =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = encounter.GuardCreatureId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException(nameof(Creature), encounter.GuardCreatureId);
 
         var catchChance = EvadeChanceCalculator.CatchChance(
             fleeOptions.Value,
-            ToEvadeParticipant(player!),
-            [ToEvadeParticipant(guard!)]
+            player.ToEvadeParticipant(),
+            [guard.ToEvadeParticipant()]
         );
         var isCaught = Random.Shared.NextDouble() < catchChance;
 
@@ -123,8 +114,8 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
             return new SuspicionEncounterResolutionFact(
                 command.EncounterId,
                 SuspicionEncounterResolutionOutcome.Fled,
-                command.GuardName,
-                command.LocationName,
+                encounter.GuardName,
+                encounter.LocationName!,
                 null
             );
         }
@@ -138,13 +129,13 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
                 Adjustments =
                 [
                     new ReputationAdjustment(
-                        command.CityFactionId,
+                        encounter.CityFactionId,
                         -options.FleeFailedReputationPenalty
                     ),
                 ],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.CaughtFleeingSuspicion,
-                Detail = $"Fled from {command.GuardName}'s questioning and was caught",
+                Detail = $"Fled from {encounter.GuardName}'s questioning and was caught",
             },
             cancellationToken
         );
@@ -153,7 +144,7 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
             new GetReputationScoreQuery
             {
                 CreatureId = command.PlayerId,
-                TargetId = command.CityFactionId,
+                TargetId = encounter.CityFactionId,
                 TargetType = ReputationTargetType.Faction,
             },
             cancellationToken
@@ -164,11 +155,11 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                PlayerLocationId = command.EncounterLocationId,
-                LocationName = command.LocationName,
-                GuardCreatureId = command.GuardCreatureId,
-                GuardName = command.GuardName,
-                CityFactionId = command.CityFactionId,
+                PlayerLocationId = encounter.LocationId,
+                LocationName = encounter.LocationName!,
+                GuardCreatureId = encounter.GuardCreatureId,
+                GuardName = encounter.GuardName,
+                CityFactionId = encounter.CityFactionId,
                 ReputationScore = newReputationScore,
             },
             cancellationToken
@@ -186,18 +177,9 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
         return new SuspicionEncounterResolutionFact(
             command.EncounterId,
             SuspicionEncounterResolutionOutcome.FleeFailed,
-            command.GuardName,
-            command.LocationName,
+            encounter.GuardName,
+            encounter.LocationName!,
             guardEncounter.Id
         );
     }
-
-    private static EvadeParticipant ToEvadeParticipant(Creature creature) =>
-        new(
-            creature.Dexterity,
-            creature.CurrentHp,
-            creature.MaximumHp,
-            creature.CurrentAp,
-            creature.MaximumAp
-        );
 }

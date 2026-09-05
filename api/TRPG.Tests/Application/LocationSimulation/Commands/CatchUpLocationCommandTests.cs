@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.LocationSimulation;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
@@ -77,6 +78,31 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db) : IAsyncLife
             new AddCreatureJobCommand { CreatureJob = job },
             TestContext.Current.CancellationToken
         );
+
+    [Fact]
+    public async Task Handle_EvictsTheClaim_WhenTheLocationDoesNotExist()
+    {
+        // Arrange
+        var missingLocationId = Guid.NewGuid();
+        var currentDate = Builders.MakeInGameDate(12);
+        var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
+
+        // Act
+        await _handler.Handle(
+            new CatchUpLocationCommand
+            {
+                WorldId = WorldId,
+                LocationId = missingLocationId,
+                CurrentDate = currentDate,
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — the claim was evicted, so it can be claimed again rather than staying blocked for the cache TTL
+        Assert.True(catchUpCache.TryClaim(WorldId, missingLocationId, currentDate));
+    }
 
     [Fact]
     public async Task Handle_MovesCreatureIntoRoom_WhenSleepJobActive()

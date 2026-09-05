@@ -1,79 +1,67 @@
-using System.Transactions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class ResolveGuardEncounterActionCommand
+public class ResolveGuardEncounterActionCommand : IEncounterResolutionCommand
 {
     public required Guid SessionId { get; init; }
-    public required TimeSpan Playtime { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required GuardEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
-    public required Guid GuardCreatureId { get; init; }
-    public required Guid CityFactionId { get; init; }
-    public required string GuardName { get; init; }
-    public required Guid EncounterLocationId { get; init; }
-    public required string LocationName { get; init; }
-    public required int ReputationScore { get; init; }
-    public required int FineAmount { get; init; }
-    public required int JailHours { get; init; }
 }
 
 internal class ResolveGuardEncounterActionCommandHandler(
-    ICommandHandler<CompleteEncounterCommand> completeEncounter,
+    IEncountersDbContext context,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<StartFightCommand> startFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
-) : ICommandHandler<ResolveGuardEncounterActionCommand, GuardEncounterResolutionFact>
+)
+    : EncounterResolutionCommandHandlerBase<
+        GuardEncounter,
+        ResolveGuardEncounterActionCommand,
+        GuardEncounterResolutionFact
+    >(context)
 {
-    public async Task<GuardEncounterResolutionFact> Handle(
+    protected override async Task<GuardEncounterResolutionFact> Resolve(
         ResolveGuardEncounterActionCommand command,
-        CancellationToken cancellationToken = default
-    )
-    {
-        using var transaction = new TransactionScope(
-            TransactionScopeOption.Required,
-            TransactionScopeAsyncFlowOption.Enabled
-        );
-
-        var fact = command.Action switch
+        GuardEncounter encounter,
+        CancellationToken cancellationToken
+    ) =>
+        command.Action switch
         {
-            PayFineEncounterAction => await ResolvePayFine(command, cancellationToken),
-            GoToJailEncounterAction => await ResolveGoToJail(command, cancellationToken),
-            ResistArrestEncounterAction => await ResolveResistArrest(command, cancellationToken),
+            PayFineEncounterAction => await ResolvePayFine(command, encounter, cancellationToken),
+            GoToJailEncounterAction => await ResolveGoToJail(command, encounter, cancellationToken),
+            ResistArrestEncounterAction => await ResolveResistArrest(
+                command,
+                encounter,
+                cancellationToken
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(command)),
         };
 
-        await completeEncounter.Handle(
-            new CompleteEncounterCommand { EncounterId = command.EncounterId },
-            cancellationToken
-        );
-
-        transaction.Complete();
-
-        return fact;
-    }
-
     private async Task<GuardEncounterResolutionFact> ResolvePayFine(
         ResolveGuardEncounterActionCommand command,
+        GuardEncounter encounter,
         CancellationToken cancellationToken
     )
     {
@@ -81,7 +69,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             new RemoveGoldCommand
             {
                 Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-                Amount = command.FineAmount,
+                Amount = encounter.FineAmount,
             },
             cancellationToken
         );
@@ -93,11 +81,11 @@ internal class ResolveGuardEncounterActionCommandHandler(
                 WorldId = command.WorldId,
                 Adjustments =
                 [
-                    new ReputationAdjustment(command.CityFactionId, -command.ReputationScore),
+                    new ReputationAdjustment(encounter.CityFactionId, -encounter.ReputationScore),
                 ],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.PaidFineToGuard,
-                Detail = $"Paid a {command.FineAmount} gold fine to the city guard",
+                Detail = $"Paid a {encounter.FineAmount} gold fine to the city guard",
             },
             cancellationToken
         );
@@ -105,26 +93,27 @@ internal class ResolveGuardEncounterActionCommandHandler(
         return new GuardEncounterResolutionFact(
             command.EncounterId,
             GuardEncounterResolutionOutcome.PaidFine,
-            command.GuardName,
-            command.LocationName,
-            command.FineAmount,
+            encounter.GuardName,
+            encounter.LocationName!,
+            encounter.FineAmount,
             null
         );
     }
 
     private async Task<GuardEncounterResolutionFact> ResolveGoToJail(
         ResolveGuardEncounterActionCommand command,
+        GuardEncounter encounter,
         CancellationToken cancellationToken
     )
     {
         var location = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = command.EncounterLocationId },
+            new GetLocationByIdQuery { Id = encounter.LocationId },
             cancellationToken
         );
         if (location?.CityId == null)
         {
             throw new InvalidOperationException(
-                $"Location {command.EncounterLocationId} has no city, cannot resolve a jail."
+                $"Location {encounter.LocationId} has no city, cannot resolve a jail."
             );
         }
 
@@ -137,7 +126,11 @@ internal class ResolveGuardEncounterActionCommandHandler(
             throw new InvalidOperationException($"City {location.CityId} has no jail.");
         }
 
-        var unlocksAt = command.Playtime + GameClock.RealTimePerInGameHour * command.JailHours;
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+        var unlocksAt = playtime + GameClock.RealTimePerInGameHour * encounter.JailHours;
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
@@ -158,17 +151,17 @@ internal class ResolveGuardEncounterActionCommandHandler(
         );
 
         var options = guardEncounterOptions.CurrentValue;
-        var restoreAmount = options.ReputationThreshold + 1 - command.ReputationScore;
+        var restoreAmount = options.ReputationThreshold + 1 - encounter.ReputationScore;
 
         await adjustReputations.Handle(
             new AdjustReputationsCommand
             {
                 CreatureId = command.PlayerId,
                 WorldId = command.WorldId,
-                Adjustments = [new ReputationAdjustment(command.CityFactionId, restoreAmount)],
+                Adjustments = [new ReputationAdjustment(encounter.CityFactionId, restoreAmount)],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.ServedJailTime,
-                Detail = $"Served a {command.JailHours}-hour jail sentence",
+                Detail = $"Served a {encounter.JailHours}-hour jail sentence",
             },
             cancellationToken
         );
@@ -176,22 +169,23 @@ internal class ResolveGuardEncounterActionCommandHandler(
         return new GuardEncounterResolutionFact(
             command.EncounterId,
             GuardEncounterResolutionOutcome.WentToJail,
-            command.GuardName,
-            command.LocationName,
+            encounter.GuardName,
+            encounter.LocationName!,
             null,
-            command.JailHours
+            encounter.JailHours
         );
     }
 
     private async Task<GuardEncounterResolutionFact> ResolveResistArrest(
         ResolveGuardEncounterActionCommand command,
+        GuardEncounter encounter,
         CancellationToken cancellationToken
     )
     {
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
             {
-                CreatureIds = [command.GuardCreatureId],
+                CreatureIds = [encounter.GuardCreatureId],
                 State = CreatureState.Alerted,
             },
             cancellationToken
@@ -203,7 +197,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
                 SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                EnemyCreatureIds = [command.GuardCreatureId],
+                EnemyCreatureIds = [encounter.GuardCreatureId],
                 HasSurpriseRound = false,
             },
             cancellationToken
@@ -212,8 +206,8 @@ internal class ResolveGuardEncounterActionCommandHandler(
         return new GuardEncounterResolutionFact(
             command.EncounterId,
             GuardEncounterResolutionOutcome.ResistedArrest,
-            command.GuardName,
-            command.LocationName,
+            encounter.GuardName,
+            encounter.LocationName!,
             null,
             null
         );

@@ -1,26 +1,39 @@
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Domain;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.LocationSimulation;
 
 internal class LocationCatchUpCache(IMemoryCache cache)
 {
-    public bool HasCaughtUp(Guid worldId, Guid locationId, int hour) =>
-        cache.TryGetValue(BuildKey(worldId, locationId, hour), out bool _);
+    private readonly object _gate = new();
 
-    public void MarkCaughtUp(Guid worldId, Guid locationId, int hour) =>
-        cache.Set(
-            BuildKey(worldId, locationId, hour),
-            true,
-            new MemoryCacheEntryOptions
+    public bool TryClaim(Guid worldId, Guid locationId, InGameDate currentDate)
+    {
+        var key = BuildKey(worldId, locationId, currentDate);
+
+        lock (_gate)
+        {
+            if (cache.TryGetValue(key, out bool _))
             {
-                AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
+                return false;
             }
-        );
 
-    public void Evict(Guid worldId, Guid locationId, int hour) =>
-        cache.Remove(BuildKey(worldId, locationId, hour));
+            cache.Set(
+                key,
+                true,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
+                }
+            );
+            return true;
+        }
+    }
 
-    private static string BuildKey(Guid worldId, Guid locationId, int hour) =>
-        $"catchup:{worldId}:{locationId}:{hour}";
+    public void Evict(Guid worldId, Guid locationId, InGameDate currentDate) =>
+        cache.Remove(BuildKey(worldId, locationId, currentDate));
+
+    private static string BuildKey(Guid worldId, Guid locationId, InGameDate currentDate) =>
+        $"catchup:{worldId}:{locationId}:{currentDate.Year}:{currentDate.MonthName}:{currentDate.Day}:{currentDate.Hour}";
 }

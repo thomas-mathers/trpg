@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.LocationSimulation;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -56,7 +57,8 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        catchUpCache.MarkCaughtUp(WorldId, _location.Id, hour: 8);
+        var currentDate = GameClock.GetCurrentInGameDate(_session.Playtime);
+        catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
 
         // Act
         await _handler.Handle(
@@ -70,7 +72,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.False(catchUpCache.HasCaughtUp(WorldId, _location.Id, hour: 8));
+        Assert.True(catchUpCache.TryClaim(WorldId, _location.Id, currentDate));
 
         await using var verifyContext = db.CreateContext();
         var updatedMonster = await verifyContext.Creatures.FindAsync(
@@ -93,7 +95,8 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        catchUpCache.MarkCaughtUp(WorldId, _location.Id, hour: 8);
+        var currentDate = GameClock.GetCurrentInGameDate(_session.Playtime);
+        catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
 
         // Act
         await _handler.Handle(
@@ -107,6 +110,6 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         );
 
         // Assert - nothing to reset, so the cache entry is left untouched
-        Assert.True(catchUpCache.HasCaughtUp(WorldId, _location.Id, hour: 8));
+        Assert.False(catchUpCache.TryClaim(WorldId, _location.Id, currentDate));
     }
 }

@@ -59,6 +59,6 @@ internal class ResetAlertedCreaturesCommandHandler(
 
         var currentDate = GameClock.GetCurrentInGameDate(command.Playtime);
 
-        catchUpCache.Evict(command.WorldId, command.LocationId, currentDate.Hour);
+        catchUpCache.Evict(command.WorldId, command.LocationId, currentDate);
     }
 }

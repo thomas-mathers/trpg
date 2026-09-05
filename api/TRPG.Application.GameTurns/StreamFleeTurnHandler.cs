@@ -31,21 +31,22 @@ internal class StreamFleeTurnHandler(
             },
             cancellationToken
         );
+
         if (result == null)
         {
             return new GameTurnPrompt.Reply("There's no fight to flee from right now.");
         }
 
-        // A failed attempt changes nothing worth narrating — ResolveFleeCombatCommand's
-        // CombatUpdatedEvent already carries a FleeFailed toast message to the client.
         if (result.CombatResult.Outcome != CombatOutcome.Fled)
         {
             return new GameTurnPrompt.None();
         }
 
+        var didMove = false;
+
         if (result.DestinationLocationId != null)
         {
-            await movePlayer.Handle(
+            var moveResult = await movePlayer.Handle(
                 new MovePlayerCommand
                 {
                     PlayerId = session.PlayerId,
@@ -54,21 +55,24 @@ internal class StreamFleeTurnHandler(
                 },
                 cancellationToken
             );
+
+            didMove = moveResult.PlayerLocationId == result.DestinationLocationId.Value;
         }
 
-        return new GameTurnPrompt.Narrate(BuildNarrationPrompt(result), IncludeTools: false);
+        return new GameTurnPrompt.Narrate(
+            BuildNarrationPrompt(result, didMove),
+            IncludeTools: false
+        );
     }
 
-    // Only ever called when the flee attempt succeeded — a failed attempt returns
-    // GameTurnPrompt.None before reaching this, so there's nothing to narrate for it.
-    internal static string BuildNarrationPrompt(FleeCombatResult result)
+    internal static string BuildNarrationPrompt(FleeCombatResult result, bool didMove)
     {
         var serializedResult = JsonSerializer.Serialize(
             result.CombatResult,
             TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
         );
 
-        return result.DestinationLocationName != null
+        return result.DestinationLocationName != null && didMove
             ? $"The player attempted to flee combat. Result: {serializedResult}. Fleeing broke off the fight and carried the player to {result.DestinationLocationName}. Narrate them breaking away from their attacker, putting distance between themselves and the danger, and arriving there. Do not call any tools."
             : $"The player attempted to flee combat. Result: {serializedResult}. Fleeing only ends the fight — the player has not moved and is still in the same location as the enemy. Narrate them breaking away from the immediate danger (putting distance from their attacker, taking cover, ending the confrontation) without describing them as having left the building, room, or area. Do not call any tools.";
     }

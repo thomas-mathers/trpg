@@ -49,25 +49,32 @@ internal class CatchUpLocationCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        if (catchUpCache.HasCaughtUp(command.WorldId, command.LocationId, command.CurrentDate.Hour))
+        if (!catchUpCache.TryClaim(command.WorldId, command.LocationId, command.CurrentDate))
         {
             return false;
         }
 
-        var location = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = command.LocationId },
-            cancellationToken
-        );
-        if (location == null)
+        try
         {
-            return false;
+            var location = await getLocationById.Handle(
+                new GetLocationByIdQuery { Id = command.LocationId },
+                cancellationToken
+            );
+            if (location == null)
+            {
+                catchUpCache.Evict(command.WorldId, command.LocationId, command.CurrentDate);
+                return false;
+            }
+
+            await CatchUpLocation(command, location, cancellationToken);
+
+            return true;
         }
-
-        await CatchUpLocation(command, location, cancellationToken);
-
-        catchUpCache.MarkCaughtUp(command.WorldId, command.LocationId, command.CurrentDate.Hour);
-
-        return true;
+        catch
+        {
+            catchUpCache.Evict(command.WorldId, command.LocationId, command.CurrentDate);
+            throw;
+        }
     }
 
     private async Task CatchUpLocation(

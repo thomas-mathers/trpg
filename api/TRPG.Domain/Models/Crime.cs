@@ -29,6 +29,9 @@ public class KillCrime : Crime
 {
     public Guid VictimId { get; init; }
     public string VictimName { get; init; } = "";
+
+    // Captured at kill time; the victim's corpse and its faction rows may be gone before this resolves.
+    public List<Guid> VictimFactionIds { get; init; } = [];
 }
 
 public enum TheftCrimeOutcome

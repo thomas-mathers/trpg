@@ -4,7 +4,11 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
 
-public record KillCrimeReport(Guid VictimId, IReadOnlyCollection<Guid> ReportedWitnessIds);
+public record KillCrimeReport(
+    Guid VictimId,
+    IReadOnlyCollection<Guid> VictimFactionIds,
+    IReadOnlyCollection<Guid> ReportedWitnessIds
+);
 
 public record ResolveKillCrimeWitnessesResult(IReadOnlyCollection<KillCrimeReport> ReportedCrimes);
 
@@ -43,6 +47,7 @@ internal class ResolveKillCrimeWitnessesCommandHandler(
         var reportedCrimes = resolution
             .ReportedCrimes.Select(crime => new KillCrimeReport(
                 crime.VictimId,
+                crime.VictimFactionIds,
                 resolution.ReportingWitnessIdsByCrimeId[crime.Id]
             ))
             .ToArray();

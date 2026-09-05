@@ -23,74 +23,35 @@ internal class StreamGuardEncounterActionTurnHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
+    : EncounterActionTurnHandlerBase<
+        GuardEncounter,
+        GuardEncounterAction,
+        GuardEncounterResolutionFact
+    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
 {
-    public IAsyncEnumerable<string> Handle(
+    protected override async Task<GuardEncounterResolutionFact> Resolve(
         GameTurnSession session,
-        GuardEncounterAction action,
-        CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
-
-    private async Task<GameTurnPrompt> ResolveTurn(
-        GameTurnSession session,
+        GuardEncounter encounter,
         GuardEncounterAction action,
         CancellationToken cancellationToken
-    )
-    {
-        var encounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        if (encounter is not GuardEncounter guardEncounter)
-        {
-            return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
-        }
-
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
-            cancellationToken
-        );
-
-        var resolution = await resolveGuardEncounterAction.Handle(
+    ) =>
+        await resolveGuardEncounterAction.Handle(
             new ResolveGuardEncounterActionCommand
             {
                 SessionId = session.SessionId,
-                Playtime = playtime,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
-                EncounterId = guardEncounter.Id,
-                GuardCreatureId = guardEncounter.GuardCreatureId,
-                CityFactionId = guardEncounter.CityFactionId,
-                GuardName = guardEncounter.GuardName,
-                EncounterLocationId = guardEncounter.LocationId,
-                LocationName = guardEncounter.LocationName!,
-                ReputationScore = guardEncounter.ReputationScore,
-                FineAmount = guardEncounter.FineAmount,
-                JailHours = guardEncounter.JailHours,
+                EncounterId = encounter.Id,
             },
             cancellationToken
         );
 
-        gameEvents.Enqueue(new GuardEncounterResolvedEvent(resolution));
+    protected override GameClientEvent BuildResolvedEvent(
+        GuardEncounterResolutionFact resolution
+    ) => new GuardEncounterResolvedEvent(resolution);
 
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                Playtime = playtime,
-            },
-            cancellationToken
-        );
-
-        return new GameTurnPrompt.Narrate(
-            BuildNarrationPrompt(action, resolution),
-            IncludeTools: false
-        );
-    }
-
-    private static string BuildNarrationPrompt(
+    protected override string BuildNarrationPrompt(
         GuardEncounterAction action,
         GuardEncounterResolutionFact resolution
     )

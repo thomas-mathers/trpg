@@ -15,7 +15,7 @@ internal sealed class PlayerMovedQuestEventHandler(QuestObjectiveAdvancer questO
             domainEvent.WorldId,
             objective =>
                 objective is ExploreLocationObjective explore
-                && explore.LocationId == domainEvent.LocationId,
+                && explore.LocationId == domainEvent.ToLocationId,
             cancellationToken
         );
 }

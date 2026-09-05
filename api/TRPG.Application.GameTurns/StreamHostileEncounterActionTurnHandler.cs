@@ -6,7 +6,6 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
-using TRPG.Application.Encounters.Results;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain.Models;
@@ -18,87 +17,60 @@ internal class StreamHostileEncounterActionTurnHandler(
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<
         ResolveHostileEncounterActionCommand,
-        HostileEncounterActionResult
+        HostileEncounterResolutionFact
     > resolveHostileEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IGameClientEventSink gameEvents
 )
+    : EncounterActionTurnHandlerBase<
+        HostileEncounter,
+        HostileEncounterAction,
+        HostileEncounterResolutionFact
+    >(streamer, getActiveEncounter, refreshScene, getPlaytime, gameEvents)
 {
-    public IAsyncEnumerable<string> Handle(
+    protected override async Task<HostileEncounterResolutionFact> Resolve(
         GameTurnSession session,
-        HostileEncounterAction action,
-        CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, action, ct), cancellationToken);
-
-    private async Task<GameTurnPrompt> ResolveTurn(
-        GameTurnSession session,
+        HostileEncounter encounter,
         HostileEncounterAction action,
         CancellationToken cancellationToken
-    )
-    {
-        var encounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        if (encounter is not HostileEncounter hostileEncounter)
-        {
-            return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
-        }
-
-        var resolution = await resolveHostileEncounterAction.Handle(
+    ) =>
+        await resolveHostileEncounterAction.Handle(
             new ResolveHostileEncounterActionCommand
             {
                 SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
-                EncounterId = hostileEncounter.Id,
-                FactionName = hostileEncounter.FactionName,
-                LocationName = hostileEncounter.LocationName!,
-                Members = hostileEncounter.Members,
+                EncounterId = encounter.Id,
             },
             cancellationToken
         );
 
-        gameEvents.Enqueue(new HostileEncounterResolvedEvent(resolution.Fact));
+    protected override GameClientEvent BuildResolvedEvent(
+        HostileEncounterResolutionFact resolution
+    ) => new HostileEncounterResolvedEvent(resolution);
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
-            cancellationToken
-        );
-
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                Playtime = playtime,
-            },
-            cancellationToken
-        );
-
-        return new GameTurnPrompt.Narrate(BuildNarrationPrompt(resolution), IncludeTools: false);
-    }
-
-    private static string BuildNarrationPrompt(HostileEncounterActionResult resolution) =>
-        resolution.Fact.Outcome switch
+    protected override string BuildNarrationPrompt(
+        HostileEncounterAction action,
+        HostileEncounterResolutionFact resolution
+    ) =>
+        resolution.Outcome switch
         {
             HostileEncounterResolutionOutcome.Attacked
             or HostileEncounterResolutionOutcome.EvadeFailed
             or HostileEncounterResolutionOutcome.RetreatFailed =>
-                $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter, and it has erupted into a fight. Narrate only the confrontation beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
+                $"The player chose to {DescribeAction(action)} the {resolution.FactionName} encounter, and it has erupted into a fight. Narrate only the confrontation beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
             _ =>
-                $"The player chose to {DescribeAction(resolution.ActionKind)} the {resolution.Fact.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution.Fact, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
+                $"The player chose to {DescribeAction(action)} the {resolution.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
         };
 
-    private static string DescribeAction(HostileEncounterActionKind actionKind) =>
-        actionKind switch
+    private static string DescribeAction(HostileEncounterAction action) =>
+        action switch
         {
-            HostileEncounterActionKind.Attack => "attack",
-            HostileEncounterActionKind.Evade => "evade",
-            HostileEncounterActionKind.Retreat => "retreat from",
-            _ => throw new ArgumentOutOfRangeException(nameof(actionKind)),
+            AttackEncounterAction => "attack",
+            EvadeEncounterAction => "evade",
+            RetreatEncounterAction => "retreat from",
+            _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
 }

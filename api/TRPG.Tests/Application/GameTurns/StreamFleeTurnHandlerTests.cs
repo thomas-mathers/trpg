@@ -30,7 +30,7 @@ public class StreamFleeTurnHandlerTests
         );
 
         // Act
-        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result);
+        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result, didMove: true);
 
         // Assert
         Assert.Contains(
@@ -47,7 +47,24 @@ public class StreamFleeTurnHandlerTests
         var result = new FleeCombatResult(MakeCombatResult(CombatOutcome.Fled), null, null);
 
         // Act
-        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result);
+        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result, didMove: false);
+
+        // Assert
+        Assert.Contains("Fleeing only ends the fight", prompt, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildNarrationPrompt_DescribesStayingInPlace_WhenMovementWasBlockedByAConfrontation()
+    {
+        // Arrange
+        var result = new FleeCombatResult(
+            MakeCombatResult(CombatOutcome.Fled),
+            Guid.NewGuid(),
+            "The Market Square"
+        );
+
+        // Act
+        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result, didMove: false);
 
         // Assert
         Assert.Contains("Fleeing only ends the fight", prompt, StringComparison.Ordinal);

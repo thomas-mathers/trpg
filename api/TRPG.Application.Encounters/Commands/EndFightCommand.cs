@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Crimes.Events;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -31,6 +32,10 @@ internal class EndFightCommandHandler(
     > getLiveHumanoidWitnessesAtLocation,
     ICommandHandler<AddKillCrimesCommand> addKillCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<EndFightCommand>
 {
@@ -132,6 +137,12 @@ internal class EndFightCommandHandler(
             .Combatants.Where(combatant => killedCreatureIds.Contains(combatant.Id))
             .ToDictionary(combatant => combatant.Id);
 
+        // Captured now because the victim's faction rows go with their corpse when it is cleaned up.
+        var factionIdsByVictimId = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = killedCreatureIds },
+            cancellationToken
+        );
+
         var crimes = killedCreatureIds
             .Select(killedCreatureId => new KillCrime
             {
@@ -140,6 +151,12 @@ internal class EndFightCommandHandler(
                 LocationId = fight.LocationId,
                 VictimId = killedCreatureId,
                 VictimName = killedCombatants[killedCreatureId].Name,
+                VictimFactionIds = factionIdsByVictimId.TryGetValue(
+                    killedCreatureId,
+                    out var factionIds
+                )
+                    ? factionIds.ToList()
+                    : [],
             })
             .ToArray();
 

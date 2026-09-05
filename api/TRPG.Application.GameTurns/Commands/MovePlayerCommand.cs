@@ -1,19 +1,15 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Crimes.Commands;
-using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Results;
-using TRPG.Application.LocationSimulation.Commands;
-using TRPG.Application.Reputations.Commands;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;
@@ -30,40 +26,18 @@ public class MovePlayerCommand
     public required Guid DestinationLocationId { get; init; }
 }
 
-public record MovePlayerResult(Creature Player, Encounter? Encounter, SceneResult Scene);
+public record MovePlayerResult(Guid PlayerLocationId, Encounter? Encounter, SceneResult Scene);
 
 internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<
-        GetKillWitnessCandidateCreatureIdsQuery,
-        IReadOnlyCollection<Guid>
-    > getKillWitnessCandidateCreatureIds,
-    ICommandHandler<
-        ResolveKillCrimeWitnessesCommand,
-        ResolveKillCrimeWitnessesResult
-    > resolveKillCrimeWitnesses,
-    ICommandHandler<ApplyReputationPenaltyForKillsCommand> applyReputationPenaltyForKills,
-    IQueryHandler<
-        GetTheftWitnessCandidateCreatureIdsQuery,
-        IReadOnlyCollection<Guid>
-    > getTheftWitnessCandidateCreatureIds,
-    ICommandHandler<
-        ResolveTheftCrimeWitnessesCommand,
-        ResolveTheftCrimeWitnessesResult
-    > resolveTheftCrimeWitnesses,
-    ICommandHandler<ApplyReputationPenaltyForTheftsCommand> applyReputationPenaltyForThefts,
-    ICommandHandler<CleanUpAbandonedCorpsesCommand> cleanUpAbandonedCorpses,
-    ICommandHandler<ResetAlertedCreaturesCommand> resetAlertedCreatures,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult> evaluateEncounters,
     ICommandHandler<
-        ConfrontOverdueRoomKeyCommand,
+        ConfrontOverdueRoomKeyOnMoveCommand,
         ConfrontOverdueRoomKeyResult
-    > confrontOverdueRoomKey,
+    > confrontOverdueRoomKeyOnMove,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 ) : ICommandHandler<MovePlayerCommand, MovePlayerResult>
@@ -73,10 +47,9 @@ internal class MovePlayerCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        Creature player;
+        Guid playerLocationId;
+        Encounter? startedEncounter;
         RefreshSceneResult refreshed;
-        EncounterEvaluationResult evaluation;
-        TheftEncounter? overdueRoomKeyEncounter;
 
         using (
             var transaction = new TransactionScope(
@@ -85,12 +58,11 @@ internal class MovePlayerCommandHandler(
             )
         )
         {
-            player = (
+            var player =
                 await getCreatureById.Handle(
                     new GetCreatureByIdQuery { Id = command.PlayerId },
                     cancellationToken
-                )
-            )!;
+                ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
 
             var oldLocationId = player.LocationId;
 
@@ -99,158 +71,56 @@ internal class MovePlayerCommandHandler(
                 cancellationToken
             );
 
-            var killWitnessCandidateIds = await getKillWitnessCandidateCreatureIds.Handle(
-                new GetKillWitnessCandidateCreatureIdsQuery
+            var confrontation = await confrontOverdueRoomKeyOnMove.Handle(
+                new ConfrontOverdueRoomKeyOnMoveCommand
                 {
                     WorldId = player.WorldId,
-                    PlayerId = player.Id,
-                    LocationId = oldLocationId,
-                },
-                cancellationToken
-            );
-            var liveKillWitnessIds = await ResolveLiveCreatureIds(
-                killWitnessCandidateIds,
-                cancellationToken
-            );
-
-            var killResolution = await resolveKillCrimeWitnesses.Handle(
-                new ResolveKillCrimeWitnessesCommand
-                {
-                    WorldId = player.WorldId,
-                    PlayerId = player.Id,
-                    LocationId = oldLocationId,
-                    LiveWitnessCreatureIds = liveKillWitnessIds,
-                },
-                cancellationToken
-            );
-            if (killResolution.ReportedCrimes.Count > 0)
-            {
-                await applyReputationPenaltyForKills.Handle(
-                    new ApplyReputationPenaltyForKillsCommand
-                    {
-                        KillerId = player.Id,
-                        WorldId = player.WorldId,
-                        Kills = killResolution.ReportedCrimes,
-                    },
-                    cancellationToken
-                );
-            }
-
-            var theftWitnessCandidateIds = await getTheftWitnessCandidateCreatureIds.Handle(
-                new GetTheftWitnessCandidateCreatureIdsQuery
-                {
-                    WorldId = player.WorldId,
-                    PlayerId = player.Id,
-                    LocationId = oldLocationId,
-                },
-                cancellationToken
-            );
-            var liveTheftWitnessIds = await ResolveLiveCreatureIds(
-                theftWitnessCandidateIds,
-                cancellationToken
-            );
-
-            var theftResolution = await resolveTheftCrimeWitnesses.Handle(
-                new ResolveTheftCrimeWitnessesCommand
-                {
-                    WorldId = player.WorldId,
-                    PlayerId = player.Id,
-                    LocationId = oldLocationId,
-                    LiveWitnessCreatureIds = liveTheftWitnessIds,
-                },
-                cancellationToken
-            );
-            if (theftResolution.ReportedCrimes.Count > 0)
-            {
-                await applyReputationPenaltyForThefts.Handle(
-                    new ApplyReputationPenaltyForTheftsCommand
-                    {
-                        PlayerId = player.Id,
-                        WorldId = player.WorldId,
-                        Thefts = theftResolution.ReportedCrimes,
-                    },
-                    cancellationToken
-                );
-            }
-
-            await cleanUpAbandonedCorpses.Handle(
-                new CleanUpAbandonedCorpsesCommand
-                {
-                    WorldId = player.WorldId,
-                    PlayerId = player.Id,
-                    LocationId = oldLocationId,
-                },
-                cancellationToken
-            );
-
-            await resetAlertedCreatures.Handle(
-                new ResetAlertedCreaturesCommand
-                {
-                    WorldId = player.WorldId,
-                    LocationId = oldLocationId,
                     Playtime = playtime,
+                    PlayerId = player.Id,
+                    FromLocationId = oldLocationId,
+                    ToLocationId = command.DestinationLocationId,
                 },
                 cancellationToken
             );
 
-            overdueRoomKeyEncounter = await ResolveOverdueRoomKeyConfrontation(
-                player,
-                oldLocationId,
-                command,
-                playtime,
-                cancellationToken
-            );
-
-            if (overdueRoomKeyEncounter != null)
+            var refreshSceneCommand = new RefreshSceneCommand
             {
-                refreshed = await RefreshSceneWithoutMoving(player, playtime, cancellationToken);
+                WorldId = player.WorldId,
+                PlayerId = player.Id,
+                Playtime = playtime,
+            };
 
-                transaction.Complete();
+            if (confrontation.Encounter != null)
+            {
+                playerLocationId = oldLocationId;
+                startedEncounter = confrontation.Encounter;
+                refreshed = await refreshScene.Handle(refreshSceneCommand, cancellationToken);
+            }
+            else
+            {
+                await MoveTo(
+                    player,
+                    oldLocationId,
+                    command.DestinationLocationId,
+                    playtime,
+                    cancellationToken
+                );
 
-                await publishEncounterStarted.Handle(
-                    new PublishEncounterStartedCommand
+                // The scene refresh catches the destination up before encounters are evaluated against it.
+                refreshed = await refreshScene.Handle(refreshSceneCommand, cancellationToken);
+
+                var evaluation = await evaluateEncounters.Handle(
+                    new EvaluateEncountersCommand
                     {
+                        WorldId = player.WorldId,
                         PlayerId = player.Id,
-                        Encounter = overdueRoomKeyEncounter,
                     },
                     cancellationToken
                 );
 
-                return new MovePlayerResult(player, overdueRoomKeyEncounter, refreshed.Scene);
+                playerLocationId = command.DestinationLocationId;
+                startedEncounter = evaluation.Encounter;
             }
-
-            await updateCreatures.Handle(
-                new UpdateCreaturesCommand
-                {
-                    CreatureIds = [player.Id],
-                    LocationId = command.DestinationLocationId,
-                },
-                cancellationToken
-            );
-
-            await domainEvents.Publish(
-                new PlayerMovedEvent(
-                    PlayerId: player.Id,
-                    WorldId: player.WorldId,
-                    LocationId: command.DestinationLocationId
-                ),
-                cancellationToken
-            );
-
-            refreshed = await refreshScene.Handle(
-                new RefreshSceneCommand
-                {
-                    WorldId = player.WorldId,
-                    PlayerId = player.Id,
-                    Playtime = playtime,
-                },
-                cancellationToken
-            );
-
-            evaluation = await evaluateEncounters.Handle(
-                new EvaluateEncountersCommand { WorldId = player.WorldId, PlayerId = player.Id },
-                cancellationToken
-            );
 
             transaction.Complete();
         }
@@ -258,94 +128,37 @@ internal class MovePlayerCommandHandler(
         await publishEncounterStarted.Handle(
             new PublishEncounterStartedCommand
             {
-                PlayerId = player.Id,
-                Encounter = evaluation.Encounter,
+                PlayerId = command.PlayerId,
+                Encounter = startedEncounter,
             },
             cancellationToken
         );
 
-        return new MovePlayerResult(player, evaluation.Encounter, refreshed.Scene);
+        return new MovePlayerResult(playerLocationId, startedEncounter, refreshed.Scene);
     }
 
-    private async Task<RefreshSceneResult> RefreshSceneWithoutMoving(
+    private async Task MoveTo(
         Creature player,
-        TimeSpan playtime,
-        CancellationToken cancellationToken
-    ) =>
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = player.WorldId,
-                PlayerId = player.Id,
-                Playtime = playtime,
-            },
-            cancellationToken
-        );
-
-    private async Task<TheftEncounter?> ResolveOverdueRoomKeyConfrontation(
-        Creature player,
-        Guid oldLocationId,
-        MovePlayerCommand command,
+        Guid fromLocationId,
+        Guid toLocationId,
         TimeSpan playtime,
         CancellationToken cancellationToken
     )
     {
-        var oldBuilding = await getBuildingByLocationId.Handle(
-            new GetBuildingByLocationIdQuery { LocationId = oldLocationId },
-            cancellationToken
-        );
-        var newBuilding = await getBuildingByLocationId.Handle(
-            new GetBuildingByLocationIdQuery { LocationId = command.DestinationLocationId },
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [player.Id], LocationId = toLocationId },
             cancellationToken
         );
 
-        if (oldBuilding?.Id == newBuilding?.Id)
-        {
-            return null;
-        }
-
-        // Either direction counts — a player who left before it was due must still get caught coming back in.
-        var innBuilding =
-            oldBuilding is { BuildingType: BuildingType.Inn } ? oldBuilding
-            : newBuilding is { BuildingType: BuildingType.Inn } ? newBuilding
-            : null;
-        if (innBuilding == null)
-        {
-            return null;
-        }
-
-        var confrontation = await confrontOverdueRoomKey.Handle(
-            new ConfrontOverdueRoomKeyCommand
-            {
-                WorldId = player.WorldId,
-                Playtime = playtime,
-                PlayerId = player.Id,
-                LocationId = command.DestinationLocationId,
-                BuildingId = innBuilding.Id,
-            },
+        await domainEvents.Publish(
+            new PlayerMovedEvent(
+                PlayerId: player.Id,
+                WorldId: player.WorldId,
+                FromLocationId: fromLocationId,
+                ToLocationId: toLocationId,
+                Playtime: playtime
+            ),
             cancellationToken
         );
-
-        return confrontation.Encounter;
-    }
-
-    private async Task<IReadOnlyCollection<Guid>> ResolveLiveCreatureIds(
-        IReadOnlyCollection<Guid> creatureIds,
-        CancellationToken cancellationToken
-    )
-    {
-        if (creatureIds.Count == 0)
-        {
-            return [];
-        }
-
-        var creaturesById = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = creatureIds },
-            cancellationToken
-        );
-        return creaturesById
-            .Where(creature => creature.Value.State != CreatureState.Dead)
-            .Select(creature => creature.Key)
-            .ToArray();
     }
 }
