@@ -72,9 +72,9 @@ internal class StartFightCommandHandler(
             CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
             HasSurpriseRound = command.HasSurpriseRound,
         };
-        
+
         context.Encounters.Add(fight);
-        
+
         await context.SaveChangesAsync(cancellationToken);
 
         gameEvents.Enqueue(
