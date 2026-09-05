@@ -18,6 +18,8 @@ internal sealed class TestGameClient : IGameClient
     public Action<HostileEncounterResolutionFact>? OnHostileEncounterResolved { get; set; }
     public Action<GuardEncounterState>? OnGuardEncounterStarted { get; set; }
     public Action<GuardEncounterResolutionFact>? OnGuardEncounterResolved { get; set; }
+    public Action<SuspicionEncounterState>? OnSuspicionEncounterStarted { get; set; }
+    public Action<SuspicionEncounterResolutionFact>? OnSuspicionEncounterResolved { get; set; }
     public Action<TheftEncounterState>? OnTheftEncounterStarted { get; set; }
     public Action<TheftEncounterResolutionFact>? OnTheftEncounterResolved { get; set; }
     public Action<SkillLevelUp>? OnSkillLevelUp { get; set; }
@@ -67,6 +69,18 @@ internal sealed class TestGameClient : IGameClient
     public Task GuardEncounterResolved(GuardEncounterResolutionFact fact)
     {
         OnGuardEncounterResolved?.Invoke(fact);
+        return Task.CompletedTask;
+    }
+
+    public Task SuspicionEncounterStarted(SuspicionEncounterState encounter)
+    {
+        OnSuspicionEncounterStarted?.Invoke(encounter);
+        return Task.CompletedTask;
+    }
+
+    public Task SuspicionEncounterResolved(SuspicionEncounterResolutionFact fact)
+    {
+        OnSuspicionEncounterResolved?.Invoke(fact);
         return Task.CompletedTask;
     }
 

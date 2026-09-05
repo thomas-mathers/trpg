@@ -5,6 +5,8 @@ import type {
   GuardEncounterState,
   HostileEncounterResolutionFact,
   HostileEncounterState,
+  SuspicionEncounterResolutionFact,
+  SuspicionEncounterState,
   TheftEncounterResolutionFact,
   TheftEncounterState,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
@@ -34,6 +36,8 @@ interface GameEventMap {
   HostileEncounterResolved: HostileEncounterResolutionFact;
   GuardEncounterStarted: GuardEncounterState;
   GuardEncounterResolved: GuardEncounterResolutionFact;
+  SuspicionEncounterStarted: SuspicionEncounterState;
+  SuspicionEncounterResolved: SuspicionEncounterResolutionFact;
   TheftEncounterStarted: TheftEncounterState;
   TheftEncounterResolved: TheftEncounterResolutionFact;
   SkillLevelUp: SkillLevelUp;

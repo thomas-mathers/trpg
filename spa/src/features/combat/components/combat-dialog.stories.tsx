@@ -299,6 +299,8 @@ function WorkbenchProviders({
     resolvePayFineEncounterAction: noopStream,
     resolveGoToJailEncounterAction: noopStream,
     resolveResistArrestEncounterAction: noopStream,
+    resolveComplySuspicionAction: noopStream,
+    resolveFleeSuspicionAction: noopStream,
     startTheftEncounterNarration: noopStream,
     resolveApologizeTheftEncounterAction: noopStream,
     resolveFleeTheftEncounterAction: noopStream,

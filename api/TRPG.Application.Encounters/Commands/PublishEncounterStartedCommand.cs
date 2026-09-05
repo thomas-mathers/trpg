@@ -47,6 +47,9 @@ internal class PublishEncounterStartedCommandHandler(
             case TheftEncounter theftEncounter:
                 gameEvents.Enqueue(new TheftEncounterStartedEvent(theftEncounter));
                 break;
+            case SuspicionEncounter suspicionEncounter:
+                gameEvents.Enqueue(new SuspicionEncounterStartedEvent(suspicionEncounter));
+                break;
         }
     }
 }

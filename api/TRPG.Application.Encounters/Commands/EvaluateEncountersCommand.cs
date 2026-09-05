@@ -18,6 +18,10 @@ internal class EvaluateEncountersCommandHandler(
     ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?> evaluateHostileEncounter,
     ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter,
     ICommandHandler<
+        EvaluateSuspicionEncounterCommand,
+        SuspicionEncounter?
+    > evaluateSuspicionEncounter,
+    ICommandHandler<
         EvaluateTrespassingEncounterCommand,
         HostileEncounter?
     > evaluateTrespassingEncounter
@@ -52,6 +56,19 @@ internal class EvaluateEncountersCommandHandler(
         if (guardEncounter != null)
         {
             return new EncounterEvaluationResult(guardEncounter);
+        }
+
+        var suspicionEncounter = await evaluateSuspicionEncounter.Handle(
+            new EvaluateSuspicionEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+            },
+            cancellationToken
+        );
+        if (suspicionEncounter != null)
+        {
+            return new EncounterEvaluationResult(suspicionEncounter);
         }
 
         var trespassingEncounter = await evaluateTrespassingEncounter.Handle(

@@ -11,6 +11,8 @@ public enum ReputationReason
     WitnessedTheft,
     BrokeIntoFactionProperty,
     WitnessedBreakingAndEntering,
+    CaughtSneaking,
+    CaughtFleeingSuspicion,
 }
 
 public class ReputationLogEntry

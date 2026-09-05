@@ -44,7 +44,7 @@ public sealed class StartConversationToolTests(DatabaseFixture db) : IAsyncLifet
     }
 
     [Fact]
-    public async Task Invoke_ReturnsError_WhenThePlayerIsSneaking()
+    public async Task Invoke_OpensTheConversation_WhenThePlayerIsSneaking()
     {
         // Arrange
         var npc = Builders.MakeCreature(WorldId, locationId: LocationId, name: "Mara");
@@ -57,8 +57,7 @@ public sealed class StartConversationToolTests(DatabaseFixture db) : IAsyncLifet
         var result = await invoke(npc.Name, TestContext.Current.CancellationToken);
 
         // Assert
-        var error = Assert.IsType<ToolError>(result);
-        Assert.Contains("sneaking", error.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.IsNotType<ToolError>(result);
     }
 
     [Fact]

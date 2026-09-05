@@ -88,7 +88,8 @@ public record NpcConversationRuntimeState(
     NpcConversationAttitude Attitude,
     NpcConversationHistoryResult ConversationHistory,
     NpcConversationQuests Quests,
-    NpcConversationRoomBookingStatus? RoomBooking
+    NpcConversationRoomBookingStatus? RoomBooking,
+    bool PlayerIsSneaking
 );
 
 public record NpcConversationBriefing(
@@ -148,6 +149,12 @@ internal class GetNpcConversationBriefingQueryHandler(
                 new GetCreatureByIdQuery { Id = query.NpcId },
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Creature {query.NpcId} not found.");
+
+        var player =
+            await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = query.PlayerId },
+                cancellationToken
+            ) ?? throw new InvalidOperationException($"Creature {query.PlayerId} not found.");
 
         var profile =
             await getCreatureProfile.Handle(
@@ -237,7 +244,8 @@ internal class GetNpcConversationBriefingQueryHandler(
                     reputationHistory
                 ),
                 quests,
-                roomBooking
+                roomBooking,
+                player.IsSneaking
             )
         );
     }
