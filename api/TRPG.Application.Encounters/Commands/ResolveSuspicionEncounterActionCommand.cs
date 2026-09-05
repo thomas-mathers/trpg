@@ -76,7 +76,10 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
                 WorldId = command.WorldId,
                 Adjustments =
                 [
-                    new ReputationAdjustment(command.CityFactionId, -options.ComplyReputationPenalty),
+                    new ReputationAdjustment(
+                        command.CityFactionId,
+                        -options.ComplyReputationPenalty
+                    ),
                 ],
                 TargetType = ReputationTargetType.Faction,
                 Reason = ReputationReason.CaughtSneaking,

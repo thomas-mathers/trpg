@@ -15,45 +15,50 @@ namespace TRPG.Data.Migrations
                 name: "cause",
                 table: "encounters",
                 type: "text",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "suspicion_encounter_city_faction_id",
                 table: "encounters",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<Guid>(
                 name: "suspicion_encounter_guard_creature_id",
                 table: "encounters",
                 type: "uuid",
-                nullable: true);
+                nullable: true
+            );
 
             migrationBuilder.AddColumn<string>(
                 name: "suspicion_encounter_guard_name",
                 table: "encounters",
                 type: "text",
-                nullable: true);
+                nullable: true
+            );
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "cause",
-                table: "encounters");
+            migrationBuilder.DropColumn(name: "cause", table: "encounters");
 
             migrationBuilder.DropColumn(
                 name: "suspicion_encounter_city_faction_id",
-                table: "encounters");
+                table: "encounters"
+            );
 
             migrationBuilder.DropColumn(
                 name: "suspicion_encounter_guard_creature_id",
-                table: "encounters");
+                table: "encounters"
+            );
 
             migrationBuilder.DropColumn(
                 name: "suspicion_encounter_guard_name",
-                table: "encounters");
+                table: "encounters"
+            );
         }
     }
 }
