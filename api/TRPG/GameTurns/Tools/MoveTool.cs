@@ -60,9 +60,9 @@ internal class MoveTool(
         ResolveMoveDestinationResult
     > resolveMoveDestination,
     ICommandHandler<
-        ConfrontOverdueRoomKeyOnMoveCommand,
-        ConfrontOverdueRoomKeyResult
-    > confrontOverdueRoomKeyOnMove,
+        EvaluateMoveInterceptionCommand,
+        EncounterEvaluationResult
+    > evaluateMoveInterception,
     ICommandHandler<MovePlayerCommand> movePlayer,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
@@ -125,17 +125,17 @@ internal class MoveTool(
             cancellationToken
         );
 
-        // Leaving under your own steam is what an innkeeper can intervene in; being relocated by an
-        // encounter is not, so this gate lives with the player-initiated walk rather than the move itself.
-        var confrontation = await ConfrontOverdueRoomKey(
+        // Only a walk the player chose can be intercepted; being relocated by an encounter is not,
+        // so this runs here rather than inside the move itself.
+        var interception = await InterceptMove(
             player.LocationId,
             destinationResult.DestinationLocationId!.Value,
             playtime,
             cancellationToken
         );
-        if (confrontation != null)
+        if (interception != null)
         {
-            return confrontation;
+            return interception;
         }
 
         await movePlayer.Handle(
@@ -174,13 +174,7 @@ internal class MoveTool(
             cancellationToken
         );
 
-        var result = new MoveToolResult(
-            scene,
-            (startedEncounter as HostileEncounter)?.ToMoveToolSummary(),
-            (startedEncounter as GuardEncounter)?.ToMoveToolSummary(),
-            (startedEncounter as TheftEncounter)?.ToMoveToolSummary(),
-            (startedEncounter as SuspicionEncounter)?.ToMoveToolSummary()
-        );
+        var result = BuildResult(scene, startedEncounter);
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
@@ -193,25 +187,25 @@ internal class MoveTool(
         return result;
     }
 
-    private async Task<MoveToolResult?> ConfrontOverdueRoomKey(
+    private async Task<MoveToolResult?> InterceptMove(
         Guid fromLocationId,
         Guid destinationLocationId,
         TimeSpan playtime,
         CancellationToken cancellationToken
     )
     {
-        var confrontation = await confrontOverdueRoomKeyOnMove.Handle(
-            new ConfrontOverdueRoomKeyOnMoveCommand
+        var interception = await evaluateMoveInterception.Handle(
+            new EvaluateMoveInterceptionCommand
             {
                 WorldId = turnContext.WorldId,
-                Playtime = playtime,
                 PlayerId = turnContext.PlayerId,
                 FromLocationId = fromLocationId,
                 ToLocationId = destinationLocationId,
+                Playtime = playtime,
             },
             cancellationToken
         );
-        if (confrontation.Encounter == null)
+        if (interception.Encounter == null)
         {
             return null;
         }
@@ -230,17 +224,20 @@ internal class MoveTool(
             new PublishEncounterStartedCommand
             {
                 PlayerId = turnContext.PlayerId,
-                Encounter = confrontation.Encounter,
+                Encounter = interception.Encounter,
             },
             cancellationToken
         );
 
-        return new MoveToolResult(
-            refreshed.Scene,
-            null,
-            null,
-            confrontation.Encounter.ToMoveToolSummary(),
-            null
-        );
+        return BuildResult(refreshed.Scene, interception.Encounter);
     }
+
+    private static MoveToolResult BuildResult(SceneResult scene, Encounter? encounter) =>
+        new(
+            scene,
+            (encounter as HostileEncounter)?.ToMoveToolSummary(),
+            (encounter as GuardEncounter)?.ToMoveToolSummary(),
+            (encounter as TheftEncounter)?.ToMoveToolSummary(),
+            (encounter as SuspicionEncounter)?.ToMoveToolSummary()
+        );
 }

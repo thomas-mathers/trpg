@@ -136,6 +136,30 @@ public sealed class MoveToolTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Invoke_StartsTheInterceptingEncounter_WithoutMoving_WhenTheRoomKeyIsOverdue()
+    {
+        // Arrange
+        var innkeeperName = await SeedOverdueInnBookingAtPlayerLocation();
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert — the interception replaces the move, so arrival encounters never get evaluated
+        var moveResult = Assert.IsType<MoveToolResult>(result);
+        Assert.NotNull(moveResult.OverdueRoomKeyEncounter);
+        Assert.Equal(innkeeperName, moveResult.OverdueRoomKeyEncounter.ConfrontingName);
+        Assert.Null(moveResult.GuardEncounter);
+
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_oldLocation.Id, player!.LocationId);
+    }
+
+    [Fact]
     public async Task Invoke_ReturnsError_WithoutMoving_WhenPlayerHasAnActiveEncounter()
     {
         // Arrange
@@ -157,6 +181,55 @@ public sealed class MoveToolTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_oldLocation.Id, movedPlayer!.LocationId);
+    }
+
+    private async Task<string> SeedOverdueInnBookingAtPlayerLocation()
+    {
+        var inn = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.Inn);
+        var lobby = Builders.MakeRoom(
+            inn.Id,
+            worldId: WorldId,
+            locationId: _oldLocation.Id,
+            name: "Lobby"
+        );
+        var innkeeper = Builders.MakeCreature(worldId: WorldId, locationId: _oldLocation.Id);
+        var counter = Builders.MakeWorkstation(
+            worldId: WorldId,
+            locationId: _oldLocation.Id,
+            ownerCreatureId: innkeeper.Id
+        );
+
+        var guestRoom = Builders.MakeRoom(inn.Id, worldId: WorldId, name: "North Guest Room");
+        var guestRoomLocation = Builders.MakeLocation(
+            WorldId,
+            _stateId,
+            roomId: guestRoom.Id,
+            id: guestRoom.LocationId
+        );
+        var key = Builders.MakeKey(
+            WorldId,
+            quantity: 1,
+            ownerId: _player.Id,
+            ownerType: OwnerType.Creature
+        );
+        var booking = Builders.MakeRoomBooking(
+            WorldId,
+            guestRoom.Id,
+            key.Id,
+            _player.Id,
+            dueAtPlaytime: TimeSpan.Zero
+        );
+
+        _context.Buildings.Add(inn);
+        _context.Rooms.AddRange(lobby, guestRoom);
+        _context.Locations.Add(guestRoomLocation);
+        _context.Creatures.Add(innkeeper);
+        _context.Props.Add(counter);
+        _context.Items.Add(key);
+        _context.RoomBookings.Add(booking);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return innkeeper.Name;
     }
 
     [Fact]

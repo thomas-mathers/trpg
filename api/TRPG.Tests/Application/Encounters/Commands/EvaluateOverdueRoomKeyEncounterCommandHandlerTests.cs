@@ -7,7 +7,7 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Encounters.Commands;
 
 [Collection("Database")]
-public sealed class ConfrontOverdueRoomKeyOnMoveCommandHandlerTests(DatabaseFixture db)
+public sealed class EvaluateOverdueRoomKeyEncounterCommandHandlerTests(DatabaseFixture db)
     : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
@@ -15,7 +15,7 @@ public sealed class ConfrontOverdueRoomKeyOnMoveCommandHandlerTests(DatabaseFixt
     private readonly Guid _stateId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private ConfrontOverdueRoomKeyOnMoveCommandHandler _handler = null!;
+    private EvaluateOverdueRoomKeyEncounterCommandHandler _handler = null!;
     private OverdueInnFixture _inn = null!;
     private Location _outside = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId);
@@ -28,7 +28,7 @@ public sealed class ConfrontOverdueRoomKeyOnMoveCommandHandlerTests(DatabaseFixt
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler =
-            _serviceProvider.GetRequiredService<ConfrontOverdueRoomKeyOnMoveCommandHandler>();
+            _serviceProvider.GetRequiredService<EvaluateOverdueRoomKeyEncounterCommandHandler>();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: _stateId);
         _outside = Builders.MakeLocation(WorldId, _stateId);
@@ -51,7 +51,7 @@ public sealed class ConfrontOverdueRoomKeyOnMoveCommandHandlerTests(DatabaseFixt
     {
         // Act
         var result = await _handler.Handle(
-            new ConfrontOverdueRoomKeyOnMoveCommand
+            new EvaluateOverdueRoomKeyEncounterCommand
             {
                 WorldId = WorldId,
                 Playtime = TimeSpan.Zero,
@@ -72,7 +72,7 @@ public sealed class ConfrontOverdueRoomKeyOnMoveCommandHandlerTests(DatabaseFixt
     {
         // Act
         var result = await _handler.Handle(
-            new ConfrontOverdueRoomKeyOnMoveCommand
+            new EvaluateOverdueRoomKeyEncounterCommand
             {
                 WorldId = WorldId,
                 Playtime = TimeSpan.Zero,
@@ -93,7 +93,7 @@ public sealed class ConfrontOverdueRoomKeyOnMoveCommandHandlerTests(DatabaseFixt
     {
         // Act
         var result = await _handler.Handle(
-            new ConfrontOverdueRoomKeyOnMoveCommand
+            new EvaluateOverdueRoomKeyEncounterCommand
             {
                 WorldId = WorldId,
                 Playtime = TimeSpan.Zero,
