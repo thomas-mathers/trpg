@@ -761,6 +761,30 @@ internal static class Builders
             State = state,
         };
 
+    public static SuspicionEncounter MakeSuspicionEncounter(
+        Guid worldId,
+        Guid playerId,
+        Guid locationId,
+        Guid guardCreatureId,
+        Guid? cityFactionId = null,
+        string guardName = "Guard",
+        string locationName = "Location",
+        SuspicionCause cause = SuspicionCause.Sneaking,
+        EncounterState state = EncounterState.Active
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            LocationId = locationId,
+            LocationName = locationName,
+            GuardCreatureId = guardCreatureId,
+            CityFactionId = cityFactionId ?? Guid.NewGuid(),
+            GuardName = guardName,
+            Cause = cause,
+            State = state,
+        };
+
     public static World MakeWorld()
     {
         return new World

@@ -6,7 +6,7 @@ import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
@@ -144,6 +144,14 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("ResolveResistArrestEncounterAction");
     }
 
+    public readonly resolveComplySuspicionAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveComplySuspicionAction");
+    }
+
+    public readonly resolveFleeSuspicionAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveFleeSuspicionAction");
+    }
+
     public readonly startTheftEncounterNarration = (encounterId: string): IStreamResult<string> => {
         return this.connection.stream("StartTheftEncounterNarration", encounterId);
     }
@@ -180,6 +188,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __hostileEncounterResolved = (...args: [HostileEncounterResolutionFact]) => receiver.hostileEncounterResolved(...args);
         const __guardEncounterStarted = (...args: [GuardEncounterState]) => receiver.guardEncounterStarted(...args);
         const __guardEncounterResolved = (...args: [GuardEncounterResolutionFact]) => receiver.guardEncounterResolved(...args);
+        const __suspicionEncounterStarted = (...args: [SuspicionEncounterState]) => receiver.suspicionEncounterStarted(...args);
+        const __suspicionEncounterResolved = (...args: [SuspicionEncounterResolutionFact]) => receiver.suspicionEncounterResolved(...args);
         const __theftEncounterStarted = (...args: [TheftEncounterState]) => receiver.theftEncounterStarted(...args);
         const __theftEncounterResolved = (...args: [TheftEncounterResolutionFact]) => receiver.theftEncounterResolved(...args);
         const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
@@ -198,6 +208,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("HostileEncounterResolved", __hostileEncounterResolved);
         connection.on("GuardEncounterStarted", __guardEncounterStarted);
         connection.on("GuardEncounterResolved", __guardEncounterResolved);
+        connection.on("SuspicionEncounterStarted", __suspicionEncounterStarted);
+        connection.on("SuspicionEncounterResolved", __suspicionEncounterResolved);
         connection.on("TheftEncounterStarted", __theftEncounterStarted);
         connection.on("TheftEncounterResolved", __theftEncounterResolved);
         connection.on("SkillLevelUp", __skillLevelUp);
@@ -217,6 +229,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "HostileEncounterResolved", method: __hostileEncounterResolved },
             { methodName: "GuardEncounterStarted", method: __guardEncounterStarted },
             { methodName: "GuardEncounterResolved", method: __guardEncounterResolved },
+            { methodName: "SuspicionEncounterStarted", method: __suspicionEncounterStarted },
+            { methodName: "SuspicionEncounterResolved", method: __suspicionEncounterResolved },
             { methodName: "TheftEncounterStarted", method: __theftEncounterStarted },
             { methodName: "TheftEncounterResolved", method: __theftEncounterResolved },
             { methodName: "SkillLevelUp", method: __skillLevelUp },

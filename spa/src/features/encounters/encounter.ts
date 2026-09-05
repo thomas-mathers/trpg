@@ -6,6 +6,10 @@ export type {
   HostileEncounterResolutionFact,
   HostileEncounterResolutionOutcome,
   HostileEncounterState,
+  SuspicionCause,
+  SuspicionEncounterResolutionFact,
+  SuspicionEncounterResolutionOutcome,
+  SuspicionEncounterState,
   TheftEncounterResolutionFact,
   TheftEncounterResolutionOutcome,
   TheftEncounterState,
@@ -13,4 +17,5 @@ export type {
 
 export type EncounterActionName = 'Attack' | 'Evade' | 'Retreat';
 export type GuardEncounterActionName = 'PayFine' | 'GoToJail' | 'ResistArrest';
+export type SuspicionEncounterActionName = 'Comply' | 'Flee';
 export type TheftEncounterActionName = 'Apologize' | 'Flee';

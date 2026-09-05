@@ -17,6 +17,8 @@ public interface IGameClient
     Task HostileEncounterResolved(HostileEncounterResolutionFact fact);
     Task GuardEncounterStarted(GuardEncounterState encounter);
     Task GuardEncounterResolved(GuardEncounterResolutionFact fact);
+    Task SuspicionEncounterStarted(SuspicionEncounterState encounter);
+    Task SuspicionEncounterResolved(SuspicionEncounterResolutionFact fact);
     Task TheftEncounterStarted(TheftEncounterState encounter);
     Task TheftEncounterResolved(TheftEncounterResolutionFact fact);
     Task SkillLevelUp(SkillLevelUp skillLevelUp);

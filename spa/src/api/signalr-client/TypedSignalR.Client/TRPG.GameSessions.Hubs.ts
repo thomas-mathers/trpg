@@ -5,7 +5,7 @@
 import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
@@ -93,6 +93,16 @@ export type IChatHub = {
     */
     resolveResistArrestEncounterAction(): IStreamResult<string>;
     /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveComplySuspicionAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveFleeSuspicionAction(): IStreamResult<string>;
+    /**
     * @param encounterId Transpiled from System.Guid
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
@@ -151,6 +161,16 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     guardEncounterResolved(fact: GuardEncounterResolutionFact): Promise<void>;
+    /**
+    * @param encounter Transpiled from TRPG.Encounters.Responses.SuspicionEncounterState
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    suspicionEncounterStarted(encounter: SuspicionEncounterState): Promise<void>;
+    /**
+    * @param fact Transpiled from TRPG.Encounters.Responses.SuspicionEncounterResolutionFact
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    suspicionEncounterResolved(fact: SuspicionEncounterResolutionFact): Promise<void>;
     /**
     * @param encounter Transpiled from TRPG.Encounters.Responses.TheftEncounterState
     * @returns Transpiled from System.Threading.Tasks.Task

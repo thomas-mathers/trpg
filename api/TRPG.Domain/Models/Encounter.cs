@@ -73,3 +73,17 @@ public class TheftEncounter : Encounter
 }
 
 public record TheftEncounterItem(Guid ItemId, int Quantity);
+
+public enum SuspicionCause
+{
+    Sneaking,
+    CastingMagicInPublic,
+}
+
+public class SuspicionEncounter : Encounter
+{
+    public required Guid GuardCreatureId { get; init; }
+    public required string GuardName { get; init; }
+    public required Guid CityFactionId { get; init; }
+    public required SuspicionCause Cause { get; init; }
+}

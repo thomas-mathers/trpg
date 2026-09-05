@@ -134,6 +134,30 @@ public sealed class PublishEncounterStartedCommandHandlerTests(DatabaseFixture d
     }
 
     [Fact]
+    public async Task Handle_EnqueuesSuspicionEncounterStartedEvent_WhenEncounterIsSuspicion()
+    {
+        // Arrange
+        var encounter = Builders.MakeSuspicionEncounter(
+            WorldId,
+            _player.Id,
+            _player.LocationId,
+            Guid.NewGuid()
+        );
+
+        // Act
+        await _handler.Handle(
+            new PublishEncounterStartedCommand { PlayerId = _player.Id, Encounter = encounter },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var startedEvent = Assert.Single(
+            _eventSink.EnqueuedEvents.OfType<SuspicionEncounterStartedEvent>()
+        );
+        Assert.Same(encounter, startedEvent.Encounter);
+    }
+
+    [Fact]
     public async Task Handle_EnqueuesNothing_WhenThereIsNoEncounter()
     {
         // Act

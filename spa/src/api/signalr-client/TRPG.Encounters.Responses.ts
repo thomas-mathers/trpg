@@ -83,6 +83,40 @@ export type HostileEncounterState = {
     allowedActions: string[];
 }
 
+/** Transpiled from TRPG.Encounters.Responses.SuspicionEncounterResolutionOutcome */
+export type SuspicionEncounterResolutionOutcome = "Complied" | "Fled" | "FleeFailed";
+
+/** Transpiled from TRPG.Encounters.Responses.SuspicionEncounterResolutionFact */
+export type SuspicionEncounterResolutionFact = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from TRPG.Encounters.Responses.SuspicionEncounterResolutionOutcome */
+    outcome: SuspicionEncounterResolutionOutcome;
+    /** Transpiled from string */
+    guardName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from System.Guid */
+    escalatedGuardEncounterId?: string;
+}
+
+/** Transpiled from TRPG.Encounters.Responses.SuspicionCause */
+export type SuspicionCause = "Sneaking" | "CastingMagicInPublic";
+
+/** Transpiled from TRPG.Encounters.Responses.SuspicionEncounterState */
+export type SuspicionEncounterState = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from string */
+    guardName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from TRPG.Encounters.Responses.SuspicionCause */
+    cause: SuspicionCause;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    allowedActions: string[];
+}
+
 /** Transpiled from TRPG.Encounters.Responses.TheftEncounterResolutionOutcome */
 export type TheftEncounterResolutionOutcome = "Apologized" | "Fled";
 

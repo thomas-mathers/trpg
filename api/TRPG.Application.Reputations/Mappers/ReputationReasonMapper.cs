@@ -16,6 +16,8 @@ public static class ReputationReasonMapper
             ReputationReason.WitnessedTheft => "Witnessed a theft",
             ReputationReason.BrokeIntoFactionProperty => "Broke into a property",
             ReputationReason.WitnessedBreakingAndEntering => "Witnessed a break-in",
+            ReputationReason.CaughtSneaking => "Caught sneaking",
+            ReputationReason.CaughtFleeingSuspicion => "Fled from a guard's questioning",
             _ => throw new ArgumentOutOfRangeException(nameof(reason)),
         };
 }

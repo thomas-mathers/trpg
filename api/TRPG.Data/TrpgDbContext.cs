@@ -193,7 +193,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<HostileEncounter>("Hostile")
                 .HasValue<FightEncounter>("Fight")
                 .HasValue<GuardEncounter>("Guard")
-                .HasValue<TheftEncounter>("Theft");
+                .HasValue<TheftEncounter>("Theft")
+                .HasValue<SuspicionEncounter>("Suspicion");
         });
 
         modelBuilder.Entity<HostileEncounter>(entity =>
