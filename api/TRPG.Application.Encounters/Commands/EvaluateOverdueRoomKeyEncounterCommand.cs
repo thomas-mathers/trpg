@@ -5,7 +5,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class ConfrontOverdueRoomKeyOnMoveCommand
+public class EvaluateOverdueRoomKeyEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required TimeSpan Playtime { get; init; }
@@ -14,16 +14,16 @@ public class ConfrontOverdueRoomKeyOnMoveCommand
     public required Guid ToLocationId { get; init; }
 }
 
-internal class ConfrontOverdueRoomKeyOnMoveCommandHandler(
+internal class EvaluateOverdueRoomKeyEncounterCommandHandler(
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     ICommandHandler<
         ConfrontOverdueRoomKeyCommand,
         ConfrontOverdueRoomKeyResult
     > confrontOverdueRoomKey
-) : ICommandHandler<ConfrontOverdueRoomKeyOnMoveCommand, ConfrontOverdueRoomKeyResult>
+) : ICommandHandler<EvaluateOverdueRoomKeyEncounterCommand, ConfrontOverdueRoomKeyResult>
 {
     public async Task<ConfrontOverdueRoomKeyResult> Handle(
-        ConfrontOverdueRoomKeyOnMoveCommand command,
+        EvaluateOverdueRoomKeyEncounterCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -47,7 +47,7 @@ internal class ConfrontOverdueRoomKeyOnMoveCommandHandler(
     }
 
     private async Task<BuildingIdentity?> ResolveCrossedInn(
-        ConfrontOverdueRoomKeyOnMoveCommand command,
+        EvaluateOverdueRoomKeyEncounterCommand command,
         CancellationToken cancellationToken
     )
     {
