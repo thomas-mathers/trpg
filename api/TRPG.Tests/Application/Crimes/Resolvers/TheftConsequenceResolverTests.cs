@@ -1,20 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Crimes.Commands;
+using TRPG.Application.Crimes;
+using TRPG.Application.Crimes.Resolvers;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Crimes.Commands;
+namespace TRPG.Tests.Application.Crimes.Resolvers;
 
 [Collection("Database")]
-public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class TheftConsequenceResolverTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid LocationId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private ResolveTheftCrimeWitnessesCommandHandler _handler = null!;
+    private TheftConsequenceResolver _resolver = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId, locationId: LocationId);
 
     public async ValueTask InitializeAsync()
@@ -23,7 +24,7 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<ResolveTheftCrimeWitnessesCommandHandler>();
+        _resolver = _serviceProvider.GetRequiredService<TheftConsequenceResolver>();
 
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -61,14 +62,9 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            new ResolveTheftCrimeWitnessesCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                LocationId = LocationId,
-                LiveWitnessCreatureIds = [witness.Id],
-            },
+        var result = await _resolver.Resolve(
+            new CrimeScope(WorldId, _player.Id, LocationId),
+            [witness.Id],
             TestContext.Current.CancellationToken
         );
 
@@ -84,7 +80,7 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
         );
         Assert.Equal(CrimeResolution.Reported, persistedCrime!.Resolution);
         Assert.Equal(CrimeWitnessResolution.Reported, persistedWitness.Resolution);
-        var report = Assert.Single(result.ReportedCrimes);
+        var report = Assert.Single(result);
         Assert.Equal([witness.Id], report.ReportedWitnessIds);
     }
 
@@ -104,14 +100,9 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            new ResolveTheftCrimeWitnessesCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                LocationId = LocationId,
-                LiveWitnessCreatureIds = [],
-            },
+        var result = await _resolver.Resolve(
+            new CrimeScope(WorldId, _player.Id, LocationId),
+            [],
             TestContext.Current.CancellationToken
         );
 
@@ -127,7 +118,7 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
         );
         Assert.Equal(CrimeResolution.Unreported, persistedCrime!.Resolution);
         Assert.Equal(CrimeWitnessResolution.Dead, persistedWitness.Resolution);
-        Assert.Empty(result.ReportedCrimes);
+        Assert.Empty(result);
     }
 
     [Fact]
@@ -150,14 +141,9 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            new ResolveTheftCrimeWitnessesCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                LocationId = LocationId,
-                LiveWitnessCreatureIds = [movedWitness.Id],
-            },
+        var result = await _resolver.Resolve(
+            new CrimeScope(WorldId, _player.Id, LocationId),
+            [movedWitness.Id],
             TestContext.Current.CancellationToken
         );
 
@@ -172,7 +158,7 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
             );
         Assert.Equal(CrimeWitnessResolution.Reported, witnesses[movedWitness.Id]);
         Assert.Equal(CrimeWitnessResolution.Dead, witnesses[deadWitness.Id]);
-        var report = Assert.Single(result.ReportedCrimes);
+        var report = Assert.Single(result);
         Assert.Equal([movedWitness.Id], report.ReportedWitnessIds);
     }
 }

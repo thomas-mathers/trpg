@@ -1,20 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Crimes.Commands;
+using TRPG.Application.Crimes;
+using TRPG.Application.Crimes.Resolvers;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Crimes.Commands;
+namespace TRPG.Tests.Application.Crimes.Resolvers;
 
 [Collection("Database")]
-public sealed class ResolveKillCrimeWitnessesCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class LockpickingConsequenceResolverTests(DatabaseFixture db) : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid LocationId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private ResolveKillCrimeWitnessesCommandHandler _handler = null!;
+    private LockpickingConsequenceResolver _resolver = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId, locationId: LocationId);
 
     public async ValueTask InitializeAsync()
@@ -23,7 +24,7 @@ public sealed class ResolveKillCrimeWitnessesCommandTests(DatabaseFixture db) : 
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<ResolveKillCrimeWitnessesCommandHandler>();
+        _resolver = _serviceProvider.GetRequiredService<LockpickingConsequenceResolver>();
 
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -36,25 +37,24 @@ public sealed class ResolveKillCrimeWitnessesCommandTests(DatabaseFixture db) : 
     }
 
     [Fact]
-    public async Task Handle_ReportsMovedWitnessAndMarksDeadWitnessDead()
+    public async Task Handle_ReportsCrime_WhenAtLeastOneWitnessIsStillAlive()
     {
         // Arrange
-        var victim = Builders.MakeCreature(WorldId, locationId: LocationId);
         var movedWitness = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
         var deadWitness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
             state: CreatureState.Dead
         );
-        var crime = new KillCrime
+        var crime = new LockpickingCrime
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
             LocationId = LocationId,
-            VictimId = victim.Id,
-            VictimName = victim.Name,
+            BuildingId = Guid.NewGuid(),
+            BuildingName = "Test Building",
         };
-        _context.Creatures.AddRange(victim, movedWitness, deadWitness);
+        _context.Creatures.AddRange(movedWitness, deadWitness);
         _context.Crimes.Add(crime);
         _context.CrimeWitnesses.AddRange(
             Builders.MakeCrimeWitness(crime.Id, movedWitness.Id, WorldId),
@@ -63,68 +63,59 @@ public sealed class ResolveKillCrimeWitnessesCommandTests(DatabaseFixture db) : 
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            new ResolveKillCrimeWitnessesCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                LocationId = LocationId,
-                LiveWitnessCreatureIds = [movedWitness.Id],
-            },
+        var result = await _resolver.Resolve(
+            new CrimeScope(WorldId, _player.Id, LocationId),
+            [movedWitness.Id],
             TestContext.Current.CancellationToken
         );
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var witnesses = await verifyContext
-            .CrimeWitnesses.Where(witness => witness.CrimeId == crime.Id)
-            .ToDictionaryAsync(
-                witness => witness.CreatureId,
-                witness => witness.Resolution,
-                TestContext.Current.CancellationToken
-            );
-        Assert.Equal(CrimeWitnessResolution.Reported, witnesses[movedWitness.Id]);
-        Assert.Equal(CrimeWitnessResolution.Dead, witnesses[deadWitness.Id]);
-        var report = Assert.Single(result.ReportedCrimes);
+        var storedCrime = await verifyContext.Crimes.FirstAsync(
+            c => c.Id == crime.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CrimeResolution.Reported, storedCrime.Resolution);
+        var report = Assert.Single(result);
         Assert.Equal([movedWitness.Id], report.ReportedWitnessIds);
     }
 
     [Fact]
-    public async Task Handle_ReturnsNoReportedCrimes_WhenAllKillWitnessesAreDead()
+    public async Task Handle_ReturnsNoReportedCrimes_WhenTheLastRemainingWitnessIsDead()
     {
         // Arrange
-        var victim = Builders.MakeCreature(WorldId, locationId: LocationId);
         var witness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
             state: CreatureState.Dead
         );
-        var crime = new KillCrime
+        var crime = new LockpickingCrime
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
             LocationId = LocationId,
-            VictimId = victim.Id,
-            VictimName = victim.Name,
+            BuildingId = Guid.NewGuid(),
+            BuildingName = "Test Building",
         };
-        _context.Creatures.AddRange(victim, witness);
+        _context.Creatures.Add(witness);
         _context.Crimes.Add(crime);
         _context.CrimeWitnesses.Add(Builders.MakeCrimeWitness(crime.Id, witness.Id, WorldId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _handler.Handle(
-            new ResolveKillCrimeWitnessesCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                LocationId = LocationId,
-                LiveWitnessCreatureIds = [],
-            },
+        var result = await _resolver.Resolve(
+            new CrimeScope(WorldId, _player.Id, LocationId),
+            [],
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Empty(result.ReportedCrimes);
+        await using var verifyContext = db.CreateContext();
+        var storedCrime = await verifyContext.Crimes.FirstAsync(
+            c => c.Id == crime.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CrimeResolution.Unreported, storedCrime.Resolution);
+        Assert.Empty(result);
     }
 }
