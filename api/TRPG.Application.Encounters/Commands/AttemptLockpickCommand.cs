@@ -128,7 +128,7 @@ internal class AttemptLockpickCommandHandler(
 
         var crime =
             opened && building != null
-                ? await RecordBreakIn(command, player, door.Id, building, cancellationToken)
+                ? await RecordBreakIn(command, player, door, building, cancellationToken)
                 : null;
 
         var currentLocation = await getLocationById.Handle(
@@ -138,7 +138,7 @@ internal class AttemptLockpickCommandHandler(
         Encounter? encounter = null;
         if (opened && door.UnlocksAtPlaytime != null)
         {
-            encounter = await EvaluateJailbreakDetection(
+            encounter = await ResolveJailbreak(
                 command,
                 player,
                 currentLocation!,
@@ -212,7 +212,7 @@ internal class AttemptLockpickCommandHandler(
     private async Task<LockpickingCrime> RecordBreakIn(
         AttemptLockpickCommand command,
         Creature player,
-        Guid doorConnectorRowId,
+        DoorConnector door,
         BuildingIdentity building,
         CancellationToken cancellationToken
     )
@@ -236,7 +236,7 @@ internal class AttemptLockpickCommandHandler(
                 DoorConnectorKey = new DoorConnectorKey
                 {
                     ItemId = pickedLockKey.Id,
-                    DoorConnectorId = doorConnectorRowId,
+                    DoorConnectorId = door.Id,
                     WorldId = command.WorldId,
                 },
             },
@@ -251,6 +251,7 @@ internal class AttemptLockpickCommandHandler(
             BuildingId = building.Id,
             BuildingName = building.Name,
             OwnerFactionId = building.FactionId,
+            IsJailbreak = door.UnlocksAtPlaytime != null,
         };
 
         await addLockpickingCrimes.Handle(
@@ -262,7 +263,7 @@ internal class AttemptLockpickCommandHandler(
     }
 
     // A timed lock is only ever set when a sentence starts, so picking one is a jailbreak.
-    private async Task<GuardEncounter?> EvaluateJailbreakDetection(
+    private async Task<GuardEncounter?> ResolveJailbreak(
         AttemptLockpickCommand command,
         Creature player,
         Location currentLocation,
@@ -281,6 +282,20 @@ internal class AttemptLockpickCommandHandler(
         if (guard == null)
         {
             return null;
+        }
+
+        // The empty cell is evidence, so the jailer finds out whether or not they saw it happen.
+        if (crime != null)
+        {
+            await addCrimeWitnesses.Handle(
+                new AddCrimeWitnessesCommand
+                {
+                    WorldId = command.WorldId,
+                    CrimeIds = [crime.Id],
+                    WitnessCreatureIds = [guard.Id],
+                },
+                cancellationToken
+            );
         }
 
         var isDetected = await sneakDetectionService.RollDetection(
@@ -303,19 +318,6 @@ internal class AttemptLockpickCommandHandler(
             ?? throw new InvalidOperationException(
                 $"Guard {guard.Id} has no city faction membership."
             );
-
-        if (crime != null)
-        {
-            await addCrimeWitnesses.Handle(
-                new AddCrimeWitnessesCommand
-                {
-                    WorldId = command.WorldId,
-                    CrimeIds = [crime.Id],
-                    WitnessCreatureIds = [guard.Id],
-                },
-                cancellationToken
-            );
-        }
 
         var score = await getReputationScore.Handle(
             new GetReputationScoreQuery

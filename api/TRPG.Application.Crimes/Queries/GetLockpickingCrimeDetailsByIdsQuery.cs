@@ -8,7 +8,8 @@ namespace TRPG.Application.Crimes.Queries;
 public record LockpickingCrimeDetails(
     Guid Id,
     Guid? OwnerFactionId,
-    LockpickingCrimeOutcome? Outcome
+    LockpickingCrimeOutcome? Outcome,
+    bool IsJailbreak
 );
 
 public class GetLockpickingCrimeDetailsByIdsQuery
@@ -35,7 +36,8 @@ internal class GetLockpickingCrimeDetailsByIdsQueryHandler(ICrimesDbContext cont
             .Select(crime => new LockpickingCrimeDetails(
                 crime.Id,
                 crime.OwnerFactionId,
-                crime.Outcome
+                crime.Outcome,
+                crime.IsJailbreak
             ))
             .ToDictionaryAsync(details => details.Id, cancellationToken);
     }

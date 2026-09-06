@@ -326,6 +326,101 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     [Fact]
+    public async Task Handle_RecordsTheJailbreakAndWitness_EvenWhenTheEscapeGoesUnnoticed()
+    {
+        // Arrange — the empty cell is evidence, so the jailer finds out either way
+        var jail = await SeedJailCellWithGuard();
+        _player.IsSneaking = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _chanceRoller.EnqueueResults(true, false);
+
+        // Act
+        var result = await _handler.Handle(
+            new AttemptLockpickCommand
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                ConnectorId = jail.ConnectorId,
+                DestinationLocationId = jail.GuardStationLocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — no confrontation, but the crime is on the books with the guard as a witness
+        Assert.Null(result.Encounter);
+
+        await using var verifyContext = db.CreateContext();
+        var crime = await verifyContext
+            .Crimes.OfType<LockpickingCrime>()
+            .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
+        Assert.True(crime.IsJailbreak);
+
+        var witnessIds = await verifyContext
+            .CrimeWitnesses.Where(w => w.CrimeId == crime.Id)
+            .Select(w => w.CreatureId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal([jail.GuardId], witnessIds);
+    }
+
+    private async Task<JailCellFixture> SeedJailCellWithGuard()
+    {
+        var cellsLocationId = Guid.NewGuid();
+        var guardStationLocationId = Guid.NewGuid();
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
+        var jail = Builders.MakeBuilding(
+            worldId: WorldId,
+            buildingType: BuildingType.Jail,
+            factionId: faction.Id
+        );
+        var cellsRoom = Builders.MakeRoom(jail.Id, worldId: WorldId, locationId: cellsLocationId);
+        var guardStationRoom = Builders.MakeRoom(
+            jail.Id,
+            worldId: WorldId,
+            locationId: guardStationLocationId
+        );
+        var guard = Builders.MakeCreature(
+            WorldId,
+            profession: Profession.Guard,
+            locationId: guardStationLocationId
+        );
+        var connectorId = Guid.NewGuid();
+
+        _player.LocationId = cellsLocationId;
+        _player.IsSneaking = false;
+        _context.Buildings.Add(jail);
+        _context.Rooms.AddRange(cellsRoom, guardStationRoom);
+        _context.Locations.AddRange(
+            Builders.MakeLocation(worldId: WorldId, id: cellsLocationId, roomId: cellsRoom.Id),
+            Builders.MakeLocation(
+                worldId: WorldId,
+                id: guardStationLocationId,
+                roomId: guardStationRoom.Id
+            )
+        );
+        _context.Creatures.Add(guard);
+        _context.Factions.Add(faction);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, guard.Id));
+        _context.DoorConnectors.Add(
+            Builders.MakeDoorConnector(
+                connectorId,
+                isLocked: true,
+                lockLevel: 1,
+                worldId: WorldId,
+                unlocksAtPlaytime: TimeSpan.FromHours(99)
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return new JailCellFixture(connectorId, guardStationLocationId, guard.Id);
+    }
+
+    private sealed record JailCellFixture(
+        Guid ConnectorId,
+        Guid GuardStationLocationId,
+        Guid GuardId
+    );
+
+    [Fact]
     public async Task Handle_StartsHostileEncounter_WhenAnOccupantSpotsAnInteriorPick()
     {
         // Arrange — the player already broke into this building earlier, and is now picking a
@@ -631,8 +726,19 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
 
     private sealed class TestChanceRoller : IChanceRoller
     {
+        private readonly Queue<bool> _sequence = new();
+
         public bool Result { get; set; } = true;
 
-        public bool Roll(float chance) => Result;
+        // The lockpick and sneak checks share this roller, so some tests need them to differ.
+        public void EnqueueResults(params bool[] results)
+        {
+            foreach (var result in results)
+            {
+                _sequence.Enqueue(result);
+            }
+        }
+
+        public bool Roll(float chance) => _sequence.Count > 0 ? _sequence.Dequeue() : Result;
     }
 }

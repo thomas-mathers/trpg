@@ -66,6 +66,9 @@ public class LockpickingCrime : Crime
     public string BuildingName { get; init; } = "";
     public Guid? OwnerFactionId { get; init; }
     public LockpickingCrimeOutcome? Outcome { get; set; }
+
+    // A picked lock that was holding the player in custody, which carries its own penalties.
+    public bool IsJailbreak { get; init; }
 }
 
 public class TrespassingCrime : Crime

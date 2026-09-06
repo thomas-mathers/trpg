@@ -112,7 +112,47 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
         Assert.False(hasReputation);
     }
 
-    private LockpickingCrime SeedBreakInWitnessedBy(Creature witness)
+    [Theory]
+    [InlineData(false, null, -10)]
+    [InlineData(false, LockpickingCrimeOutcome.SettledWithGuard, -4)]
+    [InlineData(true, null, -50)]
+    [InlineData(true, LockpickingCrimeOutcome.SettledWithGuard, -20)]
+    public async Task Handle_PenalizesJailbreaksAboveOrdinaryLockpicking_AtBothSettlementLevels(
+        bool isJailbreak,
+        LockpickingCrimeOutcome? outcome,
+        int expectedScore
+    )
+    {
+        // Arrange
+        var witness = Builders.MakeCreature(WorldId, locationId: LocationId);
+        var crime = SeedBreakInWitnessedBy(witness, isJailbreak, outcome);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ResolveCrimeConsequencesAtLocationCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = LocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var reputation = await verifyContext.Reputations.SingleAsync(
+            r => r.CreatureId == _player.Id && r.TargetId == _ownerFaction.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(expectedScore, reputation.Score);
+    }
+
+    private LockpickingCrime SeedBreakInWitnessedBy(
+        Creature witness,
+        bool isJailbreak = false,
+        LockpickingCrimeOutcome? outcome = null
+    )
     {
         var crime = new LockpickingCrime
         {
@@ -122,6 +162,8 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
             BuildingId = Guid.NewGuid(),
             BuildingName = "Locked Warehouse",
             OwnerFactionId = _ownerFaction.Id,
+            IsJailbreak = isJailbreak,
+            Outcome = outcome,
         };
 
         _context.Creatures.Add(witness);

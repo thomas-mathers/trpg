@@ -55,7 +55,7 @@ internal class ApplyReputationPenaltyForLockpickingCommandHandler(
             .GroupBy(crime => crimeDetails[crime.CrimeId].OwnerFactionId!.Value)
             .ToDictionary(
                 group => group.Key,
-                group => group.Sum(crime => PenaltyFor(crimeDetails[crime.CrimeId].Outcome))
+                group => group.Sum(crime => PenaltyFor(crimeDetails[crime.CrimeId]))
             );
 
         if (penaltyByFactionId.Count == 0)
@@ -88,7 +88,7 @@ internal class ApplyReputationPenaltyForLockpickingCommandHandler(
             .Crimes.SelectMany(crime =>
                 crime.ReportedWitnessIds.Select(witnessId => new ReputationAdjustment(
                     witnessId,
-                    PenaltyFor(crimeDetails[crime.CrimeId].Outcome)
+                    PenaltyFor(crimeDetails[crime.CrimeId])
                 ))
             )
             .ToArray();
@@ -111,8 +111,21 @@ internal class ApplyReputationPenaltyForLockpickingCommandHandler(
         );
     }
 
-    private int PenaltyFor(LockpickingCrimeOutcome? outcome) =>
-        outcome == LockpickingCrimeOutcome.SettledWithGuard
-            ? reputationOptions.CurrentValue.SettledLockpickingReputationPenalty
-            : reputationOptions.CurrentValue.LockpickingReputationPenalty;
+    // Escaping custody outranks settling: going quietly discounts it but never to a shop door.
+    private int PenaltyFor(LockpickingCrimeDetails details)
+    {
+        var settled = details.Outcome == LockpickingCrimeOutcome.SettledWithGuard;
+        var options = reputationOptions.CurrentValue;
+
+        if (details.IsJailbreak)
+        {
+            return settled
+                ? options.SettledJailbreakReputationPenalty
+                : options.JailbreakReputationPenalty;
+        }
+
+        return settled
+            ? options.SettledLockpickingReputationPenalty
+            : options.LockpickingReputationPenalty;
+    }
 }
