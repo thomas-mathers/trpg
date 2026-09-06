@@ -8,4 +8,6 @@ public class ReputationOptions
     public int LockpickingReputationPenalty { get; init; } = -10;
     public int SettledLockpickingReputationPenalty { get; init; } = -4;
     public int TrespassingReputationPenalty { get; init; } = -10;
+    public int JailbreakReputationPenalty { get; init; } = -50;
+    public int SettledJailbreakReputationPenalty { get; init; } = -20;
 }
