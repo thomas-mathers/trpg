@@ -41,7 +41,6 @@ public static class StatFormulas
             AttributeName.LightningResistance => attributes.LightningResistance,
             AttributeName.PoisonResistance => attributes.PoisonResistance,
             AttributeName.MagicResistance => attributes.MagicResistance,
-            _ => throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null),
         };
 
         var itemModifiers = inventory

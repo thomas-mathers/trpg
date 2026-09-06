@@ -167,6 +167,5 @@ public class GeographyGeneratorTests
             CountryFocus.Political => "political power and bureaucracy",
             CountryFocus.Religious => "religious devotion",
             CountryFocus.Militaristic => "martial strength and conquest",
-            _ => throw new ArgumentOutOfRangeException(nameof(focus)),
         };
 }

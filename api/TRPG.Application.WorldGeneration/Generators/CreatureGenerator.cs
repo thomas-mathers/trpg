@@ -1325,7 +1325,6 @@ public class CreatureGenerator(
             AllocatableAttributeName.Stamina => baseline.Stamina,
             AllocatableAttributeName.Mana => baseline.Mana,
             AllocatableAttributeName.Intelligence => baseline.Intelligence,
-            _ => throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null),
         };
 
     private Attributes GetPlayerAttributes(

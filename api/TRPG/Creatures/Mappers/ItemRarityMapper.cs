@@ -13,6 +13,5 @@ internal static class ItemRarityMapper
             DataItemRarity.Magic => ContractItemRarity.Magic,
             DataItemRarity.Rare => ContractItemRarity.Rare,
             DataItemRarity.Unique => ContractItemRarity.Unique,
-            _ => throw new ArgumentOutOfRangeException(nameof(rarity), rarity, null),
         };
 }

@@ -427,7 +427,6 @@ public class GeographyGenerator(
             DistrictType.Governmental => "a governmental district",
             DistrictType.HolySite => "a holy site",
             DistrictType.Encampment => "an encampment",
-            _ => throw new ArgumentOutOfRangeException(nameof(districtType)),
         };
 
     private static string JoinPhrases(IReadOnlyList<string> phrases) =>

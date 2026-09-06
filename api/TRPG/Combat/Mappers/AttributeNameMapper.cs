@@ -26,6 +26,5 @@ internal static class AttributeNameMapper
             DataAttributeName.PoisonResistance => ContractAttributeName.PoisonResistance,
             DataAttributeName.MagicResistance => ContractAttributeName.MagicResistance,
             DataAttributeName.MovementSpeed => ContractAttributeName.MovementSpeed,
-            _ => throw new ArgumentOutOfRangeException(nameof(attribute), attribute, null),
         };
 }

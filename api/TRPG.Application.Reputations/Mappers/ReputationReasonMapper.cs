@@ -22,6 +22,5 @@ public static class ReputationReasonMapper
             ReputationReason.WitnessedTrespassing => "Witnessed trespassing",
             ReputationReason.CaughtSneaking => "Caught sneaking",
             ReputationReason.CaughtFleeingSuspicion => "Fled from a guard's questioning",
-            _ => throw new ArgumentOutOfRangeException(nameof(reason)),
         };
 }

@@ -18,7 +18,6 @@ internal static class LoreAnchorMapper
                 LoreAnchorType.Country => EntityType.Country,
                 LoreAnchorType.State => EntityType.State,
                 LoreAnchorType.City => EntityType.City,
-                _ => throw new ArgumentOutOfRangeException(nameof(anchor)),
             },
             anchor.Subtype,
             anchor.Description

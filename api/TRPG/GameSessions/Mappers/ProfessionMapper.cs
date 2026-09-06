@@ -29,6 +29,5 @@ internal static class ProfessionMapper
             DataProfession.Homemaker => ContractProfession.Homemaker,
             DataProfession.Bartender => ContractProfession.Bartender,
             DataProfession.Unemployed => ContractProfession.Unemployed,
-            _ => throw new ArgumentOutOfRangeException(nameof(profession), profession, null),
         };
 }

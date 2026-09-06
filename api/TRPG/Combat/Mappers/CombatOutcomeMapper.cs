@@ -12,6 +12,5 @@ internal static class CombatOutcomeMapper
             DataCombatOutcome.Victory => ContractCombatOutcome.Victory,
             DataCombatOutcome.Defeat => ContractCombatOutcome.Defeat,
             DataCombatOutcome.Fled => ContractCombatOutcome.Fled,
-            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
         };
 }

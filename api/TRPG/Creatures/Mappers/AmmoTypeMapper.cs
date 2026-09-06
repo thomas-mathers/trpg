@@ -10,6 +10,5 @@ internal static class AmmoTypeMapper
         {
             AmmoType.Arrow => ItemType.Arrow,
             AmmoType.Bolt => ItemType.Bolt,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

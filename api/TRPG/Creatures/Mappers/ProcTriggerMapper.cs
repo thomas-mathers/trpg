@@ -11,6 +11,5 @@ internal static class ProcTriggerMapper
             DataProcTrigger.OnStriking => ContractProcTrigger.OnStriking,
             DataProcTrigger.WhenStruck => ContractProcTrigger.WhenStruck,
             DataProcTrigger.OnKill => ContractProcTrigger.OnKill,
-            _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger, null),
         };
 }

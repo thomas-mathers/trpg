@@ -30,6 +30,5 @@ internal static class BuildingTypeDisplayNameMapper
             BuildingType.Tavern => "Tavern",
             BuildingType.Temple => "Temple",
             BuildingType.Tower => "Tower",
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

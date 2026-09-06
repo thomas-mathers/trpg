@@ -430,6 +430,5 @@ internal static class ServiceCollectionExtensions
                 SelectedModel = model,
             },
             LlmProvider.Anthropic => new AnthropicClient().AsIChatClient(model),
-            _ => throw new ArgumentOutOfRangeException(nameof(provider)),
         };
 }

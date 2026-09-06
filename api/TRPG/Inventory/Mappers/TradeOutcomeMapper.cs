@@ -11,6 +11,5 @@ internal static class TradeOutcomeMapper
             TradeOutcome.Accepted => TradeProposalStatus.Accepted,
             TradeOutcome.Rejected => TradeProposalStatus.Rejected,
             TradeOutcome.Refused => TradeProposalStatus.Refused,
-            _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
         };
 }

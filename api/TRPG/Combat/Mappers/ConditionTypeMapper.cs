@@ -17,6 +17,5 @@ internal static class ConditionTypeMapper
             AbilitiesConditionType.Silenced => ContractConditionType.Silenced,
             AbilitiesConditionType.Snared => ContractConditionType.Snared,
             AbilitiesConditionType.Stunned => ContractConditionType.Stunned,
-            _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null),
         };
 }

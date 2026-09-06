@@ -11,6 +11,5 @@ internal static class AccessoryTypeMapper
             AccessoryType.Ring => ItemType.Ring,
             AccessoryType.Necklace => ItemType.Necklace,
             AccessoryType.Belt => ItemType.Belt,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

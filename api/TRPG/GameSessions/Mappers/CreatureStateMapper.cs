@@ -15,6 +15,5 @@ internal static class CreatureStateMapper
             DataCreatureState.Praying => ContractCreatureState.Praying,
             DataCreatureState.Alerted => ContractCreatureState.Alerted,
             DataCreatureState.Dead => ContractCreatureState.Dead,
-            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null),
         };
 }

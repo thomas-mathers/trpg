@@ -13,6 +13,5 @@ public static class RaceMapper
             Race.Orc => CreatureType.Orc,
             Race.Halfling => CreatureType.Halfling,
             Race.Gnome => CreatureType.Gnome,
-            _ => throw new ArgumentOutOfRangeException(nameof(race), race, null),
         };
 }

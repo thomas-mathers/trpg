@@ -27,7 +27,6 @@ internal sealed class QuestDialogRequestedEventMapper
                 {
                     ApplicationQuestDialogMode.Offer => ClientQuestDialogMode.Offer,
                     ApplicationQuestDialogMode.TurnIn => ClientQuestDialogMode.TurnIn,
-                    _ => throw new ArgumentOutOfRangeException(nameof(gameEvent)),
                 }
             ),
             static (client, arguments) => client.QuestDialogRequested(arguments)
