@@ -61,7 +61,7 @@ public record NpcConversationOpenThread(int Id, string Text);
 
 public record NpcConversationObservedCrime(string Text);
 
-public record NpcConversationReputationEvent(string Text);
+public record NpcConversationReputationEvent(string Text, int OccurrenceCount);
 
 public record NpcConversationHistoryResult(
     string Summary,
@@ -138,6 +138,9 @@ internal class GetNpcConversationBriefingQueryHandler(
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
+
+    // Fetched wide so repeated offences are grouped before the window is applied, not after.
+    private const int ReputationLogFetchLimit = 25;
 
     public async Task<NpcConversationBriefing> Handle(
         GetNpcConversationBriefingQuery query,
@@ -375,15 +378,20 @@ internal class GetNpcConversationBriefingQueryHandler(
             {
                 CreatureId = query.PlayerId,
                 Targets = targets,
-                Limit = ReputationHistoryLimit,
+                Limit = ReputationLogFetchLimit,
             },
             cancellationToken
         );
 
-        return entries
-            .Where(entry => !IsCivicRecord(entry.Reason))
-            .Select(entry => new NpcConversationReputationEvent(
-                entry.Detail ?? entry.Reason.ToDisplayText()
+        var memories = NpcReputationMemoryCalculator.Rank(
+            entries.Where(entry => !IsCivicRecord(entry.Reason)).ToArray(),
+            ReputationHistoryLimit
+        );
+
+        return memories
+            .Select(memory => new NpcConversationReputationEvent(
+                memory.Text,
+                memory.OccurrenceCount
             ))
             .ToArray();
     }
