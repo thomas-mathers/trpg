@@ -34,6 +34,15 @@ public class KillCrime : Crime
     public List<Guid> VictimFactionIds { get; init; } = [];
 }
 
+public class AssaultCrime : Crime
+{
+    public Guid VictimId { get; init; }
+    public string VictimName { get; init; } = "";
+
+    // Captured at the first strike; the victim may be killed later in the same fight.
+    public List<Guid> VictimFactionIds { get; init; } = [];
+}
+
 public enum TheftCrimeOutcome
 {
     Taken,

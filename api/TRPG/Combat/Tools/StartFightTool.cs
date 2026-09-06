@@ -23,6 +23,7 @@ internal class StartFightTool(
         IReadOnlyCollection<Guid>
     > getEncounterGroupCreatureIds,
     ICommandHandler<StartFightCommand> startFight,
+    ICommandHandler<RecordAssaultCommand> recordAssault,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ILogger<StartFightTool> logger
 ) : IGameTool
@@ -94,6 +95,17 @@ internal class StartFightTool(
             {
                 CreatureIds = enemyCreatureIds,
                 State = CreatureState.Alerted,
+            },
+            cancellationToken
+        );
+
+        // The player chose to attack, which is what separates assault from self-defence.
+        await recordAssault.Handle(
+            new RecordAssaultCommand
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                VictimId = target.Id,
             },
             cancellationToken
         );

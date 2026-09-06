@@ -50,7 +50,16 @@ internal class ResolveCrimeConsequencesAtLocationCommandHandler(
         ResolveTrespassingCrimeWitnessesCommand,
         ResolveTrespassingCrimeWitnessesResult
     > resolveTrespassingCrimeWitnesses,
-    ICommandHandler<ApplyReputationPenaltyForTrespassingCommand> applyReputationPenaltyForTrespassing
+    ICommandHandler<ApplyReputationPenaltyForTrespassingCommand> applyReputationPenaltyForTrespassing,
+    IQueryHandler<
+        GetAssaultWitnessCandidateCreatureIdsQuery,
+        IReadOnlyCollection<Guid>
+    > getAssaultWitnessCandidateCreatureIds,
+    ICommandHandler<
+        ResolveAssaultCrimeWitnessesCommand,
+        ResolveAssaultCrimeWitnessesResult
+    > resolveAssaultCrimeWitnesses,
+    ICommandHandler<ApplyReputationPenaltyForAssaultCommand> applyReputationPenaltyForAssault
 ) : ICommandHandler<ResolveCrimeConsequencesAtLocationCommand>
 {
     public async Task Handle(
@@ -62,6 +71,7 @@ internal class ResolveCrimeConsequencesAtLocationCommandHandler(
         await ResolveThefts(command, cancellationToken);
         await ResolveLockpickings(command, cancellationToken);
         await ResolveTrespassings(command, cancellationToken);
+        await ResolveAssaults(command, cancellationToken);
     }
 
     private async Task ResolveKills(
@@ -239,6 +249,51 @@ internal class ResolveCrimeConsequencesAtLocationCommandHandler(
                 PlayerId = command.PlayerId,
                 WorldId = command.WorldId,
                 Crimes = resolution.ReportedCrimes,
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task ResolveAssaults(
+        ResolveCrimeConsequencesAtLocationCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var candidateIds = await getAssaultWitnessCandidateCreatureIds.Handle(
+            new GetAssaultWitnessCandidateCreatureIdsQuery
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                LocationId = command.LocationId,
+            },
+            cancellationToken
+        );
+
+        var resolution = await resolveAssaultCrimeWitnesses.Handle(
+            new ResolveAssaultCrimeWitnessesCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                LocationId = command.LocationId,
+                LiveWitnessCreatureIds = await ResolveLiveCreatureIds(
+                    candidateIds,
+                    cancellationToken
+                ),
+            },
+            cancellationToken
+        );
+
+        if (resolution.ReportedCrimes.Count == 0)
+        {
+            return;
+        }
+
+        await applyReputationPenaltyForAssault.Handle(
+            new ApplyReputationPenaltyForAssaultCommand
+            {
+                PlayerId = command.PlayerId,
+                WorldId = command.WorldId,
+                Assaults = resolution.ReportedCrimes,
             },
             cancellationToken
         );
