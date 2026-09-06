@@ -402,12 +402,63 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             WorldId = WorldId,
         };
 
+    [Fact]
+    public async Task Handle_Flee_ReportsTheItemsAsHeld_WhenTheyTransferredBeforeTheConfrontation()
+    {
+        // Arrange — taken from a container, so the player already had them when caught
+        var item = Builders.MakeWeapon(WorldId);
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedEncounter(
+            sourceOwnerId: Guid.NewGuid(),
+            sourceOwnerType: OwnerType.Container,
+            item: item,
+            confrontingCreature: _confronter
+        );
+
+        // Act
+        var fact = await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(fact.ItemsHeldByPlayer);
+    }
+
+    [Fact]
+    public async Task Handle_Flee_ReportsTheItemsAsNotHeld_WhenTheAttemptWasCaughtBeforeTheyTransferred()
+    {
+        // Arrange — a caught pickpocket never receives the item, so fleeing leaves empty-handed
+        var item = Builders.MakeWeapon(WorldId);
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            item: item,
+            confrontingCreature: _confronter,
+            itemsTransferred: false
+        );
+
+        // Act
+        var fact = await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(fact.ItemsHeldByPlayer);
+        Assert.Equal([item.Name], fact.ItemNames);
+    }
+
     private async Task<TheftEncounter> SeedEncounter(
         Guid sourceOwnerId,
         OwnerType sourceOwnerType,
         Item? item = null,
         Creature? confrontingCreature = null,
-        Guid? locationId = null
+        Guid? locationId = null,
+        bool itemsTransferred = true
     )
     {
         var confrontingCreatureToUse = confrontingCreature ?? _owner;
@@ -434,7 +485,10 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             SourceOwnerType = sourceOwnerType,
             ItemIds = item == null ? [] : [item.Id],
             ItemNames = item == null ? [] : [item.Name],
-            ItemSelections = item == null ? [] : [new TheftEncounterItem(item.Id, item.Quantity)],
+            ItemSelections =
+                item == null || !itemsTransferred
+                    ? []
+                    : [new TheftEncounterItem(item.Id, item.Quantity)],
         };
         _context.Crimes.Add(crime);
         _context.Encounters.Add(encounter);

@@ -97,7 +97,8 @@ internal class ResolveTheftEncounterActionCommandHandler(
             TheftEncounterResolutionOutcome.Apologized,
             encounter.ConfrontingName,
             encounter.ItemNames.ToArray(),
-            itemsReturned
+            itemsReturned,
+            ItemsHeldByPlayer: false
         );
     }
 
@@ -145,7 +146,8 @@ internal class ResolveTheftEncounterActionCommandHandler(
             TheftEncounterResolutionOutcome.Fled,
             encounter.ConfrontingName,
             encounter.ItemNames.ToArray(),
-            false
+            ItemsReturned: false,
+            ItemsHeldByPlayer: encounter.ItemSelections.Count > 0
         );
     }
 }
