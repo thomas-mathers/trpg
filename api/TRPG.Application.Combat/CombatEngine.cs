@@ -205,7 +205,6 @@ public class CombatEngine(
             WeaponType.Javelin => Skill.Archery,
             WeaponType.Staff => Skill.Destruction,
             WeaponType.Wand => Skill.Destruction,
-            _ => throw new ArgumentOutOfRangeException(nameof(weaponType), weaponType, null),
         };
 
     private static List<CombatResolution> ProcessItem(Combatant actor, ConsumableItemSnapshot item)
@@ -218,7 +217,6 @@ public class CombatEngine(
             ResourceType.Hp => (actor.CurrentHp, actor.MaximumHp),
             ResourceType.Ap => (actor.CurrentAp, actor.MaximumAp),
             ResourceType.Mp => (actor.CurrentMp, actor.MaximumMp),
-            _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
         var remainingValue = Math.Min(currentValue + item.Amount, maximumValue);

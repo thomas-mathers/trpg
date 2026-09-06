@@ -14,6 +14,5 @@ internal static class DistrictTypeDisplayNameMapper
             DistrictType.Governmental => "Governmental",
             DistrictType.HolySite => "Holy Site",
             DistrictType.Encampment => "Encampment",
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

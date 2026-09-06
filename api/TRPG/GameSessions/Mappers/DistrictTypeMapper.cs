@@ -15,6 +15,5 @@ internal static class DistrictTypeMapper
             DataDistrictType.Governmental => ContractDistrictType.Governmental,
             DataDistrictType.HolySite => ContractDistrictType.HolySite,
             DataDistrictType.Encampment => ContractDistrictType.Encampment,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

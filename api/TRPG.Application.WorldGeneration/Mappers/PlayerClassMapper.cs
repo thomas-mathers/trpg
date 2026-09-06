@@ -12,6 +12,5 @@ public static class PlayerClassMapper
             PlayerClass.Ranger => Profession.Ranger,
             PlayerClass.Mage => Profession.Mage,
             PlayerClass.Cleric => Profession.Cleric,
-            _ => throw new ArgumentOutOfRangeException(nameof(playerClass), playerClass, null),
         };
 }

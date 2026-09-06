@@ -21,6 +21,5 @@ internal static class WeaponTypeMapper
             WeaponType.GreatSword => ItemType.GreatSword,
             WeaponType.GreatAxe => ItemType.GreatAxe,
             WeaponType.GreatHammer => ItemType.GreatHammer,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

@@ -9,6 +9,5 @@ public static class PlayerGenderMapper
         {
             PlayerGender.Male => DataGender.Male,
             PlayerGender.Female => DataGender.Female,
-            _ => throw new ArgumentOutOfRangeException(nameof(gender), gender, null),
         };
 }

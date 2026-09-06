@@ -23,6 +23,5 @@ internal static class CreatureTypeMapper
             DataCreatureType.Wraith => ContractCreatureType.Wraith,
             DataCreatureType.Giant => ContractCreatureType.Giant,
             DataCreatureType.Dragon => ContractCreatureType.Dragon,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

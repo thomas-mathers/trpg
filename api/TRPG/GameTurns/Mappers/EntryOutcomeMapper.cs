@@ -22,6 +22,5 @@ internal static class EntryOutcomeMapper
             EntryOutcome.EncounterActive => new ToolError(
                 "A hostile encounter is already underway — resolve it before moving."
             ),
-            _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
         };
 }

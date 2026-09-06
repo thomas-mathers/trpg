@@ -10,6 +10,5 @@ internal static class LeechTypeMapper
         {
             DataLeechType.Life => ContractLeechType.Life,
             DataLeechType.Mana => ContractLeechType.Mana,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

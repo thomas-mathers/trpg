@@ -10,6 +10,5 @@ internal static class GenderMapper
         {
             DataGender.Male => ContractGender.Male,
             DataGender.Female => ContractGender.Female,
-            _ => throw new ArgumentOutOfRangeException(nameof(gender), gender, null),
         };
 }

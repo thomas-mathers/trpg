@@ -11,6 +11,5 @@ internal static class ResourceTypeMapper
             DataResourceType.Hp => ContractResourceType.Hp,
             DataResourceType.Ap => ContractResourceType.Ap,
             DataResourceType.Mp => ContractResourceType.Mp,
-            _ => throw new ArgumentOutOfRangeException(nameof(resource), resource, null),
         };
 }

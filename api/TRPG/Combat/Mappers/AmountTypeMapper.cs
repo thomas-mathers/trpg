@@ -10,6 +10,5 @@ internal static class AmountTypeMapper
         {
             DataAmountType.Flat => ContractAmountType.Flat,
             DataAmountType.Percent => ContractAmountType.Percent,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

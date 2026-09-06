@@ -20,7 +20,6 @@ internal static class SkillMapper
             ContractSkill.General => DataSkill.General,
             ContractSkill.Blocking => DataSkill.Blocking,
             ContractSkill.Lockpicking => DataSkill.Lockpicking,
-            _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
 
     public static ContractSkill ToResponse(this DataSkill skill) =>
@@ -38,6 +37,5 @@ internal static class SkillMapper
             DataSkill.General => ContractSkill.General,
             DataSkill.Blocking => ContractSkill.Blocking,
             DataSkill.Lockpicking => ContractSkill.Lockpicking,
-            _ => throw new ArgumentOutOfRangeException(nameof(skill), skill, null),
         };
 }

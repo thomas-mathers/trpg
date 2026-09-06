@@ -12,6 +12,5 @@ internal static class CombatSpeedTypeMapper
                 ContractCombatSpeedType.IncreasedAttackSpeed,
             DataCombatSpeedType.FasterCastRate => ContractCombatSpeedType.FasterCastRate,
             DataCombatSpeedType.FasterHitRecovery => ContractCombatSpeedType.FasterHitRecovery,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

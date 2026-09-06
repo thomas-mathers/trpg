@@ -31,6 +31,5 @@ internal static class BuildingTypeMapper
             DataBuildingType.Tavern => ContractBuildingType.Tavern,
             DataBuildingType.Temple => ContractBuildingType.Temple,
             DataBuildingType.Tower => ContractBuildingType.Tower,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

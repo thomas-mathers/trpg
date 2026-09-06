@@ -12,6 +12,5 @@ internal static class ArmorTypeMapper
             ArmorType.Chest => ItemType.Chest,
             ArmorType.Boots => ItemType.Boots,
             ArmorType.Gloves => ItemType.Gloves,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

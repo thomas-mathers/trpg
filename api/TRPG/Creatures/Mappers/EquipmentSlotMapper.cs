@@ -18,7 +18,6 @@ internal static class EquipmentSlotMapper
             DataEquipmentSlot.LeftRing => ContractEquipmentSlot.LeftRing,
             DataEquipmentSlot.RightRing => ContractEquipmentSlot.RightRing,
             DataEquipmentSlot.Belt => ContractEquipmentSlot.Belt,
-            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
         };
 
     public static DataEquipmentSlot ToDataModel(this ContractEquipmentSlot slot) =>
@@ -34,6 +33,5 @@ internal static class EquipmentSlotMapper
             ContractEquipmentSlot.LeftRing => DataEquipmentSlot.LeftRing,
             ContractEquipmentSlot.RightRing => DataEquipmentSlot.RightRing,
             ContractEquipmentSlot.Belt => DataEquipmentSlot.Belt,
-            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null),
         };
 }

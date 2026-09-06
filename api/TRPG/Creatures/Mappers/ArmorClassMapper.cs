@@ -12,6 +12,5 @@ internal static class ArmorClassMapper
             DataArmorClass.Leather => ContractArmorClass.Leather,
             DataArmorClass.Mail => ContractArmorClass.Mail,
             DataArmorClass.Plate => ContractArmorClass.Plate,
-            _ => throw new ArgumentOutOfRangeException(nameof(armorClass), armorClass, null),
         };
 }

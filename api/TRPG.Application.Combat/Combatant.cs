@@ -274,6 +274,5 @@ public class Combatant
             DamageType.Lightning => LightningResistance,
             DamageType.Poison => PoisonResistance,
             DamageType.Magic => MagicResistance,
-            _ => throw new ArgumentOutOfRangeException(nameof(damageType)),
         };
 }

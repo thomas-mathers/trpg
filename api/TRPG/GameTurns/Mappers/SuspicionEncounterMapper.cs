@@ -15,6 +15,5 @@ internal static class SuspicionEncounterMapper
                 "the player was noticed moving furtively, as if trying not to be seen",
             SuspicionCause.CastingMagicInPublic =>
                 "the player was noticed casting magic openly in public",
-            _ => throw new ArgumentOutOfRangeException(nameof(cause)),
         };
 }

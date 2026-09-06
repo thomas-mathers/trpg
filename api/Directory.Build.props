@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AnalysisMode>All</AnalysisMode>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors>CS8509</WarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <NoWarn>CA1515;CA5394;CA1848;CA1873;CA1303</NoWarn>
   </PropertyGroup>

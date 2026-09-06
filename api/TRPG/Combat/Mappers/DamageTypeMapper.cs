@@ -14,6 +14,5 @@ internal static class DamageTypeMapper
             DataDamageType.Lightning => ContractDamageType.Lightning,
             DataDamageType.Poison => ContractDamageType.Poison,
             DataDamageType.Magic => ContractDamageType.Magic,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }

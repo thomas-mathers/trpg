@@ -11,6 +11,5 @@ internal static class SpecialHitTypeMapper
             DataSpecialHitType.CrushingBlow => ContractSpecialHitType.CrushingBlow,
             DataSpecialHitType.DeadlyStrike => ContractSpecialHitType.DeadlyStrike,
             DataSpecialHitType.OpenWounds => ContractSpecialHitType.OpenWounds,
-            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
         };
 }
