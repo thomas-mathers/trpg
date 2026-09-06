@@ -69,11 +69,21 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
             BuildingName = "The Sundry Store",
             OccurredAt = DateTime.UtcNow.AddMinutes(-10),
         };
-        _context.Crimes.AddRange(kill, theft, breakIn);
+        var trespass = new TrespassingCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = LocationId,
+            BuildingId = Guid.NewGuid(),
+            BuildingName = "The Gilded Manor",
+            OccurredAt = DateTime.UtcNow.AddMinutes(-5),
+        };
+        _context.Crimes.AddRange(kill, theft, breakIn, trespass);
         _context.CrimeWitnesses.AddRange(
             Builders.MakeCrimeWitness(kill.Id, _witness.Id, WorldId),
             Builders.MakeCrimeWitness(theft.Id, _witness.Id, WorldId),
-            Builders.MakeCrimeWitness(breakIn.Id, _witness.Id, WorldId)
+            Builders.MakeCrimeWitness(breakIn.Id, _witness.Id, WorldId),
+            Builders.MakeCrimeWitness(trespass.Id, _witness.Id, WorldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -92,7 +102,8 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
         // DateTime, so compare it separately from the fields that survive the round trip exactly.
         Assert.Equal(
             [
-                (WitnessedCrimeKind.Lockpicking, "The Sundry Store", (TheftCrimeOutcome?)null),
+                (WitnessedCrimeKind.Trespassing, "The Gilded Manor", (TheftCrimeOutcome?)null),
+                (WitnessedCrimeKind.Lockpicking, "The Sundry Store", null),
                 (WitnessedCrimeKind.Theft, "Mara", TheftCrimeOutcome.Taken),
                 (WitnessedCrimeKind.Kill, "Victim", null),
             ],
@@ -100,6 +111,7 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
         );
         Assert.True(result[0].OccurredAt > result[1].OccurredAt);
         Assert.True(result[1].OccurredAt > result[2].OccurredAt);
+        Assert.True(result[2].OccurredAt > result[3].OccurredAt);
     }
 
     [Fact]

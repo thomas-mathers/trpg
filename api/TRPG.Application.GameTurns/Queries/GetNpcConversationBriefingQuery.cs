@@ -340,6 +340,8 @@ internal class GetNpcConversationBriefingQueryHandler(
                 WitnessedCrimeKind.Kill => $"You witnessed the player kill {crime.SubjectName}.",
                 WitnessedCrimeKind.Lockpicking =>
                     $"You witnessed the player break into {crime.SubjectName}.",
+                WitnessedCrimeKind.Trespassing =>
+                    $"You caught the player somewhere they had no business being inside {crime.SubjectName}.",
                 _ when crime.Outcome == TheftCrimeOutcome.Apologized =>
                     $"You witnessed the player steal from {crime.SubjectName}, though they later apologized and made it right.",
                 _ => $"You witnessed the player steal from {crime.SubjectName}.",
