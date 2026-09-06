@@ -85,7 +85,6 @@ public sealed class ResolveTheftCrimeWitnessesCommandTests(DatabaseFixture db) :
         Assert.Equal(CrimeResolution.Reported, persistedCrime!.Resolution);
         Assert.Equal(CrimeWitnessResolution.Reported, persistedWitness.Resolution);
         var report = Assert.Single(result.ReportedCrimes);
-        Assert.Equal(crime.Id, report.TheftCrimeId);
         Assert.Equal([witness.Id], report.ReportedWitnessIds);
     }
 

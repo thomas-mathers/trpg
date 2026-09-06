@@ -1,13 +1,14 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Configuration;
+using TRPG.Application.Crimes.Mappers;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
 
-public record TrespassingCrimeReport(Guid CrimeId, IReadOnlyCollection<Guid> ReportedWitnessIds);
-
 public record ResolveTrespassingCrimeWitnessesResult(
-    IReadOnlyCollection<TrespassingCrimeReport> ReportedCrimes
+    IReadOnlyCollection<CrimeReport> ReportedCrimes
 );
 
 public class ResolveTrespassingCrimeWitnessesCommand
@@ -20,7 +21,8 @@ public class ResolveTrespassingCrimeWitnessesCommand
 
 internal class ResolveTrespassingCrimeWitnessesCommandHandler(
     ICrimesDbContext context,
-    PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution
+    PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution,
+    IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ResolveTrespassingCrimeWitnessesCommand, ResolveTrespassingCrimeWitnessesResult>
 {
     public async Task<ResolveTrespassingCrimeWitnessesResult> Handle(
@@ -42,11 +44,11 @@ internal class ResolveTrespassingCrimeWitnessesCommandHandler(
 
         await context.SaveChangesAsync(cancellationToken);
 
+        var options = reputationOptions.CurrentValue;
         var reportedCrimes = resolution
-            .ReportedCrimes.Select(crime => new TrespassingCrimeReport(
-                crime.Id,
-                resolution.ReportingWitnessIdsByCrimeId[crime.Id]
-            ))
+            .ReportedCrimes.Select(crime =>
+                crime.ToCrimeReport(resolution.ReportingWitnessIdsByCrimeId[crime.Id], options)
+            )
             .ToArray();
 
         return new ResolveTrespassingCrimeWitnessesResult(reportedCrimes);
