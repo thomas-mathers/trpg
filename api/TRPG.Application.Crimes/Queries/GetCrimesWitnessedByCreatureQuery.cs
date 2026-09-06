@@ -10,6 +10,7 @@ public enum WitnessedCrimeKind
     Kill,
     Theft,
     Lockpicking,
+    Trespassing,
 }
 
 public record WitnessedCrime(
@@ -70,6 +71,12 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
                 breakIn.OccurredAt,
                 WitnessedCrimeKind.Lockpicking,
                 breakIn.BuildingName,
+                null
+            ),
+            TrespassingCrime trespass => new WitnessedCrime(
+                trespass.OccurredAt,
+                WitnessedCrimeKind.Trespassing,
+                trespass.BuildingName,
                 null
             ),
             _ => throw new InvalidOperationException($"Unhandled crime type {crime.GetType()}"),
