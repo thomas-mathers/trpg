@@ -2,7 +2,6 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Configuration;
 using TRPG.Application.Crimes.Mappers;
-using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
@@ -18,7 +17,6 @@ public class ResolveAssaultCrimeWitnessesCommand
 }
 
 internal class ResolveAssaultCrimeWitnessesCommandHandler(
-    ICrimesDbContext context,
     PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution,
     IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ResolveAssaultCrimeWitnessesCommand, ResolveAssaultCrimeWitnessesResult>
@@ -35,12 +33,6 @@ internal class ResolveAssaultCrimeWitnessesCommandHandler(
             command.LiveWitnessCreatureIds,
             cancellationToken
         );
-        if (resolution.Crimes.Count == 0)
-        {
-            return new ResolveAssaultCrimeWitnessesResult([]);
-        }
-
-        await context.SaveChangesAsync(cancellationToken);
 
         var options = reputationOptions.CurrentValue;
         var reportedCrimes = resolution
