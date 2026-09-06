@@ -149,7 +149,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasDiscriminator<string>("crime_type")
                 .HasValue<KillCrime>("Kill")
                 .HasValue<TheftCrime>("Theft")
-                .HasValue<BreakingAndEnteringCrime>("BreakEnter");
+                .HasValue<LockpickingCrime>("Lockpicking")
+                .HasValue<TrespassingCrime>("Trespassing");
         });
 
         modelBuilder.Entity<CrimeWitness>(entity =>
@@ -164,11 +165,23 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.Property(crime => crime.Items).HasJsonConversion(() => []);
         });
 
-        modelBuilder.Entity<BreakingAndEnteringCrime>(entity =>
+        modelBuilder.Entity<LockpickingCrime>(entity =>
         {
             entity
                 .Property(crime => crime.OwnerFactionId)
-                .HasColumnName("break_enter_owner_faction_id");
+                .HasColumnName("lockpicking_owner_faction_id");
+
+            // Shares a name with TheftCrime.Outcome but not its enum, so it needs its own column.
+            entity.Property(crime => crime.Outcome).HasColumnName("lockpicking_outcome");
+        });
+
+        modelBuilder.Entity<TrespassingCrime>(entity =>
+        {
+            entity.Property(crime => crime.BuildingId).HasColumnName("trespassing_building_id");
+            entity.Property(crime => crime.BuildingName).HasColumnName("trespassing_building_name");
+            entity
+                .Property(crime => crime.OwnerFactionId)
+                .HasColumnName("trespassing_owner_faction_id");
         });
 
         modelBuilder.Entity<Creature>(entity =>

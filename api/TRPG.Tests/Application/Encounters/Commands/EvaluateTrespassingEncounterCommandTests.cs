@@ -22,6 +22,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private EvaluateTrespassingEncounterCommandHandler _handler = null!;
     private Creature _player = null!;
+    private readonly Faction _ownerFaction = Builders.MakeFaction(WorldId, isCityFaction: true);
 
     public async ValueTask InitializeAsync()
     {
@@ -40,7 +41,8 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         var building = Builders.MakeBuilding(
             worldId: WorldId,
             buildingType: BuildingType.House,
-            id: _buildingId
+            id: _buildingId,
+            factionId: _ownerFaction.Id
         );
         var room = Builders.MakeRoom(_buildingId, worldId: WorldId, locationId: _roomLocationId);
         var location = Builders.MakeLocation(
@@ -50,6 +52,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         );
 
         _context.Creatures.Add(_player);
+        _context.Factions.Add(_ownerFaction);
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
@@ -160,10 +163,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     {
         // Arrange
         var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
-        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
         _context.Creatures.Add(occupant);
-        _context.Factions.Add(faction);
-        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
         await SeedBreakInCrime();
         await SeedFrontDoor(isLocked: true);
         _chanceRoller.Result = true;
@@ -176,9 +176,105 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(faction.Id, result.FactionId);
+        Assert.Equal(_ownerFaction.Id, result.FactionId);
         var member = Assert.Single(result.Members);
         Assert.Equal(occupant.Id, member.Id);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsEveryOccupantPresentAsAWitness_NotOnlyTheConfrontingOne()
+    {
+        // Arrange
+        var confronter = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        var bystander = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        var sleeper = Builders.MakeCreature(
+            WorldId,
+            locationId: _roomLocationId,
+            state: CreatureState.Sleeping
+        );
+        _context.Creatures.AddRange(confronter, bystander, sleeper);
+        await SeedBreakInCrime();
+        await SeedFrontDoor(isLocked: true);
+        _chanceRoller.Result = true;
+
+        // Act
+        await _handler.Handle(
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var witnessIds = await verifyContext
+            .CrimeWitnesses.Where(witness => witness.WorldId == WorldId)
+            .Select(witness => witness.CreatureId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+
+        Assert.Contains(confronter.Id, witnessIds);
+        Assert.Contains(bystander.Id, witnessIds);
+        Assert.DoesNotContain(sleeper.Id, witnessIds);
+        Assert.DoesNotContain(_player.Id, witnessIds);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsHostileEncounter_WhenTheDoorIsLocked_EvenWithoutAPriorBreakIn()
+    {
+        // Arrange — no break-in crime seeded; being spotted inside a locked building is enough
+        var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        _context.Creatures.Add(occupant);
+        await SeedFrontDoor(isLocked: true);
+        _chanceRoller.Result = true;
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotNull(result);
+
+        await using var verifyContext = db.CreateContext();
+        var crime = await verifyContext
+            .Crimes.OfType<TrespassingCrime>()
+            .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(_ownerFaction.Id, crime.OwnerFactionId);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNull_WhenAlreadyCaughtTrespassingInTheSameBuilding()
+    {
+        // Arrange — a pending trespass for this building means this is still the same visit
+        var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
+        _context.Creatures.Add(occupant);
+        _context.Crimes.Add(
+            new TrespassingCrime
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = Guid.NewGuid(),
+                BuildingId = _buildingId,
+                BuildingName = "House",
+                OwnerFactionId = _ownerFaction.Id,
+            }
+        );
+        await SeedFrontDoor(isLocked: true);
+        _chanceRoller.Result = true;
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result);
+
+        await using var verifyContext = db.CreateContext();
+        var crimeCount = await verifyContext
+            .Crimes.OfType<TrespassingCrime>()
+            .CountAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(1, crimeCount);
     }
 
     [Fact]
@@ -212,10 +308,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     {
         // Arrange — no sneak stance means no chance to avoid detection, whatever the roll says.
         var occupant = Builders.MakeCreature(WorldId, locationId: _roomLocationId);
-        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
         _context.Creatures.Add(occupant);
-        _context.Factions.Add(faction);
-        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
         await SeedBreakInCrime();
         await SeedFrontDoor(isLocked: true);
         _player.IsSneaking = false;
@@ -237,7 +330,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
     private async Task SeedBreakInCrime()
     {
         _context.Crimes.Add(
-            new BreakingAndEnteringCrime
+            new LockpickingCrime
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,

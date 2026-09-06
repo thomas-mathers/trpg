@@ -100,7 +100,10 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
         Guid EncounterLocationId
     );
 
-    private async Task<GuardEncounter> SeedActiveEncounter(Guid locationId)
+    private async Task<GuardEncounter> SeedActiveEncounter(
+        Guid locationId,
+        Guid? triggeringCrimeId = null
+    )
     {
         var encounter = new GuardEncounter
         {
@@ -114,6 +117,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             ReputationScore = -50,
             FineAmount = 250,
             JailHours = 24,
+            TriggeringCrimeId = triggeringCrimeId,
         };
         _context.Encounters.Add(encounter);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -323,6 +327,55 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             TestContext.Current.CancellationToken
         );
         Assert.Equal(0, activeEncounters);
+    }
+
+    [Fact]
+    public async Task Handle_GoToJail_SettlesTheTriggeringCrimeBeforeTheRelocationResolvesIt()
+    {
+        // Arrange — the jail move is what resolves the crime, so the settled outcome has to be
+        // recorded first or the player pays the full unsettled penalty
+        var jail = await SeedJail();
+        _player.LocationId = jail.EncounterLocationId;
+        var witness = Builders.MakeCreature(WorldId, locationId: jail.EncounterLocationId);
+        var ownerFaction = Builders.MakeFaction(WorldId);
+        var crime = new LockpickingCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = jail.EncounterLocationId,
+            BuildingId = Guid.NewGuid(),
+            BuildingName = "Locked Warehouse",
+            OwnerFactionId = ownerFaction.Id,
+        };
+        _context.Creatures.Add(witness);
+        _context.Factions.Add(ownerFaction);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(Builders.MakeCrimeWitness(crime.Id, witness.Id, WorldId));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedActiveEncounter(
+            jail.EncounterLocationId,
+            triggeringCrimeId: crime.Id
+        );
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(new GoToJailEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var persistedCrime = await verifyContext
+            .Crimes.OfType<LockpickingCrime>()
+            .SingleAsync(c => c.Id == crime.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(LockpickingCrimeOutcome.SettledWithGuard, persistedCrime.Outcome);
+        Assert.Equal(CrimeResolution.Reported, persistedCrime.Resolution);
+
+        var reputation = await verifyContext.Reputations.SingleAsync(
+            r => r.CreatureId == _player.Id && r.TargetId == ownerFaction.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(-4, reputation.Score);
     }
 
     [Fact]

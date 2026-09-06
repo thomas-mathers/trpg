@@ -8,24 +8,24 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
 
-public class ApplyReputationPenaltyForBreakingAndEnteringCommand
+public class ApplyReputationPenaltyForTrespassingCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
-    public required IReadOnlyCollection<BreakingAndEnteringCrimeReport> Crimes { get; init; }
+    public required IReadOnlyCollection<TrespassingCrimeReport> Crimes { get; init; }
 }
 
-internal class ApplyReputationPenaltyForBreakingAndEnteringCommandHandler(
+internal class ApplyReputationPenaltyForTrespassingCommandHandler(
     IQueryHandler<
-        GetBreakingAndEnteringCrimeDetailsByIdsQuery,
-        IReadOnlyDictionary<Guid, BreakingAndEnteringCrimeDetails>
-    > getBreakingAndEnteringCrimeDetailsByIds,
+        GetTrespassingCrimeDetailsByIdsQuery,
+        IReadOnlyDictionary<Guid, TrespassingCrimeDetails>
+    > getTrespassingCrimeDetailsByIds,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IOptionsMonitor<ReputationOptions> reputationOptions
-) : ICommandHandler<ApplyReputationPenaltyForBreakingAndEnteringCommand>
+) : ICommandHandler<ApplyReputationPenaltyForTrespassingCommand>
 {
     public async Task Handle(
-        ApplyReputationPenaltyForBreakingAndEnteringCommand command,
+        ApplyReputationPenaltyForTrespassingCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -35,20 +35,20 @@ internal class ApplyReputationPenaltyForBreakingAndEnteringCommandHandler(
         }
 
         var crimeIds = command.Crimes.Select(crime => crime.CrimeId).ToArray();
-        var crimeDetails = await getBreakingAndEnteringCrimeDetailsByIds.Handle(
-            new GetBreakingAndEnteringCrimeDetailsByIdsQuery { CrimeIds = crimeIds },
+        var crimeDetails = await getTrespassingCrimeDetailsByIds.Handle(
+            new GetTrespassingCrimeDetailsByIdsQuery { CrimeIds = crimeIds },
             cancellationToken
         );
 
-        var penalty = reputationOptions.CurrentValue.BreakingAndEnteringReputationPenalty;
+        var penalty = reputationOptions.CurrentValue.TrespassingReputationPenalty;
 
         await ApplyFactionPenalty(command, crimeDetails, penalty, cancellationToken);
         await ApplyWitnessPenalty(command, penalty, cancellationToken);
     }
 
     private async Task ApplyFactionPenalty(
-        ApplyReputationPenaltyForBreakingAndEnteringCommand command,
-        IReadOnlyDictionary<Guid, BreakingAndEnteringCrimeDetails> crimeDetails,
+        ApplyReputationPenaltyForTrespassingCommand command,
+        IReadOnlyDictionary<Guid, TrespassingCrimeDetails> crimeDetails,
         int penalty,
         CancellationToken cancellationToken
     )
@@ -72,14 +72,14 @@ internal class ApplyReputationPenaltyForBreakingAndEnteringCommandHandler(
                     .Select(pair => new ReputationAdjustment(pair.Key, pair.Value))
                     .ToArray(),
                 TargetType = ReputationTargetType.Faction,
-                Reason = ReputationReason.BrokeIntoFactionProperty,
+                Reason = ReputationReason.TrespassedOnFactionProperty,
             },
             cancellationToken
         );
     }
 
     private async Task ApplyWitnessPenalty(
-        ApplyReputationPenaltyForBreakingAndEnteringCommand command,
+        ApplyReputationPenaltyForTrespassingCommand command,
         int penalty,
         CancellationToken cancellationToken
     )
@@ -105,7 +105,7 @@ internal class ApplyReputationPenaltyForBreakingAndEnteringCommandHandler(
                 WorldId = command.WorldId,
                 Adjustments = witnessAdjustments,
                 TargetType = ReputationTargetType.Creature,
-                Reason = ReputationReason.WitnessedBreakingAndEntering,
+                Reason = ReputationReason.WitnessedTrespassing,
             },
             cancellationToken
         );

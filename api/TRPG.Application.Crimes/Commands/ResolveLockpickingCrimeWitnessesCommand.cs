@@ -4,16 +4,13 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
 
-public record BreakingAndEnteringCrimeReport(
-    Guid CrimeId,
-    IReadOnlyCollection<Guid> ReportedWitnessIds
+public record LockpickingCrimeReport(Guid CrimeId, IReadOnlyCollection<Guid> ReportedWitnessIds);
+
+public record ResolveLockpickingCrimeWitnessesResult(
+    IReadOnlyCollection<LockpickingCrimeReport> ReportedCrimes
 );
 
-public record ResolveBreakingAndEnteringCrimeWitnessesResult(
-    IReadOnlyCollection<BreakingAndEnteringCrimeReport> ReportedCrimes
-);
-
-public class ResolveBreakingAndEnteringCrimeWitnessesCommand
+public class ResolveLockpickingCrimeWitnessesCommand
 {
     public required Guid LocationId { get; init; }
     public required Guid PlayerId { get; init; }
@@ -21,21 +18,17 @@ public class ResolveBreakingAndEnteringCrimeWitnessesCommand
     public required IReadOnlyCollection<Guid> LiveWitnessCreatureIds { get; init; }
 }
 
-internal class ResolveBreakingAndEnteringCrimeWitnessesCommandHandler(
+internal class ResolveLockpickingCrimeWitnessesCommandHandler(
     ICrimesDbContext context,
     PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution
-)
-    : ICommandHandler<
-        ResolveBreakingAndEnteringCrimeWitnessesCommand,
-        ResolveBreakingAndEnteringCrimeWitnessesResult
-    >
+) : ICommandHandler<ResolveLockpickingCrimeWitnessesCommand, ResolveLockpickingCrimeWitnessesResult>
 {
-    public async Task<ResolveBreakingAndEnteringCrimeWitnessesResult> Handle(
-        ResolveBreakingAndEnteringCrimeWitnessesCommand command,
+    public async Task<ResolveLockpickingCrimeWitnessesResult> Handle(
+        ResolveLockpickingCrimeWitnessesCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var resolution = await pendingCrimeWitnessResolution.Resolve<BreakingAndEnteringCrime>(
+        var resolution = await pendingCrimeWitnessResolution.Resolve<LockpickingCrime>(
             command.WorldId,
             command.PlayerId,
             command.LocationId,
@@ -44,18 +37,18 @@ internal class ResolveBreakingAndEnteringCrimeWitnessesCommandHandler(
         );
         if (resolution.Crimes.Count == 0)
         {
-            return new ResolveBreakingAndEnteringCrimeWitnessesResult([]);
+            return new ResolveLockpickingCrimeWitnessesResult([]);
         }
 
         await context.SaveChangesAsync(cancellationToken);
 
         var reportedCrimes = resolution
-            .ReportedCrimes.Select(crime => new BreakingAndEnteringCrimeReport(
+            .ReportedCrimes.Select(crime => new LockpickingCrimeReport(
                 crime.Id,
                 resolution.ReportingWitnessIdsByCrimeId[crime.Id]
             ))
             .ToArray();
 
-        return new ResolveBreakingAndEnteringCrimeWitnessesResult(reportedCrimes);
+        return new ResolveLockpickingCrimeWitnessesResult(reportedCrimes);
     }
 }

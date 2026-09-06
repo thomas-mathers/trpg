@@ -57,6 +57,9 @@ public class GuardEncounter : Encounter
     public required int FineAmount { get; init; }
     public required int JailHours { get; init; }
     public List<string> RecentOffenses { get; init; } = [];
+
+    // Null when the guard is reacting to standing reputation rather than a specific offence.
+    public Guid? TriggeringCrimeId { get; init; }
 }
 
 public class TheftEncounter : Encounter

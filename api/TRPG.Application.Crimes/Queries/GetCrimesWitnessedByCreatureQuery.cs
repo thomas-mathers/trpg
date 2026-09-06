@@ -9,7 +9,7 @@ public enum WitnessedCrimeKind
 {
     Kill,
     Theft,
-    BreakingAndEntering,
+    Lockpicking,
 }
 
 public record WitnessedCrime(
@@ -66,9 +66,9 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
                 theft.OwnerName,
                 theft.Outcome
             ),
-            BreakingAndEnteringCrime breakIn => new WitnessedCrime(
+            LockpickingCrime breakIn => new WitnessedCrime(
                 breakIn.OccurredAt,
-                WitnessedCrimeKind.BreakingAndEntering,
+                WitnessedCrimeKind.Lockpicking,
                 breakIn.BuildingName,
                 null
             ),

@@ -8,14 +8,14 @@ using TRPG.Tests.Helpers;
 namespace TRPG.Tests.Application.Crimes.Commands;
 
 [Collection("Database")]
-public sealed class ResolveBreakingAndEnteringCrimeWitnessesCommandTests(DatabaseFixture db)
+public sealed class ResolveLockpickingCrimeWitnessesCommandTests(DatabaseFixture db)
     : IAsyncLifetime
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid LocationId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private ResolveBreakingAndEnteringCrimeWitnessesCommandHandler _handler = null!;
+    private ResolveLockpickingCrimeWitnessesCommandHandler _handler = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId, locationId: LocationId);
 
     public async ValueTask InitializeAsync()
@@ -25,7 +25,7 @@ public sealed class ResolveBreakingAndEnteringCrimeWitnessesCommandTests(Databas
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler =
-            _serviceProvider.GetRequiredService<ResolveBreakingAndEnteringCrimeWitnessesCommandHandler>();
+            _serviceProvider.GetRequiredService<ResolveLockpickingCrimeWitnessesCommandHandler>();
 
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -47,7 +47,7 @@ public sealed class ResolveBreakingAndEnteringCrimeWitnessesCommandTests(Databas
             locationId: LocationId,
             state: CreatureState.Dead
         );
-        var crime = new BreakingAndEnteringCrime
+        var crime = new LockpickingCrime
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
@@ -65,7 +65,7 @@ public sealed class ResolveBreakingAndEnteringCrimeWitnessesCommandTests(Databas
 
         // Act
         var result = await _handler.Handle(
-            new ResolveBreakingAndEnteringCrimeWitnessesCommand
+            new ResolveLockpickingCrimeWitnessesCommand
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
@@ -96,7 +96,7 @@ public sealed class ResolveBreakingAndEnteringCrimeWitnessesCommandTests(Databas
             locationId: LocationId,
             state: CreatureState.Dead
         );
-        var crime = new BreakingAndEnteringCrime
+        var crime = new LockpickingCrime
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
@@ -111,7 +111,7 @@ public sealed class ResolveBreakingAndEnteringCrimeWitnessesCommandTests(Databas
 
         // Act
         var result = await _handler.Handle(
-            new ResolveBreakingAndEnteringCrimeWitnessesCommand
+            new ResolveLockpickingCrimeWitnessesCommand
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
