@@ -1,16 +1,12 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
-using TRPG.Data.ModuleContexts;
+using TRPG.Application.Configuration;
+using TRPG.Application.Crimes.Mappers;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
 
-public record KillCrimeReport(
-    Guid VictimId,
-    IReadOnlyCollection<Guid> VictimFactionIds,
-    IReadOnlyCollection<Guid> ReportedWitnessIds
-);
-
-public record ResolveKillCrimeWitnessesResult(IReadOnlyCollection<KillCrimeReport> ReportedCrimes);
+public record ResolveKillCrimeWitnessesResult(IReadOnlyCollection<CrimeReport> ReportedCrimes);
 
 public class ResolveKillCrimeWitnessesCommand
 {
@@ -21,8 +17,8 @@ public class ResolveKillCrimeWitnessesCommand
 }
 
 internal class ResolveKillCrimeWitnessesCommandHandler(
-    ICrimesDbContext context,
-    PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution
+    PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution,
+    IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ResolveKillCrimeWitnessesCommand, ResolveKillCrimeWitnessesResult>
 {
     public async Task<ResolveKillCrimeWitnessesResult> Handle(
@@ -37,19 +33,12 @@ internal class ResolveKillCrimeWitnessesCommandHandler(
             command.LiveWitnessCreatureIds,
             cancellationToken
         );
-        if (resolution.Crimes.Count == 0)
-        {
-            return new ResolveKillCrimeWitnessesResult([]);
-        }
 
-        await context.SaveChangesAsync(cancellationToken);
-
+        var options = reputationOptions.CurrentValue;
         var reportedCrimes = resolution
-            .ReportedCrimes.Select(crime => new KillCrimeReport(
-                crime.VictimId,
-                crime.VictimFactionIds,
-                resolution.ReportingWitnessIdsByCrimeId[crime.Id]
-            ))
+            .ReportedCrimes.Select(crime =>
+                crime.ToCrimeReport(resolution.ReportingWitnessIdsByCrimeId[crime.Id], options)
+            )
             .ToArray();
 
         return new ResolveKillCrimeWitnessesResult(reportedCrimes);

@@ -83,7 +83,6 @@ public sealed class ResolveLockpickingCrimeWitnessesCommandTests(DatabaseFixture
         );
         Assert.Equal(CrimeResolution.Reported, storedCrime.Resolution);
         var report = Assert.Single(result.ReportedCrimes);
-        Assert.Equal(crime.Id, report.CrimeId);
         Assert.Equal([movedWitness.Id], report.ReportedWitnessIds);
     }
 

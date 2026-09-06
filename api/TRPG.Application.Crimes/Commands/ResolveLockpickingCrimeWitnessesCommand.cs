@@ -1,13 +1,13 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
-using TRPG.Data.ModuleContexts;
+using TRPG.Application.Configuration;
+using TRPG.Application.Crimes.Mappers;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
 
-public record LockpickingCrimeReport(Guid CrimeId, IReadOnlyCollection<Guid> ReportedWitnessIds);
-
 public record ResolveLockpickingCrimeWitnessesResult(
-    IReadOnlyCollection<LockpickingCrimeReport> ReportedCrimes
+    IReadOnlyCollection<CrimeReport> ReportedCrimes
 );
 
 public class ResolveLockpickingCrimeWitnessesCommand
@@ -19,8 +19,8 @@ public class ResolveLockpickingCrimeWitnessesCommand
 }
 
 internal class ResolveLockpickingCrimeWitnessesCommandHandler(
-    ICrimesDbContext context,
-    PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution
+    PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution,
+    IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICommandHandler<ResolveLockpickingCrimeWitnessesCommand, ResolveLockpickingCrimeWitnessesResult>
 {
     public async Task<ResolveLockpickingCrimeWitnessesResult> Handle(
@@ -35,18 +35,12 @@ internal class ResolveLockpickingCrimeWitnessesCommandHandler(
             command.LiveWitnessCreatureIds,
             cancellationToken
         );
-        if (resolution.Crimes.Count == 0)
-        {
-            return new ResolveLockpickingCrimeWitnessesResult([]);
-        }
 
-        await context.SaveChangesAsync(cancellationToken);
-
+        var options = reputationOptions.CurrentValue;
         var reportedCrimes = resolution
-            .ReportedCrimes.Select(crime => new LockpickingCrimeReport(
-                crime.Id,
-                resolution.ReportingWitnessIdsByCrimeId[crime.Id]
-            ))
+            .ReportedCrimes.Select(crime =>
+                crime.ToCrimeReport(resolution.ReportingWitnessIdsByCrimeId[crime.Id], options)
+            )
             .ToArray();
 
         return new ResolveLockpickingCrimeWitnessesResult(reportedCrimes);
