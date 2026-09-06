@@ -148,6 +148,58 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
         Assert.Equal(expectedScore, reputation.Score);
     }
 
+    [Fact]
+    public async Task Handle_PenalizesTheVictimsFactionAndEachWitness_WhenAnAssaultIsReported()
+    {
+        // Arrange
+        var witness = Builders.MakeCreature(WorldId, locationId: LocationId);
+        var victim = Builders.MakeCreature(WorldId, locationId: LocationId);
+        var crime = new AssaultCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = LocationId,
+            VictimId = victim.Id,
+            VictimName = victim.Name,
+            VictimFactionIds = [_ownerFaction.Id],
+        };
+        _context.Creatures.AddRange(witness, victim);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(Builders.MakeCrimeWitness(crime.Id, witness.Id, WorldId));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ResolveCrimeConsequencesAtLocationCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = LocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var persistedCrime = await verifyContext.Crimes.FindAsync(
+            [crime.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CrimeResolution.Reported, persistedCrime!.Resolution);
+
+        var factionReputation = await verifyContext.Reputations.SingleAsync(
+            r => r.CreatureId == _player.Id && r.TargetId == _ownerFaction.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(-40, factionReputation.Score);
+
+        var witnessReputation = await verifyContext.Reputations.SingleAsync(
+            r => r.CreatureId == _player.Id && r.TargetId == witness.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(-40, witnessReputation.Score);
+    }
+
     private LockpickingCrime SeedBreakInWitnessedBy(
         Creature witness,
         bool isJailbreak = false,

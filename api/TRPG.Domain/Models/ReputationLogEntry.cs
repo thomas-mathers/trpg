@@ -8,6 +8,8 @@ public enum ReputationReason
     PaidFineToGuard,
     ServedJailTime,
     WitnessedKilling,
+    AssaultedFactionMember,
+    WitnessedAssault,
     WitnessedTheft,
     PickedFactionLock,
     WitnessedLockpicking,

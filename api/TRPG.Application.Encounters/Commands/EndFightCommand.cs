@@ -8,8 +8,11 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Crimes.Events;
+using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Reputations.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -36,6 +39,13 @@ internal class EndFightCommandHandler(
         GetFactionIdsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
     > getFactionIdsByCreatureIds,
+    IQueryHandler<HasPendingViolentCrimeAtLocationQuery, bool> hasPendingViolentCrimeAtLocation,
+    IQueryHandler<GetGuardAtLocationQuery, Creature?> getGuardAtLocation,
+    IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
+    IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
+    ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<EndFightCommand>
 {
@@ -98,6 +108,8 @@ internal class EndFightCommandHandler(
             fight.State = EncounterState.Completed;
             fight.Outcome = state.Outcome;
             await context.SaveChangesAsync(cancellationToken);
+
+            await ConfrontViolentCrime(fight, command.WorldId, state, cancellationToken);
         }
 
         transaction.Complete();
@@ -183,5 +195,87 @@ internal class EndFightCommandHandler(
             );
             gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Killing));
         }
+    }
+
+    // The fight is the active encounter until it completes, so the guard can only step in afterwards.
+    private async Task ConfrontViolentCrime(
+        FightEncounter fight,
+        Guid worldId,
+        CombatState state,
+        CancellationToken cancellationToken
+    )
+    {
+        var player = state.Combatants.FirstOrDefault(combatant => combatant.IsPlayer);
+        if (player is not { IsAlive: true } || state.Outcome == CombatOutcome.Fled)
+        {
+            return;
+        }
+
+        var guard = await getGuardAtLocation.Handle(
+            new GetGuardAtLocationQuery { WorldId = worldId, LocationId = fight.LocationId },
+            cancellationToken
+        );
+        if (guard == null || guard.Id == player.Id || guard.State == CreatureState.Dead)
+        {
+            return;
+        }
+
+        var hasViolentCrime = await hasPendingViolentCrimeAtLocation.Handle(
+            new HasPendingViolentCrimeAtLocationQuery
+            {
+                WorldId = worldId,
+                PlayerId = player.Id,
+                LocationId = fight.LocationId,
+            },
+            cancellationToken
+        );
+        if (!hasViolentCrime)
+        {
+            return;
+        }
+
+        var cityFactionId = await getCityFactionForCreature.Handle(
+            new GetCityFactionForCreatureQuery { CreatureId = guard.Id },
+            cancellationToken
+        );
+        if (cityFactionId == null)
+        {
+            return;
+        }
+
+        var location = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = fight.LocationId },
+            cancellationToken
+        );
+
+        var score = await getReputationScore.Handle(
+            new GetReputationScoreQuery
+            {
+                CreatureId = player.Id,
+                TargetId = cityFactionId.Value,
+                TargetType = ReputationTargetType.Faction,
+            },
+            cancellationToken
+        );
+
+        var encounter = await createGuardEncounter.Handle(
+            new CreateGuardEncounterCommand
+            {
+                WorldId = worldId,
+                PlayerId = player.Id,
+                PlayerLocationId = fight.LocationId,
+                LocationName = location?.Name ?? "",
+                GuardCreatureId = guard.Id,
+                GuardName = guard.Name,
+                CityFactionId = cityFactionId.Value,
+                ReputationScore = score,
+            },
+            cancellationToken
+        );
+
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand { PlayerId = player.Id, Encounter = encounter },
+            cancellationToken
+        );
     }
 }

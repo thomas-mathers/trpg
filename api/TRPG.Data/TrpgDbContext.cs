@@ -148,6 +148,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity
                 .HasDiscriminator<string>("crime_type")
                 .HasValue<KillCrime>("Kill")
+                .HasValue<AssaultCrime>("Assault")
                 .HasValue<TheftCrime>("Theft")
                 .HasValue<LockpickingCrime>("Lockpicking")
                 .HasValue<TrespassingCrime>("Trespassing");
@@ -173,6 +174,15 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
 
             // Shares a name with TheftCrime.Outcome but not its enum, so it needs its own column.
             entity.Property(crime => crime.Outcome).HasColumnName("lockpicking_outcome");
+        });
+
+        modelBuilder.Entity<AssaultCrime>(entity =>
+        {
+            entity.Property(crime => crime.VictimId).HasColumnName("assault_victim_id");
+            entity.Property(crime => crime.VictimName).HasColumnName("assault_victim_name");
+            entity
+                .Property(crime => crime.VictimFactionIds)
+                .HasColumnName("assault_victim_faction_ids");
         });
 
         modelBuilder.Entity<TrespassingCrime>(entity =>
