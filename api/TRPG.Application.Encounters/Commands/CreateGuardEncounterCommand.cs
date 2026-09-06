@@ -19,6 +19,7 @@ public class CreateGuardEncounterCommand
     public required string GuardName { get; init; }
     public required Guid CityFactionId { get; init; }
     public required int ReputationScore { get; init; }
+    public Guid? TriggeringCrimeId { get; init; }
 }
 
 internal class CreateGuardEncounterCommandHandler(
@@ -67,6 +68,7 @@ internal class CreateGuardEncounterCommandHandler(
             RecentOffenses = recentOffenses
                 .Select(entry => entry.Detail ?? entry.Reason.ToDisplayText())
                 .ToList(),
+            TriggeringCrimeId = command.TriggeringCrimeId,
         };
         context.Encounters.Add(encounter);
         await context.SaveChangesAsync(cancellationToken);

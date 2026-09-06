@@ -26,16 +26,16 @@ internal class EvaluateTrespassingEncounterCommandHandler(
         GetBuildingOwnersByBuildingIdQuery,
         IReadOnlyCollection<BuildingOwner>
     > getBuildingOwnersByBuildingId,
-    IQueryHandler<HasPlayerBrokenIntoBuildingQuery, bool> hasPlayerBrokenIntoBuilding,
+    IQueryHandler<HasPendingTrespassInBuildingQuery, bool> hasPendingTrespassInBuilding,
+    IQueryHandler<GetBuildingByIdQuery, Building?> getBuildingById,
     IQueryHandler<GetFrontDoorLockedByBuildingIdQuery, bool?> getFrontDoorLockedByBuildingId,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
     > getLiveHumanoidWitnessesAtLocation,
     SneakDetectionService sneakDetectionService,
-    IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
-    ICommandHandler<AddBreakingAndEnteringCrimesCommand> addBreakingAndEnteringCrimes,
+    ICommandHandler<AddTrespassingCrimesCommand> addTrespassingCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
     IOptionsMonitor<LockpickingOptions> lockpickingOptions
@@ -69,20 +69,25 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             return null;
         }
 
-        var hasBrokenIn = await hasPlayerBrokenIntoBuilding.Handle(
-            new HasPlayerBrokenIntoBuildingQuery { PlayerId = player.Id, BuildingId = building.Id },
-            cancellationToken
-        );
-        if (!hasBrokenIn)
-        {
-            return null;
-        }
-
         var isFrontDoorLocked = await getFrontDoorLockedByBuildingId.Handle(
             new GetFrontDoorLockedByBuildingIdQuery { BuildingId = building.Id },
             cancellationToken
         );
         if (isFrontDoorLocked != true)
+        {
+            return null;
+        }
+
+        // Being spotted again in the next room is the same visit, not a second offence.
+        var alreadyCaught = await hasPendingTrespassInBuilding.Handle(
+            new HasPendingTrespassInBuildingQuery
+            {
+                PlayerId = player.Id,
+                BuildingId = building.Id,
+            },
+            cancellationToken
+        );
+        if (alreadyCaught)
         {
             return null;
         }
@@ -115,28 +120,32 @@ internal class EvaluateTrespassingEncounterCommandHandler(
 
         var confrontingOccupant = witnesses.First();
 
-        var crime = new BreakingAndEnteringCrime
+        var buildingEntity = await getBuildingById.Handle(
+            new GetBuildingByIdQuery { Id = building.Id },
+            cancellationToken
+        );
+
+        // Anchored at the building, not the room, so moving deeper inside doesn't resolve it early.
+        var crime = new TrespassingCrime
         {
             WorldId = command.WorldId,
             PlayerId = player.Id,
-            LocationId = player.LocationId,
+            LocationId = buildingEntity?.ExteriorLocationId ?? player.LocationId,
             BuildingId = building.Id,
             BuildingName = building.Name,
-            OwnerFactionId = await getCityFactionForCreature.Handle(
-                new GetCityFactionForCreatureQuery { CreatureId = confrontingOccupant.Id },
-                cancellationToken
-            ),
+            OwnerFactionId = building.FactionId,
         };
-        await addBreakingAndEnteringCrimes.Handle(
-            new AddBreakingAndEnteringCrimesCommand { Crimes = [crime] },
+        await addTrespassingCrimes.Handle(
+            new AddTrespassingCrimesCommand { Crimes = [crime] },
             cancellationToken
         );
+        // Everyone present saw it, not only whoever steps up to confront the player.
         await addCrimeWitnesses.Handle(
             new AddCrimeWitnessesCommand
             {
                 WorldId = command.WorldId,
                 CrimeIds = [crime.Id],
-                WitnessCreatureIds = [confrontingOccupant.Id],
+                WitnessCreatureIds = witnesses.Select(witness => witness.Id).ToArray(),
             },
             cancellationToken
         );

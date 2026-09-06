@@ -5,24 +5,27 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Queries;
 
-public class HasPlayerBrokenIntoBuildingQuery
+public class HasPendingTrespassInBuildingQuery
 {
     public required Guid PlayerId { get; init; }
     public required Guid BuildingId { get; init; }
 }
 
-internal class HasPlayerBrokenIntoBuildingQueryHandler(ICrimesDbContext context)
-    : IQueryHandler<HasPlayerBrokenIntoBuildingQuery, bool>
+internal class HasPendingTrespassInBuildingQueryHandler(ICrimesDbContext context)
+    : IQueryHandler<HasPendingTrespassInBuildingQuery, bool>
 {
     public async Task<bool> Handle(
-        HasPlayerBrokenIntoBuildingQuery query,
+        HasPendingTrespassInBuildingQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context
-            .Crimes.OfType<BreakingAndEnteringCrime>()
+            .Crimes.OfType<TrespassingCrime>()
             .AsNoTracking()
             .AnyAsync(
-                crime => crime.PlayerId == query.PlayerId && crime.BuildingId == query.BuildingId,
+                crime =>
+                    crime.PlayerId == query.PlayerId
+                    && crime.BuildingId == query.BuildingId
+                    && crime.Resolution == CrimeResolution.Pending,
                 cancellationToken
             );
 }

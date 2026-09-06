@@ -256,16 +256,90 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
     }
 
     [Fact]
+    public async Task Handle_StartsGuardEncounter_WhenPickingATimedLockToBreakOutOfJail()
+    {
+        // Arrange — a timed lock is only ever set by a jail sentence, and the guard station the
+        // player is breaking out into is the destination, not the cell they're leaving
+        var cellsLocationId = Guid.NewGuid();
+        var guardStationLocationId = Guid.NewGuid();
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
+        var jail = Builders.MakeBuilding(
+            worldId: WorldId,
+            buildingType: BuildingType.Jail,
+            factionId: faction.Id
+        );
+        var cellsRoom = Builders.MakeRoom(jail.Id, worldId: WorldId, locationId: cellsLocationId);
+        var guardStationRoom = Builders.MakeRoom(
+            jail.Id,
+            worldId: WorldId,
+            locationId: guardStationLocationId
+        );
+        var guard = Builders.MakeCreature(
+            WorldId,
+            profession: Profession.Guard,
+            locationId: guardStationLocationId
+        );
+        _player.LocationId = cellsLocationId;
+        _player.IsSneaking = false;
+        _context.Buildings.Add(jail);
+        _context.Rooms.AddRange(cellsRoom, guardStationRoom);
+        _context.Locations.AddRange(
+            Builders.MakeLocation(worldId: WorldId, id: cellsLocationId, roomId: cellsRoom.Id),
+            Builders.MakeLocation(
+                worldId: WorldId,
+                id: guardStationLocationId,
+                roomId: guardStationRoom.Id
+            )
+        );
+        _context.Creatures.Add(guard);
+        _context.Factions.Add(faction);
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, guard.Id));
+        var connectorId = Guid.NewGuid();
+        _context.DoorConnectors.Add(
+            Builders.MakeDoorConnector(
+                connectorId,
+                isLocked: true,
+                lockLevel: 1,
+                worldId: WorldId,
+                unlocksAtPlaytime: TimeSpan.FromHours(99)
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _chanceRoller.Result = true;
+
+        // Act
+        var result = await _handler.Handle(
+            new AttemptLockpickCommand
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                ConnectorId = connectorId,
+                DestinationLocationId = guardStationLocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var guardEncounter = Assert.IsType<GuardEncounter>(result.Encounter);
+        Assert.Equal(guard.Id, guardEncounter.GuardCreatureId);
+        Assert.NotNull(guardEncounter.TriggeringCrimeId);
+    }
+
+    [Fact]
     public async Task Handle_StartsHostileEncounter_WhenAnOccupantSpotsAnInteriorPick()
     {
         // Arrange — the player already broke into this building earlier, and is now picking a
         // second, interior lock while still inside.
         var roomLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
+        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
+        var building = Builders.MakeBuilding(
+            worldId: WorldId,
+            buildingType: BuildingType.House,
+            factionId: faction.Id
+        );
         var room = Builders.MakeRoom(building.Id, worldId: WorldId, locationId: roomLocationId);
         var location = Builders.MakeLocation(worldId: WorldId, id: roomLocationId, roomId: room.Id);
         var occupant = Builders.MakeCreature(WorldId, locationId: roomLocationId);
-        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
         _player.LocationId = roomLocationId;
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);
@@ -274,7 +348,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         _context.Factions.Add(faction);
         _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
         _context.Crimes.Add(
-            new BreakingAndEnteringCrime
+            new LockpickingCrime
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
@@ -367,7 +441,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         await using var verifyContext = db.CreateContext();
         Assert.False(
             await verifyContext
-                .Crimes.OfType<BreakingAndEnteringCrime>()
+                .Crimes.OfType<LockpickingCrime>()
                 .AnyAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken)
         );
     }
@@ -423,7 +497,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         await using var verifyContext = db.CreateContext();
         Assert.False(
             await verifyContext
-                .Crimes.OfType<BreakingAndEnteringCrime>()
+                .Crimes.OfType<LockpickingCrime>()
                 .AnyAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken)
         );
     }
@@ -472,7 +546,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
 
         await using var verifyContext = db.CreateContext();
         var crime = await verifyContext
-            .Crimes.OfType<BreakingAndEnteringCrime>()
+            .Crimes.OfType<LockpickingCrime>()
             .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
         Assert.Equal(building.Id, crime.BuildingId);
         Assert.False(

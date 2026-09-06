@@ -952,7 +952,8 @@ internal static class Builders
         Guid? worldId = null,
         string? name = null,
         BuildingType buildingType = BuildingType.House,
-        Guid? id = null
+        Guid? id = null,
+        Guid? factionId = null
     )
     {
         return new Building
@@ -963,6 +964,7 @@ internal static class Builders
             Description = "A test building",
             BuildingType = buildingType,
             WorldId = worldId ?? Guid.NewGuid(),
+            FactionId = factionId,
         };
     }
 

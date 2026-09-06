@@ -4,16 +4,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes.Commands;
 
-public class AddBreakingAndEnteringCrimesCommand
+public class AddTrespassingCrimesCommand
 {
-    public required IReadOnlyCollection<BreakingAndEnteringCrime> Crimes { get; init; }
+    public required IReadOnlyCollection<TrespassingCrime> Crimes { get; init; }
 }
 
-internal class AddBreakingAndEnteringCrimesCommandHandler(ICrimesDbContext context)
-    : ICommandHandler<AddBreakingAndEnteringCrimesCommand>
+internal class AddTrespassingCrimesCommandHandler(ICrimesDbContext context)
+    : ICommandHandler<AddTrespassingCrimesCommand>
 {
     public async Task Handle(
-        AddBreakingAndEnteringCrimesCommand command,
+        AddTrespassingCrimesCommand command,
         CancellationToken cancellationToken = default
     )
     {

@@ -3,6 +3,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Crimes.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
@@ -35,6 +36,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
+    ICommandHandler<SetLockpickingCrimeOutcomeCommand> setLockpickingCrimeOutcome,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
 )
     : EncounterResolutionCommandHandlerBase<
@@ -66,6 +68,12 @@ internal class ResolveGuardEncounterActionCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        await SettleTriggeringCrime(
+            encounter,
+            LockpickingCrimeOutcome.SettledWithGuard,
+            cancellationToken
+        );
+
         await removeGold.Handle(
             new RemoveGoldCommand
             {
@@ -133,6 +141,13 @@ internal class ResolveGuardEncounterActionCommandHandler(
         );
         var unlocksAt = playtime + GameClock.RealTimePerInGameHour * encounter.JailHours;
 
+        // Must settle before the move: leaving is what resolves the crime and applies the penalty.
+        await SettleTriggeringCrime(
+            encounter,
+            LockpickingCrimeOutcome.SettledWithGuard,
+            cancellationToken
+        );
+
         await movePlayer.Handle(
             new MovePlayerCommand
             {
@@ -184,6 +199,12 @@ internal class ResolveGuardEncounterActionCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        await SettleTriggeringCrime(
+            encounter,
+            LockpickingCrimeOutcome.ResistedArrest,
+            cancellationToken
+        );
+
         await updateCreatures.Handle(
             new UpdateCreaturesCommand
             {
@@ -212,6 +233,23 @@ internal class ResolveGuardEncounterActionCommandHandler(
             encounter.LocationName!,
             null,
             null
+        );
+    }
+
+    private async Task SettleTriggeringCrime(
+        GuardEncounter encounter,
+        LockpickingCrimeOutcome outcome,
+        CancellationToken cancellationToken
+    )
+    {
+        if (encounter.TriggeringCrimeId is not { } crimeId)
+        {
+            return;
+        }
+
+        await setLockpickingCrimeOutcome.Handle(
+            new SetLockpickingCrimeOutcomeCommand { CrimeId = crimeId, Outcome = outcome },
+            cancellationToken
         );
     }
 }

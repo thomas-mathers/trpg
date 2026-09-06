@@ -45,6 +45,10 @@ internal class AttemptLockpickCommandHandler(
     SneakDetectionService sneakDetectionService,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     IQueryHandler<GetGuardAtLocationQuery, Creature?> getGuardAtLocation,
+    IQueryHandler<
+        GetLiveHumanoidWitnessesAtLocationQuery,
+        IReadOnlyCollection<LiveHumanoidWitness>
+    > getLiveHumanoidWitnessesAtLocation,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     IQueryHandler<
         GetBuildingOwnersByBuildingIdQuery,
@@ -54,7 +58,7 @@ internal class AttemptLockpickCommandHandler(
     ICommandHandler<AddDoorConnectorKeyCommand> addDoorConnectorKey,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
-    ICommandHandler<AddBreakingAndEnteringCrimesCommand> addBreakingAndEnteringCrimes,
+    ICommandHandler<AddLockpickingCrimesCommand> addLockpickingCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<
         EvaluateTrespassingEncounterCommand,
@@ -132,7 +136,17 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
         Encounter? encounter = null;
-        if (currentLocation!.RoomId == null)
+        if (opened && door.UnlocksAtPlaytime != null)
+        {
+            encounter = await EvaluateJailbreakDetection(
+                command,
+                player,
+                currentLocation!,
+                crime,
+                cancellationToken
+            );
+        }
+        else if (currentLocation!.RoomId == null)
         {
             if (building != null)
             {
@@ -195,7 +209,7 @@ internal class AttemptLockpickCommandHandler(
         return owners.Any(owner => owner.OwnerId == playerId);
     }
 
-    private async Task<BreakingAndEnteringCrime> RecordBreakIn(
+    private async Task<LockpickingCrime> RecordBreakIn(
         AttemptLockpickCommand command,
         Creature player,
         Guid doorConnectorRowId,
@@ -229,7 +243,7 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
 
-        var crime = new BreakingAndEnteringCrime
+        var crime = new LockpickingCrime
         {
             WorldId = command.WorldId,
             PlayerId = player.Id,
@@ -239,12 +253,95 @@ internal class AttemptLockpickCommandHandler(
             OwnerFactionId = building.FactionId,
         };
 
-        await addBreakingAndEnteringCrimes.Handle(
-            new AddBreakingAndEnteringCrimesCommand { Crimes = [crime] },
+        await addLockpickingCrimes.Handle(
+            new AddLockpickingCrimesCommand { Crimes = [crime] },
             cancellationToken
         );
 
         return crime;
+    }
+
+    // A timed lock is only ever set when a sentence starts, so picking one is a jailbreak.
+    private async Task<GuardEncounter?> EvaluateJailbreakDetection(
+        AttemptLockpickCommand command,
+        Creature player,
+        Location currentLocation,
+        LockpickingCrime? crime,
+        CancellationToken cancellationToken
+    )
+    {
+        var guard = await getGuardAtLocation.Handle(
+            new GetGuardAtLocationQuery
+            {
+                WorldId = command.WorldId,
+                LocationId = command.DestinationLocationId,
+            },
+            cancellationToken
+        );
+        if (guard == null)
+        {
+            return null;
+        }
+
+        var isDetected = await sneakDetectionService.RollDetection(
+            command.WorldId,
+            player.Id,
+            player.IsSneaking,
+            LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
+            cancellationToken
+        );
+        if (!isDetected)
+        {
+            return null;
+        }
+
+        var cityFactionId =
+            await getCityFactionForCreature.Handle(
+                new GetCityFactionForCreatureQuery { CreatureId = guard.Id },
+                cancellationToken
+            )
+            ?? throw new InvalidOperationException(
+                $"Guard {guard.Id} has no city faction membership."
+            );
+
+        if (crime != null)
+        {
+            await addCrimeWitnesses.Handle(
+                new AddCrimeWitnessesCommand
+                {
+                    WorldId = command.WorldId,
+                    CrimeIds = [crime.Id],
+                    WitnessCreatureIds = [guard.Id],
+                },
+                cancellationToken
+            );
+        }
+
+        var score = await getReputationScore.Handle(
+            new GetReputationScoreQuery
+            {
+                CreatureId = player.Id,
+                TargetId = cityFactionId,
+                TargetType = ReputationTargetType.Faction,
+            },
+            cancellationToken
+        );
+
+        return await createGuardEncounter.Handle(
+            new CreateGuardEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = player.Id,
+                PlayerLocationId = player.LocationId,
+                LocationName = currentLocation.Name,
+                GuardCreatureId = guard.Id,
+                GuardName = guard.Name,
+                CityFactionId = cityFactionId,
+                ReputationScore = score,
+                TriggeringCrimeId = crime?.Id,
+            },
+            cancellationToken
+        );
     }
 
     private async Task<GuardEncounter?> EvaluateExteriorDetection(
@@ -252,7 +349,7 @@ internal class AttemptLockpickCommandHandler(
         Creature player,
         Location currentLocation,
         BuildingIdentity building,
-        BreakingAndEnteringCrime? existingCrime,
+        LockpickingCrime? existingCrime,
         CancellationToken cancellationToken
     )
     {
@@ -293,7 +390,7 @@ internal class AttemptLockpickCommandHandler(
         var crime = existingCrime;
         if (crime == null)
         {
-            crime = new BreakingAndEnteringCrime
+            crime = new LockpickingCrime
             {
                 WorldId = command.WorldId,
                 PlayerId = player.Id,
@@ -302,18 +399,33 @@ internal class AttemptLockpickCommandHandler(
                 BuildingName = building.Name,
                 OwnerFactionId = building.FactionId,
             };
-            await addBreakingAndEnteringCrimes.Handle(
-                new AddBreakingAndEnteringCrimesCommand { Crimes = [crime] },
+            await addLockpickingCrimes.Handle(
+                new AddLockpickingCrimesCommand { Crimes = [crime] },
                 cancellationToken
             );
         }
 
+        var bystanders = await getLiveHumanoidWitnessesAtLocation.Handle(
+            new GetLiveHumanoidWitnessesAtLocationQuery
+            {
+                WorldId = command.WorldId,
+                LocationId = player.LocationId,
+                ExcludeCreatureId = player.Id,
+            },
+            cancellationToken
+        );
+
+        // The guard is the one who confronts, but anyone still standing there saw it too.
         await addCrimeWitnesses.Handle(
             new AddCrimeWitnessesCommand
             {
                 WorldId = command.WorldId,
                 CrimeIds = [crime.Id],
-                WitnessCreatureIds = [guard.Id],
+                WitnessCreatureIds = bystanders
+                    .Select(bystander => bystander.Id)
+                    .Append(guard.Id)
+                    .Distinct()
+                    .ToArray(),
             },
             cancellationToken
         );
@@ -339,6 +451,7 @@ internal class AttemptLockpickCommandHandler(
                 GuardName = guard.Name,
                 CityFactionId = cityFactionId,
                 ReputationScore = score,
+                TriggeringCrimeId = crime.Id,
             },
             cancellationToken
         );

@@ -60,7 +60,7 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
             SourceOwnerType = OwnerType.Container,
             OccurredAt = DateTime.UtcNow.AddMinutes(-20),
         };
-        var breakIn = new BreakingAndEnteringCrime
+        var breakIn = new LockpickingCrime
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
@@ -92,11 +92,7 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
         // DateTime, so compare it separately from the fields that survive the round trip exactly.
         Assert.Equal(
             [
-                (
-                    WitnessedCrimeKind.BreakingAndEntering,
-                    "The Sundry Store",
-                    (TheftCrimeOutcome?)null
-                ),
+                (WitnessedCrimeKind.Lockpicking, "The Sundry Store", (TheftCrimeOutcome?)null),
                 (WitnessedCrimeKind.Theft, "Mara", TheftCrimeOutcome.Taken),
                 (WitnessedCrimeKind.Kill, "Victim", null),
             ],

@@ -54,7 +54,21 @@ public class TheftCrime : Crime
 
 public record TheftCrimeItem(string Name, int Quantity);
 
-public class BreakingAndEnteringCrime : Crime
+public enum LockpickingCrimeOutcome
+{
+    SettledWithGuard,
+    ResistedArrest,
+}
+
+public class LockpickingCrime : Crime
+{
+    public Guid BuildingId { get; init; }
+    public string BuildingName { get; init; } = "";
+    public Guid? OwnerFactionId { get; init; }
+    public LockpickingCrimeOutcome? Outcome { get; set; }
+}
+
+public class TrespassingCrime : Crime
 {
     public Guid BuildingId { get; init; }
     public string BuildingName { get; init; } = "";

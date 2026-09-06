@@ -9,8 +9,10 @@ public enum ReputationReason
     ServedJailTime,
     WitnessedKilling,
     WitnessedTheft,
-    BrokeIntoFactionProperty,
-    WitnessedBreakingAndEntering,
+    PickedFactionLock,
+    WitnessedLockpicking,
+    TrespassedOnFactionProperty,
+    WitnessedTrespassing,
     CaughtSneaking,
     CaughtFleeingSuspicion,
 }
