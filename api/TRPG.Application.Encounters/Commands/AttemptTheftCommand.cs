@@ -343,6 +343,8 @@ internal class AttemptTheftCommandHandler(
             LocationId = theft.Source.LocationId,
             ConfrontingCreatureId = confrontingCreature.Id,
             ConfrontingName = confrontingCreature.Name,
+            OwnerCreatureId = theft.Source.Owner.Id,
+            OwnerName = theft.Source.Owner.Name,
             SourceOwnerId = theft.Command.From.Id,
             SourceOwnerType = theft.Command.From.Type,
             ItemIds = theft.Selections.Select(item => item.ItemId).ToList(),
