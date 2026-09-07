@@ -15,7 +15,7 @@ public class TradeStockFillerTests
     );
 
     [Fact]
-    public void Fill_AddsGold_WhenNonePresent()
+    public void Fill_ReportsTheGoldMinimum_RatherThanListingGoldToAdd()
     {
         // Act
         var result = TradeStockFiller.Fill(
@@ -26,13 +26,14 @@ public class TradeStockFillerTests
             playerLevel: 5
         );
 
-        // Assert
-        var gold = Assert.Single(result.ItemsToAdd.OfType<Gold>());
-        Assert.Equal(500, gold.Quantity);
+        // Assert - gold is applied by owner, so it never travels in the add/increase lists where a
+        // filtered stock read could make an emptied row look absent.
+        Assert.Equal(500, result.GoldMinimum);
+        Assert.Empty(result.ItemsToAdd.OfType<Gold>());
     }
 
     [Fact]
-    public void Fill_TopsUpGold_WhenBelowStartingAmount()
+    public void Fill_ReportsTheSameGoldMinimum_WhenGoldIsAlreadyPresent()
     {
         // Arrange
         var existingGold = new Gold
@@ -52,8 +53,9 @@ public class TradeStockFillerTests
         );
 
         // Assert
+        Assert.Equal(500, result.GoldMinimum);
         Assert.Empty(result.ItemsToAdd.OfType<Gold>());
-        Assert.Equal(500, result.QuantityIncreasesByItemId[existingGold.Id]);
+        Assert.DoesNotContain(existingGold.Id, result.QuantityIncreasesByItemId.Keys);
     }
 
     [Fact]
@@ -184,7 +186,7 @@ public class TradeStockFillerTests
     }
 
     [Fact]
-    public void Fill_ReturnsOnlyGold_ForABuildingTypeWithNoStockCatalog()
+    public void Fill_AddsNoStock_ForABuildingTypeWithNoStockCatalog()
     {
         // Act
         var result = TradeStockFiller.Fill(
@@ -195,8 +197,8 @@ public class TradeStockFillerTests
             playerLevel: 5
         );
 
-        // Assert
-        var item = Assert.Single(result.ItemsToAdd);
-        Assert.IsType<Gold>(item);
+        // Assert - a tavern still keeps a float, but it is applied by owner rather than listed.
+        Assert.Empty(result.ItemsToAdd);
+        Assert.Equal(500, result.GoldMinimum);
     }
 }
