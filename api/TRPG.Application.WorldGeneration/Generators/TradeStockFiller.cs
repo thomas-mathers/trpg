@@ -19,7 +19,10 @@ internal record BuildingStockCatalog(
 
 public record TradeStockFillResult(
     IReadOnlyCollection<Item> ItemsToAdd,
-    IReadOnlyDictionary<Guid, int> QuantityIncreasesByItemId
+    IReadOnlyDictionary<Guid, int> QuantityIncreasesByItemId,
+    // Applied by owner rather than listed above, because a gold row emptied by trading is
+    // filtered out of a stock read and would otherwise look like it needs creating again.
+    int GoldMinimum
 );
 
 public static class TradeStockFiller
@@ -157,7 +160,6 @@ public static class TradeStockFiller
         var itemsToAdd = new List<Item>();
         var quantityIncreases = new Dictionary<Guid, int>();
 
-        FillGold(currentItems, worldId, itemsToAdd, quantityIncreases);
         FillWeapons(itemGenerator, catalog, currentItems, worldId, playerLevel, itemsToAdd);
         FillArmor(itemGenerator, catalog, currentItems, worldId, playerLevel, itemsToAdd);
         FillAccessories(itemGenerator, catalog, currentItems, worldId, playerLevel, itemsToAdd);
@@ -165,32 +167,7 @@ public static class TradeStockFiller
         FillPotions(itemGenerator, catalog, currentItems, worldId, quantityIncreases, itemsToAdd);
         FillAmmo(itemGenerator, catalog, currentItems, worldId, quantityIncreases, itemsToAdd);
 
-        return new TradeStockFillResult(itemsToAdd, quantityIncreases);
-    }
-
-    private static void FillGold(
-        IReadOnlyCollection<Item> currentItems,
-        Guid worldId,
-        List<Item> itemsToAdd,
-        Dictionary<Guid, int> quantityIncreases
-    )
-    {
-        var existingGold = currentItems.OfType<Gold>().FirstOrDefault();
-        if (existingGold == null)
-        {
-            itemsToAdd.Add(
-                new Gold
-                {
-                    WorldId = worldId,
-                    Name = "Gold",
-                    Quantity = StartingGold,
-                }
-            );
-        }
-        else if (existingGold.Quantity < StartingGold)
-        {
-            quantityIncreases[existingGold.Id] = StartingGold;
-        }
+        return new TradeStockFillResult(itemsToAdd, quantityIncreases, StartingGold);
     }
 
     private static void FillWeapons(
