@@ -201,35 +201,35 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     }
 
     [Fact]
-    public async Task Handle_Flee_MovesThePlayerToTheEncounterLocation_WhenItDiffersFromWhereTheyAre()
+    public async Task Handle_Flee_ContinuesToWhereTheyWereHeaded_WhenTheConfrontationInterruptedAMove()
     {
-        // Arrange — mirrors a blocked departure: the encounter's location is where the player
-        // was trying to go, not where they're actually standing
+        // Arrange — the innkeeper stops the player on their way out, so fleeing completes the move
         var destination = Builders.MakeLocation(WorldId);
-        var destinationLocationId = destination.Id;
         _context.Locations.Add(destination);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var encounter = await SeedEncounter(
             sourceOwnerId: _owner.Id,
             sourceOwnerType: OwnerType.Creature,
             confrontingCreature: _confronter,
-            locationId: destinationLocationId
+            interruptedDestinationLocationId: destination.Id
         );
 
         // Act
-        await _handler.Handle(
+        var fact = await _handler.Handle(
             MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
         // Assert
+        Assert.True(fact.LeftTheScene);
+
         await using var verifyContext = db.CreateContext();
         var movedPlayer = await verifyContext.Creatures.FindAsync(
             [_player.Id],
             TestContext.Current.CancellationToken
         );
 
-        Assert.Equal(destinationLocationId, movedPlayer!.LocationId);
+        Assert.Equal(destination.Id, movedPlayer!.LocationId);
         Assert.Equal(_locationId, movedPlayer.PreviousLocationId);
     }
 
@@ -402,12 +402,95 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             WorldId = WorldId,
         };
 
+    [Fact]
+    public async Task Handle_Flee_FallsBackToWhereTheyCameFrom_WhenCaughtStandingStill()
+    {
+        // Arrange — caught at the scene, so fleeing retreats the way they came
+        var origin = Builders.MakeLocation(WorldId, id: Guid.NewGuid());
+        _player.PreviousLocationId = origin.Id;
+        _context.Locations.Add(origin);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter
+        );
+
+        // Act
+        var fact = await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(fact.LeftTheScene);
+
+        await using var verifyContext = db.CreateContext();
+        var updatedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(origin.Id, updatedPlayer!.LocationId);
+    }
+
+    [Fact]
+    public async Task Handle_Flee_ReportsTheItemsAsHeld_WhenTheyTransferredBeforeTheConfrontation()
+    {
+        // Arrange — taken from a container, so the player already had them when caught
+        var item = Builders.MakeWeapon(WorldId);
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedEncounter(
+            sourceOwnerId: Guid.NewGuid(),
+            sourceOwnerType: OwnerType.Container,
+            item: item,
+            confrontingCreature: _confronter
+        );
+
+        // Act
+        var fact = await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(fact.ItemsHeldByPlayer);
+    }
+
+    [Fact]
+    public async Task Handle_Flee_ReportsTheItemsAsNotHeld_WhenTheAttemptWasCaughtBeforeTheyTransferred()
+    {
+        // Arrange — a caught pickpocket never receives the item, so fleeing leaves empty-handed
+        var item = Builders.MakeWeapon(WorldId);
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            item: item,
+            confrontingCreature: _confronter,
+            itemsTransferred: false
+        );
+
+        // Act
+        var fact = await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(fact.ItemsHeldByPlayer);
+        Assert.Equal([item.Name], fact.ItemNames);
+    }
+
     private async Task<TheftEncounter> SeedEncounter(
         Guid sourceOwnerId,
         OwnerType sourceOwnerType,
         Item? item = null,
         Creature? confrontingCreature = null,
-        Guid? locationId = null
+        Guid? locationId = null,
+        bool itemsTransferred = true,
+        Guid? interruptedDestinationLocationId = null
     )
     {
         var confrontingCreatureToUse = confrontingCreature ?? _owner;
@@ -434,7 +517,11 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             SourceOwnerType = sourceOwnerType,
             ItemIds = item == null ? [] : [item.Id],
             ItemNames = item == null ? [] : [item.Name],
-            ItemSelections = item == null ? [] : [new TheftEncounterItem(item.Id, item.Quantity)],
+            ItemSelections =
+                item == null || !itemsTransferred
+                    ? []
+                    : [new TheftEncounterItem(item.Id, item.Quantity)],
+            InterruptedDestinationLocationId = interruptedDestinationLocationId,
         };
         _context.Crimes.Add(crime);
         _context.Encounters.Add(encounter);

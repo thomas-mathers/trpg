@@ -11,5 +11,7 @@ public record TheftEncounterResolutionFact(
     TheftEncounterResolutionOutcome Outcome,
     string ConfrontingName,
     IReadOnlyCollection<string> ItemNames,
-    bool ItemsReturned
+    bool ItemsReturned,
+    bool ItemsHeldByPlayer,
+    bool LeftTheScene
 );

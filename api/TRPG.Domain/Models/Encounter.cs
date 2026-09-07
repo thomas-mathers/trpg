@@ -73,6 +73,9 @@ public class TheftEncounter : Encounter
     public List<string> ItemNames { get; init; } = [];
     public List<TheftEncounterItem> ItemSelections { get; init; } = [];
     public List<Guid> WitnessCreatureIds { get; init; } = [];
+
+    // Set when the confrontation interrupted a journey, so fleeing continues it.
+    public Guid? InterruptedDestinationLocationId { get; init; }
 }
 
 public record TheftEncounterItem(Guid ItemId, int Quantity);

@@ -9,7 +9,7 @@ public static class ReputationReasonMapper
         {
             ReputationReason.QuestCompleted => "Completed a quest",
             ReputationReason.KilledFactionMember => "Killed a local",
-            ReputationReason.StoleFromFactionMember => "Witnessed theft",
+            ReputationReason.StoleFromFactionMember => "Stole from a local",
             ReputationReason.PaidFineToGuard => "Paid a fine",
             ReputationReason.ServedJailTime => "Served jail time",
             ReputationReason.WitnessedKilling => "Witnessed a killing",
