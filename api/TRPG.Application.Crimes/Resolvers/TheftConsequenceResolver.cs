@@ -12,6 +12,7 @@ internal sealed class TheftConsequenceResolver(
 {
     public override ReputationReason FactionReason => ReputationReason.StoleFromFactionMember;
     public override ReputationReason WitnessReason => ReputationReason.WitnessedTheft;
+    public override ReputationReason? VictimReason => ReputationReason.StoleFromVictim;
 
     protected override CrimeReport ToCrimeReport(
         TheftCrime crime,

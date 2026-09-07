@@ -44,9 +44,9 @@ public sealed class ApplyCrimeReputationPenaltyCommandTests(DatabaseFixture db) 
         // Arrange — three offences against one faction, summing below the -100 reputation floor
         var reports = new CrimeReport[]
         {
-            new([_faction.Id], [], -10),
-            new([_faction.Id], [], -10),
-            new([_faction.Id], [], -10),
+            new([_faction.Id], [], VictimId: null, Penalty: -10),
+            new([_faction.Id], [], VictimId: null, Penalty: -10),
+            new([_faction.Id], [], VictimId: null, Penalty: -10),
         };
 
         // Act
@@ -69,7 +69,10 @@ public sealed class ApplyCrimeReputationPenaltyCommandTests(DatabaseFixture db) 
         var secondWitness = Builders.MakeCreature(WorldId);
         _context.Creatures.AddRange(firstWitness, secondWitness);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var reports = new CrimeReport[] { new([], [firstWitness.Id, secondWitness.Id], -40) };
+        var reports = new CrimeReport[]
+        {
+            new([], [firstWitness.Id, secondWitness.Id], VictimId: null, Penalty: -40),
+        };
 
         // Act
         await _handler.Handle(MakeCommand(reports), TestContext.Current.CancellationToken);
@@ -85,15 +88,94 @@ public sealed class ApplyCrimeReputationPenaltyCommandTests(DatabaseFixture db) 
                 r => r.Score,
                 TestContext.Current.CancellationToken
             );
-        Assert.Equal(-40, scoresByTarget[firstWitness.Id]);
-        Assert.Equal(-40, scoresByTarget[secondWitness.Id]);
+        Assert.Equal(-60, scoresByTarget[firstWitness.Id]);
+        Assert.Equal(-60, scoresByTarget[secondWitness.Id]);
     }
 
     [Fact]
     public async Task Handle_AppliesNoFactionPenalty_WhenNoCrimeNamesAFaction()
     {
         // Arrange
-        var reports = new CrimeReport[] { new([], [], -40) };
+        var reports = new CrimeReport[] { new([], [], VictimId: null, Penalty: -40) };
+
+        // Act
+        await _handler.Handle(MakeCommand(reports), TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var hasReputation = await verifyContext.Reputations.AnyAsync(
+            r => r.CreatureId == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.False(hasReputation);
+    }
+
+    [Fact]
+    public async Task Handle_PenalizesTheVictimHarderThanABystander()
+    {
+        // Arrange
+        var victim = Builders.MakeCreature(WorldId);
+        var bystander = Builders.MakeCreature(WorldId);
+        _context.Creatures.AddRange(victim, bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var reports = new CrimeReport[]
+        {
+            new([], [victim.Id, bystander.Id], VictimId: victim.Id, Penalty: -9),
+        };
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(reports, ReputationReason.StoleFromVictim),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var scoresByTarget = await verifyContext
+            .Reputations.Where(r =>
+                r.CreatureId == _player.Id && r.TargetType == ReputationTargetType.Creature
+            )
+            .ToDictionaryAsync(
+                r => r.TargetId,
+                r => r.Score,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(-18, scoresByTarget[victim.Id]);
+        Assert.Equal(-14, scoresByTarget[bystander.Id]);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsTheVictimAsWrongedRatherThanAsAWitness()
+    {
+        // Arrange
+        var victim = Builders.MakeCreature(WorldId);
+        _context.Creatures.Add(victim);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var reports = new CrimeReport[] { new([], [victim.Id], VictimId: victim.Id, Penalty: -25) };
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(reports, ReputationReason.StoleFromVictim),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var entries = await verifyContext
+            .ReputationLogEntries.Where(e => e.CreatureId == _player.Id && e.TargetId == victim.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        var entry = Assert.Single(entries);
+        Assert.Equal(ReputationReason.StoleFromVictim, entry.Reason);
+    }
+
+    [Fact]
+    public async Task Handle_AppliesNoVictimPenalty_WhenTheCrimeHasNoVictimReason()
+    {
+        // Arrange
+        var victim = Builders.MakeCreature(WorldId);
+        _context.Creatures.Add(victim);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var reports = new CrimeReport[] { new([], [], VictimId: victim.Id, Penalty: -25) };
 
         // Act
         await _handler.Handle(MakeCommand(reports), TestContext.Current.CancellationToken);
@@ -108,7 +190,8 @@ public sealed class ApplyCrimeReputationPenaltyCommandTests(DatabaseFixture db) 
     }
 
     private ApplyCrimeReputationPenaltyCommand MakeCommand(
-        IReadOnlyCollection<CrimeReport> reports
+        IReadOnlyCollection<CrimeReport> reports,
+        ReputationReason? victimReason = null
     ) =>
         new()
         {
@@ -117,5 +200,6 @@ public sealed class ApplyCrimeReputationPenaltyCommandTests(DatabaseFixture db) 
             Reports = reports,
             FactionReason = ReputationReason.KilledFactionMember,
             WitnessReason = ReputationReason.WitnessedKilling,
+            VictimReason = victimReason,
         };
 }

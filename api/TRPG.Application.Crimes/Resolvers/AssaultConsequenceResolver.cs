@@ -12,6 +12,7 @@ internal sealed class AssaultConsequenceResolver(
 {
     public override ReputationReason FactionReason => ReputationReason.AssaultedFactionMember;
     public override ReputationReason WitnessReason => ReputationReason.WitnessedAssault;
+    public override ReputationReason? VictimReason => ReputationReason.AssaultedVictim;
 
     protected override CrimeReport ToCrimeReport(
         AssaultCrime crime,

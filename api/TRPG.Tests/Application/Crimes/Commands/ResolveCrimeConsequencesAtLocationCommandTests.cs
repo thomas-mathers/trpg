@@ -113,10 +113,10 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
     }
 
     [Theory]
-    [InlineData(false, null, -10)]
-    [InlineData(false, LockpickingCrimeOutcome.SettledWithGuard, -4)]
-    [InlineData(true, null, -50)]
-    [InlineData(true, LockpickingCrimeOutcome.SettledWithGuard, -20)]
+    [InlineData(false, null, -5)]
+    [InlineData(false, LockpickingCrimeOutcome.SettledWithGuard, -2)]
+    [InlineData(true, null, -20)]
+    [InlineData(true, LockpickingCrimeOutcome.SettledWithGuard, -8)]
     public async Task Handle_PenalizesJailbreaksAboveOrdinaryLockpicking_AtBothSettlementLevels(
         bool isJailbreak,
         LockpickingCrimeOutcome? outcome,
@@ -149,7 +149,7 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
     }
 
     [Fact]
-    public async Task Handle_PenalizesTheVictimsFactionAndEachWitness_WhenAnAssaultIsReported()
+    public async Task Handle_PenalizesTheVictimHardestThenTheWitnessThenTheFaction_WhenAnAssaultIsReported()
     {
         // Arrange
         var witness = Builders.MakeCreature(WorldId, locationId: LocationId);
@@ -191,13 +191,19 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
             r => r.CreatureId == _player.Id && r.TargetId == _ownerFaction.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(-40, factionReputation.Score);
+        Assert.Equal(-15, factionReputation.Score);
 
         var witnessReputation = await verifyContext.Reputations.SingleAsync(
             r => r.CreatureId == _player.Id && r.TargetId == witness.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(-40, witnessReputation.Score);
+        Assert.Equal(-23, witnessReputation.Score);
+
+        var victimReputation = await verifyContext.Reputations.SingleAsync(
+            r => r.CreatureId == _player.Id && r.TargetId == victim.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(-30, victimReputation.Score);
     }
 
     private LockpickingCrime SeedBreakInWitnessedBy(

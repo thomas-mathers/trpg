@@ -11,6 +11,9 @@ public interface ICrimeConsequenceResolver
     ReputationReason FactionReason { get; }
     ReputationReason WitnessReason { get; }
 
+    // Null for crimes whose only injured party is a faction or a corpse.
+    ReputationReason? VictimReason { get; }
+
     Task<IReadOnlyCollection<Guid>> GetWitnessCandidates(
         CrimeScope scope,
         CancellationToken cancellationToken = default
@@ -32,6 +35,7 @@ internal abstract class CrimeConsequenceResolver<TCrime>(
 {
     public abstract ReputationReason FactionReason { get; }
     public abstract ReputationReason WitnessReason { get; }
+    public virtual ReputationReason? VictimReason => null;
 
     protected abstract CrimeReport ToCrimeReport(
         TCrime crime,

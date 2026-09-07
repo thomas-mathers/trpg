@@ -11,9 +11,10 @@ internal static class TheftCrimeMapper
         ReputationOptions options
     ) =>
         new(
-            crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
-            reportedWitnessIds,
-            crime.Outcome == TheftCrimeOutcome.Apologized
+            FactionIds: crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
+            ReportedWitnessIds: reportedWitnessIds,
+            VictimId: crime.OwnerCreatureId,
+            Penalty: crime.Outcome == TheftCrimeOutcome.Apologized
                 ? options.ApologizedTheftReputationPenalty
                 : options.TheftReputationPenalty
         );

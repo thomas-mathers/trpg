@@ -11,9 +11,10 @@ internal static class LockpickingCrimeMapper
         ReputationOptions options
     ) =>
         new(
-            crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
-            reportedWitnessIds,
-            PenaltyFor(crime, options)
+            FactionIds: crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
+            ReportedWitnessIds: reportedWitnessIds,
+            VictimId: null,
+            Penalty: PenaltyFor(crime, options)
         );
 
     // Escaping custody outranks settling: going quietly discounts it but never to a shop door.

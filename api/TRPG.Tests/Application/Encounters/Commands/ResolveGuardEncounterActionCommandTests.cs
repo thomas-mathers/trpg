@@ -375,7 +375,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             r => r.CreatureId == _player.Id && r.TargetId == ownerFaction.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(-4, reputation.Score);
+        Assert.Equal(-2, reputation.Score);
     }
 
     [Fact]

@@ -23,6 +23,7 @@ public sealed class CrimeMapperTests
         // Assert
         Assert.Equal([FactionId, otherFactionId], report.FactionIds);
         Assert.Equal([WitnessId], report.ReportedWitnessIds);
+        Assert.Null(report.VictimId);
         Assert.Equal(Options.KillReputationPenalty, report.Penalty);
     }
 
@@ -30,20 +31,22 @@ public sealed class CrimeMapperTests
     public void ToCrimeReport_CarriesNoFactions_WhenTheVictimHadNone()
     {
         // Arrange
-        var crime = new AssaultCrime { VictimFactionIds = [] };
+        var victimId = Guid.NewGuid();
+        var crime = new AssaultCrime { VictimFactionIds = [], VictimId = victimId };
 
         // Act
         var report = crime.ToCrimeReport([WitnessId], Options);
 
         // Assert
         Assert.Empty(report.FactionIds);
+        Assert.Equal(victimId, report.VictimId);
         Assert.Equal(Options.AssaultReputationPenalty, report.Penalty);
     }
 
     [Theory]
-    [InlineData(null, false, -25)]
-    [InlineData(TheftCrimeOutcome.Taken, false, -25)]
-    [InlineData(TheftCrimeOutcome.Apologized, false, -10)]
+    [InlineData(null, false, -9)]
+    [InlineData(TheftCrimeOutcome.Taken, false, -9)]
+    [InlineData(TheftCrimeOutcome.Apologized, false, -3)]
     public void ToCrimeReport_PricesATheftByItsOutcome(
         TheftCrimeOutcome? outcome,
         bool _,
@@ -51,21 +54,28 @@ public sealed class CrimeMapperTests
     )
     {
         // Arrange
-        var crime = new TheftCrime { OwnerFactionId = FactionId, Outcome = outcome };
+        var ownerId = Guid.NewGuid();
+        var crime = new TheftCrime
+        {
+            OwnerFactionId = FactionId,
+            OwnerCreatureId = ownerId,
+            Outcome = outcome,
+        };
 
         // Act
         var report = crime.ToCrimeReport([WitnessId], Options);
 
         // Assert
         Assert.Equal([FactionId], report.FactionIds);
+        Assert.Equal(ownerId, report.VictimId);
         Assert.Equal(expectedPenalty, report.Penalty);
     }
 
     [Theory]
-    [InlineData(false, null, -10)]
-    [InlineData(false, LockpickingCrimeOutcome.SettledWithGuard, -4)]
-    [InlineData(true, null, -50)]
-    [InlineData(true, LockpickingCrimeOutcome.SettledWithGuard, -20)]
+    [InlineData(false, null, -5)]
+    [InlineData(false, LockpickingCrimeOutcome.SettledWithGuard, -2)]
+    [InlineData(true, null, -20)]
+    [InlineData(true, LockpickingCrimeOutcome.SettledWithGuard, -8)]
     public void ToCrimeReport_RanksAJailbreakAboveOrdinaryLockpicking(
         bool isJailbreak,
         LockpickingCrimeOutcome? outcome,
@@ -98,6 +108,7 @@ public sealed class CrimeMapperTests
 
         // Assert
         Assert.Equal([FactionId], report.FactionIds);
+        Assert.Null(report.VictimId);
         Assert.Equal(Options.TrespassingReputationPenalty, report.Penalty);
     }
 }
