@@ -12,6 +12,11 @@ internal static class GuardEncounterMapper
             encounter.LocationName!,
             encounter.FineAmount,
             encounter.JailHours,
-            encounter.RecentOffenses.Select(offense => offense.ToNarratorText()).ToArray()
+            encounter
+                .RecentOffenses.Select(offense => new MoveToolGuardOffense(
+                    offense.ToText(),
+                    offense.SubjectIsTheGuard
+                ))
+                .ToArray()
         );
 }

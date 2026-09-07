@@ -17,9 +17,7 @@ internal sealed class GuardEncounterStartedEventMapper
                 gameEvent.Encounter.LocationName!,
                 gameEvent.Encounter.FineAmount,
                 gameEvent.Encounter.JailHours,
-                gameEvent
-                    .Encounter.RecentOffenses.Select(offense => offense.ToPlayerText())
-                    .ToArray(),
+                gameEvent.Encounter.RecentOffenses.Select(offense => offense.ToText()).ToArray(),
                 AllowedActions,
                 gameEvent.CanAffordFine
             ),
