@@ -358,6 +358,8 @@ internal class GetNpcConversationBriefingQueryHandler(
                 $"You did not see it, but others who did told you the player stole from {subject}.",
             WitnessedCrimeKind.Lockpicking =>
                 $"You did not see it, but others who did told you the player broke into {crime.SubjectName}.",
+            WitnessedCrimeKind.Jailbreak =>
+                $"You did not see it, but others who did told you the player broke out of {crime.SubjectName}.",
             WitnessedCrimeKind.Trespassing =>
                 $"You did not see it, but others who did told you the player was inside {crime.SubjectName} uninvited.",
         };
@@ -370,6 +372,8 @@ internal class GetNpcConversationBriefingQueryHandler(
             WitnessedCrimeKind.Assault => $"You witnessed the player attack {crime.SubjectName}.",
             WitnessedCrimeKind.Lockpicking =>
                 $"You witnessed the player break into {crime.SubjectName}.",
+            WitnessedCrimeKind.Jailbreak =>
+                $"You witnessed the player break out of {crime.SubjectName}.",
             WitnessedCrimeKind.Trespassing =>
                 $"You caught the player somewhere they had no business being inside {crime.SubjectName}.",
             WitnessedCrimeKind.Theft when crime.Outcome == TheftCrimeOutcome.Apologized =>

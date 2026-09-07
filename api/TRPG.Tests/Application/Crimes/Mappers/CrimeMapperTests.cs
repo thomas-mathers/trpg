@@ -72,29 +72,40 @@ public sealed class CrimeMapperTests
     }
 
     [Theory]
-    [InlineData(false, null, -5)]
-    [InlineData(false, LockpickingCrimeOutcome.SettledWithGuard, -2)]
-    [InlineData(true, null, -20)]
-    [InlineData(true, LockpickingCrimeOutcome.SettledWithGuard, -8)]
-    public void ToCrimeReport_RanksAJailbreakAboveOrdinaryLockpicking(
-        bool isJailbreak,
+    [InlineData(null, -5)]
+    [InlineData(LockpickingCrimeOutcome.SettledWithGuard, -2)]
+    public void ToCrimeReport_PricesABreakInByWhetherItWasSettled(
         LockpickingCrimeOutcome? outcome,
         int expectedPenalty
     )
     {
         // Arrange
-        var crime = new LockpickingCrime
-        {
-            OwnerFactionId = FactionId,
-            IsJailbreak = isJailbreak,
-            Outcome = outcome,
-        };
+        var crime = new LockpickingCrime { OwnerFactionId = FactionId, Outcome = outcome };
 
         // Act
         var report = crime.ToCrimeReport([WitnessId], Options);
 
         // Assert
         Assert.Equal(expectedPenalty, report.Penalty);
+    }
+
+    [Theory]
+    [InlineData(null, -20)]
+    [InlineData(LockpickingCrimeOutcome.SettledWithGuard, -8)]
+    public void ToCrimeReport_RanksAJailbreakFarAboveOrdinaryLockpicking(
+        LockpickingCrimeOutcome? outcome,
+        int expectedPenalty
+    )
+    {
+        // Arrange
+        var crime = new JailbreakCrime { OwnerFactionId = FactionId, Outcome = outcome };
+
+        // Act
+        var report = crime.ToCrimeReport([WitnessId], Options);
+
+        // Assert
+        Assert.Equal(expectedPenalty, report.Penalty);
+        Assert.Null(report.VictimId);
     }
 
     [Fact]

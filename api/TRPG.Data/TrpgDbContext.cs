@@ -151,6 +151,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<AssaultCrime>("Assault")
                 .HasValue<TheftCrime>("Theft")
                 .HasValue<LockpickingCrime>("Lockpicking")
+                .HasValue<JailbreakCrime>("Jailbreak")
                 .HasValue<TrespassingCrime>("Trespassing");
         });
 
@@ -174,6 +175,18 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
 
             // Shares a name with TheftCrime.Outcome but not its enum, so it needs its own column.
             entity.Property(crime => crime.Outcome).HasColumnName("lockpicking_outcome");
+        });
+
+        // Every column is qualified: sharing a table with LockpickingCrime means an unqualified
+        // name is silently repointed at its column instead of getting one of its own.
+        modelBuilder.Entity<JailbreakCrime>(entity =>
+        {
+            entity.Property(crime => crime.BuildingId).HasColumnName("jailbreak_building_id");
+            entity.Property(crime => crime.BuildingName).HasColumnName("jailbreak_building_name");
+            entity
+                .Property(crime => crime.OwnerFactionId)
+                .HasColumnName("jailbreak_owner_faction_id");
+            entity.Property(crime => crime.Outcome).HasColumnName("jailbreak_outcome");
         });
 
         modelBuilder.Entity<AssaultCrime>(entity =>

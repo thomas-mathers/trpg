@@ -11,6 +11,7 @@ public enum WitnessedCrimeKind
     Assault,
     Theft,
     Lockpicking,
+    Jailbreak,
     Trespassing,
 }
 
@@ -86,6 +87,14 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
                 breakIn.OccurredAt,
                 WitnessedCrimeKind.Lockpicking,
                 breakIn.BuildingName,
+                null,
+                null,
+                awareness
+            ),
+            JailbreakCrime jailbreak => new WitnessedCrime(
+                jailbreak.OccurredAt,
+                WitnessedCrimeKind.Jailbreak,
+                jailbreak.BuildingName,
                 null,
                 null,
                 awareness

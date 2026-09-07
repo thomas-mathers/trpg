@@ -21,7 +21,8 @@ internal static class OutstandingCrimeMapper
             OutstandingCrimeKind.Kill => "Killed",
             OutstandingCrimeKind.Assault => "Assaulted",
             OutstandingCrimeKind.Theft => ToTheftAction(crime),
-            OutstandingCrimeKind.Lockpicking => crime.IsJailbreak ? "Broke out of" : "Broke into",
+            OutstandingCrimeKind.Lockpicking => "Broke into",
+            OutstandingCrimeKind.Jailbreak => "Broke out of",
             OutstandingCrimeKind.Trespassing => "Trespassed in",
         };
 

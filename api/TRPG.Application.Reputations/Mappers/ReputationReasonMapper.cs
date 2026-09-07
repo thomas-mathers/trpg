@@ -20,6 +20,8 @@ public static class ReputationReasonMapper
             ReputationReason.AssaultedVictim => "Assaulted you",
             ReputationReason.PickedFactionLock => "Broke into a property",
             ReputationReason.WitnessedLockpicking => "Witnessed a break-in",
+            ReputationReason.BrokeOutOfJail => "Broke out of jail",
+            ReputationReason.WitnessedJailbreak => "Witnessed a jailbreak",
             ReputationReason.TrespassedOnFactionProperty => "Trespassed on a property",
             ReputationReason.WitnessedTrespassing => "Witnessed trespassing",
             ReputationReason.CaughtSneaking => "Caught sneaking",

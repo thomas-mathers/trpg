@@ -72,11 +72,10 @@ public sealed class OutstandingCrimeMapperTests
         // Arrange
         var jailbreak = new OutstandingCrime(
             DateTime.UtcNow,
-            OutstandingCrimeKind.Lockpicking,
+            OutstandingCrimeKind.Jailbreak,
             "The Darkstead Jail",
             null,
-            [],
-            IsJailbreak: true
+            []
         );
 
         // Act
@@ -92,5 +91,5 @@ public sealed class OutstandingCrimeMapperTests
         OutstandingCrimeKind kind,
         Guid subjectCreatureId,
         IReadOnlyCollection<string> itemNames
-    ) => new(DateTime.UtcNow, kind, "Cora", subjectCreatureId, itemNames, IsJailbreak: false);
+    ) => new(DateTime.UtcNow, kind, "Cora", subjectCreatureId, itemNames);
 }

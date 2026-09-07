@@ -113,19 +113,61 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
     }
 
     [Theory]
-    [InlineData(false, null, -5)]
-    [InlineData(false, LockpickingCrimeOutcome.SettledWithGuard, -2)]
-    [InlineData(true, null, -20)]
-    [InlineData(true, LockpickingCrimeOutcome.SettledWithGuard, -8)]
-    public async Task Handle_PenalizesJailbreaksAboveOrdinaryLockpicking_AtBothSettlementLevels(
-        bool isJailbreak,
+    [InlineData(null, -5)]
+    [InlineData(LockpickingCrimeOutcome.SettledWithGuard, -2)]
+    public async Task Handle_PenalizesABreakIn_ByWhetherItWasSettled(
         LockpickingCrimeOutcome? outcome,
         int expectedScore
     )
     {
         // Arrange
         var witness = Builders.MakeCreature(WorldId, locationId: LocationId);
-        var crime = SeedBreakInWitnessedBy(witness, isJailbreak, outcome);
+        SeedBreakInWitnessedBy(witness, outcome);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ResolveCrimeConsequencesAtLocationCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = LocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var reputation = await verifyContext.Reputations.SingleAsync(
+            r => r.CreatureId == _player.Id && r.TargetId == _ownerFaction.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(expectedScore, reputation.Score);
+    }
+
+    [Theory]
+    [InlineData(null, -20)]
+    [InlineData(LockpickingCrimeOutcome.SettledWithGuard, -8)]
+    public async Task Handle_PenalizesAJailbreak_FarAboveAnOrdinaryBreakIn(
+        LockpickingCrimeOutcome? outcome,
+        int expectedScore
+    )
+    {
+        // Arrange
+        var witness = Builders.MakeCreature(WorldId, locationId: LocationId);
+        var crime = new JailbreakCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = LocationId,
+            BuildingId = Guid.NewGuid(),
+            BuildingName = "The Iron Gate",
+            OwnerFactionId = _ownerFaction.Id,
+            Outcome = outcome,
+        };
+        _context.Creatures.Add(witness);
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(Builders.MakeCrimeWitness(crime.Id, witness.Id, WorldId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -208,7 +250,6 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
 
     private LockpickingCrime SeedBreakInWitnessedBy(
         Creature witness,
-        bool isJailbreak = false,
         LockpickingCrimeOutcome? outcome = null
     )
     {
@@ -220,7 +261,6 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
             BuildingId = Guid.NewGuid(),
             BuildingName = "Locked Warehouse",
             OwnerFactionId = _ownerFaction.Id,
-            IsJailbreak = isJailbreak,
             Outcome = outcome,
         };
 

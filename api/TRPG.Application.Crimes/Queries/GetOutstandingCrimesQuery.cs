@@ -11,6 +11,7 @@ public enum OutstandingCrimeKind
     Assault,
     Theft,
     Lockpicking,
+    Jailbreak,
     Trespassing,
 }
 
@@ -20,8 +21,7 @@ public record OutstandingCrime(
     OutstandingCrimeKind Kind,
     string SubjectName,
     Guid? SubjectCreatureId,
-    IReadOnlyCollection<string> ItemNames,
-    bool IsJailbreak
+    IReadOnlyCollection<string> ItemNames
 );
 
 public class GetOutstandingCrimesQuery
@@ -64,40 +64,42 @@ internal class GetOutstandingCrimesQueryHandler(ICrimesDbContext context)
                 OutstandingCrimeKind.Kill,
                 kill.VictimName,
                 kill.VictimId,
-                [],
-                IsJailbreak: false
+                []
             ),
             AssaultCrime assault => new OutstandingCrime(
                 assault.OccurredAt,
                 OutstandingCrimeKind.Assault,
                 assault.VictimName,
                 assault.VictimId,
-                [],
-                IsJailbreak: false
+                []
             ),
             TheftCrime theft => new OutstandingCrime(
                 theft.OccurredAt,
                 OutstandingCrimeKind.Theft,
                 theft.OwnerName,
                 theft.OwnerCreatureId,
-                theft.Items.Select(item => item.Name).ToArray(),
-                IsJailbreak: false
+                theft.Items.Select(item => item.Name).ToArray()
             ),
             LockpickingCrime breakIn => new OutstandingCrime(
                 breakIn.OccurredAt,
                 OutstandingCrimeKind.Lockpicking,
                 breakIn.BuildingName,
                 null,
-                [],
-                breakIn.IsJailbreak
+                []
+            ),
+            JailbreakCrime jailbreak => new OutstandingCrime(
+                jailbreak.OccurredAt,
+                OutstandingCrimeKind.Jailbreak,
+                jailbreak.BuildingName,
+                null,
+                []
             ),
             TrespassingCrime trespass => new OutstandingCrime(
                 trespass.OccurredAt,
                 OutstandingCrimeKind.Trespassing,
                 trespass.BuildingName,
                 null,
-                [],
-                IsJailbreak: false
+                []
             ),
             _ => throw new InvalidOperationException($"Unhandled crime type {crime.GetType()}"),
         };

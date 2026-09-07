@@ -59,6 +59,7 @@ internal class AttemptLockpickCommandHandler(
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
     ICommandHandler<AddLockpickingCrimesCommand> addLockpickingCrimes,
+    ICommandHandler<AddJailbreakCrimesCommand> addJailbreakCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<
         EvaluateTrespassingEncounterCommand,
@@ -210,7 +211,7 @@ internal class AttemptLockpickCommandHandler(
         return owners.Any(owner => owner.OwnerId == playerId);
     }
 
-    private async Task<LockpickingCrime> RecordBreakIn(
+    private async Task<Crime> RecordBreakIn(
         AttemptLockpickCommand command,
         Creature player,
         DoorConnector door,
@@ -244,6 +245,28 @@ internal class AttemptLockpickCommandHandler(
             cancellationToken
         );
 
+        // A timed lock is only ever set when a sentence starts, so picking one is an escape.
+        if (door.UnlocksAtPlaytime != null)
+        {
+            var jailbreak = new JailbreakCrime
+            {
+                WorldId = command.WorldId,
+                PlayerId = player.Id,
+                LocationId = player.LocationId,
+                CityId = await locationCity.Resolve(player.LocationId, cancellationToken),
+                BuildingId = building.Id,
+                BuildingName = building.Name,
+                OwnerFactionId = building.FactionId,
+            };
+
+            await addJailbreakCrimes.Handle(
+                new AddJailbreakCrimesCommand { Crimes = [jailbreak] },
+                cancellationToken
+            );
+
+            return jailbreak;
+        }
+
         var crime = new LockpickingCrime
         {
             WorldId = command.WorldId,
@@ -253,7 +276,6 @@ internal class AttemptLockpickCommandHandler(
             BuildingId = building.Id,
             BuildingName = building.Name,
             OwnerFactionId = building.FactionId,
-            IsJailbreak = door.UnlocksAtPlaytime != null,
         };
 
         await addLockpickingCrimes.Handle(
@@ -269,7 +291,7 @@ internal class AttemptLockpickCommandHandler(
         AttemptLockpickCommand command,
         Creature player,
         Location currentLocation,
-        LockpickingCrime? crime,
+        Crime? crime,
         CancellationToken cancellationToken
     )
     {
@@ -353,7 +375,7 @@ internal class AttemptLockpickCommandHandler(
         Creature player,
         Location currentLocation,
         BuildingIdentity building,
-        LockpickingCrime? existingCrime,
+        Crime? existingCrime,
         CancellationToken cancellationToken
     )
     {
@@ -391,10 +413,11 @@ internal class AttemptLockpickCommandHandler(
                 $"Guard {guard.Id} has no city faction membership."
             );
 
+        // Only the outdoor path reaches here, so an absent crime is always an ordinary break-in.
         var crime = existingCrime;
         if (crime == null)
         {
-            crime = new LockpickingCrime
+            var breakIn = new LockpickingCrime
             {
                 WorldId = command.WorldId,
                 PlayerId = player.Id,
@@ -405,9 +428,10 @@ internal class AttemptLockpickCommandHandler(
                 OwnerFactionId = building.FactionId,
             };
             await addLockpickingCrimes.Handle(
-                new AddLockpickingCrimesCommand { Crimes = [crime] },
+                new AddLockpickingCrimesCommand { Crimes = [breakIn] },
                 cancellationToken
             );
+            crime = breakIn;
         }
 
         var bystanders = await getLiveHumanoidWitnessesAtLocation.Handle(
