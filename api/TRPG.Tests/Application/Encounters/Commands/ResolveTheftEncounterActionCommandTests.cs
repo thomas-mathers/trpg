@@ -403,6 +403,37 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         };
 
     [Fact]
+    public async Task Handle_Flee_FallsBackToWhereTheyCameFrom_WhenCaughtStandingStill()
+    {
+        // Arrange — caught at the scene, so fleeing retreats the way they came
+        var origin = Builders.MakeLocation(WorldId, id: Guid.NewGuid());
+        _player.PreviousLocationId = origin.Id;
+        _context.Locations.Add(origin);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter
+        );
+
+        // Act
+        var fact = await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(fact.LeftTheScene);
+
+        await using var verifyContext = db.CreateContext();
+        var updatedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(origin.Id, updatedPlayer!.LocationId);
+    }
+
+    [Fact]
     public async Task Handle_Flee_ReportsTheItemsAsHeld_WhenTheyTransferredBeforeTheConfrontation()
     {
         // Arrange — taken from a container, so the player already had them when caught

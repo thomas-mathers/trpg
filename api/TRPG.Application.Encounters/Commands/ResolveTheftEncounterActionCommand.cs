@@ -98,7 +98,8 @@ internal class ResolveTheftEncounterActionCommandHandler(
             encounter.ConfrontingName,
             encounter.ItemNames.ToArray(),
             itemsReturned,
-            ItemsHeldByPlayer: false
+            ItemsHeldByPlayer: false,
+            LeftTheScene: false
         );
     }
 
@@ -114,7 +115,24 @@ internal class ResolveTheftEncounterActionCommandHandler(
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
 
-        if (player.LocationId != encounter.LocationId)
+        // Settled before the move, because leaving is what resolves the crime.
+        await setTheftCrimeOutcome.Handle(
+            new SetTheftCrimeOutcomeCommand
+            {
+                CrimeId = encounter.TheftCrimeId,
+                Outcome = TheftCrimeOutcome.Fled,
+            },
+            cancellationToken
+        );
+
+        // Blocked on the way somewhere means pushing past and carrying on; caught standing still
+        // means falling back the way they came.
+        var destinationLocationId =
+            player.LocationId != encounter.LocationId
+                ? encounter.LocationId
+                : player.PreviousLocationId;
+
+        if (destinationLocationId is { } locationId)
         {
             var playtime = await getPlaytime.Handle(
                 new GetPlaytimeQuery { SessionId = command.SessionId },
@@ -125,21 +143,12 @@ internal class ResolveTheftEncounterActionCommandHandler(
                 new MovePlayerCommand
                 {
                     PlayerId = command.PlayerId,
-                    DestinationLocationId = encounter.LocationId,
+                    DestinationLocationId = locationId,
                     Playtime = playtime,
                 },
                 cancellationToken
             );
         }
-
-        await setTheftCrimeOutcome.Handle(
-            new SetTheftCrimeOutcomeCommand
-            {
-                CrimeId = encounter.TheftCrimeId,
-                Outcome = TheftCrimeOutcome.Fled,
-            },
-            cancellationToken
-        );
 
         return new TheftEncounterResolutionFact(
             encounter.Id,
@@ -147,7 +156,8 @@ internal class ResolveTheftEncounterActionCommandHandler(
             encounter.ConfrontingName,
             encounter.ItemNames.ToArray(),
             ItemsReturned: false,
-            ItemsHeldByPlayer: encounter.ItemSelections.Count > 0
+            ItemsHeldByPlayer: encounter.ItemSelections.Count > 0,
+            LeftTheScene: destinationLocationId != null
         );
     }
 }
