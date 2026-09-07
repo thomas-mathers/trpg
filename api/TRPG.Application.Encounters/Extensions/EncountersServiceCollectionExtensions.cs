@@ -9,6 +9,7 @@ public static class EncountersServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddTransient<TheftSourceResolver>()
+            .AddTransient<LocationCityResolver>()
             .AddTransient<CombatantFactory>()
             .AddTransient<ActiveFightCombatantLoader>();
 }

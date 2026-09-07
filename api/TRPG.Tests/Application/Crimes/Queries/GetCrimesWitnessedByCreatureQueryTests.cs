@@ -48,6 +48,15 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
             VictimName = "Victim",
             OccurredAt = DateTime.UtcNow.AddMinutes(-30),
         };
+        var assault = new AssaultCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = LocationId,
+            VictimId = Guid.NewGuid(),
+            VictimName = "Bystander",
+            OccurredAt = DateTime.UtcNow.AddMinutes(-25),
+        };
         var theft = new TheftCrime
         {
             WorldId = WorldId,
@@ -78,9 +87,10 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
             BuildingName = "The Gilded Manor",
             OccurredAt = DateTime.UtcNow.AddMinutes(-5),
         };
-        _context.Crimes.AddRange(kill, theft, breakIn, trespass);
+        _context.Crimes.AddRange(kill, assault, theft, breakIn, trespass);
         _context.CrimeWitnesses.AddRange(
             Builders.MakeCrimeWitness(kill.Id, _witness.Id, WorldId),
+            Builders.MakeCrimeWitness(assault.Id, _witness.Id, WorldId),
             Builders.MakeCrimeWitness(theft.Id, _witness.Id, WorldId),
             Builders.MakeCrimeWitness(breakIn.Id, _witness.Id, WorldId),
             Builders.MakeCrimeWitness(trespass.Id, _witness.Id, WorldId)
@@ -105,6 +115,7 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
                 (WitnessedCrimeKind.Trespassing, "The Gilded Manor", (TheftCrimeOutcome?)null),
                 (WitnessedCrimeKind.Lockpicking, "The Sundry Store", null),
                 (WitnessedCrimeKind.Theft, "Mara", TheftCrimeOutcome.Taken),
+                (WitnessedCrimeKind.Assault, "Bystander", null),
                 (WitnessedCrimeKind.Kill, "Victim", null),
             ],
             result.Select(crime => (crime.Kind, crime.SubjectName, crime.Outcome))
@@ -112,6 +123,7 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db) :
         Assert.True(result[0].OccurredAt > result[1].OccurredAt);
         Assert.True(result[1].OccurredAt > result[2].OccurredAt);
         Assert.True(result[2].OccurredAt > result[3].OccurredAt);
+        Assert.True(result[3].OccurredAt > result[4].OccurredAt);
     }
 
     [Fact]

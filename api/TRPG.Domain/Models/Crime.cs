@@ -23,6 +23,12 @@ public abstract class Crime
     public DateTime? ResolvedAt { get; set; }
     public DateTime OccurredAt { get; init; } = DateTime.UtcNow;
     public Guid WorldId { get; init; }
+
+    // Whose law was broken, from where it happened. Null in the wilderness, where no city has claim.
+    public Guid? CityId { get; init; }
+
+    // Distinct from Resolution: that tracks whether witnesses reported it, this whether it was answered for.
+    public DateTime? SettledAt { get; set; }
 }
 
 public class KillCrime : Crime

@@ -66,7 +66,8 @@ internal class AttemptLockpickCommandHandler(
     > evaluateTrespassingEncounter,
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IOptionsMonitor<LockpickingOptions> lockpickingOptions
+    IOptionsMonitor<LockpickingOptions> lockpickingOptions,
+    LocationCityResolver locationCity
 ) : ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult>
 {
     public async Task<AttemptLockpickResult> Handle(
@@ -248,6 +249,7 @@ internal class AttemptLockpickCommandHandler(
             WorldId = command.WorldId,
             PlayerId = player.Id,
             LocationId = player.LocationId,
+            CityId = await locationCity.Resolve(player.LocationId, cancellationToken),
             BuildingId = building.Id,
             BuildingName = building.Name,
             OwnerFactionId = building.FactionId,
@@ -397,6 +399,7 @@ internal class AttemptLockpickCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = player.Id,
                 LocationId = player.LocationId,
+                CityId = await locationCity.Resolve(player.LocationId, cancellationToken),
                 BuildingId = building.Id,
                 BuildingName = building.Name,
                 OwnerFactionId = building.FactionId,

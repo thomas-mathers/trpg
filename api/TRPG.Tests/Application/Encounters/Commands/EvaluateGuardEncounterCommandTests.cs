@@ -18,7 +18,13 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private EvaluateGuardEncounterCommandHandler _handler = null!;
-    private readonly Location _location = Builders.MakeLocation(WorldId, Guid.NewGuid());
+    private static readonly Guid CityId = Guid.NewGuid();
+
+    private readonly Location _location = Builders.MakeLocation(
+        WorldId,
+        Guid.NewGuid(),
+        cityId: CityId
+    );
     private readonly Creature _player = Builders.MakeCreature(WorldId, level: 1);
     private readonly Faction _cityFaction = Builders.MakeFaction(WorldId, isCityFaction: true);
 
@@ -161,32 +167,12 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
     }
 
     [Fact]
-    public async Task Handle_ExcludesQuestCompletionEntries_FromRecentOffenses()
+    public async Task Handle_ExcludesAlreadySettledCrimes_FromRecentOffenses()
     {
-        // Arrange — a positive-delta reputation gain should never surface as an "offense"
-        await SeedGuard(reputationScore: -50);
-        _context.ReputationLogEntries.AddRange(
-            new ReputationLogEntry
-            {
-                WorldId = WorldId,
-                CreatureId = _player.Id,
-                TargetId = _cityFaction.Id,
-                TargetType = ReputationTargetType.Faction,
-                DeltaScore = -100,
-                Reason = ReputationReason.KilledFactionMember,
-                Detail = "Killed a guard",
-            },
-            new ReputationLogEntry
-            {
-                WorldId = WorldId,
-                CreatureId = _player.Id,
-                TargetId = _cityFaction.Id,
-                TargetType = ReputationTargetType.Faction,
-                DeltaScore = 50,
-                Reason = ReputationReason.QuestCompleted,
-                Detail = "Completed quest: Clean up the docks",
-            }
-        );
+        // Arrange
+        var guard = await SeedGuard(reputationScore: -50);
+        SeedTheft(guard, "Blazing Kris", settledAt: null);
+        SeedTheft(guard, "Silver Ring", settledAt: DateTime.UtcNow);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _serviceProvider = BuildServiceProvider(encounterChance: 1f);
         _handler = _serviceProvider.GetRequiredService<EvaluateGuardEncounterCommandHandler>();
@@ -199,26 +185,17 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("Killed a guard", Assert.Single(result.RecentOffenses));
+        Assert.Equal("Stole Blazing Kris from you", Assert.Single(result.RecentOffenses));
     }
 
     [Fact]
-    public async Task Handle_MapsReasonToOffenseText_WhenNoDetailWasRecorded()
+    public async Task Handle_NamesTheVictim_WhenTheGuardIsNotTheOneWhoWasWronged()
     {
-        // Arrange — a real kill penalty never sets Detail; the offense text must not fall back
-        // to the raw enum name
+        // Arrange
         await SeedGuard(reputationScore: -50);
-        _context.ReputationLogEntries.Add(
-            new ReputationLogEntry
-            {
-                WorldId = WorldId,
-                CreatureId = _player.Id,
-                TargetId = _cityFaction.Id,
-                TargetType = ReputationTargetType.Faction,
-                DeltaScore = -100,
-                Reason = ReputationReason.KilledFactionMember,
-            }
-        );
+        var shopkeeper = Builders.MakeCreature(WorldId, locationId: _location.Id);
+        _context.Creatures.Add(shopkeeper);
+        SeedTheft(shopkeeper, "Blazing Kris", settledAt: null);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _serviceProvider = BuildServiceProvider(encounterChance: 1f);
         _handler = _serviceProvider.GetRequiredService<EvaluateGuardEncounterCommandHandler>();
@@ -231,6 +208,25 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("Killed a local", Assert.Single(result.RecentOffenses));
+        Assert.Equal(
+            $"Stole Blazing Kris from {shopkeeper.Name}",
+            Assert.Single(result.RecentOffenses)
+        );
     }
+
+    private void SeedTheft(Creature owner, string itemName, DateTime? settledAt) =>
+        _context.Crimes.Add(
+            new TheftCrime
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                LocationId = _location.Id,
+                CityId = CityId,
+                Resolution = CrimeResolution.Reported,
+                SettledAt = settledAt,
+                OwnerCreatureId = owner.Id,
+                OwnerName = owner.Name,
+                Items = [new TheftCrimeItem(itemName, 1)],
+            }
+        );
 }

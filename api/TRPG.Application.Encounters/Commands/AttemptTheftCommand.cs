@@ -68,7 +68,8 @@ internal class AttemptTheftCommandHandler(
     IOptionsMonitor<TheftOptions> theftOptions,
     ICommandHandler<AddTheftCrimesCommand> addTheftCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
-    ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome
+    ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
+    LocationCityResolver locationCity
 ) : ICommandHandler<AttemptTheftCommand, TheftAttemptResult>
 {
     public async Task<TheftAttemptResult> Handle(
@@ -418,6 +419,7 @@ internal class AttemptTheftCommandHandler(
             WorldId = command.WorldId,
             PlayerId = command.PlayerId,
             LocationId = source.LocationId,
+            CityId = await locationCity.Resolve(source.LocationId, cancellationToken),
             OwnerCreatureId = source.Owner.Id,
             OwnerFactionId = ownerFactionId,
             OwnerName = source.Owner.Name,

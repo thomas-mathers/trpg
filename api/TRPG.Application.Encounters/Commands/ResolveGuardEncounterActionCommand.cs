@@ -37,6 +37,8 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     ICommandHandler<SetLockpickingCrimeOutcomeCommand> setLockpickingCrimeOutcome,
+    ICommandHandler<SettleOutstandingCrimesCommand> settleOutstandingCrimes,
+    LocationCityResolver locationCity,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
 )
     : EncounterResolutionCommandHandlerBase<
@@ -98,6 +100,8 @@ internal class ResolveGuardEncounterActionCommandHandler(
             },
             cancellationToken
         );
+
+        await SettleCrimesInCity(command, encounter, cancellationToken);
 
         return new GuardEncounterResolutionFact(
             command.EncounterId,
@@ -183,6 +187,8 @@ internal class ResolveGuardEncounterActionCommandHandler(
             cancellationToken
         );
 
+        await SettleCrimesInCity(command, encounter, cancellationToken);
+
         return new GuardEncounterResolutionFact(
             command.EncounterId,
             GuardEncounterResolutionOutcome.WentToJail,
@@ -249,6 +255,30 @@ internal class ResolveGuardEncounterActionCommandHandler(
 
         await setLockpickingCrimeOutcome.Handle(
             new SetLockpickingCrimeOutcomeCommand { CrimeId = crimeId, Outcome = outcome },
+            cancellationToken
+        );
+    }
+
+    // Answering for the offences is what clears them, so a later guard stops reciting them.
+    private async Task SettleCrimesInCity(
+        ResolveGuardEncounterActionCommand command,
+        GuardEncounter encounter,
+        CancellationToken cancellationToken
+    )
+    {
+        var cityId = await locationCity.Resolve(encounter.LocationId, cancellationToken);
+        if (cityId is not { } city)
+        {
+            return;
+        }
+
+        await settleOutstandingCrimes.Handle(
+            new SettleOutstandingCrimesCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                CityId = city,
+            },
             cancellationToken
         );
     }
