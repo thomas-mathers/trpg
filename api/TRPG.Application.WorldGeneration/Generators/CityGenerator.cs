@@ -80,6 +80,7 @@ public class CityGenerator(
             Name = $"The People of {input.City.Name}",
             Description = $"The common folk of {input.City.Name}.",
             IsCityFaction = true,
+            CityId = input.City.Id,
         };
 
         var districtsByType = input.Districts.ToDictionary(d => d.DistrictType);

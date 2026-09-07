@@ -38,7 +38,8 @@ internal class EvaluateTrespassingEncounterCommandHandler(
     ICommandHandler<AddTrespassingCrimesCommand> addTrespassingCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
-    IOptionsMonitor<LockpickingOptions> lockpickingOptions
+    IOptionsMonitor<LockpickingOptions> lockpickingOptions,
+    LocationCityResolver locationCity
 ) : ICommandHandler<EvaluateTrespassingEncounterCommand, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(
@@ -126,11 +127,14 @@ internal class EvaluateTrespassingEncounterCommandHandler(
         );
 
         // Anchored at the building, not the room, so moving deeper inside doesn't resolve it early.
+        var crimeLocationId = buildingEntity?.ExteriorLocationId ?? player.LocationId;
+
         var crime = new TrespassingCrime
         {
             WorldId = command.WorldId,
             PlayerId = player.Id,
-            LocationId = buildingEntity?.ExteriorLocationId ?? player.LocationId,
+            LocationId = crimeLocationId,
+            CityId = await locationCity.Resolve(crimeLocationId, cancellationToken),
             BuildingId = building.Id,
             BuildingName = building.Name,
             OwnerFactionId = building.FactionId,

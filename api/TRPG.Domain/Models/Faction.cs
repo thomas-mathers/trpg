@@ -15,6 +15,9 @@ public class Faction
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
     public bool IsCityFaction { get; init; }
+
+    // Set for city factions so a location can resolve whose law applies there.
+    public Guid? CityId { get; init; }
     public string Name { get; init; } = "";
     public int ReputationSensitivity { get; init; }
     public int RiskAversion { get; init; }

@@ -39,7 +39,8 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
     > getRoomBookingsForPlayerInBuilding,
     ICommandHandler<DeleteRoomBookingsCommand> deleteRoomBookings,
     ICommandHandler<AddTheftCrimesCommand> addTheftCrimes,
-    ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses
+    ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
+    LocationCityResolver locationCity
 ) : ICommandHandler<ConfrontOverdueRoomKeyCommand, ConfrontOverdueRoomKeyResult>
 {
     public async Task<ConfrontOverdueRoomKeyResult> Handle(
@@ -82,6 +83,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             WorldId = command.WorldId,
             PlayerId = command.PlayerId,
             LocationId = command.LocationId,
+            CityId = await locationCity.Resolve(command.LocationId, cancellationToken),
             OwnerCreatureId = innkeeper.Id,
             OwnerFactionId = await getCityFactionForCreature.Handle(
                 new GetCityFactionForCreatureQuery { CreatureId = innkeeper.Id },

@@ -8,6 +8,7 @@ namespace TRPG.Application.Crimes.Queries;
 public enum WitnessedCrimeKind
 {
     Kill,
+    Assault,
     Theft,
     Lockpicking,
     Trespassing,
@@ -59,6 +60,12 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
                 kill.OccurredAt,
                 WitnessedCrimeKind.Kill,
                 kill.VictimName,
+                null
+            ),
+            AssaultCrime assault => new WitnessedCrime(
+                assault.OccurredAt,
+                WitnessedCrimeKind.Assault,
+                assault.VictimName,
                 null
             ),
             TheftCrime theft => new WitnessedCrime(

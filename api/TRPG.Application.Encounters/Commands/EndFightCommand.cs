@@ -46,7 +46,8 @@ internal class EndFightCommandHandler(
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IGameClientEventSink gameEvents
+    IGameClientEventSink gameEvents,
+    LocationCityResolver locationCity
 ) : ICommandHandler<EndFightCommand>
 {
     public async Task Handle(EndFightCommand command, CancellationToken cancellationToken = default)
@@ -155,12 +156,15 @@ internal class EndFightCommandHandler(
             cancellationToken
         );
 
+        var cityId = await locationCity.Resolve(fight.LocationId, cancellationToken);
+
         var crimes = killedCreatureIds
             .Select(killedCreatureId => new KillCrime
             {
                 WorldId = worldId,
                 PlayerId = playerId,
                 LocationId = fight.LocationId,
+                CityId = cityId,
                 VictimId = killedCreatureId,
                 VictimName = killedCombatants[killedCreatureId].Name,
                 VictimFactionIds = factionIdsByVictimId.TryGetValue(

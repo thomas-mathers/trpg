@@ -2,8 +2,8 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.Reputations.Mappers;
-using TRPG.Application.Reputations.Queries;
+using TRPG.Application.Crimes.Queries;
+using TRPG.Application.Encounters.Mappers;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -24,10 +24,8 @@ public class CreateGuardEncounterCommand
 
 internal class CreateGuardEncounterCommandHandler(
     IEncountersDbContext context,
-    IQueryHandler<
-        GetRecentReputationLogQuery,
-        IReadOnlyCollection<ReputationLogEntry>
-    > getRecentReputationLog,
+    IQueryHandler<GetOutstandingCrimesQuery, IReadOnlyList<OutstandingCrime>> getOutstandingCrimes,
+    LocationCityResolver locationCity,
     IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
 ) : ICommandHandler<CreateGuardEncounterCommand, GuardEncounter>
 {
@@ -38,19 +36,7 @@ internal class CreateGuardEncounterCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var recentOffenses = await getRecentReputationLog.Handle(
-            new GetRecentReputationLogQuery
-            {
-                CreatureId = command.PlayerId,
-                Targets =
-                [
-                    new ReputationLogTarget(command.CityFactionId, ReputationTargetType.Faction),
-                ],
-                Limit = RecentOffenseLimit,
-                NegativeOnly = true,
-            },
-            cancellationToken
-        );
+        var outstandingCrimes = await GetOutstandingOffenses(command, cancellationToken);
 
         var options = guardEncounterOptions.CurrentValue;
         var encounter = new GuardEncounter
@@ -65,8 +51,8 @@ internal class CreateGuardEncounterCommandHandler(
             ReputationScore = command.ReputationScore,
             FineAmount = GuardEncounterCalculator.ComputeFineGold(command.ReputationScore, options),
             JailHours = GuardEncounterCalculator.ComputeJailHours(command.ReputationScore, options),
-            RecentOffenses = recentOffenses
-                .Select(entry => entry.Detail ?? entry.Reason.ToDisplayText())
+            RecentOffenses = outstandingCrimes
+                .Select(crime => crime.ToOffenseText(command.GuardCreatureId))
                 .ToList(),
             TriggeringCrimeId = command.TriggeringCrimeId,
         };
@@ -74,5 +60,28 @@ internal class CreateGuardEncounterCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         return encounter;
+    }
+
+    private async Task<IReadOnlyList<OutstandingCrime>> GetOutstandingOffenses(
+        CreateGuardEncounterCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var cityId = await locationCity.Resolve(command.PlayerLocationId, cancellationToken);
+        if (cityId is not { } city)
+        {
+            return [];
+        }
+
+        return await getOutstandingCrimes.Handle(
+            new GetOutstandingCrimesQuery
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                CityId = city,
+                Limit = RecentOffenseLimit,
+            },
+            cancellationToken
+        );
     }
 }

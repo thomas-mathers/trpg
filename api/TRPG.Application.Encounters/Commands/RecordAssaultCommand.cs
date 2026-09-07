@@ -25,7 +25,8 @@ internal class RecordAssaultCommandHandler(
         IReadOnlyCollection<LiveHumanoidWitness>
     > getLiveHumanoidWitnessesAtLocation,
     ICommandHandler<AddAssaultCrimesCommand> addAssaultCrimes,
-    ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses
+    ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
+    LocationCityResolver locationCity
 ) : ICommandHandler<RecordAssaultCommand>
 {
     public async Task Handle(
@@ -74,6 +75,7 @@ internal class RecordAssaultCommandHandler(
             WorldId = command.WorldId,
             PlayerId = command.PlayerId,
             LocationId = victim.LocationId,
+            CityId = await locationCity.Resolve(victim.LocationId, cancellationToken),
             VictimId = victim.Id,
             VictimName = victim.Name,
             VictimFactionIds = victimFactionIds.ToList(),
