@@ -195,6 +195,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         Assert.Equal(TheftCrimeOutcome.Fled, crime.Outcome);
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
         Assert.Equal(TheftEncounterResolutionOutcome.Fled, fact.Outcome);
+        Assert.Equal(_owner.Name, fact.StolenFrom);
         Assert.Equal(_confronter.Name, fact.ConfrontingName);
         Assert.Equal(_locationId, updatedPlayer!.LocationId);
         Assert.Null(updatedPlayer.PreviousLocationId);
@@ -513,6 +514,8 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             TheftCrimeId = crime.Id,
             ConfrontingCreatureId = confrontingCreatureToUse.Id,
             ConfrontingName = confrontingCreatureToUse.Name,
+            OwnerCreatureId = _owner.Id,
+            OwnerName = _owner.Name,
             SourceOwnerId = sourceOwnerId,
             SourceOwnerType = sourceOwnerType,
             ItemIds = item == null ? [] : [item.Id],

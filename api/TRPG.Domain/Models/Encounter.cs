@@ -67,6 +67,10 @@ public class TheftEncounter : Encounter
     public Guid TheftCrimeId { get; init; }
     public Guid ConfrontingCreatureId { get; init; }
     public string ConfrontingName { get; init; } = "";
+
+    // Whose goods these were, which is often not whoever stepped up to confront the player.
+    public Guid OwnerCreatureId { get; init; }
+    public string OwnerName { get; init; } = "";
     public Guid? SourceOwnerId { get; init; }
     public OwnerType? SourceOwnerType { get; init; }
     public List<Guid> ItemIds { get; init; } = [];
