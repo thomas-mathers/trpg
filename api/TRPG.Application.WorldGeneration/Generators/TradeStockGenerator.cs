@@ -50,7 +50,20 @@ public class TradeStockGenerator(ItemGenerator itemGenerator)
                 playerLevel
             );
 
-            items.AddRange(AssignToWorkstation(fillResult.ItemsToAdd, workstation.Id));
+            items.AddRange(
+                AssignToWorkstation(
+                    [
+                        .. fillResult.ItemsToAdd,
+                        new Gold
+                        {
+                            WorldId = worldId,
+                            Name = "Gold",
+                            Quantity = fillResult.GoldMinimum,
+                        },
+                    ],
+                    workstation.Id
+                )
+            );
             restockPolicies.Add(
                 new RestockPolicy
                 {

@@ -39,6 +39,7 @@ internal class SyncRestockPolicyCommandHandler(
         IReadOnlyDictionary<Guid, Guid>
     > getWorkstationOwnedItemIds,
     ICommandHandler<AddItemsCommand> addItems,
+    ICommandHandler<RestockGoldCommand> restockGold,
     ICommandHandler<UpdateItemQuantitiesCommand> updateItemQuantities,
     ICommandHandler<IssueReplacementRoomKeyCommand> issueReplacementRoomKey
 ) : ICommandHandler<SyncRestockPolicyCommand>
@@ -117,6 +118,16 @@ internal class SyncRestockPolicyCommandHandler(
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
             TransactionScopeAsyncFlowOption.Enabled
+        );
+
+        await restockGold.Handle(
+            new RestockGoldCommand
+            {
+                Owner = new ItemOwnerReference(workstationId, OwnerType.Workstation),
+                WorldId = policy.WorldId,
+                MinimumQuantity = fillResult.GoldMinimum,
+            },
+            cancellationToken
         );
 
         if (fillResult.ItemsToAdd.Count > 0)
