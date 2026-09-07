@@ -351,9 +351,8 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
 
         await using var verifyContext = db.CreateContext();
         var crime = await verifyContext
-            .Crimes.OfType<LockpickingCrime>()
+            .Crimes.OfType<JailbreakCrime>()
             .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
-        Assert.True(crime.IsJailbreak);
 
         var witnessIds = await verifyContext
             .CrimeWitnesses.Where(w => w.CrimeId == crime.Id)

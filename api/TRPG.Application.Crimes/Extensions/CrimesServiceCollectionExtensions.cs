@@ -34,6 +34,10 @@ public static class CrimesServiceCollectionExtensions
             .AddTransient<ICrimeConsequenceResolver>(serviceProvider =>
                 serviceProvider.GetRequiredService<LockpickingConsequenceResolver>()
             )
+            .AddTransient<JailbreakConsequenceResolver>()
+            .AddTransient<ICrimeConsequenceResolver>(serviceProvider =>
+                serviceProvider.GetRequiredService<JailbreakConsequenceResolver>()
+            )
             .AddTransient<TrespassingConsequenceResolver>()
             .AddTransient<ICrimeConsequenceResolver>(serviceProvider =>
                 serviceProvider.GetRequiredService<TrespassingConsequenceResolver>()

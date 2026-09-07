@@ -87,9 +87,16 @@ public class LockpickingCrime : Crime
     public string BuildingName { get; init; } = "";
     public Guid? OwnerFactionId { get; init; }
     public LockpickingCrimeOutcome? Outcome { get; set; }
+}
 
-    // A picked lock that was holding the player in custody, which carries its own penalties.
-    public bool IsJailbreak { get; init; }
+// Escaping custody, which shares picking a lock with LockpickingCrime and nothing else: its own
+// penalties, its own wording, and a confrontation that does not wait on standing reputation.
+public class JailbreakCrime : Crime
+{
+    public Guid BuildingId { get; init; }
+    public string BuildingName { get; init; } = "";
+    public Guid? OwnerFactionId { get; init; }
+    public LockpickingCrimeOutcome? Outcome { get; set; }
 }
 
 public class TrespassingCrime : Crime
