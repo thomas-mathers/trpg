@@ -77,7 +77,7 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
             cancellationToken
         );
 
-        await refreshScene.Handle(
+        var refreshed = await refreshScene.Handle(
             new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
@@ -88,7 +88,10 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
         );
 
         return new GameTurnPrompt.Narrate(
-            BuildNarrationPrompt(action, resolution),
+            $"""
+            {BuildNarrationPrompt(action, resolution)}
+            {RelocationFacts.Describe(refreshed.Scene)}
+            """,
             IncludeTools: false
         );
     }
