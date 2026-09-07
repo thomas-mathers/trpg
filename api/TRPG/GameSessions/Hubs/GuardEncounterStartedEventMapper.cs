@@ -1,4 +1,5 @@
 using TRPG.Application.Encounters.Events;
+using TRPG.Encounters.Mappers;
 using TRPG.Encounters.Responses;
 
 namespace TRPG.GameSessions.Hubs;
@@ -16,7 +17,9 @@ internal sealed class GuardEncounterStartedEventMapper
                 gameEvent.Encounter.LocationName!,
                 gameEvent.Encounter.FineAmount,
                 gameEvent.Encounter.JailHours,
-                gameEvent.Encounter.RecentOffenses,
+                gameEvent
+                    .Encounter.RecentOffenses.Select(offense => offense.ToPlayerText())
+                    .ToArray(),
                 AllowedActions,
                 gameEvent.CanAffordFine
             ),

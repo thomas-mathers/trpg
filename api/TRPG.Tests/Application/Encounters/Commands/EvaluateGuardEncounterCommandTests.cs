@@ -185,7 +185,9 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("Stole Blazing Kris from you", Assert.Single(result.RecentOffenses));
+        var offense = Assert.Single(result.RecentOffenses);
+        Assert.Equal("Stole Blazing Kris from", offense.Action);
+        Assert.True(offense.SubjectIsTheGuard);
     }
 
     [Fact]
@@ -208,10 +210,10 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(
-            $"Stole Blazing Kris from {shopkeeper.Name}",
-            Assert.Single(result.RecentOffenses)
-        );
+        var offense = Assert.Single(result.RecentOffenses);
+        Assert.Equal("Stole Blazing Kris from", offense.Action);
+        Assert.Equal(shopkeeper.Name, offense.SubjectName);
+        Assert.False(offense.SubjectIsTheGuard);
     }
 
     private void SeedTheft(Creature owner, string itemName, DateTime? settledAt) =>

@@ -8,48 +8,50 @@ public sealed class OutstandingCrimeMapperTests
     private static readonly Guid GuardId = Guid.NewGuid();
 
     [Fact]
-    public void ToOffenseText_AddressesTheGuardDirectly_WhenTheyAreTheOneWhoWasWronged()
+    public void ToOffense_MarksTheSubjectAsTheGuard_WhenTheyAreTheOneWhoWasWronged()
     {
         // Arrange
         var crime = MakeCrime(OutstandingCrimeKind.Theft, GuardId, ["Blazing Kris"]);
 
         // Act
-        var text = crime.ToOffenseText(GuardId);
+        var offense = crime.ToOffense(GuardId);
 
         // Assert
-        Assert.Equal("Stole Blazing Kris from you", text);
+        Assert.Equal("Stole Blazing Kris from", offense.Action);
+        Assert.True(offense.SubjectIsTheGuard);
     }
 
     [Fact]
-    public void ToOffenseText_NamesTheVictim_WhenSomeoneElseWasWronged()
+    public void ToOffense_LeavesTheSubjectUnmarked_WhenSomeoneElseWasWronged()
     {
         // Arrange
         var crime = MakeCrime(OutstandingCrimeKind.Theft, Guid.NewGuid(), ["Blazing Kris"]);
 
         // Act
-        var text = crime.ToOffenseText(GuardId);
+        var offense = crime.ToOffense(GuardId);
 
         // Assert
-        Assert.Equal("Stole Blazing Kris from Cora", text);
+        Assert.Equal("Cora", offense.SubjectName);
+        Assert.False(offense.SubjectIsTheGuard);
     }
 
     [Fact]
-    public void ToOffenseText_OmitsTheItemList_WhenNothingWasCarriedOff()
+    public void ToOffense_OmitsTheItemList_WhenNothingWasCarriedOff()
     {
         // Arrange
         var crime = MakeCrime(OutstandingCrimeKind.Theft, GuardId, []);
 
         // Act
-        var text = crime.ToOffenseText(GuardId);
+        var offense = crime.ToOffense(GuardId);
 
         // Assert
-        Assert.Equal("Stole from you", text);
+        Assert.Equal("Stole from", offense.Action);
     }
 
     [Theory]
-    [InlineData(OutstandingCrimeKind.Kill, "Killed you")]
-    [InlineData(OutstandingCrimeKind.Assault, "Assaulted you")]
-    public void ToOffenseText_DescribesViolentCrimesByTheirVictim(
+    [InlineData(OutstandingCrimeKind.Kill, "Killed")]
+    [InlineData(OutstandingCrimeKind.Assault, "Assaulted")]
+    public void ToOffense_DescribesViolentCrimesByTheirVictim(
         OutstandingCrimeKind kind,
         string expected
     )
@@ -58,14 +60,14 @@ public sealed class OutstandingCrimeMapperTests
         var crime = MakeCrime(kind, GuardId, []);
 
         // Act
-        var text = crime.ToOffenseText(GuardId);
+        var offense = crime.ToOffense(GuardId);
 
         // Assert
-        Assert.Equal(expected, text);
+        Assert.Equal(expected, offense.Action);
     }
 
     [Fact]
-    public void ToOffenseText_DistinguishesAJailbreakFromAnOrdinaryBreakIn()
+    public void ToOffense_DistinguishesAJailbreakFromAnOrdinaryBreakIn()
     {
         // Arrange
         var jailbreak = new OutstandingCrime(
@@ -78,10 +80,12 @@ public sealed class OutstandingCrimeMapperTests
         );
 
         // Act
-        var text = jailbreak.ToOffenseText(GuardId);
+        var offense = jailbreak.ToOffense(GuardId);
 
         // Assert
-        Assert.Equal("Broke out of The Darkstead Jail", text);
+        Assert.Equal("Broke out of", offense.Action);
+        Assert.Equal("The Darkstead Jail", offense.SubjectName);
+        Assert.False(offense.SubjectIsTheGuard);
     }
 
     private static OutstandingCrime MakeCrime(

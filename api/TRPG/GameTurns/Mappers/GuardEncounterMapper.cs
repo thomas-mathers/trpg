@@ -1,4 +1,5 @@
 using TRPG.Domain.Models;
+using TRPG.Encounters.Mappers;
 using TRPG.GameTurns.Tools;
 
 namespace TRPG.GameTurns.Mappers;
@@ -11,6 +12,6 @@ internal static class GuardEncounterMapper
             encounter.LocationName!,
             encounter.FineAmount,
             encounter.JailHours,
-            encounter.RecentOffenses
+            encounter.RecentOffenses.Select(offense => offense.ToNarratorText()).ToArray()
         );
 }
