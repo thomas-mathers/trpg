@@ -232,7 +232,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
 
         modelBuilder.Entity<GuardEncounter>(entity =>
         {
-            entity.Property(e => e.RecentOffenses).HasColumnType("text[]");
+            entity.Property(e => e.RecentOffenses).HasJsonConversion(() => []);
         });
 
         modelBuilder.Entity<TheftEncounter>(entity =>

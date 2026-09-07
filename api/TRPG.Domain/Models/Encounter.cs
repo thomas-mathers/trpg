@@ -48,6 +48,10 @@ public class FightEncounter : Encounter
     public bool HasSurpriseRound { get; init; }
 }
 
+// Everything but the subject reads the same to both audiences, so only the subject is deferred:
+// the guard is told "you" where the player is shown her name.
+public record GuardEncounterOffense(string Action, string SubjectName, bool SubjectIsTheGuard);
+
 public class GuardEncounter : Encounter
 {
     public required Guid GuardCreatureId { get; init; }
@@ -56,7 +60,7 @@ public class GuardEncounter : Encounter
     public required int ReputationScore { get; init; }
     public required int FineAmount { get; init; }
     public required int JailHours { get; init; }
-    public List<string> RecentOffenses { get; init; } = [];
+    public List<GuardEncounterOffense> RecentOffenses { get; init; } = [];
 
     // Null when the guard is reacting to standing reputation rather than a specific offence.
     public Guid? TriggeringCrimeId { get; init; }

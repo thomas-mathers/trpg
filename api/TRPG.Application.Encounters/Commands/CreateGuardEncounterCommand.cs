@@ -52,7 +52,7 @@ internal class CreateGuardEncounterCommandHandler(
             FineAmount = GuardEncounterCalculator.ComputeFineGold(command.ReputationScore, options),
             JailHours = GuardEncounterCalculator.ComputeJailHours(command.ReputationScore, options),
             RecentOffenses = outstandingCrimes
-                .Select(crime => crime.ToOffenseText(command.GuardCreatureId))
+                .Select(crime => crime.ToOffense(command.GuardCreatureId))
                 .ToList(),
             TriggeringCrimeId = command.TriggeringCrimeId,
         };
