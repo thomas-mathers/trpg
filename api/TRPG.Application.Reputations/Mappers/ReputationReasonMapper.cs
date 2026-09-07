@@ -16,6 +16,8 @@ public static class ReputationReasonMapper
             ReputationReason.AssaultedFactionMember => "Assaulted a local",
             ReputationReason.WitnessedAssault => "Witnessed an assault",
             ReputationReason.WitnessedTheft => "Witnessed a theft",
+            ReputationReason.StoleFromVictim => "Stole from you",
+            ReputationReason.AssaultedVictim => "Assaulted you",
             ReputationReason.PickedFactionLock => "Broke into a property",
             ReputationReason.WitnessedLockpicking => "Witnessed a break-in",
             ReputationReason.TrespassedOnFactionProperty => "Trespassed on a property",

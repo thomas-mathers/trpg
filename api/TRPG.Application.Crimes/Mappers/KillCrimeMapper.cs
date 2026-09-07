@@ -9,5 +9,12 @@ internal static class KillCrimeMapper
         this KillCrime crime,
         IReadOnlyCollection<Guid> reportedWitnessIds,
         ReputationOptions options
-    ) => new(crime.VictimFactionIds, reportedWitnessIds, options.KillReputationPenalty);
+    ) =>
+        new(
+            FactionIds: crime.VictimFactionIds,
+            ReportedWitnessIds: reportedWitnessIds,
+            // The victim is a corpse, so there is nobody left to hold a personal grudge.
+            VictimId: null,
+            Penalty: options.KillReputationPenalty
+        );
 }

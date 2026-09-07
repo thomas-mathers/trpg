@@ -150,8 +150,8 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db) : IAs
         Assert.Equal(guard.Id, result.GuardCreatureId);
         Assert.Equal(_cityFaction.Id, result.CityFactionId);
         Assert.Equal(-50, result.ReputationScore);
-        Assert.Equal(250, result.FineAmount);
-        Assert.Equal(24, result.JailHours);
+        Assert.Equal(100, result.FineAmount);
+        Assert.Equal(13, result.JailHours);
 
         await using var verifyContext = db.CreateContext();
         var persisted = await verifyContext

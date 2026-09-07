@@ -58,6 +58,7 @@ internal class ResolveCrimeConsequencesAtLocationCommandHandler(
                 Reports = reports,
                 FactionReason = resolver.FactionReason,
                 WitnessReason = resolver.WitnessReason,
+                VictimReason = resolver.VictimReason,
             },
             cancellationToken
         );

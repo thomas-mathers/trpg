@@ -11,8 +11,9 @@ internal static class TrespassingCrimeMapper
         ReputationOptions options
     ) =>
         new(
-            crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
-            reportedWitnessIds,
-            options.TrespassingReputationPenalty
+            FactionIds: crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
+            ReportedWitnessIds: reportedWitnessIds,
+            VictimId: null,
+            Penalty: options.TrespassingReputationPenalty
         );
 }

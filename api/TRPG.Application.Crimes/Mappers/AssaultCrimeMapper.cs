@@ -9,5 +9,11 @@ internal static class AssaultCrimeMapper
         this AssaultCrime crime,
         IReadOnlyCollection<Guid> reportedWitnessIds,
         ReputationOptions options
-    ) => new(crime.VictimFactionIds, reportedWitnessIds, options.AssaultReputationPenalty);
+    ) =>
+        new(
+            FactionIds: crime.VictimFactionIds,
+            ReportedWitnessIds: reportedWitnessIds,
+            VictimId: crime.VictimId,
+            Penalty: options.AssaultReputationPenalty
+        );
 }

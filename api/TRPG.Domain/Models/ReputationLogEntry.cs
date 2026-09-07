@@ -11,6 +11,8 @@ public enum ReputationReason
     AssaultedFactionMember,
     WitnessedAssault,
     WitnessedTheft,
+    StoleFromVictim,
+    AssaultedVictim,
     PickedFactionLock,
     WitnessedLockpicking,
     TrespassedOnFactionProperty,
