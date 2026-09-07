@@ -119,6 +119,8 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             InterruptedDestinationLocationId = command.InterruptedDestinationLocationId,
             ConfrontingCreatureId = innkeeper.Id,
             ConfrontingName = innkeeper.Name,
+            OwnerCreatureId = innkeeper.Id,
+            OwnerName = innkeeper.Name,
             SourceOwnerId = sourceOwner.Id,
             SourceOwnerType = sourceOwner.Type,
             ItemIds = heldOverdueKeys.Select(key => key.Id).ToList(),
