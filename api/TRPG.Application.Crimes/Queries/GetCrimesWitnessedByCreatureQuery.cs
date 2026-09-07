@@ -18,7 +18,9 @@ public record WitnessedCrime(
     DateTime OccurredAt,
     WitnessedCrimeKind Kind,
     string SubjectName,
-    TheftCrimeOutcome? Outcome
+    Guid? SubjectCreatureId,
+    TheftCrimeOutcome? Outcome,
+    CrimeWitnessKind Awareness
 );
 
 public class GetCrimesWitnessedByCreatureQuery
@@ -44,47 +46,57 @@ internal class GetCrimesWitnessedByCreatureQueryHandler(ICrimesDbContext context
                 && witness.Resolution != CrimeWitnessResolution.Dead
             join crime in context.Crimes.AsNoTracking() on witness.CrimeId equals crime.Id
             where crime.PlayerId == query.PlayerId
-            select crime
+            select new { Crime = crime, witness.Kind }
         ).ToArrayAsync(cancellationToken);
 
         return crimes
-            .Select(ToWitnessedCrime)
+            .Select(entry => ToWitnessedCrime(entry.Crime, entry.Kind))
             .OrderByDescending(crime => crime.OccurredAt)
             .ToArray();
     }
 
-    private static WitnessedCrime ToWitnessedCrime(Crime crime) =>
+    private static WitnessedCrime ToWitnessedCrime(Crime crime, CrimeWitnessKind awareness) =>
         crime switch
         {
             KillCrime kill => new WitnessedCrime(
                 kill.OccurredAt,
                 WitnessedCrimeKind.Kill,
                 kill.VictimName,
-                null
+                kill.VictimId,
+                null,
+                awareness
             ),
             AssaultCrime assault => new WitnessedCrime(
                 assault.OccurredAt,
                 WitnessedCrimeKind.Assault,
                 assault.VictimName,
-                null
+                assault.VictimId,
+                null,
+                awareness
             ),
             TheftCrime theft => new WitnessedCrime(
                 theft.OccurredAt,
                 WitnessedCrimeKind.Theft,
                 theft.OwnerName,
-                theft.Outcome
+                theft.OwnerCreatureId,
+                theft.Outcome,
+                awareness
             ),
             LockpickingCrime breakIn => new WitnessedCrime(
                 breakIn.OccurredAt,
                 WitnessedCrimeKind.Lockpicking,
                 breakIn.BuildingName,
-                null
+                null,
+                null,
+                awareness
             ),
             TrespassingCrime trespass => new WitnessedCrime(
                 trespass.OccurredAt,
                 WitnessedCrimeKind.Trespassing,
                 trespass.BuildingName,
-                null
+                null,
+                null,
+                awareness
             ),
             _ => throw new InvalidOperationException($"Unhandled crime type {crime.GetType()}"),
         };
