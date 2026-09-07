@@ -515,6 +515,45 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db) : I
     }
 
     [Fact]
+    public async Task Handle_TellsTheVictimTheyWereRobbed_WhenTheyOnlyHeardOfIt()
+    {
+        // Arrange
+        var crime = new TheftCrime
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            LocationId = _npc.LocationId,
+            OwnerCreatureId = _npc.Id,
+            OwnerName = _npc.Name,
+            Outcome = TheftCrimeOutcome.Taken,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+        };
+        _context.Crimes.Add(crime);
+        _context.CrimeWitnesses.Add(
+            new CrimeWitness
+            {
+                WorldId = WorldId,
+                CrimeId = crime.Id,
+                CreatureId = _npc.Id,
+                Kind = CrimeWitnessKind.Heard,
+                Resolution = CrimeWitnessResolution.Reported,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var observedCrime = Assert.Single(result.RuntimeState.ConversationHistory.ObservedCrimes);
+        Assert.Equal(
+            "You did not see it, but others who did told you the player stole from you.",
+            observedCrime.Text
+        );
+    }
+
+    [Fact]
     public async Task Handle_ReturnsReputationLogEntriesTargetingTheNpcPersonally()
     {
         // Arrange

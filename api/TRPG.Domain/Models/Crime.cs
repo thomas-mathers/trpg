@@ -14,6 +14,12 @@ public enum CrimeWitnessResolution
     Dead,
 }
 
+public enum CrimeWitnessKind
+{
+    Saw,
+    Heard,
+}
+
 public abstract class Crime
 {
     public Guid Id { get; init; } = Guid.NewGuid();
@@ -98,6 +104,9 @@ public class CrimeWitness
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid CrimeId { get; init; }
     public Guid CreatureId { get; init; }
+
+    // Hearsay reaches a victim who was not there, so it can never be what reports the crime.
+    public CrimeWitnessKind Kind { get; init; } = CrimeWitnessKind.Saw;
     public CrimeWitnessResolution Resolution { get; set; } = CrimeWitnessResolution.Pending;
     public DateTime? ResolvedAt { get; set; }
     public DateTime WitnessedAt { get; init; } = DateTime.UtcNow;

@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Configuration;
+using TRPG.Application.Crimes.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Crimes;
@@ -29,6 +31,7 @@ public interface ICrimeConsequenceResolver
 // One crime type's consequences. Subclasses supply only their reasons and their pricing.
 internal abstract class CrimeConsequenceResolver<TCrime>(
     PendingCrimeWitnessResolutionService pendingCrimeWitnessResolution,
+    ICommandHandler<RecordCrimeHearsayCommand> recordCrimeHearsay,
     IOptionsMonitor<ReputationOptions> reputationOptions
 ) : ICrimeConsequenceResolver
     where TCrime : Crime
@@ -70,10 +73,32 @@ internal abstract class CrimeConsequenceResolver<TCrime>(
 
         var options = reputationOptions.CurrentValue;
 
-        return resolution
-            .ReportedCrimes.Select(crime =>
+        var reportsByCrimeId = resolution.ReportedCrimes.ToDictionary(
+            crime => crime.Id,
+            crime =>
                 ToCrimeReport(crime, resolution.ReportingWitnessIdsByCrimeId[crime.Id], options)
-            )
+        );
+
+        await RecordVictimHearsay(scope.WorldId, reportsByCrimeId, cancellationToken);
+
+        return reportsByCrimeId.Values.ToArray();
+    }
+
+    // Whoever reported it names the culprit to the victim, so an absent victim still learns of it.
+    private async Task RecordVictimHearsay(
+        Guid worldId,
+        IReadOnlyDictionary<Guid, CrimeReport> reportsByCrimeId,
+        CancellationToken cancellationToken
+    )
+    {
+        var entries = reportsByCrimeId
+            .Where(entry => entry.Value.VictimId != null)
+            .Select(entry => new CrimeHearsay(entry.Key, entry.Value.VictimId!.Value))
             .ToArray();
+
+        await recordCrimeHearsay.Handle(
+            new RecordCrimeHearsayCommand { WorldId = worldId, Entries = entries },
+            cancellationToken
+        );
     }
 }

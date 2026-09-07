@@ -333,26 +333,49 @@ internal class GetNpcConversationBriefingQueryHandler(
             cancellationToken
         );
 
-        return witnessedCrimes.Select(ToObservedCrime).ToArray();
+        return witnessedCrimes.Select(crime => ToObservedCrime(crime, query.NpcId)).ToArray();
     }
 
-    private static NpcConversationObservedCrime ToObservedCrime(WitnessedCrime crime) =>
+    private static NpcConversationObservedCrime ToObservedCrime(WitnessedCrime crime, Guid npcId) =>
         new(
-            crime.Kind switch
-            {
-                WitnessedCrimeKind.Kill => $"You witnessed the player kill {crime.SubjectName}.",
-                WitnessedCrimeKind.Assault =>
-                    $"You witnessed the player attack {crime.SubjectName}.",
-                WitnessedCrimeKind.Lockpicking =>
-                    $"You witnessed the player break into {crime.SubjectName}.",
-                WitnessedCrimeKind.Trespassing =>
-                    $"You caught the player somewhere they had no business being inside {crime.SubjectName}.",
-                WitnessedCrimeKind.Theft when crime.Outcome == TheftCrimeOutcome.Apologized =>
-                    $"You witnessed the player steal from {crime.SubjectName}, though they later apologized and made it right.",
-                WitnessedCrimeKind.Theft =>
-                    $"You witnessed the player steal from {crime.SubjectName}.",
-            }
+            crime.Awareness == CrimeWitnessKind.Heard
+                ? ToHearsayText(crime, npcId)
+                : ToWitnessedText(crime)
         );
+
+    // Never seen first-hand, so it can only be described as something the NPC was told.
+    private static string ToHearsayText(WitnessedCrime crime, Guid npcId)
+    {
+        var subject = crime.SubjectCreatureId == npcId ? "you" : crime.SubjectName;
+
+        return crime.Kind switch
+        {
+            WitnessedCrimeKind.Kill =>
+                $"You did not see it, but others who did told you the player killed {subject}.",
+            WitnessedCrimeKind.Assault =>
+                $"You did not see it, but others who did told you the player attacked {subject}.",
+            WitnessedCrimeKind.Theft =>
+                $"You did not see it, but others who did told you the player stole from {subject}.",
+            WitnessedCrimeKind.Lockpicking =>
+                $"You did not see it, but others who did told you the player broke into {crime.SubjectName}.",
+            WitnessedCrimeKind.Trespassing =>
+                $"You did not see it, but others who did told you the player was inside {crime.SubjectName} uninvited.",
+        };
+    }
+
+    private static string ToWitnessedText(WitnessedCrime crime) =>
+        crime.Kind switch
+        {
+            WitnessedCrimeKind.Kill => $"You witnessed the player kill {crime.SubjectName}.",
+            WitnessedCrimeKind.Assault => $"You witnessed the player attack {crime.SubjectName}.",
+            WitnessedCrimeKind.Lockpicking =>
+                $"You witnessed the player break into {crime.SubjectName}.",
+            WitnessedCrimeKind.Trespassing =>
+                $"You caught the player somewhere they had no business being inside {crime.SubjectName}.",
+            WitnessedCrimeKind.Theft when crime.Outcome == TheftCrimeOutcome.Apologized =>
+                $"You witnessed the player steal from {crime.SubjectName}, though they later apologized and made it right.",
+            WitnessedCrimeKind.Theft => $"You witnessed the player steal from {crime.SubjectName}.",
+        };
 
     private async Task<NpcConversationReputationEvent[]> GetReputationHistory(
         GetNpcConversationBriefingQuery query,
