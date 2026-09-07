@@ -34,7 +34,7 @@ internal class LockpickTool(
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a nearby building, or the exact DestinationRoomName of an exit, copied verbatim from the most recent look or move result."
+            "The exact Name of a nearby building, or the exact DestinationName of an exit, copied verbatim from the most recent look or move result."
         )]
             string destinationName,
         CancellationToken cancellationToken

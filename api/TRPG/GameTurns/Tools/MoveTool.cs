@@ -45,7 +45,7 @@ internal record MoveToolOverdueKeyEncounter(
 internal record MoveToolSuspicionEncounter(string GuardName, string LocationName, string Reason);
 
 internal record MoveToolResult(
-    SceneResult Scene,
+    ToolScene Scene,
     MoveToolHostileEncounter? HostileEncounter,
     MoveToolGuardEncounter? GuardEncounter,
     MoveToolOverdueKeyEncounter? OverdueRoomKeyEncounter,
@@ -76,11 +76,11 @@ internal class MoveTool(
 
     [DisplayName("move")]
     [Description(
-        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationRoomName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationRoomName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it."
+        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a nearby building, or the exact DestinationRoomName of an exit (the literal value \"Outside\" for exits leading outdoors, or an adjacent district's name), copied verbatim from the most recent look or move result."
+            "The exact Name of a nearby building, or the exact DestinationName of an exit (the literal value \"Outside\" for exits leading outdoors, or an adjacent district's name), copied verbatim from the most recent look or move result."
         )]
             string destinationName,
         CancellationToken cancellationToken
@@ -234,7 +234,7 @@ internal class MoveTool(
 
     private static MoveToolResult BuildResult(SceneResult scene, Encounter? encounter) =>
         new(
-            scene,
+            scene.ToToolScene(),
             (encounter as HostileEncounter)?.ToMoveToolSummary(),
             (encounter as GuardEncounter)?.ToMoveToolSummary(),
             (encounter as TheftEncounter)?.ToMoveToolSummary(),
