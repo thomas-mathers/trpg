@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
@@ -23,7 +24,8 @@ internal class LockpickTool(
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
-    ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult> attemptLockpick
+    ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult> attemptLockpick,
+    ILogger<LockpickTool> logger
 ) : IGameTool
 {
     public Delegate Invoke => InvokeAsync;
@@ -40,12 +42,15 @@ internal class LockpickTool(
         CancellationToken cancellationToken
     )
     {
+        logger.LogInformation("[pick_lock] destinationName={DestinationName}", destinationName);
+
         var activeEncounter = await getActiveEncounter.Handle(
             new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
             cancellationToken
         );
         if (activeEncounter != null)
         {
+            logger.LogInformation("[pick_lock] refused: an encounter is already active");
             return new ToolError("You can't do that while an encounter is active.");
         }
 
@@ -64,6 +69,11 @@ internal class LockpickTool(
         );
         if (!exitMatch.Matched)
         {
+            logger.LogInformation(
+                "[pick_lock] refused: no exit named {DestinationName} from location {LocationId}",
+                destinationName,
+                player.LocationId
+            );
             return new ToolError($"There's no door to '{destinationName}' here.");
         }
 
@@ -80,8 +90,18 @@ internal class LockpickTool(
 
         if (result.Outcome == LockpickAttemptOutcome.NothingToPick)
         {
+            logger.LogInformation(
+                "[pick_lock] refused: {DestinationName} is not locked",
+                destinationName
+            );
             return new ToolError($"The door to '{destinationName}' isn't locked.");
         }
+
+        logger.LogInformation(
+            "[pick_lock] outcome={Outcome}, encounter={Encounter}",
+            result.Outcome,
+            result.Encounter?.GetType().Name ?? "none"
+        );
 
         return new LockpickToolResult(
             result.Outcome == LockpickAttemptOutcome.Opened,

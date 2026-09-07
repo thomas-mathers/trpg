@@ -1,5 +1,6 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
@@ -69,7 +70,8 @@ internal class AttemptTheftCommandHandler(
     ICommandHandler<AddTheftCrimesCommand> addTheftCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
-    LocationCityResolver locationCity
+    LocationCityResolver locationCity,
+    ILogger<AttemptTheftCommandHandler> logger
 ) : ICommandHandler<AttemptTheftCommand, TheftAttemptResult>
 {
     public async Task<TheftAttemptResult> Handle(
@@ -155,6 +157,14 @@ internal class AttemptTheftCommandHandler(
             requiresTheftDetectionRoll,
             curve,
             cancellationToken
+        );
+
+        logger.LogInformation(
+            "[theft] from={OwnerName}, items={ItemCount}, witnesses={WitnessCount}, detected={Detected}",
+            source.Owner.Name,
+            selections.Length,
+            witnesses.Count,
+            isDetected
         );
 
         if (isDetected)
