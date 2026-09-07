@@ -201,35 +201,35 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     }
 
     [Fact]
-    public async Task Handle_Flee_MovesThePlayerToTheEncounterLocation_WhenItDiffersFromWhereTheyAre()
+    public async Task Handle_Flee_ContinuesToWhereTheyWereHeaded_WhenTheConfrontationInterruptedAMove()
     {
-        // Arrange — mirrors a blocked departure: the encounter's location is where the player
-        // was trying to go, not where they're actually standing
+        // Arrange — the innkeeper stops the player on their way out, so fleeing completes the move
         var destination = Builders.MakeLocation(WorldId);
-        var destinationLocationId = destination.Id;
         _context.Locations.Add(destination);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var encounter = await SeedEncounter(
             sourceOwnerId: _owner.Id,
             sourceOwnerType: OwnerType.Creature,
             confrontingCreature: _confronter,
-            locationId: destinationLocationId
+            interruptedDestinationLocationId: destination.Id
         );
 
         // Act
-        await _handler.Handle(
+        var fact = await _handler.Handle(
             MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
         // Assert
+        Assert.True(fact.LeftTheScene);
+
         await using var verifyContext = db.CreateContext();
         var movedPlayer = await verifyContext.Creatures.FindAsync(
             [_player.Id],
             TestContext.Current.CancellationToken
         );
 
-        Assert.Equal(destinationLocationId, movedPlayer!.LocationId);
+        Assert.Equal(destination.Id, movedPlayer!.LocationId);
         Assert.Equal(_locationId, movedPlayer.PreviousLocationId);
     }
 
@@ -489,7 +489,8 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         Item? item = null,
         Creature? confrontingCreature = null,
         Guid? locationId = null,
-        bool itemsTransferred = true
+        bool itemsTransferred = true,
+        Guid? interruptedDestinationLocationId = null
     )
     {
         var confrontingCreatureToUse = confrontingCreature ?? _owner;
@@ -520,6 +521,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
                 item == null || !itemsTransferred
                     ? []
                     : [new TheftEncounterItem(item.Id, item.Quantity)],
+            InterruptedDestinationLocationId = interruptedDestinationLocationId,
         };
         _context.Crimes.Add(crime);
         _context.Encounters.Add(encounter);

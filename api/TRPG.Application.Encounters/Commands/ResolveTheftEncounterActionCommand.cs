@@ -125,12 +125,8 @@ internal class ResolveTheftEncounterActionCommandHandler(
             cancellationToken
         );
 
-        // Blocked on the way somewhere means pushing past and carrying on; caught standing still
-        // means falling back the way they came.
         var destinationLocationId =
-            player.LocationId != encounter.LocationId
-                ? encounter.LocationId
-                : player.PreviousLocationId;
+            encounter.InterruptedDestinationLocationId ?? player.PreviousLocationId;
 
         if (destinationLocationId is { } locationId)
         {
