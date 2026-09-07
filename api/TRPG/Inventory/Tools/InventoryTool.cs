@@ -32,11 +32,11 @@ internal class InventoryTool(
 
     [DisplayName("inventory")]
     [Description(
-        "Returns the items someone is carrying. Omit targetName to check the player's own inventory, or pass the exact Name of a person from NearbyPeople to check theirs."
+        "Returns the items someone is carrying. Omit targetName to check the player's own inventory, or pass the exact Name of a person from NearbyCreatures to check theirs."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own inventory."
+            "The exact Name of a person from NearbyCreatures, copied verbatim from the most recent look or move result. Omit to check the player's own inventory."
         )]
             string? targetName,
         CancellationToken cancellationToken

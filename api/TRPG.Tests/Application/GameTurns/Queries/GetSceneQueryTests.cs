@@ -415,10 +415,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Handle_UsesZeroExperienceProgress_ForNearbyCreatures_RegardlessOfSkillLevels()
+    public async Task Handle_DerivesExperienceProgress_FromSkillLevels_ForNearbyCreatures()
     {
-        // Arrange - nearby creatures never accumulate tracked skill XP the way the player does, so
-        // GetSceneQueryHandler doesn't query for it at all; a skill row here should have no effect.
+        // Arrange - a creature's level is derived from its skill levels, so its progress within
+        // that level has to be read from them too or it reports as negative.
         _nearbyCreature.Level = 1;
         _context.CreatureSkills.Add(
             new CreatureSkill
@@ -444,7 +444,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db) : IAsyncLifetime
 
         // Assert
         var nearby = Assert.Single(result.NearbyCreatures, p => p.Name == _nearbyCreature.Name);
-        Assert.Equal(0, nearby.ExperienceCurrent);
+        Assert.Equal(2, nearby.ExperienceCurrent);
     }
 
     [Fact]

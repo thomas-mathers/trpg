@@ -380,6 +380,11 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
+        var xpTotalsByCreature = await getTotalCharacterXpFromSkills.Handle(
+            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = nearbyCreatureIds },
+            cancellationToken
+        );
+
         return nearby
             .Select(x =>
                 BuildSceneCreatureInfo(
@@ -388,7 +393,7 @@ internal class GetSceneQueryHandler(
                     factionNames: factionNamesByCreature.GetValueOrDefault(x.Id, []),
                     state: x.State,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
-                    totalCharacterXp: 0,
+                    totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
                     questMarker: questMarkersByGiver.TryGetValue(x.Id, out var marker)
                         ? marker

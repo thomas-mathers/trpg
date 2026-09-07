@@ -50,11 +50,11 @@ internal class CreatureInspectTool(
 
     [DisplayName("character")]
     [Description(
-        "Returns someone's attributes. Omit targetName to check the player's own character sheet, or pass the exact Name of a person from NearbyPeople to check theirs."
+        "Returns someone's attributes. Omit targetName to check the player's own character sheet, or pass the exact Name of a person from NearbyCreatures to check theirs."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a person from NearbyPeople, copied verbatim from the most recent look or move result. Omit to check the player's own character sheet."
+            "The exact Name of a person from NearbyCreatures, copied verbatim from the most recent look or move result. Omit to check the player's own character sheet."
         )]
             string? targetName,
         CancellationToken cancellationToken
