@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
@@ -15,7 +16,8 @@ public class ResolveCrimeConsequencesAtLocationCommand
 internal class ResolveCrimeConsequencesAtLocationCommandHandler(
     IEnumerable<ICrimeConsequenceResolver> resolvers,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<ApplyCrimeReputationPenaltyCommand> applyCrimeReputationPenalty
+    ICommandHandler<ApplyCrimeReputationPenaltyCommand> applyCrimeReputationPenalty,
+    ILogger<ResolveCrimeConsequencesAtLocationCommandHandler> logger
 ) : ICommandHandler<ResolveCrimeConsequencesAtLocationCommand>
 {
     public async Task Handle(
@@ -47,8 +49,20 @@ internal class ResolveCrimeConsequencesAtLocationCommandHandler(
 
         if (reports.Count == 0)
         {
+            logger.LogDebug(
+                "[crime] {Resolver}: nothing reported at location {LocationId}",
+                resolver.GetType().Name,
+                scope.LocationId
+            );
             return;
         }
+
+        logger.LogInformation(
+            "[crime] {Resolver}: {Count} reported at location {LocationId}",
+            resolver.GetType().Name,
+            reports.Count,
+            scope.LocationId
+        );
 
         await applyCrimeReputationPenalty.Handle(
             new ApplyCrimeReputationPenaltyCommand

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -23,7 +24,8 @@ internal class EvaluateGuardEncounterCommandHandler(
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
-    IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions
+    IOptionsMonitor<GuardEncounterOptions> guardEncounterOptions,
+    ILogger<EvaluateGuardEncounterCommandHandler> logger
 ) : ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?>
 {
     public async Task<GuardEncounter?> Handle(
@@ -46,6 +48,10 @@ internal class EvaluateGuardEncounterCommandHandler(
         );
         if (guard == null)
         {
+            logger.LogDebug(
+                "[guard-encounter] skipped: no guard at location {LocationId}",
+                player!.LocationId
+            );
             return null;
         }
 
@@ -72,11 +78,20 @@ internal class EvaluateGuardEncounterCommandHandler(
         );
         if (score > options.ReputationThreshold)
         {
+            logger.LogDebug(
+                "[guard-encounter] skipped: reputation {Score} is above threshold {Threshold}",
+                score,
+                options.ReputationThreshold
+            );
             return null;
         }
 
         if (Random.Shared.NextDouble() >= options.EncounterChance)
         {
+            logger.LogDebug(
+                "[guard-encounter] skipped: chance roll missed {Chance}",
+                options.EncounterChance
+            );
             return null;
         }
 
@@ -85,6 +100,12 @@ internal class EvaluateGuardEncounterCommandHandler(
                 new GetLocationByIdQuery { Id = player!.LocationId },
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Location {player!.LocationId} not found.");
+
+        logger.LogInformation(
+            "[guard-encounter] confronting: guard={GuardName}, reputation={Score}",
+            guard.Name,
+            score
+        );
 
         return await createGuardEncounter.Handle(
             new CreateGuardEncounterCommand

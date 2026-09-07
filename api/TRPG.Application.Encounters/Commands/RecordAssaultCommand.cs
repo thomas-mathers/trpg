@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
@@ -26,7 +27,8 @@ internal class RecordAssaultCommandHandler(
     > getLiveHumanoidWitnessesAtLocation,
     ICommandHandler<AddAssaultCrimesCommand> addAssaultCrimes,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
-    LocationCityResolver locationCity
+    LocationCityResolver locationCity,
+    ILogger<RecordAssaultCommandHandler> logger
 ) : ICommandHandler<RecordAssaultCommand>
 {
     public async Task Handle(
@@ -67,8 +69,18 @@ internal class RecordAssaultCommandHandler(
         );
         if (witnesses.Count == 0)
         {
+            logger.LogInformation(
+                "[assault] on {VictimName} went unwitnessed; no crime recorded",
+                victim.Name
+            );
             return;
         }
+
+        logger.LogInformation(
+            "[assault] on {VictimName} seen by {WitnessCount}",
+            victim.Name,
+            witnesses.Count
+        );
 
         var crime = new AssaultCrime
         {

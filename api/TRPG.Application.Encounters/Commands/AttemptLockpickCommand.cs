@@ -1,4 +1,5 @@
 using System.Transactions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -67,7 +68,8 @@ internal class AttemptLockpickCommandHandler(
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsMonitor<LockpickingOptions> lockpickingOptions,
-    LocationCityResolver locationCity
+    LocationCityResolver locationCity,
+    ILogger<AttemptLockpickCommandHandler> logger
 ) : ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult>
 {
     public async Task<AttemptLockpickResult> Handle(
@@ -283,8 +285,14 @@ internal class AttemptLockpickCommandHandler(
         );
         if (guard == null)
         {
+            logger.LogInformation(
+                "[jailbreak] no guard at destination {DestinationLocationId}; escape goes unwitnessed",
+                command.DestinationLocationId
+            );
             return null;
         }
+
+        logger.LogInformation("[jailbreak] jailer {GuardName} finds the empty cell", guard.Name);
 
         // The empty cell is evidence, so the jailer finds out whether or not they saw it happen.
         if (crime != null)
