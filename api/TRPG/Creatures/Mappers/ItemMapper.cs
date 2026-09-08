@@ -16,6 +16,7 @@ internal static class ItemMapper
             Consumable consumable => consumable.ToDetail(isQuestItem),
             Gold gold => gold.ToDetail(isQuestItem),
             Key key => key.ToDetail(isQuestItem),
+            Book book => book.ToDetail(isQuestItem),
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 

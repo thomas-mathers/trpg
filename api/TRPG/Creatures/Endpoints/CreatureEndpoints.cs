@@ -567,6 +567,19 @@ internal static class CreatureEndpoints
                 modifiers,
                 isStackable
             ),
+            Book b => new BookDetail(
+                b.Id,
+                b.Name,
+                b.Description,
+                b.Weight,
+                b.Quantity,
+                equippedSlot,
+                type,
+                rarity,
+                b.GoldValue,
+                modifiers,
+                isStackable
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
@@ -654,6 +667,7 @@ internal static class CreatureEndpoints
             },
             Gold => ItemType.Gold,
             Key => ItemType.Key,
+            Book => ItemType.Book,
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 
@@ -668,6 +682,7 @@ internal static class CreatureEndpoints
             Accessory ac => ac.Rarity.ToResponse(),
             Gold => null,
             Key => null,
+            Book => null,
             _ => throw new ArgumentOutOfRangeException(nameof(item)),
         };
 

@@ -80,6 +80,7 @@ public enum ItemType
     Consumable,
     Gold,
     Key,
+    Book,
 }
 
 public enum ArmorClass
@@ -99,6 +100,7 @@ public enum ArmorClass
 [JsonDerivedType(typeof(ConsumableItemDetail), "Consumable")]
 [JsonDerivedType(typeof(GoldDetail), "Gold")]
 [JsonDerivedType(typeof(KeyDetail), "Key")]
+[JsonDerivedType(typeof(BookDetail), "Book")]
 public abstract record ItemDetail(
     Guid ItemId,
     string Name,
@@ -324,6 +326,33 @@ public sealed record GoldDetail(
     );
 
 public sealed record KeyDetail(
+    Guid ItemId,
+    string Name,
+    string Description,
+    int Weight,
+    int Quantity,
+    EquipmentSlot? EquippedSlot,
+    ItemType Type,
+    ItemRarity? Rarity,
+    int GoldValue,
+    IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable
+)
+    : ItemDetail(
+        ItemId,
+        Name,
+        Description,
+        Weight,
+        Quantity,
+        EquippedSlot,
+        Type,
+        Rarity,
+        GoldValue,
+        Modifiers,
+        IsStackable
+    );
+
+public sealed record BookDetail(
     Guid ItemId,
     string Name,
     string Description,

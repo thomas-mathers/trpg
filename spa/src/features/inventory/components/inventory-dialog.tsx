@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { BookReaderDialog } from '@/features/books/components/book-reader-dialog';
 import {
   CharacterStatsPanel,
   type EquipItemPreview,
@@ -97,6 +98,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
 
   const itemTable = useItemTable(items);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [readingItem, setReadingItem] = useState<ItemDetail | null>(null);
 
   const invalidateCreatureData = () => {
     queryClient.invalidateQueries({ queryKey: inventoryOptions.queryKey });
@@ -192,6 +194,7 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
                     body: { quantity: Number(item.quantity) },
                   })
                 }
+                onRead={() => setReadingItem(item)}
               />
             )}
           />
@@ -199,6 +202,14 @@ function InventoryDialogBody({ playerId, onClose }: { playerId: string; onClose:
 
         <CharacterStatsPanel creatureId={playerId} previewItem={previewItem} />
       </div>
+
+      <BookReaderDialog
+        playerId={playerId}
+        itemId={readingItem?.itemId ?? null}
+        title={readingItem?.name ?? ''}
+        open={readingItem !== null}
+        onClose={() => setReadingItem(null)}
+      />
 
       <DialogFooter>
         <Button aria-label="Close inventory" variant="outline" onClick={onClose}>
@@ -216,6 +227,7 @@ function InventoryItemAction({
   onEquip,
   onUnequip,
   onDrop,
+  onRead,
 }: {
   item: ItemDetail;
   equippedSlots: Set<EquipmentSlot>;
@@ -223,12 +235,25 @@ function InventoryItemAction({
   onEquip: (itemId: string, slot: EquipmentSlot) => void;
   onUnequip: (slot: EquipmentSlot) => void;
   onDrop: () => void;
+  onRead: () => void;
 }) {
   const targetSlot = equipSlotFor(item, equippedSlots);
   const equippedSlot = item.equippedSlot;
 
   return (
     <div className="flex items-center justify-end gap-1">
+      {item.type === 'Book' && (
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRead();
+          }}
+        >
+          Read
+        </Button>
+      )}
       {equippedSlot != null && (
         <Button
           size="sm"

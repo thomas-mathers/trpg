@@ -36,6 +36,7 @@ function getStatLines(item: ItemDetail): string[] {
     case 'Ammunition':
     case 'Gold':
     case 'Key':
+    case 'Book':
       return [];
   }
 }
