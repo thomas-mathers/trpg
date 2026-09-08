@@ -26,7 +26,7 @@ public record ReadBookPageResult(
 
 internal class ReadBookPageCommandHandler(
     IBooksDbContext context,
-    BookPageComposer composer,
+    ICommandHandler<EnsureBookPageCommand, string> ensureBookPage,
     ICommandHandler<LearnSecretCommand, bool> learnSecret,
     ILogger<ReadBookPageCommandHandler> logger
 ) : ICommandHandler<ReadBookPageCommand, ReadBookPageResult>
@@ -36,23 +36,18 @@ internal class ReadBookPageCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var work = await context.BookWorks.FirstOrDefaultAsync(
-            w => w.Id == command.WorkId,
-            cancellationToken
-        );
+        var work = await context
+            .BookWorks.AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == command.WorkId, cancellationToken);
         if (work == null)
         {
             throw new EntityNotFoundException("Book work", command.WorkId);
         }
 
-        if (command.PageNumber < 1 || command.PageNumber > work.PageCount)
-        {
-            throw new InvalidOperationException(
-                $"{work.Title} has {work.PageCount} pages; page {command.PageNumber} does not exist."
-            );
-        }
-
-        var text = await ResolvePageText(work, command.PageNumber, cancellationToken);
+        var text = await ensureBookPage.Handle(
+            new EnsureBookPageCommand { WorkId = command.WorkId, PageNumber = command.PageNumber },
+            cancellationToken
+        );
 
         var revealedSecret = await RevealSecret(work, command, cancellationToken);
 
@@ -63,75 +58,6 @@ internal class ReadBookPageCommandHandler(
             text,
             revealedSecret
         );
-    }
-
-    // Written once per work, so every copy on every shelf reads the same words.
-    private async Task<string> ResolvePageText(
-        BookWork work,
-        int pageNumber,
-        CancellationToken cancellationToken
-    )
-    {
-        var stored = await context
-            .BookPages.AsNoTracking()
-            .FirstOrDefaultAsync(
-                page => page.WorkId == work.Id && page.PageNumber == pageNumber,
-                cancellationToken
-            );
-        if (stored != null)
-        {
-            return stored.Text;
-        }
-
-        var priorPages = await context
-            .BookPages.AsNoTracking()
-            .Where(page => page.WorkId == work.Id && page.PageNumber < pageNumber)
-            .OrderBy(page => page.PageNumber)
-            .Select(page => page.Text)
-            .ToArrayAsync(cancellationToken);
-
-        var secret = await ResolveSecretForPage(work, pageNumber, cancellationToken);
-
-        logger.LogInformation(
-            "[book] composing page {PageNumber}/{PageCount} of {Title}",
-            pageNumber,
-            work.PageCount,
-            work.Title
-        );
-
-        var composed = await composer.Compose(
-            new BookPageCompositionRequest(work, pageNumber, priorPages, secret),
-            cancellationToken
-        );
-
-        context.BookPages.Add(
-            new BookPage
-            {
-                WorldId = work.WorldId,
-                WorkId = work.Id,
-                PageNumber = pageNumber,
-                Text = composed,
-            }
-        );
-        await context.SaveChangesAsync(cancellationToken);
-
-        return composed;
-    }
-
-    private async Task<Secret?> ResolveSecretForPage(
-        BookWork work,
-        int pageNumber,
-        CancellationToken cancellationToken
-    )
-    {
-        if (work.SecretId is not { } secretId || work.SecretPageNumber != pageNumber)
-        {
-            return null;
-        }
-
-        return await context
-            .Secrets.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == secretId, cancellationToken);
     }
 
     // Skimming the first page of a ledger does not teach you what is written on the sixth.

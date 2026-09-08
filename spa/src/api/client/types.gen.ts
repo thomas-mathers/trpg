@@ -1583,6 +1583,38 @@ export type ReadBookPageResponses = {
 
 export type ReadBookPageResponse = ReadBookPageResponses[keyof ReadBookPageResponses];
 
+export type PrefetchBookPageData = {
+    body?: never;
+    path: {
+        itemId: string;
+        pageNumber: number;
+    };
+    query?: never;
+    url: '/books/{itemId}/pages/{pageNumber}/prefetch';
+};
+
+export type PrefetchBookPageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type PrefetchBookPageError = PrefetchBookPageErrors[keyof PrefetchBookPageErrors];
+
+export type PrefetchBookPageResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type PrefetchBookPageResponse = PrefetchBookPageResponses[keyof PrefetchBookPageResponses];
+
 export type GetQuestJournalData = {
     body?: never;
     path: {

@@ -23,6 +23,37 @@ internal static class BookEndpoints
             .Produces<BookPageResponse>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
+        app.MapPost("/books/{itemId:guid}/pages/{pageNumber:int}/prefetch", PrefetchBookPage)
+            .WithName("PrefetchBookPage")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+    }
+
+    // Composes a page ahead of the reader without teaching them anything it records, so turning to
+    // the next page is instant but skipping to it in the client is not a way to learn a secret.
+    private static async Task<NoContent> PrefetchBookPage(
+        Guid itemId,
+        int pageNumber,
+        [FromServices] IQueryHandler<GetBookByItemIdQuery, BookIdentity?> getBookByItemId,
+        [FromServices] ICommandHandler<EnsureBookPageCommand, string> ensureBookPage,
+        CancellationToken cancellationToken
+    )
+    {
+        var book = await getBookByItemId.Handle(
+            new GetBookByItemIdQuery { ItemId = itemId },
+            cancellationToken
+        );
+        if (book == null)
+        {
+            throw new EntityNotFoundException("Book", itemId);
+        }
+
+        await ensureBookPage.Handle(
+            new EnsureBookPageCommand { WorkId = book.WorkId, PageNumber = pageNumber },
+            cancellationToken
+        );
+
+        return TypedResults.NoContent();
     }
 
     private static async Task<Ok<BookPageResponse>> ReadBookPage(

@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { readBookPageMutation } from '@/api/client';
+import { prefetchBookPage, readBookPageMutation } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+const PAGES_WARMED_AHEAD = 2;
 
 export interface BookReaderDialogProps {
   playerId: string;
@@ -30,19 +32,30 @@ export function BookReaderDialog({
   const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [text, setText] = useState<string | null>(null);
+  // Covers waiting on a warm-up as well as the request itself, which the mutation cannot see.
+  const [isReading, setIsReading] = useState(false);
+  const warming = useRef(new Map<number, Promise<unknown>>());
 
-  const { mutate, isPending, isError } = useMutation({
+  const { mutate, isError } = useMutation({
     ...readBookPageMutation(),
     onSuccess: (data) => {
       setText(data.text ?? null);
       setPageCount(data.pageCount ?? null);
+      if (itemId && data.pageCount != null && data.pageNumber != null) {
+        warmAhead(warming.current, itemId, data.pageNumber + 1, data.pageCount);
+      }
     },
+    onSettled: () => setIsReading(false),
   });
 
   const readPage = useCallback(
-    (page: number) => {
+    async (page: number) => {
       if (!itemId) return;
       setText(null);
+      setIsReading(true);
+      // Turning forward before the warm-up lands would compose the page twice, and one of the two
+      // writes would then lose to the other on the way into the database.
+      await warming.current.get(page);
       mutate({ path: { playerId, itemId, pageNumber: page } });
     },
     [itemId, mutate, playerId],
@@ -53,12 +66,13 @@ export function BookReaderDialog({
     if (!open || !itemId) return;
     setPageNumber(1);
     setPageCount(null);
-    readPage(1);
+    warming.current.clear();
+    void readPage(1);
   }, [open, itemId, readPage]);
 
   const turnTo = (page: number) => {
     setPageNumber(page);
-    readPage(page);
+    void readPage(page);
   };
 
   const atStart = pageNumber <= 1;
@@ -72,7 +86,7 @@ export function BookReaderDialog({
         </DialogHeader>
 
         <div className="bg-card min-h-0 flex-1 overflow-y-auto rounded-md border px-6 py-5">
-          {isPending && (
+          {isReading && (
             <div
               className="text-muted-foreground flex h-full items-center justify-center"
               aria-live="polite"
@@ -81,10 +95,10 @@ export function BookReaderDialog({
               Reading...
             </div>
           )}
-          {!isPending && isError && (
+          {!isReading && isError && (
             <p className="text-destructive">This page could not be read.</p>
           )}
-          {!isPending && !isError && text !== null && (
+          {!isReading && !isError && text !== null && (
             <div className="space-y-4 leading-relaxed text-pretty whitespace-pre-wrap">{text}</div>
           )}
         </div>
@@ -98,7 +112,7 @@ export function BookReaderDialog({
               variant="outline"
               size="sm"
               aria-label="Previous page"
-              disabled={atStart || isPending}
+              disabled={atStart || isReading}
               onClick={() => turnTo(pageNumber - 1)}
             >
               <ChevronLeft className="size-4" aria-hidden />
@@ -108,7 +122,7 @@ export function BookReaderDialog({
               variant="outline"
               size="sm"
               aria-label="Next page"
-              disabled={atEnd || isPending}
+              disabled={atEnd || isReading}
               onClick={() => turnTo(pageNumber + 1)}
             >
               Next
@@ -119,4 +133,28 @@ export function BookReaderDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+// Composed while the reader is still on an earlier page, so turning forward is instant. This
+// deliberately does not go through the read endpoint, which would teach a secret unread.
+function warmAhead(
+  warming: Map<number, Promise<unknown>>,
+  itemId: string,
+  pageNumber: number,
+  pageCount: number,
+  remaining = PAGES_WARMED_AHEAD,
+) {
+  if (remaining <= 0 || pageNumber > pageCount || warming.has(pageNumber)) return;
+
+  const request = prefetchBookPage({ path: { itemId, pageNumber } })
+    .catch(() => {
+      // A failed warm-up costs nothing; the page composes when the reader turns to it.
+    })
+    .finally(() => warming.delete(pageNumber));
+
+  warming.set(pageNumber, request);
+
+  // Chained rather than fired together, because a page is written from the ones before it and has
+  // nothing to continue from until they exist.
+  void request.then(() => warmAhead(warming, itemId, pageNumber + 1, pageCount, remaining - 1));
 }
