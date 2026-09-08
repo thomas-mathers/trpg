@@ -16,8 +16,6 @@ import { cn } from '@/lib/utils';
 
 const numberFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
-export type ItemTableStatistic = 'damage' | 'defense' | 'quantity' | 'value' | 'weight';
-
 interface ItemTableProps {
   table: ItemTableState;
   renderItemName: (item: ItemDetail) => ReactNode;
@@ -28,8 +26,6 @@ interface ItemTableProps {
   renderAction?: (item: ItemDetail) => ReactNode;
   onRowClick?: (item: ItemDetail) => void;
   isSelected?: (item: ItemDetail) => boolean;
-  // Omit to derive damage and defense from the active filter and show every other statistic.
-  statistics?: readonly ItemTableStatistic[];
 }
 
 export function ItemTable({
@@ -42,7 +38,6 @@ export function ItemTable({
   renderAction,
   onRowClick,
   isSelected,
-  statistics,
 }: ItemTableProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -65,7 +60,6 @@ export function ItemTable({
           renderAction={renderAction}
           onRowClick={onRowClick}
           isSelected={isSelected}
-          statistics={statistics}
         />
       </div>
     </div>
@@ -82,7 +76,6 @@ interface ItemTableContentProps {
   renderAction?: (item: ItemDetail) => ReactNode;
   onRowClick?: (item: ItemDetail) => void;
   isSelected?: (item: ItemDetail) => boolean;
-  statistics?: readonly ItemTableStatistic[];
 }
 
 function ItemTableContent({
@@ -95,18 +88,11 @@ function ItemTableContent({
   renderAction,
   onRowClick,
   isSelected,
-  statistics,
 }: ItemTableContentProps) {
   const showAllStats = table.categories.size === 0;
-  const showDamage = statistics
-    ? statistics.includes('damage')
-    : showAllStats || table.categories.has('Weapon');
-  const showDefense = statistics
-    ? statistics.includes('defense')
-    : showAllStats || table.categories.has('Armor') || table.categories.has('Shield');
-  const showQuantity = statistics ? statistics.includes('quantity') : true;
-  const showValue = statistics ? statistics.includes('value') : true;
-  const showWeight = statistics ? statistics.includes('weight') : true;
+  const showDamage = showAllStats || table.categories.has('Weapon');
+  const showDefense =
+    showAllStats || table.categories.has('Armor') || table.categories.has('Shield');
   const hasActiveFilters = Boolean(table.search) || table.categories.size > 0 || table.equippedOnly;
 
   if (loading) {
@@ -116,9 +102,6 @@ function ItemTableContent({
         hasAction={renderAction !== undefined}
         showDamage={showDamage}
         showDefense={showDefense}
-        showQuantity={showQuantity}
-        showValue={showValue}
-        showWeight={showWeight}
       />
     );
   }
@@ -140,9 +123,9 @@ function ItemTableContent({
         <col />
         {showDamage && <col className="w-20" />}
         {showDefense && <col className="w-16" />}
-        {showQuantity && <col className="w-20" />}
-        {showValue && <col className="w-20" />}
-        {showWeight && <col className="w-20" />}
+        <col className="w-20" />
+        <col className="w-20" />
+        <col className="w-20" />
         {renderAction && <col className="w-32" />}
       </colgroup>
       <thead>
@@ -172,33 +155,27 @@ function ItemTableContent({
               align="right"
             />
           )}
-          {showQuantity && (
-            <SortableHeader
-              label="Qty"
-              sortKey="quantity"
-              sort={table.sort}
-              onToggle={table.onToggleSort}
-              align="right"
-            />
-          )}
-          {showValue && (
-            <SortableHeader
-              label="Value"
-              sortKey="value"
-              sort={table.sort}
-              onToggle={table.onToggleSort}
-              align="right"
-            />
-          )}
-          {showWeight && (
-            <SortableHeader
-              label="Weight"
-              sortKey="weight"
-              sort={table.sort}
-              onToggle={table.onToggleSort}
-              align="right"
-            />
-          )}
+          <SortableHeader
+            label="Qty"
+            sortKey="quantity"
+            sort={table.sort}
+            onToggle={table.onToggleSort}
+            align="right"
+          />
+          <SortableHeader
+            label="Value"
+            sortKey="value"
+            sort={table.sort}
+            onToggle={table.onToggleSort}
+            align="right"
+          />
+          <SortableHeader
+            label="Weight"
+            sortKey="weight"
+            sort={table.sort}
+            onToggle={table.onToggleSort}
+            align="right"
+          />
           {renderAction && <th className="px-2 py-2" />}
         </tr>
       </thead>
@@ -216,11 +193,9 @@ function ItemTableContent({
               <td className="px-2 py-1.5 align-middle">{renderItemName(item)}</td>
               {showDamage && <ItemDamageCell item={item} />}
               {showDefense && <ItemDefenseCell item={item} />}
-              {showQuantity && <ItemStatisticCell value={Number(item.quantity)} />}
-              {showValue && (
-                <ItemGoldValueCell value={Number(item.goldValue) * Number(item.quantity)} />
-              )}
-              {showWeight && <ItemWeightCell value={Number(item.weight) * Number(item.quantity)} />}
+              <ItemStatisticCell value={Number(item.quantity)} />
+              <ItemGoldValueCell value={Number(item.goldValue) * Number(item.quantity)} />
+              <ItemWeightCell value={Number(item.weight) * Number(item.quantity)} />
               {renderAction && (
                 <td className="px-2 py-1.5 text-right align-middle">{renderAction(item)}</td>
               )}
@@ -237,9 +212,6 @@ interface ItemTableSkeletonProps {
   hasAction: boolean;
   showDamage: boolean;
   showDefense: boolean;
-  showQuantity: boolean;
-  showValue: boolean;
-  showWeight: boolean;
 }
 
 function ItemTableSkeleton({
@@ -247,9 +219,6 @@ function ItemTableSkeleton({
   hasAction,
   showDamage,
   showDefense,
-  showQuantity,
-  showValue,
-  showWeight,
 }: ItemTableSkeletonProps) {
   return (
     <table className="w-full table-fixed" aria-label="Loading items">
@@ -258,9 +227,9 @@ function ItemTableSkeleton({
         <col />
         {showDamage && <col className="w-20" />}
         {showDefense && <col className="w-16" />}
-        {showQuantity && <col className="w-20" />}
-        {showValue && <col className="w-20" />}
-        {showWeight && <col className="w-16" />}
+        <col className="w-20" />
+        <col className="w-20" />
+        <col className="w-16" />
         {hasAction && <col className="w-32" />}
       </colgroup>
       <thead>
@@ -269,9 +238,9 @@ function ItemTableSkeleton({
           <th className="px-2 py-2 text-left">Item</th>
           {showDamage && <th className="px-2 py-2 text-right">Damage</th>}
           {showDefense && <th className="px-2 py-2 text-right">Defense</th>}
-          {showQuantity && <th className="px-2 py-2 text-right">Qty</th>}
-          {showValue && <th className="px-2 py-2 text-right">Value</th>}
-          {showWeight && <th className="px-2 py-2 text-right">Weight</th>}
+          <th className="px-2 py-2 text-right">Qty</th>
+          <th className="px-2 py-2 text-right">Value</th>
+          <th className="px-2 py-2 text-right">Weight</th>
           {hasAction && <th className="px-2 py-2" />}
         </tr>
       </thead>
@@ -296,21 +265,15 @@ function ItemTableSkeleton({
                 <Skeleton className="ml-auto h-5 w-10" />
               </td>
             )}
-            {showQuantity && (
-              <td className="px-2 py-1.5">
-                <Skeleton className="ml-auto h-5 w-6" />
-              </td>
-            )}
-            {showValue && (
-              <td className="px-2 py-1.5">
-                <Skeleton className="ml-auto h-7 w-10" />
-              </td>
-            )}
-            {showWeight && (
-              <td className="px-2 py-1.5">
-                <Skeleton className="ml-auto h-7 w-10" />
-              </td>
-            )}
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-5 w-6" />
+            </td>
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-7 w-10" />
+            </td>
+            <td className="px-2 py-1.5">
+              <Skeleton className="ml-auto h-7 w-10" />
+            </td>
             {hasAction && (
               <td className="px-2 py-1.5">
                 <Skeleton className="ml-auto h-8 w-16" />
