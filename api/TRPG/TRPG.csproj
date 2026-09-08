@@ -21,6 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Abilities\TRPG.Application.Abilities.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Books\TRPG.Application.Books.csproj" />
     <ProjectReference Include="..\TRPG.Application.Chat\TRPG.Application.Chat.csproj" />
     <ProjectReference Include="..\TRPG.Application.Combat\TRPG.Application.Combat.csproj" />
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />

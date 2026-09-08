@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Books.Extensions;
 using TRPG.Application.Chat.Extensions;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Common.Commands;
@@ -57,6 +58,7 @@ public static class ApplicationServiceCollectionExtensions
                     .AsSelfWithInterfaces()
                     .WithTransientLifetime()
             )
+            .AddBooksServices()
             .AddChatServices()
             .AddNpcConversationsServices()
             .AddInventoryServices()
