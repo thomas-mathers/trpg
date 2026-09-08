@@ -18,6 +18,7 @@ public static class WorldGenerationServiceCollectionExtensions
             .AddTransient<TradeStockGenerator>()
             .AddTransient<CreatureGenerator>()
             .AddTransient<DungeonPopulator>()
+            .AddTransient<DungeonLootGenerator>()
             .AddTransient<WildernessPopulator>()
             .AddTransient<HouseholdGenerator>()
             .AddTransient<CreatureGroupGenerator>()

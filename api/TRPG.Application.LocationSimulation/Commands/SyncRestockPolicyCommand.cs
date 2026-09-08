@@ -76,8 +76,7 @@ internal class SyncRestockPolicyCommandHandler(
 
         var duePolicies = policies.Where(policy =>
             RecurringScheduling.HasTriggered(
-                policy.TriggerHour,
-                policy.SpecificDay,
+                policy.Schedule,
                 policy.LastSyncPlaytime,
                 command.CurrentPlaytime
             )

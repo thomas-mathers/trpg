@@ -51,8 +51,7 @@ internal class SyncCreatureSpawnerCommandHandler(
         }
 
         var hasTriggered = RecurringScheduling.HasTriggered(
-            spawner.TriggerHour,
-            spawner.SpecificDay,
+            spawner.Schedule,
             spawner.LastSyncPlaytime,
             command.CurrentPlaytime
         );

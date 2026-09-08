@@ -9,7 +9,8 @@ public record TradeStockGeneratorResult(
 
 public class TradeStockGenerator(ItemGenerator itemGenerator)
 {
-    private const int DefaultRestockTriggerHour = 6;
+    // Shops restock before opening, which is a clock time rather than an elapsed one.
+    private const string DefaultRestockSchedule = "0 6 * * *";
 
     public TradeStockGeneratorResult Generate(
         IReadOnlyCollection<Prop> props,
@@ -69,8 +70,7 @@ public class TradeStockGenerator(ItemGenerator itemGenerator)
                 {
                     WorldId = worldId,
                     WorkstationId = workstation.Id,
-                    TriggerHour = DefaultRestockTriggerHour,
-                    SpecificDay = null,
+                    Schedule = DefaultRestockSchedule,
                     LastSyncPlaytime = TimeSpan.Zero,
                 }
             );

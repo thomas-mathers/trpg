@@ -8,6 +8,9 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="NCrontab" Version="3.3.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
     <ProjectReference Include="..\TRPG.Application.CreatureJobs\TRPG.Application.CreatureJobs.csproj" />
     <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />

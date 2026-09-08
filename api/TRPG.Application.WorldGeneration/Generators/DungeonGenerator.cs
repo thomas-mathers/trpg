@@ -11,8 +11,11 @@ internal record DungeonGeneratorInput(
     public Random Random { get; init; } = Random.Shared;
 }
 
+internal record DungeonRoomPlacement(Room Room, DungeonRoomRole Role, int DepthFromEntrance);
+
 internal record DungeonGeneratorResult(
     Building Building,
+    IReadOnlyList<DungeonRoomPlacement> Placements,
     IReadOnlyList<Room> Rooms,
     IReadOnlyList<Location> Locations,
     IReadOnlyList<LocationConnector> LocationConnectors,
@@ -152,6 +155,7 @@ internal static class DungeonGenerator
         var assigned = DungeonRoleAssigner.Assign(layout, type, input.Random);
 
         var rooms = new List<Room>();
+        var placements = new List<DungeonRoomPlacement>();
         var locations = new List<Location>();
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var room in assigned)
@@ -165,20 +169,21 @@ internal static class DungeonGenerator
                 roomId: roomId
             );
 
+            var built = new Room
+            {
+                Id = roomId,
+                BuildingId = building.Id,
+                LocationId = location.Id,
+                Name = roomName,
+                Description = content.Description,
+                FloorNumber = 0,
+                Position = room.Node.Position,
+                WorldId = input.WorldId,
+            };
+
             locations.Add(location);
-            rooms.Add(
-                new Room
-                {
-                    Id = roomId,
-                    BuildingId = building.Id,
-                    LocationId = location.Id,
-                    Name = roomName,
-                    Description = content.Description,
-                    FloorNumber = 0,
-                    Position = room.Node.Position,
-                    WorldId = input.WorldId,
-                }
-            );
+            rooms.Add(built);
+            placements.Add(new DungeonRoomPlacement(built, room.Role, room.Node.DepthFromEntrance));
         }
 
         var entranceLocationId = locations[layout.EntranceIndex].Id;
@@ -207,6 +212,7 @@ internal static class DungeonGenerator
 
         return new DungeonGeneratorResult(
             building,
+            placements,
             rooms,
             locations,
             connectors,

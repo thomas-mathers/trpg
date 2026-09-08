@@ -5,16 +5,14 @@ namespace TRPG.Tests.Application.LocationSimulation;
 
 public class RecurringSchedulingTests
 {
-    // 2 real hours = 24 in-game hours = exactly one in-game day, at the fixed 12x game clock rate.
-    private static readonly TimeSpan OneInGameDay = TimeSpan.FromHours(2);
+    private static readonly TimeSpan OneInGameDay = GameClock.RealTimePerInGameHour * 24;
 
     [Fact]
-    public void HasTriggered_ReturnsFalse_WhenNoPlaytimeHasElapsed()
+    public void HasTriggered_ReturnsFalse_WhenNoTimeHasPassed()
     {
         // Act
         var result = RecurringScheduling.HasTriggered(
-            triggerHour: 6,
-            specificDay: null,
+            "0 0 * * *",
             lastSyncPlaytime: TimeSpan.Zero,
             currentPlaytime: TimeSpan.Zero
         );
@@ -24,27 +22,11 @@ public class RecurringSchedulingTests
     }
 
     [Fact]
-    public void HasTriggered_ReturnsFalse_ForADailySchedule_WhenLessThanADayHasElapsed()
-    {
-        // Act — half an in-game day has passed, not enough to cross a new daily trigger
-        var result = RecurringScheduling.HasTriggered(
-            triggerHour: 6,
-            specificDay: null,
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay / 2
-        );
-
-        // Assert
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void HasTriggered_ReturnsTrue_ForADailySchedule_WhenAFullDayHasElapsed()
+    public void HasTriggered_ReturnsTrue_ForADailySchedule_WhenADayHasPassed()
     {
         // Act
         var result = RecurringScheduling.HasTriggered(
-            triggerHour: 6,
-            specificDay: null,
+            "0 0 * * *",
             lastSyncPlaytime: TimeSpan.Zero,
             currentPlaytime: OneInGameDay
         );
@@ -54,17 +36,59 @@ public class RecurringSchedulingTests
     }
 
     [Fact]
-    public void HasTriggered_ReturnsFalse_ForAWeeklySchedule_WhenLessThanAWeekHasElapsed()
+    public void HasTriggered_ReturnsFalse_ForAnEveryOtherDaySchedule_AfterOnlyOneDay()
     {
-        // Arrange — trigger on the same weekday the epoch falls on
-        var epochWeekday = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero).DayOfWeek;
-
-        // Act — 6 in-game days have passed, one short of a full week
+        // Act
         var result = RecurringScheduling.HasTriggered(
-            triggerHour: 0,
-            specificDay: epochWeekday,
+            "0 0 */2 * *",
             lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay * 6
+            currentPlaytime: OneInGameDay
+        );
+
+        // Assert — somewhere cleared out stays cleared until its day comes round.
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasTriggered_ReturnsTrue_ForAnEveryOtherDaySchedule_AfterTwoDays()
+    {
+        // Act
+        var result = RecurringScheduling.HasTriggered(
+            "0 0 */2 * *",
+            lastSyncPlaytime: TimeSpan.Zero,
+            currentPlaytime: OneInGameDay * 2
+        );
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasTriggered_ReturnsTrue_ForAnHourlySchedule_WithinASingleDay()
+    {
+        // Act — a cadence the old trigger-hour and weekday pair could not express at all.
+        var result = RecurringScheduling.HasTriggered(
+            "0 */6 * * *",
+            lastSyncPlaytime: TimeSpan.Zero,
+            currentPlaytime: GameClock.RealTimePerInGameHour * 7
+        );
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasTriggered_ReturnsFalse_ForAWeeklySchedule_WhenOnlyADayHasPassed()
+    {
+        // Arrange — pin the weekday to two days after the epoch's, so one day never reaches it.
+        var epochWeekday = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero).DayOfWeek;
+        var target = (int)(DayOfWeek)(((int)epochWeekday + 2) % 7);
+
+        // Act
+        var result = RecurringScheduling.HasTriggered(
+            $"0 0 * * {target}",
+            lastSyncPlaytime: TimeSpan.Zero,
+            currentPlaytime: OneInGameDay
         );
 
         // Assert
@@ -72,17 +96,17 @@ public class RecurringSchedulingTests
     }
 
     [Fact]
-    public void HasTriggered_ReturnsTrue_ForAWeeklySchedule_WhenAFullWeekHasElapsed()
+    public void HasTriggered_ReturnsTrue_ForAWeeklySchedule_OnceTheWeekdayComesRound()
     {
         // Arrange
         var epochWeekday = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero).DayOfWeek;
+        var target = (int)(DayOfWeek)(((int)epochWeekday + 2) % 7);
 
         // Act
         var result = RecurringScheduling.HasTriggered(
-            triggerHour: 0,
-            specificDay: epochWeekday,
+            $"0 0 * * {target}",
             lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay * 7
+            currentPlaytime: OneInGameDay * 3
         );
 
         // Assert
@@ -90,21 +114,16 @@ public class RecurringSchedulingTests
     }
 
     [Fact]
-    public void HasTriggered_ReturnsFalse_ForAWeeklySchedule_WhenADayElapsedButNotOnTheSpecificDay()
+    public void HasTriggered_ReturnsFalse_WhenTheScheduleCannotBeParsed()
     {
-        // Arrange — trigger on the day *after* the epoch's weekday, so one elapsed day never matches
-        var epochWeekday = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero).DayOfWeek;
-        var nextWeekday = (DayOfWeek)(((int)epochWeekday + 2) % 7);
-
         // Act
         var result = RecurringScheduling.HasTriggered(
-            triggerHour: 0,
-            specificDay: nextWeekday,
+            "not a schedule",
             lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay
+            currentPlaytime: OneInGameDay * 30
         );
 
-        // Assert
+        // Assert — a broken schedule must not fire constantly; see the validation gap it leaves.
         Assert.False(result);
     }
 }

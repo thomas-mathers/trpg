@@ -1,36 +1,27 @@
+using NCrontab;
 using TRPG.Domain;
 
 namespace TRPG.Application.LocationSimulation;
 
 public static class RecurringScheduling
 {
+    // Cron over in-game time. The calendar underneath is ordinary: the world's month and day names
+    // are a display concern, so weekday and month fields mean what they normally mean.
     public static bool HasTriggered(
-        int triggerHour,
-        DayOfWeek? specificDay,
+        string schedule,
         TimeSpan lastSyncPlaytime,
         TimeSpan currentPlaytime
     )
     {
-        var before = GameClock.GetCurrentInGameDateTime(lastSyncPlaytime).AddHours(-triggerHour);
-        var after = GameClock.GetCurrentInGameDateTime(currentPlaytime).AddHours(-triggerHour);
-
-        var daysElapsed = (after.Date - before.Date).Days;
-        if (daysElapsed <= 0)
+        var parsed = CrontabSchedule.TryParse(schedule);
+        if (parsed == null)
         {
             return false;
         }
 
-        if (specificDay == null)
-        {
-            return true;
-        }
+        var before = GameClock.GetCurrentInGameDateTime(lastSyncPlaytime);
+        var after = GameClock.GetCurrentInGameDateTime(currentPlaytime);
 
-        var daysUntilNextMatch = ((int)specificDay - (int)before.DayOfWeek + 7) % 7;
-        if (daysUntilNextMatch == 0)
-        {
-            daysUntilNextMatch = 7;
-        }
-
-        return daysUntilNextMatch <= daysElapsed;
+        return parsed.GetNextOccurrence(before) <= after;
     }
 }

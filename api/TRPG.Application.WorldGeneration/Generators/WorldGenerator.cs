@@ -56,6 +56,7 @@ public class WorldGenerator(
     GeographyGenerator geographyGenerator,
     CityGenerator cityGenerator,
     DungeonPopulator dungeonPopulator,
+    DungeonLootGenerator dungeonLootGenerator,
     WildernessPopulator wildernessPopulator,
     ILogger<WorldGenerator> logger
 )
@@ -245,22 +246,40 @@ public class WorldGenerator(
                 locationConnectors.AddRange(result.LocationConnectors);
                 doorConnectors.Add(result.Door);
 
-                var dungeonMonsters = dungeonPopulator.Generate(
-                    new DungeonPopulatorInput
+                // Spread through the dungeon rather than piled at the door, and not into every
+                // room: the empty ones are what make walking into an occupied one mean something.
+                foreach (var placement in result.Placements)
+                {
+                    if (!DungeonContentPolicy.HoldsOccupants(placement.Role, Random.Shared))
                     {
-                        LocationId = result.EntranceLocationId,
-                        WorldId = worldId,
-                        DungeonType = result.Building.BuildingType,
-                        FactionsByCreatureType = encounterFactionsByCreatureType,
+                        continue;
                     }
+
+                    var dungeonMonsters = dungeonPopulator.Generate(
+                        new DungeonPopulatorInput
+                        {
+                            LocationId = placement.Room.LocationId,
+                            WorldId = worldId,
+                            DungeonType = result.Building.BuildingType,
+                            FactionsByCreatureType = encounterFactionsByCreatureType,
+                        }
+                    );
+                    monsters.AddRange(dungeonMonsters.Monsters.Select(monster => monster.Creature));
+                    items.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Items));
+                    skills.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Skills));
+                    jobs.AddRange(dungeonMonsters.Jobs);
+                    encounterGroups.AddRange(dungeonMonsters.EncounterGroups);
+                    encounterGroupMembers.AddRange(dungeonMonsters.EncounterGroupMembers);
+                    creatureSpawners.Add(dungeonMonsters.Spawner);
+                }
+
+                var dungeonLoot = dungeonLootGenerator.Generate(
+                    result.Placements,
+                    worldId,
+                    Random.Shared
                 );
-                monsters.AddRange(dungeonMonsters.Monsters.Select(monster => monster.Creature));
-                items.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Items));
-                skills.AddRange(dungeonMonsters.Monsters.SelectMany(monster => monster.Skills));
-                jobs.AddRange(dungeonMonsters.Jobs);
-                encounterGroups.AddRange(dungeonMonsters.EncounterGroups);
-                encounterGroupMembers.AddRange(dungeonMonsters.EncounterGroupMembers);
-                creatureSpawners.Add(dungeonMonsters.Spawner);
+                props.AddRange(dungeonLoot.Containers);
+                items.AddRange(dungeonLoot.Items);
             }
         }
 
