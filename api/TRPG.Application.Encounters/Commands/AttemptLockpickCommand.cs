@@ -70,6 +70,7 @@ internal class AttemptLockpickCommandHandler(
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsMonitor<LockpickingOptions> lockpickingOptions,
     LocationCityResolver locationCity,
+    WrongedFactionResolver wrongedFactions,
     ILogger<AttemptLockpickCommandHandler> logger
 ) : ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult>
 {
@@ -258,7 +259,11 @@ internal class AttemptLockpickCommandHandler(
                 CityId = await locationCity.Resolve(player.LocationId, cancellationToken),
                 BuildingId = building.Id,
                 BuildingName = building.Name,
-                OwnerFactionId = building.FactionId,
+                OwnerFactionIds = await wrongedFactions.Resolve(
+                    player.LocationId,
+                    building.FactionId,
+                    cancellationToken
+                ),
             };
 
             await addJailbreakCrimes.Handle(
@@ -277,7 +282,11 @@ internal class AttemptLockpickCommandHandler(
             CityId = await locationCity.Resolve(player.LocationId, cancellationToken),
             BuildingId = building.Id,
             BuildingName = building.Name,
-            OwnerFactionId = building.FactionId,
+            OwnerFactionIds = await wrongedFactions.Resolve(
+                player.LocationId,
+                building.FactionId,
+                cancellationToken
+            ),
         };
 
         await addLockpickingCrimes.Handle(
@@ -433,7 +442,11 @@ internal class AttemptLockpickCommandHandler(
                 CityId = await locationCity.Resolve(player.LocationId, cancellationToken),
                 BuildingId = building.Id,
                 BuildingName = building.Name,
-                OwnerFactionId = building.FactionId,
+                OwnerFactionIds = await wrongedFactions.Resolve(
+                    player.LocationId,
+                    building.FactionId,
+                    cancellationToken
+                ),
             };
             await addLockpickingCrimes.Handle(
                 new AddLockpickingCrimesCommand { Crimes = [breakIn] },

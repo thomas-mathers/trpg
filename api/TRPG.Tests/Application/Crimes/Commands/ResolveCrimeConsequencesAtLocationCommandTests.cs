@@ -162,7 +162,7 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
             LocationId = LocationId,
             BuildingId = Guid.NewGuid(),
             BuildingName = "The Iron Gate",
-            OwnerFactionId = _ownerFaction.Id,
+            OwnerFactionIds = [_ownerFaction.Id],
             Outcome = outcome,
         };
         _context.Creatures.Add(witness);
@@ -260,7 +260,7 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
             LocationId = LocationId,
             BuildingId = Guid.NewGuid(),
             BuildingName = "Locked Warehouse",
-            OwnerFactionId = _ownerFaction.Id,
+            OwnerFactionIds = [_ownerFaction.Id],
             Outcome = outcome,
         };
 

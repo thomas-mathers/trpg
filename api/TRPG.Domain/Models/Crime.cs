@@ -85,7 +85,10 @@ public class LockpickingCrime : Crime
 {
     public Guid BuildingId { get; init; }
     public string BuildingName { get; init; } = "";
-    public Guid? OwnerFactionId { get; init; }
+
+    // Every faction the break-in wronged: the owner if it has one, and always the city
+    // whose law protects it, the way a killing snapshots its victim's factions.
+    public List<Guid> OwnerFactionIds { get; init; } = [];
     public LockpickingCrimeOutcome? Outcome { get; set; }
 }
 
@@ -95,7 +98,10 @@ public class JailbreakCrime : Crime
 {
     public Guid BuildingId { get; init; }
     public string BuildingName { get; init; } = "";
-    public Guid? OwnerFactionId { get; init; }
+
+    // Every faction the break-in wronged: the owner if it has one, and always the city
+    // whose law protects it, the way a killing snapshots its victim's factions.
+    public List<Guid> OwnerFactionIds { get; init; } = [];
     public LockpickingCrimeOutcome? Outcome { get; set; }
 }
 
@@ -103,7 +109,10 @@ public class TrespassingCrime : Crime
 {
     public Guid BuildingId { get; init; }
     public string BuildingName { get; init; } = "";
-    public Guid? OwnerFactionId { get; init; }
+
+    // Every faction the break-in wronged: the owner if it has one, and always the city
+    // whose law protects it, the way a killing snapshots its victim's factions.
+    public List<Guid> OwnerFactionIds { get; init; } = [];
 }
 
 public class CrimeWitness

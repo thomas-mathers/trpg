@@ -11,7 +11,7 @@ internal static class JailbreakCrimeMapper
         ReputationOptions options
     ) =>
         new(
-            FactionIds: crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
+            FactionIds: crime.OwnerFactionIds,
             ReportedWitnessIds: reportedWitnessIds,
             // The city was wronged, not a person: the cell belonged to nobody in particular.
             VictimId: null,
