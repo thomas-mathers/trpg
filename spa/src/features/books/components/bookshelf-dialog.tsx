@@ -54,6 +54,7 @@ export function BookshelfDialog({
               table={itemTable}
               renderItemName={(item) => <ItemName item={item} />}
               loading={shelf.isLoading}
+              statistics={['value']}
               emptyMessage="Nothing worth reading here."
               renderAction={(item) => (
                 <Button
