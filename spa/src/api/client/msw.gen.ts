@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -1185,6 +1185,74 @@ export function handleGetWorkstationInventory(response?: HandleGetWorkstationInv
     }, options);
 }
 
+export type HandleReadBookPageResponse = {
+    body: ReadBookPageResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `POST /players/{playerId}/books/{itemId}/pages/{pageNumber}` operation.
+ */
+export function handleReadBookPage(response?: HandleReadBookPageResponse | HttpResponseResolver<{
+    playerId: string;
+    itemId: string;
+    pageNumber: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        playerId: string;
+        itemId: string;
+        pageNumber: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/books/:itemId/pages/:pageNumber`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandlePrefetchBookPageResponse = {
+    body: PrefetchBookPageResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `POST /books/{itemId}/pages/{pageNumber}/prefetch` operation.
+ */
+export function handlePrefetchBookPage(response?: HandlePrefetchBookPageResponse | HttpResponseResolver<{
+    itemId: string;
+    pageNumber: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<{
+        itemId: string;
+        pageNumber: string;
+    }, never>(`${options?.baseUrl ?? '*'}/books/:itemId/pages/:pageNumber/prefetch`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
 export type HandleGetQuestJournalResponse = {
     body: GetQuestJournalResponses[200];
     status?: 200;
@@ -1469,6 +1537,14 @@ export type MswHandlerFactories = {
      */
     getWorkstationInventory: typeof handleGetWorkstationInventory;
     /**
+     * Handler for the `POST /players/{playerId}/books/{itemId}/pages/{pageNumber}` operation.
+     */
+    readBookPage: typeof handleReadBookPage;
+    /**
+     * Handler for the `POST /books/{itemId}/pages/{pageNumber}/prefetch` operation.
+     */
+    prefetchBookPage: typeof handlePrefetchBookPage;
+    /**
      * Handler for the `GET /players/{playerId}/quests` operation.
      */
     getQuestJournal: typeof handleGetQuestJournal;
@@ -1539,6 +1615,8 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         getSessionItem: wrap(handleGetSessionItem),
         getContainerInventory: wrap(handleGetContainerInventory),
         getWorkstationInventory: wrap(handleGetWorkstationInventory),
+        readBookPage: wrap(handleReadBookPage),
+        prefetchBookPage: wrap(handlePrefetchBookPage),
         getQuestJournal: wrap(handleGetQuestJournal),
         acceptQuest: wrap(handleAcceptQuest),
         completeQuest: wrap(handleCompleteQuest),
@@ -1554,10 +1632,12 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         }
         const overrides = options.pick ?? {};
         return [
+            invoke(pick.readBookPage, overrides.readBookPage),
             invoke(pick.previewCreatureBasicAttackDamage, overrides.previewCreatureBasicAttackDamage),
             invoke(pick.dropInventoryItem, overrides.dropInventoryItem),
             invoke(pick.proposeTrade, overrides.proposeTrade),
             invoke(pick.completeTrade, overrides.completeTrade),
+            invoke(pick.prefetchBookPage, overrides.prefetchBookPage),
             invoke(pick.acceptQuest, overrides.acceptQuest),
             invoke(pick.completeQuest, overrides.completeQuest),
             invoke(pick.setQuestTracking, overrides.setQuestTracking),

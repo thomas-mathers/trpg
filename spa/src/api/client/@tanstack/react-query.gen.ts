@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptQuest, allocateCreatureAttributePoints, completeQuest, completeTrade, createSession, createWorld, dropInventoryItem, dropWorld, equipCreatureItem, getAbilitiesBySkill, getContainerInventory, getCreatureAbilities, getCreatureAttributePoints, getCreatureAttributes, getCreatureBaseAttributes, getCreatureBasicAttackDamage, getCreatureConsumables, getCreatureGenerationOptions, getCreatureInventory, getCreatureLevel, getCreatureSkills, getJob, getNearbyCorpses, getPlayerFight, getPlayerFightAbilities, getQuestJournal, getSessionItem, getSessionLoreAnchor, getSessionScene, getTheftDetectionChance, getTrade, getWorkstationInventory, getWorldMap, listSessionLoreAnchors, listWorlds, type Options, previewCreatureBasicAttackDamage, previewCreatureEquipment, proposeTrade, setCreatureSneaking, setQuestTracking, transferInventory, unequipCreatureItem } from '../sdk.gen';
-import type { AcceptQuestData, AcceptQuestError, AcceptQuestResponse, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponse, CompleteQuestData, CompleteQuestError, CompleteQuestResponse, CompleteTradeData, CompleteTradeResponse, CreateSessionData, CreateSessionResponse, CreateWorldData, CreateWorldResponse, DropInventoryItemData, DropInventoryItemError, DropInventoryItemResponse, DropWorldData, DropWorldResponse, EquipCreatureItemData, EquipCreatureItemResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetContainerInventoryData, GetContainerInventoryResponse, GetCreatureAbilitiesData, GetCreatureAbilitiesResponse, GetCreatureAttributePointsData, GetCreatureAttributePointsResponse, GetCreatureAttributesData, GetCreatureAttributesResponse, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponse, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponse, GetCreatureConsumablesData, GetCreatureConsumablesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreatureInventoryData, GetCreatureInventoryResponse, GetCreatureLevelData, GetCreatureLevelResponse, GetCreatureSkillsData, GetCreatureSkillsResponse, GetJobData, GetJobResponse, GetNearbyCorpsesData, GetNearbyCorpsesResponse, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponse, GetPlayerFightData, GetPlayerFightResponse, GetQuestJournalData, GetQuestJournalResponse, GetSessionItemData, GetSessionItemResponse, GetSessionLoreAnchorData, GetSessionLoreAnchorResponse, GetSessionSceneData, GetSessionSceneResponse, GetTheftDetectionChanceData, GetTheftDetectionChanceResponse, GetTradeData, GetTradeResponse, GetWorkstationInventoryData, GetWorkstationInventoryResponse, GetWorldMapData, GetWorldMapResponse, ListSessionLoreAnchorsData, ListSessionLoreAnchorsResponse, ListWorldsData, ListWorldsResponse, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponse, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponse, ProposeTradeData, ProposeTradeResponse, SetCreatureSneakingData, SetCreatureSneakingResponse, SetQuestTrackingData, SetQuestTrackingError, SetQuestTrackingResponse, TransferInventoryData, TransferInventoryError, TransferInventoryResponse, UnequipCreatureItemData, UnequipCreatureItemResponse } from '../types.gen';
+import { acceptQuest, allocateCreatureAttributePoints, completeQuest, completeTrade, createSession, createWorld, dropInventoryItem, dropWorld, equipCreatureItem, getAbilitiesBySkill, getContainerInventory, getCreatureAbilities, getCreatureAttributePoints, getCreatureAttributes, getCreatureBaseAttributes, getCreatureBasicAttackDamage, getCreatureConsumables, getCreatureGenerationOptions, getCreatureInventory, getCreatureLevel, getCreatureSkills, getJob, getNearbyCorpses, getPlayerFight, getPlayerFightAbilities, getQuestJournal, getSessionItem, getSessionLoreAnchor, getSessionScene, getTheftDetectionChance, getTrade, getWorkstationInventory, getWorldMap, listSessionLoreAnchors, listWorlds, type Options, prefetchBookPage, previewCreatureBasicAttackDamage, previewCreatureEquipment, proposeTrade, readBookPage, setCreatureSneaking, setQuestTracking, transferInventory, unequipCreatureItem } from '../sdk.gen';
+import type { AcceptQuestData, AcceptQuestError, AcceptQuestResponse, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponse, CompleteQuestData, CompleteQuestError, CompleteQuestResponse, CompleteTradeData, CompleteTradeResponse, CreateSessionData, CreateSessionResponse, CreateWorldData, CreateWorldResponse, DropInventoryItemData, DropInventoryItemError, DropInventoryItemResponse, DropWorldData, DropWorldResponse, EquipCreatureItemData, EquipCreatureItemResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetContainerInventoryData, GetContainerInventoryResponse, GetCreatureAbilitiesData, GetCreatureAbilitiesResponse, GetCreatureAttributePointsData, GetCreatureAttributePointsResponse, GetCreatureAttributesData, GetCreatureAttributesResponse, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponse, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponse, GetCreatureConsumablesData, GetCreatureConsumablesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreatureInventoryData, GetCreatureInventoryResponse, GetCreatureLevelData, GetCreatureLevelResponse, GetCreatureSkillsData, GetCreatureSkillsResponse, GetJobData, GetJobResponse, GetNearbyCorpsesData, GetNearbyCorpsesResponse, GetPlayerFightAbilitiesData, GetPlayerFightAbilitiesResponse, GetPlayerFightData, GetPlayerFightResponse, GetQuestJournalData, GetQuestJournalResponse, GetSessionItemData, GetSessionItemResponse, GetSessionLoreAnchorData, GetSessionLoreAnchorResponse, GetSessionSceneData, GetSessionSceneResponse, GetTheftDetectionChanceData, GetTheftDetectionChanceResponse, GetTradeData, GetTradeResponse, GetWorkstationInventoryData, GetWorkstationInventoryResponse, GetWorldMapData, GetWorldMapResponse, ListSessionLoreAnchorsData, ListSessionLoreAnchorsResponse, ListWorldsData, ListWorldsResponse, PrefetchBookPageData, PrefetchBookPageError, PrefetchBookPageResponse, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponse, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponse, ProposeTradeData, ProposeTradeResponse, ReadBookPageData, ReadBookPageError, ReadBookPageResponse, SetCreatureSneakingData, SetCreatureSneakingResponse, SetQuestTrackingData, SetQuestTrackingError, SetQuestTrackingResponse, TransferInventoryData, TransferInventoryError, TransferInventoryResponse, UnequipCreatureItemData, UnequipCreatureItemResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -596,6 +596,34 @@ export const getWorkstationInventoryOptions = (options: Options<GetWorkstationIn
     },
     queryKey: getWorkstationInventoryQueryKey(options)
 });
+
+export const readBookPageMutation = (options?: Partial<Options<ReadBookPageData>>): UseMutationOptions<ReadBookPageResponse, ReadBookPageError, Options<ReadBookPageData>> => {
+    const mutationOptions: UseMutationOptions<ReadBookPageResponse, ReadBookPageError, Options<ReadBookPageData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await readBookPage({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const prefetchBookPageMutation = (options?: Partial<Options<PrefetchBookPageData>>): UseMutationOptions<PrefetchBookPageResponse, PrefetchBookPageError, Options<PrefetchBookPageData>> => {
+    const mutationOptions: UseMutationOptions<PrefetchBookPageResponse, PrefetchBookPageError, Options<PrefetchBookPageData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await prefetchBookPage({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getQuestJournalQueryKey = (options: Options<GetQuestJournalData>) => createQueryKey('getQuestJournal', options);
 

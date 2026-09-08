@@ -217,7 +217,8 @@ internal static class ServiceCollectionExtensions
             .AddScoped<IChatDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<ICrimesDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<ILocationSimulationDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
-            .AddScoped<IRoomBookingsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>());
+            .AddScoped<IRoomBookingsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IBooksDbContext>(sp => sp.GetRequiredService<TrpgDbContext>());
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {

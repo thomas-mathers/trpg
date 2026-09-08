@@ -12,6 +12,7 @@ import {
   GiBubblingFlask,
   GiCampingTent,
   GiCastle,
+  GiBlackBook,
   GiChest,
   GiChurch,
   GiCroissant,
@@ -68,6 +69,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { BookshelfDialog } from '@/features/books/components/bookshelf-dialog';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { SleepDialog } from '@/features/game/components/sleep-dialog';
@@ -165,6 +167,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
   } | null>(null);
   const [isTradeOpen, setIsTradeOpen] = useState(false);
   const [isSleepOpen, setIsSleepOpen] = useState(false);
+  const [bookshelf, setBookshelf] = useState<{ id: string; name: string } | null>(null);
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
@@ -173,6 +176,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
   const nearbyContainers = scene.nearbyProps.filter((prop) => prop.type === 'Container');
   const nearbyTradeWorkstations = scene.nearbyProps.filter((prop) => prop.type === 'Trade');
   const nearbyBeds = scene.nearbyProps.filter((prop) => prop.type === 'Bed');
+  const nearbyBookshelves = scene.nearbyProps.filter((prop) => prop.type === 'Reading');
 
   return (
     <div className="flex flex-col gap-6 p-4 text-sm">
@@ -251,6 +255,27 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                   className="cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2"
                 >
                   {container.name}
+                </button>
+              </span>
+            </div>
+          ))
+        )}
+      </Section>
+
+      <Section title="Nearby Bookshelves">
+        {nearbyBookshelves.length === 0 ? (
+          <EmptyState />
+        ) : (
+          nearbyBookshelves.map((shelf) => (
+            <div key={shelf.id} className="flex items-center justify-between gap-2 py-1.5">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <GiBlackBook className="text-muted-foreground size-[18px] shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => setBookshelf({ id: shelf.id, name: shelf.name })}
+                  className="cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2"
+                >
+                  {shelf.name}
                 </button>
               </span>
             </div>
@@ -360,6 +385,14 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
         />
       )}
       <SleepDialog open={isSleepOpen} onClose={() => setIsSleepOpen(false)} />
+
+      <BookshelfDialog
+        playerId={scene.playerStatus.id}
+        workstationId={bookshelf?.id ?? null}
+        name={bookshelf?.name ?? ''}
+        open={bookshelf !== null}
+        onClose={() => setBookshelf(null)}
+      />
     </div>
   );
 }

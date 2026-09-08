@@ -24,6 +24,100 @@ namespace TRPG.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("TRPG.Domain.Models.BookPage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("PageNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("page_number");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<Guid>("WorkId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("work_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_book_pages");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_book_pages_world_id");
+
+                    b.HasIndex("WorkId", "PageNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_book_pages_work_id_page_number");
+
+                    b.ToTable("book_pages", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.BookWork", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("page_count");
+
+                    b.Property<Guid?>("SecretId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("secret_id");
+
+                    b.Property<int?>("SecretPageNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("secret_page_number");
+
+                    b.Property<string>("SubjectName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject_name");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject_type");
+
+                    b.Property<string>("Tier")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_book_works");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_book_works_world_id");
+
+                    b.HasIndex("WorldId", "Title")
+                        .IsUnique()
+                        .HasDatabaseName("ux_book_works_world_title")
+                        .HasFilter("tier = 'Flavour'");
+
+                    b.ToTable("book_works", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Domain.Models.Building", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2041,6 +2135,36 @@ namespace TRPG.Migrations
                     b.ToTable("room_bookings", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Domain.Models.Secret", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("value");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_secrets");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_secrets_world_id");
+
+                    b.ToTable("secrets", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Domain.Models.State", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2608,6 +2732,19 @@ namespace TRPG.Migrations
                     b.ToTable("items", (string)null);
 
                     b.HasDiscriminator().HasValue("armor");
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.Book", b =>
+                {
+                    b.HasBaseType("TRPG.Domain.Models.Item");
+
+                    b.Property<Guid>("WorkId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("work_id");
+
+                    b.ToTable("items", (string)null);
+
+                    b.HasDiscriminator().HasValue("book");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Consumable", b =>

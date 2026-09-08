@@ -60,6 +60,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Crimes", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Knowledge", "TRPG.Application.Knowledge\TRPG.Application.Knowledge.csproj", "{7B00CC45-DA72-46E6-A0EB-B77A767C3723}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Books", "TRPG.Application.Books\TRPG.Application.Books.csproj", "{3619FF68-DCDB-43D0-8D9F-631F3733F70C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -430,6 +432,18 @@ Global
 		{7B00CC45-DA72-46E6-A0EB-B77A767C3723}.Release|x64.Build.0 = Release|Any CPU
 		{7B00CC45-DA72-46E6-A0EB-B77A767C3723}.Release|x86.ActiveCfg = Release|Any CPU
 		{7B00CC45-DA72-46E6-A0EB-B77A767C3723}.Release|x86.Build.0 = Release|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Debug|x64.Build.0 = Debug|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Debug|x86.Build.0 = Debug|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Release|x64.ActiveCfg = Release|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Release|x64.Build.0 = Release|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Release|x86.ActiveCfg = Release|Any CPU
+		{3619FF68-DCDB-43D0-8D9F-631F3733F70C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -18,6 +18,7 @@ import {
   GiFlatHammer,
   GiGauntlet,
   GiIntricateNecklace,
+  GiBlackBook,
   GiKey,
   GiPlainDagger,
   GiShield,
@@ -57,6 +58,7 @@ export const TYPE_ICON: Record<ItemType, IconType> = {
   Consumable: GiBubblingFlask,
   Gold: GiCoinsPile,
   Key: GiKey,
+  Book: GiBlackBook,
 };
 
 export const RARITY_COLOR: Partial<Record<ItemRarity, string>> = {

@@ -61,7 +61,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         IChatDbContext,
         ICrimesDbContext,
         ILocationSimulationDbContext,
-        IRoomBookingsDbContext
+        IRoomBookingsDbContext,
+        IBooksDbContext
 {
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<Building> Buildings => Set<Building>();
@@ -93,6 +94,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<ReputationLogEntry> ReputationLogEntries => Set<ReputationLogEntry>();
     public DbSet<DoorConnectorKey> DoorConnectorKeys => Set<DoorConnectorKey>();
+    public DbSet<BookWork> BookWorks => Set<BookWork>();
+    public DbSet<BookPage> BookPages => Set<BookPage>();
+    public DbSet<Secret> Secrets => Set<Secret>();
     public DbSet<Encounter> Encounters => Set<Encounter>();
     public DbSet<EncounterGroup> EncounterGroups => Set<EncounterGroup>();
     public DbSet<EncounterGroupMember> EncounterGroupMembers => Set<EncounterGroupMember>();
@@ -291,7 +295,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<Ammunition>("ammunition")
                 .HasValue<Accessory>("accessory")
                 .HasValue<Gold>("gold")
-                .HasValue<Key>("key");
+                .HasValue<Key>("key")
+                .HasValue<Book>("book");
             entity.Property(i => i.Modifiers).HasJsonConversion(() => []);
             entity.Property(i => i.GoldValue).HasColumnName("gold_value");
             entity.HasIndex(i => i.WorldId);
@@ -341,6 +346,29 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(k => k.DoorConnectorId);
             entity.HasIndex(k => k.ItemId);
             entity.HasIndex(k => k.WorldId);
+        });
+
+        modelBuilder.Entity<BookWork>(entity =>
+        {
+            entity.HasIndex(w => w.WorldId);
+            // Two shelves holding the same title hold the same work; a clue's identity is its id,
+            // so its title stays free to collide with anything.
+            entity
+                .HasIndex(w => new { w.WorldId, w.Title })
+                .IsUnique()
+                .HasDatabaseName("ux_book_works_world_title")
+                .HasFilter("tier = 'Flavour'");
+        });
+
+        modelBuilder.Entity<BookPage>(entity =>
+        {
+            entity.HasIndex(p => p.WorldId);
+            entity.HasIndex(p => new { p.WorkId, p.PageNumber }).IsUnique();
+        });
+
+        modelBuilder.Entity<Secret>(entity =>
+        {
+            entity.HasIndex(s => s.WorldId);
         });
 
         modelBuilder.Entity<World>(entity =>

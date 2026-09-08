@@ -94,6 +94,14 @@ export type BasicAttackDamageResponse = {
     damagePerTurn: number;
 };
 
+export type BookPageResponse = {
+    title: string;
+    pageNumber: number;
+    pageCount: number;
+    text: string;
+    revealedSecret: boolean;
+};
+
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
 export type CityMapResponse = {
@@ -299,7 +307,9 @@ export type ItemDetail = ({
     $type: 'Gold';
 } & ItemDetailGoldDetail) | ({
     $type: 'Key';
-} & ItemDetailKeyDetail);
+} & ItemDetailKeyDetail) | ({
+    $type: 'Book';
+} & ItemDetailBookDetail);
 
 export type ItemDetailAccessoryDetail = {
     $type?: 'Accessory';
@@ -339,6 +349,22 @@ export type ItemDetailArmorDetail = {
     armorClass: ArmorClass;
     durabilityCurrent: number;
     durabilityMax: number;
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number;
+    quantity: number;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: number;
+    modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
+    isQuestItem?: boolean;
+};
+
+export type ItemDetailBookDetail = {
+    $type?: 'Book';
     itemId: string;
     name: string;
     description: string;
@@ -515,7 +541,7 @@ export type ItemSelection = {
     quantity: number;
 };
 
-export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold' | 'Key';
+export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold' | 'Key' | 'Book';
 
 export type JobStatus = 'Idle' | 'Queued' | 'InProgress' | 'Done' | 'Failed' | 'Cancelled';
 
@@ -1523,6 +1549,71 @@ export type GetWorkstationInventoryResponses = {
 };
 
 export type GetWorkstationInventoryResponse = GetWorkstationInventoryResponses[keyof GetWorkstationInventoryResponses];
+
+export type ReadBookPageData = {
+    body?: never;
+    path: {
+        playerId: string;
+        itemId: string;
+        pageNumber: number;
+    };
+    query?: never;
+    url: '/players/{playerId}/books/{itemId}/pages/{pageNumber}';
+};
+
+export type ReadBookPageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type ReadBookPageError = ReadBookPageErrors[keyof ReadBookPageErrors];
+
+export type ReadBookPageResponses = {
+    /**
+     * OK
+     */
+    200: BookPageResponse;
+};
+
+export type ReadBookPageResponse = ReadBookPageResponses[keyof ReadBookPageResponses];
+
+export type PrefetchBookPageData = {
+    body?: never;
+    path: {
+        itemId: string;
+        pageNumber: number;
+    };
+    query?: never;
+    url: '/books/{itemId}/pages/{pageNumber}/prefetch';
+};
+
+export type PrefetchBookPageErrors = {
+    /**
+     * Bad Request
+     */
+    400: ProblemDetails;
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type PrefetchBookPageError = PrefetchBookPageErrors[keyof PrefetchBookPageErrors];
+
+export type PrefetchBookPageResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type PrefetchBookPageResponse = PrefetchBookPageResponses[keyof PrefetchBookPageResponses];
 
 export type GetQuestJournalData = {
     body?: never;

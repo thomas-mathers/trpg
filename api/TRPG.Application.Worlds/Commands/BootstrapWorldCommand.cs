@@ -63,6 +63,14 @@ internal class BootstrapWorldCommandHandler(
         );
         context.Items.AddRange(tradeStock.Items);
         context.RestockPolicies.AddRange(tradeStock.RestockPolicies);
+        var libraryBooks = LibraryBookGenerator.Generate(
+            world.Props,
+            BookSubjectCatalog.From(world.Countries, world.States, world.Cities, world.Factions),
+            world.World.Id,
+            Random.Shared
+        );
+        context.BookWorks.AddRange(libraryBooks.Works);
+        context.Items.AddRange(libraryBooks.Books);
         context.CreatureSpawners.AddRange(world.CreatureSpawners);
         context.CreatureSkills.AddRange(world.Skills);
         context.CreatureJobs.AddRange(world.Jobs);
