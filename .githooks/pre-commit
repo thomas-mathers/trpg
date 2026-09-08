@@ -1,5 +1,12 @@
 #!/bin/sh
-dotnet tool restore
-dotnet csharpier check api
+# Without this the hook's status is whatever the last check returned, so an earlier
+# failure still lets the commit through and only turns up in CI.
+dotnet tool restore || exit 1
 
-pnpm --dir spa fmt:check
+status=0
+
+# Same path CI checks, so nothing can pass here and fail there.
+dotnet csharpier check . || status=1
+pnpm --dir spa fmt:check || status=1
+
+exit $status
