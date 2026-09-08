@@ -240,16 +240,15 @@ public class WorldGenerator(
                 );
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
-                rooms.Add(result.Room);
-                locations.Add(result.Location);
-                locationConnectors.Add(result.FrontDoor);
-                locationConnectors.Add(result.Entrance);
+                rooms.AddRange(result.Rooms);
+                locations.AddRange(result.Locations);
+                locationConnectors.AddRange(result.LocationConnectors);
                 doorConnectors.Add(result.Door);
 
                 var dungeonMonsters = dungeonPopulator.Generate(
                     new DungeonPopulatorInput
                     {
-                        LocationId = result.Location.Id,
+                        LocationId = result.EntranceLocationId,
                         WorldId = worldId,
                         DungeonType = result.Building.BuildingType,
                         FactionsByCreatureType = encounterFactionsByCreatureType,
