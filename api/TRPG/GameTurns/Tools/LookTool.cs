@@ -7,6 +7,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.GameTurns.Mappers;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
 
@@ -45,7 +46,7 @@ internal class LookTool(
             cancellationToken
         );
 
-        var scene = refreshed.Scene.ToToolScene();
+        var scene = refreshed.Scene.ToLlmScene();
 
         logger.LogInformation(
             "[perf] [look] result in {ElapsedMs}ms: {Result}",

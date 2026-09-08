@@ -12,6 +12,7 @@ using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.GameTurns.Mappers;
 using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Domain;
@@ -47,7 +48,7 @@ internal record MoveToolOverdueKeyEncounter(
 internal record MoveToolSuspicionEncounter(string GuardName, string LocationName, string Reason);
 
 internal record MoveToolResult(
-    ToolScene Scene,
+    LlmScene Scene,
     MoveToolHostileEncounter? HostileEncounter,
     MoveToolGuardEncounter? GuardEncounter,
     MoveToolOverdueKeyEncounter? OverdueRoomKeyEncounter,
@@ -236,7 +237,7 @@ internal class MoveTool(
 
     private static MoveToolResult BuildResult(SceneResult scene, Encounter? encounter) =>
         new(
-            scene.ToToolScene(),
+            scene.ToLlmScene(),
             (encounter as HostileEncounter)?.ToMoveToolSummary(),
             (encounter as GuardEncounter)?.ToMoveToolSummary(),
             (encounter as TheftEncounter)?.ToMoveToolSummary(),
