@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
+using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Crimes.Queries;
@@ -28,6 +31,8 @@ internal class EvaluateJailbreakEncounterCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
+    SneakDetectionService sneakDetectionService,
+    IOptionsMonitor<LockpickingOptions> lockpickingOptions,
     ILogger<EvaluateJailbreakEncounterCommandHandler> logger
 ) : ICommandHandler<EvaluateJailbreakEncounterCommand, GuardEncounter?>
 {
@@ -78,6 +83,19 @@ internal class EvaluateJailbreakEncounterCommandHandler(
         if (cityFactionId is not { } cityFaction)
         {
             logger.LogDebug("[jailbreak] skipped: guard {GuardId} has no city faction", guard.Id);
+            return null;
+        }
+
+        var isDetected = await sneakDetectionService.RollDetection(
+            command.WorldId,
+            player.Id,
+            player.IsSneaking,
+            LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
+            cancellationToken
+        );
+        if (!isDetected)
+        {
+            logger.LogDebug("[jailbreak] skipped: escapee slipped past guard {GuardId}", guard.Id);
             return null;
         }
 
