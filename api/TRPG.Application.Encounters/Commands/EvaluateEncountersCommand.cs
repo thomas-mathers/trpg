@@ -16,6 +16,7 @@ public record EncounterEvaluationResult(Encounter? Encounter)
 
 internal class EvaluateEncountersCommandHandler(
     ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?> evaluateHostileEncounter,
+    ICommandHandler<EvaluateJailbreakEncounterCommand, GuardEncounter?> evaluateJailbreakEncounter,
     ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter,
     ICommandHandler<
         EvaluateSuspicionEncounterCommand,
@@ -43,6 +44,20 @@ internal class EvaluateEncountersCommandHandler(
         if (hostileEncounter != null)
         {
             return new EncounterEvaluationResult(hostileEncounter);
+        }
+
+        // Being caught escaping outranks a routine stop, and does not wait on standing reputation.
+        var jailbreakEncounter = await evaluateJailbreakEncounter.Handle(
+            new EvaluateJailbreakEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+            },
+            cancellationToken
+        );
+        if (jailbreakEncounter != null)
+        {
+            return new EncounterEvaluationResult(jailbreakEncounter);
         }
 
         var guardEncounter = await evaluateGuardEncounter.Handle(

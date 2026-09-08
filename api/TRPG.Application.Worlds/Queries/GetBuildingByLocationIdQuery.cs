@@ -10,7 +10,13 @@ public class GetBuildingByLocationIdQuery
     public required Guid LocationId { get; init; }
 }
 
-public record BuildingIdentity(Guid Id, BuildingType BuildingType, string Name, Guid? FactionId);
+public record BuildingIdentity(
+    Guid Id,
+    BuildingType BuildingType,
+    string Name,
+    Guid? FactionId,
+    Guid ExteriorLocationId
+);
 
 internal class GetBuildingByLocationIdQueryHandler(IWorldsDbContext context)
     : IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?>
@@ -27,7 +33,8 @@ internal class GetBuildingByLocationIdQueryHandler(IWorldsDbContext context)
                 building.Id,
                 building.BuildingType,
                 building.Name,
-                building.FactionId
+                building.FactionId,
+                building.ExteriorLocationId
             )
         ).FirstOrDefaultAsync(cancellationToken);
 }
