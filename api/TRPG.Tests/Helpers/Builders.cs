@@ -657,11 +657,13 @@ internal static class Builders
         int reputationSensitivity = 0,
         int riskAversion = 0,
         bool isCityFaction = false,
-        CreatureType? creatureType = null
+        CreatureType? creatureType = null,
+        Guid? cityId = null
     )
     {
         return new Faction
         {
+            CityId = cityId,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Faction-{Guid.NewGuid():N}",
             Description = "A test faction",

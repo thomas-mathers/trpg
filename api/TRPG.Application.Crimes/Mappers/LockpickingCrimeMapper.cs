@@ -11,7 +11,7 @@ internal static class LockpickingCrimeMapper
         ReputationOptions options
     ) =>
         new(
-            FactionIds: crime.OwnerFactionId == null ? [] : [crime.OwnerFactionId.Value],
+            FactionIds: crime.OwnerFactionIds,
             ReportedWitnessIds: reportedWitnessIds,
             VictimId: null,
             Penalty: PenaltyFor(crime, options)

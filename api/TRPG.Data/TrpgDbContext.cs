@@ -170,8 +170,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         modelBuilder.Entity<LockpickingCrime>(entity =>
         {
             entity
-                .Property(crime => crime.OwnerFactionId)
-                .HasColumnName("lockpicking_owner_faction_id");
+                .Property(crime => crime.OwnerFactionIds)
+                .HasColumnName("lockpicking_owner_faction_ids");
 
             // Shares a name with TheftCrime.Outcome but not its enum, so it needs its own column.
             entity.Property(crime => crime.Outcome).HasColumnName("lockpicking_outcome");
@@ -184,8 +184,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.Property(crime => crime.BuildingId).HasColumnName("jailbreak_building_id");
             entity.Property(crime => crime.BuildingName).HasColumnName("jailbreak_building_name");
             entity
-                .Property(crime => crime.OwnerFactionId)
-                .HasColumnName("jailbreak_owner_faction_id");
+                .Property(crime => crime.OwnerFactionIds)
+                .HasColumnName("jailbreak_owner_faction_ids");
             entity.Property(crime => crime.Outcome).HasColumnName("jailbreak_outcome");
         });
 
@@ -203,8 +203,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.Property(crime => crime.BuildingId).HasColumnName("trespassing_building_id");
             entity.Property(crime => crime.BuildingName).HasColumnName("trespassing_building_name");
             entity
-                .Property(crime => crime.OwnerFactionId)
-                .HasColumnName("trespassing_owner_faction_id");
+                .Property(crime => crime.OwnerFactionIds)
+                .HasColumnName("trespassing_owner_faction_ids");
         });
 
         modelBuilder.Entity<Creature>(entity =>

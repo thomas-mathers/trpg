@@ -39,7 +39,8 @@ internal class EvaluateTrespassingEncounterCommandHandler(
     ICommandHandler<AddCrimeWitnessesCommand> addCrimeWitnesses,
     ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
     IOptionsMonitor<LockpickingOptions> lockpickingOptions,
-    LocationCityResolver locationCity
+    LocationCityResolver locationCity,
+    WrongedFactionResolver wrongedFactions
 ) : ICommandHandler<EvaluateTrespassingEncounterCommand, HostileEncounter?>
 {
     public async Task<HostileEncounter?> Handle(
@@ -137,7 +138,11 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             CityId = await locationCity.Resolve(crimeLocationId, cancellationToken),
             BuildingId = building.Id,
             BuildingName = building.Name,
-            OwnerFactionId = building.FactionId,
+            OwnerFactionIds = await wrongedFactions.Resolve(
+                crimeLocationId,
+                building.FactionId,
+                cancellationToken
+            ),
         };
         await addTrespassingCrimes.Handle(
             new AddTrespassingCrimesCommand { Crimes = [crime] },
@@ -154,7 +159,9 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             cancellationToken
         );
 
-        if (crime.OwnerFactionId is not { } factionId)
+        // Ordered owner first, so a guild hall is defended by its guild and a shop by the city.
+        var factionId = crime.OwnerFactionIds.FirstOrDefault();
+        if (factionId == Guid.Empty)
         {
             return null;
         }

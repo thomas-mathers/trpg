@@ -345,7 +345,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db) 
             LocationId = jail.EncounterLocationId,
             BuildingId = Guid.NewGuid(),
             BuildingName = "Locked Warehouse",
-            OwnerFactionId = ownerFaction.Id,
+            OwnerFactionIds = [ownerFaction.Id],
         };
         _context.Creatures.Add(witness);
         _context.Factions.Add(ownerFaction);

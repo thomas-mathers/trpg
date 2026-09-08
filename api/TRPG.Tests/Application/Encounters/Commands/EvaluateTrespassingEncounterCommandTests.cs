@@ -238,7 +238,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         var crime = await verifyContext
             .Crimes.OfType<TrespassingCrime>()
             .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(_ownerFaction.Id, crime.OwnerFactionId);
+        Assert.Contains(_ownerFaction.Id, crime.OwnerFactionIds);
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
                 LocationId = Guid.NewGuid(),
                 BuildingId = _buildingId,
                 BuildingName = "House",
-                OwnerFactionId = _ownerFaction.Id,
+                OwnerFactionIds = [_ownerFaction.Id],
             }
         );
         await SeedFrontDoor(isLocked: true);

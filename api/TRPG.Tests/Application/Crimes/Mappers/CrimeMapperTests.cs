@@ -80,7 +80,7 @@ public sealed class CrimeMapperTests
     )
     {
         // Arrange
-        var crime = new LockpickingCrime { OwnerFactionId = FactionId, Outcome = outcome };
+        var crime = new LockpickingCrime { OwnerFactionIds = [FactionId], Outcome = outcome };
 
         // Act
         var report = crime.ToCrimeReport([WitnessId], Options);
@@ -98,7 +98,7 @@ public sealed class CrimeMapperTests
     )
     {
         // Arrange
-        var crime = new JailbreakCrime { OwnerFactionId = FactionId, Outcome = outcome };
+        var crime = new JailbreakCrime { OwnerFactionIds = [FactionId], Outcome = outcome };
 
         // Act
         var report = crime.ToCrimeReport([WitnessId], Options);
@@ -112,7 +112,7 @@ public sealed class CrimeMapperTests
     public void ToCrimeReport_PricesATrespassAtTheFlatPenalty()
     {
         // Arrange
-        var crime = new TrespassingCrime { OwnerFactionId = FactionId };
+        var crime = new TrespassingCrime { OwnerFactionIds = [FactionId] };
 
         // Act
         var report = crime.ToCrimeReport([WitnessId], Options);
