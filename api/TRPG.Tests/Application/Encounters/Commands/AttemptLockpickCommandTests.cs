@@ -319,16 +319,21 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             TestContext.Current.CancellationToken
         );
 
-        // Assert
-        var guardEncounter = Assert.IsType<GuardEncounter>(result.Encounter);
-        Assert.Equal(guard.Id, guardEncounter.GuardCreatureId);
-        Assert.NotNull(guardEncounter.TriggeringCrimeId);
+        // Assert — the jailer is through the door, in a room time has not reached yet, so the
+        // confrontation waits until the player actually walks into it.
+        Assert.Null(result.Encounter);
+
+        await using var verifyContext = db.CreateContext();
+        var crime = await verifyContext
+            .Crimes.OfType<JailbreakCrime>()
+            .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(CrimeResolution.Pending, crime.Resolution);
     }
 
     [Fact]
-    public async Task Handle_RecordsTheJailbreakAndWitness_EvenWhenTheEscapeGoesUnnoticed()
+    public async Task Handle_AnchorsTheJailbreakAtTheJail_SoLeavingTheCellDoesNotSettleIt()
     {
-        // Arrange — the empty cell is evidence, so the jailer finds out either way
+        // Arrange
         var jail = await SeedJailCellWithGuard();
         _player.IsSneaking = true;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -346,7 +351,8 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             TestContext.Current.CancellationToken
         );
 
-        // Assert — no confrontation, but the crime is on the books with the guard as a witness
+        // Assert — nobody saw it yet, and the crime is anchored at the jail rather than the cell
+        // so walking into the guard station cannot resolve it before anyone there notices.
         Assert.Null(result.Encounter);
 
         await using var verifyContext = db.CreateContext();
@@ -354,11 +360,13 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
             .Crimes.OfType<JailbreakCrime>()
             .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
 
-        var witnessIds = await verifyContext
-            .CrimeWitnesses.Where(w => w.CrimeId == crime.Id)
-            .Select(w => w.CreatureId)
-            .ToArrayAsync(TestContext.Current.CancellationToken);
-        Assert.Equal([jail.GuardId], witnessIds);
+        Assert.Equal(CrimeResolution.Pending, crime.Resolution);
+        Assert.NotEqual(jail.CellsLocationId, crime.LocationId);
+        Assert.Empty(
+            await verifyContext
+                .CrimeWitnesses.Where(w => w.CrimeId == crime.Id)
+                .ToArrayAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     private async Task<JailCellFixture> SeedJailCellWithGuard()
@@ -410,13 +418,14 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db) : IAsyncLife
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        return new JailCellFixture(connectorId, guardStationLocationId, guard.Id);
+        return new JailCellFixture(connectorId, guardStationLocationId, guard.Id, cellsLocationId);
     }
 
     private sealed record JailCellFixture(
         Guid ConnectorId,
         Guid GuardStationLocationId,
-        Guid GuardId
+        Guid GuardId,
+        Guid CellsLocationId
     );
 
     [Fact]

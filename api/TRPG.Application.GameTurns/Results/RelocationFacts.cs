@@ -1,3 +1,6 @@
+using System.Text.Json;
+using TRPG.Application.Common.Serialization;
+using TRPG.Application.GameTurns.Mappers;
 using TRPG.Application.GameTurns.Results;
 
 namespace TRPG.Application.GameTurns;
@@ -16,9 +19,14 @@ internal static class RelocationFacts
                 ? "The player is alone here."
                 : $"The only others here are {string.Join(", ", others)}.";
 
+        var payload = JsonSerializer.Serialize(scene.ToLlmScene(), TrpgJsonOptions.Default);
+
         return $"""
-            The player is now in {place}{building}. {company} Describe nobody else as present, and
-            never invent someone arriving to intervene.
+            The player is now in {place}{building}, without having looked or moved to get here.
+            This is what they can observe, in the same shape the look tool returns:
+            {payload}
+            {company} Describe nobody else as present, and never invent someone arriving to
+            intervene. Any name passed to a tool later must be copied verbatim from this scene.
             """;
     }
 }

@@ -1,21 +1,21 @@
 using System.Text.Json;
 using TRPG.Application.Common.Serialization;
+using TRPG.Application.GameTurns.Mappers;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Domain.Models;
-using TRPG.GameTurns.Mappers;
 
-namespace TRPG.Tests.Tools;
+namespace TRPG.Tests.Application.GameTurns;
 
-public sealed class ToolSceneMapperTests
+public sealed class LlmSceneMapperTests
 {
     [Fact]
-    public void ToToolScene_KeepsWhatTheNarratorCanObserve()
+    public void ToLlmScene_KeepsWhatTheNarratorCanObserve()
     {
         // Arrange
         var scene = MakeScene();
 
         // Act
-        var result = scene.ToToolScene();
+        var result = scene.ToLlmScene();
 
         // Assert
         var creature = Assert.Single(result.NearbyCreatures);
@@ -29,13 +29,13 @@ public sealed class ToolSceneMapperTests
     }
 
     [Fact]
-    public void ToToolScene_OmitsMechanicalFieldsTheNarratorCannotUse()
+    public void ToLlmScene_OmitsMechanicalFieldsTheNarratorCannotUse()
     {
         // Arrange
         var scene = MakeScene();
 
         // Act
-        var json = JsonSerializer.Serialize(scene.ToToolScene(), TrpgJsonOptions.Default);
+        var json = JsonSerializer.Serialize(scene.ToLlmScene(), TrpgJsonOptions.Default);
 
         // Assert — ids are unusable because every tool addresses things by name, gold is private,
         // and the stat block is what creature_inspect exists to fetch on demand.
@@ -49,13 +49,13 @@ public sealed class ToolSceneMapperTests
     }
 
     [Fact]
-    public void ToToolScene_KeepsTheGoldTheNarratorNarratesForThePlayerOnly()
+    public void ToLlmScene_KeepsTheGoldTheNarratorNarratesForThePlayerOnly()
     {
         // Arrange
         var scene = MakeScene();
 
         // Act
-        var result = scene.ToToolScene();
+        var result = scene.ToLlmScene();
 
         // Assert
         Assert.Equal(45, result.Player.Gold);
@@ -64,13 +64,13 @@ public sealed class ToolSceneMapperTests
     }
 
     [Fact]
-    public void ToToolScene_FlattensAnExitToItsDestinationName()
+    public void ToLlmScene_FlattensAnExitToItsDestinationName()
     {
         // Arrange
         var scene = MakeScene();
 
         // Act
-        var result = scene.ToToolScene();
+        var result = scene.ToLlmScene();
 
         // Assert
         var exit = Assert.Single(result.Exits);

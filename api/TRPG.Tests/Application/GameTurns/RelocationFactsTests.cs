@@ -48,13 +48,33 @@ public sealed class RelocationFactsTests
         var text = RelocationFacts.Describe(scene);
 
         // Assert
-        Assert.Contains("now in The Merchant Quarter.", text);
+        Assert.Contains("now in The Merchant Quarter,", text);
+    }
+
+    [Fact]
+    public void Describe_CarriesTheWayOut_SoTheNarratorCanPassItToATool()
+    {
+        // Arrange — jail relocates the player without a look or move, the tools' only name source.
+        var scene = MakeScene(
+            room: "Cells",
+            building: "The Iron Gate",
+            others: [],
+            exits: [MakeExit("Guard Station", isLocked: true)]
+        );
+
+        // Act
+        var text = RelocationFacts.Describe(scene);
+
+        // Assert
+        Assert.Contains("\"destinationName\":\"Guard Station\"", text);
+        Assert.Contains("\"isLocked\":true", text);
     }
 
     private static SceneResult MakeScene(
         string? room,
         string? building,
-        IReadOnlyCollection<string> others
+        IReadOnlyCollection<string> others,
+        IReadOnlyCollection<SceneExitInfo>? exits = null
     ) =>
         new(
             Guid.NewGuid(),
@@ -67,10 +87,17 @@ public sealed class RelocationFactsTests
                 : new SceneBuildingInfo(building, BuildingType.Jail, null, null, null),
             room == null ? null : new SceneRoomInfo(room, "A cell.", 0),
             MakeCreature("Thomas Mathers"),
-            [],
+            exits ?? [],
             [],
             others.Select(MakeCreature).ToArray(),
             []
+        );
+
+    private static SceneExitInfo MakeExit(string destinationName, bool isLocked) =>
+        new(
+            $"A door to {destinationName}.",
+            new SceneRoomExitDestination(destinationName, BuildingType.Jail),
+            isLocked
         );
 
     private static SceneCreatureInfo MakeCreature(string name) =>

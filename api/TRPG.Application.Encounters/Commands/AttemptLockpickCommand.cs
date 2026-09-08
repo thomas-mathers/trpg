@@ -1,5 +1,4 @@
 using System.Transactions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -70,8 +69,7 @@ internal class AttemptLockpickCommandHandler(
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsMonitor<LockpickingOptions> lockpickingOptions,
     LocationCityResolver locationCity,
-    WrongedFactionResolver wrongedFactions,
-    ILogger<AttemptLockpickCommandHandler> logger
+    WrongedFactionResolver wrongedFactions
 ) : ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult>
 {
     public async Task<AttemptLockpickResult> Handle(
@@ -140,16 +138,14 @@ internal class AttemptLockpickCommandHandler(
             new GetLocationByIdQuery { Id = player.LocationId },
             cancellationToken
         );
+        // An escape is answered for when the player walks past a jailer, which the arrival
+        // evaluator handles: the room through the door has not been simulated yet.
+        var escaped = opened && door.UnlocksAtPlaytime != null;
+
         Encounter? encounter = null;
-        if (opened && door.UnlocksAtPlaytime != null)
+        if (escaped)
         {
-            encounter = await ResolveJailbreak(
-                command,
-                player,
-                currentLocation!,
-                crime,
-                cancellationToken
-            );
+            // Nothing to confront here: the jailer is through the door, not in the cell.
         }
         else if (currentLocation!.RoomId == null)
         {
@@ -251,16 +247,20 @@ internal class AttemptLockpickCommandHandler(
         // A timed lock is only ever set when a sentence starts, so picking one is an escape.
         if (door.UnlocksAtPlaytime != null)
         {
+            // Anchored at the jail, not the cell, so stepping into the guard station does not
+            // settle the escape before anyone there has had the chance to notice it.
+            var jailLocationId = building.ExteriorLocationId;
+
             var jailbreak = new JailbreakCrime
             {
                 WorldId = command.WorldId,
                 PlayerId = player.Id,
-                LocationId = player.LocationId,
-                CityId = await locationCity.Resolve(player.LocationId, cancellationToken),
+                LocationId = jailLocationId,
+                CityId = await locationCity.Resolve(jailLocationId, cancellationToken),
                 BuildingId = building.Id,
                 BuildingName = building.Name,
                 OwnerFactionIds = await wrongedFactions.Resolve(
-                    player.LocationId,
+                    jailLocationId,
                     building.FactionId,
                     cancellationToken
                 ),
@@ -298,95 +298,6 @@ internal class AttemptLockpickCommandHandler(
     }
 
     // A timed lock is only ever set when a sentence starts, so picking one is a jailbreak.
-    private async Task<GuardEncounter?> ResolveJailbreak(
-        AttemptLockpickCommand command,
-        Creature player,
-        Location currentLocation,
-        Crime? crime,
-        CancellationToken cancellationToken
-    )
-    {
-        var guard = await getGuardAtLocation.Handle(
-            new GetGuardAtLocationQuery
-            {
-                WorldId = command.WorldId,
-                LocationId = command.DestinationLocationId,
-            },
-            cancellationToken
-        );
-        if (guard == null)
-        {
-            logger.LogInformation(
-                "[jailbreak] no guard at destination {DestinationLocationId}; escape goes unwitnessed",
-                command.DestinationLocationId
-            );
-            return null;
-        }
-
-        logger.LogInformation("[jailbreak] jailer {GuardName} finds the empty cell", guard.Name);
-
-        // The empty cell is evidence, so the jailer finds out whether or not they saw it happen.
-        if (crime != null)
-        {
-            await addCrimeWitnesses.Handle(
-                new AddCrimeWitnessesCommand
-                {
-                    WorldId = command.WorldId,
-                    CrimeIds = [crime.Id],
-                    WitnessCreatureIds = [guard.Id],
-                },
-                cancellationToken
-            );
-        }
-
-        var isDetected = await sneakDetectionService.RollDetection(
-            command.WorldId,
-            player.Id,
-            player.IsSneaking,
-            LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
-            cancellationToken
-        );
-        if (!isDetected)
-        {
-            return null;
-        }
-
-        var cityFactionId =
-            await getCityFactionForCreature.Handle(
-                new GetCityFactionForCreatureQuery { CreatureId = guard.Id },
-                cancellationToken
-            )
-            ?? throw new InvalidOperationException(
-                $"Guard {guard.Id} has no city faction membership."
-            );
-
-        var score = await getReputationScore.Handle(
-            new GetReputationScoreQuery
-            {
-                CreatureId = player.Id,
-                TargetId = cityFactionId,
-                TargetType = ReputationTargetType.Faction,
-            },
-            cancellationToken
-        );
-
-        return await createGuardEncounter.Handle(
-            new CreateGuardEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = player.Id,
-                PlayerLocationId = player.LocationId,
-                LocationName = currentLocation.Name,
-                GuardCreatureId = guard.Id,
-                GuardName = guard.Name,
-                CityFactionId = cityFactionId,
-                ReputationScore = score,
-                TriggeringCrimeId = crime?.Id,
-            },
-            cancellationToken
-        );
-    }
-
     private async Task<GuardEncounter?> EvaluateExteriorDetection(
         AttemptLockpickCommand command,
         Creature player,
