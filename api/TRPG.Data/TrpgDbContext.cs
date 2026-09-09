@@ -348,6 +348,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(k => k.WorldId);
         });
 
+        modelBuilder.Entity<Room>(entity =>
+        {
+            entity.OwnsOne(room => room.Position, position => position.ToJson());
+        });
+
         modelBuilder.Entity<BookWork>(entity =>
         {
             entity.HasIndex(w => w.WorldId);

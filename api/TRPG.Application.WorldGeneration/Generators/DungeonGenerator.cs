@@ -6,15 +6,22 @@ internal record DungeonGeneratorInput(
     IReadOnlyCollection<string> ExcludedNames,
     Location WildernessLocation,
     Guid WorldId
-);
+)
+{
+    public Random Random { get; init; } = Random.Shared;
+}
+
+internal record DungeonRoomPlacement(Room Room, DungeonRoomRole Role, int DepthFromEntrance);
 
 internal record DungeonGeneratorResult(
     Building Building,
-    Room Room,
-    Location Location,
-    LocationConnector FrontDoor,
-    LocationConnector Entrance,
-    DoorConnector Door
+    IReadOnlyList<DungeonRoomPlacement> Placements,
+    IReadOnlyList<Room> Rooms,
+    IReadOnlyList<Location> Locations,
+    IReadOnlyList<LocationConnector> LocationConnectors,
+    DoorConnector Door,
+    Guid EntranceLocationId,
+    Guid BossLocationId
 );
 
 internal static class DungeonGenerator
@@ -108,7 +115,182 @@ internal static class DungeonGenerator
         [BuildingType.Tower] = "Ground Floor",
     };
 
+    private static readonly string[] Qualifiers =
+    [
+        "Upper",
+        "Lower",
+        "Far",
+        "Inner",
+        "Outer",
+        "Eastern",
+        "Western",
+        "Old",
+        "Deep",
+    ];
+
+    private static readonly Dictionary<BuildingType, int> RoomCountByType = new()
+    {
+        [BuildingType.Cave] = 8,
+        [BuildingType.Crypt] = 11,
+        [BuildingType.Mine] = 13,
+        [BuildingType.Ruins] = 12,
+        [BuildingType.Tower] = 9,
+    };
+
     public static DungeonGeneratorResult Generate(DungeonGeneratorInput input)
+    {
+        var (type, name) = ChooseNamedType(input);
+
+        var building = new Building
+        {
+            ExteriorLocationId = input.WildernessLocation.Id,
+            BuildingType = type,
+            Name = name,
+            WorldId = input.WorldId,
+        };
+
+        var layout = DungeonLayoutGenerator.Generate(
+            new DungeonLayoutInput(RoomCountByType[type]) { Random = input.Random }
+        );
+        var assigned = DungeonRoleAssigner.Assign(layout, type, input.Random);
+
+        var rooms = new List<Room>();
+        var placements = new List<DungeonRoomPlacement>();
+        var locations = new List<Location>();
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var room in assigned)
+        {
+            var content = DungeonRoomCatalog.ContentFor(room.Role, input.Random);
+            var roomName = UniqueName(content.Name, usedNames, input.Random);
+            var roomId = Guid.NewGuid();
+            var location = LocationGenerator.Generate(
+                input.WorldId,
+                input.WildernessLocation.StateId,
+                roomId: roomId
+            );
+
+            var built = new Room
+            {
+                Id = roomId,
+                BuildingId = building.Id,
+                LocationId = location.Id,
+                Name = roomName,
+                Description = content.Description,
+                FloorNumber = 0,
+                Position = room.Node.Position,
+                WorldId = input.WorldId,
+            };
+
+            locations.Add(location);
+            rooms.Add(built);
+            placements.Add(new DungeonRoomPlacement(built, room.Role, room.Node.DepthFromEntrance));
+        }
+
+        var entranceLocationId = locations[layout.EntranceIndex].Id;
+        var connectors = BuildPassages(layout, rooms, locations, input);
+        var frontDoor = new LocationConnector
+        {
+            OriginLocationId = entranceLocationId,
+            Name = "Front Door",
+            Description = "The way back outside.",
+            DestinationLocationId = input.WildernessLocation.Id,
+            DestinationLabel = "Outside",
+            WorldId = input.WorldId,
+        };
+        connectors.Add(frontDoor);
+        connectors.Add(
+            new LocationConnector
+            {
+                OriginLocationId = input.WildernessLocation.Id,
+                Name = "Entrance",
+                Description = $"The way into {name}.",
+                DestinationLocationId = entranceLocationId,
+                DestinationLabel = name,
+                WorldId = input.WorldId,
+            }
+        );
+
+        return new DungeonGeneratorResult(
+            building,
+            placements,
+            rooms,
+            locations,
+            connectors,
+            new DoorConnector { ConnectorId = frontDoor.Id, WorldId = input.WorldId },
+            entranceLocationId,
+            locations[layout.BossIndex].Id
+        );
+    }
+
+    // Passages run both ways: a player who walks into a room has to be able to walk back out of it.
+    private static List<LocationConnector> BuildPassages(
+        DungeonLayout layout,
+        IReadOnlyList<Room> rooms,
+        IReadOnlyList<Location> locations,
+        DungeonGeneratorInput input
+    )
+    {
+        var connectors = new List<LocationConnector>();
+
+        foreach (var passage in layout.Passages)
+        {
+            connectors.Add(Passage(rooms, locations, layout, passage.From, passage.To, input));
+            connectors.Add(Passage(rooms, locations, layout, passage.To, passage.From, input));
+        }
+
+        return connectors;
+    }
+
+    private static LocationConnector Passage(
+        IReadOnlyList<Room> rooms,
+        IReadOnlyList<Location> locations,
+        DungeonLayout layout,
+        int from,
+        int to,
+        DungeonGeneratorInput input
+    )
+    {
+        var destinationName =
+            layout.Rooms[to].DepthFromEntrance > layout.Rooms[from].DepthFromEntrance
+                ? "deeper"
+                : "back";
+
+        return new LocationConnector
+        {
+            OriginLocationId = locations[from].Id,
+            Name = "Passage",
+            Description = $"A way {destinationName} into the dark.",
+            DestinationLocationId = locations[to].Id,
+            DestinationLabel = rooms[to].Name,
+            WorldId = input.WorldId,
+        };
+    }
+
+    // Exits are chosen by name, so two rooms sharing one would leave the player unable to say which
+    // they meant. A qualifier also gives them something to navigate by, absent any map.
+    private static string UniqueName(string name, HashSet<string> used, Random random)
+    {
+        if (used.Add(name))
+        {
+            return name;
+        }
+
+        var qualifiers = Qualifiers.OrderBy(_ => random.Next()).ToArray();
+        foreach (var qualifier in qualifiers)
+        {
+            var qualified = $"{qualifier} {name}";
+            if (used.Add(qualified))
+            {
+                return qualified;
+            }
+        }
+
+        var numbered = $"{name} {used.Count}";
+        used.Add(numbered);
+        return numbered;
+    }
+
+    private static (BuildingType Type, string Name) ChooseNamedType(DungeonGeneratorInput input)
     {
         var availablePairs = DungeonBuildingTypes
             .SelectMany(type =>
@@ -125,50 +307,6 @@ internal static class DungeonGenerator
             );
         }
 
-        var (type, name) = availablePairs[Random.Shared.Next(availablePairs.Length)];
-
-        var building = new Building
-        {
-            ExteriorLocationId = input.WildernessLocation.Id,
-            BuildingType = type,
-            Name = name,
-            WorldId = input.WorldId,
-        };
-        var roomId = Guid.NewGuid();
-        var location = LocationGenerator.Generate(
-            input.WorldId,
-            input.WildernessLocation.StateId,
-            roomId: roomId
-        );
-        var room = new Room
-        {
-            Id = roomId,
-            BuildingId = building.Id,
-            LocationId = location.Id,
-            Name = RoomNames[type],
-            Description = "",
-            FloorNumber = 0,
-            WorldId = input.WorldId,
-        };
-        var frontDoor = new LocationConnector
-        {
-            OriginLocationId = room.LocationId,
-            Name = "Front Door",
-            Description = "The way back outside.",
-            DestinationLocationId = input.WildernessLocation.Id,
-            DestinationLabel = "Outside",
-            WorldId = input.WorldId,
-        };
-        var entrance = new LocationConnector
-        {
-            OriginLocationId = input.WildernessLocation.Id,
-            Name = "Entrance",
-            Description = $"The way into {name}.",
-            DestinationLocationId = room.LocationId,
-            DestinationLabel = name,
-            WorldId = input.WorldId,
-        };
-        var door = new DoorConnector { ConnectorId = frontDoor.Id, WorldId = input.WorldId };
-        return new DungeonGeneratorResult(building, room, location, frontDoor, entrance, door);
+        return availablePairs[input.Random.Next(availablePairs.Length)];
     }
 }

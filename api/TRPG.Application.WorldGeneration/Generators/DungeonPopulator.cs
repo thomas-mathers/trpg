@@ -22,7 +22,10 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
 {
     private const int MinimumPopulation = 1;
     private const int MaximumPopulation = 3;
-    private const int DefaultSpawnerTriggerHour = 0;
+
+    // Clearing a room should mean something for more than a night, and staggering the hour keeps a
+    // whole dungeon from repopulating on a single tick.
+    private const int RespawnIntervalDays = 2;
 
     private static readonly Dictionary<BuildingType, CreatureArchetype[]> ArchetypesByDungeonType =
         new()
@@ -65,8 +68,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             LocationId = input.LocationId,
             ArchetypeCreatureTypes = archetypeCreatureTypes.ToList(),
             MaxPopulation = maxPopulation,
-            TriggerHour = DefaultSpawnerTriggerHour,
-            SpecificDay = null,
+            Schedule = $"0 {Random.Shared.Next(24)} */{RespawnIntervalDays} * *",
             LastSyncPlaytime = TimeSpan.Zero,
         };
 

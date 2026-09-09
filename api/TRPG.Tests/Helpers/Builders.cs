@@ -331,8 +331,7 @@ internal static class Builders
         Guid locationId,
         IReadOnlyList<CreatureType>? archetypeCreatureTypes = null,
         int maxPopulation = 3,
-        int triggerHour = 0,
-        DayOfWeek? specificDay = null,
+        string schedule = "0 0 * * *",
         TimeSpan? lastSyncPlaytime = null
     ) =>
         new()
@@ -341,24 +340,21 @@ internal static class Builders
             LocationId = locationId,
             ArchetypeCreatureTypes = (archetypeCreatureTypes ?? [CreatureType.Beast]).ToList(),
             MaxPopulation = maxPopulation,
-            TriggerHour = triggerHour,
-            SpecificDay = specificDay,
+            Schedule = schedule,
             LastSyncPlaytime = lastSyncPlaytime ?? TimeSpan.Zero,
         };
 
     public static RestockPolicy MakeRestockPolicy(
         Guid worldId,
         Guid workstationId,
-        int triggerHour = 0,
-        DayOfWeek? specificDay = null,
+        string schedule = "0 0 * * *",
         TimeSpan? lastSyncPlaytime = null
     ) =>
         new()
         {
             WorldId = worldId,
             WorkstationId = workstationId,
-            TriggerHour = triggerHour,
-            SpecificDay = specificDay,
+            Schedule = schedule,
             LastSyncPlaytime = lastSyncPlaytime ?? TimeSpan.Zero,
         };
 

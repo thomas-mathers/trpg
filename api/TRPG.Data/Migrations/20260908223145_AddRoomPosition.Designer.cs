@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908223145_AddRoomPosition")]
+    partial class AddRoomPosition
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -829,10 +832,13 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("max_population");
 
-                    b.Property<string>("Schedule")
-                        .IsRequired()
+                    b.Property<string>("SpecificDay")
                         .HasColumnType("text")
-                        .HasColumnName("schedule");
+                        .HasColumnName("specific_day");
+
+                    b.Property<int>("TriggerHour")
+                        .HasColumnType("integer")
+                        .HasColumnName("trigger_hour");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -2008,10 +2014,13 @@ namespace TRPG.Migrations
                         .HasColumnType("interval")
                         .HasColumnName("last_sync_playtime");
 
-                    b.Property<string>("Schedule")
-                        .IsRequired()
+                    b.Property<string>("SpecificDay")
                         .HasColumnType("text")
-                        .HasColumnName("schedule");
+                        .HasColumnName("specific_day");
+
+                    b.Property<int>("TriggerHour")
+                        .HasColumnType("integer")
+                        .HasColumnName("trigger_hour");
 
                     b.Property<Guid>("WorkstationId")
                         .HasColumnType("uuid")

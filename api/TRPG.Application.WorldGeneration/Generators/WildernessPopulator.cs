@@ -21,7 +21,9 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
 {
     private const int MinimumPopulation = 1;
     private const int MaximumPopulation = 3;
-    private const int DefaultSpawnerTriggerHour = 0;
+
+    // Wandering monsters in open country refill nightly.
+    private const string DailySchedule = "0 0 * * *";
 
     private static readonly CreatureArchetype[] Archetypes =
     [
@@ -42,8 +44,7 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
             LocationId = input.LocationId,
             ArchetypeCreatureTypes = ArchetypeCreatureTypes.ToList(),
             MaxPopulation = maxPopulation,
-            TriggerHour = DefaultSpawnerTriggerHour,
-            SpecificDay = null,
+            Schedule = DailySchedule,
             LastSyncPlaytime = TimeSpan.Zero,
         };
 
