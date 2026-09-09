@@ -452,12 +452,17 @@ internal class GetSceneQueryHandler(
             .ToArray();
 
         // Somewhere already stood in is somewhere the player can be told they have been, which is
-        // what stops a dungeon turning into unintentional backtracking.
+        // what stops a dungeon turning into unintentional backtracking. Only rooms are tracked, so
+        // outdoors this asks nothing.
+        var roomDestinationIds = destinations
+            .Where(destination => destination.Value.Kind == LocationKind.Room)
+            .Select(destination => destination.Key)
+            .ToArray();
         var visited = await getVisitedRoomLocationIds.Handle(
             new GetVisitedRoomLocationIdsQuery
             {
                 CreatureId = player.Id,
-                RoomLocationIds = destinationLocationIds,
+                RoomLocationIds = roomDestinationIds,
             },
             cancellationToken
         );
