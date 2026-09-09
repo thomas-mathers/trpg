@@ -20,6 +20,9 @@ export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Me
 /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
 export type CreatureState = "Idle" | "Sleeping" | "Busy" | "Studying" | "Praying" | "Alerted" | "Dead";
 
+/** Transpiled from TRPG.GameSessions.Responses.RoomRole */
+export type RoomRole = "Entrance" | "BossChamber" | "Passage" | "GuardPost" | "Storeroom" | "TreasureRoom" | "Shrine" | "Study" | "CellBlock" | "CollapsedGallery" | "FloodedSump";
+
 /** Transpiled from TRPG.GameSessions.Responses.CompassDirection */
 export type CompassDirection = "North" | "Northeast" | "East" | "Southeast" | "South" | "Southwest" | "West" | "Northwest";
 
@@ -188,6 +191,8 @@ export type BuildingExitDestination = {
 export type RoomExitDestination = {
     /** Transpiled from TRPG.GameSessions.Responses.BuildingType */
     buildingType: BuildingType;
+    /** Transpiled from TRPG.GameSessions.Responses.RoomRole */
+    role?: RoomRole;
 } & NearbyExitDestination;
 
 /** Transpiled from TRPG.GameSessions.Responses.WildernessExitDestination */

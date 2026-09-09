@@ -11,7 +11,7 @@ internal record DungeonGeneratorInput(
     public Random Random { get; init; } = Random.Shared;
 }
 
-internal record DungeonRoomPlacement(Room Room, DungeonRoomRole Role, int DepthFromEntrance);
+internal record DungeonRoomPlacement(Room Room, RoomRole Role, int DepthFromEntrance);
 
 internal record DungeonGeneratorResult(
     Building Building,
@@ -178,6 +178,7 @@ internal static class DungeonGenerator
                 Description = content.Description,
                 FloorNumber = 0,
                 Position = room.Node.Position,
+                Role = room.Role,
                 WorldId = input.WorldId,
             };
 

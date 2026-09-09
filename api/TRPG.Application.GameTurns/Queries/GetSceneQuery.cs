@@ -523,7 +523,11 @@ internal class GetSceneQueryHandler(
     {
         var building = buildings[rooms[roomId].BuildingId];
         return sourceIsRoom
-            ? new SceneRoomExitDestination(connector.DestinationLabel, building.BuildingType)
+            ? new SceneRoomExitDestination(
+                connector.DestinationLabel,
+                building.BuildingType,
+                rooms[roomId].Role
+            )
             : new SceneBuildingExitDestination(connector.DestinationLabel, building.BuildingType);
     }
 

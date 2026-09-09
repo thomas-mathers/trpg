@@ -13,5 +13,8 @@ public class Room
     // Dungeons are laid out in a plane so their rooms can be drawn on a map; rooms in a building
     // have no position because a building's shape is its floors.
     public Point? Position { get; init; }
+
+    // Null for rooms in ordinary buildings, whose purpose is carried by the building itself.
+    public RoomRole? Role { get; init; }
     public Guid WorldId { get; init; }
 }

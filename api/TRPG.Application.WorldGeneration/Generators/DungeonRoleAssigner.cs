@@ -2,7 +2,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
 
-internal record AssignedDungeonRoom(DungeonRoomNode Node, DungeonRoomRole Role);
+internal record AssignedDungeonRoom(DungeonRoomNode Node, RoomRole Role);
 
 internal static class DungeonRoleAssigner
 {
@@ -23,31 +23,29 @@ internal static class DungeonRoleAssigner
             .ToArray();
     }
 
-    private static DungeonRoomRole RoleFor(
+    private static RoomRole RoleFor(
         DungeonRoomNode room,
         DungeonLayout layout,
-        IReadOnlyList<DungeonRoomRole> paying,
-        IReadOnlyList<DungeonRoomRole> available,
+        IReadOnlyList<RoomRole> paying,
+        IReadOnlyList<RoomRole> available,
         Random random
     )
     {
         if (room.Index == layout.EntranceIndex)
         {
-            return DungeonRoomRole.Entrance;
+            return RoomRole.Entrance;
         }
 
         if (room.Index == layout.BossIndex)
         {
-            return DungeonRoomRole.BossChamber;
+            return RoomRole.BossChamber;
         }
 
         // Walking to a dead end has to be worth it, so these draw only from roles that pay. A type
         // with none of them falls back to a treasure room rather than wasting the walk.
         if (room.IsDeadEnd)
         {
-            return paying.Count == 0
-                ? DungeonRoomRole.TreasureRoom
-                : paying[random.Next(paying.Count)];
+            return paying.Count == 0 ? RoomRole.TreasureRoom : paying[random.Next(paying.Count)];
         }
 
         return available[random.Next(available.Count)];

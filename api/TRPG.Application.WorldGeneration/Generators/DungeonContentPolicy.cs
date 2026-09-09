@@ -1,3 +1,5 @@
+using TRPG.Domain.Models;
+
 namespace TRPG.Application.WorldGeneration.Generators;
 
 internal enum DungeonLootQuality
@@ -11,43 +13,41 @@ internal enum DungeonLootQuality
 // dungeon where everything holds treasure makes none of it worth finding.
 internal static class DungeonContentPolicy
 {
-    public static bool HoldsOccupants(DungeonRoomRole role, Random random) =>
+    public static bool HoldsOccupants(RoomRole role, Random random) =>
         role switch
         {
             // Arriving somewhere you cannot retreat from before you have your bearings is a trap.
-            DungeonRoomRole.Entrance => false,
-            DungeonRoomRole.BossChamber => true,
-            DungeonRoomRole.GuardPost => true,
-            DungeonRoomRole.TreasureRoom => random.NextDouble() < 0.7,
-            DungeonRoomRole.CellBlock => random.NextDouble() < 0.4,
-            DungeonRoomRole.Passage => random.NextDouble() < 0.35,
-            DungeonRoomRole.Storeroom
-            or DungeonRoomRole.Shrine
-            or DungeonRoomRole.Study
-            or DungeonRoomRole.CollapsedGallery
-            or DungeonRoomRole.FloodedSump => random.NextDouble() < 0.15,
+            RoomRole.Entrance => false,
+            RoomRole.BossChamber => true,
+            RoomRole.GuardPost => true,
+            RoomRole.TreasureRoom => random.NextDouble() < 0.7,
+            RoomRole.CellBlock => random.NextDouble() < 0.4,
+            RoomRole.Passage => random.NextDouble() < 0.35,
+            RoomRole.Storeroom
+            or RoomRole.Shrine
+            or RoomRole.Study
+            or RoomRole.CollapsedGallery
+            or RoomRole.FloodedSump => random.NextDouble() < 0.15,
         };
 
-    public static DungeonLootQuality Holds(DungeonRoomRole role, Random random) =>
+    public static DungeonLootQuality Holds(RoomRole role, Random random) =>
         role switch
         {
-            DungeonRoomRole.BossChamber => DungeonLootQuality.Valuable,
-            DungeonRoomRole.TreasureRoom => DungeonLootQuality.Valuable,
-            DungeonRoomRole.Shrine => random.NextDouble() < 0.6
+            RoomRole.BossChamber => DungeonLootQuality.Valuable,
+            RoomRole.TreasureRoom => DungeonLootQuality.Valuable,
+            RoomRole.Shrine => random.NextDouble() < 0.6
                 ? DungeonLootQuality.Valuable
                 : DungeonLootQuality.None,
-            DungeonRoomRole.Storeroom => DungeonLootQuality.Mundane,
-            DungeonRoomRole.Study => random.NextDouble() < 0.7
+            RoomRole.Storeroom => DungeonLootQuality.Mundane,
+            RoomRole.Study => random.NextDouble() < 0.7
                 ? DungeonLootQuality.Mundane
                 : DungeonLootQuality.None,
-            DungeonRoomRole.CellBlock => random.NextDouble() < 0.4
+            RoomRole.CellBlock => random.NextDouble() < 0.4
                 ? DungeonLootQuality.Mundane
                 : DungeonLootQuality.None,
-            DungeonRoomRole.CollapsedGallery or DungeonRoomRole.FloodedSump => random.NextDouble()
-            < 0.25
+            RoomRole.CollapsedGallery or RoomRole.FloodedSump => random.NextDouble() < 0.25
                 ? DungeonLootQuality.Mundane
                 : DungeonLootQuality.None,
-            DungeonRoomRole.Entrance or DungeonRoomRole.Passage or DungeonRoomRole.GuardPost =>
-                DungeonLootQuality.None,
+            RoomRole.Entrance or RoomRole.Passage or RoomRole.GuardPost => DungeonLootQuality.None,
         };
 }
