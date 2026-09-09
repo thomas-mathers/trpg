@@ -57,6 +57,7 @@ public class WorldGenerator(
     CityGenerator cityGenerator,
     DungeonPopulator dungeonPopulator,
     DungeonLootGenerator dungeonLootGenerator,
+    DungeonTrapGenerator dungeonTrapGenerator,
     WildernessPopulator wildernessPopulator,
     ILogger<WorldGenerator> logger
 )
@@ -280,6 +281,10 @@ public class WorldGenerator(
                 );
                 props.AddRange(dungeonLoot.Containers);
                 items.AddRange(dungeonLoot.Items);
+
+                props.AddRange(
+                    dungeonTrapGenerator.Generate(result.Placements, worldId, Random.Shared)
+                );
             }
         }
 

@@ -397,7 +397,8 @@ internal static class ServiceCollectionExtensions
             .Configure<SneakOptions>(configuration.GetSection("Sneak"))
             .Configure<FleeOptions>(configuration.GetSection("Flee"))
             .Configure<SuspicionOptions>(configuration.GetSection("Suspicion"))
-            .Configure<InnOptions>(configuration.GetSection("Inn"));
+            .Configure<InnOptions>(configuration.GetSection("Inn"))
+            .Configure<TrapOptions>(configuration.GetSection("Trap"));
     }
 
     private static int GetSerializedByteCount(object? value)
