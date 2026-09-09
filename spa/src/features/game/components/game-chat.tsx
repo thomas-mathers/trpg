@@ -6,6 +6,7 @@ import { GuardEncounterDialog } from '@/features/encounters/components/guard-enc
 import { HostileEncounterDialog } from '@/features/encounters/components/hostile-encounter-dialog';
 import { SuspicionEncounterDialog } from '@/features/encounters/components/suspicion-encounter-dialog';
 import { TheftEncounterDialog } from '@/features/encounters/components/theft-encounter-dialog';
+import { TrapEncounterDialog } from '@/features/encounters/components/trap-encounter-dialog';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub, useGameHubConnection } from '@/features/game/hooks/use-game-hub-connection';
@@ -72,6 +73,7 @@ function GameChatControls({
       <GuardEncounterDialog />
       <SuspicionEncounterDialog />
       <TheftEncounterDialog />
+      <TrapEncounterDialog />
       {!isInCombat && (
         <ChatInput
           value={input}

@@ -60,6 +60,7 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
     IQueryHandler<GetVisitedRoomLocationIdsQuery, IReadOnlySet<Guid>> getVisitedRoomLocationIds,
+    IQueryHandler<GetKnownTrapIdsQuery, IReadOnlySet<Guid>> getKnownTrapIds,
     IQueryHandler<GetBuildingPremiseQuery, string?> getBuildingPremise,
     IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds,
     IQueryHandler<GetDistrictsByIdsQuery, IReadOnlyDictionary<Guid, District>> getDistrictsByIds,
@@ -298,11 +299,44 @@ internal class GetSceneQueryHandler(
             roomResult.RoomDescription,
             roomResult.RoomFloorNumber
         );
-        var nearbyProps = props
+        var visibleProps = await ExcludeUndiscoveredTraps(props, player.Id, cancellationToken);
+        var nearbyProps = visibleProps
             .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
             .ToArray();
 
         return new SceneLocationData(buildingInfo, roomInfo, null, nearbyProps, []);
+    }
+
+    // An undiscovered trap must never reach the narrator, or it warns the player about a hazard
+    // they have no way of knowing exists.
+    private async Task<IReadOnlyCollection<Prop>> ExcludeUndiscoveredTraps(
+        IReadOnlyCollection<Prop> props,
+        Guid playerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var trapIds = props
+            .OfType<Trigger>()
+            .Where(trigger => trigger.TrapKind != null)
+            .Select(trigger => trigger.Id)
+            .ToArray();
+        if (trapIds.Length == 0)
+        {
+            return props;
+        }
+
+        var knownTrapIds = await getKnownTrapIds.Handle(
+            new GetKnownTrapIdsQuery { CreatureId = playerId, TrapIds = trapIds },
+            cancellationToken
+        );
+
+        return props
+            .Where(p =>
+                p is not Trigger trigger
+                || trigger.TrapKind == null
+                || knownTrapIds.Contains(trigger.Id)
+            )
+            .ToArray();
     }
 
     private async Task<Faction?> GetFaction(Guid? factionId, CancellationToken cancellationToken)

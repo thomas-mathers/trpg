@@ -291,6 +291,24 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
         };
 
+    public static Trigger MakeTrigger(
+        Guid? worldId = null,
+        Guid? locationId = null,
+        Guid? targetId = null,
+        TrapKind? trapKind = null,
+        bool isResolved = false
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Trigger-{Guid.NewGuid():N}",
+            Description = "A test trigger",
+            LocationId = locationId ?? Guid.NewGuid(),
+            TargetId = targetId,
+            TrapKind = trapKind,
+            IsResolved = isResolved,
+        };
+
     public static Workstation MakeWorkstation(
         Guid? worldId = null,
         Guid? locationId = null,

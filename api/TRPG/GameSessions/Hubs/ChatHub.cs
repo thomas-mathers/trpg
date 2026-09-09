@@ -48,6 +48,9 @@ public interface IChatHub
     );
     IAsyncEnumerable<string> ResolveComplySuspicionAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveFleeSuspicionAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveAttemptTrapAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveWithdrawTrapAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveDisarmTrapAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> StartTheftEncounterNarration(
         Guid encounterId,
         CancellationToken cancellationToken
@@ -219,6 +222,29 @@ internal sealed class ChatHub(
         gameTurnRunner.StreamSuspicionEncounterAction(
             Session,
             new FleeSuspicionAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveAttemptTrapAction(CancellationToken cancellationToken) =>
+        gameTurnRunner.StreamTrapEncounterAction(
+            Session,
+            new AttemptTrapAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveWithdrawTrapAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamTrapEncounterAction(
+            Session,
+            new WithdrawTrapAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveDisarmTrapAction(CancellationToken cancellationToken) =>
+        gameTurnRunner.StreamTrapEncounterAction(
+            Session,
+            new DisarmTrapAction(),
             cancellationToken
         );
 

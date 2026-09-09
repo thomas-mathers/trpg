@@ -101,3 +101,11 @@ public class SuspicionEncounter : Encounter
     public required Guid CityFactionId { get; init; }
     public required SuspicionCause Cause { get; init; }
 }
+
+public class TrapEncounter : Encounter
+{
+    public required Guid TriggerId { get; init; }
+    public required TrapKind TrapKind { get; init; }
+    public required Guid TargetLocationId { get; init; }
+    public required string TargetLocationName { get; init; }
+}

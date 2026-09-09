@@ -17,6 +17,7 @@
     <ProjectReference Include="..\TRPG.Application.Factions\TRPG.Application.Factions.csproj" />
     <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Knowledge\TRPG.Application.Knowledge.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />
     <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />

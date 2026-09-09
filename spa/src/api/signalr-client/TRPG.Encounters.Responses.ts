@@ -146,3 +146,33 @@ export type TheftEncounterState = {
     allowedActions: string[];
 }
 
+/** Transpiled from TRPG.Encounters.Responses.TrapEncounterResolutionOutcome */
+export type TrapEncounterResolutionOutcome = "Disarmed" | "Survived" | "Fell" | "Withdrew";
+
+/** Transpiled from TRPG.Encounters.Responses.TrapEncounterResolutionFact */
+export type TrapEncounterResolutionFact = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from TRPG.Encounters.Responses.TrapEncounterResolutionOutcome */
+    outcome: TrapEncounterResolutionOutcome;
+    /** Transpiled from TRPG.Encounters.Responses.TrapKind */
+    trapKind: TrapKind;
+    /** Transpiled from string? */
+    targetLocationName?: string;
+}
+
+/** Transpiled from TRPG.Encounters.Responses.TrapKind */
+export type TrapKind = "Mechanical" | "Collapse" | "Slope" | "Water";
+
+/** Transpiled from TRPG.Encounters.Responses.TrapEncounterState */
+export type TrapEncounterState = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from TRPG.Encounters.Responses.TrapKind */
+    trapKind: TrapKind;
+    /** Transpiled from string? */
+    locationName?: string;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    allowedActions: string[];
+}
+

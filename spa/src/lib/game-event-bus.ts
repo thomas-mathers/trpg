@@ -9,6 +9,8 @@ import type {
   SuspicionEncounterState,
   TheftEncounterResolutionFact,
   TheftEncounterState,
+  TrapEncounterResolutionFact,
+  TrapEncounterState,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
 import type {
   CrimeNotification,
@@ -40,6 +42,8 @@ interface GameEventMap {
   SuspicionEncounterResolved: SuspicionEncounterResolutionFact;
   TheftEncounterStarted: TheftEncounterState;
   TheftEncounterResolved: TheftEncounterResolutionFact;
+  TrapEncounterStarted: TrapEncounterState;
+  TrapEncounterResolved: TrapEncounterResolutionFact;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
   QuestDialogRequested: QuestDialogRequested;
