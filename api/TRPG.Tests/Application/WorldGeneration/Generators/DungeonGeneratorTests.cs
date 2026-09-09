@@ -131,6 +131,41 @@ public class DungeonGeneratorTests
         );
     }
 
+    [Fact]
+    public void Generate_DescribesRoomsDistinctly_SoTheyAreWorthTellingApart()
+    {
+        // Act
+        var result = DungeonGenerator.Generate(MakeInput());
+
+        // Assert — a role has only a few base lines, so the detail is what stops them repeating.
+        var descriptions = result.Rooms.Select(room => room.Description).ToArray();
+        Assert.True(descriptions.Distinct().Count() > descriptions.Length / 2);
+    }
+
+    [Fact]
+    public void Generate_GivesAFewRoomsSomethingSingularToSteerBy()
+    {
+        // Act
+        var result = DungeonGenerator.Generate(MakeInput());
+
+        // Assert — every room having a landmark would mean none of them did.
+        var longest = result.Rooms.OrderByDescending(room => room.Description.Length).ToArray();
+        Assert.True(longest.Length > 4);
+        Assert.True(longest[0].Description.Length > longest[^1].Description.Length);
+    }
+
+    [Fact]
+    public void Generate_RecordsWhatEachRoomIsFor()
+    {
+        // Act
+        var result = DungeonGenerator.Generate(MakeInput());
+
+        // Assert
+        Assert.All(result.Rooms, room => Assert.NotNull(room.Role));
+        Assert.Contains(result.Rooms, room => room.Role == RoomRole.BossChamber);
+        Assert.Contains(result.Rooms, room => room.Role == RoomRole.Entrance);
+    }
+
     private DungeonGeneratorInput MakeInput(IReadOnlyCollection<string>? excludedNames = null) =>
         new(excludedNames ?? [], WildernessLocation, _worldId) { Random = new Random(20260908) };
 }

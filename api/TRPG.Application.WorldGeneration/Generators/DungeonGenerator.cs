@@ -158,10 +158,27 @@ internal static class DungeonGenerator
         var placements = new List<DungeonRoomPlacement>();
         var locations = new List<Location>();
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Landmarks go to the rooms furthest in, which are the ones worth having a name for by the
+        // time you are trying to remember how you got there.
+        var landmarkRooms = assigned
+            .Where(room => room.Role != RoomRole.Entrance)
+            .OrderByDescending(room => room.Node.DepthFromEntrance)
+            .Take(DungeonLandmarks.PerDungeon)
+            .Select(room => room.Node.Index)
+            .ToHashSet();
+
         foreach (var room in assigned)
         {
             var content = DungeonRoomCatalog.ContentFor(room.Role, input.Random);
             var roomName = UniqueName(content.Name, usedNames, input.Random);
+            var description = Describe(
+                content.Description,
+                type,
+                landmarkRooms,
+                room,
+                input.Random
+            );
             var roomId = Guid.NewGuid();
             var location = LocationGenerator.Generate(
                 input.WorldId,
@@ -175,7 +192,7 @@ internal static class DungeonGenerator
                 BuildingId = building.Id,
                 LocationId = location.Id,
                 Name = roomName,
-                Description = content.Description,
+                Description = description,
                 FloorNumber = 0,
                 Position = room.Node.Position,
                 Role = room.Role,
@@ -267,6 +284,31 @@ internal static class DungeonGenerator
             DestinationLabel = rooms[to].Name,
             WorldId = input.WorldId,
         };
+    }
+
+    // A base line alone repeats across a dungeon, so each room gets a detail too, and a few of them
+    // get something singular enough to navigate by.
+    private static string Describe(
+        string baseLine,
+        BuildingType dungeonType,
+        IReadOnlySet<int> landmarkRooms,
+        AssignedDungeonRoom room,
+        Random random
+    )
+    {
+        var landmark = landmarkRooms.Contains(room.Node.Index)
+            ? DungeonLandmarks.For(dungeonType, random)
+            : null;
+
+        return string.Join(
+            " ",
+            new[]
+            {
+                baseLine,
+                landmark,
+                DungeonRoomDetails.For(dungeonType, random),
+            }.OfType<string>()
+        );
     }
 
     // Exits are chosen by name, so two rooms sharing one would leave the player unable to say which
