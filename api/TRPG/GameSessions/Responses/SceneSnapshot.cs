@@ -73,6 +73,19 @@ public enum CreatureState
 }
 
 [TranspilationSource]
+public enum CompassDirection
+{
+    North,
+    Northeast,
+    East,
+    Southeast,
+    South,
+    Southwest,
+    West,
+    Northwest,
+}
+
+[TranspilationSource]
 public enum DistrictType
 {
     Residential,
@@ -225,4 +238,8 @@ public sealed record RoomExitDestination(string Name, BuildingType BuildingType)
 public sealed record WildernessExitDestination(string Name) : NearbyExitDestination(Name);
 
 [TranspilationSource]
-public record NearbyExitSnapshot(string Description, NearbyExitDestination Destination);
+public record NearbyExitSnapshot(
+    string Description,
+    NearbyExitDestination Destination,
+    CompassDirection? Direction
+);

@@ -250,16 +250,18 @@ internal static class DungeonGenerator
         DungeonGeneratorInput input
     )
     {
-        var destinationName =
+        var direction = Bearings.Between(layout.Rooms[from].Position, layout.Rooms[to].Position);
+        var lie =
             layout.Rooms[to].DepthFromEntrance > layout.Rooms[from].DepthFromEntrance
-                ? "deeper"
-                : "back";
+                ? "deeper in"
+                : "back toward the way you came";
 
         return new LocationConnector
         {
             OriginLocationId = locations[from].Id,
             Name = "Passage",
-            Description = $"A way {destinationName} into the dark.",
+            Description = $"A passage running {Bearings.ToWords(direction)}, {lie}.",
+            Direction = direction,
             DestinationLocationId = locations[to].Id,
             DestinationLabel = rooms[to].Name,
             WorldId = input.WorldId,
