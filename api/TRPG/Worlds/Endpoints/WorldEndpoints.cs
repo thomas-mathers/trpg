@@ -27,6 +27,8 @@ internal static class WorldEndpoints
         app.MapPost("/worlds", CreateWorld).WithName("CreateWorld");
         app.MapGet("/worlds", ListWorlds).WithName("ListWorlds");
         app.MapDelete("/worlds/{worldId:guid}", DropWorld).WithName("DropWorld");
+        app.MapPost("/buildings/premise/prefetch", PrefetchDungeonPremises)
+            .WithName("PrefetchDungeonPremises");
     }
 
     private static async Task<Accepted<EnqueueJobResponse>> CreateWorld(
@@ -103,6 +105,24 @@ internal static class WorldEndpoints
             cancellationToken
         );
 
+        return TypedResults.NoContent();
+    }
+
+    // A no-op for anything that isn't an unentered dungeon, so the caller does not need to know
+    // that rule itself — the outdoor scene can warm up every nearby building indiscriminately.
+    //
+    // Runs on CancellationToken.None rather than the request's own token: this is a warm-up whose
+    // whole point is outliving the request that kicked it off, so a player navigating away and
+    // dropping the connection must not cut the generation off before it can be saved.
+    private static async Task<NoContent> PrefetchDungeonPremises(
+        PrefetchDungeonPremisesRequest request,
+        [FromServices] ICommandHandler<EnsureDungeonPremisesCommand> ensureDungeonPremises
+    )
+    {
+        await ensureDungeonPremises.Handle(
+            new EnsureDungeonPremisesCommand { BuildingIds = request.BuildingIds },
+            CancellationToken.None
+        );
         return TypedResults.NoContent();
     }
 }

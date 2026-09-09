@@ -641,6 +641,10 @@ export type PointResponse = {
     y: number;
 };
 
+export type PrefetchDungeonPremisesRequest = {
+    buildingIds: Array<string>;
+};
+
 export type ProblemDetails = {
     type?: null | string;
     title?: null | string;
@@ -834,6 +838,22 @@ export type DropWorldResponses = {
 };
 
 export type DropWorldResponse = DropWorldResponses[keyof DropWorldResponses];
+
+export type PrefetchDungeonPremisesData = {
+    body: PrefetchDungeonPremisesRequest;
+    path?: never;
+    query?: never;
+    url: '/buildings/premise/prefetch';
+};
+
+export type PrefetchDungeonPremisesResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type PrefetchDungeonPremisesResponse = PrefetchDungeonPremisesResponses[keyof PrefetchDungeonPremisesResponses];
 
 export type GetAbilitiesBySkillData = {
     body?: never;

@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -77,6 +77,33 @@ export function handleDropWorld(response?: HandleDropWorldResponse | HttpRespons
     return http.delete<{
         worldId: string;
     }, never>(`${options?.baseUrl ?? '*'}/worlds/:worldId`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandlePrefetchDungeonPremisesResponse = {
+    body: PrefetchDungeonPremisesResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `POST /buildings/premise/prefetch` operation.
+ */
+export function handlePrefetchDungeonPremises(response?: HandlePrefetchDungeonPremisesResponse | HttpResponseResolver<never, PrefetchDungeonPremisesData['body']>, options?: RequestHandlerOptions): HttpHandler {
+    return http.post<never, PrefetchDungeonPremisesData['body']>(`${options?.baseUrl ?? '*'}/buildings/premise/prefetch`, info => {
         if (typeof response === 'function') {
             return response(info);
         }
@@ -1397,6 +1424,10 @@ export type MswHandlerFactories = {
      */
     dropWorld: typeof handleDropWorld;
     /**
+     * Handler for the `POST /buildings/premise/prefetch` operation.
+     */
+    prefetchDungeonPremises: typeof handlePrefetchDungeonPremises;
+    /**
      * Handler for the `GET /abilities/{skill}` operation.
      */
     getAbilitiesBySkill: typeof handleGetAbilitiesBySkill;
@@ -1580,6 +1611,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         listWorlds: wrap(handleListWorlds),
         createWorld: wrap(handleCreateWorld),
         dropWorld: wrap(handleDropWorld),
+        prefetchDungeonPremises: wrap(handlePrefetchDungeonPremises),
         getAbilitiesBySkill: wrap(handleGetAbilitiesBySkill),
         getCreatureAbilities: wrap(handleGetCreatureAbilities),
         getCreatureInventory: wrap(handleGetCreatureInventory),
@@ -1647,6 +1679,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.getSessionLoreAnchor, overrides.getSessionLoreAnchor),
             invoke(pick.getTrade, overrides.getTrade),
             invoke(pick.getSessionItem, overrides.getSessionItem),
+            invoke(pick.prefetchDungeonPremises, overrides.prefetchDungeonPremises),
             invoke(pick.getCreatureAbilities, overrides.getCreatureAbilities),
             invoke(pick.getCreatureInventory, overrides.getCreatureInventory),
             invoke(pick.getCreatureConsumables, overrides.getCreatureConsumables),

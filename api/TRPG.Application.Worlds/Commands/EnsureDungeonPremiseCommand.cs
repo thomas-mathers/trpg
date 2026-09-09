@@ -8,12 +8,12 @@ namespace TRPG.Application.Worlds.Commands;
 
 public class EnsureDungeonPremiseCommand
 {
-    public required Guid RoomLocationId { get; init; }
+    public required Guid BuildingId { get; init; }
 }
 
-// Written the first time someone walks in rather than at world generation: a world holds dozens of
-// dungeons and most are never entered, so writing them all up front is paying for prose nobody
-// reads.
+// Written the first time someone walks in, or the first time a nearby scene warms it up ahead of
+// that, rather than at world generation: a world holds dozens of dungeons and most are never
+// entered, so writing them all up front is paying for prose nobody reads.
 internal class EnsureDungeonPremiseCommandHandler(
     IWorldsDbContext context,
     DungeonPremiseGenerator generator
@@ -24,18 +24,9 @@ internal class EnsureDungeonPremiseCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var room = await context
-            .Rooms.AsNoTracking()
-            .FirstOrDefaultAsync(r => r.LocationId == command.RoomLocationId, cancellationToken);
-        if (room == null)
-        {
-            return;
-        }
-
-        var building = await context.Buildings.FirstOrDefaultAsync(
-            b => b.Id == room.BuildingId,
-            cancellationToken
-        );
+        var building = await context
+            .Buildings.AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == command.BuildingId, cancellationToken);
         if (
             building == null
             || building.Premise != null
@@ -57,7 +48,7 @@ internal class EnsureDungeonPremiseCommandHandler(
             .Select(city => city.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
-        building.Premise = await generator.Generate(
+        var premise = await generator.Generate(
             new DungeonPremiseRequest(
                 building.Name,
                 building.BuildingType,
@@ -66,6 +57,12 @@ internal class EnsureDungeonPremiseCommandHandler(
             ),
             cancellationToken
         );
-        await context.SaveChangesAsync(cancellationToken);
+
+        // Written unconditionally rather than checked first, because a prefetch triggered while
+        // still outside can overtake the write triggered by actually walking in. Whichever lands
+        // first is the history; the other is discarded.
+        await context
+            .Buildings.Where(b => b.Id == building.Id && b.Premise == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(b => b.Premise, premise), cancellationToken);
     }
 }
