@@ -84,7 +84,7 @@ public sealed class RelocationFactsTests
             new SceneDistrictInfo(Guid.NewGuid(), "The Merchant Quarter", DistrictType.CityCenter),
             building == null
                 ? null
-                : new SceneBuildingInfo(building, BuildingType.Jail, null, null, null),
+                : new SceneBuildingInfo(building, BuildingType.Jail, null, null, null, null),
             room == null ? null : new SceneRoomInfo(room, "A cell.", 0),
             MakeCreature("Thomas Mathers"),
             exits ?? [],
