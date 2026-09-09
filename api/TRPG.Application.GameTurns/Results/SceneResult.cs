@@ -16,7 +16,8 @@ public record SceneBuildingInfo(
     BuildingType Type,
     string? OwnerName,
     string? FactionName,
-    string? FactionDescription
+    string? FactionDescription,
+    string? Premise
 );
 
 public abstract record SceneExitDestination(string Name);

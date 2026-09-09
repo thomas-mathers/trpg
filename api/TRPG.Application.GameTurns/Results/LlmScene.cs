@@ -16,7 +16,8 @@ public record LlmSceneBuilding(
     BuildingType Type,
     string? OwnerName,
     string? FactionName,
-    string? FactionDescription
+    string? FactionDescription,
+    string? Premise
 );
 
 public record LlmSceneRoom(string Name, string Description, int FloorNumber);

@@ -31,6 +31,10 @@ internal static class BookEndpoints
 
     // Composes a page ahead of the reader without teaching them anything it records, so turning to
     // the next page is instant but skipping to it in the client is not a way to learn a secret.
+    //
+    // The composition itself runs on CancellationToken.None: a warm-up outlives the request that
+    // started it, so the reader turning pages again (or navigating away) must not cancel prose
+    // that is still being written for a page they have not reached yet.
     private static async Task<NoContent> PrefetchBookPage(
         Guid itemId,
         int pageNumber,
@@ -50,7 +54,7 @@ internal static class BookEndpoints
 
         await ensureBookPage.Handle(
             new EnsureBookPageCommand { WorkId = book.WorkId, PageNumber = pageNumber },
-            cancellationToken
+            CancellationToken.None
         );
 
         return TypedResults.NoContent();

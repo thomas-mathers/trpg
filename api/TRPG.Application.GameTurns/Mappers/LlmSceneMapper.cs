@@ -32,7 +32,8 @@ public static class LlmSceneMapper
             building.Type,
             building.OwnerName,
             building.FactionName,
-            building.FactionDescription
+            building.FactionDescription,
+            building.Premise
         );
 
     private static LlmSceneRoom ToLlmSceneRoom(this SceneRoomInfo room) =>

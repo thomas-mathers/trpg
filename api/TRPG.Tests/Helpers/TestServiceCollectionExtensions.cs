@@ -1,8 +1,10 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Configuration;
 using TRPG.Combat.Tools;
 using TRPG.Data;
 using TRPG.Extensions;
@@ -29,7 +31,11 @@ internal static class TestServiceCollectionExtensions
             .AddSingleton(context)
             .AddModuleDbContexts()
             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
-            .AddSingleton(typeof(IOptionsSnapshot<>), typeof(DefaultOptionsSnapshot<>));
+            .AddSingleton(typeof(IOptionsSnapshot<>), typeof(DefaultOptionsSnapshot<>))
+            // Movement now reaches an LLM-backed generator, so the container needs the same shape
+            // production has or every test that moves a player fails resolving it.
+            .AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, new FakeChatClient())
+            .AddKeyedSingleton<IChatClient>(LlmRoleKeys.Gameplay, new FakeChatClient());
 }
 
 internal sealed class TestGameClientEventSink : IGameClientEventSink

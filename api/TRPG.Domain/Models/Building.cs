@@ -47,5 +47,10 @@ public class Building
     public Guid? FactionId { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; } = "";
+
+    // One line saying what this place is and why it is like this, so its rooms read as one place
+    // rather than eleven independently flavoured ones. Written on first entry, not at world
+    // generation: most dungeons in a world are never walked into.
+    public string? Premise { get; set; }
     public Guid WorldId { get; init; }
 }

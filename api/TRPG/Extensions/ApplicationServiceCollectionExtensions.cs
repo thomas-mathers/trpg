@@ -19,6 +19,7 @@ using TRPG.Application.NpcConversations.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
+using TRPG.Application.Worlds.Extensions;
 using TRPG.Commands;
 using TRPG.GameTurns.Tools;
 using TRPG.Queries;
@@ -71,6 +72,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddQuestServices()
             .AddReputationsServices()
             .AddWorldGenerationServices()
+            .AddWorldsServices()
             .AddCombatServices()
             .AddGameTurnsServices()
             .AddGameTool<LookTool>()

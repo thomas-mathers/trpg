@@ -60,6 +60,7 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
     IQueryHandler<GetVisitedRoomLocationIdsQuery, IReadOnlySet<Guid>> getVisitedRoomLocationIds,
+    IQueryHandler<GetBuildingPremiseQuery, string?> getBuildingPremise,
     IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds,
     IQueryHandler<GetDistrictsByIdsQuery, IReadOnlyDictionary<Guid, District>> getDistrictsByIds,
     IQueryHandler<
@@ -275,12 +276,22 @@ internal class GetSceneQueryHandler(
             )?.Name
             : null;
         var faction = await GetFaction(roomResult.FactionId, cancellationToken);
+
+        // Only dungeons have one, so nothing else pays for the lookup.
+        var premise = BuildingTypes.Dungeon.Contains(roomResult.BuildingType)
+            ? await getBuildingPremise.Handle(
+                new GetBuildingPremiseQuery { BuildingId = roomResult.BuildingId },
+                cancellationToken
+            )
+            : null;
+
         var buildingInfo = new SceneBuildingInfo(
             roomResult.BuildingName,
             roomResult.BuildingType,
             ownerName,
             faction?.Name,
-            faction?.Description
+            faction?.Description,
+            premise
         );
         var roomInfo = new SceneRoomInfo(
             roomResult.RoomName,
