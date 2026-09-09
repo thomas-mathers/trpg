@@ -6,12 +6,13 @@ internal static class Bearings
 {
     private const double DegreesPerPoint = 45;
 
-    // Which compass point one place lies on from another. North is +Y by convention: arbitrary, but
-    // consistent, which is the whole of its navigational value.
+    // Which compass point one place lies on from another. North is decreasing Y, matching how the
+    // world map already draws these coordinates, so north is up on any map made from them. Nothing
+    // else in the game defines north, so this is the definition; measure every bearing through here.
     public static CompassDirection Between(Point origin, Point destination)
     {
         var eastward = destination.X - origin.X;
-        var northward = destination.Y - origin.Y;
+        var northward = origin.Y - destination.Y;
 
         var degrees = Math.Atan2(eastward, northward) * 180 / Math.PI;
         if (degrees < 0)
