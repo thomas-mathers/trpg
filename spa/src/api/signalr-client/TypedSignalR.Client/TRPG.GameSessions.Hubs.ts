@@ -5,7 +5,7 @@
 import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
@@ -103,6 +103,21 @@ export type IChatHub = {
     */
     resolveFleeSuspicionAction(): IStreamResult<string>;
     /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveAttemptTrapAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveWithdrawTrapAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveDisarmTrapAction(): IStreamResult<string>;
+    /**
     * @param encounterId Transpiled from System.Guid
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
@@ -171,6 +186,16 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     suspicionEncounterResolved(fact: SuspicionEncounterResolutionFact): Promise<void>;
+    /**
+    * @param encounter Transpiled from TRPG.Encounters.Responses.TrapEncounterState
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    trapEncounterStarted(encounter: TrapEncounterState): Promise<void>;
+    /**
+    * @param fact Transpiled from TRPG.Encounters.Responses.TrapEncounterResolutionFact
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    trapEncounterResolved(fact: TrapEncounterResolutionFact): Promise<void>;
     /**
     * @param encounter Transpiled from TRPG.Encounters.Responses.TheftEncounterState
     * @returns Transpiled from System.Threading.Tasks.Task

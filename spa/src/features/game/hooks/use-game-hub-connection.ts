@@ -109,6 +109,9 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
         gameEventBus.emit('SuspicionEncounterStarted', encounter),
       suspicionEncounterResolved: async (fact) =>
         gameEventBus.emit('SuspicionEncounterResolved', fact),
+      trapEncounterStarted: async (encounter) =>
+        gameEventBus.emit('TrapEncounterStarted', encounter),
+      trapEncounterResolved: async (fact) => gameEventBus.emit('TrapEncounterResolved', fact),
       theftEncounterStarted: async (encounter) =>
         gameEventBus.emit('TheftEncounterStarted', encounter),
       theftEncounterResolved: async (fact) => gameEventBus.emit('TheftEncounterResolved', fact),

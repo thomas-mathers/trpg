@@ -22,6 +22,7 @@ internal class EvaluateEncountersCommandHandler(
         EvaluateSuspicionEncounterCommand,
         SuspicionEncounter?
     > evaluateSuspicionEncounter,
+    ICommandHandler<EvaluateTrapEncounterCommand, TrapEncounter?> evaluateTrapEncounter,
     ICommandHandler<
         EvaluateTrespassingEncounterCommand,
         HostileEncounter?
@@ -84,6 +85,19 @@ internal class EvaluateEncountersCommandHandler(
         if (suspicionEncounter != null)
         {
             return new EncounterEvaluationResult(suspicionEncounter);
+        }
+
+        var trapEncounter = await evaluateTrapEncounter.Handle(
+            new EvaluateTrapEncounterCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+            },
+            cancellationToken
+        );
+        if (trapEncounter != null)
+        {
+            return new EncounterEvaluationResult(trapEncounter);
         }
 
         var trespassingEncounter = await evaluateTrespassingEncounter.Handle(

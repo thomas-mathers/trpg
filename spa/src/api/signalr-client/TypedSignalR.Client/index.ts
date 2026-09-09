@@ -6,7 +6,7 @@ import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
@@ -152,6 +152,18 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("ResolveFleeSuspicionAction");
     }
 
+    public readonly resolveAttemptTrapAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveAttemptTrapAction");
+    }
+
+    public readonly resolveWithdrawTrapAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveWithdrawTrapAction");
+    }
+
+    public readonly resolveDisarmTrapAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveDisarmTrapAction");
+    }
+
     public readonly startTheftEncounterNarration = (encounterId: string): IStreamResult<string> => {
         return this.connection.stream("StartTheftEncounterNarration", encounterId);
     }
@@ -190,6 +202,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __guardEncounterResolved = (...args: [GuardEncounterResolutionFact]) => receiver.guardEncounterResolved(...args);
         const __suspicionEncounterStarted = (...args: [SuspicionEncounterState]) => receiver.suspicionEncounterStarted(...args);
         const __suspicionEncounterResolved = (...args: [SuspicionEncounterResolutionFact]) => receiver.suspicionEncounterResolved(...args);
+        const __trapEncounterStarted = (...args: [TrapEncounterState]) => receiver.trapEncounterStarted(...args);
+        const __trapEncounterResolved = (...args: [TrapEncounterResolutionFact]) => receiver.trapEncounterResolved(...args);
         const __theftEncounterStarted = (...args: [TheftEncounterState]) => receiver.theftEncounterStarted(...args);
         const __theftEncounterResolved = (...args: [TheftEncounterResolutionFact]) => receiver.theftEncounterResolved(...args);
         const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
@@ -210,6 +224,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("GuardEncounterResolved", __guardEncounterResolved);
         connection.on("SuspicionEncounterStarted", __suspicionEncounterStarted);
         connection.on("SuspicionEncounterResolved", __suspicionEncounterResolved);
+        connection.on("TrapEncounterStarted", __trapEncounterStarted);
+        connection.on("TrapEncounterResolved", __trapEncounterResolved);
         connection.on("TheftEncounterStarted", __theftEncounterStarted);
         connection.on("TheftEncounterResolved", __theftEncounterResolved);
         connection.on("SkillLevelUp", __skillLevelUp);
@@ -231,6 +247,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "GuardEncounterResolved", method: __guardEncounterResolved },
             { methodName: "SuspicionEncounterStarted", method: __suspicionEncounterStarted },
             { methodName: "SuspicionEncounterResolved", method: __suspicionEncounterResolved },
+            { methodName: "TrapEncounterStarted", method: __trapEncounterStarted },
+            { methodName: "TrapEncounterResolved", method: __trapEncounterResolved },
             { methodName: "TheftEncounterStarted", method: __theftEncounterStarted },
             { methodName: "TheftEncounterResolved", method: __theftEncounterResolved },
             { methodName: "SkillLevelUp", method: __skillLevelUp },
