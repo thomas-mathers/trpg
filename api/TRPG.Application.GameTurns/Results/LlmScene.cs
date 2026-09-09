@@ -21,7 +21,12 @@ public record LlmSceneBuilding(
 
 public record LlmSceneRoom(string Name, string Description, int FloorNumber);
 
-public record LlmSceneExit(string Description, string DestinationName, bool IsLocked);
+public record LlmSceneExit(
+    string Description,
+    string DestinationName,
+    bool IsLocked,
+    CompassDirection? Direction
+);
 
 public record LlmSceneProp(string Name, string Description, string Type);
 

@@ -32,7 +32,12 @@ public sealed record SceneRoomExitDestination(string Name, BuildingType Building
 
 public sealed record SceneWildernessExitDestination(string Name) : SceneExitDestination(Name);
 
-public record SceneExitInfo(string Description, SceneExitDestination Destination, bool IsLocked);
+public record SceneExitInfo(
+    string Description,
+    SceneExitDestination Destination,
+    bool IsLocked,
+    CompassDirection? Direction
+);
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);
 

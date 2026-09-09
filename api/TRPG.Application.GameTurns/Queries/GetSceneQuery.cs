@@ -464,7 +464,8 @@ internal class GetSceneQueryHandler(
                     buildings,
                     sourceIsRoom
                 ),
-                lockedConnectorIds.Contains(connector.Id)
+                lockedConnectorIds.Contains(connector.Id),
+                connector.Direction
             ))
             .ToArray();
     }

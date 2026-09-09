@@ -39,7 +39,7 @@ public static class LlmSceneMapper
         new(room.Name, room.Description, room.FloorNumber);
 
     private static LlmSceneExit ToLlmSceneExit(this SceneExitInfo exit) =>
-        new(exit.Description, exit.Destination.Name, exit.IsLocked);
+        new(exit.Description, exit.Destination.Name, exit.IsLocked, exit.Direction);
 
     private static LlmSceneProp ToLlmSceneProp(this ScenePropInfo prop) =>
         new(prop.Name, prop.Description, prop.Type);

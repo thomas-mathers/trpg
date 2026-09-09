@@ -92,7 +92,8 @@ public sealed class LlmSceneMapperTests
                 new SceneExitInfo(
                     "A path leading to The Forge Ward.",
                     new SceneDistrictExitDestination("The Forge Ward", DistrictType.CityCenter),
-                    IsLocked: false
+                    IsLocked: false,
+                    Direction: null
                 ),
             ],
             [new ScenePropInfo(Guid.NewGuid(), "Chair", "A wooden chair.", "Seat")],

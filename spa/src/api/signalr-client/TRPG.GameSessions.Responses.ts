@@ -20,6 +20,9 @@ export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Me
 /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
 export type CreatureState = "Idle" | "Sleeping" | "Busy" | "Studying" | "Praying" | "Alerted" | "Dead";
 
+/** Transpiled from TRPG.GameSessions.Responses.CompassDirection */
+export type CompassDirection = "North" | "Northeast" | "East" | "Southeast" | "South" | "Southwest" | "West" | "Northwest";
+
 /** Transpiled from TRPG.GameSessions.Responses.DistrictType */
 export type DistrictType = "Residential" | "Scientific" | "CityCenter" | "CityEntrance" | "Governmental" | "HolySite" | "Encampment";
 
@@ -197,5 +200,7 @@ export type NearbyExitSnapshot = {
     description: string;
     /** Transpiled from TRPG.GameSessions.Responses.NearbyExitDestination */
     destination: NearbyExitDestination;
+    /** Transpiled from TRPG.GameSessions.Responses.CompassDirection */
+    direction?: CompassDirection;
 }
 

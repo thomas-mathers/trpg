@@ -131,6 +131,8 @@ export type CombatantState = {
 
 export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'FasterHitRecovery';
 
+export type CompassDirection = 'North' | 'Northeast' | 'East' | 'Southeast' | 'South' | 'Southwest' | 'West' | 'Northwest';
+
 export type ConsumableSummary = {
     itemId: string;
     name: string;
@@ -611,6 +613,7 @@ export type NearbyExitDestinationWildernessExitDestination = {
 export type NearbyExitSnapshot = {
     description: string;
     destination: NearbyExitDestination;
+    direction: null | CompassDirection;
 };
 
 export type NearbyPropSnapshot = {
