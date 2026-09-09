@@ -241,5 +241,7 @@ public sealed record WildernessExitDestination(string Name) : NearbyExitDestinat
 public record NearbyExitSnapshot(
     string Description,
     NearbyExitDestination Destination,
-    CompassDirection? Direction
+    CompassDirection? Direction,
+    bool IsVisited,
+    bool IsWayBack
 );

@@ -73,6 +73,7 @@ import { BookshelfDialog } from '@/features/books/components/bookshelf-dialog';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { ExitDirectionArrow } from '@/features/game/components/exit-direction-arrow';
+import { ExitFamiliarity } from '@/features/game/components/exit-familiarity';
 import { SleepDialog } from '@/features/game/components/sleep-dialog';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
@@ -195,6 +196,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
               <ExitDirectionArrow direction={exit.direction ?? null} />
               <ExitDestinationIcon destination={exit.destination} />
               <span className="truncate font-medium">{exit.destination.name}</span>
+              <ExitFamiliarity isVisited={exit.isVisited} isWayBack={exit.isWayBack} />
             </div>
           ))
         )}

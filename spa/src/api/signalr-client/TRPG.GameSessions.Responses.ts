@@ -202,5 +202,9 @@ export type NearbyExitSnapshot = {
     destination: NearbyExitDestination;
     /** Transpiled from TRPG.GameSessions.Responses.CompassDirection */
     direction?: CompassDirection;
+    /** Transpiled from bool */
+    isVisited: boolean;
+    /** Transpiled from bool */
+    isWayBack: boolean;
 }
 

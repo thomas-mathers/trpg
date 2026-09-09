@@ -614,6 +614,8 @@ export type NearbyExitSnapshot = {
     description: string;
     destination: NearbyExitDestination;
     direction: null | CompassDirection;
+    isVisited: boolean;
+    isWayBack: boolean;
 };
 
 export type NearbyPropSnapshot = {

@@ -98,7 +98,9 @@ public sealed class RelocationFactsTests
             $"A door to {destinationName}.",
             new SceneRoomExitDestination(destinationName, BuildingType.Jail),
             isLocked,
-            Direction: null
+            Direction: null,
+            IsVisited: false,
+            IsWayBack: false
         );
 
     private static SceneCreatureInfo MakeCreature(string name) =>

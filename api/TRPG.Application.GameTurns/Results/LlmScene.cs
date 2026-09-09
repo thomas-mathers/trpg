@@ -25,7 +25,9 @@ public record LlmSceneExit(
     string Description,
     string DestinationName,
     bool IsLocked,
-    CompassDirection? Direction
+    CompassDirection? Direction,
+    bool IsVisited,
+    bool IsWayBack
 );
 
 public record LlmSceneProp(string Name, string Description, string Type);

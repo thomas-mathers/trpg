@@ -27,6 +27,7 @@ internal static class CreatureMapper
             gold,
             stateId,
             creature.LocationId,
+            creature.PreviousLocationId,
             districtId,
             roomId,
             cityId,

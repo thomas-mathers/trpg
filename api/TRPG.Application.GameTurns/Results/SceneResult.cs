@@ -36,7 +36,9 @@ public record SceneExitInfo(
     string Description,
     SceneExitDestination Destination,
     bool IsLocked,
-    CompassDirection? Direction
+    CompassDirection? Direction,
+    bool IsVisited,
+    bool IsWayBack
 );
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);
