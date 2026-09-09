@@ -13,6 +13,7 @@ using TRPG.Application.Encounters.Extensions;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
 using TRPG.Application.Inventory.Extensions;
+using TRPG.Application.Knowledge.Extensions;
 using TRPG.Application.LocationSimulation.Extensions;
 using TRPG.Application.NpcConversations.Extensions;
 using TRPG.Application.Quests.Extensions;
@@ -64,6 +65,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddInventoryServices()
             .AddCreaturesServices()
             .AddCrimesServices()
+            .AddKnowledgeServices()
             .AddEncountersServices()
             .AddLocationSimulationServices()
             .AddQuestServices()

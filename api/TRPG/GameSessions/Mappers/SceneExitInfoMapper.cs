@@ -6,5 +6,11 @@ namespace TRPG.GameSessions.Mappers;
 internal static class SceneExitInfoMapper
 {
     public static NearbyExitSnapshot ToSnapshot(this SceneExitInfo exit) =>
-        new(exit.Description, exit.Destination.ToSnapshot(), exit.Direction?.ToResponse());
+        new(
+            exit.Description,
+            exit.Destination.ToSnapshot(),
+            exit.Direction?.ToResponse(),
+            exit.IsVisited,
+            exit.IsWayBack
+        );
 }

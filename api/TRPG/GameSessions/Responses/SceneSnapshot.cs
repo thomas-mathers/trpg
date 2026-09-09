@@ -73,6 +73,34 @@ public enum CreatureState
 }
 
 [TranspilationSource]
+public enum RoomRole
+{
+    Entrance,
+
+    [Description("Boss Chamber")]
+    BossChamber,
+    Passage,
+
+    [Description("Guard Post")]
+    GuardPost,
+    Storeroom,
+
+    [Description("Treasure Room")]
+    TreasureRoom,
+    Shrine,
+    Study,
+
+    [Description("Cell Block")]
+    CellBlock,
+
+    [Description("Collapsed Gallery")]
+    CollapsedGallery,
+
+    [Description("Flooded Sump")]
+    FloodedSump,
+}
+
+[TranspilationSource]
 public enum CompassDirection
 {
     North,
@@ -231,7 +259,7 @@ public sealed record BuildingExitDestination(string Name, BuildingType BuildingT
     : NearbyExitDestination(Name);
 
 [TranspilationSource]
-public sealed record RoomExitDestination(string Name, BuildingType BuildingType)
+public sealed record RoomExitDestination(string Name, BuildingType BuildingType, RoomRole? Role)
     : NearbyExitDestination(Name);
 
 [TranspilationSource]
@@ -241,5 +269,7 @@ public sealed record WildernessExitDestination(string Name) : NearbyExitDestinat
 public record NearbyExitSnapshot(
     string Description,
     NearbyExitDestination Destination,
-    CompassDirection? Direction
+    CompassDirection? Direction,
+    bool IsVisited,
+    bool IsWayBack
 );

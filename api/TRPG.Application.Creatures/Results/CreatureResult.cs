@@ -16,6 +16,7 @@ public record CreatureResult(
     int Gold,
     Guid StateId,
     Guid LocationId,
+    Guid? PreviousLocationId,
     Guid? DistrictId,
     Guid? RoomId,
     Guid? CityId,

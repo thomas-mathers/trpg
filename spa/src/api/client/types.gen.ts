@@ -602,6 +602,7 @@ export type NearbyExitDestinationDistrictExitDestination = {
 export type NearbyExitDestinationRoomExitDestination = {
     $type?: 'Room';
     buildingType: BuildingType;
+    role: null | RoomRole;
     name: string;
 };
 
@@ -614,6 +615,8 @@ export type NearbyExitSnapshot = {
     description: string;
     destination: NearbyExitDestination;
     direction: null | CompassDirection;
+    isVisited: boolean;
+    isWayBack: boolean;
 };
 
 export type NearbyPropSnapshot = {
@@ -686,6 +689,8 @@ export type RoadMapResponse = {
     originStateId: string;
     destinationStateId: string;
 };
+
+export type RoomRole = 'Entrance' | 'BossChamber' | 'Passage' | 'GuardPost' | 'Storeroom' | 'TreasureRoom' | 'Shrine' | 'Study' | 'CellBlock' | 'CollapsedGallery' | 'FloodedSump';
 
 export type SceneSnapshot = {
     worldId: string;

@@ -7,6 +7,7 @@ public enum KnowledgeSubjectType
     Faction,
     Creature,
     Secret,
+    Room,
 }
 
 public class CreatureKnowledge

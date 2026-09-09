@@ -27,8 +27,11 @@ public sealed record SceneDistrictExitDestination(string Name, DistrictType Dist
 public sealed record SceneBuildingExitDestination(string Name, BuildingType BuildingType)
     : SceneExitDestination(Name);
 
-public sealed record SceneRoomExitDestination(string Name, BuildingType BuildingType)
-    : SceneExitDestination(Name);
+public sealed record SceneRoomExitDestination(
+    string Name,
+    BuildingType BuildingType,
+    RoomRole? Role
+) : SceneExitDestination(Name);
 
 public sealed record SceneWildernessExitDestination(string Name) : SceneExitDestination(Name);
 
@@ -36,7 +39,9 @@ public record SceneExitInfo(
     string Description,
     SceneExitDestination Destination,
     bool IsLocked,
-    CompassDirection? Direction
+    CompassDirection? Direction,
+    bool IsVisited,
+    bool IsWayBack
 );
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);

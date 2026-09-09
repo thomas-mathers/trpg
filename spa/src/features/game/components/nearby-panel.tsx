@@ -60,6 +60,7 @@ import type {
   CreatureStatusSnapshot,
   CreatureType,
   NearbyExitDestination as SignalrNearbyExitDestination,
+  RoomRole,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { Button } from '@/components/ui/button';
@@ -73,7 +74,9 @@ import { BookshelfDialog } from '@/features/books/components/bookshelf-dialog';
 import { isDangerous } from '@/features/combat/threat-level';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { ExitDirectionArrow } from '@/features/game/components/exit-direction-arrow';
+import { ExitFamiliarity } from '@/features/game/components/exit-familiarity';
 import { SleepDialog } from '@/features/game/components/sleep-dialog';
+import { ROOM_ROLE_ICONS } from '@/features/game/room-role-icons';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
@@ -110,6 +113,7 @@ type NearbyExitDestination = SignalrNearbyExitDestination & {
   $type?: 'District' | 'Building' | 'Room' | 'Wilderness';
   buildingType?: BuildingType;
   districtType?: DistrictType;
+  role?: RoomRole;
 };
 
 const BUILDING_TYPE_ICONS: Record<BuildingType, IconType> = {
@@ -195,6 +199,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
               <ExitDirectionArrow direction={exit.direction ?? null} />
               <ExitDestinationIcon destination={exit.destination} />
               <span className="truncate font-medium">{exit.destination.name}</span>
+              <ExitFamiliarity isVisited={exit.isVisited} isWayBack={exit.isWayBack} />
             </div>
           ))
         )}
@@ -399,17 +404,34 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
 }
 
 function ExitDestinationIcon({ destination }: { destination: NearbyExitDestination }) {
-  const Icon =
-    destination.name === 'Outside'
-      ? GiExitDoor
-      : destination.$type === 'District' && destination.districtType
-        ? DISTRICT_TYPE_ICONS[destination.districtType]
-        : (destination.$type === 'Building' || destination.$type === 'Room') &&
-            destination.buildingType
-          ? BUILDING_TYPE_ICONS[destination.buildingType]
-          : GiMountains;
+  const Icon = pickExitIcon(destination);
 
   return <Icon className="text-muted-foreground size-4 shrink-0" />;
+}
+
+// A room's own role beats its building's type: every room of a dungeon shares one building, so the
+// building icon would draw the same glyph beside every exit.
+function pickExitIcon(destination: NearbyExitDestination): IconType {
+  if (destination.name === 'Outside') {
+    return GiExitDoor;
+  }
+
+  if (destination.$type === 'Room' && destination.role) {
+    return ROOM_ROLE_ICONS[destination.role];
+  }
+
+  if (destination.$type === 'District' && destination.districtType) {
+    return DISTRICT_TYPE_ICONS[destination.districtType];
+  }
+
+  if (
+    (destination.$type === 'Building' || destination.$type === 'Room') &&
+    destination.buildingType
+  ) {
+    return BUILDING_TYPE_ICONS[destination.buildingType];
+  }
+
+  return GiMountains;
 }
 
 function CreatureRow({

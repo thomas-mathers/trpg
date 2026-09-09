@@ -4,6 +4,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
@@ -58,6 +59,7 @@ internal class GetSceneQueryHandler(
     > getTotalCharacterXpFromSkills,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
+    IQueryHandler<GetVisitedRoomLocationIdsQuery, IReadOnlySet<Guid>> getVisitedRoomLocationIds,
     IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds,
     IQueryHandler<GetDistrictsByIdsQuery, IReadOnlyDictionary<Guid, District>> getDistrictsByIds,
     IQueryHandler<
@@ -101,6 +103,7 @@ internal class GetSceneQueryHandler(
                 cancellationToken
             ),
             player.RoomId != null,
+            player,
             cancellationToken
         );
         var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
@@ -406,6 +409,7 @@ internal class GetSceneQueryHandler(
     private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(
         IReadOnlyCollection<LocationConnector> connectors,
         bool sourceIsRoom,
+        CreatureResult player,
         CancellationToken cancellationToken
     )
     {
@@ -447,6 +451,22 @@ internal class GetSceneQueryHandler(
             .Select(kv => kv.Key)
             .ToArray();
 
+        // Somewhere already stood in is somewhere the player can be told they have been, which is
+        // what stops a dungeon turning into unintentional backtracking. Only rooms are tracked, so
+        // outdoors this asks nothing.
+        var roomDestinationIds = destinations
+            .Where(destination => destination.Value.Kind == LocationKind.Room)
+            .Select(destination => destination.Key)
+            .ToArray();
+        var visited = await getVisitedRoomLocationIds.Handle(
+            new GetVisitedRoomLocationIdsQuery
+            {
+                CreatureId = player.Id,
+                RoomLocationIds = roomDestinationIds,
+            },
+            cancellationToken
+        );
+
         return connectors
             // Outdoors, a building's front door duplicates its NearbyBuildings entry.
             .Where(connector =>
@@ -465,7 +485,9 @@ internal class GetSceneQueryHandler(
                     sourceIsRoom
                 ),
                 lockedConnectorIds.Contains(connector.Id),
-                connector.Direction
+                connector.Direction,
+                visited.Contains(connector.DestinationLocationId),
+                connector.DestinationLocationId == player.PreviousLocationId
             ))
             .ToArray();
     }
@@ -506,7 +528,11 @@ internal class GetSceneQueryHandler(
     {
         var building = buildings[rooms[roomId].BuildingId];
         return sourceIsRoom
-            ? new SceneRoomExitDestination(connector.DestinationLabel, building.BuildingType)
+            ? new SceneRoomExitDestination(
+                connector.DestinationLabel,
+                building.BuildingType,
+                rooms[roomId].Role
+            )
             : new SceneBuildingExitDestination(connector.DestinationLabel, building.BuildingType);
     }
 
