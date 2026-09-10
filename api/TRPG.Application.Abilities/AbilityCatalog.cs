@@ -1,3 +1,4 @@
+using TRPG.Application.CreatureFormulas;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Abilities;
@@ -22,13 +23,14 @@ public static class AbilityCatalog
 
     public static IEnumerable<Ability> Abilities => Catalog.ByName.Values;
 
-    public static IReadOnlyList<Ability> GetAbilitiesForSkillLevels(
-        IReadOnlyDictionary<Skill, int> skillLevels
+    public static IReadOnlyList<Ability> GetAbilitiesForSkillExperience(
+        IReadOnlyDictionary<Skill, int> skillExperience
     ) =>
         [
             Strike,
             .. Catalog.ByName.Values.Where(ability =>
-                skillLevels.GetValueOrDefault(ability.Skill) >= ability.RequiredSkillLevel
+                skillExperience.TryGetValue(ability.Skill, out var experience)
+                && experience >= ability.RequiredSkillExperience
             ),
         ];
 
@@ -1472,6 +1474,9 @@ public static class AbilityCatalog
                 Description = description,
                 Skill = skill,
                 RequiredSkillLevel = requiredSkillLevel,
+                RequiredSkillExperience = SkillFormulas.CalculateSkillExperienceFromSkillLevel(
+                    requiredSkillLevel
+                ),
                 ApCost = apCost,
                 MpCost = mpCost,
                 Cooldown = cooldown,
@@ -1504,6 +1509,9 @@ public static class AbilityCatalog
                 Description = description,
                 Skill = skill,
                 RequiredSkillLevel = requiredSkillLevel,
+                RequiredSkillExperience = SkillFormulas.CalculateSkillExperienceFromSkillLevel(
+                    requiredSkillLevel
+                ),
                 ApCost = apCost,
                 MpCost = mpCost,
                 Cooldown = cooldown,

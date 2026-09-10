@@ -1,9 +1,12 @@
+using TRPG.Application.Creatures;
 using TRPG.Application.Encounters;
 
 namespace TRPG.Tests.Application.Encounters;
 
 public class HostileEncounterInitiationResolverTests
 {
+    private readonly CapturingChanceRoller _chanceRoller = new();
+
     private static HostileEncounterCandidateGroup MakeCandidate(
         Guid? groupId = null,
         int aggression = 0,
@@ -24,111 +27,124 @@ public class HostileEncounterInitiationResolverTests
     [Fact]
     public void Resolve_ReturnsNull_WhenNoCandidates()
     {
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 1, candidates: []);
+        var result = HostileEncounterInitiationResolver.Resolve(
+            playerLevel: 1,
+            candidates: [],
+            _chanceRoller
+        );
 
-        // Assert
         Assert.Null(result);
+        Assert.Null(_chanceRoller.Chance);
     }
 
     [Fact]
     public void Resolve_ExcludesGroup_WhenItHasNoLivingMembers()
     {
-        // Arrange
-        var candidate = MakeCandidate(aggression: 500, livingMemberLevels: []);
+        var candidate = MakeCandidate(aggression: 100, livingMemberLevels: []);
 
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [candidate]);
-
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void Resolve_ReturnsGroupId_WhenEngagementScoreExceedsThreshold()
-    {
-        // Arrange — equal-strength matchup collapses strengthAdvantageFactor to 0, leaving
-        // engagementScore == Aggression exactly, so 150 > 100 engages
-        var candidate = MakeCandidate(aggression: 150, livingMemberLevels: [1]);
-
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [candidate]);
-
-        // Assert
-        Assert.Equal(candidate.GroupId, result);
-    }
-
-    [Fact]
-    public void Resolve_ReturnsNull_WhenEngagementScoreExactlyMeetsThreshold()
-    {
-        // Arrange — same equal-strength setup, but Aggression sits exactly on the threshold
-        var candidate = MakeCandidate(aggression: 100, livingMemberLevels: [1]);
-
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [candidate]);
-
-        // Assert — engagement requires strictly greater than the threshold
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void Resolve_ReducesEngagementScore_WhenReputationIsPositiveAndSensitivityIsHigh()
-    {
-        // Arrange — reputationFactor collapses to 0 (1 - (100/100 * 100/100)), zeroing out an
-        // otherwise-guaranteed engagement
-        var candidate = MakeCandidate(
-            aggression: 150,
-            reputationSensitivity: 100,
-            reputationScore: 100,
-            livingMemberLevels: [1]
+        var result = HostileEncounterInitiationResolver.Resolve(
+            playerLevel: 1,
+            [candidate],
+            _chanceRoller
         );
 
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [candidate]);
-
-        // Assert
         Assert.Null(result);
+        Assert.Null(_chanceRoller.Chance);
     }
 
     [Fact]
-    public void Resolve_DeclinesToEngage_WhenGroupIsWeakerAndNotRiskAverse()
+    public void Resolve_ReturnsGroupId_WhenEngagementRollSucceeds()
     {
-        // Arrange — a much weaker group (groupPower 1 vs playerLevel 10) with RiskAversion 0
-        // (full strength-sensitivity) backs off even with high Aggression
-        var candidate = MakeCandidate(aggression: 150, riskAversion: 0, livingMemberLevels: [1]);
+        var candidate = MakeCandidate(aggression: 50);
 
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 10, [candidate]);
+        var result = HostileEncounterInitiationResolver.Resolve(
+            playerLevel: 1,
+            [candidate],
+            _chanceRoller
+        );
 
-        // Assert
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public void Resolve_Engages_WhenGroupIsMuchStrongerThanThePlayer()
-    {
-        // Arrange — a much stronger group (groupPower 10 vs playerLevel 1) engages even with
-        // modest Aggression, since the strength advantage dominates the score
-        var candidate = MakeCandidate(aggression: 80, riskAversion: 0, livingMemberLevels: [10]);
-
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [candidate]);
-
-        // Assert
         Assert.Equal(candidate.GroupId, result);
+        Assert.Equal(0.5f, _chanceRoller.Chance);
     }
 
     [Fact]
-    public void Resolve_SelectsHighestScoringGroup_WhenMultipleGroupsQualify()
+    public void Resolve_ReturnsNull_WhenEngagementRollFails()
     {
-        // Arrange
-        var weaker = MakeCandidate(aggression: 150, livingMemberLevels: [1]);
-        var stronger = MakeCandidate(aggression: 300, livingMemberLevels: [1]);
+        var candidate = MakeCandidate(aggression: 50);
+        _chanceRoller.Result = false;
 
-        // Act
-        var result = HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [weaker, stronger]);
+        var result = HostileEncounterInitiationResolver.Resolve(
+            playerLevel: 1,
+            [candidate],
+            _chanceRoller
+        );
 
-        // Assert
+        Assert.Null(result);
+        Assert.Equal(0.5f, _chanceRoller.Chance);
+    }
+
+    [Fact]
+    public void Resolve_ReducesEngagementChance_WhenReputationIsPositive()
+    {
+        var candidate = MakeCandidate(
+            aggression: 100,
+            reputationSensitivity: 100,
+            reputationScore: 50
+        );
+
+        HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [candidate], _chanceRoller);
+
+        Assert.Equal(0.5f, _chanceRoller.Chance);
+    }
+
+    [Fact]
+    public void Resolve_ReducesEngagementChance_WhenGroupIsWeaker()
+    {
+        var candidate = MakeCandidate(aggression: 100, riskAversion: 0, livingMemberLevels: [1]);
+
+        HostileEncounterInitiationResolver.Resolve(playerLevel: 10, [candidate], _chanceRoller);
+
+        Assert.Equal(0.1f, _chanceRoller.Chance);
+    }
+
+    [Fact]
+    public void Resolve_ClampsEngagementChance_WhenScoreExceedsThreshold()
+    {
+        var candidate = MakeCandidate(aggression: 100, livingMemberLevels: [10]);
+
+        HostileEncounterInitiationResolver.Resolve(playerLevel: 1, [candidate], _chanceRoller);
+
+        Assert.Equal(1.0f, _chanceRoller.Chance);
+    }
+
+    [Fact]
+    public void Resolve_RollsOnlyForHighestScoringGroup_WhenMultipleGroupsAreCandidates()
+    {
+        var weaker = MakeCandidate(aggression: 50);
+        var stronger = MakeCandidate(aggression: 75);
+
+        var result = HostileEncounterInitiationResolver.Resolve(
+            playerLevel: 1,
+            [weaker, stronger],
+            _chanceRoller
+        );
+
         Assert.Equal(stronger.GroupId, result);
+        Assert.Equal(0.75f, _chanceRoller.Chance);
+        Assert.Equal(1, _chanceRoller.RollCount);
+    }
+
+    private sealed class CapturingChanceRoller : IChanceRoller
+    {
+        public float? Chance { get; private set; }
+        public bool Result { get; set; } = true;
+        public int RollCount { get; private set; }
+
+        public bool Roll(float chance)
+        {
+            Chance = chance;
+            RollCount++;
+            return Result;
+        }
     }
 }

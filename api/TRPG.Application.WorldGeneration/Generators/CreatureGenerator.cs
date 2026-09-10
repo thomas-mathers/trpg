@@ -17,7 +17,8 @@ public record CreatureGeneratorInput(
     Gender? Gender = null,
     int? MinBirthYear = null,
     int? MaxBirthYear = null,
-    IReadOnlyDictionary<AllocatableAttributeName, int>? StartingAttributeAllocation = null
+    IReadOnlyDictionary<AllocatableAttributeName, int>? StartingAttributeAllocation = null,
+    PlayerClass? PlayerClass = null
 );
 
 public record CreatureGeneratorResult(
@@ -1241,8 +1242,39 @@ public class CreatureGenerator(
             archetype.SkillAffinities,
             isPlayer
         );
+        if (generatorInput.PlayerClass is { } playerClass)
+        {
+            NudgeFavoredSkills(skills, playerClass);
+        }
 
         return new CreatureGeneratorResult(creature, items, skills);
+    }
+
+    private static readonly IReadOnlyDictionary<
+        PlayerClass,
+        IReadOnlyCollection<Skill>
+    > FavoredSkillsByClass = new Dictionary<PlayerClass, IReadOnlyCollection<Skill>>
+    {
+        [PlayerClass.Knight] = [Skill.Melee, Skill.Blocking],
+        [PlayerClass.Rogue] = [Skill.Sneak, Skill.Pickpocketing, Skill.Lockpicking],
+        [PlayerClass.Ranger] = [Skill.Archery, Skill.Sneak],
+        [PlayerClass.Mage] = [Skill.Destruction, Skill.Illusion, Skill.Alteration],
+        [PlayerClass.Cleric] = [Skill.Restoration, Skill.Alteration],
+    };
+
+    private static void NudgeFavoredSkills(
+        IReadOnlyCollection<CreatureSkill> skills,
+        PlayerClass playerClass
+    )
+    {
+        var favoredSkills = FavoredSkillsByClass[playerClass];
+        var nudgeExperience = SkillFormulas.CalculateSkillExperienceFromSkillLevel(2);
+
+        foreach (var skill in skills.Where(skill => favoredSkills.Contains(skill.Skill)))
+        {
+            skill.Experience += nudgeExperience;
+            skill.SeedExperience += nudgeExperience;
+        }
     }
 
     public CreatureGeneratorResult AddStartingPotions(CreatureGeneratorResult result)

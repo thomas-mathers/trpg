@@ -213,6 +213,7 @@ public class WorldGenerator(
             jobs.AddRange(wildernessGroups.Jobs);
             encounterGroups.AddRange(wildernessGroups.EncounterGroups);
             encounterGroupMembers.AddRange(wildernessGroups.EncounterGroupMembers);
+            factionMembers.AddRange(wildernessGroups.FactionMembers);
             creatureSpawners.Add(wildernessGroups.Spawner);
 
             if (citiesByStateId.TryGetValue(state.Id, out var citiesInState))
@@ -274,6 +275,7 @@ public class WorldGenerator(
                     jobs.AddRange(dungeonMonsters.Jobs);
                     encounterGroups.AddRange(dungeonMonsters.EncounterGroups);
                     encounterGroupMembers.AddRange(dungeonMonsters.EncounterGroupMembers);
+                    factionMembers.AddRange(dungeonMonsters.FactionMembers);
                     creatureSpawners.Add(dungeonMonsters.Spawner);
                 }
 
@@ -327,6 +329,7 @@ public class WorldGenerator(
                 jobs.AddRange(obstacle.Jobs);
                 encounterGroups.AddRange(obstacle.EncounterGroups);
                 encounterGroupMembers.AddRange(obstacle.EncounterGroupMembers);
+                factionMembers.AddRange(obstacle.FactionMembers);
                 creatureSpawners.AddRange(obstacle.CreatureSpawners);
                 props.AddRange(obstacle.Triggers);
                 props.AddRange(obstacle.Levers);

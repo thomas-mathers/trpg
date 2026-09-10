@@ -36,10 +36,11 @@ internal class GetCreatureSkillsQueryHandler(ICreaturesDbContext context)
             {
                 var levelFloor = SkillFormulas.CalculateSkillExperienceFromSkillLevel(s.Level);
                 var nextLevelXp = SkillFormulas.CalculateSkillExperienceFromSkillLevel(s.Level + 1);
+                var earnedExperience = s.Experience - s.SeedExperience;
                 return new CreatureSkillProgress(
                     s.Skill,
                     s.Level,
-                    s.Experience - levelFloor,
+                    earnedExperience - levelFloor,
                     nextLevelXp - levelFloor
                 );
             })

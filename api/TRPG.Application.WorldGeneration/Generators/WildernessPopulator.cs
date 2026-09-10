@@ -14,6 +14,7 @@ internal record WildernessPopulatorResult(
     IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
     IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
+    IReadOnlyList<FactionMember> FactionMembers,
     CreatureSpawner Spawner
 );
 
@@ -65,6 +66,7 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
             fillResult.Jobs,
             fillResult.EncounterGroups,
             fillResult.EncounterGroupMembers,
+            fillResult.FactionMembers,
             spawner
         );
     }

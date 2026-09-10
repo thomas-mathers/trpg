@@ -24,21 +24,24 @@ internal class GetCreatureAbilitiesByCreatureIdsQueryHandler(ICreaturesDbContext
     {
         var skills = await context
             .CreatureSkills.AsNoTracking()
-            .Where(skill => query.CreatureIds.AsEnumerable().Contains(skill.CreatureId))
+            .Where(skill =>
+                query.CreatureIds.AsEnumerable().Contains(skill.CreatureId)
+                && (skill.Level > 0 || skill.Experience > 0)
+            )
             .ToArrayAsync(cancellationToken);
 
-        var skillLevelsByCreature = skills
+        var skillExperienceByCreature = skills
             .GroupBy(skill => skill.CreatureId)
             .ToDictionary(
                 group => group.Key,
-                group => group.ToDictionary(skill => skill.Skill, skill => skill.Level)
+                group => group.ToDictionary(skill => skill.Skill, skill => skill.Experience)
             );
 
         return query.CreatureIds.ToDictionary(
             creatureId => creatureId,
             creatureId =>
-                AbilityCatalog.GetAbilitiesForSkillLevels(
-                    skillLevelsByCreature.GetValueOrDefault(
+                AbilityCatalog.GetAbilitiesForSkillExperience(
+                    skillExperienceByCreature.GetValueOrDefault(
                         creatureId,
                         new Dictionary<Skill, int>()
                     )

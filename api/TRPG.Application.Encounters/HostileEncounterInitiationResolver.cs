@@ -1,5 +1,7 @@
 namespace TRPG.Application.Encounters;
 
+using TRPG.Application.Creatures;
+
 internal record HostileEncounterCandidateGroup(
     Guid GroupId,
     int Aggression,
@@ -15,23 +17,30 @@ internal static class HostileEncounterInitiationResolver
 
     public static Guid? Resolve(
         int playerLevel,
-        IReadOnlyList<HostileEncounterCandidateGroup> candidates
+        IReadOnlyList<HostileEncounterCandidateGroup> candidates,
+        IChanceRoller chanceRoller
     )
     {
-        var engaging = candidates
+        var strongestCandidate = candidates
             .Where(candidate => candidate.LivingMemberLevels.Count > 0)
             .Select(candidate =>
                 (candidate.GroupId, Score: EngagementScore(playerLevel, candidate))
             )
-            .Where(candidate => candidate.Score > EngagementThreshold)
-            .ToArray();
-
-        if (engaging.Length == 0)
+            .OrderByDescending(candidate => candidate.Score)
+            .FirstOrDefault();
+        if (strongestCandidate == default)
         {
             return null;
         }
 
-        return engaging.OrderByDescending(candidate => candidate.Score).First().GroupId;
+        var engagementChance = (float)
+            Math.Clamp(strongestCandidate.Score / EngagementThreshold, 0.0, 1.0);
+        if (engagementChance == 0)
+        {
+            return null;
+        }
+
+        return chanceRoller.Roll(engagementChance) ? strongestCandidate.GroupId : null;
     }
 
     private static double EngagementScore(int playerLevel, HostileEncounterCandidateGroup candidate)

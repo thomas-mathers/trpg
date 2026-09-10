@@ -11,9 +11,16 @@ import {
   createSessionMutation,
   createWorldMutation,
 } from '../../../api/client';
-import type { Gender, PlayerClass, Race } from '../../../api/client';
+import type {
+  AttributeAllocation,
+  BaseAttributesResponse,
+  Gender,
+  PlayerClass,
+  Race,
+} from '../../../api/client';
 import {
   MINIMUM_ATTRIBUTE_VALUES,
+  type AllocatableAttributeKey,
   toAttributeValues,
 } from '../../../components/attribute-allocation';
 import { AttributeAllocator } from '../../../components/attribute-allocator';
@@ -46,6 +53,35 @@ const MIN_AGE = 18;
 const MAX_AGE = 75;
 const RACES: Race[] = ['Human', 'Elf', 'Dwarf', 'Orc', 'Halfling', 'Gnome'];
 const PLAYER_CLASSES: PlayerClass[] = ['Knight', 'Rogue', 'Ranger', 'Mage', 'Cleric'];
+const CLASS_ATTRIBUTE_PROFILES: Record<
+  PlayerClass,
+  {
+    priorities: AllocatableAttributeKey[];
+    reducedAttributes: AllocatableAttributeKey[];
+  }
+> = {
+  Knight: {
+    priorities: ['strength', 'endurance', 'stamina', 'strength', 'endurance'],
+    reducedAttributes: ['mana', 'intelligence'],
+  },
+  Rogue: {
+    priorities: ['dexterity', 'stamina', 'intelligence', 'dexterity', 'dexterity'],
+    reducedAttributes: ['strength', 'mana'],
+  },
+  Ranger: {
+    priorities: ['dexterity', 'strength', 'endurance', 'stamina', 'dexterity'],
+    reducedAttributes: ['mana', 'intelligence'],
+  },
+  Mage: {
+    priorities: ['intelligence', 'mana', 'intelligence', 'mana', 'intelligence'],
+    reducedAttributes: ['strength', 'stamina'],
+  },
+  Cleric: {
+    priorities: ['mana', 'intelligence', 'endurance', 'mana', 'intelligence'],
+    reducedAttributes: ['strength', 'dexterity'],
+  },
+};
+const DEFAULT_ATTRIBUTE_REDUCTION = 2;
 type Status = 'idle' | 'generating' | 'error';
 
 interface CreateWorldResponse {
@@ -105,6 +141,32 @@ const defaultValues = {
 
 const FORM_ID = 'new-world-form';
 
+function getDefaultAttributeAllocation(
+  playerClass: PlayerClass,
+  availablePoints: number,
+  baseAttributes: BaseAttributesResponse | undefined,
+): AttributeAllocation {
+  const { priorities, reducedAttributes } = CLASS_ATTRIBUTE_PROFILES[playerClass];
+  const allocation: AttributeAllocation = {};
+  let redistributedPoints = availablePoints;
+
+  for (const attribute of reducedAttributes) {
+    const baseValue = baseAttributes?.[attribute] ?? 1;
+    const reduction = Math.min(DEFAULT_ATTRIBUTE_REDUCTION, baseValue - 1);
+    if (reduction > 0) {
+      allocation[attribute] = -reduction;
+      redistributedPoints += reduction;
+    }
+  }
+
+  for (let index = 0; index < redistributedPoints; index++) {
+    const attribute = priorities[index % priorities.length];
+    allocation[attribute] = (allocation[attribute] ?? 0) + 1;
+  }
+
+  return allocation;
+}
+
 export function NewWorldDialog() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -161,6 +223,19 @@ export function NewWorldDialog() {
       );
     },
   });
+
+  useEffect(() => {
+    if (open && pointsPerLevel > 0 && Object.keys(form.state.values.attributes).length === 0) {
+      form.setFieldValue(
+        'attributes',
+        getDefaultAttributeAllocation(
+          form.state.values.playerClass,
+          pointsPerLevel,
+          generationOptions.data?.baseAttributes,
+        ),
+      );
+    }
+  }, [form, generationOptions.data?.baseAttributes, open, pointsPerLevel]);
 
   const jobStatus = useQuery({
     ...getJobOptions({ path: { id: jobId ?? '' } }),
@@ -366,7 +441,18 @@ export function NewWorldDialog() {
                             <FieldLabel htmlFor={field.name}>Class</FieldLabel>
                             <Select
                               value={field.state.value}
-                              onValueChange={(v) => field.handleChange(v as PlayerClass)}
+                              onValueChange={(value) => {
+                                const playerClass = value as PlayerClass;
+                                field.handleChange(playerClass);
+                                form.setFieldValue(
+                                  'attributes',
+                                  getDefaultAttributeAllocation(
+                                    playerClass,
+                                    pointsPerLevel,
+                                    generationOptions.data?.baseAttributes,
+                                  ),
+                                );
+                              }}
                             >
                               <SelectTrigger id={field.name}>
                                 <SelectValue />
@@ -527,14 +613,14 @@ export function NewWorldDialog() {
               </form.Subscribe>
               <form.Subscribe
                 selector={(state) =>
-                  [state.canSubmit, state.isSubmitting, state.isPristine] as const
+                  [state.canSubmit, state.isSubmitting, state.values.name] as const
                 }
               >
-                {([canSubmit, isSubmitting, isPristine]) => (
+                {([canSubmit, isSubmitting, name]) => (
                   <Button
                     type="submit"
                     form={FORM_ID}
-                    disabled={!canSubmit || isSubmitting || isPristine}
+                    disabled={!canSubmit || isSubmitting || !name.trim()}
                   >
                     Create World
                   </Button>

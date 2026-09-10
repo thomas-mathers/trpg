@@ -119,7 +119,12 @@ internal static class KnowledgeGenerator
             Add(relationship.SubjectId, relationship.RelativeId, KnowledgeSubjectType.Creature);
         }
 
-        foreach (var factionMembers in input.FactionMembers.GroupBy(fm => fm.FactionId))
+        var creatureIds = input.Creatures.Select(creature => creature.Id).ToHashSet();
+        foreach (
+            var factionMembers in input
+                .FactionMembers.Where(member => creatureIds.Contains(member.CreatureId))
+                .GroupBy(member => member.FactionId)
+        )
         {
             var members = factionMembers.ToList();
             foreach (var member in members)

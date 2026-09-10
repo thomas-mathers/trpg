@@ -86,6 +86,32 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
         Assert.NotEqual(Guid.Empty, result.WorldId);
         Assert.NotEqual(Guid.Empty, result.PlayerId);
         Assert.False(string.IsNullOrWhiteSpace(result.WorldName));
+
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var monsterFactionIds = await context
+            .Factions.Where(faction =>
+                faction.WorldId == result.WorldId && faction.CreatureType != null
+            )
+            .Select(faction => faction.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        var seededReputations = await context
+            .Reputations.Where(reputation =>
+                reputation.WorldId == result.WorldId
+                && reputation.CreatureId == result.PlayerId
+                && reputation.TargetType == TRPG.Domain.Models.ReputationTargetType.Faction
+                && monsterFactionIds.Contains(reputation.TargetId)
+            )
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(monsterFactionIds.Length, seededReputations.Length);
+
+        var favoredSkills = new[] { DataSkill.Melee, DataSkill.Blocking };
+        var playerSkills = await context
+            .CreatureSkills.Where(skill =>
+                skill.CreatureId == result.PlayerId && favoredSkills.Contains(skill.Skill)
+            )
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(playerSkills, skill => Assert.True(skill.SeedExperience > 0));
     }
 
     [Fact]
@@ -169,6 +195,11 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
             monsters.Where(m => armedCreatureTypes.Contains(m.CreatureType)),
             m => Assert.NotEmpty(inventoryByCreature[m.Id])
         );
+        var factionMemberCreatureIds = await context
+            .FactionMembers.Where(member => monsterIds.Contains(member.CreatureId))
+            .Select(member => member.CreatureId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(monsterIds.OrderBy(id => id), factionMemberCreatureIds.OrderBy(id => id));
     }
 
     private async Task<JobStatusResponse> WaitForJobCompletion(Guid jobId)

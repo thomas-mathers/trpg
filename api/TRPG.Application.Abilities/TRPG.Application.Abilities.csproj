@@ -10,6 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.CreatureFormulas\TRPG.Application.CreatureFormulas.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
   </ItemGroup>
 </Project>

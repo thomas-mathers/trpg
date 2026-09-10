@@ -15,7 +15,7 @@ internal static class EncounterFactionGenerator
                 "Predators and territorial animals that defend their hunting grounds.",
                 FactionTemperament.Territorial,
                 aggression: 60,
-                reputationSensitivity: 0,
+                reputationSensitivity: 25,
                 riskAversion: 40
             ),
             [CreatureType.Goblin] = MakeFaction(
@@ -35,7 +35,7 @@ internal static class EncounterFactionGenerator
                 "The dead who attack the living without fear or restraint.",
                 FactionTemperament.Fanatical,
                 aggression: 100,
-                reputationSensitivity: 0,
+                reputationSensitivity: 15,
                 riskAversion: 0
             ),
             [CreatureType.Wraith] = MakeFaction(
@@ -45,7 +45,7 @@ internal static class EncounterFactionGenerator
                 "Malignant spirits who attack the living without fear or restraint.",
                 FactionTemperament.Fanatical,
                 aggression: 100,
-                reputationSensitivity: 0,
+                reputationSensitivity: 15,
                 riskAversion: 0
             ),
             [CreatureType.Construct] = MakeFaction(
@@ -55,7 +55,7 @@ internal static class EncounterFactionGenerator
                 "Forgotten guardians bound to defend the places they were built to protect.",
                 FactionTemperament.Fanatical,
                 aggression: 80,
-                reputationSensitivity: 0,
+                reputationSensitivity: 10,
                 riskAversion: 10
             ),
             [CreatureType.Demon] = MakeFaction(
@@ -95,7 +95,7 @@ internal static class EncounterFactionGenerator
                 "Unstable elemental beings that lash out at intruders.",
                 FactionTemperament.Fanatical,
                 aggression: 75,
-                reputationSensitivity: 0,
+                reputationSensitivity: 15,
                 riskAversion: 10
             ),
         };

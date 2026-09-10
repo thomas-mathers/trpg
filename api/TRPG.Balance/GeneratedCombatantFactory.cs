@@ -34,8 +34,10 @@ public static class GeneratedCombatantFactory
         CombatOptions? combatOptions = null
     )
     {
-        var skillLevels = result.Skills.ToDictionary(skill => skill.Skill, skill => skill.Level);
-        var abilities = AbilityCatalog.GetAbilitiesForSkillLevels(skillLevels);
+        var skillExperience = result
+            .Skills.Where(skill => skill.Level > 0 || skill.Experience > 0)
+            .ToDictionary(skill => skill.Skill, skill => skill.Experience);
+        var abilities = AbilityCatalog.GetAbilitiesForSkillExperience(skillExperience);
 
         var weaponProficiencies = isPlayer
             ? Enum.GetValues<WeaponType>()

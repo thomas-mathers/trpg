@@ -187,7 +187,8 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db) : I
         _context.EncounterGroups.Add(group);
         _context.EncounterGroupMembers.Add(member);
         _player.IsSneaking = true;
-        _chanceRoller.Result = false;
+        _chanceRoller.Results.Enqueue(true);
+        _chanceRoller.Results.Enqueue(false);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -245,8 +246,9 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db) : I
 
     private sealed class TestChanceRoller : IChanceRoller
     {
+        public Queue<bool> Results { get; } = new();
         public bool Result { get; set; } = true;
 
-        public bool Roll(float chance) => Result;
+        public bool Roll(float chance) => Results.TryDequeue(out var result) ? result : Result;
     }
 }

@@ -69,7 +69,7 @@ internal class AdjustCreatureSkillsCommandHandler(
                 );
 
             while (
-                skill.Experience
+                skill.Experience - skill.SeedExperience
                 >= SkillFormulas.CalculateSkillExperienceFromSkillLevel(skill.Level + 1)
             )
             {

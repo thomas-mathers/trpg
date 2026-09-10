@@ -18,11 +18,13 @@ internal class GetCreatureAbilitiesQueryHandler(ICreaturesDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var skillLevels = await context
+        var skillExperience = await context
             .CreatureSkills.AsNoTracking()
-            .Where(skill => skill.CreatureId == query.CreatureId)
-            .ToDictionaryAsync(skill => skill.Skill, skill => skill.Level, cancellationToken);
+            .Where(skill =>
+                skill.CreatureId == query.CreatureId && (skill.Level > 0 || skill.Experience > 0)
+            )
+            .ToDictionaryAsync(skill => skill.Skill, skill => skill.Experience, cancellationToken);
 
-        return AbilityCatalog.GetAbilitiesForSkillLevels(skillLevels);
+        return AbilityCatalog.GetAbilitiesForSkillExperience(skillExperience);
     }
 }
