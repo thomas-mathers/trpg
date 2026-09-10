@@ -94,6 +94,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<Reputation> Reputations => Set<Reputation>();
     public DbSet<ReputationLogEntry> ReputationLogEntries => Set<ReputationLogEntry>();
     public DbSet<DoorConnectorKey> DoorConnectorKeys => Set<DoorConnectorKey>();
+    public DbSet<DoorConnectorLever> DoorConnectorLevers => Set<DoorConnectorLever>();
     public DbSet<BookWork> BookWorks => Set<BookWork>();
     public DbSet<BookPage> BookPages => Set<BookPage>();
     public DbSet<Secret> Secrets => Set<Secret>();
@@ -349,6 +350,13 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(k => k.WorldId);
         });
 
+        modelBuilder.Entity<DoorConnectorLever>(entity =>
+        {
+            entity.HasIndex(l => l.DoorConnectorId);
+            entity.HasIndex(l => l.LeverId);
+            entity.HasIndex(l => l.WorldId);
+        });
+
         modelBuilder.Entity<Room>(entity =>
         {
             entity.OwnsOne(room => room.Position, position => position.ToJson());
@@ -465,7 +473,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<Workstation>("Workstation")
                 .HasValue<Bed>("Bed")
                 .HasValue<Container>("Container")
-                .HasValue<Trigger>("Trigger");
+                .HasValue<Trigger>("Trigger")
+                .HasValue<Lever>("Lever");
             entity.Property<string>("behavior_type").HasColumnType("text");
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);

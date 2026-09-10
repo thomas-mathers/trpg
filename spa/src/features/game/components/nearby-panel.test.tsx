@@ -60,6 +60,7 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     sendChat: vi.fn(),
     sendWait: vi.fn(),
     sendSleep: vi.fn(),
+    sendPullLever: vi.fn(),
     sendFlee: vi.fn(),
     ...overrides,
   } as IChatHub;
@@ -211,6 +212,21 @@ describe('NearbyPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Transfer Items' })).toBeVisible();
     expect(screen.getByRole('region', { name: "Wooden Chest's inventory" })).toBeVisible();
+  });
+
+  it('pulls a nearby lever when its Pull button is clicked', async () => {
+    const sceneWithLever = {
+      ...scene(undefined),
+      nearbyProps: [{ id: 'lever-id', name: 'Rusty Lever', description: '', type: 'Lever' }],
+    };
+    const { user, chatHub, gameChat } = renderPanel(sceneWithLever);
+    const fakeStream = {};
+    vi.mocked(chatHub.sendPullLever).mockReturnValue(fakeStream as never);
+
+    await user.click(screen.getByRole('button', { name: 'Pull' }));
+
+    expect(chatHub.sendPullLever).toHaveBeenCalledWith('lever-id');
+    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith('Pull Rusty Lever', fakeStream);
   });
 
   it('opens a nearby trade workstation inventory when clicked', async () => {

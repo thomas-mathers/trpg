@@ -49,6 +49,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.Zero,
                 ConnectorIds = [connector.Id],
             },
@@ -74,6 +75,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.Zero,
                 ConnectorIds = [connector.Id],
             },
@@ -103,6 +105,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.Zero,
                 ConnectorIds = [connector.Id],
             },
@@ -132,6 +135,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid> { keyItemId },
+                PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.Zero,
                 ConnectorIds = [connector.Id],
             },
@@ -162,6 +166,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.FromHours(5),
                 ConnectorIds = [connector.Id],
             },
@@ -192,6 +197,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.FromHours(10),
                 ConnectorIds = [connector.Id],
             },
@@ -208,6 +214,101 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
         );
         Assert.False(updatedDoor.IsLocked);
         Assert.Null(updatedDoor.UnlocksAtPlaytime);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesConnector_WhenGatedByALeverThatHasNotBeenPulled()
+    {
+        // Arrange
+        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
+        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
+        var lever = Builders.MakeLever(worldId: WorldId);
+        _context.LocationConnectors.Add(connector);
+        _context.DoorConnectors.Add(door);
+        _context.Props.Add(lever);
+        _context.DoorConnectorLevers.Add(Builders.MakeDoorConnectorLever(lever.Id, door.Id));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var accessible = await _handler.Handle(
+            new ResolveAccessibleConnectorsCommand
+            {
+                PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid>(),
+                Playtime = TimeSpan.Zero,
+                ConnectorIds = [connector.Id],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(accessible);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesConnector_WhenOnlySomeOfItsGatingLeversArePulled()
+    {
+        // Arrange - an AND-gate: every contributing lever must be pulled, not just one of them.
+        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
+        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
+        var pulledLever = Builders.MakeLever(worldId: WorldId, isPulled: true);
+        var unpulledLever = Builders.MakeLever(worldId: WorldId);
+        _context.LocationConnectors.Add(connector);
+        _context.DoorConnectors.Add(door);
+        _context.Props.AddRange(pulledLever, unpulledLever);
+        _context.DoorConnectorLevers.AddRange(
+            Builders.MakeDoorConnectorLever(pulledLever.Id, door.Id),
+            Builders.MakeDoorConnectorLever(unpulledLever.Id, door.Id)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var accessible = await _handler.Handle(
+            new ResolveAccessibleConnectorsCommand
+            {
+                PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid> { pulledLever.Id },
+                Playtime = TimeSpan.Zero,
+                ConnectorIds = [connector.Id],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(accessible);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsConnector_WhenEveryGatingLeverHasBeenPulled()
+    {
+        // Arrange
+        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
+        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
+        var firstLever = Builders.MakeLever(worldId: WorldId, isPulled: true);
+        var secondLever = Builders.MakeLever(worldId: WorldId, isPulled: true);
+        _context.LocationConnectors.Add(connector);
+        _context.DoorConnectors.Add(door);
+        _context.Props.AddRange(firstLever, secondLever);
+        _context.DoorConnectorLevers.AddRange(
+            Builders.MakeDoorConnectorLever(firstLever.Id, door.Id),
+            Builders.MakeDoorConnectorLever(secondLever.Id, door.Id)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var accessible = await _handler.Handle(
+            new ResolveAccessibleConnectorsCommand
+            {
+                PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid> { firstLever.Id, secondLever.Id },
+                Playtime = TimeSpan.Zero,
+                ConnectorIds = [connector.Id],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal([connector.Id], accessible);
     }
 
     [Fact]
@@ -230,6 +331,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
+                PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.Zero,
                 ConnectorIds = [openConnector.Id, lockedConnector.Id],
             },

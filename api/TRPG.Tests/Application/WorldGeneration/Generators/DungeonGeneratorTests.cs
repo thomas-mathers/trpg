@@ -102,6 +102,24 @@ public class DungeonGeneratorTests
     }
 
     [Fact]
+    public void Generate_ReturnsABackDoorLocation_ConnectedToBothTheEntranceAndTheBoss()
+    {
+        // Act
+        var result = DungeonGenerator.Generate(MakeInput());
+
+        // Assert — every dungeon gets a mandatory shortcut back near the entrance once the boss is
+        // reached, distinct from both endpoints.
+        Assert.NotEqual(result.EntranceLocationId, result.BackDoorLocationId);
+        Assert.NotEqual(result.BossLocationId, result.BackDoorLocationId);
+        Assert.Contains(
+            result.LocationConnectors,
+            connector =>
+                connector.OriginLocationId == result.EntranceLocationId
+                && connector.DestinationLocationId == result.BackDoorLocationId
+        );
+    }
+
+    [Fact]
     public void Generate_NeverPicksAnExcludedName()
     {
         // Arrange

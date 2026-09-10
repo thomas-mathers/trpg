@@ -6,6 +6,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
@@ -40,7 +41,8 @@ internal class ResolveFleeCombatCommandHandler(
     > resolveAccessibleConnectors,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner
+    IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
+    IQueryHandler<GetPulledLeverIdsQuery, IReadOnlySet<Guid>> getPulledLeverIds
 ) : ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?>
 {
     private const string OutsideExitLabel = "Outside";
@@ -127,10 +129,16 @@ internal class ResolveFleeCombatCommandHandler(
             cancellationToken
         );
 
+        var pulledLeverIds = await getPulledLeverIds.Handle(
+            new GetPulledLeverIdsQuery { WorldId = command.WorldId },
+            cancellationToken
+        );
+
         var accessibleConnectorIds = await resolveAccessibleConnectors.Handle(
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = playerKeyItemIds,
+                PulledLeverIds = pulledLeverIds,
                 Playtime = playtime,
                 ConnectorIds = connectors.Select(connector => connector.Id).ToArray(),
             },

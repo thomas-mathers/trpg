@@ -138,9 +138,14 @@ public class DungeonLayoutGeneratorTests
     [Fact]
     public void Generate_WhenFloorSplitOccurs_RoutesConvergeOnALandingBeforeTheBoss()
     {
-        // Arrange — FloorSplitChance is a private roll, so search seeds for one that triggers it
-        // rather than asserting on a single fixed seed that may stop triggering it.
-        var layout = FindLayout(15, candidate => candidate.LandingIndex != null);
+        // Arrange — a Landing can also appear for a lever gate alone, so search specifically for a
+        // seed where the boss actually changed floor, not just for any Landing's existence.
+        var layout = FindLayout(
+            15,
+            candidate =>
+                candidate.LandingIndex != null
+                && candidate.Rooms[candidate.BossIndex].FloorNumber > 0
+        );
         var landingIndex = layout.LandingIndex!.Value;
         var landing = layout.Rooms[landingIndex];
         var boss = layout.Rooms[layout.BossIndex];
@@ -191,6 +196,69 @@ public class DungeonLayoutGeneratorTests
 
         // Act & Assert
         Assert.Equal(0, layout.Rooms[layout.BossIndex].FloorNumber);
+    }
+
+    [Fact]
+    public void Generate_WhenALeverGateOccursWithoutFloorSplit_StillBuildsALanding_ButKeepsTheBossOnTheGroundFloor()
+    {
+        // Arrange — the floor-split staircase and the lever-gate portcullis share the same Landing
+        // construct, but only floor-split ever changes the boss's floor.
+        var layout = FindLayout(
+            15,
+            candidate =>
+                candidate.LandingIndex != null
+                && candidate.Rooms[candidate.BossIndex].FloorNumber == 0
+        );
+
+        // Act & Assert
+        Assert.True(layout.HasLeverGate);
+    }
+
+    [Fact]
+    public void Generate_AlwaysBuildsAMandatoryShortcut_DirectlyFromTheBoss()
+    {
+        // Arrange — ShortcutFillerChance is a private roll, so search for a seed without a filler.
+        var layout = FindLayout(
+            15,
+            candidate =>
+                candidate.Passages.Any(p =>
+                    Connects(p, candidate.BossIndex, candidate.BackDoorIndex)
+                )
+        );
+
+        // Act & Assert
+        var backDoor = layout.Rooms[layout.BackDoorIndex];
+        Assert.Equal(DungeonRouteKind.None, backDoor.RouteKind);
+        Assert.False(backDoor.IsDeadEnd);
+        Assert.Contains(
+            layout.Passages,
+            passage => Connects(passage, layout.EntranceIndex, layout.BackDoorIndex)
+        );
+    }
+
+    [Fact]
+    public void Generate_AlwaysBuildsAMandatoryShortcut_ThroughAFillerRoomWhenOneIsRolled()
+    {
+        // Arrange — the alternative to a direct Boss-to-back-door passage is exactly one filler
+        // room between them, never a missing connection.
+        var layout = FindLayout(
+            15,
+            candidate =>
+                !candidate.Passages.Any(p =>
+                    Connects(p, candidate.BossIndex, candidate.BackDoorIndex)
+                )
+        );
+
+        // Act & Assert
+        var filler = layout.Rooms.Single(room =>
+            layout.Passages.Any(p => Connects(p, layout.BossIndex, room.Index))
+            && layout.Passages.Any(p => Connects(p, room.Index, layout.BackDoorIndex))
+        );
+        Assert.Equal(DungeonRouteKind.None, filler.RouteKind);
+        Assert.Contains(
+            layout.Passages,
+            passage => Connects(passage, layout.EntranceIndex, layout.BackDoorIndex)
+        );
     }
 
     private static bool Connects(DungeonPassage passage, int a, int b) =>

@@ -45,6 +45,10 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
+            .DoorConnectorLevers.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
             .BookPages.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 

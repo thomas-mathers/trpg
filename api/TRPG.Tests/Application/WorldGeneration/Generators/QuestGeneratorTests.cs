@@ -177,6 +177,7 @@ public sealed class QuestGeneratorTests
             DoorConnectors = [],
             TravelConnectors = [],
             DoorConnectorKeys = [],
+            DoorConnectorLevers = [],
             Rooms = [room],
             Skills = [],
             States = [],

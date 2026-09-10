@@ -7,12 +7,14 @@ internal enum DungeonObstacleKind
     KeyLock,
     Miniboss,
     TrapGauntlet,
+    LeverShortcut,
 }
 
 internal record DungeonObstacleInput(
     IReadOnlyList<DungeonRoomPlacement> Placements,
     IReadOnlyList<LocationConnector> LocationConnectors,
     Guid EntranceLocationId,
+    Guid BossLocationId,
     Guid BuildingId,
     BuildingType DungeonType,
     Guid WorldId,
@@ -33,10 +35,14 @@ internal record DungeonObstacleResult(
     IReadOnlyList<EncounterGroup> EncounterGroups,
     IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
     IReadOnlyList<CreatureSpawner> CreatureSpawners,
-    IReadOnlyList<Trigger> Triggers
+    IReadOnlyList<Trigger> Triggers,
+    IReadOnlyList<Lever> Levers,
+    IReadOnlyList<DoorConnectorLever> DoorConnectorLevers
 )
 {
     public static readonly DungeonObstacleResult Empty = new(
+        [],
+        [],
         [],
         [],
         [],
@@ -77,7 +83,77 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             DungeonObstacleKind.KeyLock => BuildKeyLock(input, shortRouteRooms),
             DungeonObstacleKind.Miniboss => BuildMiniboss(input, shortRouteRooms),
             DungeonObstacleKind.TrapGauntlet => BuildTrapGauntlet(input, shortRouteRooms),
+            DungeonObstacleKind.LeverShortcut => BuildLeverShortcut(input, shortRouteRooms),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+    }
+
+    // A lever found partway down the route opens a direct shortcut straight to the boss, skipping
+    // whatever remains of the route — it must pay off immediately, so it never lands on the route's
+    // very last room (already one hop from the boss) or its first (nothing would be skipped).
+    private static DungeonObstacleResult BuildLeverShortcut(
+        DungeonObstacleInput input,
+        IReadOnlyList<DungeonRoomPlacement> shortRouteRooms
+    )
+    {
+        var orderedRooms = shortRouteRooms.OrderBy(room => room.DepthFromEntrance).ToArray();
+        if (orderedRooms.Length < 2)
+        {
+            return DungeonObstacleResult.Empty;
+        }
+
+        var interiorRooms = orderedRooms.Take(orderedRooms.Length - 1).ToArray();
+        var leverRoom = interiorRooms[interiorRooms.Length / 2];
+        var bossRoom = input
+            .Placements.Single(placement => placement.Room.LocationId == input.BossLocationId)
+            .Room;
+
+        var forwardConnector = new LocationConnector
+        {
+            OriginLocationId = leverRoom.Room.LocationId,
+            Name = "Portcullis",
+            Description = "A portcullis blocking a shortcut, its winch nowhere in sight.",
+            DestinationLocationId = input.BossLocationId,
+            DestinationLabel = bossRoom.Name,
+            WorldId = input.WorldId,
+        };
+        var backwardConnector = new LocationConnector
+        {
+            OriginLocationId = input.BossLocationId,
+            Name = "Portcullis",
+            Description = "A raised portcullis, marking a shortcut back the way it came.",
+            DestinationLocationId = leverRoom.Room.LocationId,
+            DestinationLabel = leverRoom.Room.Name,
+            WorldId = input.WorldId,
+        };
+        var door = new DoorConnector
+        {
+            ConnectorId = forwardConnector.Id,
+            IsLocked = true,
+            WorldId = input.WorldId,
+        };
+        var lever = new Lever
+        {
+            WorldId = input.WorldId,
+            Name = "Lever",
+            Description = "A lever beside a portcullis, offering a shortcut to whoever pulls it.",
+            LocationId = leverRoom.Room.LocationId,
+        };
+
+        return DungeonObstacleResult.Empty with
+        {
+            DoorConnectors = [door],
+            LocationConnectors = [forwardConnector, backwardConnector],
+            Levers = [lever],
+            DoorConnectorLevers =
+            [
+                new DoorConnectorLever
+                {
+                    LeverId = lever.Id,
+                    DoorConnectorId = door.Id,
+                    WorldId = input.WorldId,
+                },
+            ],
         };
     }
 
@@ -242,6 +318,8 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             guard.EncounterGroups,
             guard.EncounterGroupMembers,
             [guard.Spawner],
+            [],
+            [],
             []
         );
     }

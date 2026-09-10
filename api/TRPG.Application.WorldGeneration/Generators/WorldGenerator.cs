@@ -44,6 +44,7 @@ public class WorldGeneratorResult
     public required IReadOnlyList<DoorConnector> DoorConnectors { get; init; }
     public required IReadOnlyList<TravelConnector> TravelConnectors { get; init; }
     public required IReadOnlyList<DoorConnectorKey> DoorConnectorKeys { get; init; }
+    public required IReadOnlyList<DoorConnectorLever> DoorConnectorLevers { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
     public required IReadOnlyCollection<CreatureSkill> Skills { get; init; }
     public required IReadOnlyList<State> States { get; init; }
@@ -138,6 +139,7 @@ public class WorldGenerator(
         var skills = new List<CreatureSkill>();
         var jobs = new List<CreatureJob>();
         var doorConnectorKeys = new List<DoorConnectorKey>();
+        var doorConnectorLevers = new List<DoorConnectorLever>();
         var relationships = new List<Relationship>();
         var encounterGroups = new List<EncounterGroup>();
         var encounterGroupMembers = new List<EncounterGroupMember>();
@@ -303,6 +305,7 @@ public class WorldGenerator(
                         result.Placements,
                         result.LocationConnectors,
                         result.EntranceLocationId,
+                        result.BossLocationId,
                         result.Building.Id,
                         result.Building.BuildingType,
                         worldId,
@@ -326,6 +329,33 @@ public class WorldGenerator(
                 encounterGroupMembers.AddRange(obstacle.EncounterGroupMembers);
                 creatureSpawners.AddRange(obstacle.CreatureSpawners);
                 props.AddRange(obstacle.Triggers);
+                props.AddRange(obstacle.Levers);
+                doorConnectorLevers.AddRange(obstacle.DoorConnectorLevers);
+
+                var shortcutLever = DungeonLeverGenerator.BuildMandatoryShortcutLever(
+                    worldId,
+                    result.BossLocationId,
+                    result.EntranceLocationId,
+                    result.BackDoorLocationId,
+                    result.LocationConnectors
+                );
+                props.AddRange(shortcutLever.Levers);
+                doorConnectors.AddRange(shortcutLever.DoorConnectors);
+                doorConnectorLevers.AddRange(shortcutLever.DoorConnectorLevers);
+
+                if (result.HasLeverGate)
+                {
+                    var canonicalGate = DungeonLeverGenerator.BuildCanonicalGate(
+                        worldId,
+                        result.LandingLocationId!.Value,
+                        result.BossLocationId,
+                        result.LocationConnectors,
+                        result.Placements
+                    );
+                    props.AddRange(canonicalGate.Levers);
+                    doorConnectors.AddRange(canonicalGate.DoorConnectors);
+                    doorConnectorLevers.AddRange(canonicalGate.DoorConnectorLevers);
+                }
             }
         }
 
@@ -423,6 +453,7 @@ public class WorldGenerator(
             Jobs = jobs,
             Knowledge = knowledge,
             DoorConnectorKeys = doorConnectorKeys,
+            DoorConnectorLevers = doorConnectorLevers,
             Relationships = relationships,
             CreatureSpawners = creatureSpawners,
         };

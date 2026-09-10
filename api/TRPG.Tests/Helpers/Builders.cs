@@ -309,6 +309,20 @@ internal static class Builders
             IsResolved = isResolved,
         };
 
+    public static Lever MakeLever(
+        Guid? worldId = null,
+        Guid? locationId = null,
+        bool isPulled = false
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Lever-{Guid.NewGuid():N}",
+            Description = "A test lever",
+            LocationId = locationId ?? Guid.NewGuid(),
+            IsPulled = isPulled,
+        };
+
     public static Workstation MakeWorkstation(
         Guid? worldId = null,
         Guid? locationId = null,
@@ -476,6 +490,18 @@ internal static class Builders
         new()
         {
             ItemId = itemId,
+            DoorConnectorId = doorConnectorId,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
+    public static DoorConnectorLever MakeDoorConnectorLever(
+        Guid leverId,
+        Guid doorConnectorId,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            LeverId = leverId,
             DoorConnectorId = doorConnectorId,
             WorldId = worldId ?? Guid.NewGuid(),
         };

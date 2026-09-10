@@ -29,7 +29,9 @@ internal record DungeonGeneratorResult(
     DoorConnector Door,
     Guid EntranceLocationId,
     Guid BossLocationId,
-    Guid? LandingLocationId
+    Guid? LandingLocationId,
+    bool HasLeverGate,
+    Guid BackDoorLocationId
 );
 
 internal static class DungeonGenerator
@@ -254,7 +256,9 @@ internal static class DungeonGenerator
             new DoorConnector { ConnectorId = frontDoor.Id, WorldId = input.WorldId },
             entranceLocationId,
             locations[layout.BossIndex].Id,
-            layout.LandingIndex is { } landingIndex ? locations[landingIndex].Id : null
+            layout.LandingIndex is { } landingIndex ? locations[landingIndex].Id : null,
+            layout.HasLeverGate,
+            locations[layout.BackDoorIndex].Id
         );
     }
 
