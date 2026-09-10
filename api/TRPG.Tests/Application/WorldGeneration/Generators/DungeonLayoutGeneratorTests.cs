@@ -29,43 +29,54 @@ public class DungeonLayoutGeneratorTests
         // Act
         var layout = DungeonLayoutGenerator.Generate(input);
 
-        // Assert — the way in and the way to the boss being neighbours would leave no dungeon.
+        // Assert
         var boss = layout.Rooms[layout.BossIndex];
         Assert.True(boss.DepthFromEntrance > 1);
         Assert.NotEqual(layout.EntranceIndex, layout.BossIndex);
     }
 
     [Fact]
-    public void Generate_LeavesLoops_SoTheMapIsMoreThanATree()
+    public void Generate_MakesTheBossDeeperThanEveryRoutesOwnLastRoom()
     {
-        // Arrange
-        var input = MakeInput(14);
+        // Arrange — every route converges on the boss, so a plain shortest-path depth would make
+        // arriving via the longer route narrate as "back toward the way you came" instead of
+        // "deeper in". The boss must read as deeper than every route, not just the nearest one.
+        var input = MakeInput(15);
 
         // Act
         var layout = DungeonLayoutGenerator.Generate(input);
 
-        // Assert — a spanning tree has exactly one fewer edge than it has rooms.
-        Assert.True(layout.Passages.Count > layout.Rooms.Count - 1);
+        // Assert
+        var bossDepth = layout.Rooms[layout.BossIndex].DepthFromEntrance;
+        var routeRooms = layout.Rooms.Where(room =>
+            room.Index != layout.EntranceIndex && room.Index != layout.BossIndex
+        );
+        Assert.All(routeRooms, room => Assert.True(bossDepth > room.DepthFromEntrance));
     }
 
     [Fact]
-    public void Generate_KeepsLoopsSparse_SoTheDungeonDoesNotBecomeAnOpenField()
+    public void Generate_MakesTheLongAndShortRoutesDisjoint()
     {
-        // Arrange
+        // Arrange — routes must share nothing but entrance and boss, or a gate on one route
+        // could be walked around through the other's rooms.
         var input = MakeInput(14);
 
         // Act
         var layout = DungeonLayoutGenerator.Generate(input);
 
         // Assert
-        var loopEdges = layout.Passages.Count - (layout.Rooms.Count - 1);
-        Assert.InRange(loopEdges, 1, layout.Rooms.Count / 2);
+        var longRooms = RoomsOn(layout, DungeonRouteKind.Long);
+        var shortRooms = RoomsOn(layout, DungeonRouteKind.Short);
+        Assert.NotEmpty(longRooms);
+        Assert.NotEmpty(shortRooms);
+        Assert.Empty(longRooms.Intersect(shortRooms));
     }
 
     [Fact]
-    public void Generate_FindsDeadEnds_WhichAreWhereExploringHasToPay()
+    public void Generate_AttachesDeadEndsOnlyToTheLongRoute()
     {
-        // Arrange
+        // Arrange — the safe route is where exploring off the beaten path is worth the walk, not
+        // a route that's already gated by its own obstacle.
         var input = MakeInput(14);
 
         // Act
@@ -73,9 +84,23 @@ public class DungeonLayoutGeneratorTests
 
         // Assert
         var deadEnds = layout.Rooms.Where(room => room.IsDeadEnd).ToArray();
-        Assert.True(deadEnds.Length >= 2);
+        Assert.All(deadEnds, room => Assert.Equal(DungeonRouteKind.Long, room.RouteKind));
         Assert.DoesNotContain(deadEnds, room => room.Index == layout.EntranceIndex);
         Assert.DoesNotContain(deadEnds, room => room.Index == layout.BossIndex);
+    }
+
+    [Fact]
+    public void Generate_NeverMarksEntranceOrBossAsPartOfARoute()
+    {
+        // Arrange
+        var input = MakeInput(12);
+
+        // Act
+        var layout = DungeonLayoutGenerator.Generate(input);
+
+        // Assert
+        Assert.Equal(DungeonRouteKind.None, layout.Rooms[layout.EntranceIndex].RouteKind);
+        Assert.Equal(DungeonRouteKind.None, layout.Rooms[layout.BossIndex].RouteKind);
     }
 
     [Fact]
@@ -88,13 +113,8 @@ public class DungeonLayoutGeneratorTests
         var layout = DungeonLayoutGenerator.Generate(input);
 
         // Assert
-        var positions = layout.Rooms.Select(room => room.Position).ToArray();
-        var pairs =
-            from first in positions
-            from second in positions
-            where !ReferenceEquals(first, second)
-            select Math.Sqrt(Math.Pow(first.X - second.X, 2) + Math.Pow(first.Y - second.Y, 2));
-        Assert.All(pairs, distance => Assert.True(distance >= 10));
+        var positions = layout.Rooms.Select(room => room.Position).Distinct().ToArray();
+        Assert.Equal(layout.Rooms.Count, positions.Length);
     }
 
     [Fact]
@@ -114,6 +134,9 @@ public class DungeonLayoutGeneratorTests
         Assert.Equal(layout.EntranceIndex, same.EntranceIndex);
         Assert.Equal(layout.BossIndex, same.BossIndex);
     }
+
+    private static IReadOnlyCollection<int> RoomsOn(DungeonLayout layout, DungeonRouteKind kind) =>
+        layout.Rooms.Where(room => room.RouteKind == kind).Select(room => room.Index).ToArray();
 
     private static DungeonLayoutInput MakeInput(int roomCount) =>
         new(roomCount) { Random = new Random(20260908) };

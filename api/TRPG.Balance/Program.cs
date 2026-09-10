@@ -58,9 +58,60 @@ switch (mode)
         TraceExperiment.Run(traceProfession, traceMonsterType, traceLevel, traceTrialCount);
         break;
 
+    case "dungeon":
+        var dungeonRoomCount =
+            args.Length > 1 && int.TryParse(args[1], out var parsedRoomCount)
+                ? parsedRoomCount
+                : 10;
+        var dungeonLayoutCount =
+            args.Length > 2 && int.TryParse(args[2], out var parsedLayoutCount)
+                ? parsedLayoutCount
+                : 5;
+        var dungeonSeed =
+            args.Length > 3 && int.TryParse(args[3], out var parsedSeed) ? parsedSeed : 1;
+        var dungeonOutputPath = args.Length > 4 ? args[4] : "dungeon-layouts.md";
+        DungeonLayoutExperiment.Run(
+            dungeonRoomCount,
+            dungeonLayoutCount,
+            dungeonSeed,
+            dungeonOutputPath
+        );
+        break;
+
+    case "skeleton":
+        var skeletonRouteCount =
+            args.Length > 1 && int.TryParse(args[1], out var parsedRouteCount)
+                ? parsedRouteCount
+                : 3;
+        var skeletonLayoutCount =
+            args.Length > 2 && int.TryParse(args[2], out var parsedSkeletonLayouts)
+                ? parsedSkeletonLayouts
+                : 5;
+        var skeletonSeed =
+            args.Length > 3 && int.TryParse(args[3], out var parsedSkeletonSeed)
+                ? parsedSkeletonSeed
+                : 1;
+        var skeletonOutputPath = args.Length > 4 ? args[4] : "dungeon-skeletons.md";
+        DungeonSkeletonExperiment.Run(
+            routeCount: skeletonRouteCount,
+            minRouteLength: 2,
+            maxRouteLength: 4,
+            maxShortcutFillers: 1,
+            decorativeDeadEnds: 2,
+            layoutCount: skeletonLayoutCount,
+            seed: skeletonSeed,
+            outputPath: skeletonOutputPath
+        );
+        break;
+
+    case "scenarios":
+        var scenarioOutputPath = args.Length > 1 ? args[1] : "dungeon-scenarios.md";
+        DungeonScenarioExperiment.Run(scenarioOutputPath);
+        break;
+
     default:
         Console.WriteLine(
-            $"Unknown mode '{mode}'. Expected 'fight', 'matrix', 'diagnose', 'defensecurve', or 'trace'."
+            $"Unknown mode '{mode}'. Expected 'fight', 'matrix', 'diagnose', 'defensecurve', 'trace', 'dungeon', 'skeleton', or 'scenarios'."
         );
         break;
 }
