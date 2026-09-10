@@ -64,7 +64,8 @@ internal class CreateWorldCommandHandler(
                 Gender: command.Gender.ToGender(),
                 MinBirthYear: birthYear,
                 MaxBirthYear: birthYear,
-                StartingAttributeAllocation: command.StartingAttributeAllocation
+                StartingAttributeAllocation: command.StartingAttributeAllocation,
+                PlayerClass: command.PlayerClass
             )
         );
         playerResult = creatureGenerator.AddStartingPotions(playerResult);
@@ -72,12 +73,21 @@ internal class CreateWorldCommandHandler(
 
         var quests = questGenerator.Generate(worldResult, startingState.Id);
 
+        var monsterReputations = MonsterReputationSeeder.Seed(
+            worldResult.World.Id,
+            playerResult.Creature.Id,
+            command.Race,
+            command.PlayerClass,
+            worldResult.Factions
+        );
+
         var bootstrapResult = await bootstrapWorld.Handle(
             new BootstrapWorldCommand
             {
                 World = worldResult,
                 Player = playerResult,
                 Quests = quests,
+                PlayerReputations = monsterReputations,
             },
             cancellationToken
         );

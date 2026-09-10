@@ -22,6 +22,8 @@ import { renderWithProviders } from '@/test/test-utils';
 
 import { NewWorldDialog } from './new-world-dialog';
 
+HTMLElement.prototype.scrollIntoView = vi.fn();
+
 const generationOptions = {
   pointsPerLevel: 3,
   baseAttributes: {
@@ -43,6 +45,7 @@ const ui = {
   newWorldButton: byRole('button', { name: 'New World' }),
   dialog: byRole('dialog', { name: 'New World' }),
   name: byRole('textbox', { name: 'Name' }),
+  playerClass: byRole('combobox', { name: 'Class' }),
   createWorld: byRole('button', { name: 'Create World' }),
   back: byRole('button', { name: 'Back' }),
 };
@@ -100,6 +103,28 @@ describe('NewWorldDialog', () => {
     expect(ui.name.get()).toBeVisible();
   });
 
+  it('pre-fills attributes for the selected class', async () => {
+    mockGenerationOptions();
+    const { user } = renderDialog();
+
+    await user.click(await ui.newWorldButton.find());
+    await ui.dialog.find();
+    await waitFor(() =>
+      expect(screen.getByRole('spinbutton', { name: 'Strength' })).toHaveValue(13),
+    );
+
+    expect(screen.getByRole('spinbutton', { name: 'Mana' })).toHaveValue(8);
+    expect(screen.getByRole('spinbutton', { name: 'Intelligence' })).toHaveValue(8);
+
+    ui.playerClass.get().focus();
+    await user.keyboard('{Enter}{End}{ArrowUp}{Enter}');
+
+    expect(screen.getByRole('spinbutton', { name: 'Strength' })).toHaveValue(8);
+    expect(screen.getByRole('spinbutton', { name: 'Stamina' })).toHaveValue(8);
+    expect(screen.getByRole('spinbutton', { name: 'Mana' })).toHaveValue(13);
+    expect(screen.getByRole('spinbutton', { name: 'Intelligence' })).toHaveValue(14);
+  });
+
   it('creates a world, starts its session, and navigates to the session', async () => {
     mockGenerationOptions();
     const worldRequest = vi.fn();
@@ -141,7 +166,13 @@ describe('NewWorldDialog', () => {
         age: 30,
         race: 'Human',
         playerClass: 'Knight',
-        startingAttributeAllocation: {},
+        startingAttributeAllocation: {
+          strength: 3,
+          endurance: 3,
+          stamina: 1,
+          mana: -2,
+          intelligence: -2,
+        },
       }),
     );
     await waitFor(() => expect(router.state.location.pathname).toBe('/session/session-1'));

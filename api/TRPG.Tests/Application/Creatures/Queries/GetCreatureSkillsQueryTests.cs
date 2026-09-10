@@ -29,8 +29,6 @@ public sealed class GetCreatureSkillsQueryTests(DatabaseFixture db) : IAsyncLife
     [Fact]
     public async Task Handle_ComputesExperienceProgress_ForEachLearnedSkill()
     {
-        // Arrange — level 2 floor is XpForSkillLevel(2) = 150, next level floor is
-        // XpForSkillLevel(3) = 307, so experience 300 sits at Current = 150, ToNextLevel = 157.
         _context.CreatureSkills.Add(
             new CreatureSkill
             {
@@ -55,6 +53,32 @@ public sealed class GetCreatureSkillsQueryTests(DatabaseFixture db) : IAsyncLife
         Assert.Equal(2, skill.Level);
         Assert.Equal(150, skill.ExperienceCurrent);
         Assert.Equal(157, skill.ExperienceToNextLevel);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesSeedExperience_FromLevelProgress()
+    {
+        _context.CreatureSkills.Add(
+            new CreatureSkill
+            {
+                WorldId = _creature.WorldId,
+                CreatureId = _creature.Id,
+                Skill = Skill.Melee,
+                Level = 1,
+                Experience = 150,
+                SeedExperience = 150,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var skills = await _handler.Handle(
+            new GetCreatureSkillsQuery { CreatureId = _creature.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        var skill = Assert.Single(skills);
+        Assert.Equal(0, skill.ExperienceCurrent);
+        Assert.Equal(150, skill.ExperienceToNextLevel);
     }
 
     [Fact]

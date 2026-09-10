@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.Abilities;
@@ -97,6 +98,34 @@ public class AbilityCatalogTests
             ["Whirlwind"] = ["Cleave"],
             ["Wrath of the Divine"] = ["Destroy Undead"],
         };
+
+    [Fact]
+    public void Abilities_DeriveRequiredExperience_FromRequiredSkillLevel()
+    {
+        Assert.All(
+            AbilityCatalog.Abilities,
+            ability =>
+                Assert.Equal(
+                    SkillFormulas.CalculateSkillExperienceFromSkillLevel(
+                        ability.RequiredSkillLevel
+                    ),
+                    ability.RequiredSkillExperience
+                )
+        );
+    }
+
+    [Fact]
+    public void GetAbilitiesForSkillExperience_UnlocksAtExperienceThreshold()
+    {
+        var abilities = AbilityCatalog.GetAbilitiesForSkillExperience(
+            new Dictionary<Skill, int>
+            {
+                [Skill.Melee] = SkillFormulas.CalculateSkillExperienceFromSkillLevel(2),
+            }
+        );
+
+        Assert.Contains(abilities, ability => ability.Name == "Cleave");
+    }
 
     [Fact]
     public void Prerequisites_MatchExpectedAbilityTree()

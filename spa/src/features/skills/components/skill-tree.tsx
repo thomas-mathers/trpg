@@ -32,12 +32,15 @@ const NODE_WIDTH = 150;
 const NODE_HEIGHT = 56;
 
 interface SkillTreeProps {
-  level: number;
   abilities: AbilitySummary[];
+  unlockedAbilityNames: ReadonlySet<string>;
 }
 
-export function SkillTree({ abilities, level }: SkillTreeProps) {
-  const { nodes, edges } = useMemo(() => createSkillTree(level, abilities), [abilities, level]);
+export function SkillTree({ abilities, unlockedAbilityNames }: SkillTreeProps) {
+  const { nodes, edges } = useMemo(
+    () => createSkillTree(unlockedAbilityNames, abilities),
+    [abilities, unlockedAbilityNames],
+  );
   const { fitView } = useReactFlow();
 
   useEffect(() => {
@@ -85,7 +88,7 @@ export function SkillTree({ abilities, level }: SkillTreeProps) {
 }
 
 const createSkillTree = (
-  level: number,
+  unlockedAbilityNames: ReadonlySet<string>,
   abilities: AbilitySummary[],
   isHorizontal: boolean = true,
 ) => {
@@ -119,19 +122,15 @@ const createSkillTree = (
       type: ABILITY_NODE_TYPE,
       data: {
         ability,
-        isUnlocked: level >= ability.requiredSkillLevel,
+        isUnlocked: unlockedAbilityNames.has(ability.name),
       },
     };
   });
 
-  const abilityLevels = new Map(
-    abilities.map((ability) => [ability.name, ability.requiredSkillLevel]),
-  );
-
   const edges: AbilityFlowEdge[] = abilities.flatMap((ability) =>
     ability.prerequisites.map((prerequisite) => {
       const isUnlocked =
-        level >= ability.requiredSkillLevel && level >= abilityLevels.get(prerequisite)!;
+        unlockedAbilityNames.has(ability.name) && unlockedAbilityNames.has(prerequisite);
       return {
         id: `${prerequisite} -> ${ability.name}`,
         source: prerequisite,
@@ -166,6 +165,7 @@ function AbilityNode({ data, sourcePosition, targetPosition }: NodeProps<Ability
     <HoverPopover>
       <HoverPopoverTrigger asChild>
         <div
+          data-unlocked={isUnlocked}
           style={{
             width: NODE_WIDTH,
             height: NODE_HEIGHT,

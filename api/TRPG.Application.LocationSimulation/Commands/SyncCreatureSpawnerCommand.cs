@@ -6,6 +6,7 @@ using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Factions.Commands;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WorldGeneration.Generators;
@@ -33,6 +34,7 @@ internal class SyncCreatureSpawnerCommandHandler(
     ICommandHandler<AddCreatureSkillsCommand> addCreatureSkills,
     ICommandHandler<AddCreatureJobsCommand> addCreatureJobs,
     ICommandHandler<CreateEncounterGroupsCommand> createEncounterGroups,
+    ICommandHandler<AddFactionMembersCommand> addFactionMembers,
     IQueryHandler<GetLivingCreatureCountBySpawnerIdQuery, int> getLivingCreatureCountBySpawnerId
 ) : ICommandHandler<SyncCreatureSpawnerCommand>
 {
@@ -115,6 +117,10 @@ internal class SyncCreatureSpawnerCommandHandler(
                 Groups = fillResult.EncounterGroups,
                 Members = fillResult.EncounterGroupMembers,
             },
+            cancellationToken
+        );
+        await addFactionMembers.Handle(
+            new AddFactionMembersCommand { Members = fillResult.FactionMembers },
             cancellationToken
         );
 

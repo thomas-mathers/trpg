@@ -18,7 +18,9 @@ public class Ability
     public string Description { get; init; } = "";
     public int MpCost { get; init; }
     public string Name { get; init; } = "";
+
     public int RequiredSkillLevel { get; init; }
+    public int RequiredSkillExperience { get; init; }
     public Skill Skill { get; init; } = Skill.General;
     public GearRequirement GearRequirement { get; init; } = GearRequirement.None;
     public List<string> Prerequisites { get; init; } = [];

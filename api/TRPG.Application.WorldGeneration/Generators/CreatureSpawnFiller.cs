@@ -6,7 +6,8 @@ public record CreatureSpawnFillResult(
     IReadOnlyList<CreatureGeneratorResult> Monsters,
     IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
-    IReadOnlyList<EncounterGroupMember> EncounterGroupMembers
+    IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
+    IReadOnlyList<FactionMember> FactionMembers
 );
 
 public static class CreatureSpawnFiller
@@ -26,7 +27,7 @@ public static class CreatureSpawnFiller
         var missing = maxPopulation - currentPopulation;
         if (missing <= 0 || archetypeCreatureTypes.Count == 0)
         {
-            return new CreatureSpawnFillResult([], [], [], []);
+            return new CreatureSpawnFillResult([], [], [], [], []);
         }
 
         var creatureType = archetypeCreatureTypes[Random.Shared.Next(archetypeCreatureTypes.Count)];
@@ -65,8 +66,17 @@ public static class CreatureSpawnFiller
                 CreatureId = monster.Creature.Id,
             })
             .ToArray();
+        var factionMembers = monsters
+            .Select(monster => new FactionMember
+            {
+                WorldId = worldId,
+                FactionId = group.FactionId,
+                CreatureId = monster.Creature.Id,
+                Role = FactionRole.Member,
+            })
+            .ToArray();
 
-        return new CreatureSpawnFillResult(monsters, jobs, [group], members);
+        return new CreatureSpawnFillResult(monsters, jobs, [group], members, factionMembers);
     }
 
     private static (int MinimumLevel, int MaximumLevel) LevelRange(

@@ -54,6 +54,29 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
     }
 
     [Fact]
+    public async Task Handle_ExcludesAbilities_ForSkillsAtLevelZeroWithNoExperience()
+    {
+        _context.CreatureSkills.Add(
+            new CreatureSkill
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                Skill = Skill.Melee,
+                Level = 0,
+                Experience = 0,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var abilities = await _handler.Handle(
+            new GetCreatureAbilitiesQuery { CreatureId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.DoesNotContain(abilities, ability => ability.Name == "Slash");
+    }
+
+    [Fact]
     public async Task Handle_IncludesAbilitiesUnlockedByCreatureSkills()
     {
         // Arrange
@@ -64,6 +87,7 @@ public sealed class GetCreatureAbilitiesQueryTests(DatabaseFixture db) : IAsyncL
                 CreatureId = _player.Id,
                 Skill = Skill.Melee,
                 Level = 2,
+                Experience = 150,
             }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

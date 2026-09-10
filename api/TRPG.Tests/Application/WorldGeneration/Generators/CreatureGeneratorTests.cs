@@ -1,5 +1,6 @@
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
+using TRPG.Application.WorldGeneration;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -15,7 +16,8 @@ public class CreatureGeneratorTests
     private CreatureGeneratorInput MakeInput(
         Profession profession,
         int level = 1,
-        IReadOnlyDictionary<AllocatableAttributeName, int>? startingAttributeAllocation = null
+        IReadOnlyDictionary<AllocatableAttributeName, int>? startingAttributeAllocation = null,
+        PlayerClass? playerClass = null
     )
     {
         return new CreatureGeneratorInput(
@@ -25,7 +27,8 @@ public class CreatureGeneratorTests
             _locationId,
             MinLevel: level,
             MaxLevel: level,
-            StartingAttributeAllocation: startingAttributeAllocation
+            StartingAttributeAllocation: startingAttributeAllocation,
+            PlayerClass: playerClass
         );
     }
 
@@ -300,6 +303,34 @@ public class CreatureGeneratorTests
         // Assert
         var skillLevels = result.Skills.ToDictionary(s => s.Skill, s => s.Level);
         Assert.Equal(1, skillLevels[Skill.Archery]);
+    }
+
+    [Fact]
+    public void Generate_SeedsFavoredClassSkillExperience_WithoutRaisingSkillLevels()
+    {
+        var result = _creatureGenerator.Generate(
+            MakeInput(
+                Profession.Mage,
+                startingAttributeAllocation: new Dictionary<AllocatableAttributeName, int>(),
+                playerClass: PlayerClass.Mage
+            )
+        );
+
+        var nudgeExperience = SkillFormulas.CalculateSkillExperienceFromSkillLevel(2);
+        var favoredSkills = new[] { Skill.Destruction, Skill.Illusion, Skill.Alteration };
+        Assert.All(
+            result.Skills.Where(skill => favoredSkills.Contains(skill.Skill)),
+            skill =>
+            {
+                Assert.Equal(1, skill.Level);
+                Assert.Equal(nudgeExperience, skill.Experience);
+                Assert.Equal(nudgeExperience, skill.SeedExperience);
+            }
+        );
+        Assert.All(
+            result.Skills.Where(skill => !favoredSkills.Contains(skill.Skill)),
+            skill => Assert.Equal(0, skill.SeedExperience)
+        );
     }
 
     [Fact]

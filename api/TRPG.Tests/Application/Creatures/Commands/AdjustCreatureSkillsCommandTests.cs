@@ -36,7 +36,12 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         await _context.DisposeAsync();
     }
 
-    private async Task<CreatureSkill> SeedSkill(Skill skill, int level, int experience)
+    private async Task<CreatureSkill> SeedSkill(
+        Skill skill,
+        int level,
+        int experience,
+        int seedExperience = 0
+    )
     {
         var creatureSkill = new CreatureSkill
         {
@@ -45,6 +50,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
             Skill = skill,
             Level = level,
             Experience = experience,
+            SeedExperience = seedExperience,
         };
         _context.CreatureSkills.Add(creatureSkill);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -112,6 +118,29 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         );
         Assert.Equal(260, skill.Experience);
         Assert.Equal(2, skill.Level);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotCountSeedExperience_TowardSkillLevelUps()
+    {
+        await SeedSkill(Skill.Melee, level: 1, experience: 150, seedExperience: 150);
+
+        await _handler.Handle(
+            new AdjustCreatureSkillsCommand
+            {
+                WorldId = _worldId,
+                CreatureId = _creature.Id,
+                UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 1 },
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        var skill = await _context.CreatureSkills.SingleAsync(
+            item => item.CreatureId == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(160, skill.Experience);
+        Assert.Equal(1, skill.Level);
     }
 
     [Fact]

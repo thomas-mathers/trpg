@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;
 
@@ -12,6 +13,7 @@ public class BootstrapWorldCommand
     public required WorldGeneratorResult World { get; init; }
     public CreatureGeneratorResult? Player { get; init; }
     public required QuestGeneratorResult Quests { get; init; }
+    public IReadOnlyList<Reputation> PlayerReputations { get; init; } = [];
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -86,6 +88,7 @@ internal class BootstrapWorldCommandHandler(
             context.Creatures.Add(player.Creature);
             context.Items.AddRange(player.Items);
             context.CreatureSkills.AddRange(player.Skills);
+            context.Reputations.AddRange(command.PlayerReputations);
         }
 
         await context.SaveChangesAsync(cancellationToken);

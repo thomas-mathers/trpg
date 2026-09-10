@@ -1,9 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { ReactFlowProvider } from '@xyflow/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { Skill } from '@/api/client';
-import { getAbilitiesBySkillOptions, getCreatureSkillsOptions } from '@/api/client';
+import {
+  getAbilitiesBySkillOptions,
+  getCreatureAbilitiesOptions,
+  getCreatureSkillsOptions,
+} from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -53,10 +57,17 @@ function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose:
   const [activeSkill, setActiveSkill] = useState<Skill>('Melee');
 
   const skillLevels = useQuery(getCreatureSkillsOptions({ path: { creatureId: playerId } }));
+  const unlockedAbilities = useQuery(
+    getCreatureAbilitiesOptions({ path: { creatureId: playerId } }),
+  );
 
   const tree = useQuery(getAbilitiesBySkillOptions({ path: { skill: activeSkill } }));
+  const unlockedAbilityNames = useMemo(
+    () => new Set(unlockedAbilities.data?.map((ability) => ability.name) ?? []),
+    [unlockedAbilities.data],
+  );
 
-  if (!skillLevels.data) {
+  if (!skillLevels.data || !unlockedAbilities.data) {
     return (
       <div className="flex flex-1 items-center justify-center py-12">
         <p className="text-muted-foreground text-sm">Loading abilities...</p>
@@ -114,7 +125,7 @@ function SkillTreeDialogBody({ playerId, onClose }: { playerId: string; onClose:
               <p className="text-muted-foreground text-sm">Loading tree...</p>
             </div>
           ) : (
-            <SkillTree level={currentLevel} abilities={tree.data} />
+            <SkillTree abilities={tree.data} unlockedAbilityNames={unlockedAbilityNames} />
           )}
         </TabsContent>
       </Tabs>

@@ -150,4 +150,32 @@ public class CreatureSpawnFillerTests
         );
         Assert.Equal(_factionsByCreatureType[creatureType].Id, group.FactionId);
     }
+
+    [Fact]
+    public void Fill_LinksEveryGeneratedMonster_ToItsEncounterFaction()
+    {
+        var result = CreatureSpawnFiller.Fill(
+            _creatureGenerator,
+            _archetypeCreatureTypes,
+            currentPopulation: 0,
+            maxPopulation: 3,
+            playerLevel: 1,
+            _worldId,
+            _locationId,
+            _spawnerId,
+            _factionsByCreatureType
+        );
+
+        var group = Assert.Single(result.EncounterGroups);
+        Assert.Equal(result.Monsters.Count, result.FactionMembers.Count);
+        Assert.All(
+            result.FactionMembers,
+            member => Assert.Equal(group.FactionId, member.FactionId)
+        );
+        Assert.All(result.FactionMembers, member => Assert.Equal(FactionRole.Member, member.Role));
+        Assert.Equal(
+            result.Monsters.Select(monster => monster.Creature.Id).OrderBy(id => id),
+            result.FactionMembers.Select(member => member.CreatureId).OrderBy(id => id)
+        );
+    }
 }

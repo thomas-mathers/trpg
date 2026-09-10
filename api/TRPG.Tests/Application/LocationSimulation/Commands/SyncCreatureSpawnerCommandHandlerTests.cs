@@ -86,6 +86,35 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db) :
     }
 
     [Fact]
+    public async Task Handle_LinksSpawnedCreatures_ToTheirMonsterFaction()
+    {
+        var spawner = Builders.MakeCreatureSpawner(_worldId, _location.Id, maxPopulation: 2);
+        _context.CreatureSpawners.Add(spawner);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new SyncCreatureSpawnerCommand
+            {
+                LocationId = _location.Id,
+                PlayerLevel = 1,
+                CurrentPlaytime = TimeSpan.FromHours(2),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var spawnedIds = await verifyContext
+            .Creatures.Where(creature => creature.SpawnerId == spawner.Id)
+            .Select(creature => creature.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        var factionMemberIds = await verifyContext
+            .FactionMembers.Where(member => spawnedIds.Contains(member.CreatureId))
+            .Select(member => member.CreatureId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(spawnedIds.OrderBy(id => id), factionMemberIds.OrderBy(id => id));
+    }
+
+    [Fact]
     public async Task Handle_AdvancesLastSyncPlaytime_AfterSpawning()
     {
         // Arrange

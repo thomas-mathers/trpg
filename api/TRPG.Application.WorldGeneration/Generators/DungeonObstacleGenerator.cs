@@ -34,6 +34,7 @@ internal record DungeonObstacleResult(
     IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
     IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
+    IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<CreatureSpawner> CreatureSpawners,
     IReadOnlyList<Trigger> Triggers,
     IReadOnlyList<Lever> Levers,
@@ -41,6 +42,7 @@ internal record DungeonObstacleResult(
 )
 {
     public static readonly DungeonObstacleResult Empty = new(
+        [],
         [],
         [],
         [],
@@ -317,6 +319,7 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             guard.Jobs,
             guard.EncounterGroups,
             guard.EncounterGroupMembers,
+            guard.FactionMembers,
             [guard.Spawner],
             [],
             [],
@@ -395,6 +398,7 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             Jobs = miniboss.Jobs,
             EncounterGroups = miniboss.EncounterGroups,
             EncounterGroupMembers = miniboss.EncounterGroupMembers,
+            FactionMembers = miniboss.FactionMembers,
             CreatureSpawners = [miniboss.Spawner],
         };
     }

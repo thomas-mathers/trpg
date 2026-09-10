@@ -163,6 +163,52 @@ public class KnowledgeGeneratorTests
     }
 
     [Fact]
+    public void Generate_IgnoresFactionMembers_OutsideCreatureSet()
+    {
+        var creature = Builders.MakeCreature(_worldId);
+        var excludedCreature = Builders.MakeCreature(_worldId);
+        var faction = new Faction
+        {
+            WorldId = _worldId,
+            Name = $"Faction-{Guid.NewGuid():N}",
+            Description = "A test faction",
+        };
+        FactionMember[] members =
+        [
+            new()
+            {
+                FactionId = faction.Id,
+                CreatureId = creature.Id,
+                Role = FactionRole.Member,
+                WorldId = _worldId,
+            },
+            new()
+            {
+                FactionId = faction.Id,
+                CreatureId = excludedCreature.Id,
+                Role = FactionRole.Member,
+                WorldId = _worldId,
+            },
+        ];
+
+        var knowledge = KnowledgeGenerator.Generate(
+            MakeInput(creatures: [creature], factionMembers: members, factions: [faction])
+        );
+
+        Assert.Contains(
+            knowledge,
+            item =>
+                item.KnowerId == creature.Id
+                && item.SubjectId == faction.Id
+                && item.SubjectType == KnowledgeSubjectType.Faction
+        );
+        Assert.DoesNotContain(
+            knowledge,
+            item => item.KnowerId == excludedCreature.Id || item.SubjectId == excludedCreature.Id
+        );
+    }
+
+    [Fact]
     public void Generate_AddsHomeCountryAndStateCities_ForEveryCreature()
     {
         // Arrange

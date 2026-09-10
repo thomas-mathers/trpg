@@ -31,6 +31,7 @@ internal class EvaluateHostileEncounterCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
     SneakDetectionService sneakDetectionService,
+    IChanceRoller chanceRoller,
     IOptionsMonitor<SneakOptions> sneakOptions
 ) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
 {
@@ -101,7 +102,11 @@ internal class EvaluateHostileEncounterCommandHandler(
             )
             .ToArray();
 
-        var selectedGroupId = HostileEncounterInitiationResolver.Resolve(player!.Level, candidates);
+        var selectedGroupId = HostileEncounterInitiationResolver.Resolve(
+            player!.Level,
+            candidates,
+            chanceRoller
+        );
         if (selectedGroupId == null)
         {
             return null;

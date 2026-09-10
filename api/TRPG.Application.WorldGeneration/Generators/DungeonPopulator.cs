@@ -15,6 +15,7 @@ internal record DungeonPopulatorResult(
     IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
     IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
+    IReadOnlyList<FactionMember> FactionMembers,
     CreatureSpawner Spawner
 );
 
@@ -98,6 +99,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             fillResult.Jobs,
             fillResult.EncounterGroups,
             fillResult.EncounterGroupMembers,
+            fillResult.FactionMembers,
             spawner
         );
     }
@@ -136,6 +138,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             fillResult.Jobs,
             fillResult.EncounterGroups,
             fillResult.EncounterGroupMembers,
+            fillResult.FactionMembers,
             spawner
         );
     }
