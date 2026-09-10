@@ -4,9 +4,18 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
 
+internal record DungeonTrapResult(
+    IReadOnlyList<Trigger> Triggers,
+    IReadOnlyList<Room> Rooms,
+    IReadOnlyList<Location> Locations,
+    IReadOnlyList<LocationConnector> LocationConnectors
+);
+
 // A trap's kind is implied entirely by its room's role, so there is no separate kind roll: a room
 // already reads as a hazard (CollapsedGallery, FloodedSump) or a place worth guarding
-// (TreasureRoom), and the trap makes that mechanical rather than only decorative.
+// (TreasureRoom), and the trap makes that mechanical rather than only decorative. Falling-trap
+// climbability (Rubble Landing / Trap Cellar) lives in DungeonTrapBasement, shared with the
+// TrapGauntlet obstacle so a fall behaves identically no matter which system placed the trap.
 public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
 {
     private static readonly Dictionary<RoomRole, TrapKind> TrapKindByRole = new()
@@ -17,9 +26,10 @@ public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
         [RoomRole.FloodedSump] = TrapKind.Water,
     };
 
-    internal IReadOnlyList<Trigger> Generate(
+    internal DungeonTrapResult Generate(
         IReadOnlyList<DungeonRoomPlacement> placements,
         Guid worldId,
+        Guid stateId,
         Random random
     )
     {
@@ -33,24 +43,31 @@ public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
 
         if (chosen.Length == 0)
         {
-            return [];
+            return new DungeonTrapResult([], [], [], []);
         }
 
         // A trap's target is never another trap room, or a chained fall between two unnoticed
-        // traps could never resolve on its own.
+        // traps could never resolve on its own. Only relevant to Water, which is the only kind
+        // that can still target an existing room.
         var trapLocationIds = chosen.Select(placement => placement.Room.LocationId).ToHashSet();
+        var buildingId = placements[0].Room.BuildingId;
+        var basement = new DungeonTrapBasement(worldId, stateId, buildingId);
 
-        var traps = new List<Trigger>();
+        var triggers = new List<Trigger>();
         foreach (var placement in chosen)
         {
             var kind = TrapKindByRole[placement.Role];
-            var targetId = ChooseTarget(placement, kind, placements, trapLocationIds, random);
+            var targetId =
+                kind == TrapKind.Water
+                    ? ChooseWaterTarget(placement, placements, trapLocationIds, random)
+                    : basement.TargetFor(kind, placement);
+
             if (targetId == null)
             {
                 continue;
             }
 
-            traps.Add(
+            triggers.Add(
                 new Trigger
                 {
                     LocationId = placement.Room.LocationId,
@@ -63,14 +80,19 @@ public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
             );
         }
 
-        return traps;
+        return new DungeonTrapResult(
+            triggers,
+            basement.Rooms,
+            basement.Locations,
+            basement.LocationConnectors
+        );
     }
 
-    // Water is the only mechanism that plausibly moves you backwards; the other three move you
-    // deeper. A dungeon layout that offers no candidate in that direction simply gets no trap here.
-    private static Guid? ChooseTarget(
+    // Water is the only mechanism that plausibly moves you backwards, sweeping you shallower on
+    // the same floor rather than down. A dungeon layout that offers no candidate in that direction
+    // simply gets no trap here.
+    private static Guid? ChooseWaterTarget(
         DungeonRoomPlacement placement,
-        TrapKind kind,
         IReadOnlyList<DungeonRoomPlacement> placements,
         IReadOnlySet<Guid> trapLocationIds,
         Random random
@@ -79,11 +101,8 @@ public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
         var candidates = placements
             .Where(other => other.Room.LocationId != placement.Room.LocationId)
             .Where(other => !trapLocationIds.Contains(other.Room.LocationId))
-            .Where(other =>
-                kind == TrapKind.Water
-                    ? other.DepthFromEntrance < placement.DepthFromEntrance
-                    : other.DepthFromEntrance > placement.DepthFromEntrance
-            )
+            .Where(other => other.FloorNumber == placement.FloorNumber)
+            .Where(other => other.DepthFromEntrance < placement.DepthFromEntrance)
             .ToArray();
 
         return candidates.Length == 0

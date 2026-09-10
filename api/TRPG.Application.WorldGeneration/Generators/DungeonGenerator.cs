@@ -11,7 +11,14 @@ internal record DungeonGeneratorInput(
     public Random Random { get; init; } = Random.Shared;
 }
 
-internal record DungeonRoomPlacement(Room Room, RoomRole Role, int DepthFromEntrance);
+internal record DungeonRoomPlacement(
+    Room Room,
+    RoomRole Role,
+    int DepthFromEntrance,
+    int FloorNumber,
+    DungeonRouteKind RouteKind,
+    bool IsDeadEnd
+);
 
 internal record DungeonGeneratorResult(
     Building Building,
@@ -21,7 +28,8 @@ internal record DungeonGeneratorResult(
     IReadOnlyList<LocationConnector> LocationConnectors,
     DoorConnector Door,
     Guid EntranceLocationId,
-    Guid BossLocationId
+    Guid BossLocationId,
+    Guid? LandingLocationId
 );
 
 internal static class DungeonGenerator
@@ -201,7 +209,16 @@ internal static class DungeonGenerator
 
             locations.Add(location);
             rooms.Add(built);
-            placements.Add(new DungeonRoomPlacement(built, room.Role, room.Node.DepthFromEntrance));
+            placements.Add(
+                new DungeonRoomPlacement(
+                    built,
+                    room.Role,
+                    room.Node.DepthFromEntrance,
+                    room.Node.FloorNumber,
+                    room.Node.RouteKind,
+                    room.Node.IsDeadEnd
+                )
+            );
         }
 
         var entranceLocationId = locations[layout.EntranceIndex].Id;
@@ -236,7 +253,8 @@ internal static class DungeonGenerator
             connectors,
             new DoorConnector { ConnectorId = frontDoor.Id, WorldId = input.WorldId },
             entranceLocationId,
-            locations[layout.BossIndex].Id
+            locations[layout.BossIndex].Id,
+            layout.LandingIndex is { } landingIndex ? locations[landingIndex].Id : null
         );
     }
 

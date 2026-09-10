@@ -55,6 +55,53 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
     public static bool SupportsDungeonType(BuildingType buildingType) =>
         ArchetypesByDungeonType.ContainsKey(buildingType);
 
+    // A KeyLock guard or Miniboss is a forced, single occupant rather than the usual random
+    // 0-3 population roll — the room is always occupied, never sometimes empty. Both reuse this
+    // one method: the guard passes the normal player level, Miniboss passes an elevated one, and
+    // the level math itself (CreatureSpawnFiller's spawn-level curve) needs no changes either way.
+    internal DungeonPopulatorResult GenerateForced(
+        Guid worldId,
+        Guid locationId,
+        BuildingType dungeonType,
+        int playerLevel,
+        IReadOnlyDictionary<CreatureType, Faction> factionsByCreatureType
+    )
+    {
+        var archetypeCreatureTypes = ArchetypesByDungeonType[dungeonType]
+            .Select(archetype => archetype.CreatureType!.Value)
+            .ToArray();
+
+        var spawner = new CreatureSpawner
+        {
+            WorldId = worldId,
+            LocationId = locationId,
+            ArchetypeCreatureTypes = archetypeCreatureTypes.ToList(),
+            MaxPopulation = 1,
+            Schedule = $"0 {Random.Shared.Next(24)} */{RespawnIntervalDays} * *",
+            LastSyncPlaytime = TimeSpan.Zero,
+        };
+
+        var fillResult = CreatureSpawnFiller.Fill(
+            creatureGenerator,
+            archetypeCreatureTypes,
+            currentPopulation: 0,
+            maxPopulation: 1,
+            playerLevel,
+            worldId,
+            locationId,
+            spawner.Id,
+            factionsByCreatureType
+        );
+
+        return new DungeonPopulatorResult(
+            fillResult.Monsters,
+            fillResult.Jobs,
+            fillResult.EncounterGroups,
+            fillResult.EncounterGroupMembers,
+            spawner
+        );
+    }
+
     internal DungeonPopulatorResult Generate(DungeonPopulatorInput input)
     {
         var archetypeCreatureTypes = ArchetypesByDungeonType[input.DungeonType]

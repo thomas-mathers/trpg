@@ -135,6 +135,85 @@ public class DungeonLayoutGeneratorTests
         Assert.Equal(layout.BossIndex, same.BossIndex);
     }
 
+    [Fact]
+    public void Generate_WhenFloorSplitOccurs_RoutesConvergeOnALandingBeforeTheBoss()
+    {
+        // Arrange — FloorSplitChance is a private roll, so search seeds for one that triggers it
+        // rather than asserting on a single fixed seed that may stop triggering it.
+        var layout = FindLayout(15, candidate => candidate.LandingIndex != null);
+        var landingIndex = layout.LandingIndex!.Value;
+        var landing = layout.Rooms[landingIndex];
+        var boss = layout.Rooms[layout.BossIndex];
+
+        // Act & Assert
+        Assert.Equal(DungeonRouteKind.None, landing.RouteKind);
+        Assert.Equal(landing.DepthFromEntrance + 1, boss.DepthFromEntrance);
+        Assert.True(boss.FloorNumber > landing.FloorNumber);
+        Assert.Contains(
+            layout.Passages,
+            passage => Connects(passage, landingIndex, layout.BossIndex)
+        );
+        foreach (
+            var kind in new[]
+            {
+                DungeonRouteKind.Long,
+                DungeonRouteKind.Short,
+                DungeonRouteKind.Third,
+            }
+        )
+        {
+            var routeRooms = RoomsOn(layout, kind);
+            if (routeRooms.Count == 0)
+            {
+                continue;
+            }
+
+            var lastRoom = layout
+                .Rooms.Where(room => routeRooms.Contains(room.Index))
+                .OrderByDescending(room => room.DepthFromEntrance)
+                .First();
+            Assert.Contains(
+                layout.Passages,
+                passage => Connects(passage, lastRoom.Index, landingIndex)
+            );
+            Assert.DoesNotContain(
+                layout.Passages,
+                passage => Connects(passage, lastRoom.Index, layout.BossIndex)
+            );
+        }
+    }
+
+    [Fact]
+    public void Generate_WhenFloorSplitDoesNotOccur_TheBossStaysOnTheGroundFloor()
+    {
+        // Arrange
+        var layout = FindLayout(15, candidate => candidate.LandingIndex == null);
+
+        // Act & Assert
+        Assert.Equal(0, layout.Rooms[layout.BossIndex].FloorNumber);
+    }
+
+    private static bool Connects(DungeonPassage passage, int a, int b) =>
+        (passage.From == a && passage.To == b) || (passage.From == b && passage.To == a);
+
+    private static DungeonLayout FindLayout(int roomCount, Func<DungeonLayout, bool> matches)
+    {
+        for (var seed = 0; seed < 2000; seed++)
+        {
+            var layout = DungeonLayoutGenerator.Generate(
+                new DungeonLayoutInput(roomCount) { Random = new Random(seed) }
+            );
+            if (matches(layout))
+            {
+                return layout;
+            }
+        }
+
+        throw new InvalidOperationException(
+            "No seed within range produced a layout matching the requested condition."
+        );
+    }
+
     private static IReadOnlyCollection<int> RoomsOn(DungeonLayout layout, DungeonRouteKind kind) =>
         layout.Rooms.Where(room => room.RouteKind == kind).Select(room => room.Index).ToArray();
 
