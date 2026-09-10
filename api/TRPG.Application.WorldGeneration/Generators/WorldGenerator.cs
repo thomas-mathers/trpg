@@ -58,6 +58,7 @@ public class WorldGenerator(
     DungeonPopulator dungeonPopulator,
     DungeonLootGenerator dungeonLootGenerator,
     DungeonTrapGenerator dungeonTrapGenerator,
+    DungeonObstacleGenerator dungeonObstacleGenerator,
     WildernessPopulator wildernessPopulator,
     ILogger<WorldGenerator> logger
 )
@@ -282,9 +283,49 @@ public class WorldGenerator(
                 props.AddRange(dungeonLoot.Containers);
                 items.AddRange(dungeonLoot.Items);
 
-                props.AddRange(
-                    dungeonTrapGenerator.Generate(result.Placements, worldId, Random.Shared)
+                var dungeonTraps = dungeonTrapGenerator.Generate(
+                    result.Placements,
+                    worldId,
+                    wildernessLocation.StateId,
+                    Random.Shared
                 );
+                props.AddRange(dungeonTraps.Triggers);
+                rooms.AddRange(dungeonTraps.Rooms);
+                locations.AddRange(dungeonTraps.Locations);
+                locationConnectors.AddRange(dungeonTraps.LocationConnectors);
+
+                var obstacleKind = DungeonObstaclePolicy.ChooseKind(
+                    result.Building.BuildingType,
+                    Random.Shared
+                );
+                var obstacle = dungeonObstacleGenerator.Generate(
+                    new DungeonObstacleInput(
+                        result.Placements,
+                        result.LocationConnectors,
+                        result.EntranceLocationId,
+                        result.Building.Id,
+                        result.Building.BuildingType,
+                        worldId,
+                        wildernessLocation.StateId,
+                        encounterFactionsByCreatureType,
+                        Random.Shared
+                    ),
+                    obstacleKind
+                );
+                doorConnectors.AddRange(obstacle.DoorConnectors);
+                items.AddRange(obstacle.Items);
+                doorConnectorKeys.AddRange(obstacle.DoorConnectorKeys);
+                rooms.AddRange(obstacle.Rooms);
+                locations.AddRange(obstacle.Locations);
+                locationConnectors.AddRange(obstacle.LocationConnectors);
+                monsters.AddRange(obstacle.Monsters.Select(monster => monster.Creature));
+                items.AddRange(obstacle.Monsters.SelectMany(monster => monster.Items));
+                skills.AddRange(obstacle.Monsters.SelectMany(monster => monster.Skills));
+                jobs.AddRange(obstacle.Jobs);
+                encounterGroups.AddRange(obstacle.EncounterGroups);
+                encounterGroupMembers.AddRange(obstacle.EncounterGroupMembers);
+                creatureSpawners.AddRange(obstacle.CreatureSpawners);
+                props.AddRange(obstacle.Triggers);
             }
         }
 

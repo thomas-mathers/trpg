@@ -30,7 +30,8 @@ internal record DungeonLayout(
     IReadOnlyList<DungeonRoomNode> Rooms,
     IReadOnlyCollection<DungeonPassage> Passages,
     int EntranceIndex,
-    int BossIndex
+    int BossIndex,
+    int? LandingIndex
 );
 
 // Entrance and boss are fixed endpoints, and every route between them is authored, not
@@ -52,6 +53,8 @@ internal static class DungeonLayoutGenerator
     private const int MaximumDeadEnds = 3;
     private const int MinimumRoomCountForThirdRoute = 11;
     private const double ThirdRouteChance = 0.2;
+    private const double FloorSplitChance = 0.15;
+    private const int UpperFloorNumber = 1;
 
     public static DungeonLayout Generate(DungeonLayoutInput input)
     {
@@ -82,6 +85,8 @@ internal static class DungeonLayoutGenerator
             thirdLength = Math.Clamp(budget, MinimumShortRouteLength, MaximumShortRouteLength);
         }
 
+        var includeFloorSplit = input.Random.NextDouble() < FloorSplitChance;
+
         var state = new LayoutBuilder();
         var longRouteRooms = state.BuildRoute(DungeonRouteKind.Long, -LaneSpacing, longLength);
         state.AttachDeadEnds(longRouteRooms, deadEndCount, input.Random);
@@ -91,7 +96,7 @@ internal static class DungeonLayoutGenerator
                 ? state.BuildRoute(DungeonRouteKind.Third, 2 * LaneSpacing, thirdLength)
                 : [];
 
-        return state.Finish(longRouteRooms, shortRouteRooms, thirdRouteRooms);
+        return state.Finish(longRouteRooms, shortRouteRooms, thirdRouteRooms, includeFloorSplit);
     }
 
     private const double LaneSpacing = 25;
@@ -116,6 +121,7 @@ internal static class DungeonLayoutGenerator
             [Boss] = 0,
         };
         private readonly Dictionary<int, int> _depthByIndex = new() { [Entrance] = 0 };
+        private readonly Dictionary<int, int> _floorByIndex = new() { [Entrance] = 0, [Boss] = 0 };
         private readonly HashSet<int> _deadEndIndices = [];
         private int _nextIndex = 2;
 
@@ -136,6 +142,7 @@ internal static class DungeonLayoutGenerator
                 _routeKindByIndex[room] = kind;
                 _laneByIndex[room] = lane;
                 _depthByIndex[room] = _depthByIndex[previous] + 1;
+                _floorByIndex[room] = 0;
                 _passages.Add(Normalize(previous, room));
                 previous = room;
             }
@@ -167,6 +174,7 @@ internal static class DungeonLayoutGenerator
                 _routeKindByIndex[leaf] = DungeonRouteKind.Long;
                 _laneByIndex[leaf] = _laneByIndex[parent] - LaneSpacing / 2 * (siblingCount + 1);
                 _depthByIndex[leaf] = _depthByIndex[parent] + 1;
+                _floorByIndex[leaf] = 0;
                 _deadEndIndices.Add(leaf);
                 _passages.Add(Normalize(parent, leaf));
             }
@@ -175,12 +183,14 @@ internal static class DungeonLayoutGenerator
         public DungeonLayout Finish(
             IReadOnlyList<int> longRouteRooms,
             IReadOnlyList<int> shortRouteRooms,
-            IReadOnlyList<int> thirdRouteRooms
+            IReadOnlyList<int> thirdRouteRooms,
+            bool includeFloorSplit
         )
         {
-            // The boss has to read as deeper than every route's own last room, not just the
-            // nearest one, since a player can arrive there from any of them.
-            var bossDepth =
+            // Whatever room every route converges into next has to read as deeper than each
+            // route's own last room, not just the nearest one, since a player can arrive there
+            // from any of them.
+            var convergenceDepth =
                 1
                 + new[]
                 {
@@ -188,15 +198,43 @@ internal static class DungeonLayoutGenerator
                     LastDepth(shortRouteRooms),
                     LastDepth(thirdRouteRooms),
                 }.Max();
-            _depthByIndex[Boss] = bossDepth;
-            _passages.Add(Normalize(LastRoomOf(longRouteRooms), Boss));
-            _passages.Add(Normalize(LastRoomOf(shortRouteRooms), Boss));
-            if (thirdRouteRooms.Count > 0)
+
+            int? landing = null;
+            if (includeFloorSplit)
             {
-                _passages.Add(Normalize(LastRoomOf(thirdRouteRooms), Boss));
+                // Every route funnels into this one room before the boss, instead of each having
+                // its own direct connector — so whatever rule applies to the final approach (here,
+                // a staircase; later, a mandatory lever gate) applies the same way no matter which
+                // route got you there, rather than needing to be repeated once per route.
+                landing = _nextIndex++;
+                _routeKindByIndex[landing.Value] = DungeonRouteKind.None;
+                _laneByIndex[landing.Value] = 0;
+                _depthByIndex[landing.Value] = convergenceDepth;
+                _floorByIndex[landing.Value] = 0;
+
+                _passages.Add(Normalize(LastRoomOf(longRouteRooms), landing.Value));
+                _passages.Add(Normalize(LastRoomOf(shortRouteRooms), landing.Value));
+                if (thirdRouteRooms.Count > 0)
+                {
+                    _passages.Add(Normalize(LastRoomOf(thirdRouteRooms), landing.Value));
+                }
+
+                _passages.Add(Normalize(landing.Value, Boss));
+                _depthByIndex[Boss] = convergenceDepth + 1;
+                _floorByIndex[Boss] = UpperFloorNumber;
+            }
+            else
+            {
+                _depthByIndex[Boss] = convergenceDepth;
+                _passages.Add(Normalize(LastRoomOf(longRouteRooms), Boss));
+                _passages.Add(Normalize(LastRoomOf(shortRouteRooms), Boss));
+                if (thirdRouteRooms.Count > 0)
+                {
+                    _passages.Add(Normalize(LastRoomOf(thirdRouteRooms), Boss));
+                }
             }
 
-            var maxDepth = Math.Max(1, bossDepth);
+            var maxDepth = Math.Max(1, _depthByIndex[Boss]);
             var rooms = Enumerable
                 .Range(0, _nextIndex)
                 .Select(index => new DungeonRoomNode(
@@ -208,11 +246,11 @@ internal static class DungeonLayoutGenerator
                     _depthByIndex[index],
                     _deadEndIndices.Contains(index),
                     _routeKindByIndex[index],
-                    FloorNumber: 0
+                    _floorByIndex[index]
                 ))
                 .ToArray();
 
-            return new DungeonLayout(rooms, _passages, Entrance, Boss);
+            return new DungeonLayout(rooms, _passages, Entrance, Boss, landing);
         }
 
         private int LastDepth(IReadOnlyList<int> routeRooms) =>
