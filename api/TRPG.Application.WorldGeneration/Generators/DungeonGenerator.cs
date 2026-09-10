@@ -193,7 +193,7 @@ internal static class DungeonGenerator
                 LocationId = location.Id,
                 Name = roomName,
                 Description = description,
-                FloorNumber = 0,
+                FloorNumber = room.Node.FloorNumber,
                 Position = room.Node.Position,
                 Role = room.Role,
                 WorldId = input.WorldId,
