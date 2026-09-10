@@ -5,6 +5,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
@@ -31,7 +32,8 @@ internal class ResolveMoveDestinationCommandHandler(
         IReadOnlyCollection<Guid>
     > resolveAccessibleConnectors,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner
+    IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
+    IQueryHandler<GetPulledLeverIdsQuery, IReadOnlySet<Guid>> getPulledLeverIds
 ) : ICommandHandler<ResolveMoveDestinationCommand, ResolveMoveDestinationResult>
 {
     public async Task<ResolveMoveDestinationResult> Handle(
@@ -94,10 +96,16 @@ internal class ResolveMoveDestinationCommandHandler(
             cancellationToken
         );
 
+        var pulledLeverIds = await getPulledLeverIds.Handle(
+            new GetPulledLeverIdsQuery { WorldId = player.WorldId },
+            cancellationToken
+        );
+
         var accessibleConnectorIds = await resolveAccessibleConnectors.Handle(
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = playerKeyItemIds,
+                PulledLeverIds = pulledLeverIds,
                 Playtime = playtime,
                 ConnectorIds = [connectorId],
             },

@@ -30,6 +30,13 @@ public class DungeonObstacleGeneratorTests
         Name = "Long First",
         WorldId = Guid.NewGuid(),
     };
+    private readonly Room _bossRoom = new()
+    {
+        BuildingId = Guid.NewGuid(),
+        LocationId = Guid.NewGuid(),
+        Name = "Boss Chamber",
+        WorldId = Guid.NewGuid(),
+    };
 
     private DungeonObstacleInput MakeInput()
     {
@@ -51,6 +58,14 @@ public class DungeonObstacleGeneratorTests
                 RouteKind: DungeonRouteKind.Long,
                 IsDeadEnd: false
             ),
+            new DungeonRoomPlacement(
+                _bossRoom,
+                RoomRole.BossChamber,
+                DepthFromEntrance: 2,
+                FloorNumber: 0,
+                RouteKind: DungeonRouteKind.None,
+                IsDeadEnd: false
+            ),
         };
         var entryConnector = new LocationConnector
         {
@@ -64,6 +79,7 @@ public class DungeonObstacleGeneratorTests
             placements,
             [entryConnector],
             _entranceLocationId,
+            _bossRoom.LocationId,
             _buildingId,
             BuildingType.Cave,
             _worldId,
@@ -255,6 +271,54 @@ public class DungeonObstacleGeneratorTests
         );
     }
 
+    [Fact]
+    public void Generate_PlacesTheShortcutLeverOnAnInteriorRoom_NotTheRoutesLastRoom_ForLeverShortcut()
+    {
+        // Arrange — three short-route rooms, so an interior room genuinely exists between the
+        // entry and the last room.
+        var input = MakeGauntletInput(roomCount: 3);
+        var shortRouteRooms = input
+            .Placements.Where(p => p.RouteKind == DungeonRouteKind.Short)
+            .OrderBy(p => p.DepthFromEntrance)
+            .ToArray();
+
+        // Act
+        var result = _generator.Generate(input, DungeonObstacleKind.LeverShortcut);
+
+        // Assert
+        var lever = Assert.Single(result.Levers);
+        Assert.Equal(shortRouteRooms[1].Room.LocationId, lever.LocationId);
+        Assert.NotEqual(shortRouteRooms[^1].Room.LocationId, lever.LocationId);
+
+        var door = Assert.Single(result.DoorConnectors);
+        Assert.True(door.IsLocked);
+        var forwardConnector = Assert.Single(
+            result.LocationConnectors,
+            connector => connector.OriginLocationId == lever.LocationId
+        );
+        Assert.Equal(_bossRoom.LocationId, forwardConnector.DestinationLocationId);
+        Assert.Equal(forwardConnector.Id, door.ConnectorId);
+
+        var doorConnectorLever = Assert.Single(result.DoorConnectorLevers);
+        Assert.Equal(lever.Id, doorConnectorLever.LeverId);
+        Assert.Equal(door.Id, doorConnectorLever.DoorConnectorId);
+    }
+
+    [Fact]
+    public void Generate_ReturnsEmpty_WhenTheShortRouteHasNoInteriorRoom_ForLeverShortcut()
+    {
+        // Arrange — a single-room short route has no interior room that would make a shortcut a
+        // real skip rather than a zero-hop no-op.
+        var input = MakeInput();
+
+        // Act
+        var result = _generator.Generate(input, DungeonObstacleKind.LeverShortcut);
+
+        // Assert
+        Assert.Empty(result.Levers);
+        Assert.Empty(result.DoorConnectors);
+    }
+
     private DungeonObstacleInput MakeGauntletInput(int roomCount)
     {
         var gauntletRooms = Enumerable
@@ -282,6 +346,14 @@ public class DungeonObstacleGeneratorTests
                     DepthFromEntrance: 1,
                     FloorNumber: 0,
                     RouteKind: DungeonRouteKind.Long,
+                    IsDeadEnd: false
+                ),
+                new DungeonRoomPlacement(
+                    _bossRoom,
+                    RoomRole.BossChamber,
+                    DepthFromEntrance: roomCount + 1,
+                    FloorNumber: 0,
+                    RouteKind: DungeonRouteKind.None,
                     IsDeadEnd: false
                 ),
             ])

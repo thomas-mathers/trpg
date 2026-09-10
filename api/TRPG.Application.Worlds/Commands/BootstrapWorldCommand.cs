@@ -76,6 +76,7 @@ internal class BootstrapWorldCommandHandler(
         context.CreatureJobs.AddRange(world.Jobs);
         context.CreatureKnowledge.AddRange(world.Knowledge);
         context.DoorConnectorKeys.AddRange(world.DoorConnectorKeys);
+        context.DoorConnectorLevers.AddRange(world.DoorConnectorLevers);
         context.Relationships.AddRange(world.Relationships);
         context.Quests.AddRange(quests.Quests);
         context.QuestObjectives.AddRange(quests.Objectives);

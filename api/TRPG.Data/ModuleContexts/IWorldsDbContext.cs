@@ -11,6 +11,7 @@ public interface IWorldsDbContext : ITrpgDbContext
     DbSet<Country> Countries { get; }
     DbSet<District> Districts { get; }
     DbSet<DoorConnectorKey> DoorConnectorKeys { get; }
+    DbSet<DoorConnectorLever> DoorConnectorLevers { get; }
     DbSet<DoorConnector> DoorConnectors { get; }
     DbSet<LocationConnector> LocationConnectors { get; }
     DbSet<Location> Locations { get; }

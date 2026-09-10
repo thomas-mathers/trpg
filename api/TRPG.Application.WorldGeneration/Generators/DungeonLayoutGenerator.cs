@@ -17,6 +17,18 @@ internal record DungeonLayoutInput(int RoomCount)
 
 internal readonly record struct DungeonPassage(int From, int To);
 
+internal sealed record DungeonRouteRooms(
+    IReadOnlyList<int> Long,
+    IReadOnlyList<int> Short,
+    IReadOnlyList<int> Third
+);
+
+internal sealed record DungeonConvergenceFeatures(
+    bool IncludeFloorSplit,
+    bool IncludeLeverGate,
+    bool IncludeShortcutFiller
+);
+
 internal record DungeonRoomNode(
     int Index,
     Point Position,
@@ -31,7 +43,9 @@ internal record DungeonLayout(
     IReadOnlyCollection<DungeonPassage> Passages,
     int EntranceIndex,
     int BossIndex,
-    int? LandingIndex
+    int? LandingIndex,
+    bool HasLeverGate,
+    int BackDoorIndex
 );
 
 // Entrance and boss are fixed endpoints, and every route between them is authored, not
@@ -54,7 +68,10 @@ internal static class DungeonLayoutGenerator
     private const int MinimumRoomCountForThirdRoute = 11;
     private const double ThirdRouteChance = 0.2;
     private const double FloorSplitChance = 0.15;
+    private const double LeverGateChance = 0.25;
+    private const double ShortcutFillerChance = 0.5;
     private const int UpperFloorNumber = 1;
+    private const double ShortcutLane = 3 * LaneSpacing;
 
     public static DungeonLayout Generate(DungeonLayoutInput input)
     {
@@ -86,6 +103,8 @@ internal static class DungeonLayoutGenerator
         }
 
         var includeFloorSplit = input.Random.NextDouble() < FloorSplitChance;
+        var includeLeverGate = input.Random.NextDouble() < LeverGateChance;
+        var includeShortcutFiller = input.Random.NextDouble() < ShortcutFillerChance;
 
         var state = new LayoutBuilder();
         var longRouteRooms = state.BuildRoute(DungeonRouteKind.Long, -LaneSpacing, longLength);
@@ -96,7 +115,14 @@ internal static class DungeonLayoutGenerator
                 ? state.BuildRoute(DungeonRouteKind.Third, 2 * LaneSpacing, thirdLength)
                 : [];
 
-        return state.Finish(longRouteRooms, shortRouteRooms, thirdRouteRooms, includeFloorSplit);
+        return state.Finish(
+            new DungeonRouteRooms(longRouteRooms, shortRouteRooms, thirdRouteRooms),
+            new DungeonConvergenceFeatures(
+                includeFloorSplit,
+                includeLeverGate,
+                includeShortcutFiller
+            )
+        );
     }
 
     private const double LaneSpacing = 25;
@@ -180,12 +206,7 @@ internal static class DungeonLayoutGenerator
             }
         }
 
-        public DungeonLayout Finish(
-            IReadOnlyList<int> longRouteRooms,
-            IReadOnlyList<int> shortRouteRooms,
-            IReadOnlyList<int> thirdRouteRooms,
-            bool includeFloorSplit
-        )
+        public DungeonLayout Finish(DungeonRouteRooms routes, DungeonConvergenceFeatures features)
         {
             // Whatever room every route converges into next has to read as deeper than each
             // route's own last room, not just the nearest one, since a player can arrive there
@@ -194,45 +215,49 @@ internal static class DungeonLayoutGenerator
                 1
                 + new[]
                 {
-                    LastDepth(longRouteRooms),
-                    LastDepth(shortRouteRooms),
-                    LastDepth(thirdRouteRooms),
+                    LastDepth(routes.Long),
+                    LastDepth(routes.Short),
+                    LastDepth(routes.Third),
                 }.Max();
 
+            // A floor split and a mandatory lever gate both need every route to funnel through one
+            // shared room before the boss — the same convergence-point construct either way, so it
+            // is built once here and only the staircase-flavored floor bump is conditional on which
+            // of the two (or both) actually rolled.
+            var needsConvergenceRoom = features.IncludeFloorSplit || features.IncludeLeverGate;
+
             int? landing = null;
-            if (includeFloorSplit)
+            if (needsConvergenceRoom)
             {
-                // Every route funnels into this one room before the boss, instead of each having
-                // its own direct connector — so whatever rule applies to the final approach (here,
-                // a staircase; later, a mandatory lever gate) applies the same way no matter which
-                // route got you there, rather than needing to be repeated once per route.
                 landing = _nextIndex++;
                 _routeKindByIndex[landing.Value] = DungeonRouteKind.None;
                 _laneByIndex[landing.Value] = 0;
                 _depthByIndex[landing.Value] = convergenceDepth;
                 _floorByIndex[landing.Value] = 0;
 
-                _passages.Add(Normalize(LastRoomOf(longRouteRooms), landing.Value));
-                _passages.Add(Normalize(LastRoomOf(shortRouteRooms), landing.Value));
-                if (thirdRouteRooms.Count > 0)
+                _passages.Add(Normalize(LastRoomOf(routes.Long), landing.Value));
+                _passages.Add(Normalize(LastRoomOf(routes.Short), landing.Value));
+                if (routes.Third.Count > 0)
                 {
-                    _passages.Add(Normalize(LastRoomOf(thirdRouteRooms), landing.Value));
+                    _passages.Add(Normalize(LastRoomOf(routes.Third), landing.Value));
                 }
 
                 _passages.Add(Normalize(landing.Value, Boss));
                 _depthByIndex[Boss] = convergenceDepth + 1;
-                _floorByIndex[Boss] = UpperFloorNumber;
+                _floorByIndex[Boss] = features.IncludeFloorSplit ? UpperFloorNumber : 0;
             }
             else
             {
                 _depthByIndex[Boss] = convergenceDepth;
-                _passages.Add(Normalize(LastRoomOf(longRouteRooms), Boss));
-                _passages.Add(Normalize(LastRoomOf(shortRouteRooms), Boss));
-                if (thirdRouteRooms.Count > 0)
+                _passages.Add(Normalize(LastRoomOf(routes.Long), Boss));
+                _passages.Add(Normalize(LastRoomOf(routes.Short), Boss));
+                if (routes.Third.Count > 0)
                 {
-                    _passages.Add(Normalize(LastRoomOf(thirdRouteRooms), Boss));
+                    _passages.Add(Normalize(LastRoomOf(routes.Third), Boss));
                 }
             }
+
+            var backDoor = BuildMandatoryShortcut(features.IncludeShortcutFiller);
 
             var maxDepth = Math.Max(1, _depthByIndex[Boss]);
             var rooms = Enumerable
@@ -250,7 +275,47 @@ internal static class DungeonLayoutGenerator
                 ))
                 .ToArray();
 
-            return new DungeonLayout(rooms, _passages, Entrance, Boss, landing);
+            return new DungeonLayout(
+                rooms,
+                _passages,
+                Entrance,
+                Boss,
+                landing,
+                features.IncludeLeverGate,
+                backDoor
+            );
+        }
+
+        // Every dungeon gets a shortcut back near the entrance once the boss is reached — free to
+        // walk from the boss side, locked from the entrance side until its lever (placed in the
+        // boss room) is pulled. An occasional filler room between the boss and the back door keeps
+        // the shortcut from reading as an implausibly direct tunnel every single time.
+        private int BuildMandatoryShortcut(bool includeFiller)
+        {
+            var backDoor = _nextIndex++;
+            _routeKindByIndex[backDoor] = DungeonRouteKind.None;
+            _laneByIndex[backDoor] = ShortcutLane;
+            _depthByIndex[backDoor] = 1;
+            _floorByIndex[backDoor] = 0;
+
+            if (includeFiller)
+            {
+                var filler = _nextIndex++;
+                _routeKindByIndex[filler] = DungeonRouteKind.None;
+                _laneByIndex[filler] = ShortcutLane;
+                _depthByIndex[filler] = 2;
+                _floorByIndex[filler] = 0;
+                _passages.Add(Normalize(Boss, filler));
+                _passages.Add(Normalize(filler, backDoor));
+            }
+            else
+            {
+                _passages.Add(Normalize(Boss, backDoor));
+            }
+
+            _passages.Add(Normalize(Entrance, backDoor));
+
+            return backDoor;
         }
 
         private int LastDepth(IReadOnlyList<int> routeRooms) =>

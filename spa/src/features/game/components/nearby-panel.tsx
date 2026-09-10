@@ -39,6 +39,7 @@ import {
   GiHobbitDoor,
   GiHolySymbol,
   GiHouse,
+  GiLever,
   GiMedievalGate,
   GiMeepleGroup,
   GiMountainCave,
@@ -76,6 +77,8 @@ import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { ExitDirectionArrow } from '@/features/game/components/exit-direction-arrow';
 import { ExitFamiliarity } from '@/features/game/components/exit-familiarity';
 import { SleepDialog } from '@/features/game/components/sleep-dialog';
+import { useGameChat } from '@/features/game/hooks/use-game-chat';
+import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { ROOM_ROLE_ICONS } from '@/features/game/room-role-icons';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
@@ -159,6 +162,8 @@ interface NearbyPanelProps {
 }
 
 export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: NearbyPanelProps) {
+  const chatHub = useChatHub();
+  const { submitNarratedTurn } = useGameChat();
   const [inventoryTarget, setInventoryTarget] = useState<{
     id: string;
     name: string;
@@ -179,6 +184,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
     entityType: 'Building' as const,
   }));
   const nearbyContainers = scene.nearbyProps.filter((prop) => prop.type === 'Container');
+  const nearbyLevers = scene.nearbyProps.filter((prop) => prop.type === 'Lever');
   const nearbyTradeWorkstations = scene.nearbyProps.filter((prop) => prop.type === 'Trade');
   const nearbyBeds = scene.nearbyProps.filter((prop) => prop.type === 'Bed');
   const nearbyBookshelves = scene.nearbyProps.filter((prop) => prop.type === 'Reading');
@@ -263,6 +269,30 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                   {container.name}
                 </button>
               </span>
+            </div>
+          ))
+        )}
+      </Section>
+
+      <Section title="Nearby Levers">
+        {nearbyLevers.length === 0 ? (
+          <EmptyState />
+        ) : (
+          nearbyLevers.map((lever) => (
+            <div key={lever.id} className="flex items-center justify-between gap-2 py-1.5">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <GiLever className="text-muted-foreground size-[18px] shrink-0" />
+                <span className="truncate font-medium">{lever.name}</span>
+              </span>
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={() =>
+                  submitNarratedTurn(`Pull ${lever.name}`, chatHub.sendPullLever(lever.id))
+                }
+              >
+                Pull
+              </Button>
             </div>
           ))
         )}
