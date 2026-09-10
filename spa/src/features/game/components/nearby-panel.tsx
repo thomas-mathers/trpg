@@ -287,6 +287,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
               <Button
                 variant="outline"
                 size="xs"
+                className="border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
                 onClick={() =>
                   submitNarratedTurn(`Pull ${lever.name}`, chatHub.sendPullLever(lever.id))
                 }
