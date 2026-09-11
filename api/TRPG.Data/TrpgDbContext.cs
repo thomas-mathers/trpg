@@ -64,6 +64,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         IRoomBookingsDbContext,
         IBooksDbContext
 {
+    public DbSet<DungeonExpedition> DungeonExpeditions => Set<DungeonExpedition>();
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
     public DbSet<Building> Buildings => Set<Building>();
     public DbSet<City> Cities => Set<City>();
@@ -360,6 +361,13 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         modelBuilder.Entity<Room>(entity =>
         {
             entity.OwnsOne(room => room.Bounds, bounds => bounds.ToJson());
+        });
+
+        modelBuilder.Entity<DungeonExpedition>(entity =>
+        {
+            entity.HasIndex(x => x.WorldId);
+            entity.HasIndex(x => x.BuildingId).IsUnique();
+            entity.HasIndex(x => x.JournalWorkId).IsUnique();
         });
 
         modelBuilder.Entity<BookWork>(entity =>

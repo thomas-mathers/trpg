@@ -29,6 +29,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
     ICommandHandler<MovePlayerCommand> movePlayer,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<StartFightCommand> startFight,
+    DepartureMovementResumer departureMovementResumer,
     IOptionsSnapshot<FleeOptions> fleeOptions
 )
     : EncounterResolutionCommandHandlerBase<
@@ -87,6 +88,19 @@ internal class ResolveHostileEncounterActionCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        if (
+            outcome == HostileEncounterResolutionOutcome.Evaded
+            && encounter.DepartureDestinationLocationId != null
+        )
+        {
+            var playtime = await getPlaytime.Handle(
+                new GetPlaytimeQuery { SessionId = command.SessionId },
+                cancellationToken
+            );
+            await departureMovementResumer.Resume(encounter, player, playtime, cancellationToken);
+            return;
+        }
+
         if (
             outcome == HostileEncounterResolutionOutcome.Retreated
             && player.PreviousLocationId is { } originLocationId

@@ -21,7 +21,7 @@ public class ConfrontOverdueRoomKeyCommand
     public required TimeSpan Playtime { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
-    public Guid? InterruptedDestinationLocationId { get; init; }
+    public Guid? DepartureDestinationLocationId { get; init; }
     public required Guid BuildingId { get; init; }
 }
 
@@ -116,7 +116,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             WorldId = command.WorldId,
             PlayerId = command.PlayerId,
             LocationId = command.LocationId,
-            InterruptedDestinationLocationId = command.InterruptedDestinationLocationId,
+            DepartureDestinationLocationId = command.DepartureDestinationLocationId,
             ConfrontingCreatureId = innkeeper.Id,
             ConfrontingName = innkeeper.Name,
             OwnerCreatureId = innkeeper.Id,

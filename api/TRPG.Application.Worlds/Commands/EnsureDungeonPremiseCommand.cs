@@ -48,12 +48,22 @@ internal class EnsureDungeonPremiseCommandHandler(
             .Select(city => city.Name)
             .FirstOrDefaultAsync(cancellationToken);
 
+        var expedition = await context
+            .DungeonExpeditions.AsNoTracking()
+            .FirstOrDefaultAsync(
+                expedition => expedition.BuildingId == building.Id,
+                cancellationToken
+            );
+
         var premise = await generator.Generate(
             new DungeonPremiseRequest(
                 building.Name,
                 building.BuildingType,
                 nearestSettlement,
-                roomNames
+                roomNames,
+                expedition == null
+                    ? null
+                    : $"{expedition.Purpose} {expedition.Separation} {expedition.FinalExperience}"
             ),
             cancellationToken
         );

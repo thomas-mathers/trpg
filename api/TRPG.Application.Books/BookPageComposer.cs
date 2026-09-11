@@ -2,6 +2,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Llm;
 using TRPG.Application.Configuration;
+using TRPG.Application.Worlds.Commands;
 using BookWork = TRPG.Domain.Models.BookWork;
 using Secret = TRPG.Domain.Models.Secret;
 
@@ -11,7 +12,8 @@ public record BookPageCompositionRequest(
     BookWork Work,
     int PageNumber,
     IReadOnlyList<string> PriorPages,
-    Secret? Secret
+    Secret? Secret,
+    ExpeditionJournalContext? JournalContext = null
 );
 
 public class BookPageComposer([FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient client)
@@ -66,6 +68,7 @@ public class BookPageComposer([FromKeyedServices(LlmRoleKeys.Gameplay)] IChatCli
             Length: {work.PageCount} pages
 
             {priorPages}
+            {DescribeJournal(request.JournalContext)}
             """
         )
         {
@@ -76,8 +79,21 @@ public class BookPageComposer([FromKeyedServices(LlmRoleKeys.Gameplay)] IChatCli
         };
     }
 
-    // Kept out of the block above because it changes every page, and a secret must never sit inside
-    // a prefix that a later page will reuse.
+    private static string DescribeJournal(ExpeditionJournalContext? context) =>
+        context == null
+            ? ""
+            : $"""
+                This is a personal expedition journal by {context.Author}, written while alive.
+                Dungeon history: {context.DungeonHistory}
+                Purpose: {context.Purpose}
+                Separation: {context.Separation}
+                Final experience: {context.FinalExperience}
+                Actual route in travel order: {string.Join(" → ", context.Route)}
+                Use only these established facts. Do not invent actionable keys, exits, mechanisms,
+                rewards, targets, or routes. Do not describe the author's own death or later events.
+                """;
+
+    // Page-specific secrets must stay outside the cacheable prefix.
     private static ChatMessage BuildPageMessage(BookPageCompositionRequest request)
     {
         var secret =
@@ -86,8 +102,12 @@ public class BookPageComposer([FromKeyedServices(LlmRoleKeys.Gameplay)] IChatCli
                 : $"""
 
 
-                    This page records {request.Secret.Subject}. Work it into the prose naturally,
-                    and reproduce it exactly as: {request.Secret.Value}
+                    This page records {request.Secret.Subject}: {request.Secret.Value}
+                    {(
+                        request.JournalContext == null
+                            ? "Work it into the prose naturally, and reproduce the fact exactly as written."
+                            : "Express this fact faithfully in the living author's first-person voice; the author cannot know their later death."
+                    )}
                     """;
 
         return new ChatMessage(

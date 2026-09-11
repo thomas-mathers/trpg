@@ -71,6 +71,9 @@ internal class BootstrapWorldCommandHandler(
             world.World.Id,
             Random.Shared
         );
+        context.DungeonExpeditions.AddRange(world.DungeonExpeditions);
+        context.BookWorks.AddRange(world.BookWorks);
+        context.Secrets.AddRange(world.Secrets);
         context.BookWorks.AddRange(libraryBooks.Works);
         context.Items.AddRange(libraryBooks.Books);
         context.CreatureSpawners.AddRange(world.CreatureSpawners);

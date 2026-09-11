@@ -66,6 +66,7 @@ internal static class ServiceCollectionExtensions
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
+            .AddGameTool<ShareExpeditionDiscoveryTool>()
             .AddGameTool<BookRoomTool>()
             .AddGameTool<ReturnRoomKeyTool>()
             .AddExceptionHandler<GlobalExceptionHandler>()

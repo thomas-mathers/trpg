@@ -212,7 +212,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             sourceOwnerId: _owner.Id,
             sourceOwnerType: OwnerType.Creature,
             confrontingCreature: _confronter,
-            interruptedDestinationLocationId: destination.Id
+            departureDestinationLocationId: destination.Id
         );
 
         // Act
@@ -491,7 +491,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         Creature? confrontingCreature = null,
         Guid? locationId = null,
         bool itemsTransferred = true,
-        Guid? interruptedDestinationLocationId = null
+        Guid? departureDestinationLocationId = null
     )
     {
         var confrontingCreatureToUse = confrontingCreature ?? _owner;
@@ -524,7 +524,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
                 item == null || !itemsTransferred
                     ? []
                     : [new TheftEncounterItem(item.Id, item.Quantity)],
-            InterruptedDestinationLocationId = interruptedDestinationLocationId,
+            DepartureDestinationLocationId = departureDestinationLocationId,
         };
         _context.Crimes.Add(crime);
         _context.Encounters.Add(encounter);

@@ -21,6 +21,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
     private ServiceProvider _serviceProvider = null!;
     private ResolveSuspicionEncounterActionCommandHandler _handler = null!;
     private readonly Faction _cityFaction = Builders.MakeFaction(WorldId, isCityFaction: true);
+    private readonly GameSession _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
     private Creature _player = null!;
     private Creature _guard = null!;
 
@@ -38,6 +39,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
         _guard = Builders.MakeCreature(WorldId, profession: Profession.Guard);
         _context.Creatures.AddRange(_player, _guard);
         _context.Factions.Add(_cityFaction);
+        _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -53,13 +55,17 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
     ) =>
         new()
         {
+            SessionId = _session.Id,
             WorldId = WorldId,
             PlayerId = _player.Id,
             Action = action,
             EncounterId = encounterId,
         };
 
-    private async Task<SuspicionEncounter> SeedActiveEncounter(Guid locationId)
+    private async Task<SuspicionEncounter> SeedActiveEncounter(
+        Guid locationId,
+        Guid? departureDestinationLocationId = null
+    )
     {
         var encounter = Builders.MakeSuspicionEncounter(
             WorldId,
@@ -67,7 +73,8 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
             locationId,
             _guard.Id,
             _cityFaction.Id,
-            _guard.Name
+            _guard.Name,
+            departureDestinationLocationId: departureDestinationLocationId
         );
         _context.Encounters.Add(encounter);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -160,6 +167,39 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
     }
 
     [Fact]
+    public async Task Handle_Flee_ResumesTheDeparture_WhenMovementWasInterruptedAndTheEscapeSucceeds()
+    {
+        // Arrange
+        var destination = Builders.MakeLocation(WorldId, Guid.NewGuid());
+        _context.Locations.Add(destination);
+        _context.LocationConnectors.Add(
+            Builders.MakeLocationConnector(
+                _player.LocationId,
+                destinationLocationId: destination.Id,
+                worldId: WorldId
+            )
+        );
+        var encounter = await SeedActiveEncounter(_player.LocationId, destination.Id);
+        var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
+
+        // Act
+        await handler.Handle(
+            MakeCommand(new FleeSuspicionAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(destination.Id, player.LocationId);
+    }
+
+    [Fact]
     public async Task Handle_Flee_EscalatesIntoAGuardEncounter_WhenTheEscapeFails()
     {
         // Arrange
@@ -212,6 +252,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
         var encounter = await SeedActiveEncounter(Guid.NewGuid());
         var command = new ResolveSuspicionEncounterActionCommand
         {
+            SessionId = _session.Id,
             WorldId = Guid.NewGuid(),
             PlayerId = _player.Id,
             Action = new ComplySuspicionAction(),
@@ -231,6 +272,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
         var encounter = await SeedActiveEncounter(Guid.NewGuid());
         var command = new ResolveSuspicionEncounterActionCommand
         {
+            SessionId = _session.Id,
             WorldId = WorldId,
             PlayerId = Guid.NewGuid(),
             Action = new ComplySuspicionAction(),

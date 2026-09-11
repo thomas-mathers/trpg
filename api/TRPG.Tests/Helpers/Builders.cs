@@ -812,13 +812,15 @@ internal static class Builders
         string guardName = "Guard",
         string locationName = "Location",
         SuspicionCause cause = SuspicionCause.Sneaking,
-        EncounterState state = EncounterState.Active
+        EncounterState state = EncounterState.Active,
+        Guid? departureDestinationLocationId = null
     ) =>
         new()
         {
             WorldId = worldId,
             PlayerId = playerId,
             LocationId = locationId,
+            DepartureDestinationLocationId = departureDestinationLocationId,
             LocationName = locationName,
             GuardCreatureId = guardCreatureId,
             CityFactionId = cityFactionId ?? Guid.NewGuid(),
@@ -1049,6 +1051,54 @@ internal static class Builders
             Level = level,
             Experience = experience,
             WorldId = worldId ?? Guid.NewGuid(),
+        };
+
+    public static DungeonExpedition MakeDungeonExpedition(
+        Creature survivor,
+        Creature companion,
+        Guid? buildingId = null
+    ) =>
+        new()
+        {
+            WorldId = survivor.WorldId,
+            BuildingId = buildingId ?? Guid.NewGuid(),
+            SurvivorId = survivor.Id,
+            CompanionId = companion.Id,
+            SurvivorName = survivor.Name,
+            CompanionName = companion.Name,
+            EntranceLocationId = survivor.LocationId,
+            CompanionLocationId = companion.LocationId,
+            JournalWorkId = Guid.NewGuid(),
+            JournalItemId = Guid.NewGuid(),
+            DiscoverySecretId = Guid.NewGuid(),
+            Purpose = "They came to survey the old mine.",
+            Separation = "They separated at the entrance; the survivor waited with the supplies.",
+            FinalExperience = "The author sheltered in the old study after a fall.",
+            Discovery = "The companion's journal records sheltering in the old study after a fall.",
+            KnownRouteLocationIds = [survivor.LocationId],
+        };
+
+    public static BookWork MakeExpeditionWork(DungeonExpedition expedition) =>
+        new()
+        {
+            Id = expedition.JournalWorkId,
+            WorldId = expedition.WorldId,
+            Title = $"Expedition journal {Guid.NewGuid():N}",
+            SubjectType = BookSubjectType.Building,
+            SubjectName = "Old Mine",
+            Tier = BookTier.Clue,
+            PageCount = 1,
+            SecretId = expedition.DiscoverySecretId,
+            SecretPageNumber = 1,
+        };
+
+    public static BookPage MakeExpeditionPage(DungeonExpedition expedition) =>
+        new()
+        {
+            WorldId = expedition.WorldId,
+            WorkId = expedition.JournalWorkId,
+            PageNumber = 1,
+            Text = "I cannot get back to the entrance. I will wait here for help.",
         };
 
     public static GameSession MakeGameSession(

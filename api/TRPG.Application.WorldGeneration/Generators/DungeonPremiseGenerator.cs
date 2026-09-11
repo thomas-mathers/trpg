@@ -9,7 +9,8 @@ public record DungeonPremiseRequest(
     string DungeonName,
     BuildingType DungeonType,
     string? NearestSettlement,
-    IReadOnlyCollection<string> RoomNames
+    IReadOnlyCollection<string> RoomNames,
+    string? ExpeditionContext = null
 );
 
 public class DungeonPremiseGenerator([FromKeyedServices(LlmRoleKeys.Gameplay)] IChatClient client)
@@ -42,6 +43,9 @@ public class DungeonPremiseGenerator([FromKeyedServices(LlmRoleKeys.Gameplay)] I
                     Name: {request.DungeonName}
                     Kind: {request.DungeonType}{nearby}
                     Rooms inside: {string.Join(", ", request.RoomNames)}
+                    Established circumstances (must remain true): {request.ExpeditionContext}
+                    Describe the place before this expedition arrived, not the expedition or its outcome.
+                    Do not invent actionable mechanisms, keys, exits, or rewards.
                     """
                 ),
             ],

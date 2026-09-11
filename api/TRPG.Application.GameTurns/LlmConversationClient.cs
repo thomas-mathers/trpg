@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,9 @@ using TRPG.Application.Chat.Commands;
 using TRPG.Application.Chat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
+using TRPG.Application.GameTurns.Queries;
 
 namespace TRPG.Application.GameTurns;
 
@@ -20,6 +23,10 @@ internal class LlmConversationClient(
     GameTurnContext turnContext,
     IQueryHandler<GetChatMessagesQuery, IReadOnlyList<ChatMessage>> getChatMessages,
     ICommandHandler<AppendChatMessagesCommand, int> appendChatMessages,
+    IQueryHandler<
+        GetOpenDungeonConversationKnowledgeQuery,
+        IReadOnlyList<DungeonConversationKnowledge>
+    > getDungeonKnowledge,
     IEnumerable<AIFunction> tools,
     IOptionsMonitor<LlmRoleOptions> optionsMonitor,
     ILogger<LlmConversationClient> logger
@@ -89,6 +96,26 @@ internal class LlmConversationClient(
             new GetChatMessagesQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
+
+        var knowledge = await getDungeonKnowledge.Handle(
+            new GetOpenDungeonConversationKnowledgeQuery(
+                WorldId: turnContext.WorldId,
+                SessionId: turnContext.SessionId,
+                PlayerId: turnContext.PlayerId
+            ),
+            cancellationToken
+        );
+        if (knowledge.Count > 0)
+        {
+            messages =
+            [
+                .. messages,
+                new ChatMessage(
+                    ChatRole.User,
+                    $"Current dungeon conversation knowledge overrides older context. PlayerCanShare is not NPC knowledge. {JsonSerializer.Serialize(knowledge, TrpgJsonOptions.Default)}"
+                ),
+            ];
+        }
 
         var stopwatch = Stopwatch.StartNew();
         long? firstTokenElapsedMs = null;

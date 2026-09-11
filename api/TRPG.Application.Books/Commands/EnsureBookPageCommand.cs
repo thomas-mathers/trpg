@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -18,6 +19,10 @@ public class EnsureBookPageCommand
 internal class EnsureBookPageCommandHandler(
     IBooksDbContext context,
     BookPageComposer composer,
+    ICommandHandler<
+        EnsureExpeditionJournalContextCommand,
+        ExpeditionJournalContext?
+    > ensureJournalContext,
     ILogger<EnsureBookPageCommandHandler> logger
 ) : ICommandHandler<EnsureBookPageCommand, string>
 {
@@ -69,8 +74,19 @@ internal class EnsureBookPageCommandHandler(
             work.Title
         );
 
+        var journalContext = await ensureJournalContext.Handle(
+            new EnsureExpeditionJournalContextCommand(work.Id),
+            cancellationToken
+        );
+
         var composed = await composer.Compose(
-            new BookPageCompositionRequest(work, command.PageNumber, priorPages, secret),
+            new BookPageCompositionRequest(
+                work,
+                command.PageNumber,
+                priorPages,
+                secret,
+                journalContext
+            ),
             cancellationToken
         );
 

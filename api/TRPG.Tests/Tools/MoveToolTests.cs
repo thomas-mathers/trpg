@@ -259,6 +259,11 @@ public sealed class MoveToolTests(DatabaseFixture db) : IAsyncLifetime
         if (aggression > 0)
         {
             Assert.NotNull(moveResult.HostileEncounter);
+            var persistedEncounter = await verifyContext.Encounters.SingleAsync(
+                encounter => encounter.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+            Assert.Equal(_newLocation.Id, persistedEncounter.DepartureDestinationLocationId);
             Assert.Null(moveResult.GuardEncounter);
             Assert.Equal(_oldLocation.Id, player!.LocationId);
             Assert.Single(_eventSink.EnqueuedEvents.OfType<HostileEncounterStartedEvent>());
