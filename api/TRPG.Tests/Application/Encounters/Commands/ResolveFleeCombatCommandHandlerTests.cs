@@ -93,9 +93,9 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_ResolvesThePreviousLocation_WhenOneIsRecorded()
+    public async Task Handle_ReturnsNoDestination_WhenAPreviousLocationIsRecordedButNoExitsExist()
     {
-        // Arrange
+        // Arrange — a stale previous location with no live connector out of the current room
         var previousLocation = Builders.MakeLocation(WorldId, StateId);
         _context.Locations.Add(previousLocation);
         var trackedPlayer = await _context.Creatures.SingleAsync(
@@ -117,13 +117,51 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
             TestContext.Current.CancellationToken
         );
 
-        // Assert
-        Assert.Equal(previousLocation.Id, result!.DestinationLocationId);
-        Assert.Equal(previousLocation.Name, result.DestinationLocationName);
+        // Assert — PreviousLocationId is never used as a fallback destination
+        Assert.Null(result!.DestinationLocationId);
+        Assert.Null(result.DestinationLocationName);
     }
 
     [Fact]
-    public async Task Handle_PrefersTheOutsideExit_WhenNoPreviousLocationIsRecorded()
+    public async Task Handle_PrefersALiveExit_OverAStalePreviousLocation()
+    {
+        // Arrange — the player backtracked from upstairs; the room they're fleeing from has
+        // its own door out, which should win over the stale, disconnected previous location.
+        var previousLocation = Builders.MakeLocation(WorldId, StateId);
+        var exitLocation = Builders.MakeLocation(WorldId, StateId);
+        var exitConnector = Builders.MakeLocationConnector(
+            _currentLocation.Id,
+            destinationLocationId: exitLocation.Id,
+            destinationLabel: "South Hall"
+        );
+        _context.Locations.AddRange(previousLocation, exitLocation);
+        _context.LocationConnectors.Add(exitConnector);
+        var trackedPlayer = await _context.Creatures.SingleAsync(
+            c => c.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        trackedPlayer.PreviousLocationId = previousLocation.Id;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveFleeCombatCommand
+            {
+                SessionId = _session.Id,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(exitLocation.Id, result!.DestinationLocationId);
+        Assert.Equal(exitLocation.Name, result.DestinationLocationName);
+    }
+
+    [Fact]
+    public async Task Handle_PrefersTheOutsideExit_OverOtherExits()
     {
         // Arrange
         var outsideLocation = Builders.MakeLocation(WorldId, StateId);
@@ -248,14 +286,6 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
     public async Task Handle_ReturnsNoDestination_WhenTheFleeAttemptIsCaught()
     {
         // Arrange
-        var previousLocation = Builders.MakeLocation(WorldId, StateId);
-        _context.Locations.Add(previousLocation);
-        var trackedPlayer = await _context.Creatures.SingleAsync(
-            c => c.Id == _player.Id,
-            TestContext.Current.CancellationToken
-        );
-        trackedPlayer.PreviousLocationId = previousLocation.Id;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await SeedFight();
 
         await using var caughtContext = db.CreateContext();
@@ -289,7 +319,7 @@ public sealed class ResolveFleeCombatCommandHandlerTests(DatabaseFixture db) : I
     }
 
     [Fact]
-    public async Task Handle_ReturnsNoDestination_WhenNoPreviousLocationAndNoUsableExits()
+    public async Task Handle_ReturnsNoDestination_WhenNoUsableExitsExist()
     {
         // Arrange
         await SeedFight();

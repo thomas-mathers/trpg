@@ -31,7 +31,9 @@ internal class ResolveTheftEncounterActionCommandHandler(
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    ICommandHandler<MovePlayerCommand> movePlayer
+    ICommandHandler<MovePlayerCommand> movePlayer,
+    ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector,
+    DepartureMovementResumer departureMovementResumer
 )
     : EncounterResolutionCommandHandlerBase<
         TheftEncounter,
@@ -127,25 +129,43 @@ internal class ResolveTheftEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var destinationLocationId =
-            encounter.DepartureDestinationLocationId ?? player.PreviousLocationId;
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
 
-        if (destinationLocationId is { } locationId)
+        bool leftTheScene;
+        if (encounter.DepartureDestinationLocationId != null)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
-                cancellationToken
-            );
-
-            await movePlayer.Handle(
-                new MovePlayerCommand
+            await departureMovementResumer.Resume(encounter, player, playtime, cancellationToken);
+            leftTheScene = true;
+        }
+        else
+        {
+            var destinationLocationId = await resolveExitConnector.Handle(
+                new ResolveExitConnectorCommand
                 {
+                    WorldId = command.WorldId,
                     PlayerId = command.PlayerId,
-                    DestinationLocationId = locationId,
                     Playtime = playtime,
                 },
                 cancellationToken
             );
+
+            if (destinationLocationId is { } locationId)
+            {
+                await movePlayer.Handle(
+                    new MovePlayerCommand
+                    {
+                        PlayerId = command.PlayerId,
+                        DestinationLocationId = locationId,
+                        Playtime = playtime,
+                    },
+                    cancellationToken
+                );
+            }
+
+            leftTheScene = destinationLocationId != null;
         }
 
         return new TheftEncounterResolutionFact(
@@ -156,7 +176,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
             encounter.ItemNames.ToArray(),
             ItemsReturned: false,
             ItemsHeldByPlayer: encounter.ItemSelections.Count > 0,
-            LeftTheScene: destinationLocationId != null
+            LeftTheScene: leftTheScene
         );
     }
 }

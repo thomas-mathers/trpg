@@ -30,23 +30,11 @@ internal class ResolveFleeCombatCommandHandler(
     ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<
-        GetConnectorsByLocationIdQuery,
-        IReadOnlyCollection<LocationConnector>
-    > getConnectorsByLocationId,
-    ICommandHandler<
-        ResolveAccessibleConnectorsCommand,
-        IReadOnlyCollection<Guid>
-    > resolveAccessibleConnectors,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
-    IQueryHandler<GetPulledLeverIdsQuery, IReadOnlySet<Guid>> getPulledLeverIds
+    ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector
 ) : ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?>
 {
-    private const string OutsideExitLabel = "Outside";
-
     public async Task<FleeCombatResult?> Handle(
         ResolveFleeCombatCommand command,
         CancellationToken cancellationToken = default
@@ -74,7 +62,20 @@ internal class ResolveFleeCombatCommandHandler(
             return new FleeCombatResult(combatResult, null, null);
         }
 
-        var destinationLocationId = await ResolveDestination(command, cancellationToken);
+        var playtime = await getPlaytime.Handle(
+            new GetPlaytimeQuery { SessionId = command.SessionId },
+            cancellationToken
+        );
+
+        var destinationLocationId = await resolveExitConnector.Handle(
+            new ResolveExitConnectorCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
         if (destinationLocationId == null)
         {
             return new FleeCombatResult(combatResult, null, null);
@@ -90,75 +91,5 @@ internal class ResolveFleeCombatCommandHandler(
             destinationLocationId.Value,
             destinationLocation?.Name
         );
-    }
-
-    private async Task<Guid?> ResolveDestination(
-        ResolveFleeCombatCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var player = await getCreatureById.Handle(
-            new GetCreatureByIdQuery { Id = command.PlayerId },
-            cancellationToken
-        );
-
-        if (player!.PreviousLocationId is { } previousLocationId)
-        {
-            return previousLocationId;
-        }
-
-        var connectors = await getConnectorsByLocationId.Handle(
-            new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
-            cancellationToken
-        );
-        if (connectors.Count == 0)
-        {
-            return null;
-        }
-
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
-        var playerKeyItemIds = await getKeyItemIdsByOwner.Handle(
-            new GetKeyItemIdsByOwnerQuery
-            {
-                Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
-            },
-            cancellationToken
-        );
-
-        var pulledLeverIds = await getPulledLeverIds.Handle(
-            new GetPulledLeverIdsQuery { WorldId = command.WorldId },
-            cancellationToken
-        );
-
-        var accessibleConnectorIds = await resolveAccessibleConnectors.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = playerKeyItemIds,
-                PulledLeverIds = pulledLeverIds,
-                Playtime = playtime,
-                ConnectorIds = connectors.Select(connector => connector.Id).ToArray(),
-            },
-            cancellationToken
-        );
-
-        var openExits = connectors
-            .Where(connector => accessibleConnectorIds.Contains(connector.Id))
-            .ToArray();
-
-        if (openExits.Length == 0)
-        {
-            return null;
-        }
-
-        var outsideExit = openExits.FirstOrDefault(connector =>
-            connector.DestinationLabel == OutsideExitLabel
-        );
-
-        return outsideExit?.DestinationLocationId
-            ?? openExits[Random.Shared.Next(openExits.Length)].DestinationLocationId;
     }
 }

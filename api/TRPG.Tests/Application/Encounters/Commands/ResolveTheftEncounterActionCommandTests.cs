@@ -206,7 +206,13 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
     {
         // Arrange — the innkeeper stops the player on their way out, so fleeing completes the move
         var destination = Builders.MakeLocation(WorldId);
+        var connector = Builders.MakeLocationConnector(
+            _locationId,
+            destinationLocationId: destination.Id,
+            destinationLabel: "Outside"
+        );
         _context.Locations.Add(destination);
+        _context.LocationConnectors.Add(connector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var encounter = await SeedEncounter(
             sourceOwnerId: _owner.Id,
@@ -404,12 +410,18 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
         };
 
     [Fact]
-    public async Task Handle_Flee_FallsBackToWhereTheyCameFrom_WhenCaughtStandingStill()
+    public async Task Handle_Flee_UsesALiveExit_WhenCaughtStandingStillWithNoInterruptedMove()
     {
-        // Arrange — caught at the scene, so fleeing retreats the way they came
-        var origin = Builders.MakeLocation(WorldId, id: Guid.NewGuid());
-        _player.PreviousLocationId = origin.Id;
-        _context.Locations.Add(origin);
+        // Arrange — caught mid-pickpocket, not mid-move, so fleeing exits through whatever
+        // door is actually in this room rather than any previously-visited location.
+        var exitLocation = Builders.MakeLocation(WorldId);
+        var exitConnector = Builders.MakeLocationConnector(
+            _locationId,
+            destinationLocationId: exitLocation.Id,
+            destinationLabel: "South Hall"
+        );
+        _context.Locations.Add(exitLocation);
+        _context.LocationConnectors.Add(exitConnector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var encounter = await SeedEncounter(
             sourceOwnerId: _owner.Id,
@@ -431,7 +443,38 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db) 
             [_player.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(origin.Id, updatedPlayer!.LocationId);
+        Assert.Equal(exitLocation.Id, updatedPlayer!.LocationId);
+    }
+
+    [Fact]
+    public async Task Handle_Flee_IgnoresAStalePreviousLocation_WhenNoLiveExitExists()
+    {
+        // Arrange — a stale PreviousLocationId with no connector from the current room to it
+        var staleOrigin = Builders.MakeLocation(WorldId, id: Guid.NewGuid());
+        _player.PreviousLocationId = staleOrigin.Id;
+        _context.Locations.Add(staleOrigin);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedEncounter(
+            sourceOwnerId: _owner.Id,
+            sourceOwnerType: OwnerType.Creature,
+            confrontingCreature: _confronter
+        );
+
+        // Act
+        var fact = await _handler.Handle(
+            MakeCommand(new FleeTheftEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(fact.LeftTheScene);
+
+        await using var verifyContext = db.CreateContext();
+        var updatedPlayer = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_locationId, updatedPlayer!.LocationId);
     }
 
     [Fact]
