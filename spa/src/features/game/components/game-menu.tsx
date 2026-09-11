@@ -16,7 +16,7 @@ interface GameMenuProps {
   onOpenQuestJournal: () => void;
   onOpenSkillTreeDialog: () => void;
   onOpenWaitDialog: () => void;
-  onOpenWorldMapDialog: () => void;
+  onOpenMapDialog: () => void;
   onQuit: () => void;
 }
 
@@ -26,7 +26,7 @@ export function GameMenu({
   onOpenQuestJournal,
   onOpenSkillTreeDialog,
   onOpenWaitDialog,
-  onOpenWorldMapDialog,
+  onOpenMapDialog,
   onQuit,
 }: GameMenuProps) {
   const scene = useScene();
@@ -51,8 +51,8 @@ export function GameMenu({
         <DropdownMenuItem disabled={!scene} onClick={onOpenSkillTreeDialog}>
           Skills
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={!scene} onClick={onOpenWorldMapDialog}>
-          World Map
+        <DropdownMenuItem disabled={!scene} onClick={onOpenMapDialog}>
+          Map
         </DropdownMenuItem>
         <DropdownMenuItem disabled={!scene} onClick={onOpenWaitDialog}>
           Wait

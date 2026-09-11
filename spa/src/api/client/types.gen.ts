@@ -556,6 +556,50 @@ export type JobStatusResponse = {
 
 export type LeechType = 'Life' | 'Mana';
 
+export type LocalMapLockKind = 'None' | 'LockedDoor' | 'KeyLockedDoor' | 'Portcullis';
+
+export type LocalMapMarkerKind = 'Chest' | 'Lever' | 'PlayerCorpse';
+
+export type LocalMapMarkerResponse = {
+    id: string;
+    name: string;
+    kind: LocalMapMarkerKind;
+    state: LocalMapMarkerState;
+    isLocked: boolean;
+    itemCount: null | number;
+};
+
+export type LocalMapMarkerState = 'ContainsItems' | 'Empty' | 'Unactivated' | 'Activated' | 'RecoverableLoot';
+
+export type LocalMapPassageResponse = {
+    id: string;
+    originRoomId: string;
+    destinationRoomId: string;
+    path: null | Array<PointResponse>;
+    isLocked: boolean;
+    lockKind: LocalMapLockKind;
+};
+
+export type LocalMapResponse = {
+    buildingId: string;
+    buildingName: string;
+    buildingType: BuildingType;
+    currentRoomId: string;
+    rooms: Array<LocalMapRoomResponse>;
+    passages: Array<LocalMapPassageResponse>;
+};
+
+export type LocalMapRoomResponse = {
+    id: string;
+    name: string;
+    floorNumber: number;
+    bounds: null | RoomBoundsResponse;
+    role: null | RoomRole;
+    isVisited: boolean;
+    isFrontier: boolean;
+    markers: Array<LocalMapMarkerResponse>;
+};
+
 export type LoreAnchor = {
     id: string;
     name: string;
@@ -692,6 +736,13 @@ export type RoadMapResponse = {
     name: string;
     originStateId: string;
     destinationStateId: string;
+};
+
+export type RoomBoundsResponse = {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
 };
 
 export type RoomRole = 'Entrance' | 'BossChamber' | 'Passage' | 'GuardPost' | 'Storeroom' | 'TreasureRoom' | 'Shrine' | 'Study' | 'CellBlock' | 'CollapsedGallery' | 'FloodedSump';
@@ -1185,6 +1236,24 @@ export type GetWorldMapResponses = {
 };
 
 export type GetWorldMapResponse = GetWorldMapResponses[keyof GetWorldMapResponses];
+
+export type GetLocalMapData = {
+    body?: never;
+    path: {
+        playerId: string;
+    };
+    query?: never;
+    url: '/players/{playerId}/local-map';
+};
+
+export type GetLocalMapResponses = {
+    /**
+     * OK
+     */
+    200: LocalMapResponse;
+};
+
+export type GetLocalMapResponse = GetLocalMapResponses[keyof GetLocalMapResponses];
 
 export type GetPlayerFightData = {
     body?: never;

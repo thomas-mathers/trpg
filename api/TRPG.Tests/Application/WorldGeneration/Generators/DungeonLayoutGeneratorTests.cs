@@ -113,7 +113,7 @@ public class DungeonLayoutGeneratorTests
         var layout = DungeonLayoutGenerator.Generate(input);
 
         // Assert
-        var positions = layout.Rooms.Select(room => room.Position).Distinct().ToArray();
+        var positions = layout.Rooms.Select(room => room.Center).Distinct().ToArray();
         Assert.Equal(layout.Rooms.Count, positions.Length);
     }
 
@@ -128,8 +128,8 @@ public class DungeonLayoutGeneratorTests
         // Assert
         var same = DungeonLayoutGenerator.Generate(MakeInput(12));
         Assert.Equal(
-            layout.Rooms.Select(room => room.Position),
-            same.Rooms.Select(room => room.Position)
+            layout.Rooms.Select(room => room.Center),
+            same.Rooms.Select(room => room.Center)
         );
         Assert.Equal(layout.EntranceIndex, same.EntranceIndex);
         Assert.Equal(layout.BossIndex, same.BossIndex);

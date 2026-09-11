@@ -31,7 +31,7 @@ internal sealed record DungeonConvergenceFeatures(
 
 internal record DungeonRoomNode(
     int Index,
-    Point Position,
+    Point Center,
     int DepthFromEntrance,
     bool IsDeadEnd,
     DungeonRouteKind RouteKind,
@@ -185,20 +185,13 @@ internal static class DungeonLayoutGenerator
                 return;
             }
 
-            // Nothing stops two dead ends from sharing a parent — when that happens, offsetting by
-            // a fixed amount would give them the exact same position, so each additional leaf off
-            // the same parent gets pushed further out instead.
-            var attachedCountByParent = new Dictionary<int, int>();
+            var parents = longRouteRooms.OrderBy(_ => random.Next()).Take(count).ToArray();
 
-            for (var deadEndIndex = 0; deadEndIndex < count; deadEndIndex++)
+            foreach (var parent in parents)
             {
-                var parent = longRouteRooms[random.Next(longRouteRooms.Count)];
-                var siblingCount = attachedCountByParent.GetValueOrDefault(parent);
-                attachedCountByParent[parent] = siblingCount + 1;
-
                 var leaf = _nextIndex++;
                 _routeKindByIndex[leaf] = DungeonRouteKind.Long;
-                _laneByIndex[leaf] = _laneByIndex[parent] - LaneSpacing / 2 * (siblingCount + 1);
+                _laneByIndex[leaf] = _laneByIndex[parent] - LaneSpacing;
                 _depthByIndex[leaf] = _depthByIndex[parent] + 1;
                 _floorByIndex[leaf] = 0;
                 _deadEndIndices.Add(leaf);

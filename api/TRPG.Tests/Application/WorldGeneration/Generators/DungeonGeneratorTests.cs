@@ -32,13 +32,51 @@ public class DungeonGeneratorTests
     }
 
     [Fact]
-    public void Generate_GivesEveryRoomAPosition_SoTheDungeonCanBeMapped()
+    public void Generate_GivesEveryRoomBounds_SoTheDungeonCanBeMapped()
     {
         // Act
         var result = DungeonGenerator.Generate(MakeInput());
 
         // Assert
-        Assert.All(result.Rooms, room => Assert.NotNull(room.Position));
+        Assert.All(result.Rooms, room => Assert.NotNull(room.Bounds));
+    }
+
+    [Fact]
+    public void Generate_ScalesRoomsByTheirRole()
+    {
+        // Act
+        var result = DungeonGenerator.Generate(MakeInput());
+
+        // Assert
+        var entrance = result.Rooms.Single(room => room.Role == RoomRole.Entrance).Bounds!;
+        var boss = result.Rooms.Single(room => room.Role == RoomRole.BossChamber).Bounds!;
+        Assert.True(boss.Right - boss.Left > entrance.Right - entrance.Left);
+        Assert.True(boss.Bottom - boss.Top > entrance.Bottom - entrance.Top);
+    }
+
+    [Fact]
+    public void Generate_EndsEveryMappedPassage_OnItsRoomWalls()
+    {
+        // Act
+        var result = DungeonGenerator.Generate(MakeInput());
+
+        // Assert
+        var roomsByLocation = result.Rooms.ToDictionary(room => room.LocationId);
+        var mappedPassages = result.LocationConnectors.Where(connector => connector.Path != null);
+        Assert.All(
+            mappedPassages,
+            connector =>
+            {
+                AssertOnWall(
+                    roomsByLocation[connector.OriginLocationId].Bounds!,
+                    connector.Path!.Points[0]
+                );
+                AssertOnWall(
+                    roomsByLocation[connector.DestinationLocationId].Bounds!,
+                    connector.Path.Points[^1]
+                );
+            }
+        );
     }
 
     [Fact]
@@ -186,4 +224,12 @@ public class DungeonGeneratorTests
 
     private DungeonGeneratorInput MakeInput(IReadOnlyCollection<string>? excludedNames = null) =>
         new(excludedNames ?? [], WildernessLocation, _worldId) { Random = new Random(20260908) };
+
+    private static void AssertOnWall(Rectangle bounds, Point point) =>
+        Assert.True(
+            point.X == bounds.Left
+                || point.X == bounds.Right
+                || point.Y == bounds.Top
+                || point.Y == bounds.Bottom
+        );
 }

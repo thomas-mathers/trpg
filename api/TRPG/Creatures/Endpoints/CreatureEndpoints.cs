@@ -66,6 +66,7 @@ internal static class CreatureEndpoints
         app.MapGet("/players/{playerId:guid}/nearby-corpses", GetNearbyCorpses)
             .WithName("GetNearbyCorpses");
         app.MapGet("/players/{playerId:guid}/world-map", GetWorldMap).WithName("GetWorldMap");
+        app.MapGet("/players/{playerId:guid}/local-map", GetLocalMap).WithName("GetLocalMap");
     }
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilities(
@@ -178,6 +179,20 @@ internal static class CreatureEndpoints
                 map.QuestMarkers.Select(ToQuestMapResponse).ToArray()
             )
         );
+    }
+
+    private static async Task<Ok<LocalMapResponse>> GetLocalMap(
+        Guid playerId,
+        [FromServices] IQueryHandler<GetLocalMapQuery, LocalMapResult> getLocalMap,
+        CancellationToken cancellationToken
+    )
+    {
+        var map = await getLocalMap.Handle(
+            new GetLocalMapQuery { PlayerId = playerId },
+            cancellationToken
+        );
+
+        return TypedResults.Ok(map.ToResponse());
     }
 
     private static PointResponse ToPointResponse(Point point) => new(point.X, point.Y);

@@ -109,6 +109,15 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
         var bossRoom = input
             .Placements.Single(placement => placement.Room.LocationId == input.BossLocationId)
             .Room;
+        var leverBounds = BoundsForPlacement(leverRoom);
+        var bossBounds = BoundsForPlacement(
+            input.Placements.Single(placement => placement.Room.Id == bossRoom.Id)
+        );
+        var shortcutPath = DungeonMapGeometry.PathBelow(
+            leverBounds,
+            bossBounds,
+            input.Placements.Select(BoundsForPlacement).ToArray()
+        );
 
         var forwardConnector = new LocationConnector
         {
@@ -117,6 +126,7 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             Description = "A portcullis blocking a shortcut, its winch nowhere in sight.",
             DestinationLocationId = input.BossLocationId,
             DestinationLabel = bossRoom.Name,
+            Path = shortcutPath,
             WorldId = input.WorldId,
         };
         var backwardConnector = new LocationConnector
@@ -126,6 +136,7 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             Description = "A raised portcullis, marking a shortcut back the way it came.",
             DestinationLocationId = leverRoom.Room.LocationId,
             DestinationLabel = leverRoom.Room.Name,
+            Path = DungeonMapGeometry.Reverse(shortcutPath),
             WorldId = input.WorldId,
         };
         var door = new DoorConnector
@@ -341,32 +352,49 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
         DungeonRoomPlacement branchFrom
     )
     {
+        var branchBounds = BoundsForPlacement(branchFrom);
         var sidePassage = NewRoom(
             input,
             "Side Passage",
-            "A narrow passage branching off, unremarkable at a glance."
+            "A narrow passage branching off, unremarkable at a glance.",
+            RoomRole.Passage,
+            branchFrom.FloorNumber,
+            SpurBounds(
+                branchBounds,
+                new Point(10, 24),
+                new DungeonRoomDimensions(Width: 12, Height: 7)
+            )
         );
         var keyRoom = NewRoom(
             input,
             "Guarded Alcove",
-            "Someone has made a home of this alcove, and isn't eager for company."
+            "Someone has made a home of this alcove, and isn't eager for company.",
+            RoomRole.GuardPost,
+            branchFrom.FloorNumber,
+            SpurBounds(
+                branchBounds,
+                new Point(38, 24),
+                new DungeonRoomDimensions(Width: 15, Height: 10)
+            )
         );
 
         var connectors = new List<LocationConnector>();
         connectors.AddRange(
             TwoWayConnector(
                 input.WorldId,
-                branchFrom.Room.LocationId,
-                branchFrom.Room.Name,
-                sidePassage.Location
+                branchFrom.Room,
+                sidePassage.Room,
+                branchBounds,
+                sidePassage.Room.Bounds!
             )
         );
         connectors.AddRange(
             TwoWayConnector(
                 input.WorldId,
-                sidePassage.Location.Id,
-                sidePassage.Location.Name,
-                keyRoom.Location
+                sidePassage.Room,
+                keyRoom.Room,
+                sidePassage.Room.Bounds!,
+                keyRoom.Room.Bounds!
             )
         );
 
@@ -421,7 +449,10 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
     private static NewRoomResult NewRoom(
         DungeonObstacleInput input,
         string name,
-        string description
+        string description,
+        RoomRole role,
+        int floorNumber,
+        Rectangle bounds
     )
     {
         var roomId = Guid.NewGuid();
@@ -434,10 +465,13 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
         var room = new Room
         {
             Id = roomId,
+            Bounds = bounds,
             BuildingId = input.BuildingId,
             LocationId = location.Id,
             Name = name,
             Description = description,
+            FloorNumber = floorNumber,
+            Role = role,
             WorldId = input.WorldId,
         };
 
@@ -446,28 +480,67 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
 
     private static IEnumerable<LocationConnector> TwoWayConnector(
         Guid worldId,
-        Guid fromLocationId,
-        string fromName,
-        Location to
+        Room from,
+        Room to,
+        Rectangle fromBounds,
+        Rectangle toBounds
     )
     {
+        var path = DungeonMapGeometry.PathBetween(fromBounds, toBounds);
         yield return new LocationConnector
         {
-            OriginLocationId = fromLocationId,
+            OriginLocationId = from.LocationId,
             Name = "Passage",
             Description = $"The way to {to.Name}.",
-            DestinationLocationId = to.Id,
+            DestinationLocationId = to.LocationId,
             DestinationLabel = to.Name,
+            Path = path,
             WorldId = worldId,
         };
         yield return new LocationConnector
         {
-            OriginLocationId = to.Id,
+            OriginLocationId = to.LocationId,
             Name = "Passage",
             Description = "The way back.",
-            DestinationLocationId = fromLocationId,
-            DestinationLabel = fromName,
+            DestinationLocationId = from.LocationId,
+            DestinationLabel = from.Name,
+            Path = DungeonMapGeometry.Reverse(path),
             WorldId = worldId,
         };
+    }
+
+    private static Rectangle SpurBounds(
+        Rectangle origin,
+        Point offset,
+        DungeonRoomDimensions dimensions
+    )
+    {
+        var originCenter = DungeonMapGeometry.Center(origin);
+        return DungeonMapGeometry.BoundsAt(
+            new Point(originCenter.X + offset.X, originCenter.Y + offset.Y),
+            dimensions.Width,
+            dimensions.Height
+        );
+    }
+
+    private static Rectangle BoundsForPlacement(DungeonRoomPlacement placement)
+    {
+        if (placement.Room.Bounds != null)
+        {
+            return placement.Room.Bounds;
+        }
+
+        var lane = placement.RouteKind switch
+        {
+            DungeonRouteKind.Long => -38,
+            DungeonRouteKind.Short => 38,
+            DungeonRouteKind.Third => 76,
+            _ => 0,
+        };
+        return DungeonMapGeometry.BoundsAt(
+            new Point(placement.DepthFromEntrance * 45, lane),
+            width: 24,
+            height: 14
+        );
     }
 }

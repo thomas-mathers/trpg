@@ -14,7 +14,7 @@ import { InventoryDialog } from '../../inventory/components/inventory-dialog';
 import { QuestDialog } from '../../quests/components/quest-dialog';
 import { QuestJournalDialog } from '../../quests/components/quest-journal-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
-import { WorldMapDialog } from '../../worlds/components/world-map-dialog';
+import { MapDialog } from '../../worlds/components/map-dialog';
 import { usePlayerId, useScene } from '../contexts/scene-context';
 import { GameChatContext, useGameChatBuilder } from '../hooks/use-game-chat';
 import {
@@ -34,14 +34,7 @@ import { SneakToggleButton } from './sneak-toggle-button';
 import { StatusBar } from './status-bar';
 import { WaitDialog } from './wait-dialog';
 
-type OpenDialog =
-  | 'character'
-  | 'inventory'
-  | 'questJournal'
-  | 'skillTree'
-  | 'wait'
-  | 'worldMap'
-  | null;
+type OpenDialog = 'character' | 'inventory' | 'questJournal' | 'skillTree' | 'wait' | 'map' | null;
 
 function GameScreen() {
   const navigate = useNavigate();
@@ -185,7 +178,7 @@ function GameScreenContent({
                   onOpenQuestJournal={() => onOpenDialog('questJournal')}
                   onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
                   onOpenWaitDialog={() => onOpenDialog('wait')}
-                  onOpenWorldMapDialog={() => onOpenDialog('worldMap')}
+                  onOpenMapDialog={() => onOpenDialog('map')}
                   onQuit={onQuit}
                 />
               </>
@@ -215,9 +208,10 @@ function GameScreenContent({
               onClose={() => onOpenDialog(null)}
             />
             <WaitDialog open={openDialog === 'wait'} onClose={() => onOpenDialog(null)} />
-            <WorldMapDialog
+            <MapDialog
               playerId={playerId}
-              open={openDialog === 'worldMap'}
+              isInsideBuilding={Boolean(scene?.buildingName)}
+              open={openDialog === 'map'}
               onClose={() => onOpenDialog(null)}
             />
             <QuestDialog
