@@ -163,6 +163,7 @@ internal static class DungeonGenerator
             new DungeonLayoutInput(RoomCountByType[type]) { Random = input.Random }
         );
         var assigned = DungeonRoleAssigner.Assign(layout, type, input.Random);
+        var floorPlan = DungeonFloorPlan.Create(layout, assigned, input.Random);
 
         var rooms = new List<Room>();
         var placements = new List<DungeonRoomPlacement>();
@@ -199,12 +200,12 @@ internal static class DungeonGenerator
             var built = new Room
             {
                 Id = roomId,
+                Bounds = floorPlan.BoundsFor(room.Node.Index),
                 BuildingId = building.Id,
                 LocationId = location.Id,
                 Name = roomName,
                 Description = description,
                 FloorNumber = room.Node.FloorNumber,
-                Position = room.Node.Position,
                 Role = room.Role,
                 WorldId = input.WorldId,
             };
@@ -224,7 +225,10 @@ internal static class DungeonGenerator
         }
 
         var entranceLocationId = locations[layout.EntranceIndex].Id;
-        var connectors = BuildPassages(layout, rooms, locations, input);
+        var connectors = BuildPassages(
+            new PassageBuildInput(rooms, locations, layout, input),
+            floorPlan
+        );
         var frontDoor = new LocationConnector
         {
             OriginLocationId = entranceLocationId,
@@ -264,47 +268,66 @@ internal static class DungeonGenerator
 
     // Passages run both ways: a player who walks into a room has to be able to walk back out of it.
     private static List<LocationConnector> BuildPassages(
-        DungeonLayout layout,
-        IReadOnlyList<Room> rooms,
-        IReadOnlyList<Location> locations,
-        DungeonGeneratorInput input
+        PassageBuildInput input,
+        DungeonFloorPlan floorPlan
     )
     {
         var connectors = new List<LocationConnector>();
-
-        foreach (var passage in layout.Passages)
+        foreach (var passage in input.Layout.Passages)
         {
-            connectors.Add(Passage(rooms, locations, layout, passage.From, passage.To, input));
-            connectors.Add(Passage(rooms, locations, layout, passage.To, passage.From, input));
+            var path = floorPlan.PathFor(passage);
+            connectors.Add(Passage(input, passage.From, passage.To, path));
+            connectors.Add(
+                Passage(
+                    input,
+                    passage.To,
+                    passage.From,
+                    path == null ? null : DungeonMapGeometry.Reverse(path)
+                )
+            );
         }
 
         return connectors;
     }
 
+    private sealed record PassageBuildInput(
+        IReadOnlyList<Room> Rooms,
+        IReadOnlyList<Location> Locations,
+        DungeonLayout Layout,
+        DungeonGeneratorInput GeneratorInput
+    );
+
     private static LocationConnector Passage(
-        IReadOnlyList<Room> rooms,
-        IReadOnlyList<Location> locations,
-        DungeonLayout layout,
+        PassageBuildInput input,
         int from,
         int to,
-        DungeonGeneratorInput input
+        Polyline? path
     )
     {
-        var direction = Bearings.Between(layout.Rooms[from].Position, layout.Rooms[to].Position);
+        var direction = Bearings.Between(
+            DungeonMapGeometry.Center(input.Rooms[from].Bounds!),
+            DungeonMapGeometry.Center(input.Rooms[to].Bounds!)
+        );
+        var floorChange = input.Rooms[to].FloorNumber - input.Rooms[from].FloorNumber;
+        var stairDirection = floorChange > 0 ? "up" : "down";
         var lie =
-            layout.Rooms[to].DepthFromEntrance > layout.Rooms[from].DepthFromEntrance
+            input.Layout.Rooms[to].DepthFromEntrance > input.Layout.Rooms[from].DepthFromEntrance
                 ? "deeper in"
                 : "back toward the way you came";
 
         return new LocationConnector
         {
-            OriginLocationId = locations[from].Id,
-            Name = "Passage",
-            Description = $"A passage running {Bearings.ToWords(direction)}, {lie}.",
-            Direction = direction,
-            DestinationLocationId = locations[to].Id,
-            DestinationLabel = rooms[to].Name,
-            WorldId = input.WorldId,
+            OriginLocationId = input.Locations[from].Id,
+            Name = floorChange == 0 ? "Passage" : "Stairway",
+            Description =
+                floorChange == 0
+                    ? $"A passage running {Bearings.ToWords(direction)}, {lie}."
+                    : $"A staircase leading {stairDirection} to {input.Rooms[to].Name}.",
+            Direction = floorChange == 0 ? direction : null,
+            DestinationLocationId = input.Locations[to].Id,
+            DestinationLabel = input.Rooms[to].Name,
+            Path = path,
+            WorldId = input.GeneratorInput.WorldId,
         };
     }
 

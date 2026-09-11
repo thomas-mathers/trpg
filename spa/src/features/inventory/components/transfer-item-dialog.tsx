@@ -6,6 +6,8 @@ import { GiChest, GiShoppingBag, GiTombstone } from 'react-icons/gi';
 import {
   getContainerInventoryOptions,
   getCreatureInventoryOptions,
+  getLocalMapQueryKey,
+  getWorldMapQueryKey,
   getTheftDetectionChance,
   getWorkstationInventoryOptions,
   transferInventoryMutation,
@@ -190,6 +192,8 @@ function TransferDialogBody({
       queryKey: getCreatureInventoryOptions({ path: { creatureId: playerId } }).queryKey,
     });
     await queryClient.invalidateQueries({ queryKey: targetInventoryOptions.queryKey });
+    await queryClient.invalidateQueries({ queryKey: getLocalMapQueryKey({ path: { playerId } }) });
+    await queryClient.invalidateQueries({ queryKey: getWorldMapQueryKey({ path: { playerId } }) });
     onClose();
     if (theftEncounterId) {
       onTheftEncounter?.(theftEncounterId);

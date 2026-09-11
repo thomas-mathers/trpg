@@ -359,7 +359,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
 
         modelBuilder.Entity<Room>(entity =>
         {
-            entity.OwnsOne(room => room.Position, position => position.ToJson());
+            entity.OwnsOne(room => room.Bounds, bounds => bounds.ToJson());
         });
 
         modelBuilder.Entity<BookWork>(entity =>
@@ -451,6 +451,14 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(c => c.DestinationLocationId);
             entity.HasIndex(c => new { c.OriginLocationId, c.DestinationLocationId });
             entity.HasIndex(c => c.WorldId);
+            entity.OwnsOne(
+                c => c.Path,
+                path =>
+                {
+                    path.ToJson();
+                    path.OwnsMany(p => p.Points);
+                }
+            );
         });
 
         modelBuilder.Entity<DoorConnector>(entity =>

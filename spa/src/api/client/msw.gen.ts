@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetJobResponses, GetLocalMapResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -664,6 +664,37 @@ export function handleGetWorldMap(response?: HandleGetWorldMapResponse | HttpRes
     return http.get<{
         playerId: string;
     }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/world-map`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleGetLocalMapResponse = {
+    body: GetLocalMapResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `GET /players/{playerId}/local-map` operation.
+ */
+export function handleGetLocalMap(response?: HandleGetLocalMapResponse | HttpResponseResolver<{
+    playerId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.get<{
+        playerId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/local-map`, info => {
         if (typeof response === 'function') {
             return response(info);
         }
@@ -1500,6 +1531,10 @@ export type MswHandlerFactories = {
      */
     getWorldMap: typeof handleGetWorldMap;
     /**
+     * Handler for the `GET /players/{playerId}/local-map` operation.
+     */
+    getLocalMap: typeof handleGetLocalMap;
+    /**
      * Handler for the `GET /players/{playerId}/fight` operation.
      */
     getPlayerFight: typeof handleGetPlayerFight;
@@ -1630,6 +1665,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         previewCreatureBasicAttackDamage: wrap(handlePreviewCreatureBasicAttackDamage),
         getNearbyCorpses: wrap(handleGetNearbyCorpses),
         getWorldMap: wrap(handleGetWorldMap),
+        getLocalMap: wrap(handleGetLocalMap),
         getPlayerFight: wrap(handleGetPlayerFight),
         getPlayerFightAbilities: wrap(handleGetPlayerFightAbilities),
         getCreatureGenerationOptions: wrap(handleGetCreatureGenerationOptions),
@@ -1694,6 +1730,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.setCreatureSneaking, overrides.setCreatureSneaking),
             invoke(pick.getNearbyCorpses, overrides.getNearbyCorpses),
             invoke(pick.getWorldMap, overrides.getWorldMap),
+            invoke(pick.getLocalMap, overrides.getLocalMap),
             invoke(pick.getPlayerFight, overrides.getPlayerFight),
             invoke(pick.getSessionScene, overrides.getSessionScene),
             invoke(pick.listSessionLoreAnchors, overrides.listSessionLoreAnchors),

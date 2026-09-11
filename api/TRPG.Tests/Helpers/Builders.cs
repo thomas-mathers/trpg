@@ -929,7 +929,8 @@ internal static class Builders
         Guid? worldId = null,
         Guid? id = null,
         Guid? locationId = null,
-        string? name = null
+        string? name = null,
+        int floorNumber = 0
     )
     {
         return new Room
@@ -939,7 +940,7 @@ internal static class Builders
             Capacity = capacity,
             Name = name ?? $"Room-{Guid.NewGuid():N}",
             Description = "A test room",
-            FloorNumber = 0,
+            FloorNumber = floorNumber,
             WorldId = worldId ?? Guid.NewGuid(),
             LocationId = locationId ?? Guid.NewGuid(),
         };
