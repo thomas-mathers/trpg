@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911144043_AddDungeonExpeditions")]
+    partial class AddDungeonExpeditions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1271,10 +1274,6 @@ namespace TRPG.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
-
-                    b.Property<Guid?>("DepartureDestinationLocationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("departure_destination_location_id");
 
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uuid")
@@ -2734,6 +2733,10 @@ namespace TRPG.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("confronting_name");
+
+                    b.Property<Guid?>("InterruptedDestinationLocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("interrupted_destination_location_id");
 
                     b.PrimitiveCollection<List<Guid>>("ItemIds")
                         .IsRequired()

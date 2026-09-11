@@ -39,6 +39,7 @@ internal class StreamSuspicionEncounterActionTurnHandler(
         await resolveSuspicionEncounterAction.Handle(
             new ResolveSuspicionEncounterActionCommand
             {
+                SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,

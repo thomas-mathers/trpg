@@ -1,5 +1,7 @@
 using System.Transactions;
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Data.ModuleContexts;
 
 namespace TRPG.Application.Encounters.Commands;
 
@@ -13,6 +15,7 @@ public class EvaluateMoveInterceptionCommand
 }
 
 internal class EvaluateMoveInterceptionCommandHandler(
+    IEncountersDbContext context,
     ICommandHandler<
         EvaluateOverdueRoomKeyEncounterCommand,
         ConfrontOverdueRoomKeyResult
@@ -30,6 +33,19 @@ internal class EvaluateMoveInterceptionCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
         var result = await EvaluateInterception(command, cancellationToken);
+        if (result.Encounter != null)
+        {
+            await context
+                .Encounters.Where(encounter => encounter.Id == result.Encounter.Id)
+                .ExecuteUpdateAsync(
+                    setters =>
+                        setters.SetProperty(
+                            encounter => encounter.DepartureDestinationLocationId,
+                            command.ToLocationId
+                        ),
+                    cancellationToken
+                );
+        }
         transaction.Complete();
         return result;
     }

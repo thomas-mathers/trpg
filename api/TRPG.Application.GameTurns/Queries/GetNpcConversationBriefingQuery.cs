@@ -97,10 +97,15 @@ public record NpcConversationBriefing(
     NpcConversationAppearance Appearance,
     NpcConversationBehavior Behavior,
     NpcConversationBackground PrivateBackground,
-    NpcConversationRuntimeState RuntimeState
+    NpcConversationRuntimeState RuntimeState,
+    DungeonConversationKnowledge? DungeonKnowledge = null
 );
 
 internal class GetNpcConversationBriefingQueryHandler(
+    IQueryHandler<
+        GetDungeonConversationKnowledgeQuery,
+        DungeonConversationKnowledge?
+    > getDungeonKnowledge,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult> getQuestInteractions,
     IQueryHandler<GetEffectiveReputationQuery, int> getEffectiveReputation,
@@ -201,6 +206,15 @@ internal class GetNpcConversationBriefingQueryHandler(
         var reputationHistory = await GetReputationHistory(query, cancellationToken);
         var roomBooking = await GetRoomBookingStatus(query, cancellationToken);
 
+        var dungeonKnowledge = await getDungeonKnowledge.Handle(
+            new GetDungeonConversationKnowledgeQuery(
+                WorldId: query.WorldId,
+                PlayerId: query.PlayerId,
+                NpcId: query.NpcId
+            ),
+            cancellationToken
+        );
+
         return new NpcConversationBriefing(
             new NpcConversationIdentity(
                 npc.Name,
@@ -249,7 +263,8 @@ internal class GetNpcConversationBriefingQueryHandler(
                 quests,
                 roomBooking,
                 player.IsSneaking
-            )
+            ),
+            dungeonKnowledge
         );
     }
 

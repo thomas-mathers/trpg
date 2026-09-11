@@ -127,13 +127,19 @@ internal class GameTurnStreamer(
 
         // The state change already happened, so the client must learn of it before the narration describing it.
         var flushed = false;
+        var lastScene = before;
 
         await foreach (var token in linkedTokens)
         {
             if (!flushed)
             {
-                await FlushSceneChange(before, session, cancellationToken);
+                lastScene = await FlushSceneChange(lastScene, session, cancellationToken);
                 flushed = true;
+            }
+            else
+            {
+                // A tool can enqueue events after the model has already emitted introductory text.
+                lastScene = await FlushSceneChange(lastScene, session, cancellationToken);
             }
 
             yield return token;
@@ -141,7 +147,7 @@ internal class GameTurnStreamer(
 
         if (!flushed)
         {
-            await FlushSceneChange(before, session, cancellationToken);
+            await FlushSceneChange(lastScene, session, cancellationToken);
         }
     }
 
@@ -182,14 +188,15 @@ internal class GameTurnStreamer(
         return after;
     }
 
-    private async Task FlushSceneChange(
+    private async Task<SceneResult> FlushSceneChange(
         SceneResult before,
         GameTurnSession session,
         CancellationToken cancellationToken
     )
     {
-        await EnqueueSceneChange(before, session, cancellationToken);
+        var after = await EnqueueSceneChange(before, session, cancellationToken);
         await eventAckGate.FlushAndAwaitAckAsync(session.WorldId, cancellationToken);
+        return after;
     }
 
     private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)

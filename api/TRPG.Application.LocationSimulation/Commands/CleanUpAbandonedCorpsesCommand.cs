@@ -6,6 +6,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.LocationSimulation.Commands;
@@ -31,6 +32,7 @@ internal class CleanUpAbandonedCorpsesCommandHandler(
         GetInventoryItemsByOwnersQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Item>>
     > getInventoryItemsByOwners,
+    IQueryHandler<GetDungeonExpeditionsQuery, IReadOnlyList<DungeonExpedition>> getExpeditions,
     ICommandHandler<DeleteCreaturesCommand> deleteCreatures,
     ILogger<CleanUpAbandonedCorpsesCommandHandler> logger
 ) : ICommandHandler<CleanUpAbandonedCorpsesCommand>
@@ -76,7 +78,15 @@ internal class CleanUpAbandonedCorpsesCommandHandler(
             cancellationToken
         );
         var unlootedPlayerCorpseIds = playerCorpseIds.Where(itemsByPlayerCorpse.ContainsKey);
+        var expeditions = await getExpeditions.Handle(
+            new GetDungeonExpeditionsQuery(command.WorldId),
+            cancellationToken
+        );
+        var protectedParticipants = expeditions.SelectMany(expedition =>
+            new[] { expedition.SurvivorId, expedition.CompanionId }
+        );
         var removableCreatureIds = deadCreatureIds
+            .Except(protectedParticipants)
             .Except(questItemOwnerIds)
             .Except(unlootedPlayerCorpseIds)
             .ToArray();

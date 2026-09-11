@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using TRPG.Application.Books;
 using TRPG.Application.Common.Llm;
+using TRPG.Application.Worlds.Commands;
 using BookSubjectType = TRPG.Domain.Models.BookSubjectType;
 using BookTier = TRPG.Domain.Models.BookTier;
 using BookWork = TRPG.Domain.Models.BookWork;
@@ -85,6 +86,38 @@ public class BookPageComposerTests
 
         // Assert
         Assert.Contains("No pages have been written yet.", _client.Captured[1].Text);
+    }
+
+    [Fact]
+    public async Task Compose_GroundsTheAuthorInActualRooms_WhenWritingAnExpeditionJournal()
+    {
+        // Arrange
+        var context = new ExpeditionJournalContext(
+            Author: "Mara",
+            DungeonHistory: "An abandoned mine.",
+            Purpose: "Survey the workings.",
+            Separation: "Parted at the storeroom.",
+            FinalExperience: "Reached the study after a fall.",
+            Route: ["Entrance", "Storeroom", "Study"]
+        );
+        var request = new BookPageCompositionRequest(Work, 1, [], null, context);
+
+        // Act
+        await _client.Compose(request);
+
+        // Assert
+        Assert.Contains("Mara", _client.Captured[1].Text, StringComparison.Ordinal);
+        Assert.Contains(
+            "Entrance → Storeroom → Study",
+            _client.Captured[1].Text,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("An abandoned mine.", _client.Captured[1].Text, StringComparison.Ordinal);
+        Assert.Contains(
+            "Do not describe the author's own death",
+            _client.Captured[1].Text,
+            StringComparison.Ordinal
+        );
     }
 
     private sealed class CapturingChatClient : IChatClient

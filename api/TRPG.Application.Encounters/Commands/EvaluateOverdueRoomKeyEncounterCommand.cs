@@ -40,7 +40,7 @@ internal class EvaluateOverdueRoomKeyEncounterCommandHandler(
                 Playtime = command.Playtime,
                 PlayerId = command.PlayerId,
                 LocationId = command.FromLocationId,
-                InterruptedDestinationLocationId = command.ToLocationId,
+                DepartureDestinationLocationId = command.ToLocationId,
                 BuildingId = innBuilding.Id,
             },
             cancellationToken

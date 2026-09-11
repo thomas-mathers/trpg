@@ -61,13 +61,14 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
             EncounterId = encounterId,
         };
 
-    private async Task<HostileEncounter> SeedActiveEncounter()
+    private async Task<HostileEncounter> SeedActiveEncounter(Guid? destinationLocationId = null)
     {
         var encounter = new HostileEncounter
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
-            LocationId = Guid.NewGuid(),
+            LocationId = _player.LocationId,
+            DepartureDestinationLocationId = destinationLocationId,
             LocationName = "Market Square",
             FactionId = _faction.Id,
             FactionName = _faction.Name,
@@ -151,11 +152,165 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         // Assert
         Assert.Equal(HostileEncounterResolutionOutcome.Evaded, result.Outcome);
         await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(_player.LocationId, player.LocationId);
         Assert.False(
             await verifyContext
                 .Encounters.OfType<FightEncounter>()
                 .AnyAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken)
         );
+    }
+
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(1f)]
+    public async Task Handle_Evade_ResumesDepartureOnlyOnSuccess_WhenMovementWasInterrupted(
+        float catchChance
+    )
+    {
+        // Arrange
+        var destination = Builders.MakeLocation(WorldId, Guid.NewGuid());
+        _context.Locations.Add(destination);
+        _context.LocationConnectors.Add(
+            Builders.MakeLocationConnector(
+                _player.LocationId,
+                destinationLocationId: destination.Id,
+                worldId: WorldId
+            )
+        );
+        var encounter = await SeedActiveEncounter(destination.Id);
+        _context.ChangeTracker.Clear();
+        var handler = BuildHandlerWithFleeOptions(catchChance, catchChance);
+
+        // Act
+        var result = await handler.Handle(
+            MakeCommand(new EvadeEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(catchChance == 0f ? destination.Id : _player.LocationId, player.LocationId);
+        Assert.Equal(
+            catchChance == 0f
+                ? HostileEncounterResolutionOutcome.Evaded
+                : HostileEncounterResolutionOutcome.EvadeFailed,
+            result.Outcome
+        );
+    }
+
+    [Fact]
+    public async Task Handle_Evade_RejectsDisconnectedDestinationWithoutCompletingEncounter()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        var handler = BuildHandlerWithFleeOptions(0f, 0f);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(
+                MakeCommand(new EvadeEncounterAction(), encounter.Id),
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var persisted = await verifyContext
+            .Encounters.AsNoTracking()
+            .SingleAsync(item => item.Id == encounter.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(EncounterState.Active, persisted.State);
+    }
+
+    [Fact]
+    public async Task Handle_Evade_StartsArrivalEncounter_WhenDestinationHasHostiles()
+    {
+        // Arrange
+        var destination = Builders.MakeLocation(WorldId, Guid.NewGuid());
+        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var enemy = Builders.MakeCreature(WorldId, locationId: destination.Id);
+        var group = Builders.MakeEncounterGroup(WorldId, destination.Id, faction.Id);
+        _context.Locations.Add(destination);
+        _context.LocationConnectors.Add(
+            Builders.MakeLocationConnector(
+                _player.LocationId,
+                destinationLocationId: destination.Id,
+                worldId: WorldId
+            )
+        );
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(enemy);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(
+            Builders.MakeEncounterGroupMember(WorldId, group.Id, enemy.Id)
+        );
+        var encounter = await SeedActiveEncounter(destination.Id);
+        var handler = BuildHandlerWithFleeOptions(0f, 0f);
+
+        // Act
+        await handler.Handle(
+            MakeCommand(new EvadeEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var arrival = await verifyContext
+            .Encounters.AsNoTracking()
+            .SingleAsync(
+                item => item.PlayerId == _player.Id && item.State == EncounterState.Active,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(destination.Id, arrival.LocationId);
+        Assert.Null(arrival.DepartureDestinationLocationId);
+    }
+
+    [Fact]
+    public async Task Handle_Evade_RejectsLockedDestinationWithoutMoving()
+    {
+        // Arrange
+        var destination = Builders.MakeLocation(WorldId, Guid.NewGuid());
+        var connector = Builders.MakeLocationConnector(
+            _player.LocationId,
+            destinationLocationId: destination.Id,
+            worldId: WorldId
+        );
+        _context.Locations.Add(destination);
+        _context.LocationConnectors.Add(connector);
+        _context.DoorConnectors.Add(
+            Builders.MakeDoorConnector(
+                connector.Id,
+                isLocked: true,
+                worldId: WorldId,
+                unlocksAtPlaytime: TimeSpan.FromDays(1)
+            )
+        );
+        var encounter = await SeedActiveEncounter(destination.Id);
+        var handler = BuildHandlerWithFleeOptions(0f, 0f);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(
+                MakeCommand(new EvadeEncounterAction(), encounter.Id),
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(item => item.Id == _player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(_player.LocationId, player.LocationId);
     }
 
     [Fact]

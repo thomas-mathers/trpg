@@ -13,6 +13,7 @@ import {
   handleDropInventoryItem,
   handleEquipCreatureItem,
   handleGetCreatureInventory,
+  handleReadBookPage,
   handleUnequipCreatureItem,
 } from '@/api/client/msw.gen';
 import { server } from '@/test/server';
@@ -101,6 +102,49 @@ function renderDialog(onClose = vi.fn()) {
 }
 
 describe('InventoryDialog', () => {
+  it('opens a recovered expedition journal in the existing reader', async () => {
+    const journal: ItemDetail = {
+      $type: 'Book',
+      itemId: 'expedition-journal',
+      name: "Mara's expedition journal",
+      description: 'A battered field journal.',
+      weight: 1,
+      quantity: 1,
+      equippedSlot: null,
+      type: 'Book',
+      rarity: null,
+      goldValue: 0,
+      modifiers: [],
+      isStackable: false,
+    };
+    const read = vi.fn();
+    server.use(
+      handleGetCreatureInventory({
+        body: { gold: 0, items: [journal], weight: 1, carryingCapacity: null },
+      }),
+      handleReadBookPage(({ params }) => {
+        read(params.itemId);
+        return HttpResponse.json({
+          title: journal.name,
+          pageNumber: 1,
+          pageCount: 1,
+          text: 'I reached the old study, but cannot make the return journey.',
+          revealedSecret: true,
+        });
+      }),
+    );
+    const { user } = renderDialog();
+    await screen.findByText(journal.name);
+    expect(read).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Read' }));
+
+    expect(
+      await screen.findByText('I reached the old study, but cannot make the return journey.'),
+    ).toBeVisible();
+    expect(read).toHaveBeenCalledWith(journal.itemId);
+  });
+
   it('shows an empty state and closes when requested', async () => {
     server.use(
       handleGetCreatureInventory({

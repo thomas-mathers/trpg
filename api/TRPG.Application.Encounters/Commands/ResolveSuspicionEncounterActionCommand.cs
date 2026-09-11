@@ -6,6 +6,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data.ModuleContexts;
@@ -15,6 +16,7 @@ namespace TRPG.Application.Encounters.Commands;
 
 public class ResolveSuspicionEncounterActionCommand : IEncounterResolutionCommand
 {
+    public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required SuspicionEncounterAction Action { get; init; }
@@ -29,7 +31,9 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsSnapshot<FleeOptions> fleeOptions,
-    IOptionsMonitor<SuspicionOptions> suspicionOptions
+    IOptionsMonitor<SuspicionOptions> suspicionOptions,
+    DepartureMovementResumer departureMovementResumer,
+    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 )
     : EncounterResolutionCommandHandlerBase<
         SuspicionEncounter,
@@ -111,6 +115,20 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
 
         if (!isCaught)
         {
+            if (encounter.DepartureDestinationLocationId != null)
+            {
+                var playtime = await getPlaytime.Handle(
+                    new GetPlaytimeQuery { SessionId = command.SessionId },
+                    cancellationToken
+                );
+                await departureMovementResumer.Resume(
+                    encounter,
+                    player,
+                    playtime,
+                    cancellationToken
+                );
+            }
+
             return new SuspicionEncounterResolutionFact(
                 command.EncounterId,
                 SuspicionEncounterResolutionOutcome.Fled,

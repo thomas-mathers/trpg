@@ -23,6 +23,10 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
         );
 
         await context
+            .DungeonExpeditions.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
             .EncounterGroupMembers.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 

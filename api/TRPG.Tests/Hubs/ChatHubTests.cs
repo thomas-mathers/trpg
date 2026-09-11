@@ -78,6 +78,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     public ValueTask DisposeAsync()
     {
         fixture.ChatClient.PendingToolCallName = null;
+        fixture.ChatClient.TextBeforeToolCall = null;
         fixture.ChatClient.PendingToolCallArguments = null;
         fixture.ChatClient.ChatResponseText = "You look around. What do you want to do next?";
         return ValueTask.CompletedTask;
@@ -962,6 +963,111 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.NotEmpty(received);
         Assert.Equal("scene", received[0]);
         Assert.All(received.Skip(1), item => Assert.Equal("token", item));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("You turn toward the passage. ")]
+    public async Task SendChat_DeliversDepartureEncounterBeforeOutcomeNarration_WhenMoveIsIntercepted(
+        string? preamble
+    )
+    {
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        var ready = new TaskCompletionSource();
+        var order = new ConcurrentQueue<string>();
+        connection.Register<IGameClient>(
+            new TestGameClient
+            {
+                Connection = connection,
+                OnSceneSnapshot = _ => ready.TrySetResult(),
+                OnHostileEncounterStarted = _ => order.Enqueue("encounter"),
+                OnHostileEncounterResolved = _ => order.Enqueue("resolved"),
+            }
+        );
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+        await ready.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
+
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var destination = Builders.MakeLocation(_worldId, _stateId);
+        var faction = Builders.MakeFaction(_worldId, aggression: 150);
+        var monster = Builders.MakeCreature(_worldId, locationId: _locationId);
+        var group = Builders.MakeEncounterGroup(_worldId, _locationId, faction.Id);
+        context.Locations.Add(destination);
+        context.LocationConnectors.Add(
+            Builders.MakeLocationConnector(
+                _locationId,
+                destinationLocationId: destination.Id,
+                worldId: _worldId,
+                destinationLabel: "Elsewhere"
+            )
+        );
+        context.Factions.Add(faction);
+        context.Creatures.Add(monster);
+        context.EncounterGroups.Add(group);
+        context.EncounterGroupMembers.Add(
+            Builders.MakeEncounterGroupMember(_worldId, group.Id, monster.Id)
+        );
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        fixture.ChatClient.PendingToolCallName = "move";
+        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
+        {
+            ["destinationName"] = "Elsewhere",
+        };
+        fixture.ChatClient.TextBeforeToolCall = preamble;
+        fixture.ChatClient.ChatResponseText = "The hostile creature blocks your departure.";
+        var narration = new StringBuilder();
+        await foreach (
+            var token in connection.StreamAsync<string>(
+                "SendChat",
+                "Go to Elsewhere",
+                TestContext.Current.CancellationToken
+            )
+        )
+        {
+            narration.Append(token);
+            if (narration.ToString().Contains("blocks your departure", StringComparison.Ordinal))
+            {
+                Assert.Contains("encounter", order);
+            }
+        }
+
+        Assert.Single(order);
+        Assert.Contains("blocks your departure", narration.ToString());
+        var player = await context
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _playerId,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(_locationId, player.LocationId);
+        fixture.ChatClient.PendingToolCallName = null;
+        var arrivalEnemy = Builders.MakeCreature(_worldId, locationId: destination.Id);
+        var arrivalGroup = Builders.MakeEncounterGroup(_worldId, destination.Id, faction.Id);
+        context.Creatures.Add(arrivalEnemy);
+        context.EncounterGroups.Add(arrivalGroup);
+        context.EncounterGroupMembers.Add(
+            Builders.MakeEncounterGroupMember(_worldId, arrivalGroup.Id, arrivalEnemy.Id)
+        );
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await Drain(
+            connection.StreamAsync<string>(
+                "ResolveEvadeEncounterAction",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        var movedPlayer = await context
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _playerId,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(destination.Id, movedPlayer.LocationId);
+        Assert.Equal(["encounter", "resolved", "encounter"], order.ToArray());
     }
 
     [Fact]

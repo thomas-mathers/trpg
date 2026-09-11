@@ -24,6 +24,7 @@ internal static class TestServiceCollectionExtensions
             .AddTrpgApplicationServices()
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
+            .AddGameTool<ShareExpeditionDiscoveryTool>()
             .AddGameTool<ShowQuestDetailsTool>()
             .AddTransient<EndGameSessionCommandHandler>()
             .AddScoped<TestGameClientEventSink>()

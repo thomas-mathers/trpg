@@ -128,7 +128,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
         );
 
         var destinationLocationId =
-            encounter.InterruptedDestinationLocationId ?? player.PreviousLocationId;
+            encounter.DepartureDestinationLocationId ?? player.PreviousLocationId;
 
         if (destinationLocationId is { } locationId)
         {

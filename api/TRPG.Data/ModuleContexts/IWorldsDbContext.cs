@@ -5,6 +5,7 @@ namespace TRPG.Data.ModuleContexts;
 
 public interface IWorldsDbContext : ITrpgDbContext
 {
+    DbSet<DungeonExpedition> DungeonExpeditions { get; }
     DbSet<BuildingOwner> BuildingOwners { get; }
     DbSet<Building> Buildings { get; }
     DbSet<City> Cities { get; }

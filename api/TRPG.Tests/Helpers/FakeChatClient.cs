@@ -14,6 +14,7 @@ public sealed class FakeChatClient : IChatClient
     public string ChatResponseText { get; set; } = "You look around. What do you want to do next?";
 
     public string? PendingToolCallName { get; set; }
+    public string? TextBeforeToolCall { get; set; }
     public IDictionary<string, object?>? PendingToolCallArguments { get; set; }
 
     public Task<ChatResponse> GetResponseAsync(
@@ -45,6 +46,11 @@ public sealed class FakeChatClient : IChatClient
 
         if (PendingToolCallName != null && !HasFunctionResult(messageList))
         {
+            if (TextBeforeToolCall != null)
+            {
+                yield return new ChatResponseUpdate(ChatRole.Assistant, TextBeforeToolCall);
+            }
+
             yield return new ChatResponseUpdate(ChatRole.Assistant, [ToolCall()]);
             yield break;
         }
