@@ -8,6 +8,7 @@ public static class EncountersServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection
+            .AddTransient<EncounterEvaluationService>()
             .AddTransient<TheftSourceResolver>()
             .AddTransient<LocationCityResolver>()
             .AddTransient<WrongedFactionResolver>()

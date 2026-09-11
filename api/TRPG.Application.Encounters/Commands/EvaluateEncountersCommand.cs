@@ -1,3 +1,4 @@
+using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Domain.Models;
 
@@ -14,101 +15,24 @@ public record EncounterEvaluationResult(Encounter? Encounter)
     public static readonly EncounterEvaluationResult None = new((Encounter?)null);
 }
 
-internal class EvaluateEncountersCommandHandler(
-    ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?> evaluateHostileEncounter,
-    ICommandHandler<EvaluateJailbreakEncounterCommand, GuardEncounter?> evaluateJailbreakEncounter,
-    ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter,
-    ICommandHandler<
-        EvaluateSuspicionEncounterCommand,
-        SuspicionEncounter?
-    > evaluateSuspicionEncounter,
-    ICommandHandler<EvaluateTrapEncounterCommand, TrapEncounter?> evaluateTrapEncounter,
-    ICommandHandler<
-        EvaluateTrespassingEncounterCommand,
-        HostileEncounter?
-    > evaluateTrespassingEncounter
-) : ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult>
+internal class EvaluateEncountersCommandHandler(EncounterEvaluationService encounterEvaluation)
+    : ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult>
 {
     public async Task<EncounterEvaluationResult> Handle(
         EvaluateEncountersCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var hostileEncounter = await evaluateHostileEncounter.Handle(
-            new EvaluateHostileEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-            },
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+        var result = await encounterEvaluation.EvaluateArrival(
+            command.WorldId,
+            command.PlayerId,
             cancellationToken
         );
-        if (hostileEncounter != null)
-        {
-            return new EncounterEvaluationResult(hostileEncounter);
-        }
-
-        // Being caught escaping outranks a routine stop, and does not wait on standing reputation.
-        var jailbreakEncounter = await evaluateJailbreakEncounter.Handle(
-            new EvaluateJailbreakEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-            },
-            cancellationToken
-        );
-        if (jailbreakEncounter != null)
-        {
-            return new EncounterEvaluationResult(jailbreakEncounter);
-        }
-
-        var guardEncounter = await evaluateGuardEncounter.Handle(
-            new EvaluateGuardEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-            },
-            cancellationToken
-        );
-        if (guardEncounter != null)
-        {
-            return new EncounterEvaluationResult(guardEncounter);
-        }
-
-        var suspicionEncounter = await evaluateSuspicionEncounter.Handle(
-            new EvaluateSuspicionEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-            },
-            cancellationToken
-        );
-        if (suspicionEncounter != null)
-        {
-            return new EncounterEvaluationResult(suspicionEncounter);
-        }
-
-        var trapEncounter = await evaluateTrapEncounter.Handle(
-            new EvaluateTrapEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-            },
-            cancellationToken
-        );
-        if (trapEncounter != null)
-        {
-            return new EncounterEvaluationResult(trapEncounter);
-        }
-
-        var trespassingEncounter = await evaluateTrespassingEncounter.Handle(
-            new EvaluateTrespassingEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-            },
-            cancellationToken
-        );
-
-        return new EncounterEvaluationResult(trespassingEncounter);
+        transaction.Complete();
+        return result;
     }
 }

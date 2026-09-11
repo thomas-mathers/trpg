@@ -197,6 +197,16 @@ internal class MoveTool(
         CancellationToken cancellationToken
     )
     {
+        await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = turnContext.WorldId,
+                PlayerId = turnContext.PlayerId,
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
+
         var interception = await evaluateMoveInterception.Handle(
             new EvaluateMoveInterceptionCommand
             {
@@ -213,12 +223,12 @@ internal class MoveTool(
             return null;
         }
 
-        var refreshed = await refreshScene.Handle(
-            new RefreshSceneCommand
+        var scene = await getScene.Handle(
+            new GetSceneQuery
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                Playtime = playtime,
+                CurrentDate = GameClock.GetCurrentInGameDate(playtime),
             },
             cancellationToken
         );
@@ -232,7 +242,7 @@ internal class MoveTool(
             cancellationToken
         );
 
-        return BuildResult(refreshed.Scene, interception.Encounter);
+        return BuildResult(scene, interception.Encounter);
     }
 
     private static MoveToolResult BuildResult(SceneResult scene, Encounter? encounter) =>

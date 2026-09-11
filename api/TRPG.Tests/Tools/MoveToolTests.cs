@@ -1,7 +1,9 @@
 using System.Globalization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Inventory;
@@ -181,6 +183,213 @@ public sealed class MoveToolTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_oldLocation.Id, movedPlayer!.LocationId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Invoke_InterruptsDeparture_WhenAGuardConfrontsThePlayer(bool returning)
+    {
+        // Arrange
+        _guard.LocationId = _oldLocation.Id;
+        _player.PreviousLocationId = returning ? _newLocation.Id : null;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        var moveResult = Assert.IsType<MoveToolResult>(result);
+        Assert.NotNull(moveResult.GuardEncounter);
+        Assert.Single(_eventSink.EnqueuedEvents.OfType<GuardEncounterStartedEvent>());
+        Assert.False(_serviceProvider.GetRequiredService<GameTurnContext>().PlayerMoved);
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_oldLocation.Id, player!.LocationId);
+        Assert.Equal(returning ? _newLocation.Id : (Guid?)null, player.PreviousLocationId);
+        var encounter = await verifyContext.Encounters.SingleAsync(
+            e => e.PlayerId == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_oldLocation.Id, encounter.LocationId);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(150, false)]
+    [InlineData(150, true)]
+    public async Task Invoke_EvaluatesDepartureBeforeArrival_WhenAGroupIsPresent(
+        int aggression,
+        bool returning
+    )
+    {
+        // Arrange
+        _player.PreviousLocationId = returning ? _newLocation.Id : null;
+        var faction = Builders.MakeFaction(WorldId, aggression: aggression);
+        var monster = Builders.MakeCreature(
+            WorldId,
+            locationId: _oldLocation.Id,
+            level: _player.Level
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _oldLocation.Id, faction.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(monster);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(
+            Builders.MakeEncounterGroupMember(WorldId, group.Id, monster.Id)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        var moveResult = Assert.IsType<MoveToolResult>(result);
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        if (aggression > 0)
+        {
+            Assert.NotNull(moveResult.HostileEncounter);
+            Assert.Null(moveResult.GuardEncounter);
+            Assert.Equal(_oldLocation.Id, player!.LocationId);
+            Assert.Single(_eventSink.EnqueuedEvents.OfType<HostileEncounterStartedEvent>());
+        }
+        else
+        {
+            Assert.Null(moveResult.HostileEncounter);
+            Assert.NotNull(moveResult.GuardEncounter);
+            Assert.Equal(_newLocation.Id, player!.LocationId);
+            Assert.True(_serviceProvider.GetRequiredService<GameTurnContext>().PlayerMoved);
+        }
+    }
+
+    [Fact]
+    public async Task Invoke_IgnoresUnresolvedTrap_WhenLeavingItsLocation()
+    {
+        // Arrange
+        var trap = Builders.MakeTrigger(
+            WorldId,
+            locationId: _oldLocation.Id,
+            targetId: _newLocation.Id,
+            trapKind: TrapKind.Mechanical
+        );
+        _context.Props.Add(trap);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(Assert.IsType<MoveToolResult>(result).GuardEncounter);
+        Assert.Empty(_eventSink.EnqueuedEvents.OfType<TrapEncounterStartedEvent>());
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_newLocation.Id, player!.LocationId);
+        var persistedTrap = await verifyContext
+            .Props.OfType<Trigger>()
+            .SingleAsync(t => t.Id == trap.Id, TestContext.Current.CancellationToken);
+        Assert.False(persistedTrap.IsResolved);
+    }
+
+    [Fact]
+    public async Task Invoke_StartsTrapEncounter_WhenArrivingAtUnresolvedTrap()
+    {
+        // Arrange
+        _guard.State = CreatureState.Dead;
+        var trap = Builders.MakeTrigger(
+            WorldId,
+            locationId: _newLocation.Id,
+            targetId: _oldLocation.Id,
+            trapKind: TrapKind.Mechanical
+        );
+        _context.Props.Add(trap);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Single(_eventSink.EnqueuedEvents.OfType<TrapEncounterStartedEvent>());
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_newLocation.Id, player!.LocationId);
+        var encounter = await verifyContext
+            .Encounters.OfType<TrapEncounter>()
+            .SingleAsync(e => e.PlayerId == _player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(trap.Id, encounter.TriggerId);
+    }
+
+    [Fact]
+    public async Task Invoke_DoesNotEvaluateDeparture_WhenDestinationIsInvalid()
+    {
+        // Arrange
+        _guard.LocationId = _oldLocation.Id;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Missing exit", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<ToolError>(result);
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext.Encounters.AnyAsync(
+                e => e.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_BypassesDepartureConfrontation_WhenRelocatingDirectly()
+    {
+        // Arrange
+        _guard.LocationId = _oldLocation.Id;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var movePlayer = _serviceProvider.GetRequiredService<MovePlayerCommandHandler>();
+
+        // Act
+        await movePlayer.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = _player.Id,
+                DestinationLocationId = _newLocation.Id,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.FindAsync(
+            [_player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_newLocation.Id, player!.LocationId);
+        Assert.False(
+            await verifyContext.Encounters.AnyAsync(
+                e => e.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 
     private async Task<string> SeedOverdueInnBookingAtPlayerLocation()
