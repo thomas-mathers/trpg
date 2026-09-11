@@ -1,3 +1,4 @@
+using System.Transactions;
 using TRPG.Application.Common.Commands;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -15,12 +16,27 @@ internal class EvaluateMoveInterceptionCommandHandler(
     ICommandHandler<
         EvaluateOverdueRoomKeyEncounterCommand,
         ConfrontOverdueRoomKeyResult
-    > evaluateOverdueRoomKeyEncounter
+    > evaluateOverdueRoomKeyEncounter,
+    EncounterEvaluationService encounterEvaluation
 ) : ICommandHandler<EvaluateMoveInterceptionCommand, EncounterEvaluationResult>
 {
     public async Task<EncounterEvaluationResult> Handle(
         EvaluateMoveInterceptionCommand command,
         CancellationToken cancellationToken = default
+    )
+    {
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+        var result = await EvaluateInterception(command, cancellationToken);
+        transaction.Complete();
+        return result;
+    }
+
+    private async Task<EncounterEvaluationResult> EvaluateInterception(
+        EvaluateMoveInterceptionCommand command,
+        CancellationToken cancellationToken
     )
     {
         var overdueRoomKeyEncounter = await evaluateOverdueRoomKeyEncounter.Handle(
@@ -35,6 +51,15 @@ internal class EvaluateMoveInterceptionCommandHandler(
             cancellationToken
         );
 
-        return new EncounterEvaluationResult(overdueRoomKeyEncounter.Encounter);
+        if (overdueRoomKeyEncounter.Encounter != null)
+        {
+            return new EncounterEvaluationResult(overdueRoomKeyEncounter.Encounter);
+        }
+
+        return await encounterEvaluation.EvaluateDeparture(
+            command.WorldId,
+            command.PlayerId,
+            cancellationToken
+        );
     }
 }
