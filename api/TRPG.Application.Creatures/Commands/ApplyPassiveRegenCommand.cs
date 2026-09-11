@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Configuration;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Data.ModuleContexts;
-using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -35,7 +35,7 @@ internal class ApplyPassiveRegenCommandHandler(
 
         foreach (var creature in creatures)
         {
-            ApplyPassiveRegen(creature, command.Playtime, optionsSnapshot.Value);
+            StatFormulas.ApplyPassiveRegen(creature, command.Playtime, optionsSnapshot.Value);
         }
 
         await context.SaveChangesAsync(cancellationToken);
@@ -47,47 +47,4 @@ internal class ApplyPassiveRegenCommandHandler(
 
         return creatures.ToDictionary(c => c.Id);
     }
-
-    private static void ApplyPassiveRegen(
-        Creature creature,
-        TimeSpan currentPlaytime,
-        CreatureRegenOptions options
-    )
-    {
-        if (creature.State == CreatureState.Dead)
-        {
-            return;
-        }
-
-        var elapsedInGameHours =
-            (currentPlaytime - creature.LastRegenPlaytime).TotalHours
-            / GameClock.RealTimePerInGameHour.TotalHours;
-        if (elapsedInGameHours <= 0)
-        {
-            return;
-        }
-
-        creature.CurrentHp = Regen(
-            creature.CurrentHp,
-            creature.MaximumHp,
-            options.HpRegenPercentPerHour,
-            elapsedInGameHours
-        );
-        creature.CurrentAp = Regen(
-            creature.CurrentAp,
-            creature.MaximumAp,
-            options.ApRegenPercentPerHour,
-            elapsedInGameHours
-        );
-        creature.CurrentMp = Regen(
-            creature.CurrentMp,
-            creature.MaximumMp,
-            options.MpRegenPercentPerHour,
-            elapsedInGameHours
-        );
-        creature.LastRegenPlaytime = currentPlaytime;
-    }
-
-    private static int Regen(int current, int maximum, float percentPerHour, double elapsedHours) =>
-        Math.Min(maximum, current + (int)Math.Round(maximum * percentPerHour * elapsedHours));
 }

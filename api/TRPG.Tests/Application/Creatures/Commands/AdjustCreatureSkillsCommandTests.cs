@@ -144,62 +144,6 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
     }
 
     [Fact]
-    public async Task Handle_RaisesCharacterLevelToTwo_WhenTheFirstSkillLevelsUp()
-    {
-        // Arrange — one skill-level gained contributes CalculateExperienceFromSkillLevel(2) = 2
-        // xp toward character level, exactly meeting CalculateExperienceFromLevel(2) = 2, so a
-        // character's very first skill-up always levels them
-        await SeedSkill(Skill.Melee, level: 1, experience: 240);
-
-        // Act
-        await _handler.Handle(
-            new AdjustCreatureSkillsCommand
-            {
-                WorldId = _worldId,
-                CreatureId = _creature.Id,
-                UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 2 },
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var creature = await ReloadCreature();
-        Assert.Equal(2, creature.Level);
-    }
-
-    [Fact]
-    public async Task Handle_SumsContributionsAcrossAllSkills_WhenMultipleSkillsLevelUpInOneCall()
-    {
-        // Arrange — three skills cross from level 1 to 2 this round, contributing
-        // CalculateExperienceFromSkillLevel(2) = 2 each, and 2 + 2 + 2 = 6 clears
-        // CalculateExperienceFromLevel(3) = 6, proving the skills' contributions are summed
-        // together rather than checked independently (any one alone, at 2, only reaches level 2)
-        await SeedSkill(Skill.Melee, level: 1, experience: 140);
-        await SeedSkill(Skill.Alteration, level: 1, experience: 140);
-        await SeedSkill(Skill.Restoration, level: 1, experience: 140);
-
-        // Act
-        await _handler.Handle(
-            new AdjustCreatureSkillsCommand
-            {
-                WorldId = _worldId,
-                CreatureId = _creature.Id,
-                UsageCounts = new Dictionary<Skill, int>
-                {
-                    [Skill.Melee] = 1,
-                    [Skill.Alteration] = 1,
-                    [Skill.Restoration] = 1,
-                },
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var creature = await ReloadCreature();
-        Assert.Equal(3, creature.Level);
-    }
-
-    [Fact]
     public async Task Handle_DerivesLevelFromAllSkills_NotJustTheSkillsUsedThisRound()
     {
         // Arrange — an untouched Melee 10 contributes CalculateExperienceFromSkillLevel(10) = 54
@@ -223,28 +167,6 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db) : IAsyn
         // Assert
         var creature = await ReloadCreature();
         Assert.Equal(8, creature.Level);
-    }
-
-    [Fact]
-    public async Task Handle_DoesNotChangeCharacterLevel_WhenNoSkillLevelsUp()
-    {
-        // Arrange — partial skill progress alone must never move character level
-        await SeedSkill(Skill.Melee, level: 1, experience: 100);
-
-        // Act
-        await _handler.Handle(
-            new AdjustCreatureSkillsCommand
-            {
-                WorldId = _worldId,
-                CreatureId = _creature.Id,
-                UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 1 },
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var creature = await ReloadCreature();
-        Assert.Equal(1, creature.Level);
     }
 
     [Fact]

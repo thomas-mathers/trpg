@@ -1,114 +1,91 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Commands;
-using TRPG.Data;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
-using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-[Collection("Database")]
-public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixture db)
-    : IAsyncLifetime
+public sealed class ResolveAccessibleConnectorsCommandHandlerTests
 {
-    private static readonly Guid WorldId = Guid.NewGuid();
+    private readonly FakeGetDoorConnectorsByConnectorIdsQueryHandler _getDoorConnectors = new();
+    private readonly FakeGetKeyItemIdsByDoorConnectorIdsQueryHandler _getKeyItemIds = new();
+    private readonly FakeGetLeverIdsByDoorConnectorIdsQueryHandler _getLeverIds = new();
+    private readonly FakeSetDoorTimedLockCommandHandler _setDoorTimedLock = new();
+    private readonly ResolveAccessibleConnectorsCommandHandler _handler;
 
-    private TrpgDbContext _context = null!;
-    private ServiceProvider _serviceProvider = null!;
-    private ResolveAccessibleConnectorsCommandHandler _handler = null!;
-    private readonly Location _origin = Builders.MakeLocation(WorldId, Guid.NewGuid());
+    public ResolveAccessibleConnectorsCommandHandlerTests() =>
+        _handler = new ResolveAccessibleConnectorsCommandHandler(
+            _getDoorConnectors,
+            _setDoorTimedLock,
+            _getKeyItemIds,
+            _getLeverIds
+        );
 
-    public async ValueTask InitializeAsync()
-    {
-        _context = db.CreateContext();
-        _serviceProvider = new ServiceCollection()
-            .AddTrpgTestServices(_context)
-            .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<ResolveAccessibleConnectorsCommandHandler>();
-
-        _context.Locations.Add(_origin);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _serviceProvider.DisposeAsync();
-        await _context.DisposeAsync();
-    }
+    private static ResolveAccessibleConnectorsCommand MakeCommand(
+        Guid connectorId,
+        IReadOnlySet<Guid>? playerKeyItemIds = null,
+        IReadOnlySet<Guid>? pulledLeverIds = null,
+        TimeSpan? playtime = null
+    ) =>
+        new()
+        {
+            PlayerKeyItemIds = playerKeyItemIds ?? new HashSet<Guid>(),
+            PulledLeverIds = pulledLeverIds ?? new HashSet<Guid>(),
+            Playtime = playtime ?? TimeSpan.Zero,
+            ConnectorIds = [connectorId],
+        };
 
     [Fact]
     public async Task Handle_ReturnsAllConnectors_WhenNoneAreLocked()
     {
         // Arrange
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        _context.LocationConnectors.Add(connector);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var connectorId = Guid.NewGuid();
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.Zero,
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId),
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([connector.Id], accessible);
+        Assert.Equal([connectorId], accessible);
     }
 
     [Fact]
     public async Task Handle_ReturnsConnector_WhenLockedButNoKeyWasEverConfigured()
     {
         // Arrange - a lock with no key configured would otherwise soft-lock the building forever
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector { ConnectorId = connectorId, IsLocked = true };
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.Zero,
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId),
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([connector.Id], accessible);
+        Assert.Equal([connectorId], accessible);
     }
 
     [Fact]
     public async Task Handle_ExcludesConnector_WhenLockedWithAKeyThePlayerDoesNotHold()
     {
         // Arrange
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector { ConnectorId = connectorId, IsLocked = true };
         var keyItemId = Guid.NewGuid();
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.DoorConnectorKeys.Add(
-            new DoorConnectorKey { ItemId = keyItemId, DoorConnectorId = door.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
+        _getKeyItemIds.KeyItemIdsByDoor = new Dictionary<Guid, IReadOnlyList<Guid>>
+        {
+            [door.Id] = [keyItemId],
+        };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.Zero,
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId),
             TestContext.Current.CancellationToken
         );
 
@@ -120,56 +97,41 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
     public async Task Handle_ReturnsConnector_WhenLockedAndPlayerHoldsTheConfiguredKey()
     {
         // Arrange
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector { ConnectorId = connectorId, IsLocked = true };
         var keyItemId = Guid.NewGuid();
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.DoorConnectorKeys.Add(
-            new DoorConnectorKey { ItemId = keyItemId, DoorConnectorId = door.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
+        _getKeyItemIds.KeyItemIdsByDoor = new Dictionary<Guid, IReadOnlyList<Guid>>
+        {
+            [door.Id] = [keyItemId],
+        };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid> { keyItemId },
-                PulledLeverIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.Zero,
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId, playerKeyItemIds: new HashSet<Guid> { keyItemId }),
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([connector.Id], accessible);
+        Assert.Equal([connectorId], accessible);
     }
 
     [Fact]
     public async Task Handle_ExcludesConnector_WhenTimedUnlockHasNotElapsedYet()
     {
         // Arrange
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(
-            connector.Id,
-            isLocked: true,
-            worldId: WorldId,
-            unlocksAtPlaytime: TimeSpan.FromHours(10)
-        );
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector
+        {
+            ConnectorId = connectorId,
+            IsLocked = true,
+            UnlocksAtPlaytime = TimeSpan.FromHours(10),
+        };
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.FromHours(5),
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId, playtime: TimeSpan.FromHours(5)),
             TestContext.Current.CancellationToken
         );
 
@@ -178,66 +140,46 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
     }
 
     [Fact]
-    public async Task Handle_ReturnsConnector_AndPersistsTheUnlock_WhenTimedUnlockHasElapsed()
+    public async Task Handle_ReturnsConnector_AndClearsTheTimedLock_WhenTimedUnlockHasElapsed()
     {
         // Arrange
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(
-            connector.Id,
-            isLocked: true,
-            worldId: WorldId,
-            unlocksAtPlaytime: TimeSpan.FromHours(5)
-        );
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector
+        {
+            ConnectorId = connectorId,
+            IsLocked = true,
+            UnlocksAtPlaytime = TimeSpan.FromHours(5),
+        };
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.FromHours(10),
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId, playtime: TimeSpan.FromHours(10)),
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([connector.Id], accessible);
-
-        await using var verifyContext = db.CreateContext();
-        var updatedDoor = await verifyContext.DoorConnectors.SingleAsync(
-            candidate => candidate.Id == door.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.False(updatedDoor.IsLocked);
-        Assert.Null(updatedDoor.UnlocksAtPlaytime);
+        Assert.Equal([connectorId], accessible);
+        Assert.Equal([door.Id], _setDoorTimedLock.LastCommand?.DoorConnectorIds);
+        Assert.Null(_setDoorTimedLock.LastCommand?.UnlocksAtPlaytime);
     }
 
     [Fact]
     public async Task Handle_ExcludesConnector_WhenGatedByALeverThatHasNotBeenPulled()
     {
         // Arrange
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
-        var lever = Builders.MakeLever(worldId: WorldId);
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.Props.Add(lever);
-        _context.DoorConnectorLevers.Add(Builders.MakeDoorConnectorLever(lever.Id, door.Id));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector { ConnectorId = connectorId, IsLocked = true };
+        var leverId = Guid.NewGuid();
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
+        _getLeverIds.LeverIdsByDoor = new Dictionary<Guid, IReadOnlyList<Guid>>
+        {
+            [door.Id] = [leverId],
+        };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.Zero,
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId),
             TestContext.Current.CancellationToken
         );
 
@@ -249,28 +191,19 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
     public async Task Handle_ExcludesConnector_WhenOnlySomeOfItsGatingLeversArePulled()
     {
         // Arrange - an AND-gate: every contributing lever must be pulled, not just one of them.
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
-        var pulledLever = Builders.MakeLever(worldId: WorldId, isPulled: true);
-        var unpulledLever = Builders.MakeLever(worldId: WorldId);
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.Props.AddRange(pulledLever, unpulledLever);
-        _context.DoorConnectorLevers.AddRange(
-            Builders.MakeDoorConnectorLever(pulledLever.Id, door.Id),
-            Builders.MakeDoorConnectorLever(unpulledLever.Id, door.Id)
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector { ConnectorId = connectorId, IsLocked = true };
+        var pulledLeverId = Guid.NewGuid();
+        var unpulledLeverId = Guid.NewGuid();
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
+        _getLeverIds.LeverIdsByDoor = new Dictionary<Guid, IReadOnlyList<Guid>>
+        {
+            [door.Id] = [pulledLeverId, unpulledLeverId],
+        };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid> { pulledLever.Id },
-                Playtime = TimeSpan.Zero,
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(connectorId, pulledLeverIds: new HashSet<Guid> { pulledLeverId }),
             TestContext.Current.CancellationToken
         );
 
@@ -282,49 +215,45 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
     public async Task Handle_ReturnsConnector_WhenEveryGatingLeverHasBeenPulled()
     {
         // Arrange
-        var connector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true, worldId: WorldId);
-        var firstLever = Builders.MakeLever(worldId: WorldId, isPulled: true);
-        var secondLever = Builders.MakeLever(worldId: WorldId, isPulled: true);
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.Props.AddRange(firstLever, secondLever);
-        _context.DoorConnectorLevers.AddRange(
-            Builders.MakeDoorConnectorLever(firstLever.Id, door.Id),
-            Builders.MakeDoorConnectorLever(secondLever.Id, door.Id)
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var connectorId = Guid.NewGuid();
+        var door = new DoorConnector { ConnectorId = connectorId, IsLocked = true };
+        var firstLeverId = Guid.NewGuid();
+        var secondLeverId = Guid.NewGuid();
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
+        _getLeverIds.LeverIdsByDoor = new Dictionary<Guid, IReadOnlyList<Guid>>
+        {
+            [door.Id] = [firstLeverId, secondLeverId],
+        };
 
         // Act
         var accessible = await _handler.Handle(
-            new ResolveAccessibleConnectorsCommand
-            {
-                PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid> { firstLever.Id, secondLever.Id },
-                Playtime = TimeSpan.Zero,
-                ConnectorIds = [connector.Id],
-            },
+            MakeCommand(
+                connectorId,
+                pulledLeverIds: new HashSet<Guid> { firstLeverId, secondLeverId }
+            ),
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([connector.Id], accessible);
+        Assert.Equal([connectorId], accessible);
     }
 
     [Fact]
     public async Task Handle_ReturnsOnlyTheAccessibleConnectors_WhenSomeAreLockedAndSomeAreNot()
     {
         // Arrange
-        var openConnector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var lockedConnector = Builders.MakeLocationConnector(_origin.Id, worldId: WorldId);
-        var door = Builders.MakeDoorConnector(lockedConnector.Id, isLocked: true, worldId: WorldId);
+        var openConnectorId = Guid.NewGuid();
+        var lockedConnectorId = Guid.NewGuid();
+        var door = new DoorConnector { ConnectorId = lockedConnectorId, IsLocked = true };
         var keyItemId = Guid.NewGuid();
-        _context.LocationConnectors.AddRange(openConnector, lockedConnector);
-        _context.DoorConnectors.Add(door);
-        _context.DoorConnectorKeys.Add(
-            new DoorConnectorKey { ItemId = keyItemId, DoorConnectorId = door.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector>
+        {
+            [lockedConnectorId] = door,
+        };
+        _getKeyItemIds.KeyItemIdsByDoor = new Dictionary<Guid, IReadOnlyList<Guid>>
+        {
+            [door.Id] = [keyItemId],
+        };
 
         // Act
         var accessible = await _handler.Handle(
@@ -333,12 +262,72 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests(DatabaseFixtu
                 PlayerKeyItemIds = new HashSet<Guid>(),
                 PulledLeverIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.Zero,
-                ConnectorIds = [openConnector.Id, lockedConnector.Id],
+                ConnectorIds = [openConnectorId, lockedConnectorId],
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([openConnector.Id], accessible);
+        Assert.Equal([openConnectorId], accessible);
+    }
+
+    private sealed class FakeGetDoorConnectorsByConnectorIdsQueryHandler
+        : IQueryHandler<
+            GetDoorConnectorsByConnectorIdsQuery,
+            IReadOnlyDictionary<Guid, DoorConnector>
+        >
+    {
+        public IReadOnlyDictionary<Guid, DoorConnector> Doors { get; set; } =
+            new Dictionary<Guid, DoorConnector>();
+
+        public Task<IReadOnlyDictionary<Guid, DoorConnector>> Handle(
+            GetDoorConnectorsByConnectorIdsQuery query,
+            CancellationToken cancellationToken = default
+        ) => Task.FromResult(Doors);
+    }
+
+    private sealed class FakeGetKeyItemIdsByDoorConnectorIdsQueryHandler
+        : IQueryHandler<
+            GetKeyItemIdsByDoorConnectorIdsQuery,
+            IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+        >
+    {
+        public IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> KeyItemIdsByDoor { get; set; } =
+            new Dictionary<Guid, IReadOnlyList<Guid>>();
+
+        public Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> Handle(
+            GetKeyItemIdsByDoorConnectorIdsQuery query,
+            CancellationToken cancellationToken = default
+        ) => Task.FromResult(KeyItemIdsByDoor);
+    }
+
+    private sealed class FakeGetLeverIdsByDoorConnectorIdsQueryHandler
+        : IQueryHandler<
+            GetLeverIdsByDoorConnectorIdsQuery,
+            IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+        >
+    {
+        public IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> LeverIdsByDoor { get; set; } =
+            new Dictionary<Guid, IReadOnlyList<Guid>>();
+
+        public Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> Handle(
+            GetLeverIdsByDoorConnectorIdsQuery query,
+            CancellationToken cancellationToken = default
+        ) => Task.FromResult(LeverIdsByDoor);
+    }
+
+    private sealed class FakeSetDoorTimedLockCommandHandler
+        : ICommandHandler<SetDoorTimedLockCommand>
+    {
+        public SetDoorTimedLockCommand? LastCommand { get; private set; }
+
+        public Task Handle(
+            SetDoorTimedLockCommand command,
+            CancellationToken cancellationToken = default
+        )
+        {
+            LastCommand = command;
+            return Task.CompletedTask;
+        }
     }
 }

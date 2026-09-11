@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
@@ -122,10 +124,17 @@ public sealed class EndpointTestFixture : IAsyncLifetime
                             // CombatEngine/ResolveFleeCombatCommand level.
                             ["Flee:MinimumCatchChance"] = "0",
                             ["Flee:MaximumCatchChance"] = "0",
+                            // Most tests never register a listening game client (a bare
+                            // HubConnection, or none at all for HTTP-only endpoint tests), so the
+                            // production 5s ack wait would be pure dead time on every flush.
+                            ["GameClientEventAck:AckTimeout"] = "00:00:00.200",
                         }
                     );
                 }
             );
+            // Skips ZLogger's rolling-file sink and the default console provider — neither is
+            // useful for a test run, and both cost real I/O across thousands of log statements.
+            builder.ConfigureLogging(logging => logging.ClearProviders());
             builder.ConfigureServices(services =>
             {
                 services.RemoveAll<DbContextOptions<TrpgDbContext>>();

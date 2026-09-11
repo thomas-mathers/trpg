@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Configuration;
 
 namespace TRPG.GameSessions.Hubs;
 
@@ -8,11 +10,10 @@ internal sealed class GameClientEventAckGate(
     IGameClientEventDispatcher eventDispatcher,
     IHubContext<ChatHub, IGameClient> hubContext,
     PendingEventAckRegistry pendingEventAcks,
+    IOptionsSnapshot<GameClientEventAckOptions> optionsSnapshot,
     ILogger<GameClientEventAckGate> logger
 ) : IGameClientEventAckGate
 {
-    private static readonly TimeSpan AckTimeout = TimeSpan.FromSeconds(5);
-
     public async Task FlushAndAwaitAckAsync(
         Guid worldId,
         CancellationToken cancellationToken = default
@@ -30,13 +31,14 @@ internal sealed class GameClientEventAckGate(
         var client = hubContext.Clients.Group(GameClientGroups.ForWorld(worldId));
         await client.RequestAck(flushId);
 
-        var timeoutTask = Task.Delay(AckTimeout, cancellationToken);
+        var ackTimeout = optionsSnapshot.Value.AckTimeout;
+        var timeoutTask = Task.Delay(ackTimeout, cancellationToken);
         var completed = await Task.WhenAny(ackTask, timeoutTask);
         if (completed == timeoutTask)
         {
             logger.LogWarning(
                 "Timed out after {TimeoutSeconds}s waiting for client to acknowledge flush {FlushId} in world {WorldId}",
-                AckTimeout.TotalSeconds,
+                ackTimeout.TotalSeconds,
                 flushId,
                 worldId
             );

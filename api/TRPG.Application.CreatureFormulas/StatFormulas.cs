@@ -1,4 +1,5 @@
 using TRPG.Application.Configuration;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.CreatureFormulas;
@@ -174,6 +175,49 @@ public static class StatFormulas
         creature.CurrentAp = Math.Min(creature.CurrentAp, creature.MaximumAp);
         creature.CurrentMp = Math.Min(creature.CurrentMp, creature.MaximumMp);
     }
+
+    public static void ApplyPassiveRegen(
+        Creature creature,
+        TimeSpan currentPlaytime,
+        CreatureRegenOptions options
+    )
+    {
+        if (creature.State == CreatureState.Dead)
+        {
+            return;
+        }
+
+        var elapsedInGameHours =
+            (currentPlaytime - creature.LastRegenPlaytime).TotalHours
+            / GameClock.RealTimePerInGameHour.TotalHours;
+        if (elapsedInGameHours <= 0)
+        {
+            return;
+        }
+
+        creature.CurrentHp = Regen(
+            creature.CurrentHp,
+            creature.MaximumHp,
+            options.HpRegenPercentPerHour,
+            elapsedInGameHours
+        );
+        creature.CurrentAp = Regen(
+            creature.CurrentAp,
+            creature.MaximumAp,
+            options.ApRegenPercentPerHour,
+            elapsedInGameHours
+        );
+        creature.CurrentMp = Regen(
+            creature.CurrentMp,
+            creature.MaximumMp,
+            options.MpRegenPercentPerHour,
+            elapsedInGameHours
+        );
+        creature.LastRegenPlaytime = currentPlaytime;
+    }
+
+    private static int Regen(int current, int maximum, float percentPerHour, double elapsedHours) =>
+        Math.Min(maximum, current + (int)Math.Round(maximum * percentPerHour * elapsedHours));
 
     public static IReadOnlyCollection<ActiveBuff> ToActiveBuffs(Creature creature) =>
         creature
