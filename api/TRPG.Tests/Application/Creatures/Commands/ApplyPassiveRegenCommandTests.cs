@@ -56,30 +56,6 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
     private void SetPlaytime(TimeSpan playtime) => _playtime = playtime;
 
     [Fact]
-    public async Task Handle_RegeneratesHpApMp_ProportionalToElapsedInGameHours()
-    {
-        // Arrange
-        SetPlaytime(GameClock.RealTimePerInGameHour);
-
-        // Act
-        await _handler.Handle(
-            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(7, updated!.CurrentHp);
-        Assert.Equal(3, updated.CurrentAp);
-        Assert.Equal(2, updated.CurrentMp);
-        Assert.Equal(GameClock.RealTimePerInGameHour, updated.LastRegenPlaytime);
-    }
-
-    [Fact]
     public async Task Handle_ReturnsDetachedCreatures_ReflectingRegeneratedValues()
     {
         // Arrange
@@ -94,77 +70,6 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLi
         // Assert
         Assert.Equal(7, result[_creature.Id].CurrentHp);
         Assert.Equal(EntityState.Detached, _context.Entry(result[_creature.Id]).State);
-    }
-
-    [Fact]
-    public async Task Handle_ClampsAtMaximum_WhenElapsedTimeExceedsFullRegen()
-    {
-        // Arrange
-        SetPlaytime(TimeSpan.FromHours(100 / 12.0));
-
-        // Act
-        await _handler.Handle(
-            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_creature.MaximumHp, updated!.CurrentHp);
-        Assert.Equal(_creature.MaximumAp, updated.CurrentAp);
-        Assert.Equal(_creature.MaximumMp, updated.CurrentMp);
-    }
-
-    [Fact]
-    public async Task Handle_DoesNothing_WhenCreatureIsDead()
-    {
-        // Arrange
-        _creature.State = CreatureState.Dead;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        SetPlaytime(TimeSpan.FromHours(100 / 12.0));
-
-        // Act
-        await _handler.Handle(
-            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(0, updated!.CurrentHp);
-        Assert.Equal(TimeSpan.Zero, updated.LastRegenPlaytime);
-    }
-
-    [Fact]
-    public async Task Handle_DoesNothing_WhenElapsedTimeIsZeroOrNegative()
-    {
-        // Arrange
-        _creature.LastRegenPlaytime = TimeSpan.FromHours(1);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        SetPlaytime(TimeSpan.FromHours(1));
-
-        // Act
-        await _handler.Handle(
-            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(0, updated!.CurrentHp);
-        Assert.Equal(TimeSpan.FromHours(1), updated.LastRegenPlaytime);
     }
 
     [Fact]

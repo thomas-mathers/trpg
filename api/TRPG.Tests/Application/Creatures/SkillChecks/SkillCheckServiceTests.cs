@@ -1,58 +1,29 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures;
-using TRPG.Data;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Domain.Models;
-using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.SkillChecks;
 
-[Collection("Database")]
-public sealed class SkillCheckServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SkillCheckServiceTests
 {
     private readonly CapturingChanceRoller _chanceRoller = new();
-    private TrpgDbContext _context = null!;
-    private Creature _creature = null!;
-    private ServiceProvider _serviceProvider = null!;
-    private SkillCheckService _service = null!;
+    private readonly FakeGetCreatureSkillsQueryHandler _getCreatureSkills = new();
+    private readonly SkillCheckService _service;
 
-    public async ValueTask InitializeAsync()
-    {
-        _context = db.CreateContext();
-        _creature = Builders.MakeCreature();
-        _context.Creatures.Add(_creature);
-        _context.CreatureSkills.Add(
-            new CreatureSkill
-            {
-                WorldId = _creature.WorldId,
-                CreatureId = _creature.Id,
-                Skill = Skill.Sneak,
-                Level = 2,
-            }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        _serviceProvider = new ServiceCollection()
-            .AddTrpgTestServices(_context)
-            .RemoveAll<IChanceRoller>()
-            .AddSingleton<IChanceRoller>(_chanceRoller)
-            .BuildServiceProvider();
-        _service = _serviceProvider.GetRequiredService<SkillCheckService>();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _serviceProvider.DisposeAsync();
-        await _context.DisposeAsync();
-    }
+    public SkillCheckServiceTests() =>
+        _service = new SkillCheckService(_getCreatureSkills, _chanceRoller);
 
     [Fact]
     public async Task Roll_UsesTheSpecifiedCreatureSkillLevel()
     {
+        // Arrange — chance = 0.5 + (-0.1) * skillLevel(2) = 0.3
+        _getCreatureSkills.Skills = [new CreatureSkillProgress(Skill.Sneak, 2, 0, 0)];
+
+        // Act
         var result = await _service.Roll(
-            _creature.Id,
+            Guid.NewGuid(),
             Skill.Sneak,
             new SkillCheckCurve(
                 BaseChance: 0.5f,
@@ -63,6 +34,7 @@ public sealed class SkillCheckServiceTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
 
+        // Assert
         Assert.True(result);
         Assert.Equal(0.3f, _chanceRoller.Chance);
     }
@@ -70,8 +42,12 @@ public sealed class SkillCheckServiceTests(DatabaseFixture db) : IAsyncLifetime
     [Fact]
     public async Task Roll_UsesLevelZero_WhenTheCreatureDoesNotHaveTheSkill()
     {
+        // Arrange
+        _getCreatureSkills.Skills = [];
+
+        // Act
         var result = await _service.Roll(
-            _creature.Id,
+            Guid.NewGuid(),
             Skill.Pickpocketing,
             new SkillCheckCurve(
                 BaseChance: 0.5f,
@@ -82,6 +58,7 @@ public sealed class SkillCheckServiceTests(DatabaseFixture db) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
 
+        // Assert
         Assert.True(result);
         Assert.Equal(0.5f, _chanceRoller.Chance);
     }
@@ -95,5 +72,16 @@ public sealed class SkillCheckServiceTests(DatabaseFixture db) : IAsyncLifetime
             Chance = chance;
             return true;
         }
+    }
+
+    private sealed class FakeGetCreatureSkillsQueryHandler
+        : IQueryHandler<GetCreatureSkillsQuery, IReadOnlyCollection<CreatureSkillProgress>>
+    {
+        public IReadOnlyCollection<CreatureSkillProgress> Skills { get; set; } = [];
+
+        public Task<IReadOnlyCollection<CreatureSkillProgress>> Handle(
+            GetCreatureSkillsQuery query,
+            CancellationToken cancellationToken = default
+        ) => Task.FromResult(Skills);
     }
 }

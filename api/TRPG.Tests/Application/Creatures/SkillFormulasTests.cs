@@ -77,6 +77,16 @@ public class SkillFormulasTests
     }
 
     [Fact]
+    public void CalculateLevelFromSkillLevels_ReachesLevelTwo_AsSoonAsAnySkillReachesLevelTwo()
+    {
+        // Act — a single skill at level 2 contributes 2 xp, exactly meeting the level-2 threshold
+        var level = SkillFormulas.CalculateLevelFromSkillLevels([2, 1, 1, 1, 1, 1, 1]);
+
+        // Assert
+        Assert.Equal(2, level);
+    }
+
+    [Fact]
     public void GetExperienceProgress_StartsAtZero_ForAFreshLevelOneCreature()
     {
         // Act

@@ -1,5 +1,6 @@
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
@@ -255,5 +256,162 @@ public class StatFormulasTests
                 }
             )
         );
+    }
+
+    private static Attributes MakeStartingAttributes(int strength = 5) =>
+        new()
+        {
+            Strength = strength,
+            Defense = 5,
+            Dexterity = 5,
+            Endurance = 5,
+            Stamina = 5,
+            Mana = 5,
+            Intelligence = 5,
+        };
+
+    [Fact]
+    public void CalculateUnallocatedAttributePoints_ReturnsExpectedMinusCurrentTotal()
+    {
+        // Arrange — default options: 7 base stats at 5 each = 35; expected = 35 + level(1) * pointsPerLevel(5) = 40
+        // Act
+        var unallocated = StatFormulas.CalculateUnallocatedAttributePoints(
+            MakeStartingAttributes(),
+            level: 1,
+            new CreatureGeneratorOptions()
+        );
+
+        // Assert
+        Assert.Equal(5, unallocated);
+    }
+
+    [Fact]
+    public void CalculateUnallocatedAttributePoints_ReturnsZero_WhenFullyAllocated()
+    {
+        // Arrange — spend the 5 available points
+        // Act
+        var unallocated = StatFormulas.CalculateUnallocatedAttributePoints(
+            MakeStartingAttributes(strength: 10),
+            level: 1,
+            new CreatureGeneratorOptions()
+        );
+
+        // Assert
+        Assert.Equal(0, unallocated);
+    }
+
+    [Fact]
+    public void CalculateUnallocatedAttributePoints_GrowsWithCharacterLevel()
+    {
+        // Arrange — leveling up from 1 to 3 should grant 2 * pointsPerLevel(5) = 10 more points
+        // Act
+        var unallocated = StatFormulas.CalculateUnallocatedAttributePoints(
+            MakeStartingAttributes(),
+            level: 3,
+            new CreatureGeneratorOptions()
+        );
+
+        // Assert
+        Assert.Equal(15, unallocated);
+    }
+
+    private static Creature MakeCreatureWithMaximums(
+        int maximumHp,
+        int maximumAp,
+        int maximumMp,
+        CreatureState state = default
+    ) =>
+        Builders.MakeCreature(
+            currentHp: 0,
+            currentAp: 0,
+            currentMp: 0,
+            state: state,
+            baseAttributes: new Attributes
+            {
+                MaximumHp = maximumHp,
+                MaximumAp = maximumAp,
+                MaximumMp = maximumMp,
+            }
+        );
+
+    [Fact]
+    public void ApplyPassiveRegen_RegeneratesHpApMp_ProportionalToElapsedInGameHours()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
+        var options = new CreatureRegenOptions
+        {
+            HpRegenPercentPerHour = 0.2f,
+            ApRegenPercentPerHour = 0.25f,
+            MpRegenPercentPerHour = 0.25f,
+        };
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(creature, GameClock.RealTimePerInGameHour, options);
+
+        // Assert
+        Assert.Equal(7, creature.CurrentHp);
+        Assert.Equal(3, creature.CurrentAp);
+        Assert.Equal(2, creature.CurrentMp);
+        Assert.Equal(GameClock.RealTimePerInGameHour, creature.LastRegenPlaytime);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_ClampsAtMaximum_WhenElapsedTimeExceedsFullRegen()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
+        var options = new CreatureRegenOptions
+        {
+            HpRegenPercentPerHour = 0.2f,
+            ApRegenPercentPerHour = 0.25f,
+            MpRegenPercentPerHour = 0.25f,
+        };
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(creature, TimeSpan.FromHours(100 / 12.0), options);
+
+        // Assert
+        Assert.Equal(35, creature.CurrentHp);
+        Assert.Equal(12, creature.CurrentAp);
+        Assert.Equal(8, creature.CurrentMp);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_DoesNothing_WhenCreatureIsDead()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(
+            maximumHp: 35,
+            maximumAp: 12,
+            maximumMp: 8,
+            state: CreatureState.Dead
+        );
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            TimeSpan.FromHours(100 / 12.0),
+            new CreatureRegenOptions()
+        );
+
+        // Assert
+        Assert.Equal(0, creature.CurrentHp);
+        Assert.Equal(TimeSpan.Zero, creature.LastRegenPlaytime);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_DoesNothing_WhenElapsedTimeIsZeroOrNegative()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
+        creature.LastRegenPlaytime = TimeSpan.FromHours(1);
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(creature, TimeSpan.FromHours(1), new CreatureRegenOptions());
+
+        // Assert
+        Assert.Equal(0, creature.CurrentHp);
+        Assert.Equal(TimeSpan.FromHours(1), creature.LastRegenPlaytime);
     }
 }

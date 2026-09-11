@@ -67,38 +67,4 @@ public sealed class GetUnallocatedAttributePointsQueryTests(DatabaseFixture db) 
         // Assert
         Assert.Equal(5, unallocated);
     }
-
-    [Fact]
-    public async Task Handle_ReturnsZero_WhenFullyAllocated()
-    {
-        // Arrange — spend the 5 available points
-        _creature.BaseAttributes.Strength += 5;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var unallocated = await _handler.Handle(
-            new GetUnallocatedAttributePointsQuery { CreatureId = _creature.Id },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(0, unallocated);
-    }
-
-    [Fact]
-    public async Task Handle_GrowsWithCharacterLevel()
-    {
-        // Arrange — leveling up from 1 to 3 should grant 2 * pointsPerLevel(5) = 10 more points
-        _creature.Level = 3;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var unallocated = await _handler.Handle(
-            new GetUnallocatedAttributePointsQuery { CreatureId = _creature.Id },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(15, unallocated);
-    }
 }

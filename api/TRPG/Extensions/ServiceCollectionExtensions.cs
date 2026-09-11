@@ -391,6 +391,7 @@ internal static class ServiceCollectionExtensions
             .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
             .Configure<GameClockOptions>(configuration.GetSection("GameClock"))
             .Configure<GameSessionOptions>(configuration.GetSection("GameSession"))
+            .Configure<GameClientEventAckOptions>(configuration.GetSection("GameClientEventAck"))
             .Configure<ReputationOptions>(configuration.GetSection("Reputation"))
             .Configure<GuardEncounterOptions>(configuration.GetSection("GuardEncounter"))
             .Configure<TheftOptions>(configuration.GetSection("Theft"))
