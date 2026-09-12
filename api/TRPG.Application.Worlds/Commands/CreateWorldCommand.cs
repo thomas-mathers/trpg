@@ -71,7 +71,14 @@ internal class CreateWorldCommandHandler(
         playerResult = creatureGenerator.AddStartingPotions(playerResult);
         playerResult.Creature.LocationId = startingDistrict.LocationId;
 
-        var quests = questGenerator.Generate(worldResult, startingState.Id);
+        var stateQuests = questGenerator.Generate(worldResult, startingState.Id);
+        var expeditionQuests = worldResult
+            .DungeonExpeditions.Select(ExpeditionQuestGenerator.Generate)
+            .ToArray();
+        var quests = new QuestGeneratorResult(
+            [.. stateQuests.Quests, .. expeditionQuests.SelectMany(result => result.Quests)],
+            [.. stateQuests.Objectives, .. expeditionQuests.SelectMany(result => result.Objectives)]
+        );
 
         var monsterReputations = MonsterReputationSeeder.Seed(
             worldResult.World.Id,

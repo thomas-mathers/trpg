@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
@@ -25,7 +26,8 @@ internal class ShareExpeditionDiscoveryCommandHandler(
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenConversations,
     IQueryHandler<GetKnownSecretIdsQuery, IReadOnlyList<Guid>> getKnownSecrets,
     ICommandHandler<LearnSecretCommand, bool> learnSecret,
-    IQueryHandler<GetDungeonConversationKnowledgeQuery, DungeonConversationKnowledge?> getKnowledge
+    IQueryHandler<GetDungeonConversationKnowledgeQuery, DungeonConversationKnowledge?> getKnowledge,
+    IDomainEventPublisher<SecretSharedEvent> domainEvents
 ) : ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
 {
     public async Task<DungeonConversationKnowledge?> Handle(
@@ -55,6 +57,15 @@ internal class ShareExpeditionDiscoveryCommandHandler(
                 KnowerId = expedition.SurvivorId,
                 SecretId = expedition.DiscoverySecretId,
             },
+            cancellationToken
+        );
+        await domainEvents.Publish(
+            new SecretSharedEvent(
+                PlayerId: command.PlayerId,
+                WorldId: command.WorldId,
+                SecretId: expedition.DiscoverySecretId,
+                RecipientId: expedition.SurvivorId
+            ),
             cancellationToken
         );
         return await getKnowledge.Handle(

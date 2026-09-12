@@ -680,6 +680,27 @@ internal static class Builders
             RequiredAmount = requiredAmount,
         };
 
+    public static ShareSecretObjective MakeShareSecretObjective(
+        Guid questId,
+        Guid secretId,
+        Guid recipientId,
+        Guid? worldId = null,
+        Guid? locationId = null,
+        int requiredAmount = 1,
+        string? name = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            QuestId = questId,
+            Name = name ?? $"Objective-{Guid.NewGuid():N}",
+            Description = "A test objective",
+            SecretId = secretId,
+            RecipientId = recipientId,
+            LocationId = locationId,
+            RequiredAmount = requiredAmount,
+        };
+
     public static CreatureQuestObjective MakeCreatureQuestObjective(
         Guid creatureId,
         Guid objectiveId,

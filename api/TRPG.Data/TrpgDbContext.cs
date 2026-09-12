@@ -512,7 +512,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<KillCreatureTypeObjective>("KillCreatureType")
                 .HasValue<CollectItemObjective>("CollectItem")
                 .HasValue<ExploreLocationObjective>("ExploreLocation")
-                .HasValue<SpeakToCreatureObjective>("SpeakToCreature");
+                .HasValue<SpeakToCreatureObjective>("SpeakToCreature")
+                .HasValue<ShareSecretObjective>("ShareSecret");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
             entity.Property(o => o.RequiredAmount).HasDefaultValue(1);
