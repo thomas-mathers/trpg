@@ -37,7 +37,10 @@ internal class SeedCaptiveRescueQuestCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetRescueQuestParticipantIdsQuery, IReadOnlySet<Guid>> getUsedParticipantIds,
-    IQueryHandler<GetRelativesQuery, IReadOnlyCollection<RelativeSummary>> getRelatives,
+    IQueryHandler<
+        GetRelativesByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<RelativeSummary>>
+    > getRelativesByCreatureIds,
     IQueryHandler<GetRoomsByRoleQuery, IReadOnlyList<Room>> getRoomsByRole,
     IQueryHandler<GetCellLocationIdsQuery, IReadOnlySet<Guid>> getCellLocationIds,
     IQueryHandler<GetVisitedRoomLocationIdsQuery, IReadOnlySet<Guid>> getVisitedRoomLocationIds,
@@ -120,21 +123,26 @@ internal class SeedCaptiveRescueQuestCommandHandler(
             new GetCreaturesByIdsQuery { Ids = candidateGiverIds },
             cancellationToken
         );
-
-        foreach (
-            var giver in candidateGivers.Values.Where(creature =>
+        var eligibleGivers = candidateGivers
+            .Values.Where(creature =>
                 CreatureTypes.Humanoid.Contains(creature.CreatureType)
                 && !usedParticipantIds.Contains(creature.Id)
             )
-        )
+            .ToArray();
+
+        var relativesByGiverId = await getRelativesByCreatureIds.Handle(
+            new GetRelativesByCreatureIdsQuery
+            {
+                CreatureIds = eligibleGivers.Select(giver => giver.Id).ToArray(),
+            },
+            cancellationToken
+        );
+
+        foreach (var giver in eligibleGivers)
         {
-            var relatives = await getRelatives.Handle(
-                new GetRelativesQuery { CreatureId = giver.Id },
-                cancellationToken
-            );
-            var eligibleRelative = relatives.FirstOrDefault(relative =>
-                !usedParticipantIds.Contains(relative.RelativeId)
-            );
+            var eligibleRelative = relativesByGiverId
+                .GetValueOrDefault(giver.Id, [])
+                .FirstOrDefault(relative => !usedParticipantIds.Contains(relative.RelativeId));
             if (eligibleRelative == null)
             {
                 continue;
