@@ -22,7 +22,7 @@ public class DungeonExpeditionGeneratorTests
         );
 
         // Act
-        var result = _generator.Generate(new DungeonExpeditionInput([dungeon], [], [], random));
+        var result = _generator.Generate(new DungeonExpeditionInput([dungeon], [], [], [], random));
 
         // Assert
         Assert.NotNull(result);
@@ -48,7 +48,7 @@ public class DungeonExpeditionGeneratorTests
     public void Generate_ReturnsNothing_WhenNoDungeonsExist()
     {
         // Act
-        var result = _generator.Generate(new DungeonExpeditionInput([], [], [], new Random(3)));
+        var result = _generator.Generate(new DungeonExpeditionInput([], [], [], [], new Random(3)));
 
         // Assert
         Assert.Null(result);
@@ -70,7 +70,7 @@ public class DungeonExpeditionGeneratorTests
 
         // Act
         var result = _generator.Generate(
-            new DungeonExpeditionInput([dungeon], spawners, [], new Random(8))
+            new DungeonExpeditionInput([dungeon], spawners, [], [], new Random(8))
         );
 
         // Assert
