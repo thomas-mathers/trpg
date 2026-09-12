@@ -37,6 +37,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
         GetCreatureIdsWithCreatureJobInLocationQuery,
         IReadOnlyList<Guid>
     > getGiverCandidateIds,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetRescueQuestParticipantIdsQuery, IReadOnlySet<Guid>> getUsedParticipantIds,
     IQueryHandler<GetRelativesQuery, IReadOnlyCollection<RelativeSummary>> getRelatives,
@@ -147,12 +148,14 @@ internal class SeedCaptiveRescueQuestCommandHandler(
                 continue;
             }
 
-            var captive = (
-                await getCreaturesByIds.Handle(
-                    new GetCreaturesByIdsQuery { Ids = [eligibleRelative.RelativeId] },
-                    cancellationToken
-                )
-            )[eligibleRelative.RelativeId];
+            var captive = await getCreatureById.Handle(
+                new GetCreatureByIdQuery { Id = eligibleRelative.RelativeId },
+                cancellationToken
+            );
+            if (captive == null)
+            {
+                continue;
+            }
 
             return (giver, captive);
         }

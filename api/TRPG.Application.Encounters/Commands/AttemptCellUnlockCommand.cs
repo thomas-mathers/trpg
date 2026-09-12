@@ -43,7 +43,7 @@ internal class AttemptCellUnlockCommandHandler(
     IQueryHandler<GetCellByIdQuery, Cell?> getCellById,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
+    IQueryHandler<GetFactionByIdQuery, Faction?> getFactionById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
     SkillCheckService skillCheckService,
@@ -180,12 +180,14 @@ internal class AttemptCellUnlockCommandHandler(
             return null;
         }
 
-        var faction = (
-            await getFactionsByIds.Handle(
-                new GetFactionsByIdsQuery { Ids = [livingGroup.Group.FactionId] },
+        var faction =
+            await getFactionById.Handle(
+                new GetFactionByIdQuery { Id = livingGroup.Group.FactionId },
                 cancellationToken
             )
-        )[livingGroup.Group.FactionId];
+            ?? throw new InvalidOperationException(
+                $"Faction {livingGroup.Group.FactionId} not found."
+            );
         var location =
             await getLocationById.Handle(
                 new GetLocationByIdQuery { Id = cell.LocationId },

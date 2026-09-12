@@ -22,17 +22,21 @@ internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<SetBedOccupantCommand> setBedOccupant
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
+    // A creature in any of these states is not living its ordinary schedule right now, so its
+    // job should not move or re-state it.
+    private static readonly HashSet<CreatureState> NonSchedulableStates =
+    [
+        CreatureState.Alerted,
+        CreatureState.Dead,
+        CreatureState.Restrained,
+    ];
+
     public async Task Handle(
         ExecuteCreatureJobCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        if (
-            command.CurrentState
-            is CreatureState.Alerted
-                or CreatureState.Dead
-                or CreatureState.Restrained
-        )
+        if (NonSchedulableStates.Contains(command.CurrentState))
         {
             return;
         }
