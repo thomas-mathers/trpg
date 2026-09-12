@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory;
 
-[Collection("Database")]
-public sealed class TradeOfferValidatorTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class TradeOfferValidatorTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

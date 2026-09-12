@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
-[Collection("Database")]
-public sealed class PersistCombatantsCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;

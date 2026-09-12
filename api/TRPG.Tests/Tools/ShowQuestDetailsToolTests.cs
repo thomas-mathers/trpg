@@ -8,8 +8,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Tools;
 
-[Collection("Database")]
-public sealed class ShowQuestDetailsToolTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class ShowQuestDetailsToolTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid LocationId = Guid.NewGuid();

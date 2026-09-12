@@ -14,8 +14,9 @@ using BookWork = TRPG.Domain.Models.BookWork;
 
 namespace TRPG.Tests.Application.Books.Commands;
 
-[Collection("Database")]
-public sealed class EnsureBookPageCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class EnsureBookPageCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

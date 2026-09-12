@@ -12,8 +12,9 @@ using NpcConversationSessionState = TRPG.Domain.Models.NpcConversationSessionSta
 
 namespace TRPG.Tests.Application.GameSessions;
 
-[Collection("Database")]
-public sealed class GameSessionTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GameSessionTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;

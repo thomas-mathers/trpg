@@ -9,8 +9,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Quests;
 
-[Collection("Database")]
-public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Queries;
 
-[Collection("Database")]
-public sealed class GetJailForCityQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetJailForCityQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private GetJailForCityQueryHandler _handler = null!;

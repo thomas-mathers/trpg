@@ -10,8 +10,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Commands;
 
-[Collection("Database")]
-public sealed class EvaluateJailbreakEncounterCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class EvaluateJailbreakEncounterCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

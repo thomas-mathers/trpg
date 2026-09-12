@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
-[Collection("Database")]
-public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     // Instance (not static) fields: each [Fact] gets its own xUnit class instance, so fresh
     // Guids here keep every test's location isolated from every other test's seeded

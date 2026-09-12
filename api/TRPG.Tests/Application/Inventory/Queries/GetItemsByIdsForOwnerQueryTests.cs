@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory.Queries;
 
-[Collection("Database")]
-public sealed class GetItemsByIdsForOwnerQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetItemsByIdsForOwnerQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

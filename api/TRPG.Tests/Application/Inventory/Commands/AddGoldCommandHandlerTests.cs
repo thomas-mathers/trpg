@@ -8,8 +8,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory.Commands;
 
-[Collection("Database")]
-public sealed class AddGoldCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AddGoldCommandHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

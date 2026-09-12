@@ -11,8 +11,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Commands;
 
-[Collection("Database")]
-public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private readonly Guid _worldId = Guid.NewGuid();
 

@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Queries;
 
-[Collection("Database")]
-public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetExitByDestinationNameQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid StateId = Guid.NewGuid();

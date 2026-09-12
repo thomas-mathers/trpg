@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory.Queries;
 
-[Collection("Database")]
-public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetInventoryByOwnerQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;

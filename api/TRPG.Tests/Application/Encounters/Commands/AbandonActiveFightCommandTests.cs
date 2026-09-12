@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Commands;
 
-[Collection("Database")]
-public sealed class AbandonActiveFightCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AbandonActiveFightCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

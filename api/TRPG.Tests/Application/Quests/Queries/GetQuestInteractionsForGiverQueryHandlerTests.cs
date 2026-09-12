@@ -6,9 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Quests.Queries;
 
-[Collection("Database")]
 public sealed class GetQuestInteractionsForGiverQueryHandlerTests(DatabaseFixture db)
-    : IAsyncLifetime
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

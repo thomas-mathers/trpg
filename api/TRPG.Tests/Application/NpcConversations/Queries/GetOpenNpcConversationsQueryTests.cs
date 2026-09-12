@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.NpcConversations.Queries;
 
-[Collection("Database")]
-public sealed class GetOpenNpcConversationsQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetOpenNpcConversationsQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

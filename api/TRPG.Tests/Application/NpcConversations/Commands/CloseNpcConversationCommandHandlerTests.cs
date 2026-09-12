@@ -8,8 +8,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.NpcConversations.Commands;
 
-[Collection("Database")]
-public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid PlayerId = Guid.NewGuid();

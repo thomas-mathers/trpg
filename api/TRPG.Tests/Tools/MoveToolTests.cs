@@ -15,8 +15,9 @@ using TRPG.Tools;
 
 namespace TRPG.Tests.Tools;
 
-[Collection("Database")]
-public sealed class MoveToolTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class MoveToolTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

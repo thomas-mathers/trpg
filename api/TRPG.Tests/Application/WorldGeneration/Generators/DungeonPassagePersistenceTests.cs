@@ -4,8 +4,8 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
-[Collection("Database")]
 public sealed class DungeonPassagePersistenceTests(DatabaseFixture database)
+    : IClassFixture<DatabaseFixture>
 {
     [Fact]
     public async Task SaveChanges_PreservesBothDirections_WhenPersistingGeneratedPassages()

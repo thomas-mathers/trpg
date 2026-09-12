@@ -16,9 +16,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests;
 
-public sealed class EndpointTestFixture : IAsyncLifetime
+public sealed class EndpointTestFixture(PostgreSqlFixture postgres) : IAsyncLifetime
 {
-    private readonly DatabaseFixture _databaseFixture = new();
+    private readonly DatabaseFixture _databaseFixture = new(postgres);
     private WebApplicationFactory<Program>? _factory;
 
     public FakeChatClient ChatClient { get; } = new();

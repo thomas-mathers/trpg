@@ -9,8 +9,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Crimes.EventHandlers;
 
-[Collection("Database")]
-public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid LocationId = Guid.NewGuid();

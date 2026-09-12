@@ -6,9 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Commands;
 
-[Collection("Database")]
 public sealed class EvaluateOverdueRoomKeyEncounterCommandHandlerTests(DatabaseFixture db)
-    : IAsyncLifetime
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

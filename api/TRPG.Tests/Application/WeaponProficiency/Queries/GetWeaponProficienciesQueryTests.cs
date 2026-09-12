@@ -5,8 +5,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.WeaponProficiency.Queries;
 
-[Collection("Database")]
-public sealed class GetWeaponProficienciesQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetWeaponProficienciesQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private GetWeaponProficienciesQueryHandler _handler = null!;

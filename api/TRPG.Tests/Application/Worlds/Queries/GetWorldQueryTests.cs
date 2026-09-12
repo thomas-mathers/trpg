@@ -5,8 +5,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Queries;
 
-[Collection("Database")]
-public sealed class GetWorldQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetWorldQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private GetWorldQueryHandler _handler = null!;

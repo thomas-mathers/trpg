@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Reputations.Queries;
 
-[Collection("Database")]
-public sealed class GetEffectiveReputationsQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetEffectiveReputationsQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private AdjustReputationsCommandHandler _adjustReputations = null!;
     private TrpgDbContext _context = null!;

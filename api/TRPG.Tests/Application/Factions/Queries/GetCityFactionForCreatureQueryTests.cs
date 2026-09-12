@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Factions.Queries;
 
-[Collection("Database")]
-public sealed class GetCityFactionForCreatureQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetCityFactionForCreatureQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

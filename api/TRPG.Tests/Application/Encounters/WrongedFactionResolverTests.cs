@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters;
 
-[Collection("Database")]
-public sealed class WrongedFactionResolverTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class WrongedFactionResolverTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

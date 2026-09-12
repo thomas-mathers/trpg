@@ -9,8 +9,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.GameSessions.Commands;
 
-[Collection("Database")]
-public sealed class EndGameSessionCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class EndGameSessionCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private readonly World _world = Builders.MakeWorld();
     private readonly Creature _player = Builders.MakeCreature();

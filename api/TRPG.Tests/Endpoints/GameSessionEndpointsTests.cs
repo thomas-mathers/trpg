@@ -7,8 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Serialization;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Hubs;
 using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
+using TypedSignalR.Client;
 
 namespace TRPG.Tests.Endpoints;
 
@@ -81,6 +83,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     private async Task<HubConnection> Connect(Guid sessionId)
     {
         var connection = fixture.CreateHubConnection(sessionId);
+        connection.Register<IGameClient>(new TestGameClient { Connection = connection });
         await connection.StartAsync(TestContext.Current.CancellationToken);
         return connection;
     }

@@ -9,8 +9,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Books.Commands;
 
-[Collection("Database")]
-public sealed class ReadBookPageCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class ReadBookPageCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

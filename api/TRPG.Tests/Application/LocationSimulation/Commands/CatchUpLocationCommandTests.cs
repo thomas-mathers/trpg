@@ -12,8 +12,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.LocationSimulation.Commands;
 
-[Collection("Database")]
-public sealed class CatchUpLocationCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

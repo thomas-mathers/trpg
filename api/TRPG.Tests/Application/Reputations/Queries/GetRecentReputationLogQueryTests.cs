@@ -5,8 +5,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Reputations.Queries;
 
-[Collection("Database")]
-public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetRecentReputationLogQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private GetRecentReputationLogQueryHandler _handler = null!;

@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.WeaponProficiency.Commands;
 
-[Collection("Database")]
-public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AdjustWeaponProficienciesCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private AdjustWeaponProficienciesCommandHandler _handler = null!;
