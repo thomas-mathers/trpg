@@ -1,13 +1,9 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Encounters.Commands;
-using TRPG.Application.Factions.Commands;
 using TRPG.Application.Factions.Queries;
-using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Props.Commands;
 using TRPG.Application.Props.Queries;
@@ -50,12 +46,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
         IReadOnlyDictionary<CreatureType, Faction>
     > getFactionsByCreatureType,
     DungeonPopulator dungeonPopulator,
-    ICommandHandler<AddCreaturesCommand> addCreatures,
-    ICommandHandler<AddItemsCommand> addItems,
-    ICommandHandler<AddCreatureSkillsCommand> addCreatureSkills,
-    ICommandHandler<AddCreatureJobsCommand> addCreatureJobs,
-    ICommandHandler<CreateEncounterGroupsCommand> createEncounterGroups,
-    ICommandHandler<AddFactionMembersCommand> addFactionMembers,
+    ICommandHandler<AddCreatureSpawnResultCommand> addCreatureSpawnResult,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<AddCellCommand> addCell,
     ICommandHandler<AddQuestCommand> addQuest
@@ -247,38 +238,16 @@ internal class SeedCaptiveRescueQuestCommandHandler(
             },
         };
 
-        await addCreatures.Handle(
-            new AddCreaturesCommand { Creatures = [guardCreature] },
-            cancellationToken
-        );
-        await addItems.Handle(
-            new AddItemsCommand
+        await addCreatureSpawnResult.Handle(
+            new AddCreatureSpawnResultCommand
             {
-                Items = [.. guardResult.Monsters.SelectMany(monster => monster.Items), key],
+                Monsters = guardResult.Monsters,
+                Jobs = guardResult.Jobs,
+                EncounterGroups = guardResult.EncounterGroups,
+                EncounterGroupMembers = guardResult.EncounterGroupMembers,
+                FactionMembers = guardResult.FactionMembers,
+                ExtraItems = [key],
             },
-            cancellationToken
-        );
-        await addCreatureSkills.Handle(
-            new AddCreatureSkillsCommand
-            {
-                Skills = guardResult.Monsters.SelectMany(monster => monster.Skills).ToArray(),
-            },
-            cancellationToken
-        );
-        await addCreatureJobs.Handle(
-            new AddCreatureJobsCommand { Jobs = guardResult.Jobs },
-            cancellationToken
-        );
-        await createEncounterGroups.Handle(
-            new CreateEncounterGroupsCommand
-            {
-                Groups = guardResult.EncounterGroups,
-                Members = guardResult.EncounterGroupMembers,
-            },
-            cancellationToken
-        );
-        await addFactionMembers.Handle(
-            new AddFactionMembersCommand { Members = guardResult.FactionMembers },
             cancellationToken
         );
 
