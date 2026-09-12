@@ -6,6 +6,7 @@ internal record DungeonExpeditionInput(
     IReadOnlyList<DungeonGeneratorResult> Dungeons,
     IReadOnlyCollection<CreatureSpawner> Spawners,
     IReadOnlyCollection<Prop> Props,
+    IReadOnlyCollection<Guid> InhabitantLocationIds,
     Random Random
 );
 
@@ -25,6 +26,7 @@ public class DungeonExpeditionGenerator(CreatureGenerator creatureGenerator)
     {
         var occupied = input.Spawners.Select(spawner => spawner.LocationId).ToHashSet();
         occupied.UnionWith(input.Props.OfType<Trigger>().Select(trigger => trigger.LocationId));
+        occupied.UnionWith(input.InhabitantLocationIds);
         foreach (var dungeon in input.Dungeons.OrderBy(_ => input.Random.Next()))
         {
             var routeTree = BuildRouteTree(dungeon);

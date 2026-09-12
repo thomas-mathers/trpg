@@ -61,6 +61,7 @@ public class WorldGenerator(
     CityGenerator cityGenerator,
     DungeonPopulator dungeonPopulator,
     DungeonExpeditionGenerator dungeonExpeditionGenerator,
+    DungeonInhabitantGenerator dungeonInhabitantGenerator,
     DungeonLootGenerator dungeonLootGenerator,
     DungeonTrapGenerator dungeonTrapGenerator,
     DungeonObstacleGenerator dungeonObstacleGenerator,
@@ -148,6 +149,9 @@ public class WorldGenerator(
         var relationships = new List<Relationship>();
         var encounterGroups = new List<EncounterGroup>();
         var encounterGroupMembers = new List<EncounterGroupMember>();
+        var expeditions = new List<DungeonExpeditionResult>();
+        var dungeonInhabitants = new List<DungeonInhabitantResult>();
+        var dungeonInhabitantLocationIds = new List<Guid>();
 
         var stateById = geography.States.ToDictionary(s => s.Id);
         var districtsByCityId = geography
@@ -244,12 +248,14 @@ public class WorldGenerator(
             }
 
             var usedNames = new HashSet<string>();
+            var stateDungeons = new List<DungeonGeneratorResult>();
             for (var i = 0; i < count; i++)
             {
                 var result = DungeonGenerator.Generate(
                     new DungeonGeneratorInput(usedNames, wildernessLocation, worldId)
                 );
                 dungeons.Add(result);
+                stateDungeons.Add(result);
                 usedNames.Add(result.Building.Name);
                 buildings.Add(result.Building);
                 rooms.AddRange(result.Rooms);
@@ -257,10 +263,24 @@ public class WorldGenerator(
                 locationConnectors.AddRange(result.LocationConnectors);
                 doorConnectors.Add(result.Door);
 
+                var inhabitant = dungeonInhabitantGenerator.Generate(
+                    new DungeonInhabitantInput(result, Random.Shared)
+                );
+                if (inhabitant != null)
+                {
+                    dungeonInhabitants.Add(inhabitant);
+                    dungeonInhabitantLocationIds.Add(inhabitant.LocationId);
+                }
+
                 // Spread through the dungeon rather than piled at the door, and not into every
                 // room: the empty ones are what make walking into an occupied one mean something.
                 foreach (var placement in result.Placements)
                 {
+                    if (placement.Room.LocationId == inhabitant?.LocationId)
+                    {
+                        continue;
+                    }
+
                     if (!DungeonContentPolicy.HoldsOccupants(placement.Role, Random.Shared))
                     {
                         continue;
@@ -366,6 +386,24 @@ public class WorldGenerator(
                     doorConnectorLevers.AddRange(canonicalGate.DoorConnectorLevers);
                 }
             }
+
+            var stateExpedition = dungeonExpeditionGenerator.Generate(
+                new DungeonExpeditionInput(
+                    stateDungeons,
+                    creatureSpawners,
+                    props,
+                    dungeonInhabitantLocationIds,
+                    Random.Shared
+                )
+            );
+            if (stateExpedition != null)
+            {
+                expeditions.Add(stateExpedition);
+                logger.LogInformation(
+                    "[expedition] Generated survivor and journal in dungeon {BuildingId}",
+                    stateExpedition.Expedition.BuildingId
+                );
+            }
         }
 
         foreach (var link in geography.StateTravelLinks)
@@ -420,29 +458,36 @@ public class WorldGenerator(
 
         creatures.AddRange(monsters);
 
-        var expedition = dungeonExpeditionGenerator.Generate(
-            new DungeonExpeditionInput(dungeons, creatureSpawners, props, Random.Shared)
-        );
-        if (expedition != null)
+        var expeditionParticipantIds = new HashSet<Guid>();
+        foreach (var expedition in expeditions)
         {
             creatures.AddRange(expedition.Participants.Select(participant => participant.Creature));
             items.AddRange(expedition.Participants.SelectMany(participant => participant.Items));
             items.Add(expedition.Journal);
             skills.AddRange(expedition.Participants.SelectMany(participant => participant.Skills));
             jobs.AddRange(expedition.Jobs);
-            logger.LogInformation(
-                "[expedition] Generated survivor and journal in dungeon {BuildingId}",
-                expedition.Expedition.BuildingId
+            expeditionParticipantIds.UnionWith(
+                expedition.Participants.Select(participant => participant.Creature.Id)
             );
         }
 
-        var expeditionParticipantIds =
-            expedition?.Participants.Select(participant => participant.Creature.Id).ToHashSet()
-            ?? [];
+        var inhabitantIds = new HashSet<Guid>();
+        foreach (var inhabitant in dungeonInhabitants)
+        {
+            creatures.Add(inhabitant.Participant.Creature);
+            items.AddRange(inhabitant.Participant.Items);
+            skills.AddRange(inhabitant.Participant.Skills);
+            jobs.AddRange(inhabitant.Jobs);
+            inhabitantIds.Add(inhabitant.Participant.Creature.Id);
+        }
+
+        var excludedFromGenericProfiles = expeditionParticipantIds
+            .Concat(inhabitantIds)
+            .ToHashSet();
         var creatureProfiles = CreatureProfileGenerator.Generate(
             new CreatureProfileGeneratorInput(
                 creatures
-                    .Where(creature => !expeditionParticipantIds.Contains(creature.Id))
+                    .Where(creature => !excludedFromGenericProfiles.Contains(creature.Id))
                     .ToArray(),
                 anchoredLocations.ToDictionary(location => location.Id),
                 factionMembers,
@@ -459,9 +504,9 @@ public class WorldGenerator(
 
         return new WorldGeneratorResult
         {
-            DungeonExpeditions = expedition == null ? [] : [expedition.Expedition],
-            BookWorks = expedition == null ? [] : [expedition.Work],
-            Secrets = expedition == null ? [] : [expedition.Secret],
+            DungeonExpeditions = expeditions.Select(expedition => expedition.Expedition).ToArray(),
+            BookWorks = expeditions.Select(expedition => expedition.Work).ToArray(),
+            Secrets = expeditions.Select(expedition => expedition.Secret).ToArray(),
             World = geography.World,
             Countries = geography.Countries,
             States = geography.States,
@@ -480,7 +525,12 @@ public class WorldGenerator(
             Items = items,
             Rooms = rooms,
             Locations = anchoredLocations,
-            CreatureProfiles = [.. creatureProfiles, .. expedition?.Profiles ?? []],
+            CreatureProfiles =
+            [
+                .. creatureProfiles,
+                .. expeditions.SelectMany(expedition => expedition.Profiles),
+                .. dungeonInhabitants.Select(inhabitant => inhabitant.Profile),
+            ],
             Props = props,
             Skills = skills,
             Jobs = jobs,
