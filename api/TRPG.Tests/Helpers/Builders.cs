@@ -328,7 +328,8 @@ internal static class Builders
         Guid? locationId = null,
         Guid? occupantId = null,
         Guid? assignedCreatureId = null,
-        Guid? ownerCreatureId = null
+        Guid? ownerCreatureId = null,
+        WorkstationType workstationType = WorkstationType.Trade
     ) =>
         new()
         {
@@ -336,7 +337,7 @@ internal static class Builders
             Name = $"Workstation-{Guid.NewGuid():N}",
             Description = "A test workstation",
             LocationId = locationId ?? Guid.NewGuid(),
-            WorkstationType = WorkstationType.Trade,
+            WorkstationType = workstationType,
             OccupantId = occupantId,
             AssignedCreatureId = assignedCreatureId,
             OwnerCreatureId = ownerCreatureId,
@@ -428,7 +429,8 @@ internal static class Builders
         Guid crimeId,
         Guid creatureId,
         Guid? worldId = null,
-        CrimeWitnessResolution resolution = CrimeWitnessResolution.Pending
+        CrimeWitnessResolution resolution = CrimeWitnessResolution.Pending,
+        CrimeWitnessKind kind = CrimeWitnessKind.Saw
     ) =>
         new()
         {
@@ -436,6 +438,7 @@ internal static class Builders
             CrimeId = crimeId,
             CreatureId = creatureId,
             Resolution = resolution,
+            Kind = kind,
         };
 
     public static Key MakeKey(
@@ -1114,6 +1117,148 @@ internal static class Builders
             Playtime = playtime,
         };
     }
+
+    public static Reputation MakeReputation(
+        Guid? worldId = null,
+        Guid? creatureId = null,
+        Guid? targetId = null,
+        ReputationTargetType targetType = ReputationTargetType.Faction,
+        int score = 0
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            CreatureId = creatureId ?? Guid.NewGuid(),
+            TargetId = targetId ?? Guid.NewGuid(),
+            TargetType = targetType,
+            Score = score,
+        };
+
+    public static CreatureProfile MakeCreatureProfile(
+        Guid? worldId = null,
+        Guid? creatureId = null,
+        string description = ""
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            CreatureId = creatureId ?? Guid.NewGuid(),
+            Description = description,
+        };
+
+    public static CreatureProfileBuilder NewCreatureProfile() => new();
+
+    public static KillCrime MakeKillCrime(
+        Guid? worldId = null,
+        Guid? playerId = null,
+        Guid? locationId = null,
+        Guid? victimId = null,
+        string victimName = "Victim",
+        DateTime? occurredAt = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            PlayerId = playerId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+            VictimId = victimId ?? Guid.NewGuid(),
+            VictimName = victimName,
+            OccurredAt = occurredAt ?? DateTime.UtcNow,
+        };
+
+    public static AssaultCrime MakeAssaultCrime(
+        Guid? worldId = null,
+        Guid? playerId = null,
+        Guid? locationId = null,
+        Guid? victimId = null,
+        string victimName = "Victim",
+        DateTime? occurredAt = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            PlayerId = playerId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+            VictimId = victimId ?? Guid.NewGuid(),
+            VictimName = victimName,
+            OccurredAt = occurredAt ?? DateTime.UtcNow,
+        };
+
+    public static TheftCrime MakeTheftCrime(
+        Guid? worldId = null,
+        Guid? playerId = null,
+        Guid? locationId = null,
+        Guid? ownerCreatureId = null,
+        string ownerName = "Owner",
+        TheftCrimeOutcome? outcome = TheftCrimeOutcome.Taken,
+        DateTime? occurredAt = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            PlayerId = playerId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+            OwnerCreatureId = ownerCreatureId ?? Guid.NewGuid(),
+            OwnerName = ownerName,
+            Outcome = outcome,
+            SourceOwnerId = Guid.NewGuid(),
+            SourceOwnerType = OwnerType.Container,
+            OccurredAt = occurredAt ?? DateTime.UtcNow,
+        };
+
+    public static LockpickingCrime MakeLockpickingCrime(
+        Guid? worldId = null,
+        Guid? playerId = null,
+        Guid? locationId = null,
+        Guid? buildingId = null,
+        string buildingName = "Building",
+        DateTime? occurredAt = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            PlayerId = playerId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+            BuildingId = buildingId ?? Guid.NewGuid(),
+            BuildingName = buildingName,
+            OccurredAt = occurredAt ?? DateTime.UtcNow,
+        };
+
+    public static JailbreakCrime MakeJailbreakCrime(
+        Guid? worldId = null,
+        Guid? playerId = null,
+        Guid? locationId = null,
+        Guid? buildingId = null,
+        string buildingName = "Jail",
+        DateTime? occurredAt = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            PlayerId = playerId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+            BuildingId = buildingId ?? Guid.NewGuid(),
+            BuildingName = buildingName,
+            OccurredAt = occurredAt ?? DateTime.UtcNow,
+        };
+
+    public static TrespassingCrime MakeTrespassingCrime(
+        Guid? worldId = null,
+        Guid? playerId = null,
+        Guid? locationId = null,
+        Guid? buildingId = null,
+        string buildingName = "Building",
+        DateTime? occurredAt = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            PlayerId = playerId ?? Guid.NewGuid(),
+            LocationId = locationId ?? Guid.NewGuid(),
+            BuildingId = buildingId ?? Guid.NewGuid(),
+            BuildingName = buildingName,
+            OccurredAt = occurredAt ?? DateTime.UtcNow,
+        };
 
     public static FightEncounter MakeFight(
         Guid worldId,

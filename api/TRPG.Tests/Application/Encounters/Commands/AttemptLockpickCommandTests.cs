@@ -150,31 +150,36 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         Assert.True(door.IsLocked);
     }
 
+    private async Task<PickDestination> SeedHouseRoom(Guid? factionId = null)
+    {
+        var locationId = Guid.NewGuid();
+        var building = Builders.MakeBuilding(
+            worldId: WorldId,
+            buildingType: BuildingType.House,
+            factionId: factionId
+        );
+        var room = Builders.MakeRoom(building.Id, worldId: WorldId, locationId: locationId);
+        var location = Builders.MakeLocation(worldId: WorldId, id: locationId, roomId: room.Id);
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(location);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return new PickDestination(building, room, locationId);
+    }
+
+    private sealed record PickDestination(Building Building, Room Room, Guid LocationId);
+
     [Fact]
     public async Task Handle_StartsGuardEncounter_WhenAGuardSpotsTheExteriorPick()
     {
         // Arrange
-        var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
-        var room = Builders.MakeRoom(
-            building.Id,
-            worldId: WorldId,
-            locationId: destinationLocationId
-        );
-        var location = Builders.MakeLocation(
-            worldId: WorldId,
-            id: destinationLocationId,
-            roomId: room.Id
-        );
+        var destination = await SeedHouseRoom();
         var guard = Builders.MakeCreature(
             WorldId,
             profession: Profession.Guard,
             locationId: _exteriorLocationId
         );
         var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(room);
-        _context.Locations.Add(location);
         _context.Creatures.Add(guard);
         _context.Factions.Add(faction);
         _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, guard.Id));
@@ -192,7 +197,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
-                DestinationLocationId = destinationLocationId,
+                DestinationLocationId = destination.LocationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -207,27 +212,13 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
     public async Task Handle_StartsGuardEncounter_WhenPlayerIsNotSneaking_RegardlessOfRoll()
     {
         // Arrange — no sneak stance means no chance to avoid detection, whatever the roll says.
-        var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
-        var room = Builders.MakeRoom(
-            building.Id,
-            worldId: WorldId,
-            locationId: destinationLocationId
-        );
-        var location = Builders.MakeLocation(
-            worldId: WorldId,
-            id: destinationLocationId,
-            roomId: room.Id
-        );
+        var destination = await SeedHouseRoom();
         var guard = Builders.MakeCreature(
             WorldId,
             profession: Profession.Guard,
             locationId: _exteriorLocationId
         );
         var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(room);
-        _context.Locations.Add(location);
         _context.Creatures.Add(guard);
         _context.Factions.Add(faction);
         _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, guard.Id));
@@ -246,7 +237,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
-                DestinationLocationId = destinationLocationId,
+                DestinationLocationId = destination.LocationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -261,51 +252,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
     {
         // Arrange — a timed lock is only ever set by a jail sentence, and the guard station the
         // player is breaking out into is the destination, not the cell they're leaving
-        var cellsLocationId = Guid.NewGuid();
-        var guardStationLocationId = Guid.NewGuid();
-        var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
-        var jail = Builders.MakeBuilding(
-            worldId: WorldId,
-            buildingType: BuildingType.Jail,
-            factionId: faction.Id
-        );
-        var cellsRoom = Builders.MakeRoom(jail.Id, worldId: WorldId, locationId: cellsLocationId);
-        var guardStationRoom = Builders.MakeRoom(
-            jail.Id,
-            worldId: WorldId,
-            locationId: guardStationLocationId
-        );
-        var guard = Builders.MakeCreature(
-            WorldId,
-            profession: Profession.Guard,
-            locationId: guardStationLocationId
-        );
-        _player.LocationId = cellsLocationId;
-        _player.IsSneaking = false;
-        _context.Buildings.Add(jail);
-        _context.Rooms.AddRange(cellsRoom, guardStationRoom);
-        _context.Locations.AddRange(
-            Builders.MakeLocation(worldId: WorldId, id: cellsLocationId, roomId: cellsRoom.Id),
-            Builders.MakeLocation(
-                worldId: WorldId,
-                id: guardStationLocationId,
-                roomId: guardStationRoom.Id
-            )
-        );
-        _context.Creatures.Add(guard);
-        _context.Factions.Add(faction);
-        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, guard.Id));
-        var connectorId = Guid.NewGuid();
-        _context.DoorConnectors.Add(
-            Builders.MakeDoorConnector(
-                connectorId,
-                isLocked: true,
-                lockLevel: 1,
-                worldId: WorldId,
-                unlocksAtPlaytime: TimeSpan.FromHours(99)
-            )
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var jail = await SeedJailCellWithGuard();
         _chanceRoller.Result = true;
 
         // Act
@@ -314,8 +261,8 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
             {
                 PlayerId = _player.Id,
                 WorldId = WorldId,
-                ConnectorId = connectorId,
-                DestinationLocationId = guardStationLocationId,
+                ConnectorId = jail.ConnectorId,
+                DestinationLocationId = jail.GuardStationLocationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -434,20 +381,12 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
     {
         // Arrange — the player already broke into this building earlier, and is now picking a
         // second, interior lock while still inside.
-        var roomLocationId = Guid.NewGuid();
         var faction = Builders.MakeFaction(worldId: WorldId, isCityFaction: true);
-        var building = Builders.MakeBuilding(
-            worldId: WorldId,
-            buildingType: BuildingType.House,
-            factionId: faction.Id
-        );
-        var room = Builders.MakeRoom(building.Id, worldId: WorldId, locationId: roomLocationId);
-        var location = Builders.MakeLocation(worldId: WorldId, id: roomLocationId, roomId: room.Id);
+        var destination = await SeedHouseRoom(faction.Id);
+        var roomLocationId = destination.LocationId;
+        var building = destination.Building;
         var occupant = Builders.MakeCreature(WorldId, locationId: roomLocationId);
         _player.LocationId = roomLocationId;
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(room);
-        _context.Locations.Add(location);
         _context.Creatures.Add(occupant);
         _context.Factions.Add(faction);
         _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, faction.Id, occupant.Id));
@@ -503,22 +442,10 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
     public async Task Handle_DoesNotRecordCrime_WhenTheBuildingIsOwnedByThePlayer()
     {
         // Arrange
-        var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
-        var room = Builders.MakeRoom(
-            building.Id,
-            worldId: WorldId,
-            locationId: destinationLocationId
+        var destination = await SeedHouseRoom();
+        _context.BuildingOwners.Add(
+            Builders.MakeBuildingOwner(destination.Building.Id, _player.Id, WorldId)
         );
-        var location = Builders.MakeLocation(
-            worldId: WorldId,
-            id: destinationLocationId,
-            roomId: room.Id
-        );
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(room);
-        _context.Locations.Add(location);
-        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(building.Id, _player.Id, WorldId));
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
             Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
@@ -533,7 +460,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
-                DestinationLocationId = destinationLocationId,
+                DestinationLocationId = destination.LocationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -554,28 +481,16 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
     public async Task Handle_DoesNotStartAGuardEncounter_WhenAGuardWatchesTheOwnerPickTheirOwnDoor()
     {
         // Arrange — a guard witnessing the pick must not fabricate a crime against an authorized owner.
-        var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
-        var room = Builders.MakeRoom(
-            building.Id,
-            worldId: WorldId,
-            locationId: destinationLocationId
-        );
-        var location = Builders.MakeLocation(
-            worldId: WorldId,
-            id: destinationLocationId,
-            roomId: room.Id
-        );
+        var destination = await SeedHouseRoom();
         var guard = Builders.MakeCreature(
             WorldId,
             profession: Profession.Guard,
             locationId: _exteriorLocationId
         );
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(room);
-        _context.Locations.Add(location);
         _context.Creatures.Add(guard);
-        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(building.Id, _player.Id, WorldId));
+        _context.BuildingOwners.Add(
+            Builders.MakeBuildingOwner(destination.Building.Id, _player.Id, WorldId)
+        );
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
             Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
@@ -590,7 +505,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
-                DestinationLocationId = destinationLocationId,
+                DestinationLocationId = destination.LocationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -610,21 +525,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
     public async Task Handle_RecordsCrime_WhenTheDoorOpensIntoAnUnauthorizedBuildingWithNoWitnesses()
     {
         // Arrange — a clean, unwitnessed break-in should still leave a permanent record.
-        var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
-        var room = Builders.MakeRoom(
-            building.Id,
-            worldId: WorldId,
-            locationId: destinationLocationId
-        );
-        var location = Builders.MakeLocation(
-            worldId: WorldId,
-            id: destinationLocationId,
-            roomId: room.Id
-        );
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(room);
-        _context.Locations.Add(location);
+        var destination = await SeedHouseRoom();
         var connectorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
             Builders.MakeDoorConnector(connectorId, isLocked: true, lockLevel: 1, worldId: WorldId)
@@ -639,7 +540,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
-                DestinationLocationId = destinationLocationId,
+                DestinationLocationId = destination.LocationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -652,7 +553,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var crime = await verifyContext
             .Crimes.OfType<LockpickingCrime>()
             .SingleAsync(c => c.PlayerId == _player.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(building.Id, crime.BuildingId);
+        Assert.Equal(destination.Building.Id, crime.BuildingId);
         Assert.False(
             await verifyContext.CrimeWitnesses.AnyAsync(
                 w => w.CrimeId == crime.Id,
@@ -666,21 +567,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
     {
         // Arrange — the door's raw IsLocked flag is schedule-owned and never touched by a pick, so
         // the key is the only thing that keeps a picked door passable afterward.
-        var destinationLocationId = Guid.NewGuid();
-        var building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.House);
-        var room = Builders.MakeRoom(
-            building.Id,
-            worldId: WorldId,
-            locationId: destinationLocationId
-        );
-        var location = Builders.MakeLocation(
-            worldId: WorldId,
-            id: destinationLocationId,
-            roomId: room.Id
-        );
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(room);
-        _context.Locations.Add(location);
+        var destination = await SeedHouseRoom();
         var connectorId = Guid.NewGuid();
         var doorId = Guid.NewGuid();
         _context.DoorConnectors.Add(
@@ -702,7 +589,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
-                DestinationLocationId = destinationLocationId,
+                DestinationLocationId = destination.LocationId,
             },
             TestContext.Current.CancellationToken
         );

@@ -45,14 +45,62 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         await _context.DisposeAsync();
     }
 
-    [Fact]
-    public async Task Handle_ResolvesTheBuilding_WhenOutdoorsAndDestinationIsABuilding()
+    private async Task<IndoorRoute> SeedIndoorRoute(
+        string connectorName = "Hallway",
+        string connectorDescription = "A hallway.",
+        int destinationCapacity = 4
+    )
     {
-        // Arrange
+        var building = Builders.MakeBuilding(WorldId);
+        var currentLocationId = Guid.NewGuid();
+        var currentRoom = Builders.MakeRoom(building.Id, locationId: currentLocationId);
+        var currentLocation = Builders.MakeLocation(
+            WorldId,
+            _stateId,
+            id: currentLocationId,
+            roomId: currentRoom.Id
+        );
+        var destinationLocationId = Guid.NewGuid();
+        var destinationRoom = Builders.MakeRoom(
+            building.Id,
+            capacity: destinationCapacity,
+            locationId: destinationLocationId
+        );
+        var destinationLocation = Builders.MakeLocation(
+            WorldId,
+            _stateId,
+            id: destinationLocationId,
+            roomId: destinationRoom.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            currentLocation.Id,
+            destinationLocationId: destinationLocation.Id,
+            name: connectorName,
+            description: connectorDescription,
+            destinationLabel: destinationRoom.Name
+        );
+        var player = Builders.MakeCreature(WorldId, locationId: currentLocation.Id);
+        _context.Buildings.Add(building);
+        _context.Rooms.AddRange(currentRoom, destinationRoom);
+        _context.Locations.AddRange(currentLocation, destinationLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return new IndoorRoute(destinationRoom, player);
+    }
+
+    private sealed record IndoorRoute(Room DestinationRoom, Creature Player);
+
+    private async Task<EntranceRoute> SeedOutdoorBuildingEntrance(
+        string buildingName,
+        bool isLocked = false,
+        bool playerHasKey = false
+    )
+    {
         var player = Builders.MakeCreature(WorldId, locationId: _outdoorLocation.Id);
         var building = Builders.MakeBuilding(
             exteriorLocationId: _outdoorLocation.Id,
-            name: "The Rusty Anchor"
+            name: buildingName
         );
         var entranceRoomId = Guid.NewGuid();
         var entranceLocationId = Guid.NewGuid();
@@ -72,20 +120,48 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             destinationLocationId: entranceRoom.LocationId,
             name: "Front Door",
             description: "The door leading in.",
-            destinationLabel: "The Rusty Anchor"
+            destinationLabel: buildingName
         );
         _context.Creatures.Add(player);
         _context.Buildings.Add(building);
         _context.Rooms.Add(entranceRoom);
         _context.Locations.Add(entranceLocation);
         _context.LocationConnectors.Add(entryConnector);
+
+        if (isLocked)
+        {
+            var door = Builders.MakeDoorConnector(entryConnector.Id, isLocked: true);
+            var keyItem = Builders.MakeKey();
+            if (playerHasKey)
+            {
+                keyItem.Quantity = 1;
+                keyItem.Ownership.OwnerId = player.Id;
+                keyItem.Ownership.OwnerType = OwnerType.Creature;
+            }
+            _context.DoorConnectors.Add(door);
+            _context.Items.Add(keyItem);
+            _context.DoorConnectorKeys.Add(
+                new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = door.Id }
+            );
+        }
+
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return new EntranceRoute(player, entranceRoom);
+    }
+
+    private sealed record EntranceRoute(Creature Player, Room EntranceRoom);
+
+    [Fact]
+    public async Task Handle_ResolvesTheBuilding_WhenOutdoorsAndDestinationIsABuilding()
+    {
+        // Arrange
+        var route = await SeedOutdoorBuildingEntrance("The Rusty Anchor");
 
         // Act
         var result = await _handler.Handle(
             new ResolveMoveDestinationCommand
             {
-                PlayerId = player.Id,
+                PlayerId = route.Player.Id,
                 SessionId = _session.Id,
                 DestinationName = "The Rusty Anchor",
             },
@@ -94,7 +170,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
 
         // Assert
         Assert.Equal(EntryOutcome.Entered, result.Outcome);
-        Assert.Equal(entranceRoom.LocationId, result.DestinationLocationId);
+        Assert.Equal(route.EntranceRoom.LocationId, result.DestinationLocationId);
     }
 
     [Fact]
@@ -132,37 +208,13 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
     public async Task Handle_ReturnsLocked_WhenTheEntranceDoorIsLockedAndPlayerHasNoKey()
     {
         // Arrange
-        var player = Builders.MakeCreature(WorldId, locationId: _outdoorLocation.Id);
-        var building = Builders.MakeBuilding(
-            exteriorLocationId: _outdoorLocation.Id,
-            name: "The Locked Vault"
-        );
-        var entranceRoom = Builders.MakeRoom(building.Id);
-        var entryConnector = Builders.MakeLocationConnector(
-            _outdoorLocation.Id,
-            destinationLocationId: entranceRoom.LocationId,
-            name: "Front Door",
-            description: "The door leading in.",
-            destinationLabel: "The Locked Vault"
-        );
-        var door = Builders.MakeDoorConnector(entryConnector.Id, isLocked: true);
-        var keyItem = Builders.MakeKey();
-        _context.Creatures.Add(player);
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(entranceRoom);
-        _context.LocationConnectors.Add(entryConnector);
-        _context.DoorConnectors.Add(door);
-        _context.Items.Add(keyItem);
-        _context.DoorConnectorKeys.Add(
-            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = door.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var route = await SeedOutdoorBuildingEntrance("The Locked Vault", isLocked: true);
 
         // Act
         var result = await _handler.Handle(
             new ResolveMoveDestinationCommand
             {
-                PlayerId = player.Id,
+                PlayerId = route.Player.Id,
                 SessionId = _session.Id,
                 DestinationName = "The Locked Vault",
             },
@@ -177,53 +229,17 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
     public async Task Handle_ResolvesTheBuilding_WhenTheEntranceDoorIsLockedButPlayerHasTheKey()
     {
         // Arrange
-        var player = Builders.MakeCreature(WorldId, locationId: _outdoorLocation.Id);
-        var building = Builders.MakeBuilding(
-            exteriorLocationId: _outdoorLocation.Id,
-            name: "The Guarded Vault"
+        var route = await SeedOutdoorBuildingEntrance(
+            "The Guarded Vault",
+            isLocked: true,
+            playerHasKey: true
         );
-        var entranceRoomId = Guid.NewGuid();
-        var entranceLocationId = Guid.NewGuid();
-        var entranceRoom = Builders.MakeRoom(
-            building.Id,
-            id: entranceRoomId,
-            locationId: entranceLocationId
-        );
-        var entranceLocation = Builders.MakeLocation(
-            WorldId,
-            _stateId,
-            roomId: entranceRoomId,
-            id: entranceLocationId
-        );
-        var entryConnector = Builders.MakeLocationConnector(
-            _outdoorLocation.Id,
-            destinationLocationId: entranceRoom.LocationId,
-            name: "Front Door",
-            description: "The door leading in.",
-            destinationLabel: "The Guarded Vault"
-        );
-        var door = Builders.MakeDoorConnector(entryConnector.Id, isLocked: true);
-        var keyItem = Builders.MakeKey();
-        keyItem.Quantity = 1;
-        keyItem.Ownership.OwnerId = player.Id;
-        keyItem.Ownership.OwnerType = OwnerType.Creature;
-        _context.Creatures.Add(player);
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(entranceRoom);
-        _context.Locations.Add(entranceLocation);
-        _context.LocationConnectors.Add(entryConnector);
-        _context.DoorConnectors.Add(door);
-        _context.Items.Add(keyItem);
-        _context.DoorConnectorKeys.Add(
-            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = door.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
             new ResolveMoveDestinationCommand
             {
-                PlayerId = player.Id,
+                PlayerId = route.Player.Id,
                 SessionId = _session.Id,
                 DestinationName = "The Guarded Vault",
             },
@@ -232,7 +248,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
 
         // Assert
         Assert.Equal(EntryOutcome.Entered, result.Outcome);
-        Assert.Equal(entranceRoom.LocationId, result.DestinationLocationId);
+        Assert.Equal(route.EntranceRoom.LocationId, result.DestinationLocationId);
     }
 
     [Fact]
@@ -262,77 +278,35 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
     public async Task Handle_ResolvesTheExit_WhenIndoorsAndDestinationMatchesAnExit()
     {
         // Arrange
-        var building = Builders.MakeBuilding();
-        var currentRoomId = Guid.NewGuid();
-        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
-        var currentRoom = Builders.MakeRoom(
-            building.Id,
-            id: currentRoomId,
-            locationId: currentLocation.Id
-        );
-        var nextRoomId = Guid.NewGuid();
-        var nextLocation = Builders.MakeLocation(WorldId, _stateId, roomId: nextRoomId);
-        var nextRoom = Builders.MakeRoom(
-            building.Id,
-            capacity: 4,
-            id: nextRoomId,
-            locationId: nextLocation.Id
-        );
-        var connector = Builders.MakeLocationConnector(
-            currentRoom.LocationId,
-            destinationLocationId: nextRoom.LocationId,
-            name: "Hallway",
-            description: "A hallway.",
-            destinationLabel: nextRoom.Name
-        );
-        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
-        _context.Buildings.Add(building);
-        _context.Rooms.AddRange(currentRoom, nextRoom);
-        _context.Locations.AddRange(currentLocation, nextLocation);
-        _context.LocationConnectors.Add(connector);
-        _context.Creatures.Add(player);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var route = await SeedIndoorRoute();
 
         // Act
         var result = await _handler.Handle(
             new ResolveMoveDestinationCommand
             {
-                PlayerId = player.Id,
+                PlayerId = route.Player.Id,
                 SessionId = _session.Id,
-                DestinationName = nextRoom.Name,
+                DestinationName = route.DestinationRoom.Name,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal(EntryOutcome.Entered, result.Outcome);
-        Assert.Equal(nextRoom.LocationId, result.DestinationLocationId);
+        Assert.Equal(route.DestinationRoom.LocationId, result.DestinationLocationId);
     }
 
     [Fact]
     public async Task Handle_ReturnsExitNotFound_WhenIndoorsAndNoExitMatches()
     {
         // Arrange
-        var building = Builders.MakeBuilding();
-        var currentRoomId = Guid.NewGuid();
-        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
-        var currentRoom = Builders.MakeRoom(
-            building.Id,
-            id: currentRoomId,
-            locationId: currentLocation.Id
-        );
-        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
-        _context.Buildings.Add(building);
-        _context.Rooms.Add(currentRoom);
-        _context.Locations.Add(currentLocation);
-        _context.Creatures.Add(player);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var route = await SeedIndoorRoute();
 
         // Act
         var result = await _handler.Handle(
             new ResolveMoveDestinationCommand
             {
-                PlayerId = player.Id,
+                PlayerId = route.Player.Id,
                 SessionId = _session.Id,
                 DestinationName = "Nowhere",
             },
@@ -343,127 +317,10 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         Assert.Equal(EntryOutcome.ExitNotFound, result.Outcome);
     }
 
-    [Fact]
-    public async Task Handle_ReturnsLocked_WhenTheInteriorConnectorIsLockedAndPlayerHasNoKey()
+    private async Task<InteriorRoute> SeedInteriorLockedConnector(
+        TimeSpan? unlocksAtPlaytime = null
+    )
     {
-        // Arrange
-        var building = Builders.MakeBuilding();
-        var currentRoomId = Guid.NewGuid();
-        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
-        var currentRoom = Builders.MakeRoom(
-            building.Id,
-            id: currentRoomId,
-            locationId: currentLocation.Id
-        );
-        var nextRoomId = Guid.NewGuid();
-        var nextLocation = Builders.MakeLocation(WorldId, _stateId, roomId: nextRoomId);
-        var nextRoom = Builders.MakeRoom(building.Id, id: nextRoomId, locationId: nextLocation.Id);
-        var connector = Builders.MakeLocationConnector(
-            currentRoom.LocationId,
-            destinationLocationId: nextRoom.LocationId,
-            name: "Cell Door",
-            description: "A locked cell door.",
-            destinationLabel: nextRoom.Name
-        );
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true);
-        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
-        var guard = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
-        var keyItem = Builders.MakeKey();
-        keyItem.Quantity = 1;
-        keyItem.Ownership.OwnerId = guard.Id;
-        keyItem.Ownership.OwnerType = OwnerType.Creature;
-        _context.Buildings.Add(building);
-        _context.Rooms.AddRange(currentRoom, nextRoom);
-        _context.Locations.AddRange(currentLocation, nextLocation);
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.Creatures.AddRange(player, guard);
-        _context.Items.Add(keyItem);
-        _context.DoorConnectorKeys.Add(
-            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = door.Id }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new ResolveMoveDestinationCommand
-            {
-                PlayerId = player.Id,
-                SessionId = _session.Id,
-                DestinationName = nextRoom.Name,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(EntryOutcome.Locked, result.Outcome);
-    }
-
-    [Fact]
-    public async Task Handle_ResolvesTheExit_WhenTheInteriorConnectorIsLockedButPlayerHasTheKey()
-    {
-        // Arrange
-        var building = Builders.MakeBuilding();
-        var currentRoomId = Guid.NewGuid();
-        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
-        var currentRoom = Builders.MakeRoom(
-            building.Id,
-            id: currentRoomId,
-            locationId: currentLocation.Id
-        );
-        var nextRoomId = Guid.NewGuid();
-        var nextLocation = Builders.MakeLocation(WorldId, _stateId, roomId: nextRoomId);
-        var nextRoom = Builders.MakeRoom(building.Id, id: nextRoomId, locationId: nextLocation.Id);
-        var connector = Builders.MakeLocationConnector(
-            currentRoom.LocationId,
-            destinationLocationId: nextRoom.LocationId,
-            name: "Cell Door",
-            description: "A locked cell door.",
-            destinationLabel: nextRoom.Name
-        );
-        var door = Builders.MakeDoorConnector(connector.Id, isLocked: true);
-        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
-        var keyItem = Builders.MakeKey();
-        keyItem.Quantity = 1;
-        keyItem.Ownership.OwnerId = player.Id;
-        keyItem.Ownership.OwnerType = OwnerType.Creature;
-        _context.Buildings.Add(building);
-        _context.Rooms.AddRange(currentRoom, nextRoom);
-        _context.Locations.AddRange(currentLocation, nextLocation);
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.Items.Add(keyItem);
-        _context.DoorConnectorKeys.Add(
-            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = door.Id }
-        );
-        _context.Creatures.Add(player);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        var result = await _handler.Handle(
-            new ResolveMoveDestinationCommand
-            {
-                PlayerId = player.Id,
-                SessionId = _session.Id,
-                DestinationName = nextRoom.Name,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(EntryOutcome.Entered, result.Outcome);
-        Assert.Equal(nextRoom.LocationId, result.DestinationLocationId);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsLocked_WhenTheTimedUnlockHasNotElapsedYet()
-    {
-        // Arrange
-        var session = Builders.MakeGameSession(
-            WorldId,
-            Guid.NewGuid(),
-            playtime: TimeSpan.FromHours(5)
-        );
         var building = Builders.MakeBuilding();
         var currentRoomId = Guid.NewGuid();
         var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
@@ -485,10 +342,9 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         var door = Builders.MakeDoorConnector(
             connector.Id,
             isLocked: true,
-            unlocksAtPlaytime: TimeSpan.FromHours(10)
+            unlocksAtPlaytime: unlocksAtPlaytime
         );
         var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
-        _context.GameSessions.Add(session);
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(currentRoom, nextRoom);
         _context.Locations.AddRange(currentLocation, nextLocation);
@@ -496,14 +352,94 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         _context.DoorConnectors.Add(door);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return new InteriorRoute(player, nextRoom, door);
+    }
+
+    private sealed record InteriorRoute(Creature Player, Room NextRoom, DoorConnector Door);
+
+    [Fact]
+    public async Task Handle_ReturnsLocked_WhenTheInteriorConnectorIsLockedAndPlayerHasNoKey()
+    {
+        // Arrange
+        var route = await SeedInteriorLockedConnector();
+        var guard = Builders.MakeCreature(WorldId, locationId: route.Player.LocationId);
+        var keyItem = Builders.MakeKey();
+        keyItem.Quantity = 1;
+        keyItem.Ownership.OwnerId = guard.Id;
+        keyItem.Ownership.OwnerType = OwnerType.Creature;
+        _context.Creatures.Add(guard);
+        _context.Items.Add(keyItem);
+        _context.DoorConnectorKeys.Add(
+            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = route.Door.Id }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
             new ResolveMoveDestinationCommand
             {
-                PlayerId = player.Id,
+                PlayerId = route.Player.Id,
+                SessionId = _session.Id,
+                DestinationName = route.NextRoom.Name,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.Locked, result.Outcome);
+    }
+
+    [Fact]
+    public async Task Handle_ResolvesTheExit_WhenTheInteriorConnectorIsLockedButPlayerHasTheKey()
+    {
+        // Arrange
+        var route = await SeedInteriorLockedConnector();
+        var keyItem = Builders.MakeKey();
+        keyItem.Quantity = 1;
+        keyItem.Ownership.OwnerId = route.Player.Id;
+        keyItem.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(keyItem);
+        _context.DoorConnectorKeys.Add(
+            new DoorConnectorKey { ItemId = keyItem.Id, DoorConnectorId = route.Door.Id }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveMoveDestinationCommand
+            {
+                PlayerId = route.Player.Id,
+                SessionId = _session.Id,
+                DestinationName = route.NextRoom.Name,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.Entered, result.Outcome);
+        Assert.Equal(route.NextRoom.LocationId, result.DestinationLocationId);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsLocked_WhenTheTimedUnlockHasNotElapsedYet()
+    {
+        // Arrange
+        var session = Builders.MakeGameSession(
+            WorldId,
+            Guid.NewGuid(),
+            playtime: TimeSpan.FromHours(5)
+        );
+        var route = await SeedInteriorLockedConnector(unlocksAtPlaytime: TimeSpan.FromHours(10));
+        _context.GameSessions.Add(session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveMoveDestinationCommand
+            {
+                PlayerId = route.Player.Id,
                 SessionId = session.Id,
-                DestinationName = nextRoom.Name,
+                DestinationName = route.NextRoom.Name,
             },
             TestContext.Current.CancellationToken
         );
@@ -521,57 +457,28 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             Guid.NewGuid(),
             playtime: TimeSpan.FromHours(10)
         );
-        var building = Builders.MakeBuilding();
-        var currentRoomId = Guid.NewGuid();
-        var currentLocation = Builders.MakeLocation(WorldId, _stateId, roomId: currentRoomId);
-        var currentRoom = Builders.MakeRoom(
-            building.Id,
-            id: currentRoomId,
-            locationId: currentLocation.Id
-        );
-        var nextRoomId = Guid.NewGuid();
-        var nextLocation = Builders.MakeLocation(WorldId, _stateId, roomId: nextRoomId);
-        var nextRoom = Builders.MakeRoom(building.Id, id: nextRoomId, locationId: nextLocation.Id);
-        var connector = Builders.MakeLocationConnector(
-            currentRoom.LocationId,
-            destinationLocationId: nextRoom.LocationId,
-            name: "Cell Door",
-            description: "A locked cell door.",
-            destinationLabel: nextRoom.Name
-        );
-        var door = Builders.MakeDoorConnector(
-            connector.Id,
-            isLocked: true,
-            unlocksAtPlaytime: TimeSpan.FromHours(5)
-        );
-        var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
+        var route = await SeedInteriorLockedConnector(unlocksAtPlaytime: TimeSpan.FromHours(5));
         _context.GameSessions.Add(session);
-        _context.Buildings.Add(building);
-        _context.Rooms.AddRange(currentRoom, nextRoom);
-        _context.Locations.AddRange(currentLocation, nextLocation);
-        _context.LocationConnectors.Add(connector);
-        _context.DoorConnectors.Add(door);
-        _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
             new ResolveMoveDestinationCommand
             {
-                PlayerId = player.Id,
+                PlayerId = route.Player.Id,
                 SessionId = session.Id,
-                DestinationName = nextRoom.Name,
+                DestinationName = route.NextRoom.Name,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal(EntryOutcome.Entered, result.Outcome);
-        Assert.Equal(nextRoom.LocationId, result.DestinationLocationId);
+        Assert.Equal(route.NextRoom.LocationId, result.DestinationLocationId);
 
         await using var verifyContext = db.CreateContext();
         var updatedDoor = await verifyContext.DoorConnectors.FindAsync(
-            [door.Id],
+            [route.Door.Id],
             TestContext.Current.CancellationToken
         );
         Assert.False(updatedDoor!.IsLocked);

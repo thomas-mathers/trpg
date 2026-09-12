@@ -54,25 +54,19 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
         _context.Rooms.Add(room);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var bed = new Bed
-        {
-            LocationId = room.LocationId,
-            Name = "Bed",
-            Description = "A test bed",
-            WorldId = worldId,
-            AssignedCreatureId = target.Id,
-            OccupantId = target.Id,
-        };
-        var workstation = new Workstation
-        {
-            LocationId = room.LocationId,
-            Name = "Workstation",
-            Description = "A test workstation",
-            WorldId = worldId,
-            WorkstationType = WorkstationType.Cooking,
-            AssignedCreatureId = target.Id,
-            OccupantId = target.Id,
-        };
+        var bed = Builders.MakeBed(
+            worldId,
+            room.LocationId,
+            occupantId: target.Id,
+            assignedCreatureId: target.Id
+        );
+        var workstation = Builders.MakeWorkstation(
+            worldId,
+            room.LocationId,
+            occupantId: target.Id,
+            assignedCreatureId: target.Id,
+            workstationType: WorkstationType.Cooking
+        );
         _context.Props.AddRange(bed, workstation);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -308,17 +302,14 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
             OwnerCreatureId = owner.Id,
             WorldId = worldId,
         };
-        var workstation = new Workstation
-        {
-            LocationId = locationId,
-            Name = "Workstation",
-            Description = "A test workstation",
-            OwnerCreatureId = owner.Id,
-            AssignedCreatureId = employee.Id,
-            OccupantId = employee.Id,
-            WorkstationType = WorkstationType.Cooking,
-            WorldId = worldId,
-        };
+        var workstation = Builders.MakeWorkstation(
+            worldId,
+            locationId,
+            occupantId: employee.Id,
+            assignedCreatureId: employee.Id,
+            ownerCreatureId: owner.Id,
+            workstationType: WorkstationType.Cooking
+        );
         var employeeOwnedContainer = new Container
         {
             LocationId = locationId,
@@ -376,13 +367,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _context.CreatureSkills.Add(
-            new CreatureSkill
-            {
-                CreatureId = creatureId,
-                Skill = Skill.Melee,
-                Level = 1,
-                WorldId = worldId,
-            }
+            Builders.MakeCreatureSkill(creatureId, Skill.Melee, level: 1, worldId: worldId)
         );
         _context.CreatureWeaponProficiencies.Add(
             new CreatureWeaponProficiency
@@ -394,13 +379,12 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
             }
         );
         _context.CreatureQuestObjectives.Add(
-            new CreatureQuestObjective
-            {
-                CreatureId = creatureId,
-                ObjectiveId = questObjectiveId,
-                Amount = 1,
-                WorldId = worldId,
-            }
+            Builders.MakeCreatureQuestObjective(
+                creatureId,
+                questObjectiveId,
+                worldId: worldId,
+                amount: 1
+            )
         );
         _context.CreatureQuests.Add(
             new CreatureQuest
@@ -412,15 +396,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
             }
         );
         _context.CreatureJobs.Add(Builders.MakeCreatureJob(creatureId, worldId: worldId));
-        _context.FactionMembers.Add(
-            new FactionMember
-            {
-                CreatureId = creatureId,
-                FactionId = faction.Id,
-                Role = FactionRole.Member,
-                WorldId = worldId,
-            }
-        );
+        _context.FactionMembers.Add(Builders.MakeFactionMember(worldId, faction.Id, creatureId));
         _context.NpcConversationHistories.Add(
             new NpcConversationHistory
             {
@@ -439,14 +415,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
                 WorldId = worldId,
             }
         );
-        _context.BuildingOwners.Add(
-            new BuildingOwner
-            {
-                BuildingId = buildingId,
-                OwnerId = creatureId,
-                WorldId = worldId,
-            }
-        );
+        _context.BuildingOwners.Add(Builders.MakeBuildingOwner(buildingId, creatureId, worldId));
         _context.Props.Add(
             new Seat
             {
@@ -458,14 +427,7 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
             }
         );
         _context.Reputations.Add(
-            new Reputation
-            {
-                CreatureId = creatureId,
-                TargetId = faction.Id,
-                TargetType = ReputationTargetType.Faction,
-                Score = 10,
-                WorldId = worldId,
-            }
+            Builders.MakeReputation(worldId, creatureId, faction.Id, score: 10)
         );
         _context.Relationships.Add(
             new Relationship
