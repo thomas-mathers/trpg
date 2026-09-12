@@ -114,6 +114,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<CrimeWitness> CrimeWitnesses => Set<CrimeWitness>();
     public DbSet<CreatureSpawner> CreatureSpawners => Set<CreatureSpawner>();
     public DbSet<RestockPolicy> RestockPolicies => Set<RestockPolicy>();
+    public DbSet<QuestSeedSchedule> QuestSeedSchedules => Set<QuestSeedSchedule>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -490,10 +491,28 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<Bed>("Bed")
                 .HasValue<Container>("Container")
                 .HasValue<Trigger>("Trigger")
-                .HasValue<Lever>("Lever");
+                .HasValue<Lever>("Lever")
+                .HasValue<Cell>("Cell");
             entity.Property<string>("behavior_type").HasColumnType("text");
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);
+        });
+
+        // Cell and Container each declare their own ILockableProp properties rather than
+        // inheriting them from a shared base, so without this they would collide onto
+        // separately-prefixed columns instead of sharing the one lockable-prop column set.
+        modelBuilder.Entity<Cell>(entity =>
+        {
+            entity.Property(cell => cell.IsLocked).HasColumnName("is_locked");
+            entity.Property(cell => cell.LockLevel).HasColumnName("lock_level");
+            entity.Property(cell => cell.KeyItemId).HasColumnName("key_item_id");
+        });
+
+        modelBuilder.Entity<Container>(entity =>
+        {
+            entity.Property(container => container.IsLocked).HasColumnName("is_locked");
+            entity.Property(container => container.LockLevel).HasColumnName("lock_level");
+            entity.Property(container => container.KeyItemId).HasColumnName("key_item_id");
         });
 
         modelBuilder.Entity<Quest>(entity =>
@@ -513,7 +532,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<CollectItemObjective>("CollectItem")
                 .HasValue<ExploreLocationObjective>("ExploreLocation")
                 .HasValue<SpeakToCreatureObjective>("SpeakToCreature")
-                .HasValue<ShareSecretObjective>("ShareSecret");
+                .HasValue<ShareSecretObjective>("ShareSecret")
+                .HasValue<FreeCreatureObjective>("FreeCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
             entity.Property(o => o.RequiredAmount).HasDefaultValue(1);
@@ -558,6 +578,12 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => p.WorkstationId).IsUnique();
+        });
+
+        modelBuilder.Entity<QuestSeedSchedule>(entity =>
+        {
+            entity.HasIndex(s => s.WorldId);
+            entity.HasIndex(s => s.LocationId);
         });
 
         modelBuilder.Entity<RoomBooking>(entity =>

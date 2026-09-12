@@ -70,6 +70,7 @@ public enum CreatureState
     Praying,
     Alerted,
     Dead,
+    Restrained,
 }
 
 [TranspilationSource]

@@ -78,6 +78,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddGameTool<LookTool>()
             .AddGameTool<MoveTool>()
             .AddGameTool<LockpickTool>()
+            .AddGameTool<UnlockCellTool>()
             .AddGameTool<CreatureInspectTool>()
             .AddGameTool<LookupTool>()
             .Decorate(typeof(ICommandHandler<>), typeof(ValidatingCommandHandlerDecorator<>))

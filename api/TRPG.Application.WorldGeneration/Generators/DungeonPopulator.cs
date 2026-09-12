@@ -10,7 +10,7 @@ internal class DungeonPopulatorInput
     public required IReadOnlyDictionary<CreatureType, Faction> FactionsByCreatureType { get; init; }
 }
 
-internal record DungeonPopulatorResult(
+public record DungeonPopulatorResult(
     IReadOnlyList<CreatureGeneratorResult> Monsters,
     IReadOnlyList<CreatureJob> Jobs,
     IReadOnlyList<EncounterGroup> EncounterGroups,
@@ -60,7 +60,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
     // 0-3 population roll — the room is always occupied, never sometimes empty. Both reuse this
     // one method: the guard passes the normal player level, Miniboss passes an elevated one, and
     // the level math itself (CreatureSpawnFiller's spawn-level curve) needs no changes either way.
-    internal DungeonPopulatorResult GenerateForced(
+    public DungeonPopulatorResult GenerateForced(
         Guid worldId,
         Guid locationId,
         BuildingType dungeonType,

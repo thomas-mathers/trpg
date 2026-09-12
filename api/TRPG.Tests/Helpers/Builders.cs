@@ -680,6 +680,25 @@ internal static class Builders
             RequiredAmount = requiredAmount,
         };
 
+    public static FreeCreatureObjective MakeFreeCreatureObjective(
+        Guid questId,
+        Guid creatureId,
+        Guid? worldId = null,
+        Guid? locationId = null,
+        int requiredAmount = 1,
+        string? name = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            QuestId = questId,
+            Name = name ?? $"Objective-{Guid.NewGuid():N}",
+            Description = "A test objective",
+            CreatureId = creatureId,
+            LocationId = locationId,
+            RequiredAmount = requiredAmount,
+        };
+
     public static ShareSecretObjective MakeShareSecretObjective(
         Guid questId,
         Guid secretId,
@@ -956,7 +975,8 @@ internal static class Builders
         Guid? id = null,
         Guid? locationId = null,
         string? name = null,
-        int floorNumber = 0
+        int floorNumber = 0,
+        RoomRole? role = null
     )
     {
         return new Room
@@ -969,6 +989,7 @@ internal static class Builders
             FloorNumber = floorNumber,
             WorldId = worldId ?? Guid.NewGuid(),
             LocationId = locationId ?? Guid.NewGuid(),
+            Role = role,
         };
     }
 
@@ -1013,6 +1034,20 @@ internal static class Builders
         {
             BuildingId = buildingId,
             OwnerId = ownerId,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
+    public static Relationship MakeRelationship(
+        Guid subjectId,
+        Guid relativeId,
+        RelationshipType relationshipType = RelationshipType.Sister,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            SubjectId = subjectId,
+            RelativeId = relativeId,
+            RelationshipType = relationshipType,
             WorldId = worldId ?? Guid.NewGuid(),
         };
 

@@ -27,7 +27,12 @@ internal class ExecuteCreatureJobCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        if (command.CurrentState is CreatureState.Alerted or CreatureState.Dead)
+        if (
+            command.CurrentState
+            is CreatureState.Alerted
+                or CreatureState.Dead
+                or CreatureState.Restrained
+        )
         {
             return;
         }

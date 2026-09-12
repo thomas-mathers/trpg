@@ -29,14 +29,15 @@ internal class GetInteractablePropsByLocationIdsQueryHandler(IPropsDbContext con
             .Props.AsNoTracking()
             .Where(prop =>
                 query.LocationIds.AsEnumerable().Contains(prop.LocationId)
-                && (prop is Container || prop is Lever)
+                && (prop is Container || prop is Lever || prop is Cell)
             )
             .Select(prop => new InteractableProp(
                 prop.Id,
                 prop.LocationId,
                 prop.Name,
                 prop is Lever ? ((Lever)prop).IsPulled : null,
-                prop is Container && ((Container)prop).KeyItemId != null
+                (prop is Container && ((Container)prop).KeyItemId != null)
+                    || (prop is Cell && ((Cell)prop).IsLocked)
             ))
             .ToArrayAsync(cancellationToken);
 }

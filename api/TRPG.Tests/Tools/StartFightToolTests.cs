@@ -5,6 +5,7 @@ using TRPG.Combat.Tools;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
+using TRPG.Tools;
 
 namespace TRPG.Tests.Tools;
 
@@ -158,6 +159,34 @@ public sealed class StartFightToolTests(DatabaseFixture db)
                 TestContext.Current.CancellationToken
             );
         Assert.False(fight.HasSurpriseRound);
+    }
+
+    [Fact]
+    public async Task Invoke_RefusesTheAttack_WhenTheTargetIsRestrained()
+    {
+        // Arrange
+        var target = Builders.MakeCreature(
+            WorldId,
+            locationId: LocationId,
+            name: "Caged Captive",
+            state: CreatureState.Restrained
+        );
+        _context.Creatures.Add(target);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke(target.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<ToolError>(result);
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext.Encounters.AnyAsync(
+                encounter => encounter.PlayerId == _player.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 
     [Fact]
