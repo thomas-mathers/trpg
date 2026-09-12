@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
@@ -51,6 +52,7 @@ internal class AttemptCellUnlockCommandHandler(
     ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
     ICommandHandler<UnlockCellCommand> unlockCell,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     IDomainEventPublisher<CreatureFreedEvent> creatureFreedEvents,
     IOptionsMonitor<LockpickingOptions> lockpickingOptions
 ) : ICommandHandler<AttemptCellUnlockCommand, AttemptCellUnlockResult>
@@ -60,6 +62,11 @@ internal class AttemptCellUnlockCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
         var cell =
             await getCellById.Handle(
                 new GetCellByIdQuery { Id = command.CellId },
@@ -68,6 +75,7 @@ internal class AttemptCellUnlockCommandHandler(
 
         if (!cell.IsLocked)
         {
+            transaction.Complete();
             return new AttemptCellUnlockResult(CellUnlockOutcome.NothingToUnlock);
         }
 
@@ -107,15 +115,32 @@ internal class AttemptCellUnlockCommandHandler(
 
         if (encounter != null)
         {
+            transaction.Complete();
             return new AttemptCellUnlockResult(CellUnlockOutcome.Failed, encounter);
         }
 
         if (!opened)
         {
+            transaction.Complete();
             return new AttemptCellUnlockResult(CellUnlockOutcome.Failed);
         }
 
+        if (!hasKey)
+        {
+            await adjustCreatureSkills.Handle(
+                new AdjustCreatureSkillsCommand
+                {
+                    WorldId = command.WorldId,
+                    CreatureId = player.Id,
+                    UsageCounts = new Dictionary<Skill, int> { [Skill.Lockpicking] = 1 },
+                },
+                cancellationToken
+            );
+        }
+
         await Free(command, cell, cancellationToken);
+
+        transaction.Complete();
 
         return new AttemptCellUnlockResult(CellUnlockOutcome.Opened);
     }
