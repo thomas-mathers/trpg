@@ -8,6 +8,7 @@ using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.NpcConversations.Commands;
+using TRPG.Application.Quests.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -465,6 +466,109 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
                     ),
                     TestContext.Current.CancellationToken
                 )
+        );
+    }
+
+    [Fact]
+    public async Task CompleteQuest_PaysGoldAndReputation_AfterSharingTheSecretWithTheSurvivor()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(_survivor.Id, WorldId);
+        quest.ReputationRewards.Add(
+            new QuestReputationReward
+            {
+                WorldId = WorldId,
+                QuestId = quest.Id,
+                TargetId = _survivor.Id,
+                TargetType = ReputationTargetType.Creature,
+                Score = 20,
+            }
+        );
+        var objective = Builders.MakeShareSecretObjective(
+            quest.Id,
+            _expedition.DiscoverySecretId,
+            _survivor.Id,
+            WorldId
+        );
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _services
+            .GetRequiredService<ICommandHandler<AcceptQuestCommand>>()
+            .Handle(
+                new AcceptQuestCommand
+                {
+                    PlayerId = _player.Id,
+                    QuestId = quest.Id,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            );
+        await ReadJournal();
+        await OpenConversation();
+
+        // Act
+        await _services
+            .GetRequiredService<
+                ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
+            >()
+            .Handle(
+                new ShareExpeditionDiscoveryCommand(
+                    WorldId: WorldId,
+                    SessionId: _session.Id,
+                    PlayerId: _player.Id,
+                    ExpeditionId: _expedition.Id
+                ),
+                TestContext.Current.CancellationToken
+            );
+
+        // Assert
+        await using var afterSharing = _database.CreateContext();
+        var creatureQuest = await afterSharing.CreatureQuests.SingleAsync(
+            creatureQuest =>
+                creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(QuestStatus.ReadyToComplete, creatureQuest.Status);
+
+        await _services
+            .GetRequiredService<ICommandHandler<CompleteQuestCommand>>()
+            .Handle(
+                new CompleteQuestCommand
+                {
+                    PlayerId = _player.Id,
+                    QuestId = quest.Id,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            );
+
+        await using var afterCompletion = _database.CreateContext();
+        Assert.Equal(
+            QuestStatus.Completed,
+            await afterCompletion
+                .CreatureQuests.Where(creatureQuest =>
+                    creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id
+                )
+                .Select(creatureQuest => creatureQuest.Status)
+                .SingleAsync(TestContext.Current.CancellationToken)
+        );
+        var gold = await afterCompletion
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                item => item.Ownership.OwnerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(quest.GoldReward, gold.Quantity);
+        Assert.True(
+            await afterCompletion.Reputations.AnyAsync(
+                reputation =>
+                    reputation.CreatureId == _player.Id
+                    && reputation.TargetId == _survivor.Id
+                    && reputation.TargetType == ReputationTargetType.Creature
+                    && reputation.Score == 20,
+                TestContext.Current.CancellationToken
+            )
         );
     }
 

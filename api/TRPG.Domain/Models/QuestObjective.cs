@@ -32,3 +32,9 @@ public sealed class SpeakToCreatureObjective : QuestObjective
 {
     public Guid CreatureId { get; init; }
 }
+
+public sealed class ShareSecretObjective : QuestObjective
+{
+    public Guid SecretId { get; init; }
+    public Guid RecipientId { get; init; }
+}
