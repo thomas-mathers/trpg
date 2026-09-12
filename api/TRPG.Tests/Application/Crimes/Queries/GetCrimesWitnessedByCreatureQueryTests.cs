@@ -40,54 +40,41 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsEveryCrimeKindTheWitnessSaw_OrderedByMostRecentFirst()
     {
         // Arrange
-        var kill = new KillCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = LocationId,
-            VictimId = Guid.NewGuid(),
-            VictimName = "Victim",
-            OccurredAt = DateTime.UtcNow.AddMinutes(-30),
-        };
-        var assault = new AssaultCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = LocationId,
-            VictimId = Guid.NewGuid(),
-            VictimName = "Bystander",
-            OccurredAt = DateTime.UtcNow.AddMinutes(-25),
-        };
-        var theft = new TheftCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = LocationId,
-            OwnerCreatureId = Guid.NewGuid(),
-            OwnerName = "Mara",
-            Outcome = TheftCrimeOutcome.Taken,
-            SourceOwnerId = Guid.NewGuid(),
-            SourceOwnerType = OwnerType.Container,
-            OccurredAt = DateTime.UtcNow.AddMinutes(-20),
-        };
-        var breakIn = new LockpickingCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = LocationId,
-            BuildingId = Guid.NewGuid(),
-            BuildingName = "The Sundry Store",
-            OccurredAt = DateTime.UtcNow.AddMinutes(-10),
-        };
-        var trespass = new TrespassingCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = LocationId,
-            BuildingId = Guid.NewGuid(),
-            BuildingName = "The Gilded Manor",
-            OccurredAt = DateTime.UtcNow.AddMinutes(-5),
-        };
+        var kill = Builders.MakeKillCrime(
+            WorldId,
+            _player.Id,
+            LocationId,
+            victimName: "Victim",
+            occurredAt: DateTime.UtcNow.AddMinutes(-30)
+        );
+        var assault = Builders.MakeAssaultCrime(
+            WorldId,
+            _player.Id,
+            LocationId,
+            victimName: "Bystander",
+            occurredAt: DateTime.UtcNow.AddMinutes(-25)
+        );
+        var theft = Builders.MakeTheftCrime(
+            WorldId,
+            _player.Id,
+            LocationId,
+            ownerName: "Mara",
+            occurredAt: DateTime.UtcNow.AddMinutes(-20)
+        );
+        var breakIn = Builders.MakeLockpickingCrime(
+            WorldId,
+            _player.Id,
+            LocationId,
+            buildingName: "The Sundry Store",
+            occurredAt: DateTime.UtcNow.AddMinutes(-10)
+        );
+        var trespass = Builders.MakeTrespassingCrime(
+            WorldId,
+            _player.Id,
+            LocationId,
+            buildingName: "The Gilded Manor",
+            occurredAt: DateTime.UtcNow.AddMinutes(-5)
+        );
         _context.Crimes.AddRange(kill, assault, theft, breakIn, trespass);
         _context.CrimeWitnesses.AddRange(
             Builders.MakeCrimeWitness(kill.Id, _witness.Id, WorldId),
@@ -131,14 +118,7 @@ public sealed class GetCrimesWitnessedByCreatureQueryTests(DatabaseFixture db)
     public async Task Handle_ExcludesACrime_WhenTheWitnessEndedUpDead()
     {
         // Arrange
-        var kill = new KillCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = LocationId,
-            VictimId = Guid.NewGuid(),
-            VictimName = "Victim",
-        };
+        var kill = Builders.MakeKillCrime(WorldId, _player.Id, LocationId);
         _context.Crimes.Add(kill);
         _context.CrimeWitnesses.Add(
             Builders.MakeCrimeWitness(

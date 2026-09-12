@@ -92,37 +92,31 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
         // Arrange
         var factionId = Guid.NewGuid();
         _context.CreatureProfiles.Add(
-            new CreatureProfile
-            {
-                WorldId = WorldId,
-                CreatureId = _npc.Id,
-                Description = "A watchful shopkeeper.",
-                Appearance = new CreatureAppearance
-                {
-                    DistinguishingFeatures = ["A scar above one eye."],
-                },
-                Behavior = new CreatureBehavior
-                {
-                    Personality = "Blunt and practical.",
-                    SpeechStyle = "Clipped, direct sentences.",
-                    Hobby = "woodworking",
-                },
-                PrivateBackground = new CreaturePrivateBackground
-                {
-                    Origin = "Millhaven",
-                    Profession = "Merchant",
-                    Factions = [new CreatureFaction(factionId, "The Ledger Guild")],
-                    Family = [new CreatureFamilyMember("Bram", "Brother")],
-                    Home = "The Old Mill House",
-                    Work = new CreatureWorkBackground
+            Builders
+                .NewCreatureProfile()
+                .WithWorldId(WorldId)
+                .WithCreatureId(_npc.Id)
+                .WithDescription("A watchful shopkeeper.")
+                .WithAppearance("A scar above one eye.")
+                .WithBehavior("Blunt and practical.", "Clipped, direct sentences.", "woodworking")
+                .WithBackground(
+                    new CreaturePrivateBackground
                     {
-                        Building = "General Store",
-                        IsOwner = true,
-                        Hours = "8am to 5pm",
-                        DaysOff = ["Sunday"],
-                    },
-                },
-            }
+                        Origin = "Millhaven",
+                        Profession = "Merchant",
+                        Factions = [new CreatureFaction(factionId, "The Ledger Guild")],
+                        Family = [new CreatureFamilyMember("Bram", "Brother")],
+                        Home = "The Old Mill House",
+                        Work = new CreatureWorkBackground
+                        {
+                            Building = "General Store",
+                            IsOwner = true,
+                            Hours = "8am to 5pm",
+                            DaysOff = ["Sunday"],
+                        },
+                    }
+                )
+                .Build()
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -182,41 +176,28 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
         // Arrange
         var factionId = Guid.NewGuid();
         _context.CreatureProfiles.Add(
-            new CreatureProfile
-            {
-                WorldId = WorldId,
-                CreatureId = _npc.Id,
-                PrivateBackground = new CreaturePrivateBackground
-                {
-                    Factions = [new CreatureFaction(factionId, "The Ledger Guild")],
-                },
-            }
+            Builders
+                .NewCreatureProfile()
+                .WithWorldId(WorldId)
+                .WithCreatureId(_npc.Id)
+                .WithBackground(
+                    new CreaturePrivateBackground
+                    {
+                        Factions = [new CreatureFaction(factionId, "The Ledger Guild")],
+                    }
+                )
+                .Build()
         );
-        _context.FactionMembers.Add(
-            new FactionMember
-            {
-                WorldId = WorldId,
-                CreatureId = _npc.Id,
-                FactionId = factionId,
-            }
-        );
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, factionId, _npc.Id));
         _context.Reputations.AddRange(
-            new Reputation
-            {
-                WorldId = WorldId,
-                CreatureId = _player.Id,
-                TargetId = _npc.Id,
-                TargetType = ReputationTargetType.Creature,
-                Score = 20,
-            },
-            new Reputation
-            {
-                WorldId = WorldId,
-                CreatureId = _player.Id,
-                TargetId = factionId,
-                TargetType = ReputationTargetType.Faction,
-                Score = 40,
-            }
+            Builders.MakeReputation(
+                WorldId,
+                _player.Id,
+                _npc.Id,
+                ReputationTargetType.Creature,
+                20
+            ),
+            Builders.MakeReputation(WorldId, _player.Id, factionId, score: 40)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -234,41 +215,29 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
         var namedFactionId = Guid.NewGuid();
         var cityFactionId = Guid.NewGuid();
         _context.CreatureProfiles.Add(
-            new CreatureProfile
-            {
-                WorldId = WorldId,
-                CreatureId = _npc.Id,
-                PrivateBackground = new CreaturePrivateBackground
-                {
-                    Factions =
-                    [
-                        new CreatureFaction(namedFactionId, "The Ledger Guild"),
-                        new CreatureFaction(
-                            cityFactionId,
-                            "The People of Millhaven",
-                            IsCityFaction: true
-                        ),
-                    ],
-                },
-            }
+            Builders
+                .NewCreatureProfile()
+                .WithWorldId(WorldId)
+                .WithCreatureId(_npc.Id)
+                .WithBackground(
+                    new CreaturePrivateBackground
+                    {
+                        Factions =
+                        [
+                            new CreatureFaction(namedFactionId, "The Ledger Guild"),
+                            new CreatureFaction(
+                                cityFactionId,
+                                "The People of Millhaven",
+                                IsCityFaction: true
+                            ),
+                        ],
+                    }
+                )
+                .Build()
         );
-        _context.FactionMembers.Add(
-            new FactionMember
-            {
-                WorldId = WorldId,
-                CreatureId = _npc.Id,
-                FactionId = cityFactionId,
-            }
-        );
+        _context.FactionMembers.Add(Builders.MakeFactionMember(WorldId, cityFactionId, _npc.Id));
         _context.Reputations.Add(
-            new Reputation
-            {
-                WorldId = WorldId,
-                CreatureId = _player.Id,
-                TargetId = cityFactionId,
-                TargetType = ReputationTargetType.Faction,
-                Score = 60,
-            }
+            Builders.MakeReputation(WorldId, _player.Id, cityFactionId, score: 60)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -428,44 +397,32 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsReportedTheftAndExcludesDeadWitnessedTheft()
     {
         // Arrange
-        var crime = new TheftCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = _npc.LocationId,
-            OwnerCreatureId = Guid.NewGuid(),
-            OwnerName = "Mara",
-            Outcome = TheftCrimeOutcome.Taken,
-            SourceOwnerId = Guid.NewGuid(),
-            SourceOwnerType = OwnerType.Container,
-        };
-        var deadWitnessCrime = new TheftCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = _npc.LocationId,
-            OwnerCreatureId = Guid.NewGuid(),
-            OwnerName = "Nora",
-            Outcome = TheftCrimeOutcome.Taken,
-            SourceOwnerId = Guid.NewGuid(),
-            SourceOwnerType = OwnerType.Container,
-        };
+        var crime = Builders.MakeTheftCrime(
+            WorldId,
+            _player.Id,
+            _npc.LocationId,
+            ownerName: "Mara"
+        );
+        var deadWitnessCrime = Builders.MakeTheftCrime(
+            WorldId,
+            _player.Id,
+            _npc.LocationId,
+            ownerName: "Nora"
+        );
         _context.Crimes.AddRange(crime, deadWitnessCrime);
         _context.CrimeWitnesses.AddRange(
-            new CrimeWitness
-            {
-                WorldId = WorldId,
-                CrimeId = crime.Id,
-                CreatureId = _npc.Id,
-                Resolution = CrimeWitnessResolution.Reported,
-            },
-            new CrimeWitness
-            {
-                WorldId = WorldId,
-                CrimeId = deadWitnessCrime.Id,
-                CreatureId = _npc.Id,
-                Resolution = CrimeWitnessResolution.Dead,
-            }
+            Builders.MakeCrimeWitness(
+                crime.Id,
+                _npc.Id,
+                WorldId,
+                resolution: CrimeWitnessResolution.Reported
+            ),
+            Builders.MakeCrimeWitness(
+                deadWitnessCrime.Id,
+                _npc.Id,
+                WorldId,
+                resolution: CrimeWitnessResolution.Dead
+            )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -481,26 +438,21 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
     public async Task Handle_NotesTheApologyOnAWitnessedTheft_WhenTheCrimeWasApologizedFor()
     {
         // Arrange
-        var crime = new TheftCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = _npc.LocationId,
-            OwnerCreatureId = Guid.NewGuid(),
-            OwnerName = "Mara",
-            Outcome = TheftCrimeOutcome.Apologized,
-            SourceOwnerId = Guid.NewGuid(),
-            SourceOwnerType = OwnerType.Container,
-        };
+        var crime = Builders.MakeTheftCrime(
+            WorldId,
+            _player.Id,
+            _npc.LocationId,
+            ownerName: "Mara",
+            outcome: TheftCrimeOutcome.Apologized
+        );
         _context.Crimes.Add(crime);
         _context.CrimeWitnesses.Add(
-            new CrimeWitness
-            {
-                WorldId = WorldId,
-                CrimeId = crime.Id,
-                CreatureId = _npc.Id,
-                Resolution = CrimeWitnessResolution.Reported,
-            }
+            Builders.MakeCrimeWitness(
+                crime.Id,
+                _npc.Id,
+                WorldId,
+                resolution: CrimeWitnessResolution.Reported
+            )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -519,27 +471,22 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
     public async Task Handle_TellsTheVictimTheyWereRobbed_WhenTheyOnlyHeardOfIt()
     {
         // Arrange
-        var crime = new TheftCrime
-        {
-            WorldId = WorldId,
-            PlayerId = _player.Id,
-            LocationId = _npc.LocationId,
-            OwnerCreatureId = _npc.Id,
-            OwnerName = _npc.Name,
-            Outcome = TheftCrimeOutcome.Taken,
-            SourceOwnerId = Guid.NewGuid(),
-            SourceOwnerType = OwnerType.Container,
-        };
+        var crime = Builders.MakeTheftCrime(
+            WorldId,
+            _player.Id,
+            _npc.LocationId,
+            ownerCreatureId: _npc.Id,
+            ownerName: _npc.Name
+        );
         _context.Crimes.Add(crime);
         _context.CrimeWitnesses.Add(
-            new CrimeWitness
-            {
-                WorldId = WorldId,
-                CrimeId = crime.Id,
-                CreatureId = _npc.Id,
-                Kind = CrimeWitnessKind.Heard,
-                Resolution = CrimeWitnessResolution.Reported,
-            }
+            Builders.MakeCrimeWitness(
+                crime.Id,
+                _npc.Id,
+                WorldId,
+                resolution: CrimeWitnessResolution.Reported,
+                kind: CrimeWitnessKind.Heard
+            )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

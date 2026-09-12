@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -11,7 +10,6 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private AdjustReputationsCommandHandler _adjustReputations = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private Guid _creatureId;
@@ -25,7 +23,6 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _adjustReputations = _serviceProvider.GetRequiredService<AdjustReputationsCommandHandler>();
         _handler = _serviceProvider.GetRequiredService<GetEffectiveReputationQueryHandler>();
 
         var creature = Builders.MakeCreature();
@@ -72,54 +69,21 @@ public sealed class GetEffectiveReputationQueryTests(DatabaseFixture db)
         _context.Creatures.Add(npc);
         _context.Factions.Add(guildFaction);
         _context.FactionMembers.AddRange(
-            new FactionMember
-            {
-                FactionId = _faction.Id,
-                CreatureId = npc.Id,
-                Role = FactionRole.Member,
-            },
-            new FactionMember
-            {
-                FactionId = guildFaction.Id,
-                CreatureId = npc.Id,
-                Role = FactionRole.Member,
-            }
+            Builders.MakeFactionMember(WorldId, _faction.Id, npc.Id),
+            Builders.MakeFactionMember(WorldId, guildFaction.Id, npc.Id)
+        );
+        _context.Reputations.AddRange(
+            Builders.MakeReputation(WorldId, _creatureId, _faction.Id, score: 5),
+            Builders.MakeReputation(WorldId, _creatureId, guildFaction.Id, score: 10),
+            Builders.MakeReputation(
+                WorldId,
+                _creatureId,
+                npc.Id,
+                ReputationTargetType.Creature,
+                score: 3
+            )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        await _adjustReputations.Handle(
-            new AdjustReputationsCommand
-            {
-                CreatureId = _creatureId,
-                WorldId = WorldId,
-                Adjustments = [new ReputationAdjustment(_faction.Id, 5)],
-                TargetType = ReputationTargetType.Faction,
-                Reason = ReputationReason.QuestCompleted,
-            },
-            TestContext.Current.CancellationToken
-        );
-        await _adjustReputations.Handle(
-            new AdjustReputationsCommand
-            {
-                CreatureId = _creatureId,
-                WorldId = WorldId,
-                Adjustments = [new ReputationAdjustment(guildFaction.Id, 10)],
-                TargetType = ReputationTargetType.Faction,
-                Reason = ReputationReason.QuestCompleted,
-            },
-            TestContext.Current.CancellationToken
-        );
-        await _adjustReputations.Handle(
-            new AdjustReputationsCommand
-            {
-                CreatureId = _creatureId,
-                WorldId = WorldId,
-                Adjustments = [new ReputationAdjustment(npc.Id, 3)],
-                TargetType = ReputationTargetType.Creature,
-                Reason = ReputationReason.QuestCompleted,
-            },
-            TestContext.Current.CancellationToken
-        );
 
         // Act
         var result = await _handler.Handle(
