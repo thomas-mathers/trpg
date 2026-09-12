@@ -1,3 +1,4 @@
+using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Queries;
@@ -212,6 +213,11 @@ internal class SeedCaptiveRescueQuestCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
         var factionsByCreatureType = await getFactionsByCreatureType.Handle(
             new GetFactionsByCreatureTypeQuery { WorldId = command.WorldId },
             cancellationToken
@@ -310,5 +316,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
             new AddQuestCommand { Quest = quest, Objectives = [objective] },
             cancellationToken
         );
+
+        transaction.Complete();
     }
 }

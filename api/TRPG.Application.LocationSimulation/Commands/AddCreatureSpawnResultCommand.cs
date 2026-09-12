@@ -1,3 +1,4 @@
+using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
@@ -37,6 +38,11 @@ internal class AddCreatureSpawnResultCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
         await addCreatures.Handle(
             new AddCreaturesCommand
             {
@@ -78,5 +84,7 @@ internal class AddCreatureSpawnResultCommandHandler(
             new AddFactionMembersCommand { Members = command.FactionMembers },
             cancellationToken
         );
+
+        transaction.Complete();
     }
 }
