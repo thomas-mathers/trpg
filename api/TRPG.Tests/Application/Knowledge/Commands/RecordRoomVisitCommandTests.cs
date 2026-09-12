@@ -10,8 +10,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Knowledge.Commands;
 
-[Collection("Database")]
-public sealed class RecordRoomVisitCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class RecordRoomVisitCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

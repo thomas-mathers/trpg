@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-[Collection("Database")]
-public sealed class AddDoorConnectorKeyCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AddDoorConnectorKeyCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

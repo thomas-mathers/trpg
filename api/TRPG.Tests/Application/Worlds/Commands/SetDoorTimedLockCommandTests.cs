@@ -5,8 +5,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-[Collection("Database")]
-public sealed class SetDoorTimedLockCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SetDoorTimedLockCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private SetDoorTimedLockCommandHandler _handler = null!;

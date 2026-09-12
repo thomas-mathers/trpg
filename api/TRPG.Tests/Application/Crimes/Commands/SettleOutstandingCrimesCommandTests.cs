@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Crimes.Commands;
 
-[Collection("Database")]
-public sealed class SettleOutstandingCrimesCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SettleOutstandingCrimesCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid CityId = Guid.NewGuid();

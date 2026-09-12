@@ -9,8 +9,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures;
 
-[Collection("Database")]
-public sealed class SneakDetectionServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SneakDetectionServiceTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly SkillCheckCurve Curve = new(
         BaseChance: 0.5f,

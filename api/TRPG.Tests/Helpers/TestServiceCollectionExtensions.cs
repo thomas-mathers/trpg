@@ -16,12 +16,20 @@ namespace TRPG.Tests.Helpers;
 
 internal static class TestServiceCollectionExtensions
 {
+    private static readonly IReadOnlyCollection<ServiceDescriptor> ApplicationServices =
+        new ServiceCollection().AddTrpgApplicationServices().ToArray();
+
     public static IServiceCollection AddTrpgTestServices(
         this IServiceCollection services,
         TrpgDbContext context
-    ) =>
-        services
-            .AddTrpgApplicationServices()
+    )
+    {
+        foreach (var descriptor in ApplicationServices)
+        {
+            services.Add(descriptor);
+        }
+
+        return services
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<ShareExpeditionDiscoveryTool>()
@@ -37,6 +45,7 @@ internal static class TestServiceCollectionExtensions
             // production has or every test that moves a player fails resolving it.
             .AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, new FakeChatClient())
             .AddKeyedSingleton<IChatClient>(LlmRoleKeys.Gameplay, new FakeChatClient());
+    }
 }
 
 internal sealed class TestGameClientEventSink : IGameClientEventSink

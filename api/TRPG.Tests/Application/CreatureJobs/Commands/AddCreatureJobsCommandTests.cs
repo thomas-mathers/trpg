@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.CreatureJobs.Commands;
 
-[Collection("Database")]
-public sealed class AddCreatureJobsCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AddCreatureJobsCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;

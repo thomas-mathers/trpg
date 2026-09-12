@@ -100,6 +100,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     private async Task<HubConnection> Connect(Guid sessionId)
     {
         var connection = fixture.CreateHubConnection(sessionId);
+        connection.Register<IGameClient>(new TestGameClient { Connection = connection });
         await connection.StartAsync(TestContext.Current.CancellationToken);
         return connection;
     }
@@ -667,6 +668,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
                             ["ConnectionStrings:Trpg"] = fixture.ConnectionString,
                             ["Flee:MinimumCatchChance"] = "1",
                             ["Flee:MaximumCatchChance"] = "1",
+                            ["GameClientEventAck:AckTimeout"] = "00:00:00.200",
                         }
                     );
                 }
@@ -720,7 +722,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         static HubConnection ConnectHub(WebApplicationFactory<Program> factory, Guid sessionId)
         {
             var uri = new Uri(factory.Server.BaseAddress, $"/hubs/chat?sessionId={sessionId}");
-            return new HubConnectionBuilder()
+            var connection = new HubConnectionBuilder()
                 .WithUrl(
                     uri,
                     options =>
@@ -746,6 +748,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
                     }
                 })
                 .Build();
+            connection.Register<IGameClient>(new TestGameClient { Connection = connection });
+            return connection;
         }
     }
 

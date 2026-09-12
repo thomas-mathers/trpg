@@ -8,8 +8,10 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Hubs;
 using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
+using TypedSignalR.Client;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 
 namespace TRPG.Tests.Endpoints;
@@ -98,6 +100,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
     private async Task<HubConnection> Connect(Guid sessionId)
     {
         var connection = fixture.CreateHubConnection(sessionId);
+        connection.Register<IGameClient>(new TestGameClient { Connection = connection });
         await connection.StartAsync(TestContext.Current.CancellationToken);
         return connection;
     }

@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Quests.Commands;
 
-[Collection("Database")]
-public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

@@ -5,8 +5,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Queries;
 
-[Collection("Database")]
-public sealed class GetCreaturesByIdsQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetCreaturesByIdsQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private GetCreaturesByIdsQueryHandler _handler = null!;

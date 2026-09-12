@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Reputations.Queries;
 
-[Collection("Database")]
-public sealed class GetReputationsByCreatureIdQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetReputationsByCreatureIdQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

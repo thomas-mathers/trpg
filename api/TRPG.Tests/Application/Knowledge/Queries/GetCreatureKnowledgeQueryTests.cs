@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Knowledge.Queries;
 
-[Collection("Database")]
-public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetCreatureKnowledgeQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly string[] EllyMatches = ["Elly Brown", "Elly Tealeaf"];
     private static readonly Guid WorldId = Guid.NewGuid();

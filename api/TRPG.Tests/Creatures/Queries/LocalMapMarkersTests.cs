@@ -8,8 +8,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Creatures.Queries;
 
-[Collection("Database")]
-public sealed class LocalMapMarkersTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class LocalMapMarkersTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private readonly Building _building = Builders.MakeBuilding(worldId: WorldId);

@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.GameTurns.Commands;
 
-[Collection("Database")]
-public sealed class RefreshSceneCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class RefreshSceneCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

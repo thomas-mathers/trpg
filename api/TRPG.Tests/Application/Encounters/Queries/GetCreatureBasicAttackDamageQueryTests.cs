@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Queries;
 
-[Collection("Database")]
-public sealed class GetCreatureBasicAttackDamageQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetCreatureBasicAttackDamageQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;

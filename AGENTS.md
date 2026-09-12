@@ -306,16 +306,15 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - Never write a temporary/throwaway test just to verify something works and then delete it — if the check is worth writing, it's worth keeping as a permanent test
 
 ### Infrastructure
-- `DatabaseFixture` spins up `postgres:17` via Testcontainers, runs `MigrateAsync` once
-- All test classes share the container via `[Collection("Database")]`
+- `PostgreSqlFixture` is an assembly fixture: it starts one `postgres:17` container and migrates a template database once
+- Database test classes use `IClassFixture<DatabaseFixture>`; each class clones its own database from the template and drops it on disposal. Up to eight classes run in parallel; tests within a class remain sequential.
 - xUnit creates a new class instance per test — `IAsyncLifetime` handles per-test setup/teardown
 - `InitializeAsync` creates a fresh `TrpgDbContext` and seeds shared state
 - `DisposeAsync` disposes the context: `public async ValueTask DisposeAsync() => await _context.DisposeAsync();`
 
 ### Test class structure
 ```csharp
-[Collection("Database")]
-public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime, IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
@@ -342,7 +341,7 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
   _serviceProvider = new ServiceCollection().AddTrpgTestServices(_context).BuildServiceProvider();
   _handler = _serviceProvider.GetRequiredService<FooCommandHandler>();
   ```
-- `AddTrpgTestServices` wraps the production `AddTrpgApplicationServices()` registration, then adds the test's own already-constructed `TrpgDbContext` as a singleton **instance** (not a factory) — the container doesn't dispose an instance registered this way, so there's no double-dispose against the test's own `DisposeAsync`, and every resolved handler shares the exact same context/change-tracker the test seeded through
+- `AddTrpgTestServices` caches the production `AddTrpgApplicationServices()` registration descriptors once, copies them into each test service collection, then adds the test's own already-constructed `TrpgDbContext` as a singleton **instance** (not a factory) — the container doesn't dispose an instance registered this way, so there's no double-dispose against the test's own `DisposeAsync`, and every resolved handler shares the exact same context/change-tracker the test seeded through
 - It also registers two open-generic fallbacks so most tests need zero extra setup: `ILogger<T>` → `NullLogger<T>`, and `IOptionsSnapshot<T>` → `DefaultOptionsSnapshot<T>` (default-constructs `T`; both types live in `TestOptionsSnapshot.cs`). A test whose assertions depend on a *specific* non-default options value (e.g. forcing guaranteed hits via `CombatOptions`) chains its own `.AddSingleton<IOptionsSnapshot<T>>(new TestOptionsSnapshot<T>(...))` after `AddTrpgTestServices(...)` — later registrations win over the open-generic default
 - Add a `ServiceProvider _serviceProvider` field and dispose it in `DisposeAsync`, alongside `_context`
 
@@ -386,7 +385,7 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 - Open a second context to verify deletion — the original context change tracker still holds the entity
 
 ### Unique name collisions
-- Tests share one Postgres container with no rollback between tests
+- Tests within a class share their database with no rollback between tests; different classes have isolated databases
 - Any entity with a unique name constraint must use a Guid-suffixed name in builders and seed helpers
 
 ### Hub tests
@@ -395,7 +394,7 @@ public sealed class FooServiceTests(DatabaseFixture db) : IAsyncLifetime
 
 ### Endpoint tests
 - The one deliberate exception to "no mocking": HTTP endpoint tests (`WorldEndpointsTests`, `GameSessionEndpointsTests`) mock the LLM client, because a real LLM provider is external, non-deterministic, and slow — unlike Postgres, it can't be spun up reliably via Testcontainers, and real narration text isn't what these tests are checking
-- `EndpointTestFixture` wraps `WebApplicationFactory<Program>` in its own `[Collection("Endpoints")]` (a separate Postgres container from the `"Database"` collection), and swaps in `FakeChatClient` (`TRPG.Tests.Helpers`) for both the `"WorldGeneration"` and `"Gameplay"` keyed `IChatClient` registrations — the same fake instance backs both roles, matching how production only differs in which concrete `IChatClient` (Ollama or Anthropic) gets constructed for each key
+- `EndpointTestFixture` wraps `WebApplicationFactory<Program>` in its own `[Collection("Endpoints")]` (its own database in the assembly container; endpoint classes remain sequential because they share the mutable fake and host configuration), and swaps in `FakeChatClient` (`TRPG.Tests.Helpers`) for both the `"WorldGeneration"` and `"Gameplay"` keyed `IChatClient` registrations — the same fake instance backs both roles, matching how production only differs in which concrete `IChatClient` (Ollama or Anthropic) gets constructed for each key
 - `FakeChatClient` detects which of the world-generation schemas is being requested (factions/cities/geography-entity) from keywords in the combined message text, then constructs and serializes **the real production schema types** (`FactionListSchema`, `GeographyEntitySchema`, etc., widened from `file class` to `internal class` in their generator files specifically so tests can reference them) — never loosely-typed anonymous objects, so a breaking change to those schemas forces the test to be updated rather than silently drifting; anything that doesn't match a world-gen keyword falls back to a plain canned chat response
 - Tests that exercise world generation (`CreateWorld_...`) pass a `CreateWorldRequest` with every count knob set to 1 (or 0 for optional entities) to keep the fake's canned responses trivial
 - Corner-case tests (404s for an unknown session id, 400 for invalid `/wait` input) use the same fixture — those code paths never reach the LLM client, so no special handling is needed

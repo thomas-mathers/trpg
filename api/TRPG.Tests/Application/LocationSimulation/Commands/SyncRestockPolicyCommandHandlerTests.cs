@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.LocationSimulation.Commands;
 
-[Collection("Database")]
-public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

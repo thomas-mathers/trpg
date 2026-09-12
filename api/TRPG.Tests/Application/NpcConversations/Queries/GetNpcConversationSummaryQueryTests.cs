@@ -3,8 +3,9 @@ using TRPG.Data;
 
 namespace TRPG.Tests.Application.NpcConversations.Queries;
 
-[Collection("Database")]
-public sealed class GetNpcConversationSummaryQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetNpcConversationSummaryQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private GetNpcConversationSummaryQueryHandler _handler = null!;

@@ -9,8 +9,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Queries;
 
-[Collection("Database")]
-public sealed class GetTheftDetectionChanceQueryTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class GetTheftDetectionChanceQueryTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

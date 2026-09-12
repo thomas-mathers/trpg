@@ -17,8 +17,7 @@ using TRPG.Tools;
 
 namespace TRPG.Tests.Application.GameTurns;
 
-[Collection("Database")]
-public sealed class DungeonExpeditionFlowTests : IAsyncLifetime
+public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private readonly DatabaseFixture _database;

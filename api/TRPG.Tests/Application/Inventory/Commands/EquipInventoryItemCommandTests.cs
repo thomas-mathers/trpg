@@ -8,8 +8,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Inventory.Commands;
 
-[Collection("Database")]
-public sealed class EquipInventoryItemCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class EquipInventoryItemCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;

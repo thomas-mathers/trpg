@@ -7,8 +7,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-[Collection("Database")]
-public sealed class DropWorldCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class DropWorldCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid OtherWorldId = Guid.NewGuid();

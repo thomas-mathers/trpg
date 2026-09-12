@@ -6,8 +6,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-[Collection("Database")]
-public sealed class AddBuildingOwnerCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AddBuildingOwnerCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private GetBuildingOwnersByBuildingIdQueryHandler _getAllBuildingOwnersByBuildingId = null!;

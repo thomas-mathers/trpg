@@ -85,6 +85,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
     private async Task<HubConnection> Connect(Guid sessionId)
     {
         var connection = fixture.CreateHubConnection(sessionId);
+        connection.Register<IGameClient>(new TestGameClient { Connection = connection });
         await connection.StartAsync(TestContext.Current.CancellationToken);
         return connection;
     }

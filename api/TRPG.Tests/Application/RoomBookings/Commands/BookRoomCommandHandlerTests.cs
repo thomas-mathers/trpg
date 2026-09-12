@@ -8,8 +8,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.RoomBookings.Commands;
 
-[Collection("Database")]
-public sealed class BookRoomCommandHandlerTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

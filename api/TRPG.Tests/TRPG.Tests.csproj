@@ -7,6 +7,11 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Application\Buildings\**" />
+    <EmbeddedResource Remove="Application\Buildings\**" />
+    <None Remove="Application\Buildings\**" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -27,8 +32,5 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG\TRPG.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Application\Buildings\Queries\" />
   </ItemGroup>
 </Project>

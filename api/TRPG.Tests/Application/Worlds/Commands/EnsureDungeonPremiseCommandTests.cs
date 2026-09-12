@@ -12,8 +12,9 @@ using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-[Collection("Database")]
-public sealed class EnsureDungeonPremiseCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class EnsureDungeonPremiseCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

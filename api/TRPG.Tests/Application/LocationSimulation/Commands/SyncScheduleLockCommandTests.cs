@@ -10,8 +10,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.LocationSimulation.Commands;
 
-[Collection("Database")]
-public sealed class SyncScheduleLockCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 

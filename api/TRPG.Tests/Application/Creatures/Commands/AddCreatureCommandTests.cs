@@ -4,8 +4,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
-[Collection("Database")]
-public sealed class AddCreatureCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class AddCreatureCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private AddCreatureCommandHandler _handler = null!;
     private TrpgDbContext _context = null!;

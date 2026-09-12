@@ -5,8 +5,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-[Collection("Database")]
-public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private SetWorldPlaytimeCommandHandler _handler = null!;

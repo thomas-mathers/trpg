@@ -11,8 +11,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
-[Collection("Database")]
-public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db) : IAsyncLifetime
+public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
+    : IAsyncLifetime,
+        IClassFixture<DatabaseFixture>
 {
     private static readonly CreatureRegenOptions RegenOptions = new()
     {
