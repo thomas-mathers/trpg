@@ -7,6 +7,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
+using TRPG.Application.CreatureJobs.Extensions;
 using TRPG.Application.Creatures.Extensions;
 using TRPG.Application.Crimes.Extensions;
 using TRPG.Application.Encounters.Extensions;
@@ -65,6 +66,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddNpcConversationsServices()
             .AddInventoryServices()
             .AddCreaturesServices()
+            .AddCreatureJobsServices()
             .AddCrimesServices()
             .AddKnowledgeServices()
             .AddEncountersServices()

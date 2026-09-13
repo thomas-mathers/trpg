@@ -274,12 +274,7 @@ internal class CatchUpLocationCommandHandler(
         InGameDate currentDate
     ) =>
         jobsByCreatureId.TryGetValue(creatureId, out var jobs)
-            ? jobs.Where(job =>
-                    CreatureJobScheduling.IsActiveAtHour(job, currentDate.Weekday, currentDate.Hour)
-                )
-                .OrderByDescending(job => job.Priority)
-                .ThenBy(job => job.Id)
-                .FirstOrDefault()
+            ? CreatureJobScheduling.FindDueJob(jobs, currentDate.Weekday, currentDate.Hour)
             : null;
 
     private async Task AssignWorkstations(

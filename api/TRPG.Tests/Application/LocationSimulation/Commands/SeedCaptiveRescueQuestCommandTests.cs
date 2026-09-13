@@ -24,8 +24,8 @@ public sealed class SeedCaptiveRescueQuestCommandTests
     private readonly Building _building;
     private readonly Location _cellBlockLocation;
     private readonly Room _cellBlockRoom;
-    private readonly Faction _undeadFaction;
-    private readonly Faction _wraithFaction;
+    private readonly Faction _goblinFaction;
+    private readonly Faction _demonFaction;
     private TrpgDbContext _context = null!;
     private ServiceProvider _services = null!;
     private ICommandHandler<SeedCaptiveRescueQuestCommand, bool> _handler = null!;
@@ -44,10 +44,11 @@ public sealed class SeedCaptiveRescueQuestCommandTests
             locationId: _cellBlockLocation.Id,
             role: RoomRole.CellBlock
         );
-        // Crypt draws its forced guard from both Undead and Wraith archetypes, so both need a
-        // faction available or CreatureSpawnFiller throws on whichever one it happens to pick.
-        _undeadFaction = Builders.MakeFaction(worldId: _worldId, creatureType: CreatureType.Undead);
-        _wraithFaction = Builders.MakeFaction(worldId: _worldId, creatureType: CreatureType.Wraith);
+        // The captive-rescue guard is drawn from a fixed captor pool (Goblin, Demon) independent
+        // of the dungeon's own theme, so both need a faction available or CreatureSpawnFiller
+        // throws on whichever one it happens to pick.
+        _goblinFaction = Builders.MakeFaction(worldId: _worldId, creatureType: CreatureType.Goblin);
+        _demonFaction = Builders.MakeFaction(worldId: _worldId, creatureType: CreatureType.Demon);
     }
 
     public async ValueTask InitializeAsync()
@@ -65,7 +66,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
         );
         _context.Buildings.Add(_building);
         _context.Rooms.Add(_cellBlockRoom);
-        _context.Factions.AddRange(_undeadFaction, _wraithFaction);
+        _context.Factions.AddRange(_goblinFaction, _demonFaction);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -130,7 +131,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
         Assert.Equal(quest.Id, objective.QuestId);
         Assert.Equal(_captive.Id, objective.CreatureId);
 
-        var factionIds = new[] { _undeadFaction.Id, _wraithFaction.Id };
+        var factionIds = new[] { _goblinFaction.Id, _demonFaction.Id };
         Assert.True(
             await verification.EncounterGroups.AnyAsync(
                 group =>

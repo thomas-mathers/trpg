@@ -11,8 +11,10 @@ namespace TRPG.Tests.Application.Encounters.Commands;
 public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixture<DatabaseFixture>
 {
     private readonly Guid _worldId = Guid.NewGuid();
+    private readonly Guid _captiveJobLocationId = Guid.NewGuid();
     private readonly Location _location;
     private readonly Creature _player;
+    private readonly Creature _captive;
     private readonly Cell _cell;
     private TrpgDbContext _context = null!;
     private ServiceProvider _services = null!;
@@ -23,13 +25,19 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         Database = database;
         _location = Builders.MakeLocation(_worldId);
         _player = Builders.MakeCreature(_worldId, locationId: _location.Id, name: "Player");
+        _captive = Builders.MakeCreature(
+            _worldId,
+            locationId: _location.Id,
+            name: "Captive",
+            state: CreatureState.Restrained
+        );
         _cell = new Cell
         {
             WorldId = _worldId,
             LocationId = _location.Id,
             Name = "Cell",
             Description = "A test cell",
-            CreatureId = Guid.NewGuid(),
+            CreatureId = _captive.Id,
             IsLocked = true,
             LockLevel = 20,
         };
@@ -46,8 +54,19 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         >();
 
         _context.Locations.Add(_location);
-        _context.Creatures.Add(_player);
+        _context.Creatures.AddRange(_player, _captive);
         _context.Props.Add(_cell);
+        // Playtime defaults to TimeSpan.Zero, which GameClock resolves to hour 8 at the world
+        // epoch — matching MakeCreatureJob's default 8-17 Idle window below.
+        _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _player.Id));
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                _captive.Id,
+                action: CreatureJobAction.Work,
+                locationId: _captiveJobLocationId,
+                worldId: _worldId
+            )
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -92,6 +111,12 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             .SingleAsync(cell => cell.Id == _cell.Id, TestContext.Current.CancellationToken);
         Assert.False(cell.IsLocked);
         Assert.Null(cell.CreatureId);
+        var captive = await verification.Creatures.SingleAsync(
+            c => c.Id == _captive.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_captiveJobLocationId, captive.LocationId);
+        Assert.Equal(CreatureState.Busy, captive.State);
     }
 
     [Fact]

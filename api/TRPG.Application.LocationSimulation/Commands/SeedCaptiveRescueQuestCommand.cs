@@ -49,7 +49,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
         GetFactionsByCreatureTypeQuery,
         IReadOnlyDictionary<CreatureType, Faction>
     > getFactionsByCreatureType,
-    DungeonPopulator dungeonPopulator,
+    CreatureGenerator creatureGenerator,
     ICommandHandler<AddCreatureSpawnResultCommand> addCreatureSpawnResult,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<AddCellCommand> addCell,
@@ -59,6 +59,17 @@ internal class SeedCaptiveRescueQuestCommandHandler(
     private const int LockLevel = 20;
     private const int GoldReward = 100;
     private const int GiverReputationReward = 25;
+    private const int MinimumCaptors = 2;
+    private const int MaximumCaptors = 3;
+
+    // Whoever is holding someone against their will has to want something from it — ransom, a
+    // ritual, spite. An undead thing that would just kill her on sight doesn't fit; a scheming
+    // captor does, independent of whatever else happens to lurk in this dungeon's ambient theme.
+    private static readonly IReadOnlyList<CreatureType> CaptorCreatureTypes =
+    [
+        CreatureType.Goblin,
+        CreatureType.Demon,
+    ];
 
     public async Task<bool> Handle(
         SeedCaptiveRescueQuestCommand command,
@@ -104,7 +115,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
             return false;
         }
 
-        await Capture(command, giver, captive, chosenRoom, building, cancellationToken);
+        await Capture(command, giver, captive, chosenRoom, cancellationToken);
 
         return true;
     }
@@ -217,7 +228,6 @@ internal class SeedCaptiveRescueQuestCommandHandler(
         Creature giver,
         Creature captive,
         Room room,
-        Building building,
         CancellationToken cancellationToken
     )
     {
@@ -230,14 +240,21 @@ internal class SeedCaptiveRescueQuestCommandHandler(
             new GetFactionsByCreatureTypeQuery { WorldId = command.WorldId },
             cancellationToken
         );
-        var guardResult = dungeonPopulator.GenerateForced(
+        var captorCount = Random.Shared.Next(MinimumCaptors, MaximumCaptors + 1);
+        var captorResult = CreatureSpawnFiller.Fill(
+            creatureGenerator,
+            CaptorCreatureTypes,
+            currentPopulation: 0,
+            captorCount,
+            command.PlayerLevel,
             command.WorldId,
             room.LocationId,
-            building.BuildingType,
-            command.PlayerLevel,
+            Guid.NewGuid(),
             factionsByCreatureType
         );
-        var guardCreature = guardResult.Monsters.Single().Creature;
+        var keyHolder = captorResult
+            .Monsters[Random.Shared.Next(captorResult.Monsters.Count)]
+            .Creature;
 
         var key = new Key
         {
@@ -247,7 +264,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
             Quantity = 1,
             Ownership = new ItemOwnership
             {
-                OwnerId = guardCreature.Id,
+                OwnerId = keyHolder.Id,
                 OwnerType = OwnerType.Creature,
             },
         };
@@ -255,11 +272,13 @@ internal class SeedCaptiveRescueQuestCommandHandler(
         await addCreatureSpawnResult.Handle(
             new AddCreatureSpawnResultCommand
             {
-                Monsters = guardResult.Monsters,
-                Jobs = guardResult.Jobs,
-                EncounterGroups = guardResult.EncounterGroups,
-                EncounterGroupMembers = guardResult.EncounterGroupMembers,
-                FactionMembers = guardResult.FactionMembers,
+                Monsters = captorResult.Monsters,
+                // A captor group stays perpetually on guard rather than cycling through the
+                // ambient day/night schedule generated for ordinary dungeon monsters.
+                Jobs = [],
+                EncounterGroups = captorResult.EncounterGroups,
+                EncounterGroupMembers = captorResult.EncounterGroupMembers,
+                FactionMembers = captorResult.FactionMembers,
                 ExtraItems = [key],
             },
             cancellationToken

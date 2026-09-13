@@ -71,7 +71,7 @@ internal class GetDungeonConversationKnowledgeQueryHandler(
             playerSecrets.Contains(expedition.DiscoverySecretId)
                 ? new ShareableDungeonDiscovery(expedition.Id, expedition.Discovery)
                 : null,
-            "PlayerCanShare is private player knowledge, not NPC knowledge. Only LearnedAccount establishes that the survivor received the news. When the player explicitly shares it, call share_expedition_discovery before narrating the reaction. Never infer disclosure from possession, earlier conversation summaries, or starting a conversation. A failed tool call does not establish disclosure. Do not promise quests or rewards."
+            "PlayerCanShare is private player knowledge, not NPC knowledge. Only LearnedAccount establishes that the survivor received the news. When the player explicitly shares it, call share_expedition_discovery before narrating the reaction. Never infer disclosure from possession, earlier conversation summaries, or starting a conversation. A failed tool call does not establish disclosure. Sharing only reveals the news; it does not pay a reward. Once the quest is ready to complete, call show_quest_details as soon as the conversation turns to finishing it, reporting back, or reward/payment — never narrate a reward, since that would not actually grant it and would wrongly persist as fact in this NPC's memory."
         );
     }
 }
