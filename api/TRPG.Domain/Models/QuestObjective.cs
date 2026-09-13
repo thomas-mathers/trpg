@@ -38,3 +38,8 @@ public sealed class ShareSecretObjective : QuestObjective
     public Guid SecretId { get; init; }
     public Guid RecipientId { get; init; }
 }
+
+public sealed class FreeCreatureObjective : QuestObjective
+{
+    public Guid CreatureId { get; init; }
+}

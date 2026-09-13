@@ -31,6 +31,7 @@ internal class GetLiveHumanoidWitnessesAtLocationQueryHandler(ICreaturesDbContex
                 && creature.LocationId == query.LocationId
                 && creature.State != CreatureState.Dead
                 && creature.State != CreatureState.Sleeping
+                && creature.State != CreatureState.Restrained
                 && creature.Id != query.ExcludeCreatureId
                 && CreatureTypes.Humanoid.AsEnumerable().Contains(creature.CreatureType)
             )

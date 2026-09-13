@@ -88,6 +88,18 @@ internal class CreateWorldCommandHandler(
             worldResult.Factions
         );
 
+        // One popular, reliably-visited spot per city — the rescue-quest seed check rides the
+        // same lazy per-location catch-up every other sync command already uses, so it only ever
+        // needs to exist at places the player will actually pass through.
+        var questSeedSchedules = worldResult
+            .Districts.Where(district => district.DistrictType == DistrictType.CityCenter)
+            .Select(district => new QuestSeedSchedule
+            {
+                WorldId = worldResult.World.Id,
+                LocationId = district.LocationId,
+            })
+            .ToArray();
+
         var bootstrapResult = await bootstrapWorld.Handle(
             new BootstrapWorldCommand
             {
@@ -95,6 +107,7 @@ internal class CreateWorldCommandHandler(
                 Player = playerResult,
                 Quests = quests,
                 PlayerReputations = monsterReputations,
+                QuestSeedSchedules = questSeedSchedules,
             },
             cancellationToken
         );

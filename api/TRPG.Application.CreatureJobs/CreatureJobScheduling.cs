@@ -15,4 +15,14 @@ public static class CreatureJobScheduling
             ? hour >= creatureJob.StartHour && hour < creatureJob.EndHour
             : hour >= creatureJob.StartHour || hour < creatureJob.EndHour;
     }
+
+    public static CreatureJob? FindDueJob(
+        IEnumerable<CreatureJob> jobs,
+        DayOfWeek weekday,
+        int hour
+    ) =>
+        jobs.Where(job => IsActiveAtHour(job, weekday, hour))
+            .OrderByDescending(job => job.Priority)
+            .ThenBy(job => job.Id)
+            .FirstOrDefault();
 }

@@ -24,7 +24,7 @@ internal class ShowQuestDetailsTool(
 
     [DisplayName("show_quest_details")]
     [Description(
-        "Call this after the player explicitly says they want to accept an available job or turn in completed work. It opens the quest details dialog. Use only an exact NPC and quest Name returned by start_conversation; never call it merely because an NPC mentioned work."
+        "Call this whenever the conversation turns to accepting an available job, or to finishing, reporting back on, or being paid for a ready-to-complete one — including the player merely asking about a reward or payment. It opens the quest details dialog, where accepting or completing actually happens. Accepting a quest, completing a quest, and paying a reward are NOT things you narrate in prose: they only happen through this tool, and if you narrate any of them without calling it, nothing is actually granted, yet your own narration becomes this NPC's permanent memory and will wrongly convince every future conversation the quest was already resolved. When in doubt whether the player means this, call it rather than narrate. Use only an exact NPC and quest Name returned by start_conversation; never call it merely because an NPC mentioned work in passing."
     )]
     private async Task<object?> InvokeAsync(
         [Description(

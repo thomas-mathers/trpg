@@ -17,6 +17,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
+    private static readonly Guid PlayerId = Guid.NewGuid();
 
     private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private AddCreatureCommandHandler _addCreature = null!;
@@ -93,6 +94,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = missingLocationId,
                 CurrentDate = currentDate,
                 PlayerLevel = 1,
@@ -127,6 +129,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(23),
                 PlayerLevel = 1,
@@ -177,6 +180,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
                 PlayerLevel = 1,
@@ -207,6 +211,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = emptyLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
@@ -259,6 +264,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = idleLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
@@ -305,6 +311,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = gateLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
                 PlayerLevel = 1,
@@ -375,6 +382,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
@@ -440,6 +448,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
@@ -483,6 +492,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = wildernessLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
@@ -525,6 +535,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new CatchUpLocationCommand
             {
                 WorldId = WorldId,
+                PlayerId = PlayerId,
                 LocationId = doorLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(23),
                 PlayerLevel = 1,

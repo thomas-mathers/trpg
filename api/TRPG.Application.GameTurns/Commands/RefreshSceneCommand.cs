@@ -42,6 +42,7 @@ internal class RefreshSceneCommandHandler(
             new CatchUpLocationCommand
             {
                 WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
                 LocationId = player!.LocationId,
                 CurrentDate = currentDate,
                 PlayerLevel = player.Level,

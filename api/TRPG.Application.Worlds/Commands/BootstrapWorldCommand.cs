@@ -14,6 +14,7 @@ public class BootstrapWorldCommand
     public CreatureGeneratorResult? Player { get; init; }
     public required QuestGeneratorResult Quests { get; init; }
     public IReadOnlyList<Reputation> PlayerReputations { get; init; } = [];
+    public IReadOnlyList<QuestSeedSchedule> QuestSeedSchedules { get; init; } = [];
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -85,6 +86,7 @@ internal class BootstrapWorldCommandHandler(
         context.Relationships.AddRange(world.Relationships);
         context.Quests.AddRange(quests.Quests);
         context.QuestObjectives.AddRange(quests.Objectives);
+        context.QuestSeedSchedules.AddRange(command.QuestSeedSchedules);
 
         if (player != null)
         {

@@ -14,6 +14,7 @@ namespace TRPG.Application.LocationSimulation.Commands;
 public class CatchUpLocationCommand
 {
     public required Guid WorldId { get; init; }
+    public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
     public required InGameDate CurrentDate { get; init; }
     public required int PlayerLevel { get; init; }
@@ -41,6 +42,7 @@ internal class CatchUpLocationCommandHandler(
     ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock,
     ICommandHandler<SyncCreatureSpawnerCommand> syncCreatureSpawner,
     ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy,
+    ICommandHandler<SyncQuestSeedScheduleCommand> syncQuestSeedSchedule,
     LocationCatchUpCache catchUpCache
 ) : ICommandHandler<CatchUpLocationCommand, bool>
 {
@@ -96,6 +98,7 @@ internal class CatchUpLocationCommandHandler(
 
         await SynchronizeCreatureSpawner(command, cancellationToken);
         await SynchronizeRestockPolicy(command, cancellationToken);
+        await SynchronizeQuestSeedSchedule(command, cancellationToken);
     }
 
     // Creatures whose job targets this location and creatures already standing in its district
@@ -180,6 +183,24 @@ internal class CatchUpLocationCommandHandler(
         );
     }
 
+    private async Task SynchronizeQuestSeedSchedule(
+        CatchUpLocationCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        await syncQuestSeedSchedule.Handle(
+            new SyncQuestSeedScheduleCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                LocationId = command.LocationId,
+                PlayerLevel = command.PlayerLevel,
+                CurrentPlaytime = command.Playtime,
+            },
+            cancellationToken
+        );
+    }
+
     private async Task AdvanceDueJobs(
         IReadOnlyCollection<Guid> creatureIds,
         InGameDate currentDate,
@@ -253,12 +274,7 @@ internal class CatchUpLocationCommandHandler(
         InGameDate currentDate
     ) =>
         jobsByCreatureId.TryGetValue(creatureId, out var jobs)
-            ? jobs.Where(job =>
-                    CreatureJobScheduling.IsActiveAtHour(job, currentDate.Weekday, currentDate.Hour)
-                )
-                .OrderByDescending(job => job.Priority)
-                .ThenBy(job => job.Id)
-                .FirstOrDefault()
+            ? CreatureJobScheduling.FindDueJob(jobs, currentDate.Weekday, currentDate.Hour)
             : null;
 
     private async Task AssignWorkstations(

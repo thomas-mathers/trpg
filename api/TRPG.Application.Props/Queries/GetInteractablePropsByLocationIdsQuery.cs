@@ -24,19 +24,29 @@ internal class GetInteractablePropsByLocationIdsQueryHandler(IPropsDbContext con
     public async Task<IReadOnlyList<InteractableProp>> Handle(
         GetInteractablePropsByLocationIdsQuery query,
         CancellationToken cancellationToken = default
-    ) =>
-        await context
+    )
+    {
+        var props = await context
             .Props.AsNoTracking()
             .Where(prop =>
                 query.LocationIds.AsEnumerable().Contains(prop.LocationId)
-                && (prop is Container || prop is Lever)
+                && (prop is Container || prop is Lever || prop is Cell)
             )
+            .ToArrayAsync(cancellationToken);
+
+        return props
             .Select(prop => new InteractableProp(
                 prop.Id,
                 prop.LocationId,
                 prop.Name,
-                prop is Lever ? ((Lever)prop).IsPulled : null,
-                prop is Container && ((Container)prop).KeyItemId != null
+                prop is Lever lever ? lever.IsPulled : null,
+                prop switch
+                {
+                    Container container => container.KeyItemId != null,
+                    Cell cell => cell.IsLocked,
+                    _ => false,
+                }
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
+    }
 }

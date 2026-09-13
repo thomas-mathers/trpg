@@ -79,6 +79,11 @@ internal class StartFightTool(
             );
         }
 
+        if (target.State == CreatureState.Restrained)
+        {
+            return new ToolError($"{targetName} is locked away and cannot be reached to attack.");
+        }
+
         var hasSurpriseRound = player.IsSneaking || target.State == CreatureState.Sleeping;
 
         var enemyCreatureIds = await getEncounterGroupCreatureIds.Handle(
