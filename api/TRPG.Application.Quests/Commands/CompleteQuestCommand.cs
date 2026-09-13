@@ -108,15 +108,17 @@ internal class CompleteQuestCommandHandler(
             cancellationToken
         );
 
-        foreach (var giveItem in giveItems)
+        foreach (var recipientItems in giveItems.GroupBy(giveItem => giveItem.RecipientId))
         {
             await transferPlayerInventory.Handle(
                 new TransferPlayerInventoryCommand
                 {
                     WorldId = command.WorldId,
                     PlayerId = command.PlayerId,
-                    To = new ItemOwnerReference(giveItem.RecipientId, OwnerType.Creature),
-                    Items = [new ItemSelection(giveItem.ItemId, 1)],
+                    To = new ItemOwnerReference(recipientItems.Key, OwnerType.Creature),
+                    Items = recipientItems
+                        .Select(giveItem => new ItemSelection(giveItem.ItemId, 1))
+                        .ToArray(),
                 },
                 cancellationToken
             );
