@@ -247,6 +247,10 @@
   --mp: oklch(0.74 0.09 230);
   --stamina: oklch(0.87 0.09 80);
   --heal: oklch(0.72 0.11 145);
+  /* --primary is --chrome itself elsewhere, so text-primary/bg-primary need the sidebar's own
+   * accent pairing here instead or they vanish against this scope's chrome-colored surfaces. */
+  --primary: var(--sidebar-primary);
+  --primary-foreground: var(--sidebar-primary-foreground);
 }
 
 @layer base {

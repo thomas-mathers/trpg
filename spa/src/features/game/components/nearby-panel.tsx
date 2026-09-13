@@ -196,26 +196,22 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
         worldId={scene.worldId}
         onOpenJournal={onOpenQuestJournal}
       />
-      <Section title="Nearby Exits">
-        {scene.exits.length === 0 ? (
-          <EmptyState />
-        ) : (
-          scene.exits.map((exit, index) => (
+      {scene.exits.length > 0 && (
+        <Section title="Nearby Exits">
+          {scene.exits.map((exit, index) => (
             <div key={index} className="flex items-center gap-1.5 py-1.5">
               <ExitDirectionArrow direction={exit.direction ?? null} />
               <ExitDestinationIcon destination={exit.destination} />
               <span className="truncate font-medium">{exit.destination.name}</span>
               <ExitFamiliarity isVisited={exit.isVisited} isWayBack={exit.isWayBack} />
             </div>
-          ))
-        )}
-      </Section>
+          ))}
+        </Section>
+      )}
 
-      <Section title="Nearby Creatures">
-        {scene.nearbyCreatures.length === 0 ? (
-          <EmptyState />
-        ) : (
-          scene.nearbyCreatures.map((creature) => (
+      {scene.nearbyCreatures.length > 0 && (
+        <Section title="Nearby Creatures">
+          {scene.nearbyCreatures.map((creature) => (
             <CreatureRow
               key={creature.id}
               creature={creature}
@@ -241,15 +237,13 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
             />
-          ))
-        )}
-      </Section>
+          ))}
+        </Section>
+      )}
 
-      <Section title="Nearby Containers">
-        {nearbyContainers.length === 0 ? (
-          <EmptyState />
-        ) : (
-          nearbyContainers.map((container) => (
+      {nearbyContainers.length > 0 && (
+        <Section title="Nearby Containers">
+          {nearbyContainers.map((container) => (
             <div key={container.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <GiChest className="text-muted-foreground size-[18px] shrink-0" />
@@ -270,15 +264,13 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 </button>
               </span>
             </div>
-          ))
-        )}
-      </Section>
+          ))}
+        </Section>
+      )}
 
-      <Section title="Nearby Levers">
-        {nearbyLevers.length === 0 ? (
-          <EmptyState />
-        ) : (
-          nearbyLevers.map((lever) => (
+      {nearbyLevers.length > 0 && (
+        <Section title="Nearby Levers">
+          {nearbyLevers.map((lever) => (
             <div key={lever.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <GiLever className="text-muted-foreground size-[18px] shrink-0" />
@@ -295,15 +287,13 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 Pull
               </Button>
             </div>
-          ))
-        )}
-      </Section>
+          ))}
+        </Section>
+      )}
 
-      <Section title="Nearby Bookshelves">
-        {nearbyBookshelves.length === 0 ? (
-          <EmptyState />
-        ) : (
-          nearbyBookshelves.map((shelf) => (
+      {nearbyBookshelves.length > 0 && (
+        <Section title="Nearby Bookshelves">
+          {nearbyBookshelves.map((shelf) => (
             <div key={shelf.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <GiBlackBook className="text-muted-foreground size-[18px] shrink-0" />
@@ -316,15 +306,13 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 </button>
               </span>
             </div>
-          ))
-        )}
-      </Section>
+          ))}
+        </Section>
+      )}
 
-      <Section title="Nearby Workstations">
-        {nearbyTradeWorkstations.length === 0 ? (
-          <EmptyState />
-        ) : (
-          nearbyTradeWorkstations.map((workstation) => (
+      {nearbyTradeWorkstations.length > 0 && (
+        <Section title="Nearby Workstations">
+          {nearbyTradeWorkstations.map((workstation) => (
             <div key={workstation.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <GiShoppingBag className="text-muted-foreground size-[18px] shrink-0" />
@@ -345,15 +333,13 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 </button>
               </span>
             </div>
-          ))
-        )}
-      </Section>
+          ))}
+        </Section>
+      )}
 
-      <Section title="Nearby Beds">
-        {nearbyBeds.length === 0 ? (
-          <EmptyState />
-        ) : (
-          nearbyBeds.map((bed) => (
+      {nearbyBeds.length > 0 && (
+        <Section title="Nearby Beds">
+          {nearbyBeds.map((bed) => (
             <div key={bed.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <GiBed className="text-muted-foreground size-[18px] shrink-0" />
@@ -370,15 +356,13 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          ))
-        )}
-      </Section>
+          ))}
+        </Section>
+      )}
 
-      <Section title="Nearby Buildings">
-        {nearbyBuildings.length === 0 ? (
-          <EmptyState />
-        ) : (
-          nearbyBuildings.map((poi) => {
+      {nearbyBuildings.length > 0 && (
+        <Section title="Nearby Buildings">
+          {nearbyBuildings.map((poi) => {
             const Icon = BUILDING_TYPE_ICONS[poi.type];
             return (
               <div key={poi.id} className="flex items-center justify-between gap-2 py-1.5">
@@ -398,9 +382,9 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 </span>
               </div>
             );
-          })
-        )}
-      </Section>
+          })}
+        </Section>
+      )}
 
       <TransferItemDialog
         playerId={scene.playerStatus.id}
@@ -566,8 +550,4 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <div className="divide-border divide-y">{children}</div>
     </div>
   );
-}
-
-function EmptyState() {
-  return <p className="text-muted-foreground py-1.5 text-xs italic">Nothing here.</p>;
 }
