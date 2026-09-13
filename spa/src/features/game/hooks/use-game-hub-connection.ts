@@ -118,8 +118,6 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       skillLevelUp: async (skillLevelUp) => gameEventBus.emit('SkillLevelUp', skillLevelUp),
       characterLevelUp: async (characterLevelUp) =>
         gameEventBus.emit('CharacterLevelUp', characterLevelUp),
-      questDialogRequested: async (questDialog) =>
-        gameEventBus.emit('QuestDialogRequested', questDialog),
       questObjectiveCompleted: async (objective) =>
         gameEventBus.emit('QuestObjectiveCompleted', objective),
       questJournalUpdated: async ({ notificationMessage }) =>

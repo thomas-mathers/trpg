@@ -3,13 +3,15 @@ import { NearbyPanel } from '@/features/game/components/nearby-panel';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import type { QuestDialogState } from '@/features/quests/components/quest-dialog';
 import { cn } from '@/lib/utils';
 
 interface NearbySidebarProps {
   onOpenQuestJournal: () => void;
+  onQuestDialogRequested: (dialog: QuestDialogState) => void;
 }
 
-export function NearbySidebar({ onOpenQuestJournal }: NearbySidebarProps) {
+export function NearbySidebar({ onOpenQuestJournal, onQuestDialogRequested }: NearbySidebarProps) {
   const scene = useScene();
   const { open, isMobile } = useSidebar();
   const { submitNarratedTurn } = useGameChat();
@@ -23,6 +25,7 @@ export function NearbySidebar({ onOpenQuestJournal }: NearbySidebarProps) {
     <NearbyPanel
       scene={scene}
       onOpenQuestJournal={onOpenQuestJournal}
+      onQuestDialogRequested={onQuestDialogRequested}
       onTheftEncounter={handleTheftEncounter}
     />
   );

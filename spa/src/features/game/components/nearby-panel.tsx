@@ -56,6 +56,7 @@ import {
   GiWolfHead,
 } from 'react-icons/gi';
 
+import { getQuestDialog } from '@/api/client';
 import type { BuildingType, DistrictType, OwnerType } from '@/api/client';
 import type {
   CreatureStatusSnapshot,
@@ -82,6 +83,7 @@ import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { ROOM_ROLE_ICONS } from '@/features/game/room-role-icons';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
+import type { QuestDialogState } from '@/features/quests/components/quest-dialog';
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
 
@@ -158,10 +160,16 @@ const DISTRICT_TYPE_ICONS: Record<DistrictType, IconType> = {
 interface NearbyPanelProps {
   scene: SceneSnapshot;
   onOpenQuestJournal: () => void;
+  onQuestDialogRequested: (dialog: QuestDialogState) => void;
   onTheftEncounter?: (encounterId: string) => void;
 }
 
-export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: NearbyPanelProps) {
+export function NearbyPanel({
+  scene,
+  onOpenQuestJournal,
+  onQuestDialogRequested,
+  onTheftEncounter,
+}: NearbyPanelProps) {
   const chatHub = useChatHub();
   const { submitNarratedTurn } = useGameChat();
   const [inventoryTarget, setInventoryTarget] = useState<{
@@ -178,6 +186,16 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
   const [isTradeOpen, setIsTradeOpen] = useState(false);
   const [isSleepOpen, setIsSleepOpen] = useState(false);
   const [bookshelf, setBookshelf] = useState<{ id: string; name: string } | null>(null);
+
+  const handleQuestDialog = async (giverId: string) => {
+    const response = await getQuestDialog({
+      path: { playerId: scene.playerStatus.id },
+      query: { worldId: scene.worldId, giverId },
+    });
+    if (response.data) {
+      onQuestDialogRequested({ ...response.data, worldId: scene.worldId });
+    }
+  };
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
@@ -236,6 +254,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 }
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
+              onQuestDialog={() => void handleQuestDialog(creature.id)}
             />
           ))}
         </Section>
@@ -455,12 +474,14 @@ function CreatureRow({
   onOpenInventory,
   onTrade,
   tradeEnabled,
+  onQuestDialog,
 }: {
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
   onOpenInventory: () => void;
   onTrade: () => void;
   tradeEnabled: boolean;
+  onQuestDialog: () => void;
 }) {
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
@@ -535,6 +556,9 @@ function CreatureRow({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
           {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
+          {!dead && creature.questMarker && (
+            <DropdownMenuItem onClick={onQuestDialog}>Quest</DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

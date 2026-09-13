@@ -12,6 +12,7 @@ public class GameTurnRunner
     private readonly StreamPullLeverTurnHandler _streamPullLeverTurn;
     private readonly StreamAcceptQuestTurnHandler _streamAcceptQuestTurn;
     private readonly StreamDeclineQuestTurnHandler _streamDeclineQuestTurn;
+    private readonly StreamCompleteQuestTurnHandler _streamCompleteQuestTurn;
     private readonly StreamFleeTurnHandler _streamFleeTurn;
     private readonly StreamRespawnTurnHandler _streamRespawnTurn;
     private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
@@ -30,6 +31,7 @@ public class GameTurnRunner
         StreamPullLeverTurnHandler streamPullLeverTurn,
         StreamAcceptQuestTurnHandler streamAcceptQuestTurn,
         StreamDeclineQuestTurnHandler streamDeclineQuestTurn,
+        StreamCompleteQuestTurnHandler streamCompleteQuestTurn,
         StreamFleeTurnHandler streamFleeTurn,
         StreamRespawnTurnHandler streamRespawnTurn,
         StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
@@ -48,6 +50,7 @@ public class GameTurnRunner
         _streamPullLeverTurn = streamPullLeverTurn;
         _streamAcceptQuestTurn = streamAcceptQuestTurn;
         _streamDeclineQuestTurn = streamDeclineQuestTurn;
+        _streamCompleteQuestTurn = streamCompleteQuestTurn;
         _streamFleeTurn = streamFleeTurn;
         _streamRespawnTurn = streamRespawnTurn;
         _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
@@ -101,6 +104,12 @@ public class GameTurnRunner
         Guid questId,
         CancellationToken cancellationToken = default
     ) => _streamDeclineQuestTurn.Handle(session, questId, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamCompleteQuest(
+        GameTurnSession session,
+        Guid questId,
+        CancellationToken cancellationToken = default
+    ) => _streamCompleteQuestTurn.Handle(session, questId, cancellationToken);
 
     public IAsyncEnumerable<string> StreamFlee(
         GameTurnSession session,

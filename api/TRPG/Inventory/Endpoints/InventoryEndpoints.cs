@@ -169,6 +169,7 @@ internal static class InventoryEndpoints
             await transferInventory.Handle(
                 new TransferPlayerInventoryCommand
                 {
+                    WorldId = from.Value.WorldId,
                     To = new ItemOwnerReference(request.To.Id, request.To.Type),
                     Items = request.Items,
                     PlayerId = playerId,

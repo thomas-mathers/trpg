@@ -425,6 +425,25 @@ internal static class Builders
         };
     }
 
+    public static Book MakeBook(
+        Guid workId,
+        Guid? id = null,
+        Guid? worldId = null,
+        int quantity = 1
+    )
+    {
+        return new Book
+        {
+            Id = id ?? Guid.NewGuid(),
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Item-{Guid.NewGuid():N}",
+            Description = "A test book",
+            Weight = 1,
+            Quantity = quantity,
+            WorkId = workId,
+        };
+    }
+
     public static CrimeWitness MakeCrimeWitness(
         Guid crimeId,
         Guid creatureId,
@@ -699,9 +718,9 @@ internal static class Builders
             RequiredAmount = requiredAmount,
         };
 
-    public static ShareSecretObjective MakeShareSecretObjective(
+    public static GiveItemObjective MakeGiveItemObjective(
         Guid questId,
-        Guid secretId,
+        Guid itemId,
         Guid recipientId,
         Guid? worldId = null,
         Guid? locationId = null,
@@ -714,7 +733,7 @@ internal static class Builders
             QuestId = questId,
             Name = name ?? $"Objective-{Guid.NewGuid():N}",
             Description = "A test objective",
-            SecretId = secretId,
+            ItemId = itemId,
             RecipientId = recipientId,
             LocationId = locationId,
             RequiredAmount = requiredAmount,

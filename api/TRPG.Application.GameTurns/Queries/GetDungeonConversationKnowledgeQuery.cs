@@ -7,15 +7,12 @@ namespace TRPG.Application.GameTurns.Queries;
 
 public record GetDungeonConversationKnowledgeQuery(Guid WorldId, Guid PlayerId, Guid NpcId);
 
-public record ShareableDungeonDiscovery(Guid ExpeditionId, string Fact);
-
 public record DungeonConversationKnowledge(
     string Purpose,
     string SharedHistory,
     string? DungeonHistory,
     string KnownRoute,
     string? LearnedAccount,
-    ShareableDungeonDiscovery? PlayerCanShare,
     string Guidance
 );
 
@@ -45,10 +42,6 @@ internal class GetDungeonConversationKnowledgeQueryHandler(
             new GetKnownSecretIdsQuery(WorldId: query.WorldId, KnowerId: query.NpcId),
             cancellationToken
         );
-        var playerSecrets = await getKnownSecrets.Handle(
-            new GetKnownSecretIdsQuery(WorldId: query.WorldId, KnowerId: query.PlayerId),
-            cancellationToken
-        );
         var locations = await getLocations.Handle(
             new GetLocationsByIdsQuery { Ids = expedition.KnownRouteLocationIds },
             cancellationToken
@@ -68,10 +61,7 @@ internal class GetDungeonConversationKnowledgeQueryHandler(
             building?.Premise,
             $"Shared route, in order: {string.Join(" → ", routeNames)}. Knows the return route outside; has no live awareness of these rooms or knowledge beyond the separation point.",
             npcSecrets.Contains(expedition.DiscoverySecretId) ? expedition.Discovery : null,
-            playerSecrets.Contains(expedition.DiscoverySecretId)
-                ? new ShareableDungeonDiscovery(expedition.Id, expedition.Discovery)
-                : null,
-            "PlayerCanShare is private player knowledge, not NPC knowledge. Only LearnedAccount establishes that the survivor received the news. When the player explicitly shares it, call share_expedition_discovery before narrating the reaction. Never infer disclosure from possession, earlier conversation summaries, or starting a conversation. A failed tool call does not establish disclosure. Sharing only reveals the news; it does not pay a reward. Once the quest is ready to complete, call show_quest_details as soon as the conversation turns to finishing it, reporting back, or reward/payment — never narrate a reward, since that would not actually grant it and would wrongly persist as fact in this NPC's memory."
+            "LearnedAccount is the only thing that establishes the survivor has learned what happened to their companion — it is set automatically once the player hands over the companion's journal, not by anything you narrate or any tool you call. Narrate the survivor's reaction only when LearnedAccount is present; never infer disclosure from the player merely possessing the journal, mentioning it, or starting a conversation. Accepting or turning in this or any other quest happens only through the player's own action outside of conversation — never narrate a quest as accepted, declined, completed, or rewarded, since that would not actually grant it and would wrongly persist as fact in this NPC's memory."
         );
     }
 }

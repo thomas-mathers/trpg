@@ -16,15 +16,12 @@ import type {
   CrimeNotification,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
-import type {
-  QuestDialogRequested,
-  QuestObjectiveCompleted,
-} from '@/api/signalr-client/TRPG.Quests.Responses';
+import type { QuestObjectiveCompleted } from '@/api/signalr-client/TRPG.Quests.Responses';
 import type { TerminalCombatOutcome } from '@/features/combat/terminal-combat-outcome';
 
 export type ConnectionStatus = 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';
 
-export type { CharacterLevelUp, QuestDialogRequested, QuestObjectiveCompleted, SkillLevelUp };
+export type { CharacterLevelUp, QuestObjectiveCompleted, SkillLevelUp };
 
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
@@ -46,7 +43,6 @@ interface GameEventMap {
   TrapEncounterResolved: TrapEncounterResolutionFact;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
-  QuestDialogRequested: QuestDialogRequested;
   QuestObjectiveCompleted: QuestObjectiveCompleted;
   QuestJournalUpdated: string | null;
   CrimeWitnessed: CrimeNotification;

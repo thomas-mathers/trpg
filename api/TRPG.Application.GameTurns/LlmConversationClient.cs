@@ -112,7 +112,7 @@ internal class LlmConversationClient(
                 .. messages,
                 new ChatMessage(
                     ChatRole.User,
-                    $"Current dungeon conversation knowledge overrides older context. PlayerCanShare is not NPC knowledge. {JsonSerializer.Serialize(knowledge, TrpgJsonOptions.Default)}"
+                    $"Current dungeon conversation knowledge overrides older context. {JsonSerializer.Serialize(knowledge, TrpgJsonOptions.Default)}"
                 ),
             ];
         }

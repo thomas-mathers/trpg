@@ -291,6 +291,7 @@ function WorkbenchProviders({
     sendPullLever: noopStream,
     sendAcceptQuest: noopStream,
     sendDeclineQuest: noopStream,
+    sendCompleteQuest: noopStream,
     sendFlee: resolveFlee,
     sendRespawn: noopStream,
     resolveUseAbilityCombatAction: (targetId, abilityName) =>

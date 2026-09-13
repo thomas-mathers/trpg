@@ -110,6 +110,7 @@ internal class ReturnRoomKeyCommandHandler(
         await transferPlayerInventory.Handle(
             new TransferPlayerInventoryCommand
             {
+                WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 To = new ItemOwnerReference(workstation.Id, OwnerType.Workstation),
                 Items = [new ItemSelection(booking.KeyItemId, 1)],

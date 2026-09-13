@@ -30,6 +30,7 @@ public interface IChatHub
     IAsyncEnumerable<string> SendPullLever(Guid leverId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendAcceptQuest(Guid questId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendDeclineQuest(Guid questId, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendCompleteQuest(Guid questId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendRespawn(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveUseAbilityCombatAction(
@@ -164,6 +165,11 @@ internal sealed class ChatHub(
         Guid questId,
         CancellationToken cancellationToken
     ) => gameTurnRunner.StreamDeclineQuest(Session, questId, cancellationToken);
+
+    public IAsyncEnumerable<string> SendCompleteQuest(
+        Guid questId,
+        CancellationToken cancellationToken
+    ) => gameTurnRunner.StreamCompleteQuest(Session, questId, cancellationToken);
 
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
         gameTurnRunner.StreamFlee(Session, cancellationToken);

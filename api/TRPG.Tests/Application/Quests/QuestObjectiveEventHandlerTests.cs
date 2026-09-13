@@ -42,6 +42,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
     [InlineData(ObjectiveKind.CollectItem)]
     [InlineData(ObjectiveKind.ExploreLocation)]
     [InlineData(ObjectiveKind.SpeakToCreature)]
+    [InlineData(ObjectiveKind.GiveItem)]
     public async Task Handle_AdvancesAndMarksReady_WhenEventMatchesObjective(ObjectiveKind kind)
     {
         // Arrange
@@ -92,8 +93,9 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
     {
         var quest = Builders.MakeQuest(_giver.Id, WorldId);
         var targetId = Guid.NewGuid();
+        var recipientId = Guid.NewGuid();
         var locationId = Guid.NewGuid();
-        var objective = MakeObjective(kind, quest.Id, targetId, locationId);
+        var objective = MakeObjective(kind, quest.Id, targetId, recipientId, locationId);
         var progress = new CreatureQuestObjective
         {
             CreatureId = _player.Id,
@@ -115,13 +117,18 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         _context.CreatureQuests.Add(creatureQuest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        return new SeededObjective(progress, creatureQuest, MakeAct(kind, targetId, locationId));
+        return new SeededObjective(
+            progress,
+            creatureQuest,
+            MakeAct(kind, targetId, recipientId, locationId)
+        );
     }
 
     private QuestObjective MakeObjective(
         ObjectiveKind kind,
         Guid questId,
         Guid targetId,
+        Guid recipientId,
         Guid locationId
     ) =>
         kind switch
@@ -156,12 +163,20 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                 QuestId = questId,
                 CreatureId = targetId,
             },
+            ObjectiveKind.GiveItem => new GiveItemObjective
+            {
+                WorldId = WorldId,
+                QuestId = questId,
+                ItemId = targetId,
+                RecipientId = recipientId,
+            },
             _ => throw new InvalidOperationException(),
         };
 
     private Func<CancellationToken, Task> MakeAct(
         ObjectiveKind kind,
         Guid targetId,
+        Guid recipientId,
         Guid locationId
     ) =>
         kind switch
@@ -212,6 +227,13 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                         new NpcConversationStartedEvent(_player.Id, WorldId, targetId),
                         cancellationToken
                     ),
+            ObjectiveKind.GiveItem => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<ItemAcquiredQuestEventHandler>()
+                    .Handle(
+                        new ItemAcquiredEvent(_player.Id, WorldId, targetId),
+                        cancellationToken
+                    ),
             _ => throw new InvalidOperationException(),
         };
 
@@ -222,6 +244,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         CollectItem,
         ExploreLocation,
         SpeakToCreature,
+        GiveItem,
     }
 
     private sealed record SeededObjective(

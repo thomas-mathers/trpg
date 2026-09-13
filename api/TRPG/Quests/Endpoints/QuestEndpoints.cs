@@ -8,6 +8,8 @@ using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
 using TRPG.Quests.Requests;
 using TRPG.Quests.Responses;
+using ApplicationQuestDialogMode = TRPG.Application.Quests.Queries.QuestDialogMode;
+using ClientQuestDialogMode = TRPG.Quests.Responses.QuestDialogMode;
 
 namespace TRPG.Quests.Endpoints;
 
@@ -25,6 +27,8 @@ internal static class QuestEndpoints
         app.MapPut("/players/{playerId:guid}/quests/{questId:guid}/tracking", SetTracking)
             .WithName("SetQuestTracking")
             .ProducesProblem(StatusCodes.Status400BadRequest);
+        app.MapGet("/players/{playerId:guid}/quest-dialog", GetQuestDialog)
+            .WithName("GetQuestDialog");
     }
 
     private static async Task<Ok<QuestJournalEntrySnapshot[]>> GetQuestJournal(
@@ -125,5 +129,52 @@ internal static class QuestEndpoints
             cancellationToken
         );
         return TypedResults.NoContent();
+    }
+
+    private static async Task<Results<Ok<QuestDialogResponse>, NoContent>> GetQuestDialog(
+        Guid playerId,
+        Guid worldId,
+        Guid giverId,
+        [FromServices]
+            IQueryHandler<GetQuestDialogForGiverQuery, QuestDialogResult?> getQuestDialog,
+        CancellationToken cancellationToken
+    )
+    {
+        var dialog = await getQuestDialog.Handle(
+            new GetQuestDialogForGiverQuery
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                GiverId = giverId,
+            },
+            cancellationToken
+        );
+
+        if (dialog is null)
+        {
+            return TypedResults.NoContent();
+        }
+
+        return TypedResults.Ok(
+            new QuestDialogResponse(
+                dialog.Quest.QuestId,
+                dialog.Quest.Name,
+                dialog.Quest.Description,
+                dialog.Quest.GoldReward,
+                dialog
+                    .Quest.Objectives.Select(objective => new QuestDialogObjective(
+                        objective.Name,
+                        objective.Description,
+                        objective.RequiredAmount
+                    ))
+                    .ToArray(),
+                dialog.Mode switch
+                {
+                    ApplicationQuestDialogMode.Offer => ClientQuestDialogMode.Offer,
+                    ApplicationQuestDialogMode.TurnIn => ClientQuestDialogMode.TurnIn,
+                    _ => throw new ArgumentOutOfRangeException(nameof(dialog.Mode)),
+                }
+            )
+        );
     }
 }

@@ -31,14 +31,14 @@ public static class ExpeditionQuestGenerator
             }
         );
 
-        var objective = new ShareSecretObjective
+        var objective = new GiveItemObjective
         {
             WorldId = expedition.WorldId,
             QuestId = quest.Id,
-            Name = $"Tell {expedition.SurvivorName} what happened to {expedition.CompanionName}",
+            Name = $"Recover {expedition.CompanionName}'s journal",
             Description =
-                $"Share the account of {expedition.CompanionName}'s final days with {expedition.SurvivorName}.",
-            SecretId = expedition.DiscoverySecretId,
+                $"Recover {expedition.CompanionName}'s journal, then bring it to {expedition.SurvivorName}.",
+            ItemId = expedition.JournalItemId,
             RecipientId = expedition.SurvivorId,
             LocationId = expedition.EntranceLocationId,
         };
