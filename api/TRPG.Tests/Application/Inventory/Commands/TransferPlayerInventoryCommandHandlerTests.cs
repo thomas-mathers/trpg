@@ -55,6 +55,7 @@ public sealed class TransferPlayerInventoryCommandHandlerTests(DatabaseFixture d
         await _handler.Handle(
             new TransferPlayerInventoryCommand
             {
+                WorldId = WorldId,
                 To = new ItemOwnerReference(_container.Id, OwnerType.Container),
                 Items = [new ItemSelection(item.Id, 1)],
                 PlayerId = _player.Id,
@@ -116,6 +117,7 @@ public sealed class TransferPlayerInventoryCommandHandlerTests(DatabaseFixture d
             _handler.Handle(
                 new TransferPlayerInventoryCommand
                 {
+                    WorldId = WorldId,
                     To = new ItemOwnerReference(_container.Id, OwnerType.Container),
                     Items = [new ItemSelection(item.Id, 1)],
                     PlayerId = _player.Id,
@@ -123,5 +125,40 @@ public sealed class TransferPlayerInventoryCommandHandlerTests(DatabaseFixture d
                 TestContext.Current.CancellationToken
             )
         );
+    }
+
+    [Fact]
+    public async Task Handle_MovesSelectedItems_FromPlayerToCreature()
+    {
+        // Arrange
+        var recipient = Builders.MakeCreature(WorldId, locationId: LocationId);
+        var item = Builders.MakeWeapon(WorldId);
+        item.Quantity = 1;
+        item.Ownership.OwnerId = _player.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        _context.Creatures.Add(recipient);
+        _context.Items.Add(item);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new TransferPlayerInventoryCommand
+            {
+                WorldId = WorldId,
+                To = new ItemOwnerReference(recipient.Id, OwnerType.Creature),
+                Items = [new ItemSelection(item.Id, 1)],
+                PlayerId = _player.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var movedItem = await verifyContext.Items.SingleAsync(
+            movedItem => movedItem.Id == item.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(recipient.Id, movedItem.Ownership.OwnerId);
+        Assert.Equal(OwnerType.Creature, movedItem.Ownership.OwnerType);
     }
 }

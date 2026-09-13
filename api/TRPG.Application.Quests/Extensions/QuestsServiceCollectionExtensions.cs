@@ -29,9 +29,9 @@ public static class QuestsServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedQuestEventHandler>()
             )
-            .AddTransient<SecretSharedQuestEventHandler>()
-            .AddTransient<IDomainEventConsumer<SecretSharedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<SecretSharedQuestEventHandler>()
+            .AddTransient<ItemGivenToCreatureQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<ItemGivenToCreatureEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<ItemGivenToCreatureQuestEventHandler>()
             )
             .AddTransient<CreatureFreedQuestEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureFreedEvent>>(serviceProvider =>

@@ -10,13 +10,12 @@ import {
   GameHubConnectionContext,
   type GameHubConnection,
 } from '@/features/game/hooks/use-game-hub-connection';
-import { gameEventBus, type QuestDialogRequested } from '@/lib/game-event-bus';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
-import { QuestDialog } from './quest-dialog';
+import { QuestDialog, type QuestDialogState } from './quest-dialog';
 
-const offerQuest: QuestDialogRequested = {
+const offerQuest: QuestDialogState = {
   worldId: 'world-id',
   questId: 'quest-id',
   name: 'A Dangerous Delivery',
@@ -32,7 +31,7 @@ const offerQuest: QuestDialogRequested = {
   mode: 'Offer',
 };
 
-const turnInQuest: QuestDialogRequested = { ...offerQuest, mode: 'TurnIn' };
+const turnInQuest: QuestDialogState = { ...offerQuest, mode: 'TurnIn' };
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
@@ -55,7 +54,7 @@ function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
 }
 
 function renderDialog(
-  quest: QuestDialogRequested | null,
+  quest: QuestDialogState | null,
   onClose: () => void,
   chatHubOverrides: Partial<IChatHub> = {},
 ) {
@@ -130,15 +129,5 @@ describe('QuestDialog', () => {
 
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(requestUrl?.searchParams.get('worldId')).toBe('world-id');
-  });
-
-  it('renders when requested through the game event bus', async () => {
-    const listener = vi.fn();
-    const unsubscribe = gameEventBus.on('QuestDialogRequested', listener);
-
-    gameEventBus.emit('QuestDialogRequested', offerQuest);
-
-    expect(listener).toHaveBeenCalledWith(offerQuest);
-    unsubscribe();
   });
 });

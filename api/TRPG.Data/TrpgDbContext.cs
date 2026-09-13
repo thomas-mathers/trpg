@@ -532,7 +532,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<CollectItemObjective>("CollectItem")
                 .HasValue<ExploreLocationObjective>("ExploreLocation")
                 .HasValue<SpeakToCreatureObjective>("SpeakToCreature")
-                .HasValue<ShareSecretObjective>("ShareSecret")
+                .HasValue<GiveItemObjective>("GiveItem")
                 .HasValue<FreeCreatureObjective>("FreeCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);

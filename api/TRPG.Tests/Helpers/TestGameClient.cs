@@ -26,7 +26,6 @@ internal sealed class TestGameClient : IGameClient
     public Action<TheftEncounterResolutionFact>? OnTheftEncounterResolved { get; set; }
     public Action<SkillLevelUp>? OnSkillLevelUp { get; set; }
     public Action<CharacterLevelUp>? OnCharacterLevelUp { get; set; }
-    public Action<QuestDialogRequested>? OnQuestDialogRequested { get; set; }
     public Action<QuestObjectiveCompleted>? OnQuestObjectiveCompleted { get; set; }
     public Action<QuestJournalUpdated>? OnQuestJournalUpdated { get; set; }
     public Action<CrimeNotification>? OnCrimeWitnessed { get; set; }
@@ -119,12 +118,6 @@ internal sealed class TestGameClient : IGameClient
     public Task CharacterLevelUp(CharacterLevelUp characterLevelUp)
     {
         OnCharacterLevelUp?.Invoke(characterLevelUp);
-        return Task.CompletedTask;
-    }
-
-    public Task QuestDialogRequested(QuestDialogRequested questDialog)
-    {
-        OnQuestDialogRequested?.Invoke(questDialog);
         return Task.CompletedTask;
     }
 

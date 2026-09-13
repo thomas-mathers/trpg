@@ -8,10 +8,10 @@ import { DeathRespawnEffect } from '@/features/combat/hooks/use-death-respawn';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
 import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
-import { gameEventBus, type QuestDialogRequested } from '../../../lib/game-event-bus';
+import { gameEventBus } from '../../../lib/game-event-bus';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
-import { QuestDialog } from '../../quests/components/quest-dialog';
+import { QuestDialog, type QuestDialogState } from '../../quests/components/quest-dialog';
 import { QuestJournalDialog } from '../../quests/components/quest-journal-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
 import { MapDialog } from '../../worlds/components/map-dialog';
@@ -128,9 +128,7 @@ function GameScreenContent({
   const playerId = usePlayerId();
   const scene = useScene();
   const queryClient = useQueryClient();
-  const [questDialog, setQuestDialog] = useState<QuestDialogRequested | null>(null);
-
-  useEffect(() => gameEventBus.on('QuestDialogRequested', setQuestDialog), []);
+  const [questDialog, setQuestDialog] = useState<QuestDialogState | null>(null);
 
   useEffect(
     () =>
@@ -191,7 +189,10 @@ function GameScreenContent({
             <GameChat />
           </SidebarInset>
 
-          <NearbySidebar onOpenQuestJournal={() => onOpenDialog('questJournal')} />
+          <NearbySidebar
+            onOpenQuestJournal={() => onOpenDialog('questJournal')}
+            onQuestDialogRequested={setQuestDialog}
+          />
         </div>
 
         {playerId && (

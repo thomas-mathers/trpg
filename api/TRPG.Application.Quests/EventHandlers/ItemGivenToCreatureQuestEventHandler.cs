@@ -3,20 +3,21 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.EventHandlers;
 
-internal sealed class SecretSharedQuestEventHandler(QuestObjectiveAdvancer questObjectiveAdvancer)
-    : IDomainEventConsumer<SecretSharedEvent>
+internal sealed class ItemGivenToCreatureQuestEventHandler(
+    QuestObjectiveAdvancer questObjectiveAdvancer
+) : IDomainEventConsumer<ItemGivenToCreatureEvent>
 {
     public Task Handle(
-        SecretSharedEvent domainEvent,
+        ItemGivenToCreatureEvent domainEvent,
         CancellationToken cancellationToken = default
     ) =>
         questObjectiveAdvancer.Advance(
             domainEvent.PlayerId,
             domainEvent.WorldId,
             objective =>
-                objective is ShareSecretObjective share
-                && share.SecretId == domainEvent.SecretId
-                && share.RecipientId == domainEvent.RecipientId,
+                objective is GiveItemObjective give
+                && give.ItemId == domainEvent.ItemId
+                && give.RecipientId == domainEvent.RecipientId,
             cancellationToken
         );
 }

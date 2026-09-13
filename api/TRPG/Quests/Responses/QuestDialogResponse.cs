@@ -11,8 +11,7 @@ public enum QuestDialogMode
 public record QuestDialogObjective(string Name, string Description, int RequiredAmount);
 
 [Tapper.TranspilationSource]
-public record QuestDialogRequested(
-    Guid WorldId,
+public record QuestDialogResponse(
     Guid QuestId,
     string Name,
     string Description,

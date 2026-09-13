@@ -10,7 +10,6 @@ using TRPG.Data;
 using TRPG.Extensions;
 using TRPG.GameSessions.Commands;
 using TRPG.NpcConversations.Tools;
-using TRPG.Quests.Tools;
 
 namespace TRPG.Tests.Helpers;
 
@@ -32,8 +31,6 @@ internal static class TestServiceCollectionExtensions
         return services
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
-            .AddGameTool<ShareExpeditionDiscoveryTool>()
-            .AddGameTool<ShowQuestDetailsTool>()
             .AddTransient<EndGameSessionCommandHandler>()
             .AddScoped<TestGameClientEventSink>()
             .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<TestGameClientEventSink>())

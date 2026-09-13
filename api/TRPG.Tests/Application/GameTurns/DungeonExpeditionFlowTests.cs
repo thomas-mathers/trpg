@@ -4,17 +4,15 @@ using TRPG.Application.Books.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameTurns;
-using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.GameTurns.Queries;
+using TRPG.Application.Inventory;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.LocationSimulation.Commands;
-using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
-using TRPG.NpcConversations.Tools;
 using TRPG.Tests.Helpers;
-using TRPG.Tools;
 
 namespace TRPG.Tests.Application.GameTurns;
 
@@ -27,7 +25,6 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
     private readonly Creature _survivor;
     private readonly Creature _companion;
     private readonly DungeonExpedition _expedition;
-    private readonly GameSession _session;
     private TrpgDbContext _context = null!;
     private ServiceProvider _services = null!;
 
@@ -38,7 +35,6 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
         _survivor = Builders.MakeCreature(WorldId, locationId: _location.Id, name: "Survivor");
         _companion = Builders.MakeCreature(WorldId, state: CreatureState.Dead, name: "Companion");
         _expedition = Builders.MakeDungeonExpedition(_survivor, _companion);
-        _session = Builders.MakeGameSession(WorldId, _player.Id);
     }
 
     public async ValueTask InitializeAsync()
@@ -48,10 +44,8 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
         var turnContext = _services.GetRequiredService<GameTurnContext>();
         turnContext.WorldId = WorldId;
         turnContext.PlayerId = _player.Id;
-        turnContext.SessionId = _session.Id;
         _context.Locations.Add(_location);
         _context.Creatures.AddRange(_player, _survivor, _companion);
-        _context.GameSessions.Add(_session);
         _context.DungeonExpeditions.Add(_expedition);
         _context.BookWorks.Add(Builders.MakeExpeditionWork(_expedition));
         _context.BookPages.Add(Builders.MakeExpeditionPage(_expedition));
@@ -62,205 +56,6 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
     {
         await _services.DisposeAsync();
         await _context.DisposeAsync();
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Share_PersistsOnlyAfterExplicitDisclosure_WhenDiscoveryOrderVaries(
-        bool readFirst
-    )
-    {
-        // Arrange
-        if (readFirst)
-            await ReadJournal();
-        await OpenConversation();
-        if (!readFirst)
-            await ReadJournal();
-        var before = await Knowledge();
-        Assert.NotNull(before?.PlayerCanShare);
-        Assert.Null(before.LearnedAccount);
-
-        // Act
-        var result = await _services
-            .GetRequiredService<
-                ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-            >()
-            .Handle(
-                new ShareExpeditionDiscoveryCommand(
-                    WorldId: WorldId,
-                    SessionId: _session.Id,
-                    PlayerId: _player.Id,
-                    ExpeditionId: _expedition.Id
-                ),
-                TestContext.Current.CancellationToken
-            );
-
-        // Assert
-        Assert.Equal(_expedition.Discovery, result?.LearnedAccount);
-        await using var verification = _database.CreateContext();
-        Assert.Single(
-            await verification
-                .CreatureKnowledge.Where(knowledge => knowledge.KnowerId == _survivor.Id)
-                .ToArrayAsync(TestContext.Current.CancellationToken)
-        );
-        Assert.False(
-            await verification.CreatureKnowledge.AnyAsync(
-                knowledge =>
-                    knowledge.KnowerId == _player.Id
-                    && knowledge.SubjectType == KnowledgeSubjectType.Room,
-                TestContext.Current.CancellationToken
-            )
-        );
-    }
-
-    [Fact]
-    public async Task Share_DoesNotDuplicateKnowledge_WhenRepeated()
-    {
-        // Arrange
-        await ReadJournal();
-        await OpenConversation();
-        await _services
-            .GetRequiredService<
-                ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-            >()
-            .Handle(
-                new ShareExpeditionDiscoveryCommand(
-                    WorldId: WorldId,
-                    SessionId: _session.Id,
-                    PlayerId: _player.Id,
-                    ExpeditionId: _expedition.Id
-                ),
-                TestContext.Current.CancellationToken
-            );
-
-        // Act
-        await _services
-            .GetRequiredService<
-                ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-            >()
-            .Handle(
-                new ShareExpeditionDiscoveryCommand(
-                    WorldId: WorldId,
-                    SessionId: _session.Id,
-                    PlayerId: _player.Id,
-                    ExpeditionId: _expedition.Id
-                ),
-                TestContext.Current.CancellationToken
-            );
-
-        // Assert
-        Assert.Equal(
-            1,
-            await _context.CreatureKnowledge.CountAsync(
-                knowledge => knowledge.KnowerId == _survivor.Id,
-                TestContext.Current.CancellationToken
-            )
-        );
-    }
-
-    [Fact]
-    public async Task Share_RejectsDisclosure_WhenJournalWasNotRead()
-    {
-        // Arrange
-        await OpenConversation();
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _services
-                .GetRequiredService<
-                    ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-                >()
-                .Handle(
-                    new ShareExpeditionDiscoveryCommand(
-                        WorldId: WorldId,
-                        SessionId: _session.Id,
-                        PlayerId: _player.Id,
-                        ExpeditionId: _expedition.Id
-                    ),
-                    TestContext.Current.CancellationToken
-                )
-        );
-    }
-
-    [Fact]
-    public async Task Share_RejectsDisclosure_WhenConversationIsNotOpen()
-    {
-        // Arrange
-        await ReadJournal();
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _services
-                .GetRequiredService<
-                    ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-                >()
-                .Handle(
-                    new ShareExpeditionDiscoveryCommand(
-                        WorldId: WorldId,
-                        SessionId: _session.Id,
-                        PlayerId: _player.Id,
-                        ExpeditionId: _expedition.Id
-                    ),
-                    TestContext.Current.CancellationToken
-                )
-        );
-    }
-
-    [Theory]
-    [InlineData(CreatureState.Dead)]
-    [InlineData(CreatureState.Sleeping)]
-    public async Task Share_RejectsDisclosure_WhenSurvivorCannotConverse(CreatureState state)
-    {
-        // Arrange
-        await ReadJournal();
-        await OpenConversation();
-        _survivor.State = state;
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _services
-                .GetRequiredService<
-                    ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-                >()
-                .Handle(
-                    new ShareExpeditionDiscoveryCommand(
-                        WorldId: WorldId,
-                        SessionId: _session.Id,
-                        PlayerId: _player.Id,
-                        ExpeditionId: _expedition.Id
-                    ),
-                    TestContext.Current.CancellationToken
-                )
-        );
-    }
-
-    [Fact]
-    public async Task Share_RejectsDisclosure_WhenSurvivorHasMovedAway()
-    {
-        // Arrange
-        await ReadJournal();
-        await OpenConversation();
-        _survivor.LocationId = Guid.NewGuid();
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _services
-                .GetRequiredService<
-                    ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-                >()
-                .Handle(
-                    new ShareExpeditionDiscoveryCommand(
-                        WorldId: WorldId,
-                        SessionId: _session.Id,
-                        PlayerId: _player.Id,
-                        ExpeditionId: _expedition.Id
-                    ),
-                    TestContext.Current.CancellationToken
-                )
-        );
     }
 
     [Fact]
@@ -312,71 +107,122 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
         );
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Invoke_ReturnsValidatedOutcome_WhenPlayerSharesJournal(bool hasRead)
+    [Fact]
+    public async Task GiveJournal_TeachesTheSurvivorTheAccount()
     {
         // Arrange
-        await OpenConversation();
-        if (hasRead)
-            await ReadJournal();
-        var tool = _services.GetRequiredService<ShareExpeditionDiscoveryTool>();
-        var invoke = (Func<Guid, CancellationToken, Task<object?>>)tool.Invoke;
+        await GiveJournalToPlayer();
 
         // Act
-        var result = await invoke(_expedition.Id, TestContext.Current.CancellationToken);
-
-        // Assert
-        if (hasRead)
-            Assert.NotNull(Assert.IsType<DungeonConversationKnowledge>(result).LearnedAccount);
-        else
-            Assert.IsType<ToolError>(result);
-    }
-
-    [Fact]
-    public async Task Handle_RefreshesShareableKnowledge_WhenJournalIsReadDuringConversation()
-    {
-        // Arrange
-        await OpenConversation();
-        await ReadJournal();
-
-        // Act
-        var result = await _services
-            .GetRequiredService<
-                IQueryHandler<
-                    GetOpenDungeonConversationKnowledgeQuery,
-                    IReadOnlyList<DungeonConversationKnowledge>
-                >
-            >()
-            .Handle(
-                new GetOpenDungeonConversationKnowledgeQuery(
-                    WorldId: WorldId,
-                    SessionId: _session.Id,
-                    PlayerId: _player.Id
-                ),
-                TestContext.Current.CancellationToken
-            );
-
-        // Assert
-        Assert.NotNull(Assert.Single(result).PlayerCanShare);
-        Assert.Null(result[0].LearnedAccount);
-    }
-
-    [Fact]
-    public async Task Handle_DoesNotTeachDiscovery_WhenPageIsPrefetched()
-    {
-        // Act
-        await _services
-            .GetRequiredService<ICommandHandler<EnsureBookPageCommand, string>>()
-            .Handle(
-                new EnsureBookPageCommand { WorkId = _expedition.JournalWorkId, PageNumber = 1 },
-                TestContext.Current.CancellationToken
-            );
+        await GiveJournalToSurvivor();
 
         // Assert
         var knowledge = await Knowledge();
-        Assert.Null(knowledge?.PlayerCanShare);
+        Assert.Equal(_expedition.Discovery, knowledge?.LearnedAccount);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotTeachTheSurvivor_WhenJournalIsOnlyRead()
+    {
+        // Arrange
+        await GiveJournalToPlayer();
+
+        // Act
+        await ReadJournal();
+
+        // Assert
+        var knowledge = await Knowledge();
+        Assert.Null(knowledge?.LearnedAccount);
+    }
+
+    [Fact]
+    public async Task CompleteQuest_PaysGoldAndReputation_AfterGivingTheJournalToTheSurvivor()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(_survivor.Id, WorldId);
+        quest.ReputationRewards.Add(
+            new QuestReputationReward
+            {
+                WorldId = WorldId,
+                QuestId = quest.Id,
+                TargetId = _survivor.Id,
+                TargetType = ReputationTargetType.Creature,
+                Score = 20,
+            }
+        );
+        var objective = Builders.MakeGiveItemObjective(
+            quest.Id,
+            _expedition.JournalItemId,
+            _survivor.Id,
+            WorldId
+        );
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _services
+            .GetRequiredService<ICommandHandler<AcceptQuestCommand>>()
+            .Handle(
+                new AcceptQuestCommand
+                {
+                    PlayerId = _player.Id,
+                    QuestId = quest.Id,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            );
+        await GiveJournalToPlayer();
+
+        // Act
+        await GiveJournalToSurvivor();
+
+        // Assert
+        await using var afterGiving = _database.CreateContext();
+        var creatureQuest = await afterGiving.CreatureQuests.SingleAsync(
+            creatureQuest =>
+                creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(QuestStatus.ReadyToComplete, creatureQuest.Status);
+
+        await _services
+            .GetRequiredService<ICommandHandler<CompleteQuestCommand>>()
+            .Handle(
+                new CompleteQuestCommand
+                {
+                    PlayerId = _player.Id,
+                    QuestId = quest.Id,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            );
+
+        await using var afterCompletion = _database.CreateContext();
+        Assert.Equal(
+            QuestStatus.Completed,
+            await afterCompletion
+                .CreatureQuests.Where(creatureQuest =>
+                    creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id
+                )
+                .Select(creatureQuest => creatureQuest.Status)
+                .SingleAsync(TestContext.Current.CancellationToken)
+        );
+        var gold = await afterCompletion
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                item => item.Ownership.OwnerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(quest.GoldReward, gold.Quantity);
+        Assert.True(
+            await afterCompletion.Reputations.AnyAsync(
+                reputation =>
+                    reputation.CreatureId == _player.Id
+                    && reputation.TargetId == _survivor.Id
+                    && reputation.TargetType == ReputationTargetType.Creature
+                    && reputation.Score == 20,
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 
     [Fact]
@@ -441,136 +287,32 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
         Assert.Equal(_expedition.CompanionName, result.Author);
     }
 
-    [Fact]
-    public async Task Share_RejectsDisclosure_WhenSessionBelongsToAnotherPlayer()
+    private async Task GiveJournalToPlayer()
     {
-        // Arrange
-        await ReadJournal();
-        await OpenConversation();
-        var otherSession = Builders.MakeGameSession(WorldId, _survivor.Id);
-        _context.GameSessions.Add(otherSession);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _services
-                .GetRequiredService<
-                    ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-                >()
-                .Handle(
-                    new ShareExpeditionDiscoveryCommand(
-                        WorldId: WorldId,
-                        SessionId: otherSession.Id,
-                        PlayerId: _player.Id,
-                        ExpeditionId: _expedition.Id
-                    ),
-                    TestContext.Current.CancellationToken
-                )
+        var book = Builders.MakeBook(
+            _expedition.JournalWorkId,
+            id: _expedition.JournalItemId,
+            worldId: WorldId
         );
+        book.Ownership.OwnerId = _player.Id;
+        book.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(book);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    [Fact]
-    public async Task CompleteQuest_PaysGoldAndReputation_AfterSharingTheSecretWithTheSurvivor()
-    {
-        // Arrange
-        var quest = Builders.MakeQuest(_survivor.Id, WorldId);
-        quest.ReputationRewards.Add(
-            new QuestReputationReward
-            {
-                WorldId = WorldId,
-                QuestId = quest.Id,
-                TargetId = _survivor.Id,
-                TargetType = ReputationTargetType.Creature,
-                Score = 20,
-            }
-        );
-        var objective = Builders.MakeShareSecretObjective(
-            quest.Id,
-            _expedition.DiscoverySecretId,
-            _survivor.Id,
-            WorldId
-        );
-        _context.Quests.Add(quest);
-        _context.QuestObjectives.Add(objective);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _services
-            .GetRequiredService<ICommandHandler<AcceptQuestCommand>>()
+    private Task GiveJournalToSurvivor() =>
+        _services
+            .GetRequiredService<ICommandHandler<TransferPlayerInventoryCommand>>()
             .Handle(
-                new AcceptQuestCommand
+                new TransferPlayerInventoryCommand
                 {
-                    PlayerId = _player.Id,
-                    QuestId = quest.Id,
                     WorldId = WorldId,
+                    To = new ItemOwnerReference(_survivor.Id, OwnerType.Creature),
+                    Items = [new ItemSelection(_expedition.JournalItemId, 1)],
+                    PlayerId = _player.Id,
                 },
                 TestContext.Current.CancellationToken
             );
-        await ReadJournal();
-        await OpenConversation();
-
-        // Act
-        await _services
-            .GetRequiredService<
-                ICommandHandler<ShareExpeditionDiscoveryCommand, DungeonConversationKnowledge?>
-            >()
-            .Handle(
-                new ShareExpeditionDiscoveryCommand(
-                    WorldId: WorldId,
-                    SessionId: _session.Id,
-                    PlayerId: _player.Id,
-                    ExpeditionId: _expedition.Id
-                ),
-                TestContext.Current.CancellationToken
-            );
-
-        // Assert
-        await using var afterSharing = _database.CreateContext();
-        var creatureQuest = await afterSharing.CreatureQuests.SingleAsync(
-            creatureQuest =>
-                creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(QuestStatus.ReadyToComplete, creatureQuest.Status);
-
-        await _services
-            .GetRequiredService<ICommandHandler<CompleteQuestCommand>>()
-            .Handle(
-                new CompleteQuestCommand
-                {
-                    PlayerId = _player.Id,
-                    QuestId = quest.Id,
-                    WorldId = WorldId,
-                },
-                TestContext.Current.CancellationToken
-            );
-
-        await using var afterCompletion = _database.CreateContext();
-        Assert.Equal(
-            QuestStatus.Completed,
-            await afterCompletion
-                .CreatureQuests.Where(creatureQuest =>
-                    creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id
-                )
-                .Select(creatureQuest => creatureQuest.Status)
-                .SingleAsync(TestContext.Current.CancellationToken)
-        );
-        var gold = await afterCompletion
-            .Items.OfType<Gold>()
-            .SingleAsync(
-                item => item.Ownership.OwnerId == _player.Id,
-                TestContext.Current.CancellationToken
-            );
-        Assert.Equal(quest.GoldReward, gold.Quantity);
-        Assert.True(
-            await afterCompletion.Reputations.AnyAsync(
-                reputation =>
-                    reputation.CreatureId == _player.Id
-                    && reputation.TargetId == _survivor.Id
-                    && reputation.TargetType == ReputationTargetType.Creature
-                    && reputation.Score == 20,
-                TestContext.Current.CancellationToken
-            )
-        );
-    }
 
     private Task<ReadBookPageResult> ReadJournal() =>
         _services
@@ -582,23 +324,6 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
                     ReaderId = _player.Id,
                     WorkId = _expedition.JournalWorkId,
                     PageNumber = 1,
-                },
-                TestContext.Current.CancellationToken
-            );
-
-    private Task<OpenNpcConversationResult> OpenConversation() =>
-        _services
-            .GetRequiredService<
-                ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult>
-            >()
-            .Handle(
-                new OpenNpcConversationCommand
-                {
-                    WorldId = WorldId,
-                    SessionId = _session.Id,
-                    PlayerId = _player.Id,
-                    NpcId = _survivor.Id,
-                    NpcName = _survivor.Name,
                 },
                 TestContext.Current.CancellationToken
             );

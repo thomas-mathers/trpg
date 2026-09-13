@@ -29,7 +29,6 @@ using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Tools;
 using TRPG.NpcConversations.Tools;
-using TRPG.Quests.Tools;
 using TRPG.RoomBookings.Tools;
 using TRPG.Tools;
 using TRPG.Worlds.Jobs;
@@ -62,11 +61,9 @@ internal static class ServiceCollectionExtensions
             .AddTrpgJobs(configuration)
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<InventoryTool>()
-            .AddGameTool<ShowQuestDetailsTool>()
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
-            .AddGameTool<ShareExpeditionDiscoveryTool>()
             .AddGameTool<BookRoomTool>()
             .AddGameTool<ReturnRoomKeyTool>()
             .AddExceptionHandler<GlobalExceptionHandler>()

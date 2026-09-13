@@ -44,6 +44,7 @@ internal class CompleteTradeCommandHandler(
         await transferInventory.Handle(
             new TransferPlayerInventoryCommand
             {
+                WorldId = command.WorldId,
                 To = validation.ShopOwner,
                 Items = command.PlayerOffer,
                 PlayerId = command.PlayerId,

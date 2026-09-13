@@ -1,11 +1,13 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
 public class TransferPlayerInventoryCommand
 {
+    public required Guid WorldId { get; init; }
     public required ItemOwnerReference To { get; init; }
     public required IReadOnlyList<ItemSelection> Items { get; init; }
     public required Guid PlayerId { get; init; }
@@ -16,7 +18,8 @@ internal class TransferPlayerInventoryCommandHandler(
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
     > transferInventoryItems,
-    TradeGuard tradeGuard
+    TradeGuard tradeGuard,
+    IDomainEventPublisher<ItemGivenToCreatureEvent> itemGivenToCreature
 ) : ICommandHandler<TransferPlayerInventoryCommand>
 {
     public async Task Handle(
@@ -48,6 +51,22 @@ internal class TransferPlayerInventoryCommandHandler(
             },
             cancellationToken
         );
+
+        if (command.To.Type == OwnerType.Creature)
+        {
+            foreach (var item in command.Items)
+            {
+                await itemGivenToCreature.Publish(
+                    new ItemGivenToCreatureEvent(
+                        command.PlayerId,
+                        command.WorldId,
+                        item.ItemId,
+                        command.To.Id
+                    ),
+                    cancellationToken
+                );
+            }
+        }
 
         transaction.Complete();
     }

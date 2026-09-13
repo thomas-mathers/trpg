@@ -7,6 +7,7 @@ import type { QuestJournalEntrySnapshot, TradeSnapshot } from '@/api/client';
 import {
   handleGetContainerInventory,
   handleGetCreatureInventory,
+  handleGetQuestDialog,
   handleGetQuestJournal,
   handleGetTrade,
   handleGetWorkstationInventory,
@@ -75,7 +76,10 @@ function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
   };
 }
 
-function renderPanel(sceneSnapshot: SceneSnapshot) {
+function renderPanel(
+  sceneSnapshot: SceneSnapshot,
+  onQuestDialogRequested: (dialog: unknown) => void = () => {},
+) {
   const chatHub = buildChatHub();
   const gameChat = buildGameChat();
   const hubConnection: GameHubConnection = {
@@ -88,7 +92,11 @@ function renderPanel(sceneSnapshot: SceneSnapshot) {
     <SceneContext.Provider value={sceneSnapshot}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <GameChatContext.Provider value={gameChat}>
-          <NearbyPanel scene={sceneSnapshot} onOpenQuestJournal={() => {}} />
+          <NearbyPanel
+            scene={sceneSnapshot}
+            onOpenQuestJournal={() => {}}
+            onQuestDialogRequested={onQuestDialogRequested}
+          />
         </GameChatContext.Provider>
       </GameHubConnectionContext.Provider>
     </SceneContext.Provider>,
@@ -250,6 +258,46 @@ describe('NearbyPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Transfer Items' })).toBeVisible();
     expect(screen.getByRole('region', { name: "Trading Counter's inventory" })).toBeVisible();
+  });
+
+  it('requests the quest dialog for a nearby creature with a quest marker', async () => {
+    server.use(
+      handleGetQuestDialog({
+        body: {
+          questId: 'quest-id',
+          name: 'A Dangerous Delivery',
+          description: 'Help with a dangerous errand.',
+          goldReward: 100,
+          objectives: [],
+          mode: 'Offer',
+        },
+      }),
+    );
+    const sceneWithQuestGiver = {
+      ...scene(undefined),
+      nearbyCreatures: [
+        {
+          id: 'giver-id',
+          name: 'Giver',
+          creatureType: 'Human',
+          level: 1,
+          state: 'Idle',
+          reputation: null,
+          questMarker: 'Available',
+        },
+      ],
+    } as unknown as SceneSnapshot;
+    const onQuestDialogRequested = vi.fn();
+    const { user } = renderPanel(sceneWithQuestGiver, onQuestDialogRequested);
+
+    await user.click(screen.getByRole('button', { name: 'Actions for Giver' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Quest' }));
+
+    await waitFor(() =>
+      expect(onQuestDialogRequested).toHaveBeenCalledWith(
+        expect.objectContaining({ questId: 'quest-id', mode: 'Offer', worldId: 'world-id' }),
+      ),
+    );
   });
 
   it('opens the sleep dialog from a nearby bed', async () => {

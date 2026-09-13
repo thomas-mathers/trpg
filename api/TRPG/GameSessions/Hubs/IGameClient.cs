@@ -25,7 +25,6 @@ public interface IGameClient
     Task TheftEncounterResolved(TheftEncounterResolutionFact fact);
     Task SkillLevelUp(SkillLevelUp skillLevelUp);
     Task CharacterLevelUp(CharacterLevelUp characterLevelUp);
-    Task QuestDialogRequested(QuestDialogRequested questDialog);
     Task QuestObjectiveCompleted(QuestObjectiveCompleted objective);
     Task QuestJournalUpdated(QuestJournalUpdated questJournal);
     Task CrimeWitnessed(CrimeNotification notification);

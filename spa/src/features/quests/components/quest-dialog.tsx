@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { completeQuestMutation, getQuestJournalQueryKey } from '@/api/client';
+import type { QuestDialogResponse } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,11 +15,12 @@ import { NarrationText } from '@/features/game/components/narration-text';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { parseNarrationMarkup } from '@/features/game/narration-markup';
-import type { QuestDialogRequested } from '@/lib/game-event-bus';
+
+export type QuestDialogState = QuestDialogResponse & { worldId: string };
 
 interface QuestDialogProps {
   playerId: string;
-  quest: QuestDialogRequested | null;
+  quest: QuestDialogState | null;
   onClose: () => void;
 }
 
