@@ -52,12 +52,21 @@ internal class AcceptQuestCommandHandler(
             .Select(objective => objective.Id)
             .ToArrayAsync(cancellationToken);
 
-        var requiredItemIds = await context
+        var collectItemIds = await context
             .QuestObjectives.AsNoTracking()
             .OfType<CollectItemObjective>()
             .Where(objective => objective.QuestId == quest.Id)
             .Select(objective => objective.ItemId)
             .ToArrayAsync(cancellationToken);
+
+        var giveItemIds = await context
+            .QuestObjectives.AsNoTracking()
+            .OfType<GiveItemObjective>()
+            .Where(objective => objective.QuestId == quest.Id)
+            .Select(objective => objective.ItemId)
+            .ToArrayAsync(cancellationToken);
+
+        var requiredItemIds = collectItemIds.Concat(giveItemIds).ToArray();
 
         context.CreatureQuests.Add(
             new CreatureQuest

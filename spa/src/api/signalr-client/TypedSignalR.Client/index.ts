@@ -116,6 +116,10 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("SendDeclineQuest", questId);
     }
 
+    public readonly sendCompleteQuest = (questId: string): IStreamResult<string> => {
+        return this.connection.stream("SendCompleteQuest", questId);
+    }
+
     public readonly sendFlee = (): IStreamResult<string> => {
         return this.connection.stream("SendFlee");
     }

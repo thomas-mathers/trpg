@@ -136,7 +136,36 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
     }
 
     [Fact]
-    public async Task CompleteQuest_PaysGoldAndReputation_AfterGivingTheJournalToTheSurvivor()
+    public async Task AcceptQuest_MarksReadyToComplete_AssoonAsThePlayerRecoversTheJournal()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(_survivor.Id, WorldId);
+        var objective = Builders.MakeGiveItemObjective(
+            quest.Id,
+            _expedition.JournalItemId,
+            _survivor.Id,
+            WorldId
+        );
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await AcceptQuest(quest.Id);
+
+        // Act
+        await AcquireJournal();
+
+        // Assert
+        await using var verification = _database.CreateContext();
+        var creatureQuest = await verification.CreatureQuests.SingleAsync(
+            creatureQuest =>
+                creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(QuestStatus.ReadyToComplete, creatureQuest.Status);
+    }
+
+    [Fact]
+    public async Task CompleteQuest_GivesTheJournalToTheSurvivor_AndPaysGoldAndReputation()
     {
         // Arrange
         var quest = Builders.MakeQuest(_survivor.Id, WorldId);
@@ -159,31 +188,10 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
         _context.Quests.Add(quest);
         _context.QuestObjectives.Add(objective);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _services
-            .GetRequiredService<ICommandHandler<AcceptQuestCommand>>()
-            .Handle(
-                new AcceptQuestCommand
-                {
-                    PlayerId = _player.Id,
-                    QuestId = quest.Id,
-                    WorldId = WorldId,
-                },
-                TestContext.Current.CancellationToken
-            );
-        await GiveJournalToPlayer();
+        await AcceptQuest(quest.Id);
+        await AcquireJournal();
 
         // Act
-        await GiveJournalToSurvivor();
-
-        // Assert
-        await using var afterGiving = _database.CreateContext();
-        var creatureQuest = await afterGiving.CreatureQuests.SingleAsync(
-            creatureQuest =>
-                creatureQuest.CreatureId == _player.Id && creatureQuest.QuestId == quest.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(QuestStatus.ReadyToComplete, creatureQuest.Status);
-
         await _services
             .GetRequiredService<ICommandHandler<CompleteQuestCommand>>()
             .Handle(
@@ -196,6 +204,7 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
                 TestContext.Current.CancellationToken
             );
 
+        // Assert
         await using var afterCompletion = _database.CreateContext();
         Assert.Equal(
             QuestStatus.Completed,
@@ -206,6 +215,14 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
                 .Select(creatureQuest => creatureQuest.Status)
                 .SingleAsync(TestContext.Current.CancellationToken)
         );
+        var journal = await afterCompletion.Items.SingleAsync(
+            item => item.Id == _expedition.JournalItemId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_survivor.Id, journal.Ownership.OwnerId);
+        Assert.Equal(OwnerType.Creature, journal.Ownership.OwnerType);
+        var knowledge = await Knowledge();
+        Assert.Equal(_expedition.Discovery, knowledge?.LearnedAccount);
         var gold = await afterCompletion
             .Items.OfType<Gold>()
             .SingleAsync(
@@ -313,6 +330,48 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
                 },
                 TestContext.Current.CancellationToken
             );
+
+    private Task AcceptQuest(Guid questId) =>
+        _services
+            .GetRequiredService<ICommandHandler<AcceptQuestCommand>>()
+            .Handle(
+                new AcceptQuestCommand
+                {
+                    PlayerId = _player.Id,
+                    QuestId = questId,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            );
+
+    // Simulates looting the journal from a corpse: the item starts owned by an arbitrary
+    // non-player owner, and receiving it into the player's inventory is what fires
+    // ItemAcquiredEvent to advance the quest objective.
+    private async Task AcquireJournal()
+    {
+        var book = Builders.MakeBook(
+            _expedition.JournalWorkId,
+            id: _expedition.JournalItemId,
+            worldId: WorldId
+        );
+        book.Ownership.OwnerId = _companion.Id;
+        book.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(book);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _services
+            .GetRequiredService<ICommandHandler<ReceivePlayerInventoryCommand>>()
+            .Handle(
+                new ReceivePlayerInventoryCommand
+                {
+                    WorldId = WorldId,
+                    PlayerId = _player.Id,
+                    From = new ItemOwnerReference(_companion.Id, OwnerType.Creature),
+                    Items = [new ItemSelection(_expedition.JournalItemId, 1)],
+                },
+                TestContext.Current.CancellationToken
+            );
+    }
 
     private Task<ReadBookPageResult> ReadJournal() =>
         _services

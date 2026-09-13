@@ -1,16 +1,13 @@
 import { HubConnectionState } from '@microsoft/signalr';
-import { screen, waitFor } from '@testing-library/react';
-import { HttpResponse } from 'msw';
+import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { handleCompleteQuest, handleGetQuestJournal } from '@/api/client/msw.gen';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
 } from '@/features/game/hooks/use-game-hub-connection';
-import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
 import { QuestDialog, type QuestDialogState } from './quest-dialog';
@@ -40,6 +37,7 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     sendChat: vi.fn(),
     sendAcceptQuest: vi.fn(),
     sendDeclineQuest: vi.fn(),
+    sendCompleteQuest: vi.fn(),
     ...overrides,
   } as IChatHub;
 }
@@ -88,7 +86,7 @@ describe('QuestDialog', () => {
 
     expect(chatHub.sendAcceptQuest).toHaveBeenCalledWith('quest-id');
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Accept "A Dangerous Delivery"',
+      'Accept “A Dangerous Delivery”',
       fakeStream,
       undefined,
       expect.any(Function),
@@ -106,28 +104,27 @@ describe('QuestDialog', () => {
 
     expect(chatHub.sendDeclineQuest).toHaveBeenCalledWith('quest-id');
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Decline "A Dangerous Delivery"',
+      'Decline “A Dangerous Delivery”',
       fakeStream,
     );
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('completes a ready-to-turn-in quest through the REST endpoint and closes', async () => {
+  it('starts a narrated complete turn and closes', async () => {
     const onClose = vi.fn();
-    let requestUrl: URL | undefined;
-    server.use(
-      handleCompleteQuest(({ request }) => {
-        requestUrl = new URL(request.url);
-        return new HttpResponse(null, { status: 204 });
-      }),
-      handleGetQuestJournal({ body: [] }),
-    );
-
-    const { user } = renderDialog(turnInQuest, onClose);
+    const fakeStream = {} as ReturnType<IChatHub['sendCompleteQuest']>;
+    const sendCompleteQuest = vi.fn().mockReturnValue(fakeStream);
+    const { user, chatHub, gameChat } = renderDialog(turnInQuest, onClose, { sendCompleteQuest });
 
     await user.click(screen.getByRole('button', { name: 'Complete quest' }));
 
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(requestUrl?.searchParams.get('worldId')).toBe('world-id');
+    expect(chatHub.sendCompleteQuest).toHaveBeenCalledWith('quest-id');
+    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
+      'Complete “A Dangerous Delivery”',
+      fakeStream,
+      undefined,
+      expect.any(Function),
+    );
+    expect(onClose).toHaveBeenCalled();
   });
 });

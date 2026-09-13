@@ -229,9 +229,9 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                     ),
             ObjectiveKind.GiveItem => cancellationToken =>
                 _serviceProvider
-                    .GetRequiredService<ItemGivenToCreatureQuestEventHandler>()
+                    .GetRequiredService<ItemAcquiredQuestEventHandler>()
                     .Handle(
-                        new ItemGivenToCreatureEvent(_player.Id, WorldId, targetId, recipientId),
+                        new ItemAcquiredEvent(_player.Id, WorldId, targetId),
                         cancellationToken
                     ),
             _ => throw new InvalidOperationException(),

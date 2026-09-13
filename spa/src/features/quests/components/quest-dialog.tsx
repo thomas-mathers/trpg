@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
-import { completeQuestMutation, getQuestJournalQueryKey } from '@/api/client';
+import { getQuestJournalQueryKey } from '@/api/client';
 import type { QuestDialogResponse } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +28,6 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
   const queryClient = useQueryClient();
   const chatHub = useChatHub();
   const { submitNarratedTurn, isStreaming } = useGameChat();
-  const completeQuest = useMutation(completeQuestMutation());
 
   if (!quest) {
     return null;
@@ -46,7 +45,7 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
 
   const handleAccept = () => {
     submitNarratedTurn(
-      `Accept "${quest.name}"`,
+      `Accept “${quest.name}”`,
       chatHub.sendAcceptQuest(quest.questId),
       undefined,
       invalidateJournal,
@@ -55,20 +54,21 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
   };
 
   const handleDecline = () => {
-    submitNarratedTurn(`Decline "${quest.name}"`, chatHub.sendDeclineQuest(quest.questId));
+    submitNarratedTurn(`Decline “${quest.name}”`, chatHub.sendDeclineQuest(quest.questId));
     onClose();
   };
 
-  const handleComplete = async () => {
-    await completeQuest.mutateAsync({
-      path: { playerId, questId: quest.questId },
-      query: { worldId: quest.worldId },
-    });
-    await invalidateJournal();
+  const handleComplete = () => {
+    submitNarratedTurn(
+      `Complete “${quest.name}”`,
+      chatHub.sendCompleteQuest(quest.questId),
+      undefined,
+      invalidateJournal,
+    );
     onClose();
   };
 
-  const isBusy = isOffer ? isStreaming : completeQuest.isPending;
+  const isBusy = isStreaming;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>

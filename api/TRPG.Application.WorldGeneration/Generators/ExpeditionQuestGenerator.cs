@@ -35,9 +35,9 @@ public static class ExpeditionQuestGenerator
         {
             WorldId = expedition.WorldId,
             QuestId = quest.Id,
-            Name = $"Give the journal to {expedition.SurvivorName}",
+            Name = $"Recover {expedition.CompanionName}'s journal",
             Description =
-                $"Give {expedition.CompanionName}'s journal to {expedition.SurvivorName}.",
+                $"Recover {expedition.CompanionName}'s journal, then bring it to {expedition.SurvivorName}.",
             ItemId = expedition.JournalItemId,
             RecipientId = expedition.SurvivorId,
             LocationId = expedition.EntranceLocationId,
