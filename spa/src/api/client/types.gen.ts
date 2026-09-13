@@ -701,6 +701,23 @@ export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
 
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
 
+export type QuestDialogMode = 'Offer' | 'TurnIn';
+
+export type QuestDialogObjective = {
+    name: string;
+    description: string;
+    requiredAmount: number;
+};
+
+export type QuestDialogResponse = {
+    questId: string;
+    name: string;
+    description: string;
+    goldReward: number;
+    objectives: Array<QuestDialogObjective>;
+    mode: QuestDialogMode;
+};
+
 export type QuestJournalEntrySnapshot = {
     id: string;
     name: string;
@@ -1821,3 +1838,28 @@ export type SetQuestTrackingResponses = {
 };
 
 export type SetQuestTrackingResponse = SetQuestTrackingResponses[keyof SetQuestTrackingResponses];
+
+export type GetQuestDialogData = {
+    body?: never;
+    path: {
+        playerId: string;
+    };
+    query: {
+        worldId: string;
+        giverId: string;
+    };
+    url: '/players/{playerId}/quest-dialog';
+};
+
+export type GetQuestDialogResponses = {
+    /**
+     * OK
+     */
+    200: QuestDialogResponse;
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type GetQuestDialogResponse = GetQuestDialogResponses[keyof GetQuestDialogResponses];

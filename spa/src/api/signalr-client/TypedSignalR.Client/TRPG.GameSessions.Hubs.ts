@@ -7,7 +7,7 @@ import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Resp
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
-import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
+import type { QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
 export type IChatHub = {
     /**
@@ -234,11 +234,6 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     characterLevelUp(characterLevelUp: CharacterLevelUp): Promise<void>;
-    /**
-    * @param questDialog Transpiled from TRPG.Quests.Responses.QuestDialogRequested
-    * @returns Transpiled from System.Threading.Tasks.Task
-    */
-    questDialogRequested(questDialog: QuestDialogRequested): Promise<void>;
     /**
     * @param objective Transpiled from TRPG.Quests.Responses.QuestObjectiveCompleted
     * @returns Transpiled from System.Threading.Tasks.Task

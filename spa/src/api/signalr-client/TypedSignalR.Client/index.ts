@@ -8,7 +8,7 @@ import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Resp
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
-import type { QuestDialogRequested, QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
+import type { QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
 
 // components
@@ -220,7 +220,6 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __theftEncounterResolved = (...args: [TheftEncounterResolutionFact]) => receiver.theftEncounterResolved(...args);
         const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
         const __characterLevelUp = (...args: [CharacterLevelUp]) => receiver.characterLevelUp(...args);
-        const __questDialogRequested = (...args: [QuestDialogRequested]) => receiver.questDialogRequested(...args);
         const __questObjectiveCompleted = (...args: [QuestObjectiveCompleted]) => receiver.questObjectiveCompleted(...args);
         const __questJournalUpdated = (...args: [QuestJournalUpdated]) => receiver.questJournalUpdated(...args);
         const __crimeWitnessed = (...args: [CrimeNotification]) => receiver.crimeWitnessed(...args);
@@ -242,7 +241,6 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("TheftEncounterResolved", __theftEncounterResolved);
         connection.on("SkillLevelUp", __skillLevelUp);
         connection.on("CharacterLevelUp", __characterLevelUp);
-        connection.on("QuestDialogRequested", __questDialogRequested);
         connection.on("QuestObjectiveCompleted", __questObjectiveCompleted);
         connection.on("QuestJournalUpdated", __questJournalUpdated);
         connection.on("CrimeWitnessed", __crimeWitnessed);
@@ -265,7 +263,6 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "TheftEncounterResolved", method: __theftEncounterResolved },
             { methodName: "SkillLevelUp", method: __skillLevelUp },
             { methodName: "CharacterLevelUp", method: __characterLevelUp },
-            { methodName: "QuestDialogRequested", method: __questDialogRequested },
             { methodName: "QuestObjectiveCompleted", method: __questObjectiveCompleted },
             { methodName: "QuestJournalUpdated", method: __questJournalUpdated },
             { methodName: "CrimeWitnessed", method: __crimeWitnessed },

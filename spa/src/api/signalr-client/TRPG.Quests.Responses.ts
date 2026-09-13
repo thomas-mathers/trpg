@@ -15,10 +15,8 @@ export type QuestDialogObjective = {
     requiredAmount: number;
 }
 
-/** Transpiled from TRPG.Quests.Responses.QuestDialogRequested */
-export type QuestDialogRequested = {
-    /** Transpiled from System.Guid */
-    worldId: string;
+/** Transpiled from TRPG.Quests.Responses.QuestDialogResponse */
+export type QuestDialogResponse = {
     /** Transpiled from System.Guid */
     questId: string;
     /** Transpiled from string */
