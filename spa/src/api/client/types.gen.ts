@@ -189,7 +189,7 @@ export type CreatureLevelResponse = {
     level: number;
 };
 
-export type CreatureState = 'Idle' | 'Sleeping' | 'Busy' | 'Studying' | 'Praying' | 'Alerted' | 'Dead';
+export type CreatureState = 'Idle' | 'Sleeping' | 'Busy' | 'Studying' | 'Praying' | 'Alerted' | 'Dead' | 'Restrained';
 
 export type CreatureStatusSnapshot = {
     id: string;

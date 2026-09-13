@@ -46,6 +46,18 @@ export type IChatHub = {
     */
     sendPullLever(leverId: string): IStreamResult<string>;
     /**
+    * @param questId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendAcceptQuest(questId: string): IStreamResult<string>;
+    /**
+    * @param questId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendDeclineQuest(questId: string): IStreamResult<string>;
+    /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */

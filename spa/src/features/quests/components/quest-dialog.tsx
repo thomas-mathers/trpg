@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { acceptQuestMutation, completeQuestMutation, getQuestJournalQueryKey } from '@/api/client';
+import { completeQuestMutation, getQuestJournalQueryKey } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { NarrationText } from '@/features/game/components/narration-text';
+import { useGameChat } from '@/features/game/hooks/use-game-chat';
+import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { parseNarrationMarkup } from '@/features/game/narration-markup';
 import type { QuestDialogRequested } from '@/lib/game-event-bus';
 
@@ -22,7 +24,8 @@ interface QuestDialogProps {
 
 export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
   const queryClient = useQueryClient();
-  const acceptQuest = useMutation(acceptQuestMutation());
+  const chatHub = useChatHub();
+  const { submitNarratedTurn, isStreaming } = useGameChat();
   const completeQuest = useMutation(completeQuestMutation());
 
   if (!quest) {
@@ -30,20 +33,40 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
   }
 
   const isOffer = quest.mode === 'Offer';
-  const mutation = isOffer ? acceptQuest : completeQuest;
-  const handleConfirm = async () => {
-    await mutation.mutateAsync({
-      path: { playerId, questId: quest.questId },
-      query: { worldId: quest.worldId },
-    });
-    await queryClient.invalidateQueries({
+
+  const invalidateJournal = () =>
+    queryClient.invalidateQueries({
       queryKey: getQuestJournalQueryKey({
         path: { playerId },
         query: { worldId: quest.worldId },
       }),
     });
+
+  const handleAccept = () => {
+    submitNarratedTurn(
+      `Accept "${quest.name}"`,
+      chatHub.sendAcceptQuest(quest.questId),
+      undefined,
+      invalidateJournal,
+    );
     onClose();
   };
+
+  const handleDecline = () => {
+    submitNarratedTurn(`Decline "${quest.name}"`, chatHub.sendDeclineQuest(quest.questId));
+    onClose();
+  };
+
+  const handleComplete = async () => {
+    await completeQuest.mutateAsync({
+      path: { playerId, questId: quest.questId },
+      query: { worldId: quest.worldId },
+    });
+    await invalidateJournal();
+    onClose();
+  };
+
+  const isBusy = isOffer ? isStreaming : completeQuest.isPending;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -72,10 +95,10 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>
+          <Button variant="outline" onClick={isOffer ? handleDecline : onClose} disabled={isBusy}>
             Not now
           </Button>
-          <Button onClick={handleConfirm} disabled={mutation.isPending}>
+          <Button onClick={isOffer ? handleAccept : handleComplete} disabled={isBusy}>
             {isOffer ? 'Accept quest' : 'Complete quest'}
           </Button>
         </DialogFooter>

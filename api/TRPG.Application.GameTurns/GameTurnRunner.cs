@@ -10,6 +10,8 @@ public class GameTurnRunner
     private readonly StreamWaitTurnHandler _streamWaitTurn;
     private readonly StreamSleepTurnHandler _streamSleepTurn;
     private readonly StreamPullLeverTurnHandler _streamPullLeverTurn;
+    private readonly StreamAcceptQuestTurnHandler _streamAcceptQuestTurn;
+    private readonly StreamDeclineQuestTurnHandler _streamDeclineQuestTurn;
     private readonly StreamFleeTurnHandler _streamFleeTurn;
     private readonly StreamRespawnTurnHandler _streamRespawnTurn;
     private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
@@ -26,6 +28,8 @@ public class GameTurnRunner
         StreamWaitTurnHandler streamWaitTurn,
         StreamSleepTurnHandler streamSleepTurn,
         StreamPullLeverTurnHandler streamPullLeverTurn,
+        StreamAcceptQuestTurnHandler streamAcceptQuestTurn,
+        StreamDeclineQuestTurnHandler streamDeclineQuestTurn,
         StreamFleeTurnHandler streamFleeTurn,
         StreamRespawnTurnHandler streamRespawnTurn,
         StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
@@ -42,6 +46,8 @@ public class GameTurnRunner
         _streamWaitTurn = streamWaitTurn;
         _streamSleepTurn = streamSleepTurn;
         _streamPullLeverTurn = streamPullLeverTurn;
+        _streamAcceptQuestTurn = streamAcceptQuestTurn;
+        _streamDeclineQuestTurn = streamDeclineQuestTurn;
         _streamFleeTurn = streamFleeTurn;
         _streamRespawnTurn = streamRespawnTurn;
         _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
@@ -83,6 +89,18 @@ public class GameTurnRunner
         Guid leverId,
         CancellationToken cancellationToken = default
     ) => _streamPullLeverTurn.Handle(session, leverId, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamAcceptQuest(
+        GameTurnSession session,
+        Guid questId,
+        CancellationToken cancellationToken = default
+    ) => _streamAcceptQuestTurn.Handle(session, questId, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamDeclineQuest(
+        GameTurnSession session,
+        Guid questId,
+        CancellationToken cancellationToken = default
+    ) => _streamDeclineQuestTurn.Handle(session, questId, cancellationToken);
 
     public IAsyncEnumerable<string> StreamFlee(
         GameTurnSession session,
