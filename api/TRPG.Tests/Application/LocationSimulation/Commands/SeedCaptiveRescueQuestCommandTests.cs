@@ -118,12 +118,15 @@ public sealed class SeedCaptiveRescueQuestCommandTests
         Assert.Equal(_captive.Id, cell.CreatureId);
         Assert.True(cell.IsLocked);
 
-        var quest = await verification.Quests.SingleAsync(TestContext.Current.CancellationToken);
+        var quest = await verification.Quests.SingleAsync(
+            q => q.WorldId == _worldId,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(_giver.Id, quest.GiverId);
 
         var objective = await verification
             .QuestObjectives.OfType<FreeCreatureObjective>()
-            .SingleAsync(TestContext.Current.CancellationToken);
+            .SingleAsync(o => o.WorldId == _worldId, TestContext.Current.CancellationToken);
         Assert.Equal(quest.Id, objective.QuestId);
         Assert.Equal(_captive.Id, objective.CreatureId);
 
