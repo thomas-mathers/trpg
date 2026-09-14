@@ -89,6 +89,123 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         Assert.Empty(gameEvents.EnqueuedEvents);
     }
 
+    [Fact]
+    public async Task Handle_AdvancesClearLocationObjective_WhenTheKillIsInsideTheTargetBuilding()
+    {
+        // Arrange
+        var building = Builders.MakeBuilding(worldId: WorldId);
+        var roomId = Guid.NewGuid();
+        var roomLocation = Builders.MakeLocation(WorldId, roomId: roomId);
+        var room = Builders.MakeRoom(
+            building.Id,
+            id: roomId,
+            worldId: WorldId,
+            locationId: roomLocation.Id
+        );
+        var seeded = await SeedClearLocationObjective(building.Id);
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(roomLocation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _serviceProvider
+            .GetRequiredService<CreatureKilledQuestEventHandler>()
+            .Handle(
+                new CreatureKilledEvent(
+                    _player.Id,
+                    WorldId,
+                    Guid.NewGuid(),
+                    CreatureType.Beast,
+                    roomLocation.Id
+                ),
+                TestContext.Current.CancellationToken
+            );
+
+        // Assert
+        var progress = await _context.CreatureQuestObjectives.SingleAsync(
+            objective => objective.Id == seeded.Progress.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(1, progress.Amount);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotAdvanceClearLocationObjective_WhenTheKillIsInADifferentBuilding()
+    {
+        // Arrange
+        var targetBuilding = Builders.MakeBuilding(worldId: WorldId);
+        var otherBuilding = Builders.MakeBuilding(worldId: WorldId);
+        var otherRoomId = Guid.NewGuid();
+        var otherRoomLocation = Builders.MakeLocation(WorldId, roomId: otherRoomId);
+        var otherRoom = Builders.MakeRoom(
+            otherBuilding.Id,
+            id: otherRoomId,
+            worldId: WorldId,
+            locationId: otherRoomLocation.Id
+        );
+        var seeded = await SeedClearLocationObjective(targetBuilding.Id);
+        _context.Buildings.AddRange(targetBuilding, otherBuilding);
+        _context.Rooms.Add(otherRoom);
+        _context.Locations.Add(otherRoomLocation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _serviceProvider
+            .GetRequiredService<CreatureKilledQuestEventHandler>()
+            .Handle(
+                new CreatureKilledEvent(
+                    _player.Id,
+                    WorldId,
+                    Guid.NewGuid(),
+                    CreatureType.Beast,
+                    otherRoomLocation.Id
+                ),
+                TestContext.Current.CancellationToken
+            );
+
+        // Assert
+        var progress = await _context.CreatureQuestObjectives.SingleAsync(
+            objective => objective.Id == seeded.Progress.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(0, progress.Amount);
+    }
+
+    private async Task<SeededObjective> SeedClearLocationObjective(Guid buildingId)
+    {
+        var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        var objective = new ClearLocationObjective
+        {
+            WorldId = WorldId,
+            QuestId = quest.Id,
+            BuildingId = buildingId,
+            RequiredAmount = 2,
+        };
+        var progress = new CreatureQuestObjective
+        {
+            CreatureId = _player.Id,
+            ObjectiveId = objective.Id,
+            Amount = 0,
+            WorldId = WorldId,
+        };
+        var creatureQuest = new CreatureQuest
+        {
+            CreatureId = _player.Id,
+            QuestId = quest.Id,
+            Status = QuestStatus.Accepted,
+            WorldId = WorldId,
+        };
+
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuestObjectives.Add(progress);
+        _context.CreatureQuests.Add(creatureQuest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return new SeededObjective(progress, creatureQuest, _ => Task.CompletedTask);
+    }
+
     private async Task<SeededObjective> SeedObjective(ObjectiveKind kind, int amount = 0)
     {
         var quest = Builders.MakeQuest(_giver.Id, WorldId);
@@ -185,7 +302,13 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                 _serviceProvider
                     .GetRequiredService<CreatureKilledQuestEventHandler>()
                     .Handle(
-                        new CreatureKilledEvent(_player.Id, WorldId, targetId, CreatureType.Beast),
+                        new CreatureKilledEvent(
+                            _player.Id,
+                            WorldId,
+                            targetId,
+                            CreatureType.Beast,
+                            locationId
+                        ),
                         cancellationToken
                     ),
             ObjectiveKind.KillCreatureType => cancellationToken =>
@@ -196,7 +319,8 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                             _player.Id,
                             WorldId,
                             Guid.NewGuid(),
-                            CreatureType.Beast
+                            CreatureType.Beast,
+                            locationId
                         ),
                         cancellationToken
                     ),

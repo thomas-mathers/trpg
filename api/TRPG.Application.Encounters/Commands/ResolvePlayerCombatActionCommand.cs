@@ -73,6 +73,7 @@ internal class ResolvePlayerCombatActionCommandHandler(
                 SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
+                LocationId = fight!.LocationId,
                 Combatants = combatants,
                 State = state,
             },

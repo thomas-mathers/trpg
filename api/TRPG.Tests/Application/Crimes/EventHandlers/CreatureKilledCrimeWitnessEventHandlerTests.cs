@@ -52,7 +52,13 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
 
         // Act
         await _handler.Handle(
-            new CreatureKilledEvent(_player.Id, WorldId, witness.Id, CreatureType.Human),
+            new CreatureKilledEvent(
+                _player.Id,
+                WorldId,
+                witness.Id,
+                CreatureType.Human,
+                LocationId
+            ),
             TestContext.Current.CancellationToken
         );
 
@@ -96,7 +102,13 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
 
         // Act
         await _handler.Handle(
-            new CreatureKilledEvent(_player.Id, WorldId, witness.Id, CreatureType.Human),
+            new CreatureKilledEvent(
+                _player.Id,
+                WorldId,
+                witness.Id,
+                CreatureType.Human,
+                LocationId
+            ),
             TestContext.Current.CancellationToken
         );
 
@@ -131,7 +143,13 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
 
         // Act
         await _handler.Handle(
-            new CreatureKilledEvent(_player.Id, WorldId, deadWitness.Id, CreatureType.Human),
+            new CreatureKilledEvent(
+                _player.Id,
+                WorldId,
+                deadWitness.Id,
+                CreatureType.Human,
+                LocationId
+            ),
             TestContext.Current.CancellationToken
         );
 
