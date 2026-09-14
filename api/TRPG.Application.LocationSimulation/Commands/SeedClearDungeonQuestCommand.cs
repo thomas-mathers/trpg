@@ -36,11 +36,11 @@ internal class SeedClearDungeonQuestCommandHandler(
         GetActiveClearLocationObjectiveBuildingIdsQuery,
         IReadOnlySet<Guid>
     > getActiveClearLocationObjectiveBuildingIds,
-    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
+    IQueryHandler<GetRoomsByBuildingIdsQuery, IReadOnlyCollection<Room>> getRoomsByBuildingIds,
     IQueryHandler<
-        GetLivingHostileCreatureCountAtLocationsQuery,
-        int
-    > getLivingHostileCreatureCountAtLocations,
+        GetLivingHostileCreatureCountsByLocationQuery,
+        IReadOnlyDictionary<Guid, int>
+    > getLivingHostileCreatureCountsByLocation,
     ICommandHandler<AddQuestCommand> addQuest
 ) : ICommandHandler<SeedClearDungeonQuestCommand, bool>
 {
@@ -175,30 +175,46 @@ internal class SeedClearDungeonQuestCommandHandler(
                 && location.StateId == stateId
             )
             .Where(building => !activeBuildingIds.Contains(building.Id))
-            .OrderBy(_ => Random.Shared.Next())
             .ToArray();
-
-        foreach (var building in candidates)
+        if (candidates.Length == 0)
         {
-            var rooms = await getRoomsByBuildingId.Handle(
-                new GetRoomsByBuildingIdQuery { BuildingId = building.Id },
-                cancellationToken
-            );
-            var livingCount = await getLivingHostileCreatureCountAtLocations.Handle(
-                new GetLivingHostileCreatureCountAtLocationsQuery
-                {
-                    WorldId = command.WorldId,
-                    LocationIds = rooms.Select(room => room.LocationId).ToArray(),
-                },
-                cancellationToken
-            );
-
-            if (livingCount > 0)
-            {
-                return (building, livingCount);
-            }
+            return null;
         }
 
-        return null;
+        var candidateBuildingIds = candidates.Select(building => building.Id).ToArray();
+        var rooms = await getRoomsByBuildingIds.Handle(
+            new GetRoomsByBuildingIdsQuery { BuildingIds = candidateBuildingIds },
+            cancellationToken
+        );
+        var buildingIdByLocationId = rooms.ToDictionary(
+            room => room.LocationId,
+            room => room.BuildingId
+        );
+
+        var livingCountsByLocationId = await getLivingHostileCreatureCountsByLocation.Handle(
+            new GetLivingHostileCreatureCountsByLocationQuery
+            {
+                WorldId = command.WorldId,
+                LocationIds = buildingIdByLocationId.Keys.ToArray(),
+            },
+            cancellationToken
+        );
+        var livingCountByBuildingId = livingCountsByLocationId
+            .GroupBy(countByLocationId => buildingIdByLocationId[countByLocationId.Key])
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(countByLocationId => countByLocationId.Value)
+            );
+
+        var eligibleBuildings = candidates
+            .Where(building => livingCountByBuildingId.GetValueOrDefault(building.Id) > 0)
+            .ToArray();
+        if (eligibleBuildings.Length == 0)
+        {
+            return null;
+        }
+
+        var chosen = eligibleBuildings[Random.Shared.Next(eligibleBuildings.Length)];
+        return (chosen, livingCountByBuildingId[chosen.Id]);
     }
 }

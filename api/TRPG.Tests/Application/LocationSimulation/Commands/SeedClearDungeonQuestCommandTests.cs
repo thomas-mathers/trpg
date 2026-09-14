@@ -122,6 +122,50 @@ public sealed class SeedClearDungeonQuestCommandTests
     }
 
     [Fact]
+    public async Task Handle_SkipsAnAlreadyClearDungeon_AndOffersTheUnclearedOneInstead()
+    {
+        // Arrange — a second, already-cleared dungeon in the same state with no living hostiles
+        var clearedDungeonExteriorLocation = Builders.MakeLocation(_worldId, _stateId);
+        var clearedDungeon = Builders.MakeBuilding(
+            exteriorLocationId: clearedDungeonExteriorLocation.Id,
+            worldId: _worldId,
+            buildingType: BuildingType.Cave
+        );
+        var clearedRoomId = Guid.NewGuid();
+        var clearedRoomLocation = Builders.MakeLocation(_worldId, _stateId, roomId: clearedRoomId);
+        var clearedRoom = Builders.MakeRoom(
+            clearedDungeon.Id,
+            id: clearedRoomId,
+            worldId: _worldId,
+            locationId: clearedRoomLocation.Id
+        );
+        _context.Locations.AddRange(clearedDungeonExteriorLocation, clearedRoomLocation);
+        _context.Buildings.Add(clearedDungeon);
+        _context.Rooms.Add(clearedRoom);
+        await SeedLivingHostiles(2);
+
+        // Act
+        var result = await _handler.Handle(
+            new SeedClearDungeonQuestCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _giverLocation.Id,
+                PlayerLevel = 1,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(result);
+        var objective = await _context
+            .QuestObjectives.OfType<ClearLocationObjective>()
+            .SingleAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(_dungeon.Id, objective.BuildingId);
+        Assert.Equal(2, objective.RequiredAmount);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsFalse_WhenNoGiverCandidateIsAtTheLocation()
     {
         // Arrange
