@@ -78,6 +78,7 @@ export const ITEM_TYPE_LABEL: Record<ItemType, string> = {
   Gold: 'Gold',
   Key: 'Key',
   Book: 'Book',
+  Misc: 'Item',
 };
 
 export const PROC_TRIGGER_LABEL: Record<ProcTrigger, string> = {
@@ -108,4 +109,5 @@ export const CATEGORY_LABEL: Record<ItemCategory, string> = {
   Gold: 'Gold',
   Key: 'Keys',
   Book: 'Books',
+  Misc: 'Items',
 };

@@ -64,6 +64,12 @@ export type IChatHub = {
     */
     sendCompleteQuest(questId: string): IStreamResult<string>;
     /**
+    * @param recipientId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendDeliverItem(recipientId: string): IStreamResult<string>;
+    /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */

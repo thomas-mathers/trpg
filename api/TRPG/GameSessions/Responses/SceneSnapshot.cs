@@ -230,6 +230,7 @@ public enum QuestMarker
 {
     Available,
     ReadyToTurnIn,
+    ReadyToDeliver,
 }
 
 [TranspilationSource]

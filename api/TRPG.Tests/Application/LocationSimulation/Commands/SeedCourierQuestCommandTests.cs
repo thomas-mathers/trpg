@@ -84,7 +84,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
         );
         Assert.Equal(_giver.Id, quest.GiverId);
         var objective = await _context
-            .QuestObjectives.OfType<GiveItemObjective>()
+            .QuestObjectives.OfType<DeliverItemObjective>()
             .SingleAsync(o => o.QuestId == quest.Id, TestContext.Current.CancellationToken);
         Assert.Equal(_recipient.Id, objective.RecipientId);
         var package = await _context.Items.SingleAsync(
@@ -143,7 +143,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
         // Arrange
         var playerId = Guid.NewGuid();
         var existingQuest = Builders.MakeQuest(_giver.Id, _worldId);
-        var existingObjective = new GiveItemObjective
+        var existingObjective = new DeliverItemObjective
         {
             WorldId = _worldId,
             QuestId = existingQuest.Id,

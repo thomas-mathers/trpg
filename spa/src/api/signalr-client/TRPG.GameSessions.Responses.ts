@@ -145,7 +145,7 @@ export type CreatureStatusSnapshot = {
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.QuestMarker */
-export type QuestMarker = "Available" | "ReadyToTurnIn";
+export type QuestMarker = "Available" | "ReadyToTurnIn" | "ReadyToDeliver";
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyBuildingSnapshot */
 export type NearbyBuildingSnapshot = {

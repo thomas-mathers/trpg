@@ -34,7 +34,7 @@ internal class SeedCourierQuestCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
     IQueryHandler<
-        GetActiveGiveItemObjectiveRecipientIdsQuery,
+        GetActiveDeliverItemObjectiveRecipientIdsQuery,
         IReadOnlySet<Guid>
     > getActiveRecipientIds,
     ICommandHandler<AddItemsCommand> addItems,
@@ -128,7 +128,7 @@ internal class SeedCourierQuestCommandHandler(
         );
 
         var activeRecipientIds = await getActiveRecipientIds.Handle(
-            new GetActiveGiveItemObjectiveRecipientIdsQuery
+            new GetActiveDeliverItemObjectiveRecipientIdsQuery
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
@@ -189,12 +189,12 @@ internal class SeedCourierQuestCommandHandler(
                 Score = GiverReputationReward,
             }
         );
-        var objective = new GiveItemObjective
+        var objective = new DeliverItemObjective
         {
             WorldId = command.WorldId,
             QuestId = quest.Id,
             Name = $"Deliver the package to {recipient.Name}",
-            Description = $"Bring the package to {recipient.Name}.",
+            Description = $"Deliver the sealed package to {recipient.Name}.",
             ItemId = package.Id,
             RecipientId = recipient.Id,
         };

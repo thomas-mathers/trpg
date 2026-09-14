@@ -234,6 +234,12 @@ export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gno
 
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
 
+export type DeliverItemDialogResponse = {
+    questId: string;
+    questName: string;
+    item: ItemDetail;
+};
+
 export type DistrictType = 'Residential' | 'Scientific' | 'CityCenter' | 'CityEntrance' | 'Governmental' | 'HolySite' | 'Encampment';
 
 export type DropInventoryItemRequest = {
@@ -311,7 +317,9 @@ export type ItemDetail = ({
     $type: 'Key';
 } & ItemDetailKeyDetail) | ({
     $type: 'Book';
-} & ItemDetailBookDetail);
+} & ItemDetailBookDetail) | ({
+    $type: 'Misc';
+} & ItemDetailMiscDetail);
 
 export type ItemDetailAccessoryDetail = {
     $type?: 'Accessory';
@@ -418,6 +426,22 @@ export type ItemDetailGoldDetail = {
 
 export type ItemDetailKeyDetail = {
     $type?: 'Key';
+    itemId: string;
+    name: string;
+    description: string;
+    weight: number;
+    quantity: number;
+    equippedSlot: null | EquipmentSlot;
+    type: ItemType;
+    rarity: null | ItemRarity;
+    goldValue: number;
+    modifiers: Array<ItemModifierSummary>;
+    isStackable: boolean;
+    isQuestItem?: boolean;
+};
+
+export type ItemDetailMiscDetail = {
+    $type?: 'Misc';
     itemId: string;
     name: string;
     description: string;
@@ -543,7 +567,7 @@ export type ItemSelection = {
     quantity: number;
 };
 
-export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold' | 'Key' | 'Book';
+export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold' | 'Key' | 'Book' | 'Misc';
 
 export type JobStatus = 'Idle' | 'Queued' | 'InProgress' | 'Done' | 'Failed' | 'Cancelled';
 
@@ -735,7 +759,7 @@ export type QuestMapResponse = {
     stateId: string;
 };
 
-export type QuestMarker = 'Available' | 'ReadyToTurnIn';
+export type QuestMarker = 'Available' | 'ReadyToTurnIn' | 'ReadyToDeliver';
 
 export type QuestObjectiveProgressSnapshot = {
     name: string;
@@ -1864,3 +1888,28 @@ export type GetQuestDialogResponses = {
 };
 
 export type GetQuestDialogResponse = GetQuestDialogResponses[keyof GetQuestDialogResponses];
+
+export type GetDeliverItemDialogData = {
+    body?: never;
+    path: {
+        playerId: string;
+    };
+    query: {
+        worldId: string;
+        recipientId: string;
+    };
+    url: '/players/{playerId}/deliver-item-dialog';
+};
+
+export type GetDeliverItemDialogResponses = {
+    /**
+     * OK
+     */
+    200: DeliverItemDialogResponse;
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type GetDeliverItemDialogResponse = GetDeliverItemDialogResponses[keyof GetDeliverItemDialogResponses];

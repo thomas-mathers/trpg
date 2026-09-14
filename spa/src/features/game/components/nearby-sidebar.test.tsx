@@ -80,7 +80,11 @@ function renderSidebar() {
       <GameChatContext.Provider value={gameChat}>
         <SceneContext.Provider value={scene}>
           <SidebarProvider>
-            <NearbySidebar onOpenQuestJournal={() => {}} onQuestDialogRequested={() => {}} />
+            <NearbySidebar
+              onOpenQuestJournal={() => {}}
+              onQuestDialogRequested={() => {}}
+              onDeliverItemDialogRequested={() => {}}
+            />
           </SidebarProvider>
         </SceneContext.Provider>
       </GameChatContext.Provider>
