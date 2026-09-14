@@ -20,11 +20,11 @@ public class SeedFetchQuestCommand
     public required Guid LocationId { get; init; }
 }
 
-// Finds someone at the seeding location who wants proof that several of the monsters lurking in a
-// nearby dungeon have been dealt with. Repeatable the same way as SeedClearDungeonQuestCommand and
-// SeedCourierQuestCommand: the giver is only excluded while the player already has an active fetch
-// quest from them, not forever — CreatureSpawner refills the dungeon over time, so there's always
-// another batch of trophies to collect later. No-ops at any step where nothing eligible exists.
+// Finds someone at the seeding location who wants a few gatherable materials brought back from a
+// nearby dungeon. Repeatable the same way as SeedClearDungeonQuestCommand and SeedCourierQuestCommand:
+// the giver is only excluded while the player already has an active fetch quest from them, not
+// forever — CreatureSpawner refills the dungeon over time, so there's always more to gather later.
+// No-ops at any step where nothing eligible exists.
 internal class SeedFetchQuestCommandHandler(
     IQueryHandler<
         GetCreatureIdsWithCreatureJobInLocationQuery,
@@ -49,7 +49,24 @@ internal class SeedFetchQuestCommandHandler(
 {
     private const int GoldReward = 45;
     private const int GiverReputationReward = 12;
-    private const int TrophyCount = 3;
+    private const int ItemCount = 3;
+
+    // Classic gather-quest materials by creature type — what a player would recognize as loot
+    // worth turning in, without the quest text needing to say anything got killed for it.
+    private static readonly Dictionary<CreatureType, string> MaterialByCreatureType = new()
+    {
+        [CreatureType.Beast] = "Pelt",
+        [CreatureType.Orc] = "Tusk",
+        [CreatureType.Goblin] = "Ear",
+        [CreatureType.Undead] = "Bone",
+        [CreatureType.Demon] = "Horn",
+        [CreatureType.Construct] = "Gear",
+        [CreatureType.Elemental] = "Core",
+        [CreatureType.Wraith] = "Essence",
+        [CreatureType.Giant] = "Tooth",
+        [CreatureType.Dragon] = "Scale",
+    };
+    private const string DefaultMaterial = "Remnant";
 
     public async Task<bool> Handle(
         SeedFetchQuestCommand command,
@@ -181,7 +198,7 @@ internal class SeedFetchQuestCommandHandler(
 
         var eligibleBuildings = candidates
             .Where(building =>
-                creatureIdsByBuildingId.GetValueOrDefault(building.Id)?.Length >= TrophyCount
+                creatureIdsByBuildingId.GetValueOrDefault(building.Id)?.Length >= ItemCount
             )
             .ToArray();
         if (eligibleBuildings.Length == 0)
@@ -192,7 +209,7 @@ internal class SeedFetchQuestCommandHandler(
         var chosenBuilding = eligibleBuildings[Random.Shared.Next(eligibleBuildings.Length)];
         var chosenCreatureIds = creatureIdsByBuildingId[chosenBuilding.Id]
             .OrderBy(_ => Random.Shared.Next())
-            .Take(TrophyCount)
+            .Take(ItemCount)
             .ToArray();
 
         return (chosenBuilding, chosenCreatureIds);
@@ -211,30 +228,45 @@ internal class SeedFetchQuestCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var trophies = creatureIds
-            .Select(creatureId => new Item
-            {
-                WorldId = command.WorldId,
-                Name = $"{building.Name} Trophy",
-                Description =
-                    $"Proof that one of the monsters lurking in {building.Name} has been slain.",
-                Quantity = 1,
-                Ownership = new ItemOwnership
-                {
-                    OwnerId = creatureId,
-                    OwnerType = OwnerType.Creature,
-                },
-            })
+        var creaturesById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = creatureIds },
+            cancellationToken
+        );
+        var materials = creatureIds
+            .Select(creatureId =>
+                MaterialByCreatureType.GetValueOrDefault(
+                    creaturesById[creatureId].CreatureType,
+                    DefaultMaterial
+                )
+            )
             .ToArray();
-        await addItems.Handle(new AddItemsCommand { Items = trophies }, cancellationToken);
+        var drops = creatureIds
+            .Zip(
+                materials,
+                (creatureId, material) =>
+                    new Item
+                    {
+                        WorldId = command.WorldId,
+                        Name = $"{creaturesById[creatureId].CreatureType} {material}",
+                        Description =
+                            $"A {material.ToLowerInvariant()} recovered from a creature in {building.Name}.",
+                        Quantity = 1,
+                        Ownership = new ItemOwnership
+                        {
+                            OwnerId = creatureId,
+                            OwnerType = OwnerType.Creature,
+                        },
+                    }
+            )
+            .ToArray();
+        await addItems.Handle(new AddItemsCommand { Items = drops }, cancellationToken);
 
         var quest = new Quest
         {
             WorldId = command.WorldId,
             GiverId = giver.Id,
-            Name = $"Trophies from {building.Name}",
-            Description =
-                $"{giver.Name} wants proof that {trophies.Length} of the monsters in {building.Name} have been dealt with.",
+            Name = $"Gathering in {building.Name}",
+            Description = $"{giver.Name} could use a few things gathered from {building.Name}.",
             GoldReward = GoldReward,
         };
         quest.ReputationRewards.Add(
@@ -251,12 +283,12 @@ internal class SeedFetchQuestCommandHandler(
         {
             WorldId = command.WorldId,
             QuestId = quest.Id,
-            Name = $"Collect trophies from {building.Name}",
+            Name = $"Gather materials from {building.Name}",
             Description =
-                $"Defeat monsters in {building.Name} and bring {trophies.Length} trophies to {giver.Name}.",
-            ItemIds = trophies.Select(item => item.Id).ToList(),
+                $"Search {building.Name} and bring {drops.Length} items back to {giver.Name}.",
+            ItemIds = drops.Select(item => item.Id).ToList(),
             RecipientId = giver.Id,
-            RequiredAmount = trophies.Length,
+            RequiredAmount = drops.Length,
         };
 
         await addQuest.Handle(

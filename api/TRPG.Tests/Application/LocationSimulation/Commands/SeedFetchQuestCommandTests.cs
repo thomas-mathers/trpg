@@ -118,11 +118,12 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
         Assert.Equal(_giver.Id, objective.RecipientId);
         Assert.Equal(3, objective.ItemIds.Count);
         Assert.Equal(3, objective.RequiredAmount);
-        var trophies = await _context
+        var drops = await _context
             .Items.Where(item => objective.ItemIds.Contains(item.Id))
             .ToArrayAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(3, trophies.Length);
-        Assert.All(trophies, trophy => Assert.Contains(trophy.Ownership.OwnerId, monsterIds));
+        Assert.Equal(3, drops.Length);
+        Assert.All(drops, drop => Assert.Contains(drop.Ownership.OwnerId, monsterIds));
+        Assert.All(drops, drop => Assert.Equal("Beast Pelt", drop.Name));
     }
 
     [Fact]
