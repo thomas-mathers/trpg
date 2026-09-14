@@ -12,6 +12,7 @@ public record QuestJournalEntrySnapshot(
     Guid Id,
     string Name,
     string Description,
+    string? GiverName,
     int GoldReward,
     string Status,
     bool IsTracked,

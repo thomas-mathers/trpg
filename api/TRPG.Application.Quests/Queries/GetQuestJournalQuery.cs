@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -24,6 +25,7 @@ public record QuestJournalEntry(
     Guid Id,
     string Name,
     string Description,
+    string? GiverName,
     int GoldReward,
     QuestStatus Status,
     bool IsTracked,
@@ -32,7 +34,11 @@ public record QuestJournalEntry(
 
 internal class GetQuestJournalQueryHandler(
     IQuestsDbContext context,
-    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
+    IQueryHandler<
+        GetCreatureNamesByIdsQuery,
+        IReadOnlyDictionary<Guid, string>
+    > getCreatureNamesByIds
 ) : IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>>
 {
     public async Task<IReadOnlyCollection<QuestJournalEntry>> Handle(
@@ -49,6 +55,14 @@ internal class GetQuestJournalQueryHandler(
             .OrderBy(creatureQuest => creatureQuest.Status)
             .ThenBy(creatureQuest => creatureQuest.Quest.Name)
             .ToArrayAsync(cancellationToken);
+
+        var giverNamesById = await getCreatureNamesByIds.Handle(
+            new GetCreatureNamesByIdsQuery
+            {
+                Ids = quests.Select(quest => quest.Quest.GiverId).Distinct().ToArray(),
+            },
+            cancellationToken
+        );
 
         var objectives = await GetObjectives(query.PlayerId, query.WorldId, cancellationToken);
 
@@ -86,6 +100,7 @@ internal class GetQuestJournalQueryHandler(
                 quest.QuestId,
                 quest.Quest.Name,
                 quest.Quest.Description,
+                giverNamesById.GetValueOrDefault(quest.Quest.GiverId),
                 quest.Quest.GoldReward,
                 quest.Status,
                 quest.IsTracked,

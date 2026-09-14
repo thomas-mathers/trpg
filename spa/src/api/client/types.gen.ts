@@ -722,6 +722,7 @@ export type QuestJournalEntrySnapshot = {
     id: string;
     name: string;
     description: string;
+    giverName: null | string;
     goldReward: number;
     status: string;
     isTracked: boolean;

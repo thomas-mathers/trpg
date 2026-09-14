@@ -52,6 +52,7 @@ internal static class QuestEndpoints
                     quest.Id,
                     quest.Name,
                     quest.Description,
+                    quest.GiverName,
                     quest.GoldReward,
                     quest.Status.ToString(),
                     quest.IsTracked,
