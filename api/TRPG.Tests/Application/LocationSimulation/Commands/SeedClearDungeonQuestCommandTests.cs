@@ -160,8 +160,7 @@ public sealed class SeedClearDungeonQuestCommandTests
         Assert.True(result);
         var objective = await _context
             .QuestObjectives.OfType<ClearLocationObjective>()
-            .SingleAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(_dungeon.Id, objective.BuildingId);
+            .SingleAsync(o => o.BuildingId == _dungeon.Id, TestContext.Current.CancellationToken);
         Assert.Equal(2, objective.RequiredAmount);
     }
 

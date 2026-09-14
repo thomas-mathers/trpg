@@ -6,31 +6,36 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Queries;
 
-public sealed class GetLivingHostileCreatureCountsByLocationQueryTests(DatabaseFixture db)
+public sealed class GetLivingHostileCreatureCountsByLocationQueryTests
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
-    private static readonly Guid LocationId = Guid.NewGuid();
-    private static readonly Guid OtherLocationId = Guid.NewGuid();
 
+    private readonly DatabaseFixture _database;
+
+    // Instance, not static — the class shares one database across tests, and these tests assert on
+    // *every* living hostile at a location, so a location id reused across tests would leak rows
+    // from one test's arrangement into another's assertion.
+    private readonly Guid _locationId = Guid.NewGuid();
+    private readonly Guid _otherLocationId = Guid.NewGuid();
+
+    private readonly EncounterGroup _group;
+    private readonly EncounterGroup _otherGroup;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetLivingHostileCreatureCountsByLocationQueryHandler _handler = null!;
-    private readonly EncounterGroup _group = Builders.MakeEncounterGroup(
-        WorldId,
-        LocationId,
-        Guid.NewGuid()
-    );
-    private readonly EncounterGroup _otherGroup = Builders.MakeEncounterGroup(
-        WorldId,
-        OtherLocationId,
-        Guid.NewGuid()
-    );
+
+    public GetLivingHostileCreatureCountsByLocationQueryTests(DatabaseFixture database)
+    {
+        _database = database;
+        _group = Builders.MakeEncounterGroup(WorldId, _locationId, Guid.NewGuid());
+        _otherGroup = Builders.MakeEncounterGroup(WorldId, _otherLocationId, Guid.NewGuid());
+    }
 
     public async ValueTask InitializeAsync()
     {
-        _context = db.CreateContext();
+        _context = _database.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
@@ -67,14 +72,14 @@ public sealed class GetLivingHostileCreatureCountsByLocationQueryTests(DatabaseF
             new GetLivingHostileCreatureCountsByLocationQuery
             {
                 WorldId = WorldId,
-                LocationIds = [LocationId, OtherLocationId],
+                LocationIds = [_locationId, _otherLocationId],
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(1, result[LocationId]);
-        Assert.Equal(1, result[OtherLocationId]);
+        Assert.Equal(1, result[_locationId]);
+        Assert.Equal(1, result[_otherLocationId]);
     }
 
     [Fact]
@@ -85,7 +90,7 @@ public sealed class GetLivingHostileCreatureCountsByLocationQueryTests(DatabaseF
             new GetLivingHostileCreatureCountsByLocationQuery
             {
                 WorldId = WorldId,
-                LocationIds = [LocationId],
+                LocationIds = [_locationId],
             },
             TestContext.Current.CancellationToken
         );
