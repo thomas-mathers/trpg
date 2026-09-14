@@ -31,14 +31,14 @@ public static class ExpeditionQuestGenerator
             }
         );
 
-        var objective = new GiveItemObjective
+        var objective = new GiveItemsObjective
         {
             WorldId = expedition.WorldId,
             QuestId = quest.Id,
             Name = $"Recover {expedition.CompanionName}'s journal",
             Description =
                 $"Recover {expedition.CompanionName}'s journal, then bring it to {expedition.SurvivorName}.",
-            ItemId = expedition.JournalItemId,
+            ItemIds = [expedition.JournalItemId],
             RecipientId = expedition.SurvivorId,
             LocationId = expedition.EntranceLocationId,
         };

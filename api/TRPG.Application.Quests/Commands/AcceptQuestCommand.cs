@@ -64,12 +64,13 @@ internal class AcceptQuestCommandHandler(
             .Select(objective => objective.ItemId)
             .ToArrayAsync(cancellationToken);
 
-        var giveItemIds = await context
+        var giveItemIdLists = await context
             .QuestObjectives.AsNoTracking()
-            .OfType<GiveItemObjective>()
+            .OfType<GiveItemsObjective>()
             .Where(objective => objective.QuestId == quest.Id)
-            .Select(objective => objective.ItemId)
+            .Select(objective => objective.ItemIds)
             .ToArrayAsync(cancellationToken);
+        var giveItemIds = giveItemIdLists.SelectMany(itemIds => itemIds).ToArray();
 
         var deliverItemIds = await context
             .QuestObjectives.AsNoTracking()
@@ -116,7 +117,7 @@ internal class AcceptQuestCommandHandler(
         );
     }
 
-    // A GiveItemObjective or DeliverItemObjective's item doesn't always start with the player
+    // A GiveItemsObjective or DeliverItemObjective's item doesn't always start with the player
     // (e.g. one recovered from a dungeon) — but when the giver is already holding it, accepting
     // the quest is them handing it over, same as a courier receiving a package from the person
     // who wants it delivered.

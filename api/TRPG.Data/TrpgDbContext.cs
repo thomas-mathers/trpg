@@ -532,13 +532,18 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<CollectItemObjective>("CollectItem")
                 .HasValue<ExploreLocationObjective>("ExploreLocation")
                 .HasValue<SpeakToCreatureObjective>("SpeakToCreature")
-                .HasValue<GiveItemObjective>("GiveItem")
+                .HasValue<GiveItemsObjective>("GiveItem")
                 .HasValue<FreeCreatureObjective>("FreeCreature")
                 .HasValue<ClearLocationObjective>("ClearLocation")
                 .HasValue<DeliverItemObjective>("DeliverItem");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
             entity.Property(o => o.RequiredAmount).HasDefaultValue(1);
+        });
+
+        modelBuilder.Entity<GiveItemsObjective>(entity =>
+        {
+            entity.Property(o => o.ItemIds).HasColumnType("uuid[]");
         });
 
         modelBuilder.Entity<CreatureSkill>(entity =>

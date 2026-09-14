@@ -62,11 +62,16 @@ internal class CompleteQuestCommandHandler(
             .Select(objective => objective.ItemId)
             .ToArrayAsync(cancellationToken);
 
-        var giveItems = await context
-            .QuestObjectives.OfType<GiveItemObjective>()
+        var giveItemGroups = await context
+            .QuestObjectives.OfType<GiveItemsObjective>()
             .Where(objective => objective.QuestId == command.QuestId)
-            .Select(objective => new GiveItemRequirement(objective.ItemId, objective.RecipientId))
+            .Select(objective => new { objective.ItemIds, objective.RecipientId })
             .ToArrayAsync(cancellationToken);
+        var giveItems = giveItemGroups
+            .SelectMany(group =>
+                group.ItemIds.Select(itemId => new GiveItemRequirement(itemId, group.RecipientId))
+            )
+            .ToArray();
 
         var requiredItemIds = collectItemIds
             .Concat(giveItems.Select(giveItem => giveItem.ItemId))
