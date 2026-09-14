@@ -6,7 +6,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Queries;
 
-public sealed class GetLivingHostileCreatureCountAtLocationsQueryTests(DatabaseFixture db)
+public sealed class GetLivingHostileCreatureCountsByLocationQueryTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -16,10 +16,15 @@ public sealed class GetLivingHostileCreatureCountAtLocationsQueryTests(DatabaseF
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetLivingHostileCreatureCountAtLocationsQueryHandler _handler = null!;
+    private GetLivingHostileCreatureCountsByLocationQueryHandler _handler = null!;
     private readonly EncounterGroup _group = Builders.MakeEncounterGroup(
         WorldId,
         LocationId,
+        Guid.NewGuid()
+    );
+    private readonly EncounterGroup _otherGroup = Builders.MakeEncounterGroup(
+        WorldId,
+        OtherLocationId,
         Guid.NewGuid()
     );
 
@@ -30,9 +35,9 @@ public sealed class GetLivingHostileCreatureCountAtLocationsQueryTests(DatabaseF
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler =
-            _serviceProvider.GetRequiredService<GetLivingHostileCreatureCountAtLocationsQueryHandler>();
+            _serviceProvider.GetRequiredService<GetLivingHostileCreatureCountsByLocationQueryHandler>();
 
-        _context.EncounterGroups.Add(_group);
+        _context.EncounterGroups.AddRange(_group, _otherGroup);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -43,21 +48,41 @@ public sealed class GetLivingHostileCreatureCountAtLocationsQueryTests(DatabaseF
     }
 
     [Fact]
-    public async Task Handle_CountsOnlyLivingMembers_AtTheGivenLocations()
+    public async Task Handle_CountsOnlyLivingMembers_PerRequestedLocation()
     {
         // Arrange
         var living = Builders.MakeCreature(WorldId, state: CreatureState.Idle);
         var dead = Builders.MakeCreature(WorldId, state: CreatureState.Dead);
-        _context.Creatures.AddRange(living, dead);
+        var otherLiving = Builders.MakeCreature(WorldId, state: CreatureState.Idle);
+        _context.Creatures.AddRange(living, dead, otherLiving);
         _context.EncounterGroupMembers.AddRange(
             Builders.MakeEncounterGroupMember(WorldId, _group.Id, living.Id),
-            Builders.MakeEncounterGroupMember(WorldId, _group.Id, dead.Id)
+            Builders.MakeEncounterGroupMember(WorldId, _group.Id, dead.Id),
+            Builders.MakeEncounterGroupMember(WorldId, _otherGroup.Id, otherLiving.Id)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetLivingHostileCreatureCountAtLocationsQuery
+            new GetLivingHostileCreatureCountsByLocationQuery
+            {
+                WorldId = WorldId,
+                LocationIds = [LocationId, OtherLocationId],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(1, result[LocationId]);
+        Assert.Equal(1, result[OtherLocationId]);
+    }
+
+    [Fact]
+    public async Task Handle_OmitsTheLocation_WhenItHasNoLivingHostiles()
+    {
+        // Act
+        var result = await _handler.Handle(
+            new GetLivingHostileCreatureCountsByLocationQuery
             {
                 WorldId = WorldId,
                 LocationIds = [LocationId],
@@ -66,23 +91,6 @@ public sealed class GetLivingHostileCreatureCountAtLocationsQueryTests(DatabaseF
         );
 
         // Assert
-        Assert.Equal(1, result);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsZero_WhenTheLocationHasNoEncounterGroup()
-    {
-        // Act
-        var result = await _handler.Handle(
-            new GetLivingHostileCreatureCountAtLocationsQuery
-            {
-                WorldId = WorldId,
-                LocationIds = [OtherLocationId],
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(0, result);
+        Assert.Empty(result);
     }
 }
