@@ -68,7 +68,7 @@ internal class GetLivingHostileCreatureIdsByLocationQueryHandler(
             .GroupBy(member => locationIdByGroupId[member.EncounterGroupId])
             .ToDictionary(
                 group => group.Key,
-                group => (IReadOnlyList<Guid>)group.Select(member => member.CreatureId).ToArray()
+                IReadOnlyList<Guid> (group) => group.Select(member => member.CreatureId).ToArray()
             );
     }
 }
