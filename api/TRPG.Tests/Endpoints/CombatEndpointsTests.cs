@@ -144,6 +144,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
                 SessionId = sessionId,
                 WorldId = _worldId,
                 PlayerId = _playerId,
+                LocationId = _locationId,
                 Combatants = combatants,
                 State = state,
             },

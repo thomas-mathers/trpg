@@ -75,7 +75,13 @@ public sealed class CreatureKilledQuestGiverEventHandlerTests(DatabaseFixture db
 
         // Act
         await handler.Handle(
-            new CreatureKilledEvent(_player.Id, WorldId, _giver.Id, _giver.CreatureType),
+            new CreatureKilledEvent(
+                _player.Id,
+                WorldId,
+                _giver.Id,
+                _giver.CreatureType,
+                Guid.NewGuid()
+            ),
             TestContext.Current.CancellationToken
         );
 
@@ -123,7 +129,13 @@ public sealed class CreatureKilledQuestGiverEventHandlerTests(DatabaseFixture db
 
         // Act
         await handler.Handle(
-            new CreatureKilledEvent(_player.Id, WorldId, _giver.Id, _giver.CreatureType),
+            new CreatureKilledEvent(
+                _player.Id,
+                WorldId,
+                _giver.Id,
+                _giver.CreatureType,
+                Guid.NewGuid()
+            ),
             TestContext.Current.CancellationToken
         );
 

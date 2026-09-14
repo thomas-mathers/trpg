@@ -18,6 +18,7 @@ internal class ResolveCombatRoundCommand
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required Guid LocationId { get; init; }
     public required IReadOnlyList<Combatant> Combatants { get; init; }
     public required CombatState State { get; init; }
 }
@@ -126,7 +127,8 @@ internal class ResolveCombatRoundCommandHandler(
                     command.PlayerId,
                     command.WorldId,
                     combatant.CreatureId,
-                    combatant.CreatureType
+                    combatant.CreatureType,
+                    command.LocationId
                 ),
                 cancellationToken
             );

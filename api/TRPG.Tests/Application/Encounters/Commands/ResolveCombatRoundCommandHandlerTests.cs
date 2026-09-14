@@ -16,6 +16,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private readonly Guid _worldId = Guid.NewGuid();
+    private readonly Guid _locationId = Guid.NewGuid();
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -100,6 +101,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants = [playerCombatant, MakeEnemyCombatant(currentHp: 12)],
                 State = state,
             },
@@ -136,6 +138,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant()],
                 State = state,
             },
@@ -176,6 +179,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant()],
                 State = state,
             },
@@ -211,6 +215,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant()],
                 State = state,
             },
@@ -243,6 +248,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant(currentHp: 12)],
                 State = state,
             },
@@ -278,6 +284,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants =
                 [
                     MakePlayerCombatant(currentHp: 33),
@@ -313,6 +320,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants =
                 [
                     MakePlayerCombatant(currentHp: 33),
@@ -365,6 +373,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants =
                 [
                     MakePlayerCombatant(currentHp: 33),
@@ -417,6 +426,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
+                LocationId = _locationId,
                 Combatants = [MakePlayerCombatant(), MakeEnemyCombatant(currentHp: 12)],
                 State = state,
             },

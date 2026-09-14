@@ -43,3 +43,8 @@ public sealed class FreeCreatureObjective : QuestObjective
 {
     public Guid CreatureId { get; init; }
 }
+
+public sealed class ClearLocationObjective : QuestObjective
+{
+    public Guid BuildingId { get; init; }
+}

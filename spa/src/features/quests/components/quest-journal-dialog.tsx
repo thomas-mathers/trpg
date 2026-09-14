@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Circle, CircleCheck, MapPin, ScrollText } from 'lucide-react';
+import { Circle, CircleCheck, MapPin, ScrollText, User } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -223,6 +223,12 @@ function QuestJournalEntry({
         <div>
           <h3 className="font-heading text-xl tracking-wide">{quest.name}</h3>
           <p className="text-muted-foreground mt-1 text-xs">{formatQuestStatus(quest.status)}</p>
+          {quest.giverName && (
+            <p className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+              <User className="size-3" />
+              {quest.giverName}
+            </p>
+          )}
         </div>
         {(quest.status === 'Accepted' || quest.status === 'ReadyToComplete') && (
           <Button

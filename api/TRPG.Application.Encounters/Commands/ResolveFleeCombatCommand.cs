@@ -3,6 +3,7 @@ using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
@@ -30,6 +31,7 @@ internal class ResolveFleeCombatCommandHandler(
     ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
+    IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector
@@ -44,6 +46,11 @@ internal class ResolveFleeCombatCommandHandler(
         if (combatants.Count == 0)
             return null;
 
+        var fight = await getActiveFight.Handle(
+            new GetActiveFightQuery { PlayerId = command.PlayerId },
+            cancellationToken
+        );
+
         var state = combatEngine.ProcessRound(combatants, new ResolvedFleeAction());
         var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
@@ -51,6 +58,7 @@ internal class ResolveFleeCombatCommandHandler(
                 SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
+                LocationId = fight!.LocationId,
                 Combatants = combatants,
                 State = state,
             },

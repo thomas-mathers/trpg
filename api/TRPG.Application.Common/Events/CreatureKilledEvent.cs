@@ -6,5 +6,6 @@ public sealed record CreatureKilledEvent(
     Guid PlayerId,
     Guid WorldId,
     Guid CreatureId,
-    CreatureType CreatureType
+    CreatureType CreatureType,
+    Guid LocationId
 ) : DomainEvent;
