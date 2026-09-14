@@ -81,6 +81,7 @@ public enum ItemType
     Gold,
     Key,
     Book,
+    Misc,
 }
 
 public enum ArmorClass
@@ -101,6 +102,7 @@ public enum ArmorClass
 [JsonDerivedType(typeof(GoldDetail), "Gold")]
 [JsonDerivedType(typeof(KeyDetail), "Key")]
 [JsonDerivedType(typeof(BookDetail), "Book")]
+[JsonDerivedType(typeof(MiscDetail), "Misc")]
 public abstract record ItemDetail(
     Guid ItemId,
     string Name,
@@ -353,6 +355,33 @@ public sealed record KeyDetail(
     );
 
 public sealed record BookDetail(
+    Guid ItemId,
+    string Name,
+    string Description,
+    int Weight,
+    int Quantity,
+    EquipmentSlot? EquippedSlot,
+    ItemType Type,
+    ItemRarity? Rarity,
+    int GoldValue,
+    IReadOnlyList<ItemModifierSummary> Modifiers,
+    bool IsStackable
+)
+    : ItemDetail(
+        ItemId,
+        Name,
+        Description,
+        Weight,
+        Quantity,
+        EquippedSlot,
+        Type,
+        Rarity,
+        GoldValue,
+        Modifiers,
+        IsStackable
+    );
+
+public sealed record MiscDetail(
     Guid ItemId,
     string Name,
     string Description,

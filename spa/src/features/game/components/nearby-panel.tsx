@@ -1,4 +1,4 @@
-import { CircleHelp, MoreVertical } from 'lucide-react';
+import { CircleHelp, MoreVertical, Package } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import type { IconType } from 'react-icons';
@@ -56,7 +56,7 @@ import {
   GiWolfHead,
 } from 'react-icons/gi';
 
-import { getQuestDialog } from '@/api/client';
+import { getDeliverItemDialog, getQuestDialog } from '@/api/client';
 import type { BuildingType, DistrictType, OwnerType } from '@/api/client';
 import type {
   CreatureStatusSnapshot,
@@ -83,6 +83,7 @@ import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { ROOM_ROLE_ICONS } from '@/features/game/room-role-icons';
 import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
+import type { DeliverItemDialogState } from '@/features/quests/components/deliver-item-dialog';
 import type { QuestDialogState } from '@/features/quests/components/quest-dialog';
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
@@ -161,6 +162,7 @@ interface NearbyPanelProps {
   scene: SceneSnapshot;
   onOpenQuestJournal: () => void;
   onQuestDialogRequested: (dialog: QuestDialogState) => void;
+  onDeliverItemDialogRequested: (dialog: DeliverItemDialogState) => void;
   onTheftEncounter?: (encounterId: string) => void;
 }
 
@@ -168,6 +170,7 @@ export function NearbyPanel({
   scene,
   onOpenQuestJournal,
   onQuestDialogRequested,
+  onDeliverItemDialogRequested,
   onTheftEncounter,
 }: NearbyPanelProps) {
   const chatHub = useChatHub();
@@ -194,6 +197,16 @@ export function NearbyPanel({
     });
     if (response.data) {
       onQuestDialogRequested({ ...response.data, worldId: scene.worldId });
+    }
+  };
+
+  const handleDeliverItemDialog = async (recipientId: string) => {
+    const response = await getDeliverItemDialog({
+      path: { playerId: scene.playerStatus.id },
+      query: { worldId: scene.worldId, recipientId },
+    });
+    if (response.data) {
+      onDeliverItemDialogRequested({ ...response.data, recipientId, worldId: scene.worldId });
     }
   };
 
@@ -255,6 +268,7 @@ export function NearbyPanel({
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
               onQuestDialog={() => void handleQuestDialog(creature.id)}
+              onDeliverItem={() => void handleDeliverItemDialog(creature.id)}
             />
           ))}
         </Section>
@@ -475,6 +489,7 @@ function CreatureRow({
   onTrade,
   tradeEnabled,
   onQuestDialog,
+  onDeliverItem,
 }: {
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
@@ -482,6 +497,7 @@ function CreatureRow({
   onTrade: () => void;
   tradeEnabled: boolean;
   onQuestDialog: () => void;
+  onDeliverItem: () => void;
 }) {
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
@@ -512,6 +528,13 @@ function CreatureRow({
             aria-label="Has a quest ready to turn in"
           >
             !
+          </span>
+        ) : creature.questMarker === 'ReadyToDeliver' ? (
+          <span
+            className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
+            aria-label="You have something to give them"
+          >
+            <Package className="size-2.5" />
           </span>
         ) : (
           dangerous && (
@@ -556,8 +579,12 @@ function CreatureRow({
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
           {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
-          {!dead && creature.questMarker && (
-            <DropdownMenuItem onClick={onQuestDialog}>Quest</DropdownMenuItem>
+          {!dead &&
+            (creature.questMarker === 'Available' || creature.questMarker === 'ReadyToTurnIn') && (
+              <DropdownMenuItem onClick={onQuestDialog}>Quest</DropdownMenuItem>
+            )}
+          {!dead && creature.questMarker === 'ReadyToDeliver' && (
+            <DropdownMenuItem onClick={onDeliverItem}>Give Item</DropdownMenuItem>
           )}
         </DropdownMenuContent>
       </DropdownMenu>

@@ -96,6 +96,7 @@ function renderPanel(
             scene={sceneSnapshot}
             onOpenQuestJournal={() => {}}
             onQuestDialogRequested={onQuestDialogRequested}
+            onDeliverItemDialogRequested={() => {}}
           />
         </GameChatContext.Provider>
       </GameHubConnectionContext.Provider>

@@ -4,8 +4,11 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
+using TRPG.Creatures.Mappers;
+using TRPG.Domain.Models;
 using TRPG.Quests.Requests;
 using TRPG.Quests.Responses;
 using ApplicationQuestDialogMode = TRPG.Application.Quests.Queries.QuestDialogMode;
@@ -29,6 +32,8 @@ internal static class QuestEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest);
         app.MapGet("/players/{playerId:guid}/quest-dialog", GetQuestDialog)
             .WithName("GetQuestDialog");
+        app.MapGet("/players/{playerId:guid}/deliver-item-dialog", GetDeliverItemDialog)
+            .WithName("GetDeliverItemDialog");
     }
 
     private static async Task<Ok<QuestJournalEntrySnapshot[]>> GetQuestJournal(
@@ -175,6 +180,53 @@ internal static class QuestEndpoints
                     ApplicationQuestDialogMode.TurnIn => ClientQuestDialogMode.TurnIn,
                     _ => throw new ArgumentOutOfRangeException(nameof(dialog.Mode)),
                 }
+            )
+        );
+    }
+
+    private static async Task<
+        Results<Ok<DeliverItemDialogResponse>, NoContent>
+    > GetDeliverItemDialog(
+        Guid playerId,
+        Guid worldId,
+        Guid recipientId,
+        [FromServices]
+            IQueryHandler<
+            GetDeliverableItemForRecipientQuery,
+            DeliverableItemResult?
+        > getDeliverableItem,
+        [FromServices] IQueryHandler<GetItemByIdQuery, Item?> getItemById,
+        CancellationToken cancellationToken
+    )
+    {
+        var deliverable = await getDeliverableItem.Handle(
+            new GetDeliverableItemForRecipientQuery
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                RecipientId = recipientId,
+            },
+            cancellationToken
+        );
+        if (deliverable is null)
+        {
+            return TypedResults.NoContent();
+        }
+
+        var item = await getItemById.Handle(
+            new GetItemByIdQuery { ItemId = deliverable.ItemId, WorldId = worldId },
+            cancellationToken
+        );
+        if (item is null)
+        {
+            return TypedResults.NoContent();
+        }
+
+        return TypedResults.Ok(
+            new DeliverItemDialogResponse(
+                deliverable.QuestId,
+                deliverable.QuestName,
+                item.ToDetail(isQuestItem: true)
             )
         );
     }

@@ -13,6 +13,7 @@ public class GameTurnRunner
     private readonly StreamAcceptQuestTurnHandler _streamAcceptQuestTurn;
     private readonly StreamDeclineQuestTurnHandler _streamDeclineQuestTurn;
     private readonly StreamCompleteQuestTurnHandler _streamCompleteQuestTurn;
+    private readonly StreamDeliverItemTurnHandler _streamDeliverItemTurn;
     private readonly StreamFleeTurnHandler _streamFleeTurn;
     private readonly StreamRespawnTurnHandler _streamRespawnTurn;
     private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
@@ -32,6 +33,7 @@ public class GameTurnRunner
         StreamAcceptQuestTurnHandler streamAcceptQuestTurn,
         StreamDeclineQuestTurnHandler streamDeclineQuestTurn,
         StreamCompleteQuestTurnHandler streamCompleteQuestTurn,
+        StreamDeliverItemTurnHandler streamDeliverItemTurn,
         StreamFleeTurnHandler streamFleeTurn,
         StreamRespawnTurnHandler streamRespawnTurn,
         StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
@@ -51,6 +53,7 @@ public class GameTurnRunner
         _streamAcceptQuestTurn = streamAcceptQuestTurn;
         _streamDeclineQuestTurn = streamDeclineQuestTurn;
         _streamCompleteQuestTurn = streamCompleteQuestTurn;
+        _streamDeliverItemTurn = streamDeliverItemTurn;
         _streamFleeTurn = streamFleeTurn;
         _streamRespawnTurn = streamRespawnTurn;
         _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
@@ -110,6 +113,12 @@ public class GameTurnRunner
         Guid questId,
         CancellationToken cancellationToken = default
     ) => _streamCompleteQuestTurn.Handle(session, questId, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamDeliverItem(
+        GameTurnSession session,
+        Guid recipientId,
+        CancellationToken cancellationToken = default
+    ) => _streamDeliverItemTurn.Handle(session, recipientId, cancellationToken);
 
     public IAsyncEnumerable<string> StreamFlee(
         GameTurnSession session,

@@ -71,7 +71,15 @@ internal class AcceptQuestCommandHandler(
             .Select(objective => objective.ItemId)
             .ToArrayAsync(cancellationToken);
 
-        var requiredItemIds = collectItemIds.Concat(giveItemIds).ToArray();
+        var deliverItemIds = await context
+            .QuestObjectives.AsNoTracking()
+            .OfType<DeliverItemObjective>()
+            .Where(objective => objective.QuestId == quest.Id)
+            .Select(objective => objective.ItemId)
+            .ToArrayAsync(cancellationToken);
+
+        var giverHandoffItemIds = giveItemIds.Concat(deliverItemIds).ToArray();
+        var requiredItemIds = collectItemIds.Concat(giverHandoffItemIds).ToArray();
 
         context.CreatureQuests.Add(
             new CreatureQuest
@@ -100,20 +108,26 @@ internal class AcceptQuestCommandHandler(
             cancellationToken
         );
 
-        await GiveGiverOwnedItemsToPlayer(command, quest.GiverId, giveItemIds, cancellationToken);
+        await GiveGiverOwnedItemsToPlayer(
+            command,
+            quest.GiverId,
+            giverHandoffItemIds,
+            cancellationToken
+        );
     }
 
-    // A GiveItemObjective's item doesn't always start with the player (e.g. one recovered from a
-    // dungeon) — but when the giver is already holding it, accepting the quest is them handing it
-    // over, same as a courier receiving a package from the person who wants it delivered.
+    // A GiveItemObjective or DeliverItemObjective's item doesn't always start with the player
+    // (e.g. one recovered from a dungeon) — but when the giver is already holding it, accepting
+    // the quest is them handing it over, same as a courier receiving a package from the person
+    // who wants it delivered.
     private async Task GiveGiverOwnedItemsToPlayer(
         AcceptQuestCommand command,
         Guid giverId,
-        IReadOnlyCollection<Guid> giveItemIds,
+        IReadOnlyCollection<Guid> handoffItemIds,
         CancellationToken cancellationToken
     )
     {
-        if (giveItemIds.Count == 0)
+        if (handoffItemIds.Count == 0)
         {
             return;
         }
@@ -123,7 +137,7 @@ internal class AcceptQuestCommandHandler(
             {
                 OwnerId = giverId,
                 OwnerType = OwnerType.Creature,
-                ItemIds = giveItemIds,
+                ItemIds = handoffItemIds,
             },
             cancellationToken
         );

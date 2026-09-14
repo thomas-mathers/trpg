@@ -48,3 +48,9 @@ public sealed class ClearLocationObjective : QuestObjective
 {
     public Guid BuildingId { get; init; }
 }
+
+public sealed class DeliverItemObjective : QuestObjective
+{
+    public Guid ItemId { get; init; }
+    public Guid RecipientId { get; init; }
+}

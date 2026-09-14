@@ -6,7 +6,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Quests.Queries;
 
-public sealed class GetActiveGiveItemObjectiveRecipientIdsQueryTests(DatabaseFixture db)
+public sealed class GetActiveDeliverItemObjectiveRecipientIdsQueryTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -16,7 +16,7 @@ public sealed class GetActiveGiveItemObjectiveRecipientIdsQueryTests(DatabaseFix
     private readonly Guid _playerId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetActiveGiveItemObjectiveRecipientIdsQueryHandler _handler = null!;
+    private GetActiveDeliverItemObjectiveRecipientIdsQueryHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -25,7 +25,7 @@ public sealed class GetActiveGiveItemObjectiveRecipientIdsQueryTests(DatabaseFix
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler =
-            _serviceProvider.GetRequiredService<GetActiveGiveItemObjectiveRecipientIdsQueryHandler>();
+            _serviceProvider.GetRequiredService<GetActiveDeliverItemObjectiveRecipientIdsQueryHandler>();
     }
 
     public async ValueTask DisposeAsync()
@@ -34,10 +34,14 @@ public sealed class GetActiveGiveItemObjectiveRecipientIdsQueryTests(DatabaseFix
         await _context.DisposeAsync();
     }
 
-    private async Task<Guid> SeedGiveItemQuest(QuestStatus status, Guid playerId, Guid recipientId)
+    private async Task<Guid> SeedDeliverItemQuest(
+        QuestStatus status,
+        Guid playerId,
+        Guid recipientId
+    )
     {
         var quest = Builders.MakeQuest(GiverId, WorldId);
-        var objective = new GiveItemObjective
+        var objective = new DeliverItemObjective
         {
             WorldId = WorldId,
             QuestId = quest.Id,
@@ -63,12 +67,12 @@ public sealed class GetActiveGiveItemObjectiveRecipientIdsQueryTests(DatabaseFix
     public async Task Handle_IncludesAcceptedAndReadyToCompleteRecipients()
     {
         // Arrange
-        var acceptedRecipientId = await SeedGiveItemQuest(
+        var acceptedRecipientId = await SeedDeliverItemQuest(
             QuestStatus.Accepted,
             _playerId,
             Guid.NewGuid()
         );
-        var readyRecipientId = await SeedGiveItemQuest(
+        var readyRecipientId = await SeedDeliverItemQuest(
             QuestStatus.ReadyToComplete,
             _playerId,
             Guid.NewGuid()
@@ -76,7 +80,7 @@ public sealed class GetActiveGiveItemObjectiveRecipientIdsQueryTests(DatabaseFix
 
         // Act
         var result = await _handler.Handle(
-            new GetActiveGiveItemObjectiveRecipientIdsQuery
+            new GetActiveDeliverItemObjectiveRecipientIdsQuery
             {
                 WorldId = WorldId,
                 PlayerId = _playerId,
@@ -95,12 +99,12 @@ public sealed class GetActiveGiveItemObjectiveRecipientIdsQueryTests(DatabaseFix
     public async Task Handle_ExcludesCompletedRecipientsAndOtherPlayers()
     {
         // Arrange
-        await SeedGiveItemQuest(QuestStatus.Completed, _playerId, Guid.NewGuid());
-        await SeedGiveItemQuest(QuestStatus.Accepted, Guid.NewGuid(), Guid.NewGuid());
+        await SeedDeliverItemQuest(QuestStatus.Completed, _playerId, Guid.NewGuid());
+        await SeedDeliverItemQuest(QuestStatus.Accepted, Guid.NewGuid(), Guid.NewGuid());
 
         // Act
         var result = await _handler.Handle(
-            new GetActiveGiveItemObjectiveRecipientIdsQuery
+            new GetActiveDeliverItemObjectiveRecipientIdsQuery
             {
                 WorldId = WorldId,
                 PlayerId = _playerId,

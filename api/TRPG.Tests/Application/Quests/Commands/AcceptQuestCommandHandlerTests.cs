@@ -119,6 +119,46 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_TransfersTheGiverOwnedItemToThePlayer_WhenObjectiveIsDeliverItem()
+    {
+        // Arrange
+        var item = Builders.MakeItem(WorldId);
+        item.Quantity = 1;
+        item.Ownership.OwnerId = _giver.Id;
+        item.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(item);
+        var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        var objective = new DeliverItemObjective
+        {
+            WorldId = WorldId,
+            QuestId = quest.Id,
+            ItemId = item.Id,
+            RecipientId = Guid.NewGuid(),
+        };
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new AcceptQuestCommand
+            {
+                PlayerId = _player.Id,
+                QuestId = quest.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var transferredItem = await _context.Items.SingleAsync(
+            i => i.Id == item.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_player.Id, transferredItem.Ownership.OwnerId);
+    }
+
+    [Fact]
     public async Task Handle_DoesNotTransferTheItem_WhenTheGiverDoesNotOwnIt()
     {
         // Arrange

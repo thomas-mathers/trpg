@@ -10,6 +10,7 @@ internal static class QuestMarkerMapper
         {
             ApplicationQuestMarker.Available => ContractQuestMarker.Available,
             ApplicationQuestMarker.ReadyToTurnIn => ContractQuestMarker.ReadyToTurnIn,
+            ApplicationQuestMarker.ReadyToDeliver => ContractQuestMarker.ReadyToDeliver,
             _ => null,
         };
 }

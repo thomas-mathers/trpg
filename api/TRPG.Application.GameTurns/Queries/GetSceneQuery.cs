@@ -50,9 +50,9 @@ internal class GetSceneQueryHandler(
         IReadOnlyDictionary<Guid, int>
     > getEffectiveReputations,
     IQueryHandler<
-        GetQuestMarkersForGiversQuery,
+        GetQuestMarkersForCreaturesQuery,
         IReadOnlyDictionary<Guid, QuestMarker>
-    > getQuestMarkersForGivers,
+    > getQuestMarkersForCreatures,
     IQueryHandler<
         GetTotalCharacterXpFromSkillsQuery,
         IReadOnlyDictionary<Guid, int>
@@ -418,12 +418,12 @@ internal class GetSceneQueryHandler(
             new GetTradeWorkstationIdsByOccupantIdsQuery { OccupantIds = nearbyCreatureIds },
             cancellationToken
         );
-        var questMarkersByGiver = await getQuestMarkersForGivers.Handle(
-            new GetQuestMarkersForGiversQuery
+        var questMarkersByGiver = await getQuestMarkersForCreatures.Handle(
+            new GetQuestMarkersForCreaturesQuery
             {
                 PlayerId = query.PlayerId,
                 WorldId = query.WorldId,
-                GiverIds = nearbyCreatureIds,
+                CreatureIds = nearbyCreatureIds,
             },
             cancellationToken
         );

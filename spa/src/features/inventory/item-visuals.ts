@@ -8,6 +8,7 @@ import {
   GiBowArrow,
   GiBroadsword,
   GiBubblingFlask,
+  GiCardboardBoxClosed,
   GiChestArmor,
   GiClosedBarbute,
   GiCoinsPile,
@@ -59,6 +60,7 @@ export const TYPE_ICON: Record<ItemType, IconType> = {
   Gold: GiCoinsPile,
   Key: GiKey,
   Book: GiBlackBook,
+  Misc: GiCardboardBoxClosed,
 };
 
 export const RARITY_COLOR: Partial<Record<ItemRarity, string>> = {

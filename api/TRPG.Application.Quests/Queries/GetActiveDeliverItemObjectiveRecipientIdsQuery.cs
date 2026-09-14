@@ -8,14 +8,14 @@ namespace TRPG.Application.Quests.Queries;
 // Per-player and only while the quest is still open, same repeatability shape as
 // GetActiveClearLocationObjectiveBuildingIdsQuery — a recipient who already received their
 // delivery becomes eligible for another one.
-public class GetActiveGiveItemObjectiveRecipientIdsQuery
+public class GetActiveDeliverItemObjectiveRecipientIdsQuery
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
 }
 
-internal class GetActiveGiveItemObjectiveRecipientIdsQueryHandler(IQuestsDbContext context)
-    : IQueryHandler<GetActiveGiveItemObjectiveRecipientIdsQuery, IReadOnlySet<Guid>>
+internal class GetActiveDeliverItemObjectiveRecipientIdsQueryHandler(IQuestsDbContext context)
+    : IQueryHandler<GetActiveDeliverItemObjectiveRecipientIdsQuery, IReadOnlySet<Guid>>
 {
     private static readonly QuestStatus[] ActiveStatuses =
     [
@@ -24,7 +24,7 @@ internal class GetActiveGiveItemObjectiveRecipientIdsQueryHandler(IQuestsDbConte
     ];
 
     public async Task<IReadOnlySet<Guid>> Handle(
-        GetActiveGiveItemObjectiveRecipientIdsQuery query,
+        GetActiveDeliverItemObjectiveRecipientIdsQuery query,
         CancellationToken cancellationToken = default
     )
     {
@@ -45,7 +45,7 @@ internal class GetActiveGiveItemObjectiveRecipientIdsQueryHandler(IQuestsDbConte
 
         var recipientIds = await context
             .QuestObjectives.AsNoTracking()
-            .OfType<GiveItemObjective>()
+            .OfType<DeliverItemObjective>()
             .Where(objective =>
                 objective.WorldId == query.WorldId
                 && activeQuestIds.AsEnumerable().Contains(objective.QuestId)

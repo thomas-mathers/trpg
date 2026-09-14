@@ -11,6 +11,10 @@ import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
 import { gameEventBus } from '../../../lib/game-event-bus';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
+import {
+  DeliverItemDialog,
+  type DeliverItemDialogState,
+} from '../../quests/components/deliver-item-dialog';
 import { QuestDialog, type QuestDialogState } from '../../quests/components/quest-dialog';
 import { QuestJournalDialog } from '../../quests/components/quest-journal-dialog';
 import { SkillTreeDialog } from '../../skills/components/skill-tree-dialog';
@@ -129,6 +133,7 @@ function GameScreenContent({
   const scene = useScene();
   const queryClient = useQueryClient();
   const [questDialog, setQuestDialog] = useState<QuestDialogState | null>(null);
+  const [deliverItemDialog, setDeliverItemDialog] = useState<DeliverItemDialogState | null>(null);
 
   useEffect(
     () =>
@@ -192,6 +197,7 @@ function GameScreenContent({
           <NearbySidebar
             onOpenQuestJournal={() => onOpenDialog('questJournal')}
             onQuestDialogRequested={setQuestDialog}
+            onDeliverItemDialogRequested={setDeliverItemDialog}
           />
         </div>
 
@@ -219,6 +225,11 @@ function GameScreenContent({
               playerId={playerId}
               quest={questDialog}
               onClose={() => setQuestDialog(null)}
+            />
+            <DeliverItemDialog
+              playerId={playerId}
+              deliverable={deliverItemDialog}
+              onClose={() => setDeliverItemDialog(null)}
             />
             {scene && (
               <QuestJournalDialog
