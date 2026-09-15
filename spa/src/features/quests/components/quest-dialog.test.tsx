@@ -23,12 +23,30 @@ const offerQuest: QuestDialogState = {
       name: 'Defeat Hulking Thunderfoot',
       description: 'Defeat Hulking Thunderfoot.',
       requiredAmount: 1,
+      itemNames: null,
     },
   ],
   mode: 'Offer',
 };
 
 const turnInQuest: QuestDialogState = { ...offerQuest, mode: 'TurnIn' };
+
+const stealOfferQuest: QuestDialogState = {
+  ...offerQuest,
+  name: 'A Quiet Job',
+  objectives: [
+    {
+      name: 'Recover 3 items',
+      description: 'Quietly recover 3 items from around Stonebridge.',
+      requiredAmount: 3,
+      itemNames: [
+        "Lucan Ashvale's Pocket Watch",
+        "The Crooked Chimney's Strongbox",
+        "The Striker's Anvil's Ledger",
+      ],
+    },
+  ],
+};
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
@@ -126,5 +144,13 @@ describe('QuestDialog', () => {
       expect.any(Function),
     );
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows each item name when an objective has more than one item', () => {
+    renderDialog(stealOfferQuest, vi.fn());
+
+    expect(screen.getByText("Lucan Ashvale's Pocket Watch")).toBeInTheDocument();
+    expect(screen.getByText("The Crooked Chimney's Strongbox")).toBeInTheDocument();
+    expect(screen.getByText("The Striker's Anvil's Ledger")).toBeInTheDocument();
   });
 });

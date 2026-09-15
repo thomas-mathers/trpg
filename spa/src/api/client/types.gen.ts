@@ -731,6 +731,7 @@ export type QuestDialogObjective = {
     name: string;
     description: string;
     requiredAmount: number;
+    itemNames: null | Array<string>;
 };
 
 export type QuestDialogResponse = {

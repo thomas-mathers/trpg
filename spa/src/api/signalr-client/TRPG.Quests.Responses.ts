@@ -13,6 +13,8 @@ export type QuestDialogObjective = {
     description: string;
     /** Transpiled from int */
     requiredAmount: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string>? */
+    itemNames?: string[];
 }
 
 /** Transpiled from TRPG.Quests.Responses.QuestDialogResponse */
