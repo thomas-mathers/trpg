@@ -88,11 +88,11 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
         item.Ownership.OwnerType = OwnerType.Creature;
         _context.Items.Add(item);
         var quest = Builders.MakeQuest(_giver.Id, WorldId);
-        var objective = new GiveItemObjective
+        var objective = new GiveItemsObjective
         {
             WorldId = WorldId,
             QuestId = quest.Id,
-            ItemId = item.Id,
+            ItemIds = [item.Id],
             RecipientId = Guid.NewGuid(),
         };
         _context.Quests.Add(quest);
@@ -167,11 +167,11 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
         item.Ownership.OwnerType = OwnerType.Container;
         _context.Items.Add(item);
         var quest = Builders.MakeQuest(_giver.Id, WorldId);
-        var objective = new GiveItemObjective
+        var objective = new GiveItemsObjective
         {
             WorldId = WorldId,
             QuestId = quest.Id,
-            ItemId = item.Id,
+            ItemIds = [item.Id],
             RecipientId = Guid.NewGuid(),
         };
         _context.Quests.Add(quest);

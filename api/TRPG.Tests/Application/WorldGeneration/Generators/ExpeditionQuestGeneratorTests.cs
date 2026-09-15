@@ -21,7 +21,7 @@ public sealed class ExpeditionQuestGeneratorTests
     };
 
     [Fact]
-    public void Generate_OffersAQuestFromTheSurvivor_WithAGiveItemObjective()
+    public void Generate_OffersAQuestFromTheSurvivor_WithAGiveItemsObjective()
     {
         // Act
         var result = ExpeditionQuestGenerator.Generate(_expedition);
@@ -31,9 +31,9 @@ public sealed class ExpeditionQuestGeneratorTests
         Assert.Equal(_expedition.SurvivorId, quest.GiverId);
         Assert.Equal(_expedition.WorldId, quest.WorldId);
         Assert.True(quest.GoldReward > 0);
-        var objective = Assert.IsType<GiveItemObjective>(Assert.Single(result.Objectives));
+        var objective = Assert.IsType<GiveItemsObjective>(Assert.Single(result.Objectives));
         Assert.Equal(quest.Id, objective.QuestId);
-        Assert.Equal(_expedition.JournalItemId, objective.ItemId);
+        Assert.Equal(_expedition.JournalItemId, Assert.Single(objective.ItemIds));
         Assert.Equal(_expedition.SurvivorId, objective.RecipientId);
     }
 

@@ -140,9 +140,9 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
     {
         // Arrange
         var quest = Builders.MakeQuest(_survivor.Id, WorldId);
-        var objective = Builders.MakeGiveItemObjective(
+        var objective = Builders.MakeGiveItemsObjective(
             quest.Id,
-            _expedition.JournalItemId,
+            [_expedition.JournalItemId],
             _survivor.Id,
             WorldId
         );
@@ -179,9 +179,9 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
                 Score = 20,
             }
         );
-        var objective = Builders.MakeGiveItemObjective(
+        var objective = Builders.MakeGiveItemsObjective(
             quest.Id,
-            _expedition.JournalItemId,
+            [_expedition.JournalItemId],
             _survivor.Id,
             WorldId
         );

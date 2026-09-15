@@ -280,11 +280,11 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                 QuestId = questId,
                 CreatureId = targetId,
             },
-            ObjectiveKind.GiveItem => new GiveItemObjective
+            ObjectiveKind.GiveItem => new GiveItemsObjective
             {
                 WorldId = WorldId,
                 QuestId = questId,
-                ItemId = targetId,
+                ItemIds = [targetId],
                 RecipientId = recipientId,
             },
             _ => throw new InvalidOperationException(),

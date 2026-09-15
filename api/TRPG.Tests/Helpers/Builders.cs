@@ -718,13 +718,13 @@ internal static class Builders
             RequiredAmount = requiredAmount,
         };
 
-    public static GiveItemObjective MakeGiveItemObjective(
+    public static GiveItemsObjective MakeGiveItemsObjective(
         Guid questId,
-        Guid itemId,
+        IReadOnlyCollection<Guid> itemIds,
         Guid recipientId,
         Guid? worldId = null,
         Guid? locationId = null,
-        int requiredAmount = 1,
+        int? requiredAmount = null,
         string? name = null
     ) =>
         new()
@@ -733,10 +733,10 @@ internal static class Builders
             QuestId = questId,
             Name = name ?? $"Objective-{Guid.NewGuid():N}",
             Description = "A test objective",
-            ItemId = itemId,
+            ItemIds = itemIds.ToList(),
             RecipientId = recipientId,
             LocationId = locationId,
-            RequiredAmount = requiredAmount,
+            RequiredAmount = requiredAmount ?? itemIds.Count,
         };
 
     public static CreatureQuestObjective MakeCreatureQuestObjective(

@@ -15,7 +15,10 @@ internal sealed class ItemAcquiredQuestEventHandler(QuestObjectiveAdvancer quest
             domainEvent.WorldId,
             objective =>
                 (objective is CollectItemObjective collect && collect.ItemId == domainEvent.ItemId)
-                || (objective is GiveItemObjective give && give.ItemId == domainEvent.ItemId),
+                || (
+                    objective is GiveItemsObjective give
+                    && give.ItemIds.Contains(domainEvent.ItemId)
+                ),
             cancellationToken
         );
 }

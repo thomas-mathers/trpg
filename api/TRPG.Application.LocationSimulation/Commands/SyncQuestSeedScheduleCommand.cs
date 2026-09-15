@@ -17,7 +17,8 @@ internal class SyncQuestSeedScheduleCommandHandler(
     ILocationSimulationDbContext context,
     ICommandHandler<SeedCaptiveRescueQuestCommand, bool> seedCaptiveRescueQuest,
     ICommandHandler<SeedClearDungeonQuestCommand, bool> seedClearDungeonQuest,
-    ICommandHandler<SeedCourierQuestCommand, bool> seedCourierQuest
+    ICommandHandler<SeedCourierQuestCommand, bool> seedCourierQuest,
+    ICommandHandler<SeedFetchQuestCommand, bool> seedFetchQuest
 ) : ICommandHandler<SyncQuestSeedScheduleCommand>
 {
     private const double SeedChance = 0.25;
@@ -80,6 +81,16 @@ internal class SyncQuestSeedScheduleCommandHandler(
 
         await seedCourierQuest.Handle(
             new SeedCourierQuestCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                LocationId = command.LocationId,
+            },
+            cancellationToken
+        );
+
+        await seedFetchQuest.Handle(
+            new SeedFetchQuestCommand
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,

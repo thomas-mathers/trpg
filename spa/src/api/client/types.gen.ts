@@ -761,12 +761,19 @@ export type QuestMapResponse = {
 
 export type QuestMarker = 'Available' | 'ReadyToTurnIn' | 'ReadyToDeliver';
 
+export type QuestObjectiveItemProgressSnapshot = {
+    name: string;
+    amount: number;
+    requiredAmount: number;
+};
+
 export type QuestObjectiveProgressSnapshot = {
     name: string;
     description: string;
     amount: number;
     requiredAmount: number;
     locationName: null | string;
+    items: null | Array<QuestObjectiveItemProgressSnapshot>;
 };
 
 export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';

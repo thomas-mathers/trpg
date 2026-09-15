@@ -42,20 +42,48 @@ export function QuestTracker({ playerId, worldId, onOpenJournal }: QuestTrackerP
         {quest.name}
       </button>
       <ul className="text-muted-foreground mt-1 space-y-1 text-xs">
-        {quest.objectives.map((objective) => (
-          <li key={objective.name} className="flex items-center gap-1.5">
-            <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden>
-              {objective.amount >= objective.requiredAmount ? (
-                <CircleCheck className="text-heal size-3" />
-              ) : (
-                <span>•</span>
+        {quest.objectives.map((objective) => {
+          const breakdown = objective.items && objective.items.length > 1 ? objective.items : null;
+
+          return (
+            <li key={objective.name} className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden>
+                  {objective.amount >= objective.requiredAmount ? (
+                    <CircleCheck className="text-heal size-3" />
+                  ) : (
+                    <span>•</span>
+                  )}
+                </span>
+                <span>
+                  {objective.name}
+                  {!breakdown && ` (${objective.amount}/${objective.requiredAmount})`}
+                </span>
+              </div>
+              {breakdown && (
+                <ul className="ml-4 space-y-0.5">
+                  {breakdown.map((item) => (
+                    <li key={item.name} className="flex items-center gap-1.5">
+                      <span
+                        className="flex size-3 shrink-0 items-center justify-center"
+                        aria-hidden
+                      >
+                        {item.amount >= item.requiredAmount ? (
+                          <CircleCheck className="text-heal size-3" />
+                        ) : (
+                          <span>•</span>
+                        )}
+                      </span>
+                      <span>
+                        {item.name} ({item.amount}/{item.requiredAmount})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </span>
-            <span>
-              {objective.name} ({objective.amount}/{objective.requiredAmount})
-            </span>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
       <Button variant="link" size="xs" className="mt-1 px-0" onClick={onOpenJournal}>
         {tracked.length > 1

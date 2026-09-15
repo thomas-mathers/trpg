@@ -33,9 +33,9 @@ public sealed class SpeakToCreatureObjective : QuestObjective
     public Guid CreatureId { get; init; }
 }
 
-public sealed class GiveItemObjective : QuestObjective
+public sealed class GiveItemsObjective : QuestObjective
 {
-    public Guid ItemId { get; init; }
+    public List<Guid> ItemIds { get; init; } = [];
     public Guid RecipientId { get; init; }
 }
 
