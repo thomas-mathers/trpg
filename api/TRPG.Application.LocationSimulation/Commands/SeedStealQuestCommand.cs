@@ -1,4 +1,5 @@
 using System.Transactions;
+using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Queries;
@@ -45,12 +46,15 @@ internal class SeedStealQuestCommandHandler(
         GetWorkstationIdsByLocationsQuery,
         IReadOnlyList<Guid>
     > getWorkstationIdsByLocations,
+    IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
+    IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     IQueryHandler<
         GetActiveGiveItemsObjectiveRecipientIdsQuery,
         IReadOnlySet<Guid>
     > getActiveRecipientIds,
     ICommandHandler<AddItemsCommand> addItems,
-    ICommandHandler<AddQuestCommand> addQuest
+    ICommandHandler<AddQuestCommand> addQuest,
+    ILogger<SeedStealQuestCommandHandler> logger
 ) : ICommandHandler<SeedStealQuestCommand, bool>
 {
     private const int GoldReward = 50;
@@ -65,6 +69,7 @@ internal class SeedStealQuestCommandHandler(
         var giver = await FindGiver(command, cancellationToken);
         if (giver == null)
         {
+            logger.LogInformation("[steal-quest] no giver candidate at location");
             return false;
         }
 
@@ -78,6 +83,10 @@ internal class SeedStealQuestCommandHandler(
         );
         if (activeRecipientIds.Contains(giver.Id))
         {
+            logger.LogInformation(
+                "[steal-quest] giver {GiverId} already has an active give-items quest",
+                giver.Id
+            );
             return false;
         }
 
@@ -87,6 +96,10 @@ internal class SeedStealQuestCommandHandler(
         );
         if (giverLocation?.CityId == null)
         {
+            logger.LogInformation(
+                "[steal-quest] giver location {LocationId} has no CityId",
+                command.LocationId
+            );
             return false;
         }
 
@@ -96,14 +109,29 @@ internal class SeedStealQuestCommandHandler(
         );
         if (city == null)
         {
+            logger.LogInformation(
+                "[steal-quest] city {CityId} not found",
+                giverLocation.CityId.Value
+            );
             return false;
         }
 
         var targets = await FindEligibleTargets(command, giver.Id, city.Id, cancellationToken);
         if (targets == null)
         {
+            logger.LogInformation(
+                "[steal-quest] no eligible target pool in city {CityId}",
+                city.Id
+            );
             return false;
         }
+
+        logger.LogInformation(
+            "[steal-quest] seeding quest from giver {GiverId} with {TargetCount} targets: {Targets}",
+            giver.Id,
+            targets.Count,
+            string.Join(", ", targets.Select(target => $"{target.Type}:{target.Id}"))
+        );
 
         await CreateStealQuest(command, giver, city, targets, cancellationToken);
 
@@ -145,6 +173,7 @@ internal class SeedStealQuestCommandHandler(
             .ToArray();
         if (otherLocationIds.Length == 0)
         {
+            logger.LogInformation("[steal-quest] no other locations in the city");
             return null;
         }
 
@@ -171,6 +200,11 @@ internal class SeedStealQuestCommandHandler(
 
         if (candidates.Count < ItemCount)
         {
+            logger.LogInformation(
+                "[steal-quest] only {CandidateCount} candidate targets found across {LocationCount} other locations",
+                candidates.Count,
+                otherLocationIds.Length
+            );
             return null;
         }
 
@@ -200,6 +234,61 @@ internal class SeedStealQuestCommandHandler(
             .ToArray();
     }
 
+    // Names each spawned item after where it can actually be found — a person's name for a
+    // pickpocket target, a building's name for a container/workstation target — so the quest
+    // journal's per-item breakdown reads as a real clue instead of three identical "0/3" items.
+    private async Task<IReadOnlyDictionary<Guid, string>> ResolveClues(
+        IReadOnlyList<ItemOwnerReference> targets,
+        CancellationToken cancellationToken
+    )
+    {
+        var clues = new Dictionary<Guid, string>();
+
+        var creatureTargetIds = targets
+            .Where(target => target.Type == OwnerType.Creature)
+            .Select(target => target.Id)
+            .ToArray();
+        if (creatureTargetIds.Length > 0)
+        {
+            var creaturesById = await getCreaturesByIds.Handle(
+                new GetCreaturesByIdsQuery { Ids = creatureTargetIds },
+                cancellationToken
+            );
+            foreach (var targetId in creatureTargetIds)
+            {
+                clues[targetId] = $"Something {creaturesById[targetId].Name} is carrying";
+            }
+        }
+
+        foreach (var target in targets.Where(target => target.Type != OwnerType.Creature))
+        {
+            clues[target.Id] = await ResolvePropClue(target.Id, cancellationToken);
+        }
+
+        return clues;
+    }
+
+    private async Task<string> ResolvePropClue(Guid propId, CancellationToken cancellationToken)
+    {
+        var prop = await getPropById.Handle(
+            new GetPropByIdQuery { Id = propId },
+            cancellationToken
+        );
+        if (prop == null)
+        {
+            return "Hidden somewhere in the city";
+        }
+
+        var building = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = prop.LocationId },
+            cancellationToken
+        );
+
+        return building == null
+            ? "Hidden somewhere in the city"
+            : $"Hidden somewhere in {building.Name}";
+    }
+
     private async Task CreateStealQuest(
         SeedStealQuestCommand command,
         Creature giver,
@@ -213,12 +302,13 @@ internal class SeedStealQuestCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
+        var clueByTargetId = await ResolveClues(targets, cancellationToken);
         var items = targets
             .Select(target => new Item
             {
                 WorldId = command.WorldId,
-                Name = "Recovered Item",
-                Description = $"One of several items {giver.Name} wants recovered without a scene.",
+                Name = clueByTargetId[target.Id],
+                Description = $"{giver.Name} wants this recovered without a scene.",
                 Quantity = 1,
                 Ownership = new ItemOwnership { OwnerId = target.Id, OwnerType = target.Type },
             })
