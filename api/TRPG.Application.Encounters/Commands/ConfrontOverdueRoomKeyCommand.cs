@@ -93,7 +93,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             SourceOwnerId = sourceOwner.Id,
             SourceOwnerType = sourceOwner.Type,
             Items = heldOverdueKeys
-                .Select(key => new TheftCrimeItem(key.Name, key.Quantity))
+                .Select(key => new TheftCrimeItem(key.Id, key.Name, key.Quantity))
                 .ToList(),
         };
         await addTheftCrimes.Handle(

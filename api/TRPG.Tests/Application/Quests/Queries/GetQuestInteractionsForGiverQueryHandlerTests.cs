@@ -93,6 +93,49 @@ public sealed class GetQuestInteractionsForGiverQueryHandlerTests(DatabaseFixtur
     }
 
     [Fact]
+    public async Task Handle_ReturnsItemNames_WhenObjectiveIsGiveItemsObjective()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        var itemOne = Builders.MakeItem(WorldId, name: "Lucan Ashvale's Pocket Watch");
+        var itemTwo = Builders.MakeItem(WorldId, name: "The Crooked Chimney's Strongbox");
+        var objective = new GiveItemsObjective
+        {
+            QuestId = quest.Id,
+            WorldId = WorldId,
+            Name = "Recover 2 items",
+            Description = "Recover 2 items.",
+            ItemIds = [itemOne.Id, itemTwo.Id],
+            RecipientId = _giver.Id,
+            RequiredAmount = 2,
+        };
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.Items.AddRange(itemOne, itemTwo);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetQuestInteractionsForGiverQuery
+            {
+                GiverId = _giver.Id,
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var returnedObjective = Assert.Single(Assert.Single(result.AvailableQuests).Objectives);
+        Assert.NotNull(returnedObjective.ItemNames);
+        Assert.Equal(
+            [itemOne.Name, itemTwo.Name],
+            returnedObjective.ItemNames,
+            StringComparer.Ordinal
+        );
+    }
+
+    [Fact]
     public async Task Handle_ReturnsReadyQuest_WhenPlayerCanTurnItInToGiver()
     {
         // Arrange

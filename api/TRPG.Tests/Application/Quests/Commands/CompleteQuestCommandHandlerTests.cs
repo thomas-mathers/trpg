@@ -188,6 +188,89 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
         );
     }
 
+    [Fact]
+    public async Task Handle_HalvesGoldAndReputationReward_WhenAnItemWasReportedStolen()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        var creatureQuest = await SeedQuest(
+            QuestStatus.ReadyToComplete,
+            quest,
+            [
+                new QuestReputationReward
+                {
+                    WorldId = WorldId,
+                    QuestId = quest.Id,
+                    TargetId = _giver.Id,
+                    TargetType = ReputationTargetType.Creature,
+                    Score = 10,
+                },
+            ]
+        );
+        var stolenItem = Builders.MakeItem(WorldId);
+        stolenItem.Quantity = 1;
+        stolenItem.Ownership.OwnerId = _player.Id;
+        stolenItem.Ownership.OwnerType = OwnerType.Creature;
+        var cleanItem = Builders.MakeItem(WorldId);
+        cleanItem.Quantity = 1;
+        cleanItem.Ownership.OwnerId = _player.Id;
+        cleanItem.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.AddRange(stolenItem, cleanItem);
+        _context.QuestObjectives.Add(
+            new GiveItemsObjective
+            {
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+                Name = "Recover the goods",
+                Description = "Recover the goods",
+                ItemIds = [stolenItem.Id, cleanItem.Id],
+                RecipientId = _giver.Id,
+                RequiredAmount = 2,
+            }
+        );
+        _context.Crimes.Add(
+            new TheftCrime
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                OwnerCreatureId = Guid.NewGuid(),
+                OwnerName = "Victim",
+                SourceOwnerId = Guid.NewGuid(),
+                SourceOwnerType = OwnerType.Creature,
+                Resolution = CrimeResolution.Reported,
+                Items = [new TheftCrimeItem(stolenItem.Id, stolenItem.Name, 1)],
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new CompleteQuestCommand
+            {
+                PlayerId = _player.Id,
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var gold = await _context
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                item =>
+                    item.Ownership.OwnerId == _player.Id
+                    && item.Ownership.OwnerType == OwnerType.Creature,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(creatureQuest.Quest.GoldReward / 2, gold.Quantity);
+        var reputation = await _context.Reputations.SingleAsync(
+            reputation => reputation.CreatureId == _player.Id && reputation.TargetId == _giver.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(5, reputation.Score);
+    }
+
     private async Task<CreatureQuest> SeedQuest(
         QuestStatus status,
         Quest? quest = null,

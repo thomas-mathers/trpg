@@ -439,6 +439,7 @@ internal class AttemptTheftCommandHandler(
             SourceOwnerType = command.From.Type,
             Items = selections
                 .Select(selection => new TheftCrimeItem(
+                    selection.ItemId,
                     itemNamesById[selection.ItemId],
                     selection.Quantity
                 ))

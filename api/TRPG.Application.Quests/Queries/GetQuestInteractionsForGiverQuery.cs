@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -13,8 +14,10 @@ public class GetQuestInteractionsForGiverQuery
     public required Guid WorldId { get; init; }
 }
 
-internal class GetQuestInteractionsForGiverQueryHandler(IQuestsDbContext context)
-    : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
+internal class GetQuestInteractionsForGiverQueryHandler(
+    IQuestsDbContext context,
+    IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds
+) : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
 {
     public async Task<QuestInteractionsResult> Handle(
         GetQuestInteractionsForGiverQuery query,
@@ -45,9 +48,25 @@ internal class GetQuestInteractionsForGiverQueryHandler(IQuestsDbContext context
             .Where(objective => giverQuestIds.AsEnumerable().Contains(objective.QuestId))
             .ToArrayAsync(cancellationToken);
 
+        var itemIds = objectives
+            .OfType<GiveItemsObjective>()
+            .SelectMany(objective => objective.ItemIds)
+            .Distinct()
+            .ToArray();
+        var itemNamesById =
+            itemIds.Length == 0
+                ? new Dictionary<Guid, string>()
+                : await getItemNamesByIds.Handle(
+                    new GetItemNamesByIdsQuery { WorldId = query.WorldId, ItemIds = itemIds },
+                    cancellationToken
+                );
+
         var objectivesByQuestId = objectives
             .GroupBy(objective => objective.QuestId)
-            .ToDictionary(group => group.Key, group => group.Select(ToResult).ToArray());
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(objective => ToResult(objective, itemNamesById)).ToArray()
+            );
 
         var giverPlayerQuests = playerQuests
             .Where(creatureQuest => giverQuestIds.Contains(creatureQuest.QuestId))
@@ -101,6 +120,20 @@ internal class GetQuestInteractionsForGiverQueryHandler(IQuestsDbContext context
             objectivesByQuestId.GetValueOrDefault(quest.Id, [])
         );
 
-    private static QuestConversationObjectiveResult ToResult(QuestObjective objective) =>
-        new(objective.Name, objective.Description, objective.RequiredAmount);
+    private static QuestConversationObjectiveResult ToResult(
+        QuestObjective objective,
+        IReadOnlyDictionary<Guid, string> itemNamesById
+    ) =>
+        new(
+            objective.Name,
+            objective.Description,
+            objective.RequiredAmount,
+            objective is GiveItemsObjective giveItems
+                ? giveItems
+                    .ItemIds.Select(itemId =>
+                        itemNamesById.GetValueOrDefault(itemId, "Unknown Item")
+                    )
+                    .ToArray()
+                : null
+        );
 }

@@ -2,7 +2,12 @@ using System.Text.Json.Serialization;
 
 namespace TRPG.Application.Quests.Results;
 
-public record QuestConversationObjectiveResult(string Name, string Description, int RequiredAmount);
+public record QuestConversationObjectiveResult(
+    string Name,
+    string Description,
+    int RequiredAmount,
+    IReadOnlyCollection<string>? ItemNames = null
+);
 
 public record QuestConversationResult(
     [property: JsonIgnore] Guid QuestId,

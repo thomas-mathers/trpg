@@ -4,6 +4,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -26,10 +27,16 @@ internal class CompleteQuestCommandHandler(
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
+    IQueryHandler<GetReportedStolenItemIdsQuery, IReadOnlySet<Guid>> getReportedStolenItemIds,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory
 ) : ICommandHandler<CompleteQuestCommand>
 {
+    // A witnessed-and-reported theft of one of this quest's own items halves the payout, flat
+    // and quest-wide regardless of how many items were caught — not steal-quest-specific: any
+    // future quest whose items get stolen picks up the same penalty for free.
+    private const double CaughtRewardMultiplier = 0.5;
+
     public async Task Handle(
         CompleteQuestCommand command,
         CancellationToken cancellationToken = default
@@ -79,6 +86,13 @@ internal class CompleteQuestCommandHandler(
 
         await EnsureItemsAreOwned(command.PlayerId, requiredItemIds, cancellationToken);
 
+        var rewardMultiplier = await GetRewardMultiplier(
+            command.PlayerId,
+            command.WorldId,
+            giveItems,
+            cancellationToken
+        );
+
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
             TransactionScopeAsyncFlowOption.Enabled
@@ -88,7 +102,7 @@ internal class CompleteQuestCommandHandler(
             new QuestGoldRewardedEvent(
                 command.PlayerId,
                 command.WorldId,
-                creatureQuest.Quest.GoldReward
+                (int)(creatureQuest.Quest.GoldReward * rewardMultiplier)
             ),
             cancellationToken
         );
@@ -97,7 +111,7 @@ internal class CompleteQuestCommandHandler(
             new QuestReputationRewardedEvent(
                 command.PlayerId,
                 command.WorldId,
-                creatureQuest.Quest.ReputationRewards,
+                ScaleReputationRewards(creatureQuest.Quest.ReputationRewards, rewardMultiplier),
                 $"Completed quest: {creatureQuest.Quest.Name}"
             ),
             cancellationToken
@@ -131,6 +145,48 @@ internal class CompleteQuestCommandHandler(
 
         transaction.Complete();
     }
+
+    private async Task<double> GetRewardMultiplier(
+        Guid playerId,
+        Guid worldId,
+        IReadOnlyCollection<GiveItemRequirement> giveItems,
+        CancellationToken cancellationToken
+    )
+    {
+        if (giveItems.Count == 0)
+        {
+            return 1.0;
+        }
+
+        var caughtItemIds = await getReportedStolenItemIds.Handle(
+            new GetReportedStolenItemIdsQuery
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                ItemIds = giveItems.Select(giveItem => giveItem.ItemId).ToArray(),
+            },
+            cancellationToken
+        );
+
+        return caughtItemIds.Count > 0 ? CaughtRewardMultiplier : 1.0;
+    }
+
+    private static IReadOnlyCollection<QuestReputationReward> ScaleReputationRewards(
+        IReadOnlyCollection<QuestReputationReward> rewards,
+        double multiplier
+    ) =>
+        multiplier >= 1.0
+            ? rewards
+            : rewards
+                .Select(reward => new QuestReputationReward
+                {
+                    WorldId = reward.WorldId,
+                    QuestId = reward.QuestId,
+                    TargetId = reward.TargetId,
+                    TargetType = reward.TargetType,
+                    Score = (int)(reward.Score * multiplier),
+                })
+                .ToArray();
 
     private async Task EnsureItemsAreOwned(
         Guid playerId,

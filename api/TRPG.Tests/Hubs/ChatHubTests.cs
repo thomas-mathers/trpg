@@ -235,7 +235,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             OwnerName = owner.Name,
             SourceOwnerId = owner.Id,
             SourceOwnerType = OwnerType.Creature,
-            Items = [new TheftCrimeItem("Silver Ring", 1)],
+            Items = [new TheftCrimeItem(Guid.NewGuid(), "Silver Ring", 1)],
         };
         var encounter = new TheftEncounter
         {

@@ -8,7 +8,12 @@ public enum QuestDialogMode
 }
 
 [Tapper.TranspilationSource]
-public record QuestDialogObjective(string Name, string Description, int RequiredAmount);
+public record QuestDialogObjective(
+    string Name,
+    string Description,
+    int RequiredAmount,
+    IReadOnlyCollection<string>? ItemNames
+);
 
 [Tapper.TranspilationSource]
 public record QuestDialogResponse(

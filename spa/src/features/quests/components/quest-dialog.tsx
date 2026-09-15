@@ -84,12 +84,26 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
           <div>
             <h3 className="text-sm font-semibold">Objectives</h3>
             <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">
-              {quest.objectives.map((objective) => (
-                <li key={objective.name}>
-                  <NarrationText segments={parseNarrationMarkup(objective.description)} />{' '}
-                  {objective.requiredAmount > 1 && `(${objective.requiredAmount})`}
-                </li>
-              ))}
+              {quest.objectives.map((objective) => {
+                const breakdown =
+                  objective.itemNames && objective.itemNames.length > 1
+                    ? objective.itemNames
+                    : null;
+
+                return (
+                  <li key={objective.name}>
+                    <NarrationText segments={parseNarrationMarkup(objective.description)} />{' '}
+                    {!breakdown && objective.requiredAmount > 1 && `(${objective.requiredAmount})`}
+                    {breakdown && (
+                      <ul className="text-muted-foreground mt-1 list-disc space-y-0.5 pl-5 text-xs">
+                        {breakdown.map((name) => (
+                          <li key={name}>{name}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
 

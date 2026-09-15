@@ -73,7 +73,7 @@ public class TheftCrime : Crime
     public OwnerType SourceOwnerType { get; init; }
 }
 
-public record TheftCrimeItem(string Name, int Quantity);
+public record TheftCrimeItem(Guid ItemId, string Name, int Quantity);
 
 public enum LockpickingCrimeOutcome
 {

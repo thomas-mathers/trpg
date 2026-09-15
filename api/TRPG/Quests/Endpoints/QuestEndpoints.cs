@@ -151,7 +151,8 @@ internal static class QuestEndpoints
                     .Quest.Objectives.Select(objective => new QuestDialogObjective(
                         objective.Name,
                         objective.Description,
-                        objective.RequiredAmount
+                        objective.RequiredAmount,
+                        objective.ItemNames
                     ))
                     .ToArray(),
                 dialog.Mode switch
