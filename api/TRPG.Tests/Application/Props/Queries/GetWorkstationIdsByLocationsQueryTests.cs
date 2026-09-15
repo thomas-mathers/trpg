@@ -57,4 +57,27 @@ public sealed class GetWorkstationIdsByLocationsQueryTests(DatabaseFixture db)
         // Assert
         Assert.Equal(new[] { first.Id, second.Id }.OrderBy(id => id), result.OrderBy(id => id));
     }
+
+    [Fact]
+    public async Task Handle_ExcludesNonTradeWorkstations()
+    {
+        // Arrange
+        var trade = Builders.MakeWorkstation(WorldId, locationId: _firstLocationId);
+        var prayer = Builders.MakeWorkstation(
+            WorldId,
+            locationId: _firstLocationId,
+            workstationType: WorkstationType.Prayer
+        );
+        _context.Props.AddRange(trade, prayer);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetWorkstationIdsByLocationsQuery { LocationIds = [_firstLocationId] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal([trade.Id], result);
+    }
 }

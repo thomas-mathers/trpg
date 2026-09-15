@@ -234,9 +234,30 @@ internal class SeedStealQuestCommandHandler(
             .ToArray();
     }
 
-    // Names each spawned item after where it can actually be found — a person's name for a
-    // pickpocket target, a building's name for a container/workstation target — so the quest
-    // journal's per-item breakdown reads as a real clue instead of three identical "0/3" items.
+    // A pickpocket target's item is a concrete personal valuable; a container/workstation
+    // target's is a concrete stashed valuable. Combined possessively with who/where it's from,
+    // the result reads as a real item name ("Lucan Ashvale's Signet Ring") that also happens to
+    // tell the quest journal's per-item breakdown exactly what to search for.
+    private static readonly string[] PersonalValuables =
+    [
+        "Signet Ring",
+        "Pocket Watch",
+        "Silver Locket",
+        "Engraved Hairpin",
+        "Ivory Comb",
+        "Coin Purse",
+    ];
+
+    private static readonly string[] StashedValuables =
+    [
+        "Strongbox",
+        "Ledger",
+        "Jewelry Case",
+        "Silver Candlestick",
+        "Antique Vase",
+        "Sealed Letter",
+    ];
+
     private async Task<IReadOnlyDictionary<Guid, string>> ResolveClues(
         IReadOnlyList<ItemOwnerReference> targets,
         CancellationToken cancellationToken
@@ -256,7 +277,8 @@ internal class SeedStealQuestCommandHandler(
             );
             foreach (var targetId in creatureTargetIds)
             {
-                clues[targetId] = $"Something {creaturesById[targetId].Name} is carrying";
+                var valuable = PersonalValuables[Random.Shared.Next(PersonalValuables.Length)];
+                clues[targetId] = $"{creaturesById[targetId].Name}'s {valuable}";
             }
         }
 
@@ -270,13 +292,15 @@ internal class SeedStealQuestCommandHandler(
 
     private async Task<string> ResolvePropClue(Guid propId, CancellationToken cancellationToken)
     {
+        var valuable = StashedValuables[Random.Shared.Next(StashedValuables.Length)];
+
         var prop = await getPropById.Handle(
             new GetPropByIdQuery { Id = propId },
             cancellationToken
         );
         if (prop == null)
         {
-            return "Hidden somewhere in the city";
+            return $"Unclaimed {valuable}";
         }
 
         var building = await getBuildingByLocationId.Handle(
@@ -284,9 +308,7 @@ internal class SeedStealQuestCommandHandler(
             cancellationToken
         );
 
-        return building == null
-            ? "Hidden somewhere in the city"
-            : $"Hidden somewhere in {building.Name}";
+        return building == null ? $"Unclaimed {valuable}" : $"{building.Name}'s {valuable}";
     }
 
     private async Task CreateStealQuest(

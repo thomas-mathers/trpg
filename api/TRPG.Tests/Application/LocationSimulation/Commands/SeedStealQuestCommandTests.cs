@@ -128,9 +128,15 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
             .Items.Where(item => objective.ItemIds.Contains(item.Id))
             .ToArrayAsync(TestContext.Current.CancellationToken);
         Assert.Equal(3, items.Length);
-        Assert.Contains(items, item => item.Name == "Something Mark is carrying");
-        Assert.Contains(items, item => item.Name == "Hidden somewhere in The Silver Setting");
-        Assert.Contains(items, item => item.Name == "Hidden somewhere in Riverside Cottage");
+        Assert.Contains(items, item => item.Name.StartsWith("Mark's ", StringComparison.Ordinal));
+        Assert.Contains(
+            items,
+            item => item.Name.StartsWith("The Silver Setting's ", StringComparison.Ordinal)
+        );
+        Assert.Contains(
+            items,
+            item => item.Name.StartsWith("Riverside Cottage's ", StringComparison.Ordinal)
+        );
     }
 
     [Fact]

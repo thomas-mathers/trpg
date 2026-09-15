@@ -18,9 +18,12 @@ internal class GetWorkstationIdsByLocationsQueryHandler(IPropsDbContext context)
         CancellationToken cancellationToken = default
     )
     {
+        // Trade only: the client's nearby-workstations panel offers a loot/transfer interaction
+        // solely for Trade workstations, so any other type would be an uninteractable steal target.
         return await context
             .Props.AsNoTracking()
             .OfType<Workstation>()
+            .Where(workstation => workstation.WorkstationType == WorkstationType.Trade)
             .Where(workstation => query.LocationIds.AsEnumerable().Contains(workstation.LocationId))
             .Select(workstation => workstation.Id)
             .ToArrayAsync(cancellationToken);
