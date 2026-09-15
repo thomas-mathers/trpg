@@ -249,30 +249,54 @@ function QuestJournalEntry({
           Objectives
         </h4>
         <ul className="space-y-2 text-sm">
-          {quest.objectives.map((objective) => (
-            <li
-              key={objective.name}
-              className="bg-muted/30 flex items-start gap-2 rounded-md border px-3 py-2"
-            >
-              <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center" aria-hidden>
-                {objective.amount >= objective.requiredAmount ? (
-                  <CircleCheck className="text-heal size-4" />
-                ) : (
-                  <Circle className="text-muted-foreground size-3" />
-                )}
-              </span>
-              <span>
-                <NarrationText segments={parseNarrationMarkup(objective.description)} /> (
-                {objective.amount}/{objective.requiredAmount})
-                {objective.locationName && (
-                  <span className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
-                    <MapPin className="size-3" />
-                    {objective.locationName}
-                  </span>
-                )}
-              </span>
-            </li>
-          ))}
+          {quest.objectives.map((objective) => {
+            const breakdown =
+              objective.items && objective.items.length > 1 ? objective.items : null;
+
+            return (
+              <li
+                key={objective.name}
+                className="bg-muted/30 flex items-start gap-2 rounded-md border px-3 py-2"
+              >
+                <span
+                  className="mt-0.5 flex size-4 shrink-0 items-center justify-center"
+                  aria-hidden
+                >
+                  {objective.amount >= objective.requiredAmount ? (
+                    <CircleCheck className="text-heal size-4" />
+                  ) : (
+                    <Circle className="text-muted-foreground size-3" />
+                  )}
+                </span>
+                <span>
+                  <NarrationText segments={parseNarrationMarkup(objective.description)} />
+                  {!breakdown && ` (${objective.amount}/${objective.requiredAmount})`}
+                  {breakdown && (
+                    <ul className="text-muted-foreground mt-1 space-y-0.5 text-xs">
+                      {breakdown.map((item) => (
+                        <li key={item.name} className="flex items-center gap-1.5">
+                          {item.amount >= item.requiredAmount ? (
+                            <CircleCheck className="text-heal size-3 shrink-0" />
+                          ) : (
+                            <Circle className="size-3 shrink-0" />
+                          )}
+                          <span>
+                            {item.name} ({item.amount}/{item.requiredAmount})
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {objective.locationName && (
+                    <span className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+                      <MapPin className="size-3" />
+                      {objective.locationName}
+                    </span>
+                  )}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </div>
       <p className="border-t pt-4 text-sm font-medium">Reward: {quest.goldReward} gold</p>

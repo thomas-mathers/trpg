@@ -1,11 +1,14 @@
 namespace TRPG.Quests.Responses;
 
+public record QuestObjectiveItemProgressSnapshot(string Name, int Amount, int RequiredAmount);
+
 public record QuestObjectiveProgressSnapshot(
     string Name,
     string Description,
     int Amount,
     int RequiredAmount,
-    string? LocationName
+    string? LocationName,
+    IReadOnlyCollection<QuestObjectiveItemProgressSnapshot>? Items
 );
 
 public record QuestJournalEntrySnapshot(

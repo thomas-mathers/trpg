@@ -9,6 +9,7 @@ using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
 using TRPG.Creatures.Mappers;
 using TRPG.Domain.Models;
+using TRPG.Quests.Mappers;
 using TRPG.Quests.Requests;
 using TRPG.Quests.Responses;
 using ApplicationQuestDialogMode = TRPG.Application.Quests.Queries.QuestDialogMode;
@@ -51,28 +52,7 @@ internal static class QuestEndpoints
             new GetQuestJournalQuery { PlayerId = playerId, WorldId = worldId },
             cancellationToken
         );
-        return TypedResults.Ok(
-            quests
-                .Select(quest => new QuestJournalEntrySnapshot(
-                    quest.Id,
-                    quest.Name,
-                    quest.Description,
-                    quest.GiverName,
-                    quest.GoldReward,
-                    quest.Status.ToString(),
-                    quest.IsTracked,
-                    quest
-                        .Objectives.Select(objective => new QuestObjectiveProgressSnapshot(
-                            objective.Name,
-                            objective.Description,
-                            objective.Amount,
-                            objective.RequiredAmount,
-                            objective.LocationName
-                        ))
-                        .ToArray()
-                ))
-                .ToArray()
-        );
+        return TypedResults.Ok(quests.Select(quest => quest.ToSnapshot()).ToArray());
     }
 
     private static async Task<NoContent> AcceptQuest(

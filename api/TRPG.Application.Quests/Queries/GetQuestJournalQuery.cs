@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Quests.Mappers;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -13,12 +15,18 @@ public class GetQuestJournalQuery
     public required Guid WorldId { get; init; }
 }
 
+// One entry per distinct item name a GiveItemsObjective tracks — an objective whose ItemIds span
+// several kinds of item (e.g. two Construct Gear and one Goblin Ear) reports each kind's own
+// progress instead of only the objective's aggregate Amount/RequiredAmount.
+public record QuestObjectiveItemProgress(string Name, int Amount, int RequiredAmount);
+
 public record QuestObjectiveProgress(
     string Name,
     string Description,
     int Amount,
     int RequiredAmount,
-    string? LocationName
+    string? LocationName,
+    IReadOnlyCollection<QuestObjectiveItemProgress>? Items
 );
 
 public record QuestJournalEntry(
@@ -38,7 +46,9 @@ internal class GetQuestJournalQueryHandler(
     IQueryHandler<
         GetCreatureNamesByIdsQuery,
         IReadOnlyDictionary<Guid, string>
-    > getCreatureNamesByIds
+    > getCreatureNamesByIds,
+    IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds,
+    IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner
 ) : IQueryHandler<GetQuestJournalQuery, IReadOnlyCollection<QuestJournalEntry>>
 {
     public async Task<IReadOnlyCollection<QuestJournalEntry>> Handle(
@@ -78,6 +88,13 @@ internal class GetQuestJournalQueryHandler(
         );
         var locationNamesById = locationsById.ToDictionary(kv => kv.Key, kv => kv.Value.Name);
 
+        var (itemNamesById, ownedItemIds) = await GetItemBreakdownLookups(
+            query.PlayerId,
+            query.WorldId,
+            objectives,
+            cancellationToken
+        );
+
         var objectivesByQuestId = objectives
             .GroupBy(objective => objective.Objective.QuestId)
             .ToDictionary(
@@ -85,27 +102,24 @@ internal class GetQuestJournalQueryHandler(
                 group =>
                     group
                         .Select(objective =>
-                            ToProgress(
-                                objective,
+                            objective.ToProgress(
                                 objective.Objective.LocationId is { } locationId
                                     ? locationNamesById.GetValueOrDefault(locationId)
-                                    : null
+                                    : null,
+                                itemNamesById,
+                                ownedItemIds
                             )
                         )
                         .ToArray()
             );
 
         return quests
-            .Select(quest => new QuestJournalEntry(
-                quest.QuestId,
-                quest.Quest.Name,
-                quest.Quest.Description,
-                giverNamesById.GetValueOrDefault(quest.Quest.GiverId),
-                quest.Quest.GoldReward,
-                quest.Status,
-                quest.IsTracked,
-                objectivesByQuestId.GetValueOrDefault(quest.QuestId, [])
-            ))
+            .Select(quest =>
+                quest.ToJournalEntry(
+                    giverNamesById.GetValueOrDefault(quest.Quest.GiverId),
+                    objectivesByQuestId.GetValueOrDefault(quest.QuestId, [])
+                )
+            )
             .ToArray();
     }
 
@@ -120,15 +134,41 @@ internal class GetQuestJournalQueryHandler(
             .Where(objective => objective.CreatureId == playerId && objective.WorldId == worldId)
             .ToArrayAsync(cancellationToken);
 
-    private static QuestObjectiveProgress ToProgress(
-        CreatureQuestObjective objective,
-        string? locationName
-    ) =>
-        new(
-            objective.Objective.Name,
-            objective.Objective.Description,
-            objective.Amount,
-            objective.Objective.RequiredAmount,
-            locationName
+    private async Task<(
+        IReadOnlyDictionary<Guid, string> ItemNamesById,
+        IReadOnlySet<Guid> OwnedItemIds
+    )> GetItemBreakdownLookups(
+        Guid playerId,
+        Guid worldId,
+        IReadOnlyCollection<CreatureQuestObjective> objectives,
+        CancellationToken cancellationToken
+    )
+    {
+        var itemIds = objectives
+            .Select(objective => objective.Objective)
+            .OfType<GiveItemsObjective>()
+            .SelectMany(objective => objective.ItemIds)
+            .Distinct()
+            .ToArray();
+        if (itemIds.Length == 0)
+        {
+            return (new Dictionary<Guid, string>(), new HashSet<Guid>());
+        }
+
+        var itemNamesById = await getItemNamesByIds.Handle(
+            new GetItemNamesByIdsQuery { WorldId = worldId, ItemIds = itemIds },
+            cancellationToken
         );
+        var ownedItems = await getItemsByIdsForOwner.Handle(
+            new GetItemsByIdsForOwnerQuery
+            {
+                OwnerId = playerId,
+                OwnerType = OwnerType.Creature,
+                ItemIds = itemIds,
+            },
+            cancellationToken
+        );
+
+        return (itemNamesById, ownedItems.Select(item => item.Id).ToHashSet());
+    }
 }

@@ -77,5 +77,72 @@ public sealed class GetQuestJournalQueryHandlerTests(DatabaseFixture db)
         Assert.False(quest.IsTracked);
         Assert.Equal(2, objective.Amount);
         Assert.Equal(3, objective.RequiredAmount);
+        Assert.Null(objective.Items);
+    }
+
+    [Fact]
+    public async Task Handle_BreaksDownGiveItemsObjectiveProgress_ByItemName()
+    {
+        // Arrange
+        var firstGear = Builders.MakeItem(WorldId, "Construct Gear");
+        firstGear.Ownership.OwnerId = _player.Id;
+        firstGear.Ownership.OwnerType = OwnerType.Creature;
+        var secondGear = Builders.MakeItem(WorldId, "Construct Gear");
+        secondGear.Ownership.OwnerId = _player.Id;
+        secondGear.Ownership.OwnerType = OwnerType.Creature;
+        var goblinEar = Builders.MakeItem(WorldId, "Goblin Ear");
+        goblinEar.Ownership.OwnerId = Guid.NewGuid();
+        goblinEar.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.AddRange(firstGear, secondGear, goblinEar);
+
+        var quest = Builders.MakeQuest(Guid.NewGuid(), WorldId);
+        var objective = new GiveItemsObjective
+        {
+            WorldId = WorldId,
+            QuestId = quest.Id,
+            Name = "Gather materials",
+            Description = "Gather materials",
+            ItemIds = [firstGear.Id, secondGear.Id, goblinEar.Id],
+            RecipientId = Guid.NewGuid(),
+            RequiredAmount = 3,
+        };
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _player.Id,
+                QuestId = quest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        _context.CreatureQuestObjectives.Add(
+            new CreatureQuestObjective
+            {
+                CreatureId = _player.Id,
+                ObjectiveId = objective.Id,
+                Amount = 2,
+                WorldId = WorldId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var journal = await _handler.Handle(
+            new GetQuestJournalQuery { PlayerId = _player.Id, WorldId = WorldId },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var journalEntry = Assert.Single(journal, entry => entry.Id == quest.Id);
+        var progress = Assert.Single(journalEntry.Objectives);
+        Assert.NotNull(progress.Items);
+        var gearProgress = Assert.Single(progress.Items, item => item.Name == "Construct Gear");
+        Assert.Equal(2, gearProgress.Amount);
+        Assert.Equal(2, gearProgress.RequiredAmount);
+        var earProgress = Assert.Single(progress.Items, item => item.Name == "Goblin Ear");
+        Assert.Equal(0, earProgress.Amount);
+        Assert.Equal(1, earProgress.RequiredAmount);
     }
 }
