@@ -548,7 +548,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db)
             OwnerName = _owner.Name,
             SourceOwnerId = sourceOwnerId,
             SourceOwnerType = sourceOwnerType,
-            Items = item == null ? [] : [new TheftCrimeItem(item.Name, item.Quantity)],
+            Items = item == null ? [] : [new TheftCrimeItem(item.Id, item.Name, item.Quantity)],
         };
         var encounter = new TheftEncounter
         {

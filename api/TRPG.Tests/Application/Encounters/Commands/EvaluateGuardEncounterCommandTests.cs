@@ -229,7 +229,7 @@ public sealed class EvaluateGuardEncounterCommandTests(DatabaseFixture db)
                 SettledAt = settledAt,
                 OwnerCreatureId = owner.Id,
                 OwnerName = owner.Name,
-                Items = [new TheftCrimeItem(itemName, 1)],
+                Items = [new TheftCrimeItem(Guid.NewGuid(), itemName, 1)],
             }
         );
 }
