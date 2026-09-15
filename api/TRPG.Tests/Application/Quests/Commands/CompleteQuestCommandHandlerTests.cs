@@ -271,6 +271,109 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
         Assert.Equal(5, reputation.Score);
     }
 
+    [Fact]
+    public async Task Handle_HalvesGoldAndReputationReward_WhenGiveItemsIsSplitAcrossMultipleObjectives()
+    {
+        // Arrange — one item type is now split into its own objective rather than one objective
+        // holding both items, so this proves the reward calculation still aggregates across rows.
+        var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        var creatureQuest = await SeedQuest(
+            QuestStatus.ReadyToComplete,
+            quest,
+            [
+                new QuestReputationReward
+                {
+                    WorldId = WorldId,
+                    QuestId = quest.Id,
+                    TargetId = _giver.Id,
+                    TargetType = ReputationTargetType.Creature,
+                    Score = 10,
+                },
+            ]
+        );
+        var stolenItem = Builders.MakeItem(WorldId);
+        stolenItem.Quantity = 1;
+        stolenItem.Ownership.OwnerId = _player.Id;
+        stolenItem.Ownership.OwnerType = OwnerType.Creature;
+        var cleanItem = Builders.MakeItem(WorldId);
+        cleanItem.Quantity = 1;
+        cleanItem.Ownership.OwnerId = _player.Id;
+        cleanItem.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.AddRange(stolenItem, cleanItem);
+        _context.QuestObjectives.AddRange(
+            new GiveItemsObjective
+            {
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+                Name = $"Recover {stolenItem.Name}",
+                Description = $"Recover {stolenItem.Name}",
+                ItemIds = [stolenItem.Id],
+                RecipientId = _giver.Id,
+                RequiredAmount = 1,
+            },
+            new GiveItemsObjective
+            {
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+                Name = $"Recover {cleanItem.Name}",
+                Description = $"Recover {cleanItem.Name}",
+                ItemIds = [cleanItem.Id],
+                RecipientId = _giver.Id,
+                RequiredAmount = 1,
+            }
+        );
+        _context.Crimes.Add(
+            new TheftCrime
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                OwnerCreatureId = Guid.NewGuid(),
+                OwnerName = "Victim",
+                SourceOwnerId = Guid.NewGuid(),
+                SourceOwnerType = OwnerType.Creature,
+                Resolution = CrimeResolution.Reported,
+                Items = [new TheftCrimeItem(stolenItem.Id, stolenItem.Name, 1)],
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new CompleteQuestCommand
+            {
+                PlayerId = _player.Id,
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var gold = await _context
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                item =>
+                    item.Ownership.OwnerId == _player.Id
+                    && item.Ownership.OwnerType == OwnerType.Creature,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(creatureQuest.Quest.GoldReward / 2, gold.Quantity);
+        var reputation = await _context.Reputations.SingleAsync(
+            reputation => reputation.CreatureId == _player.Id && reputation.TargetId == _giver.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(5, reputation.Score);
+        var giverItemIds = await _context
+            .Items.Where(item =>
+                item.Ownership.OwnerId == _giver.Id
+                && item.Ownership.OwnerType == OwnerType.Creature
+            )
+            .Select(item => item.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Contains(stolenItem.Id, giverItemIds);
+        Assert.Contains(cleanItem.Id, giverItemIds);
+    }
+
     private async Task<CreatureQuest> SeedQuest(
         QuestStatus status,
         Quest? quest = null,

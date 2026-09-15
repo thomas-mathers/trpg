@@ -293,6 +293,17 @@ function QuestJournalEntry({
                       {objective.locationName}
                     </span>
                   )}
+                  {objective.remainingLocations && objective.remainingLocations.length > 0 && (
+                    <span className="text-muted-foreground mt-1 flex flex-col gap-0.5 text-xs">
+                      {objective.remainingLocations.map((location) => (
+                        <span key={location.locationName} className="flex items-center gap-1">
+                          <MapPin className="size-3 shrink-0" />
+                          {location.locationName}
+                          {location.remainingCount > 1 && ` — ${location.remainingCount} remaining`}
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </span>
               </li>
             );

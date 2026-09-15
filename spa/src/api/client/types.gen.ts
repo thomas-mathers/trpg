@@ -768,6 +768,11 @@ export type QuestObjectiveItemProgressSnapshot = {
     requiredAmount: number;
 };
 
+export type QuestObjectiveLocationProgressSnapshot = {
+    locationName: string;
+    remainingCount: number;
+};
+
 export type QuestObjectiveProgressSnapshot = {
     name: string;
     description: string;
@@ -775,6 +780,7 @@ export type QuestObjectiveProgressSnapshot = {
     requiredAmount: number;
     locationName: null | string;
     items: null | Array<QuestObjectiveItemProgressSnapshot>;
+    remainingLocations: null | Array<QuestObjectiveLocationProgressSnapshot>;
 };
 
 export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';

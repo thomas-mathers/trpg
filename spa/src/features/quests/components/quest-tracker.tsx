@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { CircleCheck } from 'lucide-react';
+import { CircleCheck, MapPin } from 'lucide-react';
 
 import { getQuestJournalOptions } from '@/api/client';
 import { Button } from '@/components/ui/button';
@@ -76,6 +76,19 @@ export function QuestTracker({ playerId, worldId, onOpenJournal }: QuestTrackerP
                       </span>
                       <span>
                         {item.name} ({item.amount}/{item.requiredAmount})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {objective.remainingLocations && objective.remainingLocations.length > 0 && (
+                <ul className="ml-4 space-y-0.5">
+                  {objective.remainingLocations.map((location) => (
+                    <li key={location.locationName} className="flex items-center gap-1.5">
+                      <MapPin className="size-3 shrink-0" />
+                      <span>
+                        {location.locationName}
+                        {location.remainingCount > 1 && ` — ${location.remainingCount} remaining`}
                       </span>
                     </li>
                   ))}
