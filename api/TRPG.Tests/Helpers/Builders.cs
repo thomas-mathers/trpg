@@ -1020,7 +1020,8 @@ internal static class Builders
         Guid? roomId = null,
         Guid? id = null,
         LocationKind? kind = null,
-        Guid? coarseAnchorLocationId = null
+        Guid? coarseAnchorLocationId = null,
+        string? name = null
     )
     {
         var locationId = id ?? Guid.NewGuid();
@@ -1041,6 +1042,7 @@ internal static class Builders
                     : districtId != null ? LocationKind.District
                     : LocationKind.Wilderness
                 ),
+            Name = name ?? "",
         };
     }
 

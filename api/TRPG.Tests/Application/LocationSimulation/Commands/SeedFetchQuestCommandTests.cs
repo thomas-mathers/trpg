@@ -66,16 +66,19 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
         await _context.DisposeAsync();
     }
 
-    private async Task<Guid[]> SeedLivingHostiles(int count)
+    private Task<Guid[]> SeedLivingHostiles(int count) =>
+        SeedLivingHostiles(Enumerable.Repeat(CreatureType.Beast, count).ToArray());
+
+    private async Task<Guid[]> SeedLivingHostiles(IReadOnlyList<CreatureType> creatureTypes)
     {
         var group = Builders.MakeEncounterGroup(_worldId, _dungeonRoomLocation.Id, Guid.NewGuid());
         _context.EncounterGroups.Add(group);
-        var monsterIds = new Guid[count];
-        for (var i = 0; i < count; i++)
+        var monsterIds = new Guid[creatureTypes.Count];
+        for (var i = 0; i < creatureTypes.Count; i++)
         {
             var monster = Builders.MakeCreature(
                 _worldId,
-                creatureType: CreatureType.Beast,
+                creatureType: creatureTypes[i],
                 locationId: _dungeonRoomLocation.Id
             );
             monsterIds[i] = monster.Id;
@@ -124,6 +127,40 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
         Assert.Equal(3, drops.Length);
         Assert.All(drops, drop => Assert.Contains(drop.Ownership.OwnerId, monsterIds));
         Assert.All(drops, drop => Assert.Equal("Beast Pelt", drop.Name));
+    }
+
+    [Fact]
+    public async Task Handle_GroupsObjectivesByMaterialType_WhenHostilesAreOfDifferentTypes()
+    {
+        // Arrange
+        await SeedLivingHostiles([CreatureType.Beast, CreatureType.Beast, CreatureType.Orc]);
+
+        // Act
+        var result = await _handler.Handle(
+            new SeedFetchQuestCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _giverLocation.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(result);
+        var quest = await _context.Quests.SingleAsync(
+            q => q.WorldId == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        var objectives = await _context
+            .QuestObjectives.OfType<GiveItemsObjective>()
+            .Where(o => o.QuestId == quest.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(2, objectives.Length);
+        var beastObjective = Assert.Single(objectives, o => o.RequiredAmount == 2);
+        Assert.Equal(2, beastObjective.ItemIds.Count);
+        var orcObjective = Assert.Single(objectives, o => o.RequiredAmount == 1);
+        Assert.Single(orcObjective.ItemIds);
     }
 
     [Fact]

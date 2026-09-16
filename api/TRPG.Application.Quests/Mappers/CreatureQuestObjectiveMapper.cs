@@ -9,7 +9,8 @@ internal static class CreatureQuestObjectiveMapper
         this CreatureQuestObjective objective,
         string? locationName,
         IReadOnlyDictionary<Guid, string> itemNamesById,
-        IReadOnlySet<Guid> ownedItemIds
+        IReadOnlySet<Guid> ownedItemIds,
+        IReadOnlyCollection<QuestObjectiveLocationProgress>? remainingLocations
     ) =>
         new(
             objective.Objective.Name,
@@ -19,6 +20,7 @@ internal static class CreatureQuestObjectiveMapper
             locationName,
             objective.Objective is GiveItemsObjective giveItems
                 ? giveItems.ToItemProgress(itemNamesById, ownedItemIds)
-                : null
+                : null,
+            remainingLocations
         );
 }

@@ -358,20 +358,28 @@ internal class SeedStealQuestCommandHandler(
                 Score = GiverReputationReward,
             }
         );
-        var objective = new GiveItemsObjective
-        {
-            WorldId = command.WorldId,
-            QuestId = quest.Id,
-            Name = "Recover the goods",
-            Description =
-                $"Quietly recover {items.Length} items from around {city.Name} and bring them to {giver.Name}.",
-            ItemIds = items.Select(item => item.Id).ToList(),
-            RecipientId = giver.Id,
-            RequiredAmount = items.Length,
-        };
+        var objectives = items
+            .GroupBy(item => item.Name)
+            .Select(group => new GiveItemsObjective
+            {
+                WorldId = command.WorldId,
+                QuestId = quest.Id,
+                Name =
+                    group.Count() > 1
+                        ? $"Recover {group.Count()}x {group.Key}"
+                        : $"Recover {group.Key}",
+                Description =
+                    group.Count() > 1
+                        ? $"Quietly recover {group.Count()} of {group.Key} and bring them to {giver.Name}."
+                        : $"Quietly recover {group.Key} and bring it to {giver.Name}.",
+                ItemIds = group.Select(item => item.Id).ToList(),
+                RecipientId = giver.Id,
+                RequiredAmount = group.Count(),
+            })
+            .ToArray();
 
         await addQuest.Handle(
-            new AddQuestCommand { Quest = quest, Objectives = [objective] },
+            new AddQuestCommand { Quest = quest, Objectives = objectives },
             cancellationToken
         );
 

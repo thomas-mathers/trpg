@@ -279,20 +279,28 @@ internal class SeedFetchQuestCommandHandler(
                 Score = GiverReputationReward,
             }
         );
-        var objective = new GiveItemsObjective
-        {
-            WorldId = command.WorldId,
-            QuestId = quest.Id,
-            Name = $"Gather materials from {building.Name}",
-            Description =
-                $"Search {building.Name} and bring {drops.Length} items back to {giver.Name}.",
-            ItemIds = drops.Select(item => item.Id).ToList(),
-            RecipientId = giver.Id,
-            RequiredAmount = drops.Length,
-        };
+        var objectives = drops
+            .GroupBy(drop => drop.Name)
+            .Select(group => new GiveItemsObjective
+            {
+                WorldId = command.WorldId,
+                QuestId = quest.Id,
+                Name =
+                    group.Count() > 1
+                        ? $"Recover {group.Count()}x {group.Key}"
+                        : $"Recover a {group.Key}",
+                Description =
+                    group.Count() > 1
+                        ? $"Search {building.Name} for {group.Count()} {group.Key} drops and bring them to {giver.Name}."
+                        : $"Search {building.Name} for a {group.Key} and bring it to {giver.Name}.",
+                ItemIds = group.Select(item => item.Id).ToList(),
+                RecipientId = giver.Id,
+                RequiredAmount = group.Count(),
+            })
+            .ToArray();
 
         await addQuest.Handle(
-            new AddQuestCommand { Quest = quest, Objectives = [objective] },
+            new AddQuestCommand { Quest = quest, Objectives = objectives },
             cancellationToken
         );
 

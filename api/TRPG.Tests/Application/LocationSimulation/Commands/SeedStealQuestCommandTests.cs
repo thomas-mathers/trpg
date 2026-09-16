@@ -117,15 +117,18 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_giver.Id, quest.GiverId);
-        var objective = await _context
+        var objectives = await _context
             .QuestObjectives.OfType<GiveItemsObjective>()
-            .SingleAsync(o => o.QuestId == quest.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(_giver.Id, objective.RecipientId);
-        Assert.Equal(3, objective.ItemIds.Count);
-        Assert.Equal(3, objective.RequiredAmount);
+            .Where(o => o.QuestId == quest.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(3, objectives.Length);
+        Assert.All(objectives, objective => Assert.Equal(_giver.Id, objective.RecipientId));
+        Assert.All(objectives, objective => Assert.Single(objective.ItemIds));
+        Assert.All(objectives, objective => Assert.Equal(1, objective.RequiredAmount));
 
+        var itemIds = objectives.SelectMany(o => o.ItemIds).ToArray();
         var items = await _context
-            .Items.Where(item => objective.ItemIds.Contains(item.Id))
+            .Items.Where(item => itemIds.Contains(item.Id))
             .ToArrayAsync(TestContext.Current.CancellationToken);
         Assert.Equal(3, items.Length);
         Assert.Contains(items, item => item.Name.StartsWith("Mark's ", StringComparison.Ordinal));
