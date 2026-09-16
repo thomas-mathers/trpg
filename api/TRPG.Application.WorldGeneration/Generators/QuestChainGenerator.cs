@@ -210,7 +210,11 @@ public class QuestChainGenerator(
             systemPrompt,
             userPrompt,
             schema => Validate(schema, entityTypesById),
-            cancellationToken
+            cancellationToken,
+            // A multi-node DAG with several objectives per node runs noticeably longer than the
+            // other world-gen schemas (factions, geography) this helper was originally sized for —
+            // without raising this, a 4-node chain can get cut off mid-node and fail to parse.
+            options: new ChatOptions { MaxOutputTokens = 8192 }
         );
 
         return schema
