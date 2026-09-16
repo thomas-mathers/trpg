@@ -24,6 +24,11 @@ internal class SyncQuestSeedScheduleCommandHandler(
 {
     private const double SeedChance = 0.25;
 
+    // Fetch and steal are the newest repeatable quest types — weighted higher than the established
+    // SeedChance so players actually run into them at a reasonable rate while they're new, rolled
+    // independently of the other three so it doesn't change their odds.
+    private const double NewQuestSeedChance = 0.5;
+
     public async Task Handle(
         SyncQuestSeedScheduleCommand command,
         CancellationToken cancellationToken = default
@@ -53,61 +58,62 @@ internal class SyncQuestSeedScheduleCommandHandler(
         schedule.LastSyncPlaytime = command.CurrentPlaytime;
         await context.SaveChangesAsync(cancellationToken);
 
-        if (Random.Shared.NextDouble() >= SeedChance)
+        if (Random.Shared.NextDouble() < SeedChance)
         {
-            return;
+            await seedCaptiveRescueQuest.Handle(
+                new SeedCaptiveRescueQuestCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    LocationId = command.LocationId,
+                    PlayerLevel = command.PlayerLevel,
+                },
+                cancellationToken
+            );
+
+            await seedClearDungeonQuest.Handle(
+                new SeedClearDungeonQuestCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    LocationId = command.LocationId,
+                    PlayerLevel = command.PlayerLevel,
+                },
+                cancellationToken
+            );
+
+            await seedCourierQuest.Handle(
+                new SeedCourierQuestCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    LocationId = command.LocationId,
+                },
+                cancellationToken
+            );
         }
 
-        await seedCaptiveRescueQuest.Handle(
-            new SeedCaptiveRescueQuestCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                LocationId = command.LocationId,
-                PlayerLevel = command.PlayerLevel,
-            },
-            cancellationToken
-        );
+        if (Random.Shared.NextDouble() < NewQuestSeedChance)
+        {
+            await seedFetchQuest.Handle(
+                new SeedFetchQuestCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    LocationId = command.LocationId,
+                },
+                cancellationToken
+            );
 
-        await seedClearDungeonQuest.Handle(
-            new SeedClearDungeonQuestCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                LocationId = command.LocationId,
-                PlayerLevel = command.PlayerLevel,
-            },
-            cancellationToken
-        );
-
-        await seedCourierQuest.Handle(
-            new SeedCourierQuestCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                LocationId = command.LocationId,
-            },
-            cancellationToken
-        );
-
-        await seedFetchQuest.Handle(
-            new SeedFetchQuestCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                LocationId = command.LocationId,
-            },
-            cancellationToken
-        );
-
-        await seedStealQuest.Handle(
-            new SeedStealQuestCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                LocationId = command.LocationId,
-            },
-            cancellationToken
-        );
+            await seedStealQuest.Handle(
+                new SeedStealQuestCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    LocationId = command.LocationId,
+                },
+                cancellationToken
+            );
+        }
     }
 }

@@ -123,17 +123,22 @@ internal class GetQuestInteractionsForGiverQueryHandler(
     private static QuestConversationObjectiveResult ToResult(
         QuestObjective objective,
         IReadOnlyDictionary<Guid, string> itemNamesById
-    ) =>
-        new(
+    )
+    {
+        // Only worth breaking down when the objective actually spans different kinds of item — a
+        // single type repeated (e.g. two Goblin Ear drops) already says its count in Description.
+        var distinctItemNames = objective is GiveItemsObjective giveItems
+            ? giveItems
+                .ItemIds.Select(itemId => itemNamesById.GetValueOrDefault(itemId, "Unknown Item"))
+                .Distinct()
+                .ToArray()
+            : null;
+
+        return new QuestConversationObjectiveResult(
             objective.Name,
             objective.Description,
             objective.RequiredAmount,
-            objective is GiveItemsObjective giveItems
-                ? giveItems
-                    .ItemIds.Select(itemId =>
-                        itemNamesById.GetValueOrDefault(itemId, "Unknown Item")
-                    )
-                    .ToArray()
-                : null
+            distinctItemNames is { Length: > 1 } ? distinctItemNames : null
         );
+    }
 }
