@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Configuration;
+using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Combat.Tools;
 using TRPG.Data;
 using TRPG.Extensions;
@@ -41,7 +42,12 @@ internal static class TestServiceCollectionExtensions
             // Movement now reaches an LLM-backed generator, so the container needs the same shape
             // production has or every test that moves a player fails resolving it.
             .AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, new FakeChatClient())
-            .AddKeyedSingleton<IChatClient>(LlmRoleKeys.Gameplay, new FakeChatClient());
+            .AddKeyedSingleton<IChatClient>(LlmRoleKeys.Gameplay, new FakeChatClient())
+            // Location catch-up now reaches SeedLlmQuestChainCommand, which needs a scheduler —
+            // same reasoning as the two keyed IChatClient registrations above. Tests that care about
+            // what got scheduled register their own RecordingQuestChainGenerationScheduler instance
+            // after AddTrpgTestServices(...), which wins over this default.
+            .AddSingleton<IQuestChainGenerationScheduler, RecordingQuestChainGenerationScheduler>();
     }
 }
 

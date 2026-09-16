@@ -17,6 +17,11 @@ public sealed class FakeChatClient : IChatClient
     public string? TextBeforeToolCall { get; set; }
     public IDictionary<string, object?>? PendingToolCallArguments { get; set; }
 
+    // Overrides the canned single-node quest-chain response below, for tests that need to script a
+    // specific multi-node/multi-objective-type DAG (or a deliberately invalid one, to exercise the
+    // generator's retry-exhaustion failure path).
+    internal QuestChainSchema? QuestChainSchemaOverride { get; set; }
+
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
@@ -106,7 +111,47 @@ public sealed class FakeChatClient : IChatClient
             return JsonSerializer.Serialize(entity);
         }
 
+        if (text.Contains("directed acyclic graph", StringComparison.OrdinalIgnoreCase))
+        {
+            if (QuestChainSchemaOverride != null)
+            {
+                return JsonSerializer.Serialize(QuestChainSchemaOverride);
+            }
+
+            var entityId = ExtractFirstEntityId(text);
+            var schema = new QuestChainSchema
+            {
+                Nodes =
+                [
+                    new QuestChainNodeSchema
+                    {
+                        NodeId = "node-1",
+                        Name = NextName("Quest"),
+                        Description = "A fake quest node.",
+                        GiverEntityId = entityId,
+                        Objectives =
+                        [
+                            new QuestChainObjectiveSchema
+                            {
+                                Name = NextName("Objective"),
+                                Description = "A fake objective.",
+                                ObjectiveType = nameof(GeneratedObjectiveType.SpeakToCreature),
+                                TargetEntityId = entityId,
+                            },
+                        ],
+                    },
+                ],
+            };
+            return JsonSerializer.Serialize(schema);
+        }
+
         return ChatResponseText;
+    }
+
+    private static string? ExtractFirstEntityId(string text)
+    {
+        var match = Regex.Match(text, @"id=([0-9a-fA-F-]{36})");
+        return match.Success ? match.Groups[1].Value : null;
     }
 
     private static int ExtractCount(string text, string pattern)

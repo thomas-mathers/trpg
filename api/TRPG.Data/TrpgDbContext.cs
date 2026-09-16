@@ -117,6 +117,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<CreatureSpawner> CreatureSpawners => Set<CreatureSpawner>();
     public DbSet<RestockPolicy> RestockPolicies => Set<RestockPolicy>();
     public DbSet<QuestSeedSchedule> QuestSeedSchedules => Set<QuestSeedSchedule>();
+    public DbSet<QuestChainGenerationRequest> QuestChainGenerationRequests =>
+        Set<QuestChainGenerationRequest>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -629,6 +631,17 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.HasIndex(s => s.WorldId);
             entity.HasIndex(s => s.LocationId);
+        });
+
+        modelBuilder.Entity<QuestChainGenerationRequest>(entity =>
+        {
+            entity.HasIndex(r => r.WorldId);
+            entity.HasIndex(r => new
+            {
+                r.WorldId,
+                r.PlayerId,
+                r.Status,
+            });
         });
 
         modelBuilder.Entity<RoomBooking>(entity =>
