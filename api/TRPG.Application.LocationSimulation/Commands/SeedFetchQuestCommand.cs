@@ -27,11 +27,12 @@ public class SeedFetchQuestCommand
 // No-ops at any step where nothing eligible exists.
 internal class SeedFetchQuestCommandHandler(
     IQueryHandler<
-        GetCreatureIdsWithCreatureJobInLocationQuery,
+        GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
     > getGiverCandidateIds,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<
@@ -50,6 +51,16 @@ internal class SeedFetchQuestCommandHandler(
     private const int GoldReward = 45;
     private const int GiverReputationReward = 12;
     private const int ItemCount = 3;
+
+    // Crafters who'd plausibly want monster-drop materials, rather than any employed resident of
+    // the city.
+    private static readonly IReadOnlyList<Profession> EligibleGiverProfessions =
+    [
+        Profession.Alchemist,
+        Profession.Blacksmith,
+        Profession.Tailor,
+        Profession.Jeweler,
+    ];
 
     // Classic gather-quest materials by creature type — what a player would recognize as loot
     // worth turning in, without the quest text needing to say anything got killed for it.
@@ -73,7 +84,16 @@ internal class SeedFetchQuestCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var giver = await FindGiver(command, cancellationToken);
+        var entranceLocation = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = command.LocationId },
+            cancellationToken
+        );
+        if (entranceLocation?.CityId == null)
+        {
+            return false;
+        }
+
+        var giver = await FindGiver(entranceLocation.CityId.Value, cancellationToken);
         if (giver == null)
         {
             return false;
@@ -92,16 +112,7 @@ internal class SeedFetchQuestCommandHandler(
             return false;
         }
 
-        var giverLocation = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = command.LocationId },
-            cancellationToken
-        );
-        if (giverLocation == null)
-        {
-            return false;
-        }
-
-        var quarry = await FindEligibleQuarry(command, giverLocation.StateId, cancellationToken);
+        var quarry = await FindEligibleQuarry(command, entranceLocation.StateId, cancellationToken);
         if (quarry == null)
         {
             return false;
@@ -114,13 +125,14 @@ internal class SeedFetchQuestCommandHandler(
         return true;
     }
 
-    private async Task<Creature?> FindGiver(
-        SeedFetchQuestCommand command,
-        CancellationToken cancellationToken
-    )
+    private async Task<Creature?> FindGiver(Guid cityId, CancellationToken cancellationToken)
     {
+        var cityLocationIds = await getLocationIdsByCityId.Handle(
+            new GetLocationIdsByCityIdQuery { CityId = cityId },
+            cancellationToken
+        );
         var candidateGiverIds = await getGiverCandidateIds.Handle(
-            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = command.LocationId },
+            new GetCreatureIdsWithCreatureJobInLocationsQuery { LocationIds = cityLocationIds },
             cancellationToken
         );
         var candidateGivers = await getCreaturesByIds.Handle(
@@ -128,9 +140,17 @@ internal class SeedFetchQuestCommandHandler(
             cancellationToken
         );
 
-        return candidateGivers
-            .Values.Where(creature => CreatureTypes.Humanoid.Contains(creature.CreatureType))
-            .FirstOrDefault();
+        var eligibleGivers = candidateGivers
+            .Values.Where(creature =>
+                CreatureTypes.Humanoid.Contains(creature.CreatureType)
+                && creature.Profession is { } profession
+                && EligibleGiverProfessions.Contains(profession)
+            )
+            .ToArray();
+
+        return eligibleGivers.Length == 0
+            ? null
+            : eligibleGivers[Random.Shared.Next(eligibleGivers.Length)];
     }
 
     private async Task<(Building Building, IReadOnlyList<Guid> CreatureIds)?> FindEligibleQuarry(

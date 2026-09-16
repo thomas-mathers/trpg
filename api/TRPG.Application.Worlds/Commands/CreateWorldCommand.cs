@@ -26,7 +26,6 @@ public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
-    QuestGenerator questGenerator,
     ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
@@ -45,7 +44,6 @@ internal class CreateWorldCommandHandler(
         var startingCity = worldResult.Cities.First(c =>
             c.IsCapital && c.CountryId == homeCountry.Id
         );
-        var startingState = worldResult.States.First(s => s.Id == startingCity.StateId);
         var startingDistrict = worldResult.Districts.First(d =>
             d.CityId == startingCity.Id && d.DistrictType == DistrictType.CityCenter
         );
@@ -71,13 +69,12 @@ internal class CreateWorldCommandHandler(
         playerResult = creatureGenerator.AddStartingPotions(playerResult);
         playerResult.Creature.LocationId = startingDistrict.LocationId;
 
-        var stateQuests = questGenerator.Generate(worldResult, startingState.Id);
         var expeditionQuests = worldResult
             .DungeonExpeditions.Select(ExpeditionQuestGenerator.Generate)
             .ToArray();
         var quests = new QuestGeneratorResult(
-            [.. stateQuests.Quests, .. expeditionQuests.SelectMany(result => result.Quests)],
-            [.. stateQuests.Objectives, .. expeditionQuests.SelectMany(result => result.Objectives)]
+            [.. expeditionQuests.SelectMany(result => result.Quests)],
+            [.. expeditionQuests.SelectMany(result => result.Objectives)]
         );
 
         var monsterReputations = MonsterReputationSeeder.Seed(
@@ -88,11 +85,12 @@ internal class CreateWorldCommandHandler(
             worldResult.Factions
         );
 
-        // One popular, reliably-visited spot per city — the rescue-quest seed check rides the
-        // same lazy per-location catch-up every other sync command already uses, so it only ever
-        // needs to exist at places the player will actually pass through.
+        // The city entrance is the one district every visit to a city is guaranteed to pass
+        // through (it's the city's coarse-location anchor), so the seed check rides the same
+        // lazy per-location catch-up every other sync command already uses without depending on
+        // the player choosing to visit any particular district.
         var questSeedSchedules = worldResult
-            .Districts.Where(district => district.DistrictType == DistrictType.CityCenter)
+            .Districts.Where(district => district.DistrictType == DistrictType.CityEntrance)
             .Select(district => new QuestSeedSchedule
             {
                 WorldId = worldResult.World.Id,

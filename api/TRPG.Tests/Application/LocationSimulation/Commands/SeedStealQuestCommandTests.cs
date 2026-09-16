@@ -14,6 +14,7 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
     private readonly Guid _stateId = Guid.NewGuid();
     private readonly DatabaseFixture _database;
     private readonly City _city;
+    private readonly Location _entranceLocation;
     private readonly Location _giverLocation;
     private readonly Creature _giver;
     private readonly Location _pickpocketLocation;
@@ -32,8 +33,16 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
     {
         _database = database;
         _city = Builders.MakeCity(_stateId, Guid.NewGuid(), worldId: _worldId);
+        _entranceLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _city.Id);
+        // The giver works elsewhere in the city, not at the seed/entrance location itself, and
+        // isn't one of the order-aligned professions the steal-quest giver filter excludes.
         _giverLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _city.Id);
-        _giver = Builders.MakeCreature(_worldId, locationId: _giverLocation.Id, name: "Giver");
+        _giver = Builders.MakeCreature(
+            _worldId,
+            profession: Profession.Merchant,
+            locationId: _giverLocation.Id,
+            name: "Giver"
+        );
 
         _pickpocketLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _city.Id);
         _pickpocketTarget = Builders.MakeCreature(
@@ -67,6 +76,7 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
 
         _context.Cities.Add(_city);
         _context.Locations.AddRange(
+            _entranceLocation,
             _giverLocation,
             _pickpocketLocation,
             _shopLocation,
@@ -105,7 +115,7 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -143,7 +153,7 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
     }
 
     [Fact]
-    public async Task Handle_ReturnsFalse_WhenNoGiverCandidateIsAtTheLocation()
+    public async Task Handle_ReturnsFalse_WhenTheSeedLocationHasNoCity()
     {
         // Act
         var result = await _handler.Handle(
@@ -152,6 +162,32 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
                 LocationId = Guid.NewGuid(),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsFalse_WhenTheOnlyCandidateHasADisqualifyingProfession()
+    {
+        // Arrange — a guard wouldn't plausibly hand out a theft contract
+        await _context
+            .Creatures.Where(creature => creature.Id == _giver.Id)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(c => c.Profession, Profession.Guard),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        var result = await _handler.Handle(
+            new SeedStealQuestCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -170,7 +206,12 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
         var stateId = Guid.NewGuid();
         var city = Builders.MakeCity(stateId, Guid.NewGuid(), worldId: _worldId);
         var giverLocation = Builders.MakeLocation(_worldId, stateId, cityId: city.Id);
-        var giver = Builders.MakeCreature(_worldId, locationId: giverLocation.Id, name: "Giver2");
+        var giver = Builders.MakeCreature(
+            _worldId,
+            profession: Profession.Merchant,
+            locationId: giverLocation.Id,
+            name: "Giver2"
+        );
         var pickpocketLocation = Builders.MakeLocation(_worldId, stateId, cityId: city.Id);
         var pickpocketTarget = Builders.MakeCreature(
             _worldId,
@@ -234,7 +275,7 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -281,7 +322,7 @@ public sealed class SeedStealQuestCommandTests : IAsyncLifetime, IClassFixture<D
             {
                 WorldId = _worldId,
                 PlayerId = playerId,
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );

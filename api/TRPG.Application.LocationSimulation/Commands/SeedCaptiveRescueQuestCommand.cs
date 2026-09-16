@@ -30,8 +30,9 @@ public class SeedCaptiveRescueQuestCommand
 // eligible exists — that is the pool naturally running dry, not a failure.
 internal class SeedCaptiveRescueQuestCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
     IQueryHandler<
-        GetCreatureIdsWithCreatureJobInLocationQuery,
+        GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
     > getGiverCandidateIds,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
@@ -91,7 +92,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
         );
 
         var (giver, captive) = await FindGiverAndCaptive(
-            command,
+            location.CityId,
             usedParticipantIds,
             cancellationToken
         );
@@ -121,24 +122,36 @@ internal class SeedCaptiveRescueQuestCommandHandler(
     }
 
     private async Task<(Creature? Giver, Creature? Captive)> FindGiverAndCaptive(
-        SeedCaptiveRescueQuestCommand command,
+        Guid? cityId,
         IReadOnlySet<Guid> usedParticipantIds,
         CancellationToken cancellationToken
     )
     {
+        if (cityId == null)
+        {
+            return (null, null);
+        }
+
+        var cityLocationIds = await getLocationIdsByCityId.Handle(
+            new GetLocationIdsByCityIdQuery { CityId = cityId.Value },
+            cancellationToken
+        );
         var candidateGiverIds = await getGiverCandidateIds.Handle(
-            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = command.LocationId },
+            new GetCreatureIdsWithCreatureJobInLocationsQuery { LocationIds = cityLocationIds },
             cancellationToken
         );
         var candidateGivers = await getCreaturesByIds.Handle(
             new GetCreaturesByIdsQuery { Ids = candidateGiverIds },
             cancellationToken
         );
+        // Shuffled so the giver isn't always whichever eligible candidate happens to sort first
+        // in a much larger city-wide pool.
         var eligibleGivers = candidateGivers
             .Values.Where(creature =>
                 CreatureTypes.Humanoid.Contains(creature.CreatureType)
                 && !usedParticipantIds.Contains(creature.Id)
             )
+            .OrderBy(_ => Random.Shared.Next())
             .ToArray();
 
         var relativesByGiverId = await getRelativesByCreatureIds.Handle(

@@ -2,6 +2,11 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
 
+public record QuestGeneratorResult(
+    IReadOnlyCollection<Quest> Quests,
+    IReadOnlyCollection<QuestObjective> Objectives
+);
+
 // The survivor's own story is the reward for pursuing it: finding out what happened to their
 // companion and telling them earns the same gold-and-reputation payoff any other quest does.
 public static class ExpeditionQuestGenerator

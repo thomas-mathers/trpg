@@ -31,6 +31,5 @@ public static class WorldGenerationServiceCollectionExtensions
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()
             .AddTransient<FactionsGenerator>()
-            .AddTransient<QuestGenerator>()
             .AddTransient<WorldGenerator>();
 }
