@@ -13,8 +13,15 @@ namespace TRPG.Application.WorldGeneration.Generators;
 public static class QuestChainEntityTypes
 {
     public const string Creature = "Creature";
-    public const string Location = "Location";
     public const string Item = "Item";
+
+    // Split from a single generic "Location" type: a Dungeon has hostiles and supports
+    // ClearLocation, a Building doesn't and only supports ExploreLocation — collapsing them back
+    // into one type would let the LLM point ClearLocation at a building with nothing to clear.
+    public const string Dungeon = "Dungeon";
+    public const string Building = "Building";
+
+    public static readonly HashSet<string> ExplorableTypes = [Dungeon, Building];
 }
 
 public record QuestChainCandidateEntity(Guid Id, string Name, string Type);
@@ -135,9 +142,11 @@ public class QuestChainGenerator(
               nothing in the entity list plausibly fits an objective you want to write, use one of
               those two category-based types instead of leaving TargetEntityId null.
             - TargetEntityId's type must match the objective type: KillCreature/FreeCreature/
-              SpeakToCreature need a "{QuestChainEntityTypes.Creature}"-type entity; ClearLocation/
-              ExploreLocation need a "{QuestChainEntityTypes.Location}"-type entity; CollectItem/
-              GiveItems/DeliverItem need an "{QuestChainEntityTypes.Item}"-type entity.
+              SpeakToCreature need a "{QuestChainEntityTypes.Creature}"-type entity; ClearLocation
+              needs a "{QuestChainEntityTypes.Dungeon}"-type entity specifically (only dungeons have
+              hostiles to clear); ExploreLocation accepts either a "{QuestChainEntityTypes.Dungeon}"-
+              or "{QuestChainEntityTypes.Building}"-type entity; CollectItem/GiveItems/DeliverItem
+              need an "{QuestChainEntityTypes.Item}"-type entity.
             - GiveItems and DeliverItem also need a non-null RecipientEntityId (who receives the
               item, a "{QuestChainEntityTypes.Creature}"-type entity); GiveItemKind always needs one
               too.
@@ -164,10 +173,10 @@ public class QuestChainGenerator(
               how many to kill.
             - FreeCreature: free one specific captured/restrained creature. TargetEntityId = that
               creature's id.
-            - ClearLocation: defeat every hostile in one specific building/location. TargetEntityId
-              = that location's id.
-            - ExploreLocation: simply reach/enter one specific location. TargetEntityId = that
-              location's id.
+            - ClearLocation: defeat every hostile in one specific dungeon. TargetEntityId = that
+              dungeon's id.
+            - ExploreLocation: simply reach/enter one specific dungeon or building. TargetEntityId
+              = that dungeon's or building's id.
             - SpeakToCreature: start a conversation with one specific creature. TargetEntityId =
               that creature's id. (This completes the instant the conversation opens — it cannot
               gate on what gets said or learned.)
@@ -266,7 +275,7 @@ public class QuestChainGenerator(
 
             var giverError = ValidateEntityReference(
                 node.GiverEntityId,
-                QuestChainEntityTypes.Creature,
+                [QuestChainEntityTypes.Creature],
                 entityTypesById,
                 $"Node \"{node.NodeId}\"",
                 "GiverEntityId",
@@ -365,7 +374,7 @@ public class QuestChainGenerator(
             }
             return ValidateEntityReference(
                 objective.RecipientEntityId,
-                QuestChainEntityTypes.Creature,
+                [QuestChainEntityTypes.Creature],
                 entityTypesById,
                 label,
                 "RecipientEntityId",
@@ -373,22 +382,22 @@ public class QuestChainGenerator(
             );
         }
 
-        var expectedTargetType = type switch
+        var expectedTargetTypes = type switch
         {
             GeneratedObjectiveType.KillCreature
             or GeneratedObjectiveType.FreeCreature
-            or GeneratedObjectiveType.SpeakToCreature => QuestChainEntityTypes.Creature,
-            GeneratedObjectiveType.ClearLocation or GeneratedObjectiveType.ExploreLocation =>
-                QuestChainEntityTypes.Location,
+            or GeneratedObjectiveType.SpeakToCreature => [QuestChainEntityTypes.Creature],
+            GeneratedObjectiveType.ClearLocation => [QuestChainEntityTypes.Dungeon],
+            GeneratedObjectiveType.ExploreLocation => QuestChainEntityTypes.ExplorableTypes,
             GeneratedObjectiveType.CollectItem
             or GeneratedObjectiveType.GiveItems
-            or GeneratedObjectiveType.DeliverItem => QuestChainEntityTypes.Item,
+            or GeneratedObjectiveType.DeliverItem => [QuestChainEntityTypes.Item],
             _ => throw new ArgumentOutOfRangeException(nameof(objective)),
         };
 
         var targetError = ValidateEntityReference(
             objective.TargetEntityId,
-            expectedTargetType,
+            expectedTargetTypes,
             entityTypesById,
             label,
             "TargetEntityId",
@@ -403,7 +412,7 @@ public class QuestChainGenerator(
             type is GeneratedObjectiveType.GiveItems or GeneratedObjectiveType.DeliverItem;
         return ValidateEntityReference(
             objective.RecipientEntityId,
-            QuestChainEntityTypes.Creature,
+            [QuestChainEntityTypes.Creature],
             entityTypesById,
             label,
             "RecipientEntityId",
@@ -413,7 +422,7 @@ public class QuestChainGenerator(
 
     private static string? ValidateEntityReference(
         string? entityId,
-        string expectedType,
+        HashSet<string> expectedTypes,
         IReadOnlyDictionary<string, string> entityTypesById,
         string label,
         string fieldName,
@@ -430,9 +439,9 @@ public class QuestChainGenerator(
             return $"{label} has {fieldName} \"{entityId}\" which is not in the provided entity list.";
         }
 
-        return actualType == expectedType
+        return expectedTypes.Contains(actualType)
             ? null
-            : $"{label} has {fieldName} \"{entityId}\" which is a \"{actualType}\"-type entity, but this field needs a \"{expectedType}\"-type entity.";
+            : $"{label} has {fieldName} \"{entityId}\" which is a \"{actualType}\"-type entity, but this field needs one of: {string.Join(", ", expectedTypes)}.";
     }
 
     // Kahn's algorithm: repeatedly remove nodes with no remaining incoming-from-unvisited

@@ -5,7 +5,8 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 public class QuestChainGeneratorValidationTests
 {
     private static readonly string CreatureEntityId = Guid.NewGuid().ToString();
-    private static readonly string LocationEntityId = Guid.NewGuid().ToString();
+    private static readonly string DungeonEntityId = Guid.NewGuid().ToString();
+    private static readonly string BuildingEntityId = Guid.NewGuid().ToString();
     private static readonly string ItemEntityId = Guid.NewGuid().ToString();
     private static readonly IReadOnlyDictionary<string, string> EntityTypesById = new Dictionary<
         string,
@@ -13,7 +14,8 @@ public class QuestChainGeneratorValidationTests
     >
     {
         [CreatureEntityId] = QuestChainEntityTypes.Creature,
-        [LocationEntityId] = QuestChainEntityTypes.Location,
+        [DungeonEntityId] = QuestChainEntityTypes.Dungeon,
+        [BuildingEntityId] = QuestChainEntityTypes.Building,
         [ItemEntityId] = QuestChainEntityTypes.Item,
     };
 
@@ -34,7 +36,7 @@ public class QuestChainGeneratorValidationTests
                 targetEntityId
                 ?? (
                     objectiveType == nameof(GeneratedObjectiveType.ExploreLocation)
-                        ? LocationEntityId
+                        ? DungeonEntityId
                         : null
                 ),
             RecipientEntityId = recipientEntityId,
@@ -210,7 +212,7 @@ public class QuestChainGeneratorValidationTests
     public void Validate_ReturnsError_WhenGiverEntityIdIsWrongType()
     {
         // Arrange
-        var schema = new QuestChainSchema { Nodes = [MakeNode(giverEntityId: LocationEntityId)] };
+        var schema = new QuestChainSchema { Nodes = [MakeNode(giverEntityId: DungeonEntityId)] };
 
         // Act
         var error = QuestChainGenerator.Validate(schema, EntityTypesById);
@@ -241,7 +243,7 @@ public class QuestChainGeneratorValidationTests
     [Fact]
     public void Validate_ReturnsError_WhenTargetEntityIdIsWrongType()
     {
-        // Arrange: KillCreature needs a Creature-type target, but this gives it a Location.
+        // Arrange: KillCreature needs a Creature-type target, but this gives it a Dungeon.
         var schema = new QuestChainSchema
         {
             Nodes =
@@ -251,7 +253,7 @@ public class QuestChainGeneratorValidationTests
                     [
                         MakeObjective(
                             objectiveType: nameof(GeneratedObjectiveType.KillCreature),
-                            targetEntityId: LocationEntityId
+                            targetEntityId: DungeonEntityId
                         ),
                     ]
                 ),
@@ -263,6 +265,58 @@ public class QuestChainGeneratorValidationTests
 
         // Assert
         Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsNull_WhenClearLocationTargetsADungeon()
+    {
+        // Arrange
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.ClearLocation),
+            targetEntityId: DungeonEntityId
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsError_WhenClearLocationTargetsABuilding()
+    {
+        // Arrange: a Building never has hostiles, so ClearLocation must reject it even though
+        // ExploreLocation would accept the same entity.
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.ClearLocation),
+            targetEntityId: BuildingEntityId
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsNull_WhenExploreLocationTargetsABuilding()
+    {
+        // Arrange
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.ExploreLocation),
+            targetEntityId: BuildingEntityId
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.Null(error);
     }
 
     [Fact]

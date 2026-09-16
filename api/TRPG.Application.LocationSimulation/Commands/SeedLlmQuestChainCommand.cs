@@ -20,10 +20,11 @@ public class SeedLlmQuestChainCommand
 }
 
 // Finds someone at the seeding location willing to point the player toward a bigger story, then
-// gathers a bounded pool of real entities (giver candidates plus nearby dungeon buildings and
-// their hostiles) and enqueues the slow LLM-authored chain generation as a background job — never
-// calls the LLM inline, since a single generation call has been measured at 50-70 seconds. No-ops
-// at any step where nothing eligible exists, same contract as the other Seed*QuestCommand types.
+// gathers a bounded pool of real entities (giver candidates, nearby dungeon buildings and their
+// hostiles, and notable non-dungeon city buildings) and enqueues the slow LLM-authored chain
+// generation as a background job — never calls the LLM inline, since a single generation call has
+// been measured at 50-70 seconds. No-ops at any step where nothing eligible exists, same contract
+// as the other Seed*QuestCommand types.
 internal class SeedLlmQuestChainCommandHandler(
     ILocationSimulationDbContext context,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
@@ -47,6 +48,7 @@ internal class SeedLlmQuestChainCommandHandler(
     private const int MaximumGiverCandidates = 6;
     private const int MaximumDungeonBuildings = 2;
     private const int MaximumHostilesPerDungeon = 4;
+    private const int MaximumCityBuildings = 3;
     private const int MinimumEntityPoolSize = 4;
 
     public async Task<bool> Handle(
@@ -86,6 +88,13 @@ internal class SeedLlmQuestChainCommandHandler(
             await GatherDungeonEntities(
                 command.WorldId,
                 entranceLocation.StateId,
+                cancellationToken
+            )
+        );
+        entities.AddRange(
+            await GatherCityBuildings(
+                command.WorldId,
+                entranceLocation.CityId.Value,
                 cancellationToken
             )
         );
@@ -216,7 +225,7 @@ internal class SeedLlmQuestChainCommandHandler(
             candidateBuildings.Select(building => new QuestChainCandidateEntity(
                 building.Id,
                 building.Name,
-                QuestChainEntityTypes.Location
+                QuestChainEntityTypes.Dungeon
             ))
         );
         entities.AddRange(
@@ -228,5 +237,49 @@ internal class SeedLlmQuestChainCommandHandler(
         );
 
         return entities;
+    }
+
+    // ExploreLocation isn't inherently dungeon-only — "reach this place" applies just as well to a
+    // notable building within the city. Unlike dungeons, these never carry hostiles, so they only
+    // ever populate as QuestChainEntityTypes.Building, never Dungeon (which ClearLocation requires).
+    private async Task<IReadOnlyList<QuestChainCandidateEntity>> GatherCityBuildings(
+        Guid worldId,
+        Guid cityId,
+        CancellationToken cancellationToken
+    )
+    {
+        var buildings = await getBuildingsByWorldId.Handle(
+            new GetBuildingsByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var nonDungeonBuildings = buildings
+            .Where(building => !DungeonPopulator.SupportsDungeonType(building.BuildingType))
+            .ToArray();
+        if (nonDungeonBuildings.Length == 0)
+        {
+            return [];
+        }
+
+        var exteriorLocationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery
+            {
+                Ids = nonDungeonBuildings.Select(building => building.ExteriorLocationId).ToArray(),
+            },
+            cancellationToken
+        );
+
+        return nonDungeonBuildings
+            .Where(building =>
+                exteriorLocationsById.TryGetValue(building.ExteriorLocationId, out var location)
+                && location.CityId == cityId
+            )
+            .OrderBy(_ => Random.Shared.Next())
+            .Take(MaximumCityBuildings)
+            .Select(building => new QuestChainCandidateEntity(
+                building.Id,
+                building.Name,
+                QuestChainEntityTypes.Building
+            ))
+            .ToArray();
     }
 }

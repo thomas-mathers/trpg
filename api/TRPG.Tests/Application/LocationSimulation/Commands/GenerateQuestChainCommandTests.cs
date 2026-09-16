@@ -136,7 +136,7 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
                     new QuestChainCandidateEntity(
                         _dungeon.Id,
                         _dungeon.Name,
-                        QuestChainEntityTypes.Location
+                        QuestChainEntityTypes.Dungeon
                     ),
                 ],
             },
