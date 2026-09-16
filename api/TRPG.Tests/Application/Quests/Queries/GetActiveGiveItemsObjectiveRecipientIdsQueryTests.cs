@@ -92,6 +92,46 @@ public sealed class GetActiveGiveItemsObjectiveRecipientIdsQueryTests(DatabaseFi
     }
 
     [Fact]
+    public async Task Handle_IncludesGiveItemKindObjectiveRecipients()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(GiverId, WorldId);
+        var recipientId = Guid.NewGuid();
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(
+            Builders.MakeGiveItemKindObjective(
+                quest.Id,
+                "Goblin Ear",
+                recipientId,
+                worldId: WorldId
+            )
+        );
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _playerId,
+                QuestId = quest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetActiveGiveItemsObjectiveRecipientIdsQuery
+            {
+                WorldId = WorldId,
+                PlayerId = _playerId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Contains(recipientId, result);
+    }
+
+    [Fact]
     public async Task Handle_ExcludesCompletedRecipientsAndOtherPlayers()
     {
         // Arrange

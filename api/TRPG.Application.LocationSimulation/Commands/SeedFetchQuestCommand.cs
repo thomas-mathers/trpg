@@ -281,7 +281,7 @@ internal class SeedFetchQuestCommandHandler(
         );
         var objectives = drops
             .GroupBy(drop => drop.Name)
-            .Select(group => new GiveItemsObjective
+            .Select(group => new GiveItemKindObjective
             {
                 WorldId = command.WorldId,
                 QuestId = quest.Id,
@@ -293,7 +293,7 @@ internal class SeedFetchQuestCommandHandler(
                     group.Count() > 1
                         ? $"Search {building.Name} for {group.Count()} {group.Key} drops and bring them to {giver.Name}."
                         : $"Search {building.Name} for a {group.Key} and bring it to {giver.Name}.",
-                ItemIds = group.Select(item => item.Id).ToList(),
+                ItemName = group.Key,
                 RecipientId = giver.Id,
                 RequiredAmount = group.Count(),
             })

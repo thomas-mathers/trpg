@@ -304,6 +304,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.Property(i => i.Modifiers).HasJsonConversion(() => []);
             entity.Property(i => i.GoldValue).HasColumnName("gold_value");
             entity.HasIndex(i => i.WorldId);
+            entity.HasIndex(i => i.Name);
             entity.OwnsOne(
                 i => i.Ownership,
                 ownership =>
@@ -533,6 +534,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<ExploreLocationObjective>("ExploreLocation")
                 .HasValue<SpeakToCreatureObjective>("SpeakToCreature")
                 .HasValue<GiveItemsObjective>("GiveItem")
+                .HasValue<GiveItemKindObjective>("GiveItemKind")
                 .HasValue<FreeCreatureObjective>("FreeCreature")
                 .HasValue<ClearLocationObjective>("ClearLocation")
                 .HasValue<DeliverItemObjective>("DeliverItem");

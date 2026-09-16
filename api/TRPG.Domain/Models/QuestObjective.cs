@@ -39,6 +39,15 @@ public sealed class GiveItemsObjective : QuestObjective
     public Guid RecipientId { get; init; }
 }
 
+// Fungible-material variant of GiveItemsObjective: matches any owned item sharing ItemName rather
+// than a fixed set of instance ids, so gathering the same kind of item toward two independently
+// seeded quests advances both.
+public sealed class GiveItemKindObjective : QuestObjective
+{
+    public string ItemName { get; init; } = "";
+    public Guid RecipientId { get; init; }
+}
+
 public sealed class FreeCreatureObjective : QuestObjective
 {
     public Guid CreatureId { get; init; }

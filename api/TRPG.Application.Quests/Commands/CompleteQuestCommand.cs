@@ -22,11 +22,14 @@ public class CompleteQuestCommand
 
 internal record GiveItemRequirement(Guid ItemId, Guid RecipientId);
 
+internal record GiveItemKindRequirement(string ItemName, int RequiredAmount, Guid RecipientId);
+
 internal class CompleteQuestCommandHandler(
     IQuestsDbContext context,
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
+    IQueryHandler<GetItemsByNameForOwnerQuery, IReadOnlyList<Item>> getItemsByNameForOwner,
     IQueryHandler<GetReportedStolenItemIdsQuery, IReadOnlySet<Guid>> getReportedStolenItemIds,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory
@@ -86,6 +89,23 @@ internal class CompleteQuestCommandHandler(
 
         await EnsureItemsAreOwned(command.PlayerId, requiredItemIds, cancellationToken);
 
+        var giveItemKindRequirements = await context
+            .QuestObjectives.OfType<GiveItemKindObjective>()
+            .Where(objective => objective.QuestId == command.QuestId)
+            .Select(objective => new GiveItemKindRequirement(
+                objective.ItemName,
+                objective.RequiredAmount,
+                objective.RecipientId
+            ))
+            .ToArrayAsync(cancellationToken);
+        var giveItemKindTransfers = await ResolveGiveItemKindTransfers(
+            command.PlayerId,
+            command.WorldId,
+            giveItemKindRequirements,
+            cancellationToken
+        );
+        var allGiveItems = giveItems.Concat(giveItemKindTransfers).ToArray();
+
         var rewardMultiplier = await GetRewardMultiplier(
             command.PlayerId,
             command.WorldId,
@@ -127,7 +147,7 @@ internal class CompleteQuestCommandHandler(
             cancellationToken
         );
 
-        foreach (var recipientItems in giveItems.GroupBy(giveItem => giveItem.RecipientId))
+        foreach (var recipientItems in allGiveItems.GroupBy(giveItem => giveItem.RecipientId))
         {
             await transferPlayerInventory.Handle(
                 new TransferPlayerInventoryCommand
@@ -187,6 +207,45 @@ internal class CompleteQuestCommandHandler(
                     Score = (int)(reward.Score * multiplier),
                 })
                 .ToArray();
+
+    private async Task<IReadOnlyCollection<GiveItemRequirement>> ResolveGiveItemKindTransfers(
+        Guid playerId,
+        Guid worldId,
+        IReadOnlyCollection<GiveItemKindRequirement> requirements,
+        CancellationToken cancellationToken
+    )
+    {
+        var transfers = new List<GiveItemRequirement>();
+
+        foreach (var requirement in requirements)
+        {
+            var ownedItems = await getItemsByNameForOwner.Handle(
+                new GetItemsByNameForOwnerQuery
+                {
+                    WorldId = worldId,
+                    OwnerId = playerId,
+                    OwnerType = OwnerType.Creature,
+                    Name = requirement.ItemName,
+                },
+                cancellationToken
+            );
+
+            if (ownedItems.Count < requirement.RequiredAmount)
+            {
+                throw new InvalidOperationException(
+                    $"{requirement.RequiredAmount}x {requirement.ItemName} is required to complete this quest."
+                );
+            }
+
+            transfers.AddRange(
+                ownedItems
+                    .Take(requirement.RequiredAmount)
+                    .Select(item => new GiveItemRequirement(item.Id, requirement.RecipientId))
+            );
+        }
+
+        return transfers;
+    }
 
     private async Task EnsureItemsAreOwned(
         Guid playerId,
