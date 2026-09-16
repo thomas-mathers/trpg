@@ -56,6 +56,7 @@ internal static class WebApplicationExtensions
         {
             app.MapOpenApi("/openapi/v1.json")
                 .RequireCors(ServiceCollectionExtensions.LocalDevFrontendCorsPolicy);
+            app.MapQuestChainDevEndpoints();
         }
 
         app.MapWorldEndpoints();

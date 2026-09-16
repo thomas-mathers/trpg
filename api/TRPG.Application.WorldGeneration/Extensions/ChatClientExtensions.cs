@@ -13,7 +13,8 @@ internal static class ChatClientExtensions
         string systemPrompt,
         string userPrompt,
         Func<T, string?>? validate = null,
-        CancellationToken cancellationToken = default
+        CancellationToken cancellationToken = default,
+        ChatOptions? options = null
     )
         where T : class
     {
@@ -33,6 +34,7 @@ internal static class ChatClientExtensions
             {
                 var response = await client.GetResponseAsync<T>(
                     messages,
+                    options: options,
                     cancellationToken: cancellationToken
                 );
                 result = ParseResult(response);
@@ -89,6 +91,9 @@ internal static class ChatClientExtensions
         );
     }
 
+    // response.Result throws InvalidOperationException ("did not contain JSON to be deserialized")
+    // when it can't find any JSON at all, and JsonException when it finds malformed JSON — both mean
+    // "fall back to manually locating the outermost {}/[] in the raw text," not "give up."
     private static T? ParseResult<T>(ChatResponse<T> response)
         where T : class
     {
@@ -96,7 +101,7 @@ internal static class ChatClientExtensions
         {
             return response.Result;
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
             var text = response.Text;
             var start = text.IndexOfAny(['{', '[']);

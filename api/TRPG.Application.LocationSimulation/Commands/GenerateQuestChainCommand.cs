@@ -1,3 +1,4 @@
+using System.Text;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -74,6 +75,8 @@ internal class GenerateQuestChainCommandHandler(
                 cancellationToken
             );
 
+            LogGeneratedChain(command, nodes);
+
             await Persist(request.WorldId, nodes, cancellationToken);
 
             request.Status = QuestChainGenerationStatus.Completed;
@@ -90,6 +93,63 @@ internal class GenerateQuestChainCommandHandler(
 
         await context.SaveChangesAsync(cancellationToken);
         return request.Status == QuestChainGenerationStatus.Completed;
+    }
+
+    // Logged before persistence so the generated shape is visible even if mapping/persistence
+    // later throws — useful for inspecting what the LLM actually produced, not just whether it
+    // ultimately succeeded.
+    private void LogGeneratedChain(
+        GenerateQuestChainCommand command,
+        IReadOnlyList<QuestChainGeneratedNode> nodes
+    )
+    {
+        var entityNamesById = command.AvailableEntities.ToDictionary(
+            entity => entity.Id,
+            entity => entity.Name
+        );
+        string DescribeEntity(Guid id) => entityNamesById.GetValueOrDefault(id, id.ToString());
+
+        var builder = new StringBuilder();
+        builder.AppendLine(
+            $"Generated quest chain for request {command.RequestId} ({nodes.Count} nodes):"
+        );
+        foreach (var node in nodes)
+        {
+            var prerequisites =
+                node.PrerequisiteNodeIds.Count == 0
+                    ? "none"
+                    : string.Join(", ", node.PrerequisiteNodeIds);
+            builder.AppendLine(
+                $"[{node.NodeId}] \"{node.Name}\" — giver: {DescribeEntity(node.GiverEntityId)}, prerequisites: {prerequisites}"
+            );
+            builder.AppendLine($"    {node.Description}");
+            foreach (var objective in node.Objectives)
+            {
+                var detail = objective.ObjectiveType switch
+                {
+                    GeneratedObjectiveType.KillCreatureType =>
+                        $"category={objective.CreatureTypeCategory}, amount={objective.RequiredAmount}",
+                    GeneratedObjectiveType.GiveItemKind =>
+                        $"item=\"{objective.ItemNameForKind}\", amount={objective.RequiredAmount}, recipient={DescribeEntity(objective.RecipientEntityId!.Value)}",
+                    _ => $"target={DescribeEntity(objective.TargetEntityId!.Value)}"
+                        + (
+                            objective.RecipientEntityId is { } recipientId
+                                ? $", recipient={DescribeEntity(recipientId)}"
+                                : ""
+                        )
+                        + (
+                            objective.RequiredAmount > 1
+                                ? $", amount={objective.RequiredAmount}"
+                                : ""
+                        ),
+                };
+                builder.AppendLine(
+                    $"  - [{objective.ObjectiveType}] \"{objective.Name}\": {detail}"
+                );
+            }
+        }
+
+        logger.LogInformation("{QuestChain}", builder.ToString());
     }
 
     private async Task Persist(
