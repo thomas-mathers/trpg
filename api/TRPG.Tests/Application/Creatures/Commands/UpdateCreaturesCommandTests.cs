@@ -199,6 +199,43 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         Assert.Equal(_creature.LocationId, updated!.LocationId);
         Assert.Equal(_creature.State, updated.State);
         Assert.Equal(_creature.LastRegenPlaytime, updated.LastRegenPlaytime);
+        Assert.Equal(_creature.Name, updated.Name);
+    }
+
+    [Fact]
+    public async Task Handle_UpdatesName_WhenSet()
+    {
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], Name = "Grukk the Butcher" },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal("Grukk the Butcher", updated!.Name);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesNameUnchanged_WhenNotSet()
+    {
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_creature.Name, updated!.Name);
     }
 
     [Fact]

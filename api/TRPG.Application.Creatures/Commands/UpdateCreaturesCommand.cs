@@ -11,6 +11,7 @@ public class UpdateCreaturesCommand
     public Guid? LocationId { get; init; }
     public CreatureState? State { get; init; }
     public TimeSpan? LastRegenPlaytime { get; init; }
+    public string? Name { get; init; }
 }
 
 internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
@@ -24,7 +25,8 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
         var hasFieldToUpdate =
             command.LocationId != null
             || command.State != null
-            || command.LastRegenPlaytime != null;
+            || command.LastRegenPlaytime != null
+            || command.Name != null;
 
         if (command.CreatureIds.Count == 0 || !hasFieldToUpdate)
         {
@@ -48,6 +50,10 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
                     if (command.LastRegenPlaytime != null)
                     {
                         s.SetProperty(c => c.LastRegenPlaytime, command.LastRegenPlaytime.Value);
+                    }
+                    if (command.Name != null)
+                    {
+                        s.SetProperty(c => c.Name, command.Name);
                     }
                 },
                 cancellationToken
