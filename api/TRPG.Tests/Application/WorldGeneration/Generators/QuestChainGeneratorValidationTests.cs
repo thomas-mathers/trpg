@@ -7,6 +7,7 @@ public class QuestChainGeneratorValidationTests
     private static readonly string CreatureEntityId = Guid.NewGuid().ToString();
     private static readonly string DungeonEntityId = Guid.NewGuid().ToString();
     private static readonly string BuildingEntityId = Guid.NewGuid().ToString();
+    private static readonly string ItemEntityId = Guid.NewGuid().ToString();
     private static readonly IReadOnlyDictionary<string, string> EntityTypesById = new Dictionary<
         string,
         string
@@ -15,6 +16,7 @@ public class QuestChainGeneratorValidationTests
         [CreatureEntityId] = QuestChainEntityTypes.Creature,
         [DungeonEntityId] = QuestChainEntityTypes.Dungeon,
         [BuildingEntityId] = QuestChainEntityTypes.Building,
+        [ItemEntityId] = QuestChainEntityTypes.Item,
     };
 
     private static QuestChainObjectiveSchema MakeObjective(
@@ -22,7 +24,6 @@ public class QuestChainGeneratorValidationTests
         string? targetEntityId = null,
         string? recipientEntityId = null,
         string? itemNameForKind = null,
-        string? newItemName = null,
         string? creatureTypeCategory = null,
         int requiredAmount = 1
     ) =>
@@ -40,7 +41,6 @@ public class QuestChainGeneratorValidationTests
                 ),
             RecipientEntityId = recipientEntityId,
             ItemNameForKind = itemNameForKind,
-            NewItemName = newItemName,
             CreatureTypeCategory = creatureTypeCategory,
             RequiredAmount = requiredAmount,
         };
@@ -49,7 +49,6 @@ public class QuestChainGeneratorValidationTests
         string nodeId = "node-1",
         List<string>? prerequisiteNodeIds = null,
         string? giverEntityId = null,
-        string? requiredFactKey = null,
         List<QuestChainObjectiveSchema>? objectives = null
     ) =>
         new()
@@ -58,7 +57,6 @@ public class QuestChainGeneratorValidationTests
             Name = "Quest",
             Description = "A quest.",
             GiverEntityId = giverEntityId ?? CreatureEntityId,
-            RequiredFactKey = requiredFactKey,
             PrerequisiteNodeIds = prerequisiteNodeIds ?? [],
             Objectives = objectives ?? [MakeObjective()],
         };
@@ -164,112 +162,6 @@ public class QuestChainGeneratorValidationTests
         var schema = new QuestChainSchema
         {
             Nodes = [MakeNode(objectives: [MakeObjective(requiredAmount: 0)])],
-        };
-
-        // Act
-        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
-
-        // Assert
-        Assert.NotNull(error);
-    }
-
-    [Fact]
-    public void Validate_ReturnsError_WhenLearnFactDependsOnItsSupportingQuest()
-    {
-        // Arrange
-        var learnFact = new QuestChainObjectiveSchema
-        {
-            Name = "Learn Mara's Secret",
-            Description = "Ask Mara about the smugglers.",
-            ObjectiveType = nameof(GeneratedObjectiveType.LearnFactFromCreature),
-            TargetEntityId = CreatureEntityId,
-            FactKey = "mara-secret",
-            ReasonFactKey = "mara-fear",
-            BaseWillingness = 10,
-            BribeWillingness = 20,
-            IntimidationWillingness = 20,
-            WeightedSupportingQuestNodeIds =
-            [
-                new QuestChainSupportingQuestSchema { NodeId = "node-2", Weight = 30 },
-            ],
-        };
-        var schema = new QuestChainSchema
-        {
-            Facts =
-            [
-                new QuestChainFactSchema
-                {
-                    Key = "mara-secret",
-                    Subject = "Mara's secret",
-                    Value = "Mara saw the smugglers leave town.",
-                },
-                new QuestChainFactSchema
-                {
-                    Key = "mara-fear",
-                    Subject = "Mara's fear",
-                    Value = "Mara fears the smugglers will hurt her brother.",
-                },
-            ],
-            Nodes =
-            [
-                MakeNode(prerequisiteNodeIds: ["node-2"], objectives: [learnFact]),
-                MakeNode(nodeId: "node-2", requiredFactKey: "mara-fear"),
-            ],
-        };
-
-        // Act
-        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
-
-        // Assert
-        Assert.NotNull(error);
-    }
-
-    [Fact]
-    public void Validate_ReturnsError_WhenSupportingQuestDependsOnTheLearnFactNode()
-    {
-        // Arrange
-        var learnFact = new QuestChainObjectiveSchema
-        {
-            Name = "Learn Mara's Secret",
-            Description = "Ask Mara about the smugglers.",
-            ObjectiveType = nameof(GeneratedObjectiveType.LearnFactFromCreature),
-            TargetEntityId = CreatureEntityId,
-            FactKey = "mara-secret",
-            ReasonFactKey = "mara-fear",
-            BaseWillingness = 10,
-            BribeWillingness = 20,
-            IntimidationWillingness = 20,
-            WeightedSupportingQuestNodeIds =
-            [
-                new QuestChainSupportingQuestSchema { NodeId = "node-2", Weight = 30 },
-            ],
-        };
-        var schema = new QuestChainSchema
-        {
-            Facts =
-            [
-                new QuestChainFactSchema
-                {
-                    Key = "mara-secret",
-                    Subject = "Mara's secret",
-                    Value = "Mara saw the smugglers leave town.",
-                },
-                new QuestChainFactSchema
-                {
-                    Key = "mara-fear",
-                    Subject = "Mara's fear",
-                    Value = "Mara fears the smugglers will hurt her brother.",
-                },
-            ],
-            Nodes =
-            [
-                MakeNode(objectives: [learnFact]),
-                MakeNode(
-                    nodeId: "node-2",
-                    prerequisiteNodeIds: ["node-1"],
-                    requiredFactKey: "mara-fear"
-                ),
-            ],
         };
 
         // Act
@@ -450,8 +342,7 @@ public class QuestChainGeneratorValidationTests
         // Arrange
         var objective = MakeObjective(
             objectiveType: nameof(GeneratedObjectiveType.GiveItems),
-            targetEntityId: CreatureEntityId,
-            newItemName: "Signet Ring"
+            targetEntityId: ItemEntityId
         );
         var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
 
@@ -463,87 +354,13 @@ public class QuestChainGeneratorValidationTests
     }
 
     [Fact]
-    public void Validate_ReturnsError_WhenGiveItemsHasNoNewItemName()
+    public void Validate_ReturnsNull_WhenGiveItemsHasItemTargetAndCreatureRecipient()
     {
-        // Arrange: items never pre-exist for GiveItems/CollectItem/DeliverItem — a new one must be
-        // named, since TargetEntityId now identifies who holds it, not the item itself.
+        // Arrange
         var objective = MakeObjective(
             objectiveType: nameof(GeneratedObjectiveType.GiveItems),
-            targetEntityId: CreatureEntityId,
+            targetEntityId: ItemEntityId,
             recipientEntityId: CreatureEntityId
-        );
-        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
-
-        // Act
-        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
-
-        // Assert
-        Assert.NotNull(error);
-    }
-
-    [Fact]
-    public void Validate_ReturnsError_WhenGiveItemsTargetIsWrongType()
-    {
-        // Arrange: TargetEntityId is the holder now, so it must be a Creature, not a Dungeon.
-        var objective = MakeObjective(
-            objectiveType: nameof(GeneratedObjectiveType.GiveItems),
-            targetEntityId: DungeonEntityId,
-            recipientEntityId: CreatureEntityId,
-            newItemName: "Signet Ring"
-        );
-        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
-
-        // Act
-        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
-
-        // Assert
-        Assert.NotNull(error);
-    }
-
-    [Fact]
-    public void Validate_ReturnsNull_WhenGiveItemsHasCreatureHolderNewItemNameAndRecipient()
-    {
-        // Arrange
-        var objective = MakeObjective(
-            objectiveType: nameof(GeneratedObjectiveType.GiveItems),
-            targetEntityId: CreatureEntityId,
-            recipientEntityId: CreatureEntityId,
-            newItemName: "Signet Ring"
-        );
-        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
-
-        // Act
-        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
-
-        // Assert
-        Assert.Null(error);
-    }
-
-    [Fact]
-    public void Validate_ReturnsError_WhenCollectItemHasNoNewItemName()
-    {
-        // Arrange
-        var objective = MakeObjective(
-            objectiveType: nameof(GeneratedObjectiveType.CollectItem),
-            targetEntityId: CreatureEntityId
-        );
-        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
-
-        // Act
-        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
-
-        // Assert
-        Assert.NotNull(error);
-    }
-
-    [Fact]
-    public void Validate_ReturnsNull_WhenCollectItemHasCreatureHolderAndNewItemName()
-    {
-        // Arrange
-        var objective = MakeObjective(
-            objectiveType: nameof(GeneratedObjectiveType.CollectItem),
-            targetEntityId: CreatureEntityId,
-            newItemName: "Ancient Coin"
         );
         var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
 

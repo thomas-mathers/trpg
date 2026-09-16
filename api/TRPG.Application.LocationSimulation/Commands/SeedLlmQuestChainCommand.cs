@@ -152,8 +152,7 @@ internal class SeedLlmQuestChainCommandHandler(
             .Select(creature => new QuestChainCandidateEntity(
                 creature.Id,
                 creature.Name,
-                QuestChainEntityTypes.Creature,
-                DescribeCreature(creature)
+                QuestChainEntityTypes.Creature
             ))
             .ToArray();
     }
@@ -226,16 +225,14 @@ internal class SeedLlmQuestChainCommandHandler(
             candidateBuildings.Select(building => new QuestChainCandidateEntity(
                 building.Id,
                 building.Name,
-                QuestChainEntityTypes.Dungeon,
-                DescribeBuilding(building)
+                QuestChainEntityTypes.Dungeon
             ))
         );
         entities.AddRange(
             hostileCreaturesById.Values.Select(creature => new QuestChainCandidateEntity(
                 creature.Id,
                 creature.Name,
-                QuestChainEntityTypes.Creature,
-                DescribeCreature(creature)
+                QuestChainEntityTypes.Creature
             ))
         );
 
@@ -281,17 +278,8 @@ internal class SeedLlmQuestChainCommandHandler(
             .Select(building => new QuestChainCandidateEntity(
                 building.Id,
                 building.Name,
-                QuestChainEntityTypes.Building,
-                DescribeBuilding(building)
+                QuestChainEntityTypes.Building
             ))
             .ToArray();
     }
-
-    private static string DescribeCreature(Creature creature) =>
-        $"level {creature.Level}, {creature.CreatureType}, profession {creature.Profession?.ToString() ?? "none"}; {creature.Biography}";
-
-    private static string DescribeBuilding(Building building) =>
-        string.IsNullOrWhiteSpace(building.Premise)
-            ? building.Description
-            : $"{building.Description} {building.Premise}";
 }
