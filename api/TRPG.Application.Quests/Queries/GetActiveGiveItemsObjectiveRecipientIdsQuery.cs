@@ -44,7 +44,7 @@ internal class GetActiveGiveItemsObjectiveRecipientIdsQueryHandler(IQuestsDbCont
             return new HashSet<Guid>();
         }
 
-        var recipientIds = await context
+        var giveItemsRecipientIds = await context
             .QuestObjectives.AsNoTracking()
             .OfType<GiveItemsObjective>()
             .Where(objective =>
@@ -54,6 +54,16 @@ internal class GetActiveGiveItemsObjectiveRecipientIdsQueryHandler(IQuestsDbCont
             .Select(objective => objective.RecipientId)
             .ToArrayAsync(cancellationToken);
 
-        return recipientIds.ToHashSet();
+        var giveItemKindRecipientIds = await context
+            .QuestObjectives.AsNoTracking()
+            .OfType<GiveItemKindObjective>()
+            .Where(objective =>
+                objective.WorldId == query.WorldId
+                && activeQuestIds.AsEnumerable().Contains(objective.QuestId)
+            )
+            .Select(objective => objective.RecipientId)
+            .ToArrayAsync(cancellationToken);
+
+        return giveItemsRecipientIds.Concat(giveItemKindRecipientIds).ToHashSet();
     }
 }

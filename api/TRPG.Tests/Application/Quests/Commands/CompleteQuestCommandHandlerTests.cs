@@ -374,6 +374,93 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
         Assert.Contains(cleanItem.Id, giverItemIds);
     }
 
+    [Fact]
+    public async Task Handle_Throws_WhenPlayerDoesNotOwnEnoughOfTheNamedKindItem()
+    {
+        // Arrange
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete);
+        _context.QuestObjectives.Add(
+            Builders.MakeGiveItemKindObjective(
+                creatureQuest.QuestId,
+                "Goblin Ear",
+                _giver.Id,
+                worldId: WorldId,
+                requiredAmount: 2
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new CompleteQuestCommand
+                {
+                    PlayerId = _player.Id,
+                    QuestId = creatureQuest.QuestId,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_TransfersOnlyTheRequiredAmountOfMatchingNamedItems_WhenGiveItemKindObjectiveIsCompleted()
+    {
+        // Arrange
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete);
+        _context.QuestObjectives.Add(
+            Builders.MakeGiveItemKindObjective(
+                creatureQuest.QuestId,
+                "Goblin Ear",
+                _giver.Id,
+                worldId: WorldId,
+                requiredAmount: 2
+            )
+        );
+        var ears = Enumerable
+            .Range(0, 3)
+            .Select(_ => Builders.MakeItem(WorldId, name: "Goblin Ear"))
+            .ToArray();
+        foreach (var ear in ears)
+        {
+            ear.Quantity = 1;
+            ear.Ownership.OwnerId = _player.Id;
+            ear.Ownership.OwnerType = OwnerType.Creature;
+        }
+        _context.Items.AddRange(ears);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new CompleteQuestCommand
+            {
+                PlayerId = _player.Id,
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var giverEarCount = await _context.Items.CountAsync(
+            item =>
+                item.Name == "Goblin Ear"
+                && item.Ownership.OwnerId == _giver.Id
+                && item.Ownership.OwnerType == OwnerType.Creature,
+            TestContext.Current.CancellationToken
+        );
+        var playerEarCount = await _context.Items.CountAsync(
+            item =>
+                item.Name == "Goblin Ear"
+                && item.Ownership.OwnerId == _player.Id
+                && item.Ownership.OwnerType == OwnerType.Creature,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(2, giverEarCount);
+        Assert.Equal(1, playerEarCount);
+    }
+
     private async Task<CreatureQuest> SeedQuest(
         QuestStatus status,
         Quest? quest = null,

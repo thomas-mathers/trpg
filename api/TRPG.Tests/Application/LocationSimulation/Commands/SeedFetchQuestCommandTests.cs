@@ -116,17 +116,16 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
         );
         Assert.Equal(_giver.Id, quest.GiverId);
         var objective = await _context
-            .QuestObjectives.OfType<GiveItemsObjective>()
+            .QuestObjectives.OfType<GiveItemKindObjective>()
             .SingleAsync(o => o.QuestId == quest.Id, TestContext.Current.CancellationToken);
         Assert.Equal(_giver.Id, objective.RecipientId);
-        Assert.Equal(3, objective.ItemIds.Count);
+        Assert.Equal("Beast Pelt", objective.ItemName);
         Assert.Equal(3, objective.RequiredAmount);
         var drops = await _context
-            .Items.Where(item => objective.ItemIds.Contains(item.Id))
+            .Items.Where(item => item.Name == objective.ItemName)
             .ToArrayAsync(TestContext.Current.CancellationToken);
         Assert.Equal(3, drops.Length);
         Assert.All(drops, drop => Assert.Contains(drop.Ownership.OwnerId, monsterIds));
-        Assert.All(drops, drop => Assert.Equal("Beast Pelt", drop.Name));
     }
 
     [Fact]
@@ -153,14 +152,14 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
             TestContext.Current.CancellationToken
         );
         var objectives = await _context
-            .QuestObjectives.OfType<GiveItemsObjective>()
+            .QuestObjectives.OfType<GiveItemKindObjective>()
             .Where(o => o.QuestId == quest.Id)
             .ToArrayAsync(TestContext.Current.CancellationToken);
         Assert.Equal(2, objectives.Length);
         var beastObjective = Assert.Single(objectives, o => o.RequiredAmount == 2);
-        Assert.Equal(2, beastObjective.ItemIds.Count);
+        Assert.Equal("Beast Pelt", beastObjective.ItemName);
         var orcObjective = Assert.Single(objectives, o => o.RequiredAmount == 1);
-        Assert.Single(orcObjective.ItemIds);
+        Assert.Equal("Orc Tusk", orcObjective.ItemName);
     }
 
     [Fact]
@@ -212,13 +211,12 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
         await SeedLivingHostiles(3);
         var playerId = Guid.NewGuid();
         var existingQuest = Builders.MakeQuest(_giver.Id, _worldId);
-        var existingObjective = new GiveItemsObjective
-        {
-            WorldId = _worldId,
-            QuestId = existingQuest.Id,
-            ItemIds = [Guid.NewGuid()],
-            RecipientId = _giver.Id,
-        };
+        var existingObjective = Builders.MakeGiveItemKindObjective(
+            existingQuest.Id,
+            "Beast Pelt",
+            _giver.Id,
+            worldId: _worldId
+        );
         _context.Quests.Add(existingQuest);
         _context.QuestObjectives.Add(existingObjective);
         _context.CreatureQuests.Add(

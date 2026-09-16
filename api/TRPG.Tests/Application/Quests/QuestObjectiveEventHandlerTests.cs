@@ -14,6 +14,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
+    private const string GiveItemKindItemName = "Goblin Ear";
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -43,6 +44,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
     [InlineData(ObjectiveKind.ExploreLocation)]
     [InlineData(ObjectiveKind.SpeakToCreature)]
     [InlineData(ObjectiveKind.GiveItem)]
+    [InlineData(ObjectiveKind.GiveItemKind)]
     public async Task Handle_AdvancesAndMarksReady_WhenEventMatchesObjective(ObjectiveKind kind)
     {
         // Arrange
@@ -232,6 +234,19 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         _context.QuestObjectives.Add(objective);
         _context.CreatureQuestObjectives.Add(progress);
         _context.CreatureQuests.Add(creatureQuest);
+        if (kind == ObjectiveKind.GiveItemKind)
+        {
+            _context.Items.Add(
+                new Item
+                {
+                    Id = targetId,
+                    WorldId = WorldId,
+                    Name = GiveItemKindItemName,
+                    Description = "A test item",
+                    Weight = 1,
+                }
+            );
+        }
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return new SeededObjective(
@@ -285,6 +300,13 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 QuestId = questId,
                 ItemIds = [targetId],
+                RecipientId = recipientId,
+            },
+            ObjectiveKind.GiveItemKind => new GiveItemKindObjective
+            {
+                WorldId = WorldId,
+                QuestId = questId,
+                ItemName = GiveItemKindItemName,
                 RecipientId = recipientId,
             },
             _ => throw new InvalidOperationException(),
@@ -358,6 +380,13 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                         new ItemAcquiredEvent(_player.Id, WorldId, targetId),
                         cancellationToken
                     ),
+            ObjectiveKind.GiveItemKind => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<ItemAcquiredQuestEventHandler>()
+                    .Handle(
+                        new ItemAcquiredEvent(_player.Id, WorldId, targetId),
+                        cancellationToken
+                    ),
             _ => throw new InvalidOperationException(),
         };
 
@@ -369,6 +398,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         ExploreLocation,
         SpeakToCreature,
         GiveItem,
+        GiveItemKind,
     }
 
     private sealed record SeededObjective(
