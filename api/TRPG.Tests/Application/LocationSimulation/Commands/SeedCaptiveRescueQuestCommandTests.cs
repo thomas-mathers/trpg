@@ -17,7 +17,9 @@ public sealed class SeedCaptiveRescueQuestCommandTests
     // class shares one database across tests, so a shared world id would let those factions collide.
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Guid _cityId = Guid.NewGuid();
     private readonly DatabaseFixture _database;
+    private readonly Location _entranceLocation;
     private readonly Location _giverLocation;
     private readonly Creature _giver;
     private readonly Creature _captive;
@@ -33,7 +35,10 @@ public sealed class SeedCaptiveRescueQuestCommandTests
     public SeedCaptiveRescueQuestCommandTests(DatabaseFixture database)
     {
         _database = database;
-        _giverLocation = Builders.MakeLocation(_worldId, _stateId);
+        _entranceLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
+        // The giver works elsewhere in the city, not at the seed/entrance location itself —
+        // giver selection is city-wide, not tied to where the seed check happens.
+        _giverLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
         _giver = Builders.MakeCreature(_worldId, locationId: _giverLocation.Id, name: "Giver");
         _captive = Builders.MakeCreature(_worldId, name: "Captive");
         _building = Builders.MakeBuilding(worldId: _worldId, buildingType: BuildingType.Crypt);
@@ -59,7 +64,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
             ICommandHandler<SeedCaptiveRescueQuestCommand, bool>
         >();
 
-        _context.Locations.AddRange(_giverLocation, _cellBlockLocation);
+        _context.Locations.AddRange(_entranceLocation, _giverLocation, _cellBlockLocation);
         _context.Creatures.AddRange(_giver, _captive);
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(_giver.Id, locationId: _giverLocation.Id, worldId: _worldId)
@@ -96,7 +101,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken
@@ -151,7 +156,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken
@@ -176,7 +181,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken
@@ -204,7 +209,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken

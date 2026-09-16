@@ -23,13 +23,9 @@ public class SeedCourierQuestCommand
 // only excluded while the player already has an active delivery to them, not forever.
 internal class SeedCourierQuestCommandHandler(
     IQueryHandler<
-        GetCreatureIdsWithCreatureJobInLocationQuery,
-        IReadOnlyList<Guid>
-    > getGiverCandidateIds,
-    IQueryHandler<
         GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
-    > getRecipientCandidateIds,
+    > getCreatureIdsWithCreatureJobInLocations,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
@@ -44,32 +40,44 @@ internal class SeedCourierQuestCommandHandler(
     private const int GoldReward = 30;
     private const int GiverReputationReward = 8;
 
+    // Professions that would plausibly need something delivered, rather than any employed
+    // resident of the city.
+    private static readonly IReadOnlyList<Profession> EligibleGiverProfessions =
+    [
+        Profession.Merchant,
+        Profession.Innkeeper,
+        Profession.Baker,
+        Profession.Tailor,
+        Profession.Jeweler,
+        Profession.Blacksmith,
+    ];
+
     public async Task<bool> Handle(
         SeedCourierQuestCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var giver = await FindGiver(command, cancellationToken);
+        var entranceLocation = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = command.LocationId },
+            cancellationToken
+        );
+        if (entranceLocation?.CityId == null)
+        {
+            return false;
+        }
+
+        var cityLocationIds = await getLocationIdsByCityId.Handle(
+            new GetLocationIdsByCityIdQuery { CityId = entranceLocation.CityId.Value },
+            cancellationToken
+        );
+
+        var giver = await FindGiver(cityLocationIds, cancellationToken);
         if (giver == null)
         {
             return false;
         }
 
-        var giverLocation = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = command.LocationId },
-            cancellationToken
-        );
-        if (giverLocation?.CityId == null)
-        {
-            return false;
-        }
-
-        var recipient = await FindRecipient(
-            command,
-            giver.Id,
-            giverLocation.CityId.Value,
-            cancellationToken
-        );
+        var recipient = await FindRecipient(command, giver, cityLocationIds, cancellationToken);
         if (recipient == null)
         {
             return false;
@@ -81,12 +89,12 @@ internal class SeedCourierQuestCommandHandler(
     }
 
     private async Task<Creature?> FindGiver(
-        SeedCourierQuestCommand command,
+        IReadOnlyCollection<Guid> cityLocationIds,
         CancellationToken cancellationToken
     )
     {
-        var candidateGiverIds = await getGiverCandidateIds.Handle(
-            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = command.LocationId },
+        var candidateGiverIds = await getCreatureIdsWithCreatureJobInLocations.Handle(
+            new GetCreatureIdsWithCreatureJobInLocationsQuery { LocationIds = cityLocationIds },
             cancellationToken
         );
         var candidateGivers = await getCreaturesByIds.Handle(
@@ -94,31 +102,35 @@ internal class SeedCourierQuestCommandHandler(
             cancellationToken
         );
 
-        return candidateGivers
-            .Values.Where(creature => CreatureTypes.Humanoid.Contains(creature.CreatureType))
-            .FirstOrDefault();
+        var eligibleGivers = candidateGivers
+            .Values.Where(creature =>
+                CreatureTypes.Humanoid.Contains(creature.CreatureType)
+                && creature.Profession is { } profession
+                && EligibleGiverProfessions.Contains(profession)
+            )
+            .ToArray();
+
+        return eligibleGivers.Length == 0
+            ? null
+            : eligibleGivers[Random.Shared.Next(eligibleGivers.Length)];
     }
 
     private async Task<Creature?> FindRecipient(
         SeedCourierQuestCommand command,
-        Guid giverId,
-        Guid cityId,
+        Creature giver,
+        IReadOnlyCollection<Guid> cityLocationIds,
         CancellationToken cancellationToken
     )
     {
-        var cityLocationIds = await getLocationIdsByCityId.Handle(
-            new GetLocationIdsByCityIdQuery { CityId = cityId },
-            cancellationToken
-        );
         var otherLocationIds = cityLocationIds
-            .Where(locationId => locationId != command.LocationId)
+            .Where(locationId => locationId != giver.LocationId)
             .ToArray();
         if (otherLocationIds.Length == 0)
         {
             return null;
         }
 
-        var candidateRecipientIds = await getRecipientCandidateIds.Handle(
+        var candidateRecipientIds = await getCreatureIdsWithCreatureJobInLocations.Handle(
             new GetCreatureIdsWithCreatureJobInLocationsQuery { LocationIds = otherLocationIds },
             cancellationToken
         );
@@ -139,7 +151,7 @@ internal class SeedCourierQuestCommandHandler(
         var eligibleRecipients = candidateRecipients
             .Values.Where(creature =>
                 CreatureTypes.Humanoid.Contains(creature.CreatureType)
-                && creature.Id != giverId
+                && creature.Id != giver.Id
                 && !activeRecipientIds.Contains(creature.Id)
             )
             .ToArray();

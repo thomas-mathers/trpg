@@ -29,10 +29,6 @@ public class SeedStealQuestCommand
 // settles whether any witness survived to report it (see GetReportedStolenItemIdsQuery). No-ops at
 // any step where nothing eligible exists.
 internal class SeedStealQuestCommandHandler(
-    IQueryHandler<
-        GetCreatureIdsWithCreatureJobInLocationQuery,
-        IReadOnlyList<Guid>
-    > getGiverCandidateIds,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetCityByIdQuery, City?> getCityById,
@@ -61,15 +57,56 @@ internal class SeedStealQuestCommandHandler(
     private const int GiverReputationReward = 14;
     private const int ItemCount = 3;
 
+    // Order-aligned professions wouldn't plausibly hand out a theft contract; everyone else
+    // (including a creature with no profession set) stays eligible.
+    private static readonly IReadOnlyList<Profession> IneligibleGiverProfessions =
+    [
+        Profession.Guard,
+        Profession.Knight,
+        Profession.Cleric,
+        Profession.Politician,
+    ];
+
     public async Task<bool> Handle(
         SeedStealQuestCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var giver = await FindGiver(command, cancellationToken);
+        var entranceLocation = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = command.LocationId },
+            cancellationToken
+        );
+        if (entranceLocation?.CityId == null)
+        {
+            logger.LogInformation(
+                "[steal-quest] seed location {LocationId} has no CityId",
+                command.LocationId
+            );
+            return false;
+        }
+
+        var city = await getCityById.Handle(
+            new GetCityByIdQuery { Id = entranceLocation.CityId.Value },
+            cancellationToken
+        );
+        if (city == null)
+        {
+            logger.LogInformation(
+                "[steal-quest] city {CityId} not found",
+                entranceLocation.CityId.Value
+            );
+            return false;
+        }
+
+        var cityLocationIds = await getLocationIdsByCityId.Handle(
+            new GetLocationIdsByCityIdQuery { CityId = city.Id },
+            cancellationToken
+        );
+
+        var giver = await FindGiver(cityLocationIds, cancellationToken);
         if (giver == null)
         {
-            logger.LogInformation("[steal-quest] no giver candidate at location");
+            logger.LogInformation("[steal-quest] no giver candidate in city {CityId}", city.Id);
             return false;
         }
 
@@ -90,33 +127,7 @@ internal class SeedStealQuestCommandHandler(
             return false;
         }
 
-        var giverLocation = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = command.LocationId },
-            cancellationToken
-        );
-        if (giverLocation?.CityId == null)
-        {
-            logger.LogInformation(
-                "[steal-quest] giver location {LocationId} has no CityId",
-                command.LocationId
-            );
-            return false;
-        }
-
-        var city = await getCityById.Handle(
-            new GetCityByIdQuery { Id = giverLocation.CityId.Value },
-            cancellationToken
-        );
-        if (city == null)
-        {
-            logger.LogInformation(
-                "[steal-quest] city {CityId} not found",
-                giverLocation.CityId.Value
-            );
-            return false;
-        }
-
-        var targets = await FindEligibleTargets(command, giver.Id, city.Id, cancellationToken);
+        var targets = await FindEligibleTargets(giver, cityLocationIds, cancellationToken);
         if (targets == null)
         {
             logger.LogInformation(
@@ -139,12 +150,12 @@ internal class SeedStealQuestCommandHandler(
     }
 
     private async Task<Creature?> FindGiver(
-        SeedStealQuestCommand command,
+        IReadOnlyCollection<Guid> cityLocationIds,
         CancellationToken cancellationToken
     )
     {
-        var candidateGiverIds = await getGiverCandidateIds.Handle(
-            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = command.LocationId },
+        var candidateGiverIds = await getCreatureIdsWithCreatureJobInLocations.Handle(
+            new GetCreatureIdsWithCreatureJobInLocationsQuery { LocationIds = cityLocationIds },
             cancellationToken
         );
         var candidateGivers = await getCreaturesByIds.Handle(
@@ -152,24 +163,29 @@ internal class SeedStealQuestCommandHandler(
             cancellationToken
         );
 
-        return candidateGivers
-            .Values.Where(creature => CreatureTypes.Humanoid.Contains(creature.CreatureType))
-            .FirstOrDefault();
+        var eligibleGivers = candidateGivers
+            .Values.Where(creature =>
+                CreatureTypes.Humanoid.Contains(creature.CreatureType)
+                && (
+                    creature.Profession is not { } profession
+                    || !IneligibleGiverProfessions.Contains(profession)
+                )
+            )
+            .ToArray();
+
+        return eligibleGivers.Length == 0
+            ? null
+            : eligibleGivers[Random.Shared.Next(eligibleGivers.Length)];
     }
 
     private async Task<IReadOnlyList<ItemOwnerReference>?> FindEligibleTargets(
-        SeedStealQuestCommand command,
-        Guid giverId,
-        Guid cityId,
+        Creature giver,
+        IReadOnlyCollection<Guid> cityLocationIds,
         CancellationToken cancellationToken
     )
     {
-        var cityLocationIds = await getLocationIdsByCityId.Handle(
-            new GetLocationIdsByCityIdQuery { CityId = cityId },
-            cancellationToken
-        );
         var otherLocationIds = cityLocationIds
-            .Where(locationId => locationId != command.LocationId)
+            .Where(locationId => locationId != giver.LocationId)
             .ToArray();
         if (otherLocationIds.Length == 0)
         {
@@ -179,7 +195,7 @@ internal class SeedStealQuestCommandHandler(
 
         var candidates = new List<ItemOwnerReference>();
         candidates.AddRange(
-            await FindCreatureTargets(otherLocationIds, giverId, cancellationToken)
+            await FindCreatureTargets(otherLocationIds, giver.Id, cancellationToken)
         );
         candidates.AddRange(
             (

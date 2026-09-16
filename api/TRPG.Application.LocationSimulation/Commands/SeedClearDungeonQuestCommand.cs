@@ -25,11 +25,12 @@ public class SeedClearDungeonQuestCommand
 // clearing it is worth doing again later. No-ops at any step where nothing eligible exists.
 internal class SeedClearDungeonQuestCommandHandler(
     IQueryHandler<
-        GetCreatureIdsWithCreatureJobInLocationQuery,
+        GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
     > getGiverCandidateIds,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<
@@ -47,29 +48,39 @@ internal class SeedClearDungeonQuestCommandHandler(
     private const int GoldReward = 60;
     private const int GiverReputationReward = 15;
 
+    // Authority/combat figures who'd plausibly issue a bounty on a dungeon's monsters, rather
+    // than any employed resident of the city.
+    private static readonly IReadOnlyList<Profession> EligibleGiverProfessions =
+    [
+        Profession.Guard,
+        Profession.Knight,
+        Profession.Politician,
+        Profession.Mercenary,
+    ];
+
     public async Task<bool> Handle(
         SeedClearDungeonQuestCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var giver = await FindGiver(command, cancellationToken);
-        if (giver == null)
+        var entranceLocation = await getLocationById.Handle(
+            new GetLocationByIdQuery { Id = command.LocationId },
+            cancellationToken
+        );
+        if (entranceLocation?.CityId == null)
         {
             return false;
         }
 
-        var giverLocation = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = command.LocationId },
-            cancellationToken
-        );
-        if (giverLocation == null)
+        var giver = await FindGiver(entranceLocation.CityId.Value, cancellationToken);
+        if (giver == null)
         {
             return false;
         }
 
         var candidate = await FindEligibleDungeon(
             command,
-            giverLocation.StateId,
+            entranceLocation.StateId,
             cancellationToken
         );
         if (candidate == null)
@@ -116,13 +127,14 @@ internal class SeedClearDungeonQuestCommandHandler(
         return true;
     }
 
-    private async Task<Creature?> FindGiver(
-        SeedClearDungeonQuestCommand command,
-        CancellationToken cancellationToken
-    )
+    private async Task<Creature?> FindGiver(Guid cityId, CancellationToken cancellationToken)
     {
+        var cityLocationIds = await getLocationIdsByCityId.Handle(
+            new GetLocationIdsByCityIdQuery { CityId = cityId },
+            cancellationToken
+        );
         var candidateGiverIds = await getGiverCandidateIds.Handle(
-            new GetCreatureIdsWithCreatureJobInLocationQuery { LocationId = command.LocationId },
+            new GetCreatureIdsWithCreatureJobInLocationsQuery { LocationIds = cityLocationIds },
             cancellationToken
         );
         var candidateGivers = await getCreaturesByIds.Handle(
@@ -130,9 +142,17 @@ internal class SeedClearDungeonQuestCommandHandler(
             cancellationToken
         );
 
-        return candidateGivers
-            .Values.Where(creature => CreatureTypes.Humanoid.Contains(creature.CreatureType))
-            .FirstOrDefault();
+        var eligibleGivers = candidateGivers
+            .Values.Where(creature =>
+                CreatureTypes.Humanoid.Contains(creature.CreatureType)
+                && creature.Profession is { } profession
+                && EligibleGiverProfessions.Contains(profession)
+            )
+            .ToArray();
+
+        return eligibleGivers.Length == 0
+            ? null
+            : eligibleGivers[Random.Shared.Next(eligibleGivers.Length)];
     }
 
     private async Task<(Building Building, int LivingCount)?> FindEligibleDungeon(

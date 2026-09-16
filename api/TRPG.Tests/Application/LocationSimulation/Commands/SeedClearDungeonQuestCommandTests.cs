@@ -14,7 +14,9 @@ public sealed class SeedClearDungeonQuestCommandTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Guid _cityId = Guid.NewGuid();
     private readonly DatabaseFixture _database;
+    private readonly Location _entranceLocation;
     private readonly Location _giverLocation;
     private readonly Creature _giver;
     private readonly Location _dungeonExteriorLocation;
@@ -28,7 +30,11 @@ public sealed class SeedClearDungeonQuestCommandTests
     public SeedClearDungeonQuestCommandTests(DatabaseFixture database)
     {
         _database = database;
-        _giverLocation = Builders.MakeLocation(_worldId, _stateId);
+        _entranceLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
+        // The giver works elsewhere in the city, not at the seed/entrance location itself —
+        // giver selection is city-wide, not tied to where the seed check happens. Profession
+        // defaults to Knight, which is in the allow-list for this quest type.
+        _giverLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
         _giver = Builders.MakeCreature(_worldId, locationId: _giverLocation.Id, name: "Giver");
         _dungeonExteriorLocation = Builders.MakeLocation(_worldId, _stateId);
         _dungeon = Builders.MakeBuilding(
@@ -54,7 +60,12 @@ public sealed class SeedClearDungeonQuestCommandTests
             ICommandHandler<SeedClearDungeonQuestCommand, bool>
         >();
 
-        _context.Locations.AddRange(_giverLocation, _dungeonExteriorLocation, _dungeonRoomLocation);
+        _context.Locations.AddRange(
+            _entranceLocation,
+            _giverLocation,
+            _dungeonExteriorLocation,
+            _dungeonRoomLocation
+        );
         _context.Creatures.Add(_giver);
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(_giver.Id, locationId: _giverLocation.Id, worldId: _worldId)
@@ -101,7 +112,7 @@ public sealed class SeedClearDungeonQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken
@@ -150,7 +161,7 @@ public sealed class SeedClearDungeonQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken
@@ -165,7 +176,7 @@ public sealed class SeedClearDungeonQuestCommandTests
     }
 
     [Fact]
-    public async Task Handle_ReturnsFalse_WhenNoGiverCandidateIsAtTheLocation()
+    public async Task Handle_ReturnsFalse_WhenTheSeedLocationHasNoCity()
     {
         // Arrange
         await SeedLivingHostiles(1);
@@ -187,6 +198,34 @@ public sealed class SeedClearDungeonQuestCommandTests
     }
 
     [Fact]
+    public async Task Handle_ReturnsFalse_WhenTheOnlyCandidateHasADisqualifyingProfession()
+    {
+        // Arrange — a baker isn't a plausible dungeon-clearing bounty giver
+        await SeedLivingHostiles(1);
+        await _context
+            .Creatures.Where(creature => creature.Id == _giver.Id)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(c => c.Profession, Profession.Baker),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        var result = await _handler.Handle(
+            new SeedClearDungeonQuestCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _entranceLocation.Id,
+                PlayerLevel = 1,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsFalse_WhenNoDungeonInTheStateHasAnyLivingHostiles()
     {
         // Act — no hostiles seeded, so the only dungeon in-state is already clear
@@ -195,7 +234,7 @@ public sealed class SeedClearDungeonQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken
@@ -238,7 +277,7 @@ public sealed class SeedClearDungeonQuestCommandTests
             {
                 WorldId = _worldId,
                 PlayerId = playerId,
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
                 PlayerLevel = 1,
             },
             TestContext.Current.CancellationToken

@@ -14,6 +14,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
     private readonly Guid _stateId = Guid.NewGuid();
     private readonly Guid _cityId = Guid.NewGuid();
     private readonly DatabaseFixture _database;
+    private readonly Location _entranceLocation;
     private readonly Location _giverLocation;
     private readonly Creature _giver;
     private readonly Location _recipientLocation;
@@ -25,8 +26,16 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
     public SeedCourierQuestCommandTests(DatabaseFixture database)
     {
         _database = database;
+        _entranceLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
+        // The giver works elsewhere in the city, not at the seed/entrance location itself, and
+        // is a profession the courier-quest giver filter allows.
         _giverLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
-        _giver = Builders.MakeCreature(_worldId, locationId: _giverLocation.Id, name: "Giver");
+        _giver = Builders.MakeCreature(
+            _worldId,
+            profession: Profession.Merchant,
+            locationId: _giverLocation.Id,
+            name: "Giver"
+        );
         _recipientLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
         _recipient = Builders.MakeCreature(
             _worldId,
@@ -41,7 +50,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
         _services = new ServiceCollection().AddTrpgTestServices(_context).BuildServiceProvider();
         _handler = _services.GetRequiredService<ICommandHandler<SeedCourierQuestCommand, bool>>();
 
-        _context.Locations.AddRange(_giverLocation, _recipientLocation);
+        _context.Locations.AddRange(_entranceLocation, _giverLocation, _recipientLocation);
         _context.Creatures.AddRange(_giver, _recipient);
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(_giver.Id, locationId: _giverLocation.Id, worldId: _worldId)
@@ -71,7 +80,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -96,7 +105,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
     }
 
     [Fact]
-    public async Task Handle_ReturnsFalse_WhenNoGiverCandidateIsAtTheLocation()
+    public async Task Handle_ReturnsFalse_WhenTheSeedLocationHasNoCity()
     {
         // Act
         var result = await _handler.Handle(
@@ -105,6 +114,32 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
                 LocationId = Guid.NewGuid(),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsFalse_WhenTheOnlyCandidateHasADisqualifyingProfession()
+    {
+        // Arrange — a knight isn't a plausible courier-quest giver
+        await _context
+            .Creatures.Where(creature => creature.Id == _giver.Id)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(c => c.Profession, Profession.Knight),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        var result = await _handler.Handle(
+            new SeedCourierQuestCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -128,7 +163,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -169,7 +204,7 @@ public sealed class SeedCourierQuestCommandTests : IAsyncLifetime, IClassFixture
             {
                 WorldId = _worldId,
                 PlayerId = playerId,
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );

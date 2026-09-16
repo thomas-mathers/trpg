@@ -12,7 +12,9 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
 {
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _stateId = Guid.NewGuid();
+    private readonly Guid _cityId = Guid.NewGuid();
     private readonly DatabaseFixture _database;
+    private readonly Location _entranceLocation;
     private readonly Location _giverLocation;
     private readonly Creature _giver;
     private readonly Location _dungeonExteriorLocation;
@@ -26,8 +28,16 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
     public SeedFetchQuestCommandTests(DatabaseFixture database)
     {
         _database = database;
-        _giverLocation = Builders.MakeLocation(_worldId, _stateId);
-        _giver = Builders.MakeCreature(_worldId, locationId: _giverLocation.Id, name: "Giver");
+        _entranceLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
+        // The giver works elsewhere in the city, not at the seed/entrance location itself, and
+        // is a crafting profession the fetch-quest giver filter allows.
+        _giverLocation = Builders.MakeLocation(_worldId, _stateId, cityId: _cityId);
+        _giver = Builders.MakeCreature(
+            _worldId,
+            profession: Profession.Alchemist,
+            locationId: _giverLocation.Id,
+            name: "Giver"
+        );
         _dungeonExteriorLocation = Builders.MakeLocation(_worldId, _stateId);
         _dungeon = Builders.MakeBuilding(
             exteriorLocationId: _dungeonExteriorLocation.Id,
@@ -50,7 +60,12 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
         _services = new ServiceCollection().AddTrpgTestServices(_context).BuildServiceProvider();
         _handler = _services.GetRequiredService<ICommandHandler<SeedFetchQuestCommand, bool>>();
 
-        _context.Locations.AddRange(_giverLocation, _dungeonExteriorLocation, _dungeonRoomLocation);
+        _context.Locations.AddRange(
+            _entranceLocation,
+            _giverLocation,
+            _dungeonExteriorLocation,
+            _dungeonRoomLocation
+        );
         _context.Creatures.Add(_giver);
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(_giver.Id, locationId: _giverLocation.Id, worldId: _worldId)
@@ -103,7 +118,7 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -140,7 +155,7 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -163,7 +178,7 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
     }
 
     [Fact]
-    public async Task Handle_ReturnsFalse_WhenNoGiverCandidateIsAtTheLocation()
+    public async Task Handle_ReturnsFalse_WhenTheSeedLocationHasNoCity()
     {
         // Arrange
         await SeedLivingHostiles(3);
@@ -184,6 +199,33 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
     }
 
     [Fact]
+    public async Task Handle_ReturnsFalse_WhenTheOnlyCandidateHasADisqualifyingProfession()
+    {
+        // Arrange — a knight isn't a plausible gather-quest giver
+        await SeedLivingHostiles(3);
+        await _context
+            .Creatures.Where(creature => creature.Id == _giver.Id)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(c => c.Profession, Profession.Knight),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        var result = await _handler.Handle(
+            new SeedFetchQuestCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _entranceLocation.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsFalse_WhenNoDungeonHasEnoughLivingHostiles()
     {
         // Arrange
@@ -195,7 +237,7 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
             {
                 WorldId = _worldId,
                 PlayerId = Guid.NewGuid(),
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -236,7 +278,7 @@ public sealed class SeedFetchQuestCommandTests : IAsyncLifetime, IClassFixture<D
             {
                 WorldId = _worldId,
                 PlayerId = playerId,
-                LocationId = _giverLocation.Id,
+                LocationId = _entranceLocation.Id,
             },
             TestContext.Current.CancellationToken
         );
