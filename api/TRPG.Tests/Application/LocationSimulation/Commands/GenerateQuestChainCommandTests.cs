@@ -401,4 +401,32 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
         // Assert
         Assert.False(result);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsFalse_WhenTheRequestIsNoLongerPending()
+    {
+        // Arrange
+        var requestId = await SeedPendingRequest();
+        var request = await _context.QuestChainGenerationRequests.SingleAsync(
+            request => request.Id == requestId,
+            TestContext.Current.CancellationToken
+        );
+        request.Status = QuestChainGenerationStatus.Failed;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GenerateQuestChainCommand
+            {
+                RequestId = requestId,
+                ChainPremise = "A test premise.",
+                ChainLength = 1,
+                AvailableEntities = [],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(result);
+    }
 }

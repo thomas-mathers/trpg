@@ -49,6 +49,7 @@ public class QuestChainGeneratorValidationTests
         string nodeId = "node-1",
         List<string>? prerequisiteNodeIds = null,
         string? giverEntityId = null,
+        string? requiredFactKey = null,
         List<QuestChainObjectiveSchema>? objectives = null
     ) =>
         new()
@@ -57,6 +58,7 @@ public class QuestChainGeneratorValidationTests
             Name = "Quest",
             Description = "A quest.",
             GiverEntityId = giverEntityId ?? CreatureEntityId,
+            RequiredFactKey = requiredFactKey,
             PrerequisiteNodeIds = prerequisiteNodeIds ?? [],
             Objectives = objectives ?? [MakeObjective()],
         };
@@ -162,6 +164,112 @@ public class QuestChainGeneratorValidationTests
         var schema = new QuestChainSchema
         {
             Nodes = [MakeNode(objectives: [MakeObjective(requiredAmount: 0)])],
+        };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsError_WhenLearnFactDependsOnItsSupportingQuest()
+    {
+        // Arrange
+        var learnFact = new QuestChainObjectiveSchema
+        {
+            Name = "Learn Mara's Secret",
+            Description = "Ask Mara about the smugglers.",
+            ObjectiveType = nameof(GeneratedObjectiveType.LearnFactFromCreature),
+            TargetEntityId = CreatureEntityId,
+            FactKey = "mara-secret",
+            ReasonFactKey = "mara-fear",
+            BaseWillingness = 10,
+            BribeWillingness = 20,
+            IntimidationWillingness = 20,
+            WeightedSupportingQuestNodeIds =
+            [
+                new QuestChainSupportingQuestSchema { NodeId = "node-2", Weight = 30 },
+            ],
+        };
+        var schema = new QuestChainSchema
+        {
+            Facts =
+            [
+                new QuestChainFactSchema
+                {
+                    Key = "mara-secret",
+                    Subject = "Mara's secret",
+                    Value = "Mara saw the smugglers leave town.",
+                },
+                new QuestChainFactSchema
+                {
+                    Key = "mara-fear",
+                    Subject = "Mara's fear",
+                    Value = "Mara fears the smugglers will hurt her brother.",
+                },
+            ],
+            Nodes =
+            [
+                MakeNode(prerequisiteNodeIds: ["node-2"], objectives: [learnFact]),
+                MakeNode(nodeId: "node-2", requiredFactKey: "mara-fear"),
+            ],
+        };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsError_WhenSupportingQuestDependsOnTheLearnFactNode()
+    {
+        // Arrange
+        var learnFact = new QuestChainObjectiveSchema
+        {
+            Name = "Learn Mara's Secret",
+            Description = "Ask Mara about the smugglers.",
+            ObjectiveType = nameof(GeneratedObjectiveType.LearnFactFromCreature),
+            TargetEntityId = CreatureEntityId,
+            FactKey = "mara-secret",
+            ReasonFactKey = "mara-fear",
+            BaseWillingness = 10,
+            BribeWillingness = 20,
+            IntimidationWillingness = 20,
+            WeightedSupportingQuestNodeIds =
+            [
+                new QuestChainSupportingQuestSchema { NodeId = "node-2", Weight = 30 },
+            ],
+        };
+        var schema = new QuestChainSchema
+        {
+            Facts =
+            [
+                new QuestChainFactSchema
+                {
+                    Key = "mara-secret",
+                    Subject = "Mara's secret",
+                    Value = "Mara saw the smugglers leave town.",
+                },
+                new QuestChainFactSchema
+                {
+                    Key = "mara-fear",
+                    Subject = "Mara's fear",
+                    Value = "Mara fears the smugglers will hurt her brother.",
+                },
+            ],
+            Nodes =
+            [
+                MakeNode(objectives: [learnFact]),
+                MakeNode(
+                    nodeId: "node-2",
+                    prerequisiteNodeIds: ["node-1"],
+                    requiredFactKey: "mara-fear"
+                ),
+            ],
         };
 
         // Act

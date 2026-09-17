@@ -66,6 +66,11 @@ internal class GenerateQuestChainCommandHandler(
             return false;
         }
 
+        if (request.Status != QuestChainGenerationStatus.Pending)
+        {
+            return false;
+        }
+
         request.Status = QuestChainGenerationStatus.InProgress;
         await context.SaveChangesAsync(cancellationToken);
 
