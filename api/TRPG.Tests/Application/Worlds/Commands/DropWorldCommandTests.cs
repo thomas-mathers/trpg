@@ -120,6 +120,14 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             TargetType = ReputationTargetType.Faction,
             WorldId = worldId,
         };
+        var factDisclosureLockout = new FactDisclosureLockout
+        {
+            WorldId = worldId,
+            PlayerId = creature.Id,
+            NpcId = creature.Id,
+            FactId = Guid.NewGuid(),
+            Approach = FactDisclosureApproach.Bribe,
+        };
 
         _context.Creatures.Add(creature);
         _context.Factions.Add(faction);
@@ -143,6 +151,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         _context.RestockPolicies.Add(restockPolicy);
         _context.Quests.Add(quest);
         _context.QuestReputationRewards.Add(questReputationReward);
+        _context.FactDisclosureLockouts.Add(factDisclosureLockout);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _sessionIdByWorldId[worldId] = session.Id;
@@ -285,6 +294,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         Assert.Equal(
             expected,
             await verifyContext.QuestReputationRewards.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.FactDisclosureLockouts.AnyAsync(
                 x => x.WorldId == worldId,
                 cancellationToken
             )
