@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Quests.Commands;
+using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Results;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -166,6 +167,7 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
         Assert.Equal(FactDisclosureOutcome.Failed, result.Outcome);
         Assert.False(await HasLearnedTheFact());
         Assert.Empty(await LockoutsFor(_player.Id, _npc.Id, _fact.Id));
+        Assert.Empty(_serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents);
     }
 
     [Fact]
@@ -195,6 +197,11 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.True(revealedQuest.IsRevealed);
+        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
+        Assert.Contains(
+            gameEvents.EnqueuedEvents,
+            gameEvent => gameEvent is QuestJournalUpdatedEvent
+        );
     }
 
     [Fact]

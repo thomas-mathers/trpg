@@ -7,6 +7,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Knowledge.Commands;
+using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations.Queries;
@@ -27,7 +28,8 @@ internal sealed class FactDisclosureResolver(
     IQueryHandler<GetEffectiveReputationQuery, int> getEffectiveReputation,
     IQueryHandler<GetFactByIdQuery, Fact?> getFactById,
     ICommandHandler<LearnFactCommand, bool> learnFact,
-    IDomainEventPublisher<NpcFactDisclosedEvent> factDisclosed
+    IDomainEventPublisher<NpcFactDisclosedEvent> factDisclosed,
+    IGameClientEventSink gameEvents
 )
 {
     internal async Task<FactDisclosureResult> Resolve(
@@ -61,11 +63,15 @@ internal sealed class FactDisclosureResolver(
         // Any resolved attempt — even one that fails outright — is enough for the player to have
         // learned there's something to press about, so a quest gated behind discovering this fact
         // reveals here regardless of the attempt's outcome below.
-        await context
+        var revealedQuestCount = await context
             .Quests.Where(quest =>
                 quest.WorldId == worldId && quest.RevealedByFactId == factId && !quest.IsRevealed
             )
             .ExecuteUpdateAsync(s => s.SetProperty(q => q.IsRevealed, true), cancellationToken);
+        if (revealedQuestCount > 0)
+        {
+            gameEvents.Enqueue(new QuestJournalUpdatedEvent());
+        }
 
         var missingRequiredQuestIds = await GetIncompleteQuestIds(
             objective.RequiredSupportingQuestIds,
