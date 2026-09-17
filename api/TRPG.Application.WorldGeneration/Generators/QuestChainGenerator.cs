@@ -92,7 +92,7 @@ internal class QuestChainObjectiveSchema
     public string? ItemNameForKind { get; init; }
     public string? NewItemName { get; init; }
     public string? CreatureTypeCategory { get; init; }
-    public int RequiredAmount { get; init; } = 1;
+    public int? RequiredAmount { get; init; }
     public string? FactKey { get; init; }
     public string? ReasonFactKey { get; init; }
     public int? BaseWillingness { get; init; }
@@ -212,10 +212,19 @@ public class QuestChainGenerator(
             - You may add at most one LearnFactFromCreature objective. Its FactKey identifies an
               authored top-level Fact with a lowercase kebab-case Key, nonblank Subject, and nonblank
               Value. The fact content is player-facing: write the actual secret, motive, or lead.
-              Its optional ReasonFactKey identifies another authored fact that is revealed after a
-              second unsuccessful attempt. Supporting quest nodes must set RequiredFactKey to that
-              reason, and may be listed as required support or weighted support with a positive Weight.
-              BaseWillingness, BribeWillingness, and IntimidationWillingness are each 0 through 100.
+              When you use LearnFactFromCreature, it MUST also have a distinct ReasonFactKey and
+              exactly one supporting quest node. That node MUST set RequiredFactKey to the reason
+              fact and appear in WeightedSupportingQuestNodeIds with a Weight from 30 through 60.
+              The weight is added directly to the disclosure score after that quest is complete.
+              The reason explains why the NPC initially refuses, and the supporting quest must
+              materially resolve that reason. Neither node may require the other, directly or
+              transitively, as a prerequisite: the LearnFactFromCreature node must become available
+              without completing its supporting node first, and the supporting node must become
+              available without completing the LearnFactFromCreature node first — a quest only
+              unlocks once every one of its prerequisites is fully completed, so either direction
+              would make the pair mutually unreachable.
+              Keep BaseWillingness at 40 or lower so the first attempt feels blocked.
+              BribeWillingness and IntimidationWillingness are each 0 through 100.
 
             Every objective must be one of these exact ObjectiveType values — the game can only
             mechanically enforce these, nothing else, so do not invent a different kind of
@@ -234,8 +243,8 @@ public class QuestChainGenerator(
               that creature's id. (This completes the instant the conversation opens — it cannot
               gate on what gets said or learned.)
             - LearnFactFromCreature: learn an authored Fact from a specific creature. TargetEntityId
-              = that creature's id. FactKey, the three willingness values, and all supporting-node
-              references must be supplied.
+              = that creature's id. FactKey, ReasonFactKey, the three willingness values, and one
+              weighted supporting-node reference must be supplied.
             - CollectItem: acquire a specific new item, no delivery required. TargetEntityId = who
               currently holds it. NewItemName = the item's name.
             - GiveItems: acquire a specific new item and hand it to a recipient. TargetEntityId =
@@ -251,7 +260,9 @@ public class QuestChainGenerator(
             If a narrative beat you want to write doesn't fit any of these mechanics, either drop
             it or reshape it into one that does — do not leave ObjectiveType blank or invent a new
             value.
-            - Respond with only raw JSON matching the schema. No markdown, no commentary.
+            Before responding, verify every node and every objective has a nonblank Description that
+            states the concrete player action. Respond with only raw JSON matching the schema. No
+            markdown, no commentary.
             """;
 
         var userPrompt = $"""
@@ -303,7 +314,7 @@ public class QuestChainGenerator(
                             objective.CreatureTypeCategory is { } category
                                 ? Enum.Parse<CreatureType>(category, true)
                                 : null,
-                            objective.RequiredAmount,
+                            objective.RequiredAmount ?? 1,
                             objective.FactKey,
                             objective.ReasonFactKey,
                             objective.BaseWillingness,
@@ -485,7 +496,7 @@ public class QuestChainGenerator(
                 return $"{label} has invalid ObjectiveType \"{objective.ObjectiveType}\" — it must be one of: {string.Join(", ", ValidObjectiveTypes)}.";
             }
 
-            if (objective.RequiredAmount < 1)
+            if (objective.RequiredAmount is < 1)
             {
                 return $"{label} has RequiredAmount {objective.RequiredAmount}, which must be at least 1.";
             }
@@ -708,11 +719,7 @@ public class QuestChainGenerator(
 
         if (objective.ReasonFactKey is not { } reasonFactKey)
         {
-            return
-                objective.RequiredSupportingQuestNodeIds.Count == 0
-                && objective.WeightedSupportingQuestNodeIds.Count == 0
-                ? null
-                : $"{label} has supporting quests but no ReasonFactKey.";
+            return $"{label} must provide a ReasonFactKey.";
         }
 
         if (reasonFactKey == factKey || !factKeys.Contains(reasonFactKey))
@@ -735,6 +742,14 @@ public class QuestChainGenerator(
         }
 
         if (
+            objective.RequiredSupportingQuestNodeIds.Count != 0
+            || objective.WeightedSupportingQuestNodeIds.Count != 1
+        )
+        {
+            return $"{label} must have exactly one weighted supporting quest and no required supporting quests.";
+        }
+
+        if (
             objective
                 .RequiredSupportingQuestNodeIds.Concat(
                     objective.WeightedSupportingQuestNodeIds.Select(support => support.NodeId)
@@ -749,11 +764,11 @@ public class QuestChainGenerator(
 
         if (
             objective.WeightedSupportingQuestNodeIds.Any(support =>
-                support.Weight < 1 || support.Weight > 100
+                support.Weight < 30 || support.Weight > 60
             )
         )
         {
-            return $"{label} has a weighted supporting quest outside 1 to 100.";
+            return $"{label} has a weighted supporting quest outside 30 to 60.";
         }
 
         return null;
@@ -764,6 +779,7 @@ public class QuestChainGenerator(
         IReadOnlySet<string> nodeIds
     )
     {
+        var nodesById = nodes.ToDictionary(node => node.NodeId);
         foreach (var node in nodes)
         {
             foreach (
@@ -788,11 +804,51 @@ public class QuestChainGenerator(
                     {
                         return $"Supporting node \"{supportNodeId}\" must require the learn-fact reason.";
                     }
+
+                    if (RequiresNode(node, supportNodeId, nodesById))
+                    {
+                        return $"LearnFactFromCreature on node \"{node.NodeId}\" must become available before supporting node \"{supportNodeId}\".";
+                    }
+
+                    if (RequiresNode(supportNode, node.NodeId, nodesById))
+                    {
+                        return $"Supporting node \"{supportNodeId}\" must not require completing LearnFactFromCreature node \"{node.NodeId}\" first.";
+                    }
                 }
             }
         }
 
         return null;
+    }
+
+    private static bool RequiresNode(
+        QuestChainNodeSchema node,
+        string requiredNodeId,
+        IReadOnlyDictionary<string, QuestChainNodeSchema> nodesById
+    )
+    {
+        var unvisitedPrerequisiteIds = new Stack<string>(node.PrerequisiteNodeIds);
+        var visitedNodeIds = new HashSet<string>(StringComparer.Ordinal);
+        while (unvisitedPrerequisiteIds.TryPop(out var prerequisiteNodeId))
+        {
+            if (prerequisiteNodeId == requiredNodeId)
+            {
+                return true;
+            }
+
+            if (
+                visitedNodeIds.Add(prerequisiteNodeId)
+                && nodesById.TryGetValue(prerequisiteNodeId, out var prerequisiteNode)
+            )
+            {
+                foreach (var nestedPrerequisiteId in prerequisiteNode.PrerequisiteNodeIds)
+                {
+                    unvisitedPrerequisiteIds.Push(nestedPrerequisiteId);
+                }
+            }
+        }
+
+        return false;
     }
 
     // Kahn's algorithm: repeatedly remove nodes with no remaining incoming-from-unvisited
