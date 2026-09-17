@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Quests.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -209,6 +210,28 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new AcceptQuestCommand
+                {
+                    PlayerId = _player.Id,
+                    QuestId = quest.Id,
+                    WorldId = WorldId,
+                },
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_Throws_WhenTheQuestIsNotYetRevealed()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(_giver.Id, WorldId, revealedByFactId: Guid.NewGuid());
+        _context.Quests.Add(quest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
             _handler.Handle(
                 new AcceptQuestCommand
                 {

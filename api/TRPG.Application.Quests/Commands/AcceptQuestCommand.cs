@@ -33,7 +33,7 @@ internal class AcceptQuestCommandHandler(
             quest => quest.Id == command.QuestId && quest.WorldId == command.WorldId,
             cancellationToken
         );
-        if (quest is null)
+        if (quest is null || !quest.IsRevealed)
         {
             throw new EntityNotFoundException("Quest", command.QuestId);
         }

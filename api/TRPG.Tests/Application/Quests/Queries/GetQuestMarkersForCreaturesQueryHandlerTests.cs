@@ -73,6 +73,33 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
     }
 
     [Fact]
+    public async Task Handle_OmitsAvailableMarker_ForAnUnrevealedQuest()
+    {
+        // Arrange
+        var hiddenQuest = Builders.MakeQuest(
+            _availableGiver.Id,
+            WorldId,
+            revealedByFactId: Guid.NewGuid()
+        );
+        _context.Quests.Add(hiddenQuest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetQuestMarkersForCreaturesQuery
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                CreatureIds = [_availableGiver.Id],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(result.ContainsKey(_availableGiver.Id));
+    }
+
+    [Fact]
     public async Task Handle_ReturnsReadyToDeliverMarker_WhenPlayerHoldsAnUndeliveredItemForARecipient()
     {
         // Arrange

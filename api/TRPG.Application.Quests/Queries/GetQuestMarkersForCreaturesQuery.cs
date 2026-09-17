@@ -85,6 +85,7 @@ internal class GetQuestMarkersForCreaturesQueryHandler(IQuestsDbContext context)
         {
             if (
                 !playerQuestByQuestId.ContainsKey(quest.Id)
+                && quest.IsRevealed
                 && quest.PrerequisiteQuestIds.All(completedQuestIdSet.Contains)
             )
             {
