@@ -185,6 +185,84 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task AskAboutFact_NamesAnIncompleteRevealedWeightedQuest_WhenTheAttemptFails()
+    {
+        // Arrange
+        var helpfulQuest = Builders.MakeQuest(_npc.Id, WorldId, name: "Lend a Hand");
+        _context.Quests.Add(helpfulQuest);
+        await SeedObjective(
+            baseWillingness: 0,
+            weightedSupportingQuestIds:
+            [
+                new SupportingFactQuestWeight { QuestId = helpfulQuest.Id, Weight = 10 },
+            ]
+        );
+
+        // Act
+        var result = await _askHandler.Handle(
+            new AskAboutFactCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                NpcId = _npc.Id,
+                FactId = _fact.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(FactDisclosureOutcome.Failed, result.Outcome);
+        Assert.Equal(["Lend a Hand"], result.HelpfulQuestNames);
+    }
+
+    [Fact]
+    public async Task AskAboutFact_OmitsACompletedOrHiddenWeightedQuest_FromHelpfulQuestNames()
+    {
+        // Arrange
+        var completedQuest = Builders.MakeQuest(_npc.Id, WorldId, name: "Already Done");
+        var hiddenQuest = Builders.MakeQuest(
+            _npc.Id,
+            WorldId,
+            name: "Not Yet Discovered",
+            revealedByFactId: Guid.NewGuid()
+        );
+        _context.Quests.AddRange(completedQuest, hiddenQuest);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _player.Id,
+                QuestId = completedQuest.Id,
+                Status = QuestStatus.Completed,
+                WorldId = WorldId,
+            }
+        );
+        await SeedObjective(
+            baseWillingness: 0,
+            weightedSupportingQuestIds:
+            [
+                new SupportingFactQuestWeight { QuestId = completedQuest.Id, Weight = 10 },
+                new SupportingFactQuestWeight { QuestId = hiddenQuest.Id, Weight = 10 },
+            ]
+        );
+
+        // Act
+        var result = await _askHandler.Handle(
+            new AskAboutFactCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                NpcId = _npc.Id,
+                FactId = _fact.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(FactDisclosureOutcome.Failed, result.Outcome);
+        Assert.Null(result.HelpfulQuestNames);
+    }
+
+    [Fact]
     public async Task AskAboutFact_RevealsAQuestGatedOnThisFact_EvenWhenTheAttemptFails()
     {
         // Arrange

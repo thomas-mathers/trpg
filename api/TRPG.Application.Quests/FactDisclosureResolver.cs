@@ -150,8 +150,18 @@ internal sealed class FactDisclosureResolver(
                 await context.SaveChangesAsync(cancellationToken);
             }
 
+            var helpfulQuestNames = await GetHelpfulQuestNames(
+                objective.WeightedSupportingQuestIds,
+                playerId,
+                worldId,
+                cancellationToken
+            );
+
             transaction.Complete();
-            return new FactDisclosureResult(FactDisclosureOutcome.Failed);
+            return new FactDisclosureResult(
+                FactDisclosureOutcome.Failed,
+                HelpfulQuestNames: helpfulQuestNames.Length > 0 ? helpfulQuestNames : null
+            );
         }
 
         await learnFact.Handle(
@@ -200,6 +210,39 @@ internal sealed class FactDisclosureResolver(
             .ToArrayAsync(cancellationToken);
 
         return questIds.Except(completedQuestIds).ToArray();
+    }
+
+    private async Task<string[]> GetHelpfulQuestNames(
+        IReadOnlyCollection<SupportingFactQuestWeight> weighted,
+        Guid playerId,
+        Guid worldId,
+        CancellationToken cancellationToken
+    )
+    {
+        if (weighted.Count == 0)
+        {
+            return [];
+        }
+
+        var incompleteQuestIds = await GetIncompleteQuestIds(
+            weighted.Select(w => w.QuestId).ToArray(),
+            playerId,
+            worldId,
+            cancellationToken
+        );
+        if (incompleteQuestIds.Length == 0)
+        {
+            return [];
+        }
+
+        // Never name a quest the player hasn't discovered yet — only one already IsRevealed
+        // (the ordinary default, unless it was itself authored to reveal via a different fact).
+        return await context
+            .Quests.Where(quest =>
+                incompleteQuestIds.AsEnumerable().Contains(quest.Id) && quest.IsRevealed
+            )
+            .Select(quest => quest.Name)
+            .ToArrayAsync(cancellationToken);
     }
 
     private async Task<int> CompletedWeightedTotal(

@@ -13,5 +13,6 @@ public enum FactDisclosureOutcome
 public record FactDisclosureResult(
     FactDisclosureOutcome Outcome,
     string? FactText = null,
-    IReadOnlyCollection<string>? MissingRequiredQuestNames = null
+    IReadOnlyCollection<string>? MissingRequiredQuestNames = null,
+    IReadOnlyCollection<string>? HelpfulQuestNames = null
 );
