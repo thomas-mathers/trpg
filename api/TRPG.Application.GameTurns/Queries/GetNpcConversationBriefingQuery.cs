@@ -77,7 +77,7 @@ public record NpcConversationRoomBookingStatus(bool HasActiveBooking, string? Ro
 
 // Subject only, never the fact's Value — the player has to actually get it out of the NPC via
 // ask_about_fact/offer_bribe/intimidate, not read it off the briefing.
-public record NpcConversationWithheldFact(string Subject);
+public record NpcConversationWithheldFact(string Subject, string Guidance);
 
 public record NpcConversationQuest(string Name);
 
@@ -304,7 +304,18 @@ internal class GetNpcConversationBriefingQueryHandler(
             new GetFactByIdQuery { FactId = objective.FactId },
             cancellationToken
         );
-        return fact == null ? null : new NpcConversationWithheldFact(fact.Subject);
+        return fact == null
+            ? null
+            : new NpcConversationWithheldFact(
+                fact.Subject,
+                "This NPC is withholding this. Never decide yourself whether they disclose it, "
+                    + "or how a bribe or threat lands — that is not yours to narrate freely. "
+                    + "Call ask_about_fact the moment the player directly asks about or presses on "
+                    + "this subject, offer_bribe the moment they offer payment for it (any amount, "
+                    + "even one you expect to fail), or intimidate the moment they threaten or "
+                    + "menace them over it. Narrate only what the tool call returns, never your own "
+                    + "guess at the outcome."
+            );
     }
 
     private async Task<NpcConversationRoomBookingStatus?> GetRoomBookingStatus(
