@@ -129,7 +129,7 @@ describe('InventoryDialog', () => {
           pageNumber: 1,
           pageCount: 1,
           text: 'I reached the old study, but cannot make the return journey.',
-          revealedSecret: true,
+          revealedFact: true,
         });
       }),
     );

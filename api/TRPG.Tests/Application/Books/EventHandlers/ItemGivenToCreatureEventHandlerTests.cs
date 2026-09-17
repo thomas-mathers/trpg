@@ -19,7 +19,7 @@ public sealed class ItemGivenToCreatureEventHandlerTests(DatabaseFixture db)
     private ItemGivenToCreatureEventHandler _handler = null!;
     private readonly Creature _giver = Builders.MakeCreature(WorldId);
     private readonly Creature _recipient = Builders.MakeCreature(WorldId);
-    private readonly Secret _secret = new()
+    private readonly Fact _fact = new()
     {
         WorldId = WorldId,
         Subject = "the countersign of the Ashen Hand",
@@ -35,7 +35,7 @@ public sealed class ItemGivenToCreatureEventHandlerTests(DatabaseFixture db)
         _handler = _serviceProvider.GetRequiredService<ItemGivenToCreatureEventHandler>();
 
         _context.Creatures.AddRange(_giver, _recipient);
-        _context.Secrets.Add(_secret);
+        _context.Facts.Add(_fact);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -46,7 +46,7 @@ public sealed class ItemGivenToCreatureEventHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_TeachesTheRecipientTheSecret_WhenTheGivenItemIsABookThatRecordsIt()
+    public async Task Handle_TeachesTheRecipientTheFact_WhenTheGivenItemIsABookThatRecordsIt()
     {
         // Arrange
         var work = new BookWork
@@ -57,8 +57,8 @@ public sealed class ItemGivenToCreatureEventHandlerTests(DatabaseFixture db)
             SubjectType = BookSubjectType.Faction,
             SubjectName = "The Ashen Hand",
             PageCount = 1,
-            SecretId = _secret.Id,
-            SecretPageNumber = 1,
+            FactId = _fact.Id,
+            FactPageNumber = 1,
         };
         var book = Builders.MakeBook(work.Id, worldId: WorldId);
         book.Ownership.OwnerId = _recipient.Id;
@@ -78,8 +78,8 @@ public sealed class ItemGivenToCreatureEventHandlerTests(DatabaseFixture db)
             await _context.CreatureKnowledge.AnyAsync(
                 knowledge =>
                     knowledge.KnowerId == _recipient.Id
-                    && knowledge.SubjectId == _secret.Id
-                    && knowledge.SubjectType == KnowledgeSubjectType.Secret,
+                    && knowledge.SubjectId == _fact.Id
+                    && knowledge.SubjectType == KnowledgeSubjectType.Fact,
                 TestContext.Current.CancellationToken
             )
         );
@@ -111,7 +111,7 @@ public sealed class ItemGivenToCreatureEventHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_DoesNothing_WhenTheBookRecordsNoSecret()
+    public async Task Handle_DoesNothing_WhenTheBookRecordsNoFact()
     {
         // Arrange
         var work = new BookWork

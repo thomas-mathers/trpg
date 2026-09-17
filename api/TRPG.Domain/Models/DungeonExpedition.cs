@@ -11,7 +11,7 @@ public class DungeonExpedition
     public Guid CompanionLocationId { get; init; }
     public Guid JournalWorkId { get; init; }
     public Guid JournalItemId { get; init; }
-    public Guid DiscoverySecretId { get; init; }
+    public Guid DiscoveryFactId { get; init; }
     public string SurvivorName { get; init; } = "";
     public string CompanionName { get; init; } = "";
     public string Purpose { get; init; } = "";

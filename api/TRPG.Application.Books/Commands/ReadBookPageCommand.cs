@@ -21,13 +21,13 @@ public record ReadBookPageResult(
     int PageNumber,
     int PageCount,
     string Text,
-    bool RevealedSecret
+    bool RevealedFact
 );
 
 internal class ReadBookPageCommandHandler(
     IBooksDbContext context,
     ICommandHandler<EnsureBookPageCommand, string> ensureBookPage,
-    ICommandHandler<LearnSecretCommand, bool> learnSecret,
+    ICommandHandler<LearnFactCommand, bool> learnFact,
     ILogger<ReadBookPageCommandHandler> logger
 ) : ICommandHandler<ReadBookPageCommand, ReadBookPageResult>
 {
@@ -49,44 +49,44 @@ internal class ReadBookPageCommandHandler(
             cancellationToken
         );
 
-        var revealedSecret = await RevealSecret(work, command, cancellationToken);
+        var revealedFact = await RevealFact(work, command, cancellationToken);
 
         return new ReadBookPageResult(
             work.Title,
             command.PageNumber,
             work.PageCount,
             text,
-            revealedSecret
+            revealedFact
         );
     }
 
     // Skimming the first page of a ledger does not teach you what is written on the sixth.
-    private async Task<bool> RevealSecret(
+    private async Task<bool> RevealFact(
         BookWork work,
         ReadBookPageCommand command,
         CancellationToken cancellationToken
     )
     {
-        if (work.SecretId is not { } secretId || work.SecretPageNumber != command.PageNumber)
+        if (work.FactId is not { } factId || work.FactPageNumber != command.PageNumber)
         {
             return false;
         }
 
-        var learned = await learnSecret.Handle(
-            new LearnSecretCommand
+        var learned = await learnFact.Handle(
+            new LearnFactCommand
             {
                 WorldId = command.WorldId,
                 KnowerId = command.ReaderId,
-                SecretId = secretId,
+                FactId = factId,
             },
             cancellationToken
         );
         if (learned)
         {
             logger.LogInformation(
-                "[book] {ReaderId} learned secret {SecretId} from {Title}",
+                "[book] {ReaderId} learned fact {FactId} from {Title}",
                 command.ReaderId,
-                secretId,
+                factId,
                 work.Title
             );
         }

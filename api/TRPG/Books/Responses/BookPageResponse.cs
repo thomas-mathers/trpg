@@ -5,5 +5,5 @@ public record BookPageResponse(
     int PageNumber,
     int PageCount,
     string Text,
-    bool RevealedSecret
+    bool RevealedFact
 );

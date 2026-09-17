@@ -32,8 +32,8 @@ public class BookWork
 
     public int PageCount { get; init; }
 
-    public Guid? SecretId { get; init; }
-    public int? SecretPageNumber { get; init; }
+    public Guid? FactId { get; init; }
+    public int? FactPageNumber { get; init; }
 }
 
 public class BookPage
@@ -47,7 +47,7 @@ public class BookPage
 
 // Something learnable, held apart from whatever reveals it, so a countersign found in a ledger and
 // the same countersign overheard from a sentry are one fact rather than two.
-public class Secret
+public class Fact
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }

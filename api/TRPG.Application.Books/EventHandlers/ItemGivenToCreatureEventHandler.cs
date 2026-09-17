@@ -9,7 +9,7 @@ namespace TRPG.Application.Books.EventHandlers;
 
 internal sealed class ItemGivenToCreatureEventHandler(
     IBooksDbContext context,
-    ICommandHandler<LearnSecretCommand, bool> learnSecret
+    ICommandHandler<LearnFactCommand, bool> learnFact
 ) : IDomainEventConsumer<ItemGivenToCreatureEvent>
 {
     public async Task Handle(
@@ -29,17 +29,17 @@ internal sealed class ItemGivenToCreatureEventHandler(
         var work = await context
             .BookWorks.AsNoTracking()
             .FirstOrDefaultAsync(work => work.Id == book.WorkId, cancellationToken);
-        if (work?.SecretId is not { } secretId)
+        if (work?.FactId is not { } factId)
         {
             return;
         }
 
-        await learnSecret.Handle(
-            new LearnSecretCommand
+        await learnFact.Handle(
+            new LearnFactCommand
             {
                 WorldId = domainEvent.WorldId,
                 KnowerId = domainEvent.RecipientId,
-                SecretId = secretId,
+                FactId = factId,
             },
             cancellationToken
         );

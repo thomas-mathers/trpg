@@ -33,7 +33,7 @@ public class DungeonExpeditionGeneratorTests
         Assert.All(result.Jobs, job => Assert.Equal(result.Expedition.SurvivorId, job.CreatureId));
         Assert.Equal(result.Expedition.CompanionId, result.Journal.Ownership.OwnerId);
         Assert.Equal(result.Work.Id, result.Journal.WorkId);
-        Assert.Equal(result.Secret.Id, result.Work.SecretId);
+        Assert.Equal(result.Fact.Id, result.Work.FactId);
         Assert.Equal(2, result.Profiles.Count);
         var placement = Assert.Single(
             dungeon.Placements,

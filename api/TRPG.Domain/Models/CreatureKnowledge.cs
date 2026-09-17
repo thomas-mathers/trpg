@@ -6,7 +6,7 @@ public enum KnowledgeSubjectType
     City,
     Faction,
     Creature,
-    Secret,
+    Fact,
     Room,
     Trap,
 }

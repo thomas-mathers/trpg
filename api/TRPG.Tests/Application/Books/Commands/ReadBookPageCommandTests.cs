@@ -102,10 +102,10 @@ public sealed class ReadBookPageCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_TeachesTheSecret_WhenTheReaderReachesThePageThatRecordsIt()
+    public async Task Handle_TeachesTheFact_WhenTheReaderReachesThePageThatRecordsIt()
     {
         // Arrange
-        var work = await SeedWorkWithSecretOnPage(2);
+        var work = await SeedWorkWithFactOnPage(2);
 
         // Act
         var result = await _handler.Handle(
@@ -114,25 +114,25 @@ public sealed class ReadBookPageCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.True(result.RevealedSecret);
+        Assert.True(result.RevealedFact);
 
         await using var verifyContext = db.CreateContext();
         Assert.True(
             await verifyContext.CreatureKnowledge.AnyAsync(
                 knowledge =>
                     knowledge.KnowerId == _reader.Id
-                    && knowledge.SubjectId == work.SecretId
-                    && knowledge.SubjectType == KnowledgeSubjectType.Secret,
+                    && knowledge.SubjectId == work.FactId
+                    && knowledge.SubjectType == KnowledgeSubjectType.Fact,
                 TestContext.Current.CancellationToken
             )
         );
     }
 
     [Fact]
-    public async Task Handle_TeachesNothing_WhenTheReaderStopsBeforeTheSecretPage()
+    public async Task Handle_TeachesNothing_WhenTheReaderStopsBeforeTheFactPage()
     {
         // Arrange
-        var work = await SeedWorkWithSecretOnPage(2);
+        var work = await SeedWorkWithFactOnPage(2);
 
         // Act
         var result = await _handler.Handle(
@@ -141,12 +141,12 @@ public sealed class ReadBookPageCommandTests(DatabaseFixture db)
         );
 
         // Assert — skimming the first page of a ledger teaches you nothing on the second.
-        Assert.False(result.RevealedSecret);
+        Assert.False(result.RevealedFact);
 
         await using var verifyContext = db.CreateContext();
         Assert.False(
             await verifyContext.CreatureKnowledge.AnyAsync(
-                knowledge => knowledge.SubjectId == work.SecretId,
+                knowledge => knowledge.SubjectId == work.FactId,
                 TestContext.Current.CancellationToken
             )
         );
@@ -161,9 +161,9 @@ public sealed class ReadBookPageCommandTests(DatabaseFixture db)
             PageNumber = pageNumber,
         };
 
-    private async Task<BookWork> SeedWorkWithSecretOnPage(int pageNumber)
+    private async Task<BookWork> SeedWorkWithFactOnPage(int pageNumber)
     {
-        var secret = new Secret
+        var fact = new Fact
         {
             WorldId = WorldId,
             Subject = "the countersign of the Ashen Hand",
@@ -177,11 +177,11 @@ public sealed class ReadBookPageCommandTests(DatabaseFixture db)
             SubjectType = BookSubjectType.Faction,
             SubjectName = "The Ashen Hand",
             PageCount = 3,
-            SecretId = secret.Id,
-            SecretPageNumber = pageNumber,
+            FactId = fact.Id,
+            FactPageNumber = pageNumber,
         };
 
-        _context.Secrets.Add(secret);
+        _context.Facts.Add(fact);
         _context.BookWorks.Add(work);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return work;

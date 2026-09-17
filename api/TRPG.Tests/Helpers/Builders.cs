@@ -1171,7 +1171,7 @@ internal static class Builders
             CompanionLocationId = companion.LocationId,
             JournalWorkId = Guid.NewGuid(),
             JournalItemId = Guid.NewGuid(),
-            DiscoverySecretId = Guid.NewGuid(),
+            DiscoveryFactId = Guid.NewGuid(),
             Purpose = "They came to survey the old mine.",
             Separation = "They separated at the entrance; the survivor waited with the supplies.",
             FinalExperience = "The author sheltered in the old study after a fall.",
@@ -1189,8 +1189,8 @@ internal static class Builders
             SubjectName = "Old Mine",
             Tier = BookTier.Clue,
             PageCount = 1,
-            SecretId = expedition.DiscoverySecretId,
-            SecretPageNumber = 1,
+            FactId = expedition.DiscoveryFactId,
+            FactPageNumber = 1,
         };
 
     public static BookPage MakeExpeditionPage(DungeonExpedition expedition) =>

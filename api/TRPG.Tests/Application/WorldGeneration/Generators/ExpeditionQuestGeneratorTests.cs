@@ -15,7 +15,7 @@ public sealed class ExpeditionQuestGeneratorTests
         CompanionLocationId = Guid.NewGuid(),
         JournalWorkId = Guid.NewGuid(),
         JournalItemId = Guid.NewGuid(),
-        DiscoverySecretId = Guid.NewGuid(),
+        DiscoveryFactId = Guid.NewGuid(),
         SurvivorName = "Alden",
         CompanionName = "Brienne",
     };
