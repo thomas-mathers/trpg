@@ -58,17 +58,24 @@ internal sealed class FactDisclosureResolver(
                 cancellationToken
             ) ?? throw new EntityNotFoundException("Active learn-fact objective", npcId);
 
-        if (
-            await AnyIncomplete(
-                objective.RequiredSupportingQuestIds,
-                playerId,
-                worldId,
-                cancellationToken
-            )
-        )
+        var missingRequiredQuestIds = await GetIncompleteQuestIds(
+            objective.RequiredSupportingQuestIds,
+            playerId,
+            worldId,
+            cancellationToken
+        );
+        if (missingRequiredQuestIds.Length > 0)
         {
+            var missingRequiredQuestNames = await context
+                .Quests.Where(quest => missingRequiredQuestIds.AsEnumerable().Contains(quest.Id))
+                .Select(quest => quest.Name)
+                .ToArrayAsync(cancellationToken);
+
             transaction.Complete();
-            return new FactDisclosureResult(FactDisclosureOutcome.Blocked);
+            return new FactDisclosureResult(
+                FactDisclosureOutcome.Blocked,
+                MissingRequiredQuestNames: missingRequiredQuestNames
+            );
         }
 
         if (
@@ -155,7 +162,7 @@ internal sealed class FactDisclosureResolver(
         return new FactDisclosureResult(FactDisclosureOutcome.Disclosed, fact?.Value);
     }
 
-    private async Task<bool> AnyIncomplete(
+    private async Task<Guid[]> GetIncompleteQuestIds(
         IReadOnlyCollection<Guid> questIds,
         Guid playerId,
         Guid worldId,
@@ -164,10 +171,10 @@ internal sealed class FactDisclosureResolver(
     {
         if (questIds.Count == 0)
         {
-            return false;
+            return [];
         }
 
-        var completedCount = await context
+        var completedQuestIds = await context
             .CreatureQuests.Where(creatureQuest =>
                 creatureQuest.CreatureId == playerId
                 && creatureQuest.WorldId == worldId
@@ -175,10 +182,9 @@ internal sealed class FactDisclosureResolver(
                 && questIds.AsEnumerable().Contains(creatureQuest.QuestId)
             )
             .Select(creatureQuest => creatureQuest.QuestId)
-            .Distinct()
-            .CountAsync(cancellationToken);
+            .ToArrayAsync(cancellationToken);
 
-        return completedCount < questIds.Count;
+        return questIds.Except(completedQuestIds).ToArray();
     }
 
     private async Task<int> CompletedWeightedTotal(

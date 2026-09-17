@@ -9,4 +9,8 @@ public enum FactDisclosureOutcome
     Disclosed,
 }
 
-public record FactDisclosureResult(FactDisclosureOutcome Outcome, string? FactText = null);
+public record FactDisclosureResult(
+    FactDisclosureOutcome Outcome,
+    string? FactText = null,
+    IReadOnlyCollection<string>? MissingRequiredQuestNames = null
+);

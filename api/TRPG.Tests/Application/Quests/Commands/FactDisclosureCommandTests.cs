@@ -169,10 +169,13 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task AskAboutFact_ReturnsBlocked_WhenARequiredSupportingQuestIsIncomplete()
+    public async Task AskAboutFact_ReturnsBlockedWithTheMissingQuestName_WhenARequiredSupportingQuestIsIncomplete()
     {
         // Arrange
-        await SeedObjective(baseWillingness: 100, requiredSupportingQuestIds: [Guid.NewGuid()]);
+        var supportingQuest = Builders.MakeQuest(_npc.Id, WorldId, name: "Prove Yourself");
+        _context.Quests.Add(supportingQuest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedObjective(baseWillingness: 100, requiredSupportingQuestIds: [supportingQuest.Id]);
 
         // Act
         var result = await _askHandler.Handle(
@@ -188,6 +191,7 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(FactDisclosureOutcome.Blocked, result.Outcome);
+        Assert.Equal(["Prove Yourself"], result.MissingRequiredQuestNames);
         Assert.False(await HasLearnedTheFact());
     }
 
