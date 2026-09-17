@@ -185,119 +185,7 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task AskAboutFact_NamesAnIncompleteRevealedWeightedQuest_WhenTheAttemptFails()
-    {
-        // Arrange
-        var helpfulQuest = Builders.MakeQuest(_npc.Id, WorldId, name: "Lend a Hand");
-        _context.Quests.Add(helpfulQuest);
-        await SeedObjective(
-            baseWillingness: 0,
-            weightedSupportingQuestIds:
-            [
-                new SupportingFactQuestWeight { QuestId = helpfulQuest.Id, Weight = 10 },
-            ]
-        );
-
-        // Act
-        var result = await _askHandler.Handle(
-            new AskAboutFactCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                NpcId = _npc.Id,
-                FactId = _fact.Id,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(FactDisclosureOutcome.Failed, result.Outcome);
-        Assert.Equal(["Lend a Hand"], result.HelpfulQuestNames);
-    }
-
-    [Fact]
-    public async Task AskAboutFact_OmitsACompletedOrHiddenWeightedQuest_FromHelpfulQuestNames()
-    {
-        // Arrange
-        var completedQuest = Builders.MakeQuest(_npc.Id, WorldId, name: "Already Done");
-        var hiddenQuest = Builders.MakeQuest(
-            _npc.Id,
-            WorldId,
-            name: "Not Yet Discovered",
-            revealedByFactId: Guid.NewGuid()
-        );
-        _context.Quests.AddRange(completedQuest, hiddenQuest);
-        _context.CreatureQuests.Add(
-            new CreatureQuest
-            {
-                CreatureId = _player.Id,
-                QuestId = completedQuest.Id,
-                Status = QuestStatus.Completed,
-                WorldId = WorldId,
-            }
-        );
-        await SeedObjective(
-            baseWillingness: 0,
-            weightedSupportingQuestIds:
-            [
-                new SupportingFactQuestWeight { QuestId = completedQuest.Id, Weight = 10 },
-                new SupportingFactQuestWeight { QuestId = hiddenQuest.Id, Weight = 10 },
-            ]
-        );
-
-        // Act
-        var result = await _askHandler.Handle(
-            new AskAboutFactCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                NpcId = _npc.Id,
-                FactId = _fact.Id,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(FactDisclosureOutcome.Failed, result.Outcome);
-        Assert.Null(result.HelpfulQuestNames);
-    }
-
-    [Fact]
-    public async Task AskAboutFact_RevealsAQuestGatedOnThisFact_EvenWhenTheAttemptFails()
-    {
-        // Arrange
-        var hiddenQuest = Builders.MakeQuest(_npc.Id, WorldId, revealedByFactId: _fact.Id);
-        _context.Quests.Add(hiddenQuest);
-        await SeedObjective(baseWillingness: 0);
-
-        // Act
-        await _askHandler.Handle(
-            new AskAboutFactCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                NpcId = _npc.Id,
-                FactId = _fact.Id,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var revealedQuest = await verifyContext.Quests.SingleAsync(
-            q => q.Id == hiddenQuest.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.True(revealedQuest.IsRevealed);
-        var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
-        Assert.Contains(
-            gameEvents.EnqueuedEvents,
-            gameEvent => gameEvent is QuestJournalUpdatedEvent
-        );
-    }
-
-    [Fact]
-    public async Task AskAboutFact_ReturnsBlockedWithTheMissingQuestName_WhenARequiredSupportingQuestIsIncomplete()
+    public async Task AskAboutFact_ReturnsBlockedWithoutReason_WhenARequiredSupportingQuestIsIncomplete()
     {
         // Arrange
         var supportingQuest = Builders.MakeQuest(_npc.Id, WorldId, name: "Prove Yourself");
@@ -319,7 +207,7 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(FactDisclosureOutcome.Blocked, result.Outcome);
-        Assert.Equal(["Prove Yourself"], result.MissingRequiredQuestNames);
+        Assert.Null(result.ReasonFact);
         Assert.False(await HasLearnedTheFact());
     }
 

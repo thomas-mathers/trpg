@@ -90,6 +90,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
+    public DbSet<FactDisclosureAttempt> FactDisclosureAttempts => Set<FactDisclosureAttempt>();
     public DbSet<FactDisclosureLockout> FactDisclosureLockouts => Set<FactDisclosureLockout>();
     public DbSet<QuestReputationReward> QuestReputationRewards => Set<QuestReputationReward>();
     public DbSet<Relationship> Relationships => Set<Relationship>();
@@ -521,7 +522,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.Property(q => q.ItemRewards).HasColumnType("uuid[]");
             entity.Property(q => q.PrerequisiteQuestIds).HasColumnType("uuid[]");
-            entity.Property(q => q.IsRevealed).HasDefaultValue(true);
             entity.HasIndex(q => q.WorldId);
             entity.HasIndex(q => q.GiverId);
         });
@@ -555,6 +555,19 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.Property(o => o.RequiredSupportingQuestIds).HasColumnType("uuid[]");
             entity.OwnsMany(o => o.WeightedSupportingQuestIds, weighted => weighted.ToJson());
+        });
+
+        modelBuilder.Entity<FactDisclosureAttempt>(entity =>
+        {
+            entity
+                .HasIndex(attempt => new
+                {
+                    attempt.PlayerId,
+                    attempt.NpcId,
+                    attempt.FactId,
+                })
+                .IsUnique();
+            entity.HasIndex(attempt => attempt.WorldId);
         });
 
         modelBuilder.Entity<FactDisclosureLockout>(entity =>

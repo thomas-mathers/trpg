@@ -79,7 +79,7 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
         var hiddenQuest = Builders.MakeQuest(
             _availableGiver.Id,
             WorldId,
-            revealedByFactId: Guid.NewGuid()
+            requiredFactId: Guid.NewGuid()
         );
         _context.Quests.Add(hiddenQuest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

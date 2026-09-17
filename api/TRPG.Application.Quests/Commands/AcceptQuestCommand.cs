@@ -5,6 +5,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -18,6 +19,7 @@ public class AcceptQuestCommand
 }
 
 internal class AcceptQuestCommandHandler(
+    IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
@@ -33,9 +35,19 @@ internal class AcceptQuestCommandHandler(
             quest => quest.Id == command.QuestId && quest.WorldId == command.WorldId,
             cancellationToken
         );
-        if (quest is null || !quest.IsRevealed)
+        if (quest is null)
         {
             throw new EntityNotFoundException("Quest", command.QuestId);
+        }
+
+        if (quest.RequiredFactId is { } requiredFactId)
+        {
+            var knownFacts = await getKnownFacts.Handle(
+                new GetKnownFactIdsQuery(command.WorldId, command.PlayerId),
+                cancellationToken
+            );
+            if (!knownFacts.Contains(requiredFactId))
+                throw new EntityNotFoundException("Quest", command.QuestId);
         }
 
         var completedQuestIds = await context

@@ -152,6 +152,15 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         _context.Quests.Add(quest);
         _context.QuestReputationRewards.Add(questReputationReward);
         _context.FactDisclosureLockouts.Add(factDisclosureLockout);
+        _context.FactDisclosureAttempts.Add(
+            new FactDisclosureAttempt
+            {
+                WorldId = worldId,
+                PlayerId = factDisclosureLockout.PlayerId,
+                NpcId = factDisclosureLockout.NpcId,
+                FactId = factDisclosureLockout.FactId,
+            }
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         _sessionIdByWorldId[worldId] = session.Id;
@@ -301,6 +310,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         Assert.Equal(
             expected,
             await verifyContext.FactDisclosureLockouts.AnyAsync(
+                x => x.WorldId == worldId,
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.FactDisclosureAttempts.AnyAsync(
                 x => x.WorldId == worldId,
                 cancellationToken
             )

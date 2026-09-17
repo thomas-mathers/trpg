@@ -10,6 +10,11 @@ public static class QuestsServiceCollectionExtensions
         serviceCollection
             .AddTransient<QuestObjectiveAdvancer>()
             .AddTransient<FactDisclosureResolver>()
+            .AddTransient<FactDisclosureAttemptRecorder>()
+            .AddTransient<FactLearnedQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<FactLearnedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<FactLearnedQuestEventHandler>()
+            )
             .AddTransient<CreatureKilledQuestEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureKilledQuestEventHandler>()

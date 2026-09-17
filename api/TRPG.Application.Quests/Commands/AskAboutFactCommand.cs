@@ -26,12 +26,14 @@ internal class AskAboutFactCommandHandler(
         CancellationToken cancellationToken = default
     ) =>
         resolver.Resolve(
-            command.WorldId,
-            command.PlayerId,
-            command.NpcId,
-            command.FactId,
-            approach: null,
-            computeApproachContribution: _ => 0,
+            new FactDisclosureRequest(
+                WorldId: command.WorldId,
+                PlayerId: command.PlayerId,
+                NpcId: command.NpcId,
+                FactId: command.FactId,
+                Approach: null
+            ),
+            _ => new FactDisclosureAssessment(0),
             factDisclosureOptions.CurrentValue,
             cancellationToken
         );

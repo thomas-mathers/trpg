@@ -239,7 +239,7 @@ public sealed class GetQuestInteractionsForGiverQueryHandlerTests(DatabaseFixtur
     public async Task Handle_ExcludesAnUnrevealedQuest_FromAvailableQuests()
     {
         // Arrange
-        var unrevealed = Builders.MakeQuest(_giver.Id, WorldId, revealedByFactId: Guid.NewGuid());
+        var unrevealed = Builders.MakeQuest(_giver.Id, WorldId, requiredFactId: Guid.NewGuid());
         _context.Quests.Add(unrevealed);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -262,11 +262,15 @@ public sealed class GetQuestInteractionsForGiverQueryHandlerTests(DatabaseFixtur
     public async Task Handle_IncludesAQuestOnceRevealed_InAvailableQuests()
     {
         // Arrange
-        var revealed = Builders.MakeQuest(
-            _giver.Id,
-            WorldId,
-            revealedByFactId: Guid.NewGuid(),
-            isRevealed: true
+        var revealed = Builders.MakeQuest(_giver.Id, WorldId, requiredFactId: Guid.NewGuid());
+        _context.CreatureKnowledge.Add(
+            new CreatureKnowledge
+            {
+                WorldId = WorldId,
+                KnowerId = _player.Id,
+                SubjectId = revealed.RequiredFactId!.Value,
+                SubjectType = KnowledgeSubjectType.Fact,
+            }
         );
         _context.Quests.Add(revealed);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

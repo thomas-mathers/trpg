@@ -16,9 +16,6 @@ public class IntimidateForFactCommand
     public required Guid FactId { get; init; }
 }
 
-// An overwhelmingly weaker player can't intimidate anyone, no matter the score — checked before
-// resolving so a hopeless attempt returns TooWeak rather than a plain Failed, and never locks out
-// the approach (nothing about the NPC's disposition changed, only the player's level might).
 internal class IntimidateForFactCommandHandler(
     FactDisclosureResolver resolver,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
@@ -41,31 +38,30 @@ internal class IntimidateForFactCommandHandler(
             cancellationToken
         );
 
-        if (
-            !FactDisclosureScoreCalculator.CanAttemptIntimidation(
-                player!.Level,
-                npc!.Level,
-                options
-            )
-        )
-        {
-            return new FactDisclosureResult(FactDisclosureOutcome.TooWeak);
-        }
-
         var levelAdvantageAboveFloor =
-            player.Level - npc.Level - options.MinimumLevelAdvantageToIntimidate;
+            player!.Level - npc!.Level - options.MinimumLevelAdvantageToIntimidate;
 
         return await resolver.Resolve(
-            command.WorldId,
-            command.PlayerId,
-            command.NpcId,
-            command.FactId,
-            approach: FactDisclosureApproach.Intimidation,
-            computeApproachContribution: objective =>
-                Math.Min(
-                    levelAdvantageAboveFloor * options.IntimidationScorePerLevelAdvantage,
-                    objective.IntimidationWillingness
-                ),
+            new FactDisclosureRequest(
+                WorldId: command.WorldId,
+                PlayerId: command.PlayerId,
+                NpcId: command.NpcId,
+                FactId: command.FactId,
+                Approach: FactDisclosureApproach.Intimidation
+            ),
+            objective =>
+                FactDisclosureScoreCalculator.CanAttemptIntimidation(
+                    player!.Level,
+                    npc!.Level,
+                    options
+                )
+                    ? new FactDisclosureAssessment(
+                        Math.Min(
+                            levelAdvantageAboveFloor * options.IntimidationScorePerLevelAdvantage,
+                            objective.IntimidationWillingness
+                        )
+                    )
+                    : new FactDisclosureAssessment(0, FactDisclosureOutcome.TooWeak),
             options,
             cancellationToken
         );

@@ -674,8 +674,7 @@ internal static class Builders
         Guid giverId,
         Guid? worldId = null,
         string? name = null,
-        Guid? revealedByFactId = null,
-        bool? isRevealed = null
+        Guid? requiredFactId = null
     )
     {
         return new Quest
@@ -685,8 +684,7 @@ internal static class Builders
             Name = name ?? $"Quest-{Guid.NewGuid():N}",
             Description = "A test quest",
             GoldReward = 100,
-            RevealedByFactId = revealedByFactId,
-            IsRevealed = isRevealed ?? revealedByFactId == null,
+            RequiredFactId = requiredFactId,
         };
     }
 
@@ -778,7 +776,8 @@ internal static class Builders
         int intimidationWillingness = 0,
         IReadOnlyCollection<Guid>? requiredSupportingQuestIds = null,
         IReadOnlyCollection<SupportingFactQuestWeight>? weightedSupportingQuestIds = null,
-        string? name = null
+        string? name = null,
+        Guid? reasonFactId = null
     ) =>
         new()
         {
@@ -788,6 +787,7 @@ internal static class Builders
             Description = "A test objective",
             CreatureId = creatureId,
             FactId = factId,
+            ReasonFactId = reasonFactId,
             BaseWillingness = baseWillingness,
             BribeWillingness = bribeWillingness,
             IntimidationWillingness = intimidationWillingness,

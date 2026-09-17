@@ -10,9 +10,10 @@ public enum FactDisclosureOutcome
     Disclosed,
 }
 
+public record DisclosedFact(Guid FactId, string Text);
+
 public record FactDisclosureResult(
     FactDisclosureOutcome Outcome,
     string? FactText = null,
-    IReadOnlyCollection<string>? MissingRequiredQuestNames = null,
-    IReadOnlyCollection<string>? HelpfulQuestNames = null
+    DisclosedFact? ReasonFact = null
 );

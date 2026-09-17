@@ -308,13 +308,19 @@ internal class GetNpcConversationBriefingQueryHandler(
             ? null
             : new NpcConversationWithheldFact(
                 fact.Subject,
-                "This NPC is withholding this. Never decide yourself whether they disclose it, "
-                    + "or how a bribe or threat lands — that is not yours to narrate freely. "
-                    + "Call ask_about_fact the moment the player directly asks about or presses on "
-                    + "this subject, offer_bribe the moment they offer payment for it (any amount, "
-                    + "even one you expect to fail), or intimidate the moment they threaten or "
-                    + "menace them over it. Narrate only what the tool call returns, never your own "
-                    + "guess at the outcome."
+                """
+                This NPC knows the answer to this subject but may refuse to share it.
+                If the player's current message asks about this subject, including a broad question
+                about its topic, call ask_about_fact before narrating an answer. This applies even
+                when you just called start_conversation: opening a conversation does not resolve
+                the player's question. Call offer_bribe for an explicit payment offer or intimidate
+                for an explicit threat instead. Use one disclosure attempt per player message.
+                On a later player message, call again when they press the subject, even after a
+                previous Failed or Blocked result: the backend may now disclose the reason.
+                Never invent details about the subject, evidence, explanations, or a claim that the NPC
+                does not know. Narrate only the disclosure outcome returned by the tool. If
+                ReasonFact is returned, narrate its Text; otherwise keep the refusal unexplained.
+                """
             );
     }
 

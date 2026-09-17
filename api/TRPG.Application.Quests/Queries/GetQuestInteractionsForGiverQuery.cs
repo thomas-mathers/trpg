@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -15,6 +16,7 @@ public class GetQuestInteractionsForGiverQuery
 }
 
 internal class GetQuestInteractionsForGiverQueryHandler(
+    IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
     IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds
 ) : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
@@ -74,9 +76,16 @@ internal class GetQuestInteractionsForGiverQueryHandler(
 
         var acceptedQuestIds = giverPlayerQuests.Select(quest => quest.QuestId).ToHashSet();
 
+        var knownFacts = await getKnownFacts.Handle(
+            new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
+            cancellationToken
+        );
+
         var availableQuests = giverQuests
             .Where(quest => !acceptedQuestIds.Contains(quest.Id))
-            .Where(quest => quest.IsRevealed)
+            .Where(quest =>
+                quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value)
+            )
             .Where(quest => quest.PrerequisiteQuestIds.All(completedQuestIds.Contains))
             .Select(quest => ToResult(quest, objectivesByQuestId))
             .ToArray();

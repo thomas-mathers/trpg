@@ -7,7 +7,6 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Knowledge.Commands;
-using TRPG.Application.Quests.Events;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations.Queries;
@@ -16,9 +15,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests;
 
-// Shared by AskAboutFactCommand/OfferBribeForFactCommand/IntimidateForFactCommand: each supplies
-// its own approach-specific score contribution (0 for a plain ask), everything else about
-// resolving a disclosure attempt is identical across the three.
+internal record FactDisclosureRequest(
+    Guid WorldId,
+    Guid PlayerId,
+    Guid NpcId,
+    Guid FactId,
+    FactDisclosureApproach? Approach
+);
+
+internal record FactDisclosureAssessment(int Contribution, FactDisclosureOutcome? Rejection = null);
+
 internal sealed class FactDisclosureResolver(
     IQuestsDbContext context,
     IQueryHandler<
@@ -29,16 +35,12 @@ internal sealed class FactDisclosureResolver(
     IQueryHandler<GetFactByIdQuery, Fact?> getFactById,
     ICommandHandler<LearnFactCommand, bool> learnFact,
     IDomainEventPublisher<NpcFactDisclosedEvent> factDisclosed,
-    IGameClientEventSink gameEvents
+    FactDisclosureAttemptRecorder attempts
 )
 {
     internal async Task<FactDisclosureResult> Resolve(
-        Guid worldId,
-        Guid playerId,
-        Guid npcId,
-        Guid factId,
-        FactDisclosureApproach? approach,
-        Func<LearnFactFromCreatureObjective, int> computeApproachContribution,
+        FactDisclosureRequest request,
+        Func<LearnFactFromCreatureObjective, FactDisclosureAssessment> assess,
         FactDisclosureOptions options,
         CancellationToken cancellationToken
     )
@@ -47,144 +49,161 @@ internal sealed class FactDisclosureResolver(
             TransactionScopeOption.Required,
             TransactionScopeAsyncFlowOption.Enabled
         );
+        var objective = await GetObjective(request, cancellationToken);
+        var outcome = await Evaluate(
+            request,
+            objective,
+            assess(objective),
+            options,
+            cancellationToken
+        );
+        var result = outcome switch
+        {
+            FactDisclosureOutcome.Disclosed => await Disclose(request, cancellationToken),
+            FactDisclosureOutcome.LockedOut => new FactDisclosureResult(outcome),
+            _ => await Reject(request, objective, outcome, cancellationToken),
+        };
+        transaction.Complete();
+        return result;
+    }
 
-        var objective =
-            await getActiveObjective.Handle(
+    private async Task<LearnFactFromCreatureObjective> GetObjective(
+        FactDisclosureRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        return await getActiveObjective.Handle(
                 new GetActiveLearnFactObjectiveQuery
                 {
-                    WorldId = worldId,
-                    PlayerId = playerId,
-                    NpcId = npcId,
-                    FactId = factId,
+                    WorldId = request.WorldId,
+                    PlayerId = request.PlayerId,
+                    NpcId = request.NpcId,
+                    FactId = request.FactId,
                 },
                 cancellationToken
-            ) ?? throw new EntityNotFoundException("Active learn-fact objective", npcId);
+            ) ?? throw new EntityNotFoundException("Active learn-fact objective", request.NpcId);
+    }
 
-        // Any resolved attempt — even one that fails outright — is enough for the player to have
-        // learned there's something to press about, so a quest gated behind discovering this fact
-        // reveals here regardless of the attempt's outcome below.
-        var revealedQuestCount = await context
-            .Quests.Where(quest =>
-                quest.WorldId == worldId && quest.RevealedByFactId == factId && !quest.IsRevealed
-            )
-            .ExecuteUpdateAsync(s => s.SetProperty(q => q.IsRevealed, true), cancellationToken);
-        if (revealedQuestCount > 0)
-        {
-            gameEvents.Enqueue(new QuestJournalUpdatedEvent());
-        }
-
-        var missingRequiredQuestIds = await GetIncompleteQuestIds(
-            objective.RequiredSupportingQuestIds,
-            playerId,
-            worldId,
-            cancellationToken
-        );
-        if (missingRequiredQuestIds.Length > 0)
-        {
-            var missingRequiredQuestNames = await context
-                .Quests.Where(quest => missingRequiredQuestIds.AsEnumerable().Contains(quest.Id))
-                .Select(quest => quest.Name)
-                .ToArrayAsync(cancellationToken);
-
-            transaction.Complete();
-            return new FactDisclosureResult(
-                FactDisclosureOutcome.Blocked,
-                MissingRequiredQuestNames: missingRequiredQuestNames
-            );
-        }
-
+    private async Task<FactDisclosureOutcome> Evaluate(
+        FactDisclosureRequest request,
+        LearnFactFromCreatureObjective objective,
+        FactDisclosureAssessment assessment,
+        FactDisclosureOptions options,
+        CancellationToken cancellationToken
+    )
+    {
         if (
-            approach is { } lockableApproach
-            && await IsLockedOut(
-                worldId,
-                playerId,
-                npcId,
-                factId,
-                lockableApproach,
-                cancellationToken
-            )
+            request.Approach is { } approach
+            && await IsLockedOut(request, approach, cancellationToken)
         )
-        {
-            transaction.Complete();
-            return new FactDisclosureResult(FactDisclosureOutcome.LockedOut);
-        }
-
-        var completedWeightedTotal = await CompletedWeightedTotal(
-            objective.WeightedSupportingQuestIds,
-            playerId,
-            worldId,
+            return FactDisclosureOutcome.LockedOut;
+        if (assessment.Rejection is { } rejection)
+            return rejection;
+        var missing = await GetIncompleteQuestIds(
+            objective.RequiredSupportingQuestIds,
+            request.PlayerId,
+            request.WorldId,
             cancellationToken
         );
+        if (missing.Length > 0)
+            return FactDisclosureOutcome.Blocked;
+        var score = await GetScore(
+            request,
+            objective,
+            assessment.Contribution,
+            options,
+            cancellationToken
+        );
+        return FactDisclosureScoreCalculator.Succeeds(score, options)
+            ? FactDisclosureOutcome.Disclosed
+            : FactDisclosureOutcome.Failed;
+    }
 
-        var effectiveReputation = await getEffectiveReputation.Handle(
+    private async Task<int> GetScore(
+        FactDisclosureRequest request,
+        LearnFactFromCreatureObjective objective,
+        int contribution,
+        FactDisclosureOptions options,
+        CancellationToken cancellationToken
+    )
+    {
+        var completedWeight = await CompletedWeightedTotal(
+            objective.WeightedSupportingQuestIds,
+            request.PlayerId,
+            request.WorldId,
+            cancellationToken
+        );
+        var reputation = await getEffectiveReputation.Handle(
             new GetEffectiveReputationQuery
             {
-                ObserverCreatureId = playerId,
-                TargetCreatureId = npcId,
+                ObserverCreatureId = request.PlayerId,
+                TargetCreatureId = request.NpcId,
             },
             cancellationToken
         );
-
-        var score = FactDisclosureScoreCalculator.Score(
+        return FactDisclosureScoreCalculator.Score(
             objective.BaseWillingness,
-            effectiveReputation,
-            computeApproachContribution(objective),
-            completedWeightedTotal,
+            reputation,
+            contribution,
+            completedWeight,
             options
         );
+    }
 
-        if (!FactDisclosureScoreCalculator.Succeeds(score, options))
+    private async Task<FactDisclosureResult> Reject(
+        FactDisclosureRequest request,
+        LearnFactFromCreatureObjective objective,
+        FactDisclosureOutcome outcome,
+        CancellationToken cancellationToken
+    )
+    {
+        if (outcome == FactDisclosureOutcome.Failed && request.Approach is { } approach)
         {
-            if (approach is { } failedApproach)
-            {
-                context.FactDisclosureLockouts.Add(
-                    new FactDisclosureLockout
-                    {
-                        WorldId = worldId,
-                        PlayerId = playerId,
-                        NpcId = npcId,
-                        FactId = factId,
-                        Approach = failedApproach,
-                    }
-                );
-                await context.SaveChangesAsync(cancellationToken);
-            }
-
-            var helpfulQuestNames = await GetHelpfulQuestNames(
-                objective.WeightedSupportingQuestIds,
-                playerId,
-                worldId,
-                cancellationToken
+            context.FactDisclosureLockouts.Add(
+                new FactDisclosureLockout
+                {
+                    WorldId = request.WorldId,
+                    PlayerId = request.PlayerId,
+                    NpcId = request.NpcId,
+                    FactId = request.FactId,
+                    Approach = approach,
+                }
             );
-
-            transaction.Complete();
-            return new FactDisclosureResult(
-                FactDisclosureOutcome.Failed,
-                HelpfulQuestNames: helpfulQuestNames.Length > 0 ? helpfulQuestNames : null
-            );
+            await context.SaveChangesAsync(cancellationToken);
         }
+        var reason = await attempts.Record(request, objective.ReasonFactId, cancellationToken);
+        return new FactDisclosureResult(outcome, ReasonFact: reason);
+    }
 
+    private async Task<FactDisclosureResult> Disclose(
+        FactDisclosureRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var fact =
+            await getFactById.Handle(
+                new GetFactByIdQuery { FactId = request.FactId },
+                cancellationToken
+            ) ?? throw new EntityNotFoundException("Fact", request.FactId);
         await learnFact.Handle(
             new LearnFactCommand
             {
-                WorldId = worldId,
-                KnowerId = playerId,
-                FactId = factId,
+                WorldId = request.WorldId,
+                KnowerId = request.PlayerId,
+                FactId = request.FactId,
             },
             cancellationToken
         );
         await factDisclosed.Publish(
-            new NpcFactDisclosedEvent(playerId, worldId, npcId, factId),
+            new NpcFactDisclosedEvent(
+                request.PlayerId,
+                request.WorldId,
+                request.NpcId,
+                request.FactId
+            ),
             cancellationToken
         );
-
-        var fact = await getFactById.Handle(
-            new GetFactByIdQuery { FactId = factId },
-            cancellationToken
-        );
-
-        transaction.Complete();
-        return new FactDisclosureResult(FactDisclosureOutcome.Disclosed, fact?.Value);
+        return new FactDisclosureResult(FactDisclosureOutcome.Disclosed, fact.Value);
     }
 
     private async Task<Guid[]> GetIncompleteQuestIds(
@@ -210,39 +229,6 @@ internal sealed class FactDisclosureResolver(
             .ToArrayAsync(cancellationToken);
 
         return questIds.Except(completedQuestIds).ToArray();
-    }
-
-    private async Task<string[]> GetHelpfulQuestNames(
-        IReadOnlyCollection<SupportingFactQuestWeight> weighted,
-        Guid playerId,
-        Guid worldId,
-        CancellationToken cancellationToken
-    )
-    {
-        if (weighted.Count == 0)
-        {
-            return [];
-        }
-
-        var incompleteQuestIds = await GetIncompleteQuestIds(
-            weighted.Select(w => w.QuestId).ToArray(),
-            playerId,
-            worldId,
-            cancellationToken
-        );
-        if (incompleteQuestIds.Length == 0)
-        {
-            return [];
-        }
-
-        // Never name a quest the player hasn't discovered yet — only one already IsRevealed
-        // (the ordinary default, unless it was itself authored to reveal via a different fact).
-        return await context
-            .Quests.Where(quest =>
-                incompleteQuestIds.AsEnumerable().Contains(quest.Id) && quest.IsRevealed
-            )
-            .Select(quest => quest.Name)
-            .ToArrayAsync(cancellationToken);
     }
 
     private async Task<int> CompletedWeightedTotal(
@@ -273,19 +259,16 @@ internal sealed class FactDisclosureResolver(
     }
 
     private async Task<bool> IsLockedOut(
-        Guid worldId,
-        Guid playerId,
-        Guid npcId,
-        Guid factId,
+        FactDisclosureRequest request,
         FactDisclosureApproach approach,
         CancellationToken cancellationToken
     ) =>
         await context.FactDisclosureLockouts.AnyAsync(
             lockout =>
-                lockout.WorldId == worldId
-                && lockout.PlayerId == playerId
-                && lockout.NpcId == npcId
-                && lockout.FactId == factId
+                lockout.WorldId == request.WorldId
+                && lockout.PlayerId == request.PlayerId
+                && lockout.NpcId == request.NpcId
+                && lockout.FactId == request.FactId
                 && lockout.Approach == approach,
             cancellationToken
         );

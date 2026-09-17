@@ -1407,6 +1407,42 @@ namespace TRPG.Migrations
                     b.ToTable("facts", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Domain.Models.FactDisclosureAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("FactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("fact_id");
+
+                    b.Property<Guid>("NpcId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("npc_id");
+
+                    b.Property<Guid>("PlayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("player_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_fact_disclosure_attempts");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_fact_disclosure_attempts_world_id");
+
+                    b.HasIndex("PlayerId", "NpcId", "FactId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_fact_disclosure_attempts_player_id_npc_id_fact_id");
+
+                    b.ToTable("fact_disclosure_attempts", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Domain.Models.FactDisclosureLockout", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1951,12 +1987,6 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("gold_reward");
 
-                    b.Property<bool>("IsRevealed")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_revealed");
-
                     b.PrimitiveCollection<List<Guid>>("ItemRewards")
                         .IsRequired()
                         .HasColumnType("uuid[]")
@@ -1972,9 +2002,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid[]")
                         .HasColumnName("prerequisite_quest_ids");
 
-                    b.Property<Guid?>("RevealedByFactId")
+                    b.Property<Guid?>("RequiredFactId")
                         .HasColumnType("uuid")
-                        .HasColumnName("revealed_by_fact_id");
+                        .HasColumnName("required_fact_id");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -3484,6 +3514,10 @@ namespace TRPG.Migrations
                     b.Property<int>("IntimidationWillingness")
                         .HasColumnType("integer")
                         .HasColumnName("intimidation_willingness");
+
+                    b.Property<Guid?>("ReasonFactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reason_fact_id");
 
                     b.PrimitiveCollection<List<Guid>>("RequiredSupportingQuestIds")
                         .IsRequired()

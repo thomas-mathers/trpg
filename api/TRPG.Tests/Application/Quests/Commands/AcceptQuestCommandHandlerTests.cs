@@ -226,7 +226,7 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
     public async Task Handle_Throws_WhenTheQuestIsNotYetRevealed()
     {
         // Arrange
-        var quest = Builders.MakeQuest(_giver.Id, WorldId, revealedByFactId: Guid.NewGuid());
+        var quest = Builders.MakeQuest(_giver.Id, WorldId, requiredFactId: Guid.NewGuid());
         _context.Quests.Add(quest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

@@ -72,6 +72,7 @@ public sealed class LearnFactFromCreatureObjective : QuestObjective
 {
     public Guid CreatureId { get; init; }
     public Guid FactId { get; init; }
+    public Guid? ReasonFactId { get; init; }
     public int BaseWillingness { get; init; }
     public int BribeWillingness { get; init; }
     public int IntimidationWillingness { get; init; }

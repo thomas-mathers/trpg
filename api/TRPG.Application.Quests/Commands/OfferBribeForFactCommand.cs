@@ -52,16 +52,19 @@ internal class OfferBribeForFactCommandHandler(
         );
 
         var result = await resolver.Resolve(
-            command.WorldId,
-            command.PlayerId,
-            command.NpcId,
-            command.FactId,
-            approach: FactDisclosureApproach.Bribe,
-            computeApproachContribution: objective =>
+            new FactDisclosureRequest(
+                WorldId: command.WorldId,
+                PlayerId: command.PlayerId,
+                NpcId: command.NpcId,
+                FactId: command.FactId,
+                Approach: FactDisclosureApproach.Bribe
+            ),
+            objective => new FactDisclosureAssessment(
                 Math.Min(
                     command.GoldOffered / options.GoldPerBribeScorePoint,
                     objective.BribeWillingness
-                ),
+                )
+            ),
             options,
             cancellationToken
         );
