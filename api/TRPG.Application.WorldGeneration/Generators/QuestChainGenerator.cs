@@ -13,7 +13,6 @@ namespace TRPG.Application.WorldGeneration.Generators;
 public static class QuestChainEntityTypes
 {
     public const string Creature = "Creature";
-    public const string Item = "Item";
 
     // Split from a single generic "Location" type: a Dungeon has hostiles and supports
     // ClearLocation, a Building doesn't and only supports ExploreLocation — collapsing them back
@@ -75,6 +74,7 @@ internal class QuestChainObjectiveSchema
     public string? TargetEntityId { get; init; }
     public string? RecipientEntityId { get; init; }
     public string? ItemNameForKind { get; init; }
+    public string? NewItemName { get; init; }
     public string? CreatureTypeCategory { get; init; }
     public int RequiredAmount { get; init; } = 1;
 }
@@ -98,6 +98,7 @@ public record QuestChainGeneratedObjective(
     Guid? TargetEntityId,
     Guid? RecipientEntityId,
     string? ItemNameForKind,
+    string? NewItemName,
     CreatureType? CreatureTypeCategory,
     int RequiredAmount
 );
@@ -145,8 +146,14 @@ public class QuestChainGenerator(
               SpeakToCreature need a "{QuestChainEntityTypes.Creature}"-type entity; ClearLocation
               needs a "{QuestChainEntityTypes.Dungeon}"-type entity specifically (only dungeons have
               hostiles to clear); ExploreLocation accepts either a "{QuestChainEntityTypes.Dungeon}"-
-              or "{QuestChainEntityTypes.Building}"-type entity; CollectItem/GiveItems/DeliverItem
-              need an "{QuestChainEntityTypes.Item}"-type entity.
+              or "{QuestChainEntityTypes.Building}"-type entity.
+            - CollectItem/GiveItems/DeliverItem don't reference an existing item at all — items
+              don't pre-exist in this world. Instead, TargetEntityId is the
+              "{QuestChainEntityTypes.Creature}"-type entity who currently holds the item (invent
+              who plausibly has it — a shopkeeper selling it, a monster that dropped it, anyone
+              already in the entity list), and NewItemName is the name you invent for that specific
+              item (e.g. "the Sealed Missive", "a Signet Ring"). A brand new item with that name is
+              created and given to whoever TargetEntityId points at.
             - GiveItems and DeliverItem also need a non-null RecipientEntityId (who receives the
               item, a "{QuestChainEntityTypes.Creature}"-type entity); GiveItemKind always needs one
               too.
@@ -180,17 +187,18 @@ public class QuestChainGenerator(
             - SpeakToCreature: start a conversation with one specific creature. TargetEntityId =
               that creature's id. (This completes the instant the conversation opens — it cannot
               gate on what gets said or learned.)
-            - CollectItem: acquire one specific existing item, no delivery required. TargetEntityId
-              = that item's id.
-            - GiveItems: acquire one or more specific existing items and hand them to a recipient.
-              TargetEntityId = the item's id. RecipientEntityId = who to give it to.
-            - GiveItemKind: acquire RequiredAmount items that share a fungible kind/name (not a
-              specific existing item id — this is for a kind of thing that doesn't exist yet, like
-              a monster drop) and hand them to a recipient. ItemNameForKind = the kind's name.
-              RecipientEntityId = who to give it to.
-            - DeliverItem: carry one specific existing item (that the player already has or will
-              acquire) to a recipient. TargetEntityId = the item's id. RecipientEntityId = who to
-              deliver it to.
+            - CollectItem: acquire a specific new item, no delivery required. TargetEntityId = who
+              currently holds it. NewItemName = the item's name.
+            - GiveItems: acquire a specific new item and hand it to a recipient. TargetEntityId =
+              who currently holds it. NewItemName = the item's name. RecipientEntityId = who to
+              give it to.
+            - GiveItemKind: acquire RequiredAmount items that share a fungible kind/name (for a
+              kind of thing that doesn't exist yet, like a monster drop — not a single specific
+              item) and hand them to a recipient. ItemNameForKind = the kind's name. RecipientEntityId
+              = who to give it to.
+            - DeliverItem: carry a specific new item (that the player will acquire) to a recipient.
+              TargetEntityId = who currently holds it. NewItemName = the item's name.
+              RecipientEntityId = who to deliver it to.
             If a narrative beat you want to write doesn't fit any of these mechanics, either drop
             it or reshape it into one that does — do not leave ObjectiveType blank or invent a new
             value.
@@ -233,6 +241,7 @@ public class QuestChainGenerator(
                             ? Guid.Parse(recipientId)
                             : null,
                         objective.ItemNameForKind,
+                        objective.NewItemName,
                         objective.CreatureTypeCategory is { } category
                             ? Enum.Parse<CreatureType>(category, true)
                             : null,
@@ -386,16 +395,26 @@ public class QuestChainGenerator(
             );
         }
 
+        var mintsNewItem =
+            type
+            is GeneratedObjectiveType.CollectItem
+                or GeneratedObjectiveType.GiveItems
+                or GeneratedObjectiveType.DeliverItem;
+        if (mintsNewItem && string.IsNullOrWhiteSpace(objective.NewItemName))
+        {
+            return $"{label} is {objective.ObjectiveType} but has no NewItemName.";
+        }
+
         var expectedTargetTypes = type switch
         {
             GeneratedObjectiveType.KillCreature
             or GeneratedObjectiveType.FreeCreature
-            or GeneratedObjectiveType.SpeakToCreature => [QuestChainEntityTypes.Creature],
+            or GeneratedObjectiveType.SpeakToCreature
+            or GeneratedObjectiveType.CollectItem
+            or GeneratedObjectiveType.GiveItems
+            or GeneratedObjectiveType.DeliverItem => [QuestChainEntityTypes.Creature],
             GeneratedObjectiveType.ClearLocation => [QuestChainEntityTypes.Dungeon],
             GeneratedObjectiveType.ExploreLocation => QuestChainEntityTypes.ExplorableTypes,
-            GeneratedObjectiveType.CollectItem
-            or GeneratedObjectiveType.GiveItems
-            or GeneratedObjectiveType.DeliverItem => [QuestChainEntityTypes.Item],
             _ => throw new ArgumentOutOfRangeException(nameof(objective)),
         };
 

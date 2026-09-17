@@ -7,7 +7,6 @@ public class QuestChainGeneratorValidationTests
     private static readonly string CreatureEntityId = Guid.NewGuid().ToString();
     private static readonly string DungeonEntityId = Guid.NewGuid().ToString();
     private static readonly string BuildingEntityId = Guid.NewGuid().ToString();
-    private static readonly string ItemEntityId = Guid.NewGuid().ToString();
     private static readonly IReadOnlyDictionary<string, string> EntityTypesById = new Dictionary<
         string,
         string
@@ -16,7 +15,6 @@ public class QuestChainGeneratorValidationTests
         [CreatureEntityId] = QuestChainEntityTypes.Creature,
         [DungeonEntityId] = QuestChainEntityTypes.Dungeon,
         [BuildingEntityId] = QuestChainEntityTypes.Building,
-        [ItemEntityId] = QuestChainEntityTypes.Item,
     };
 
     private static QuestChainObjectiveSchema MakeObjective(
@@ -24,6 +22,7 @@ public class QuestChainGeneratorValidationTests
         string? targetEntityId = null,
         string? recipientEntityId = null,
         string? itemNameForKind = null,
+        string? newItemName = null,
         string? creatureTypeCategory = null,
         int requiredAmount = 1
     ) =>
@@ -41,6 +40,7 @@ public class QuestChainGeneratorValidationTests
                 ),
             RecipientEntityId = recipientEntityId,
             ItemNameForKind = itemNameForKind,
+            NewItemName = newItemName,
             CreatureTypeCategory = creatureTypeCategory,
             RequiredAmount = requiredAmount,
         };
@@ -342,7 +342,8 @@ public class QuestChainGeneratorValidationTests
         // Arrange
         var objective = MakeObjective(
             objectiveType: nameof(GeneratedObjectiveType.GiveItems),
-            targetEntityId: ItemEntityId
+            targetEntityId: CreatureEntityId,
+            newItemName: "Signet Ring"
         );
         var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
 
@@ -354,13 +355,87 @@ public class QuestChainGeneratorValidationTests
     }
 
     [Fact]
-    public void Validate_ReturnsNull_WhenGiveItemsHasItemTargetAndCreatureRecipient()
+    public void Validate_ReturnsError_WhenGiveItemsHasNoNewItemName()
+    {
+        // Arrange: items never pre-exist for GiveItems/CollectItem/DeliverItem — a new one must be
+        // named, since TargetEntityId now identifies who holds it, not the item itself.
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.GiveItems),
+            targetEntityId: CreatureEntityId,
+            recipientEntityId: CreatureEntityId
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsError_WhenGiveItemsTargetIsWrongType()
+    {
+        // Arrange: TargetEntityId is the holder now, so it must be a Creature, not a Dungeon.
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.GiveItems),
+            targetEntityId: DungeonEntityId,
+            recipientEntityId: CreatureEntityId,
+            newItemName: "Signet Ring"
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsNull_WhenGiveItemsHasCreatureHolderNewItemNameAndRecipient()
     {
         // Arrange
         var objective = MakeObjective(
             objectiveType: nameof(GeneratedObjectiveType.GiveItems),
-            targetEntityId: ItemEntityId,
-            recipientEntityId: CreatureEntityId
+            targetEntityId: CreatureEntityId,
+            recipientEntityId: CreatureEntityId,
+            newItemName: "Signet Ring"
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsError_WhenCollectItemHasNoNewItemName()
+    {
+        // Arrange
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.CollectItem),
+            targetEntityId: CreatureEntityId
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsNull_WhenCollectItemHasCreatureHolderAndNewItemName()
+    {
+        // Arrange
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.CollectItem),
+            targetEntityId: CreatureEntityId,
+            newItemName: "Ancient Coin"
         );
         var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
 
