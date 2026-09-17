@@ -521,6 +521,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.Property(q => q.ItemRewards).HasColumnType("uuid[]");
             entity.Property(q => q.PrerequisiteQuestIds).HasColumnType("uuid[]");
+            entity.Property(q => q.IsRevealed).HasDefaultValue(true);
             entity.HasIndex(q => q.WorldId);
             entity.HasIndex(q => q.GiverId);
         });

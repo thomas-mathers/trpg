@@ -76,6 +76,7 @@ internal class GetQuestInteractionsForGiverQueryHandler(
 
         var availableQuests = giverQuests
             .Where(quest => !acceptedQuestIds.Contains(quest.Id))
+            .Where(quest => quest.IsRevealed)
             .Where(quest => quest.PrerequisiteQuestIds.All(completedQuestIds.Contains))
             .Select(quest => ToResult(quest, objectivesByQuestId))
             .ToArray();

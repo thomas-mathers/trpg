@@ -58,6 +58,15 @@ internal sealed class FactDisclosureResolver(
                 cancellationToken
             ) ?? throw new EntityNotFoundException("Active learn-fact objective", npcId);
 
+        // Any resolved attempt — even one that fails outright — is enough for the player to have
+        // learned there's something to press about, so a quest gated behind discovering this fact
+        // reveals here regardless of the attempt's outcome below.
+        await context
+            .Quests.Where(quest =>
+                quest.WorldId == worldId && quest.RevealedByFactId == factId && !quest.IsRevealed
+            )
+            .ExecuteUpdateAsync(s => s.SetProperty(q => q.IsRevealed, true), cancellationToken);
+
         var missingRequiredQuestIds = await GetIncompleteQuestIds(
             objective.RequiredSupportingQuestIds,
             playerId,

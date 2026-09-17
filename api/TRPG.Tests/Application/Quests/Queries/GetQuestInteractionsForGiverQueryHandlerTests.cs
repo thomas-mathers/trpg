@@ -234,4 +234,55 @@ public sealed class GetQuestInteractionsForGiverQueryHandlerTests(DatabaseFixtur
         Assert.Empty(result.ActiveQuests);
         Assert.Empty(result.AvailableQuests);
     }
+
+    [Fact]
+    public async Task Handle_ExcludesAnUnrevealedQuest_FromAvailableQuests()
+    {
+        // Arrange
+        var unrevealed = Builders.MakeQuest(_giver.Id, WorldId, revealedByFactId: Guid.NewGuid());
+        _context.Quests.Add(unrevealed);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetQuestInteractionsForGiverQuery
+            {
+                GiverId = _giver.Id,
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(result.AvailableQuests);
+    }
+
+    [Fact]
+    public async Task Handle_IncludesAQuestOnceRevealed_InAvailableQuests()
+    {
+        // Arrange
+        var revealed = Builders.MakeQuest(
+            _giver.Id,
+            WorldId,
+            revealedByFactId: Guid.NewGuid(),
+            isRevealed: true
+        );
+        _context.Quests.Add(revealed);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetQuestInteractionsForGiverQuery
+            {
+                GiverId = _giver.Id,
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(revealed.Name, Assert.Single(result.AvailableQuests).Name);
+    }
 }

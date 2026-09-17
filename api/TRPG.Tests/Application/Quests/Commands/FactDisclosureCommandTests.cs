@@ -169,6 +169,35 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task AskAboutFact_RevealsAQuestGatedOnThisFact_EvenWhenTheAttemptFails()
+    {
+        // Arrange
+        var hiddenQuest = Builders.MakeQuest(_npc.Id, WorldId, revealedByFactId: _fact.Id);
+        _context.Quests.Add(hiddenQuest);
+        await SeedObjective(baseWillingness: 0);
+
+        // Act
+        await _askHandler.Handle(
+            new AskAboutFactCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                NpcId = _npc.Id,
+                FactId = _fact.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var revealedQuest = await verifyContext.Quests.SingleAsync(
+            q => q.Id == hiddenQuest.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.True(revealedQuest.IsRevealed);
+    }
+
+    [Fact]
     public async Task AskAboutFact_ReturnsBlockedWithTheMissingQuestName_WhenARequiredSupportingQuestIsIncomplete()
     {
         // Arrange

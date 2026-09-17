@@ -670,7 +670,13 @@ internal static class Builders
         };
     }
 
-    public static Quest MakeQuest(Guid giverId, Guid? worldId = null, string? name = null)
+    public static Quest MakeQuest(
+        Guid giverId,
+        Guid? worldId = null,
+        string? name = null,
+        Guid? revealedByFactId = null,
+        bool? isRevealed = null
+    )
     {
         return new Quest
         {
@@ -679,6 +685,8 @@ internal static class Builders
             Name = name ?? $"Quest-{Guid.NewGuid():N}",
             Description = "A test quest",
             GoldReward = 100,
+            RevealedByFactId = revealedByFactId,
+            IsRevealed = isRevealed ?? revealedByFactId == null,
         };
     }
 
