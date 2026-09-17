@@ -11,4 +11,6 @@ public class Quest
     public List<Guid> PrerequisiteQuestIds { get; init; } = [];
     public List<QuestReputationReward> ReputationRewards { get; init; } = [];
     public Guid WorldId { get; init; }
+
+    public Guid? RequiredFactId { get; init; }
 }

@@ -674,6 +674,61 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
         Assert.Equal(guestRoom.Name, result.RuntimeState.RoomBooking.RoomName);
     }
 
+    [Fact]
+    public async Task Handle_ReturnsNullWithheldFact_WhenTheNpcIsNotWithholdingAnything()
+    {
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Null(result.RuntimeState.WithheldFact);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheFactsSubjectAndGuidance_WhenTheNpcHoldsAnActiveLearnFactObjective()
+    {
+        // Arrange
+        var fact = new Fact
+        {
+            WorldId = WorldId,
+            Subject = "why the mine closed",
+            Value = "A cave-in buried the lower tunnels.",
+        };
+        var quest = Builders.MakeQuest(_npc.Id, WorldId);
+        var objective = Builders.MakeLearnFactFromCreatureObjective(
+            quest.Id,
+            _npc.Id,
+            fact.Id,
+            WorldId
+        );
+        _context.Facts.Add(fact);
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _player.Id,
+                QuestId = quest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        _context.CreatureQuestObjectives.Add(
+            Builders.MakeCreatureQuestObjective(_player.Id, objective.Id, WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(result.RuntimeState.WithheldFact);
+        Assert.Equal(fact.Subject, result.RuntimeState.WithheldFact.Subject);
+        Assert.Contains("ask_about_fact", result.RuntimeState.WithheldFact.Guidance);
+        Assert.Contains("offer_bribe", result.RuntimeState.WithheldFact.Guidance);
+        Assert.Contains("intimidate", result.RuntimeState.WithheldFact.Guidance);
+    }
+
     private async Task<(Guid LobbyLocationId, Room GuestRoom)> SeedInn(bool staffAsOccupant = false)
     {
         var lobbyLocationId = Guid.NewGuid();

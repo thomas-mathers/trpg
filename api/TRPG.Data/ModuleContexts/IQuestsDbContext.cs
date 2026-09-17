@@ -9,4 +9,6 @@ public interface IQuestsDbContext : ITrpgDbContext
     DbSet<CreatureQuest> CreatureQuests { get; }
     DbSet<QuestObjective> QuestObjectives { get; }
     DbSet<Quest> Quests { get; }
+    DbSet<FactDisclosureAttempt> FactDisclosureAttempts { get; }
+    DbSet<FactDisclosureLockout> FactDisclosureLockouts { get; }
 }

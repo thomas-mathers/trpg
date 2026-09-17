@@ -122,6 +122,14 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
             .QuestReputationRewards.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
+        await context
+            .FactDisclosureAttempts.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .FactDisclosureLockouts.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
         await context.Quests.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
 
         await context

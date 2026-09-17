@@ -31,7 +31,7 @@ internal class StartConversationTool(
 
     [DisplayName("start_conversation")]
     [Description(
-        "Call this when you begin talking to someone. It returns their player-visible appearance, private roleplaying background, reputation-driven attitude, conversation history, and quest context."
+        "Call this when you begin talking to someone. It returns their player-visible appearance, private roleplaying background, reputation-driven attitude, conversation history, and quest context. If WithheldFact is present and the player's current message asks about that subject, call ask_about_fact (or the explicitly requested bribe/intimidation tool) before answering the question. Opening the conversation does not resolve that request."
     )]
     private async Task<object?> InvokeAsync(
         [Description(

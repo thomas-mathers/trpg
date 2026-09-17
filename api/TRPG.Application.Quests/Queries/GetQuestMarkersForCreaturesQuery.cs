@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -19,8 +20,10 @@ public class GetQuestMarkersForCreaturesQuery
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
 }
 
-internal class GetQuestMarkersForCreaturesQueryHandler(IQuestsDbContext context)
-    : IQueryHandler<GetQuestMarkersForCreaturesQuery, IReadOnlyDictionary<Guid, QuestMarker>>
+internal class GetQuestMarkersForCreaturesQueryHandler(
+    IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
+    IQuestsDbContext context
+) : IQueryHandler<GetQuestMarkersForCreaturesQuery, IReadOnlyDictionary<Guid, QuestMarker>>
 {
     public async Task<IReadOnlyDictionary<Guid, QuestMarker>> Handle(
         GetQuestMarkersForCreaturesQuery query,
@@ -81,10 +84,16 @@ internal class GetQuestMarkersForCreaturesQueryHandler(IQuestsDbContext context)
         var completedQuestIdSet = completedQuestIds.ToHashSet();
         var playerQuestByQuestId = playerQuests.ToDictionary(quest => quest.QuestId);
 
+        var knownFacts = await getKnownFacts.Handle(
+            new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
+            cancellationToken
+        );
+
         foreach (var quest in quests)
         {
             if (
                 !playerQuestByQuestId.ContainsKey(quest.Id)
+                && (quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value))
                 && quest.PrerequisiteQuestIds.All(completedQuestIdSet.Contains)
             )
             {

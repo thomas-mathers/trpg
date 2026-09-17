@@ -670,7 +670,12 @@ internal static class Builders
         };
     }
 
-    public static Quest MakeQuest(Guid giverId, Guid? worldId = null, string? name = null)
+    public static Quest MakeQuest(
+        Guid giverId,
+        Guid? worldId = null,
+        string? name = null,
+        Guid? requiredFactId = null
+    )
     {
         return new Quest
         {
@@ -679,6 +684,7 @@ internal static class Builders
             Name = name ?? $"Quest-{Guid.NewGuid():N}",
             Description = "A test quest",
             GoldReward = 100,
+            RequiredFactId = requiredFactId,
         };
     }
 
@@ -758,6 +764,35 @@ internal static class Builders
             RecipientId = recipientId,
             LocationId = locationId,
             RequiredAmount = requiredAmount,
+        };
+
+    public static LearnFactFromCreatureObjective MakeLearnFactFromCreatureObjective(
+        Guid questId,
+        Guid creatureId,
+        Guid factId,
+        Guid? worldId = null,
+        int baseWillingness = 0,
+        int bribeWillingness = 0,
+        int intimidationWillingness = 0,
+        IReadOnlyCollection<Guid>? requiredSupportingQuestIds = null,
+        IReadOnlyCollection<SupportingFactQuestWeight>? weightedSupportingQuestIds = null,
+        string? name = null,
+        Guid? reasonFactId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            QuestId = questId,
+            Name = name ?? $"Objective-{Guid.NewGuid():N}",
+            Description = "A test objective",
+            CreatureId = creatureId,
+            FactId = factId,
+            ReasonFactId = reasonFactId,
+            BaseWillingness = baseWillingness,
+            BribeWillingness = bribeWillingness,
+            IntimidationWillingness = intimidationWillingness,
+            RequiredSupportingQuestIds = requiredSupportingQuestIds?.ToList() ?? [],
+            WeightedSupportingQuestIds = weightedSupportingQuestIds?.ToList() ?? [],
         };
 
     public static CreatureQuestObjective MakeCreatureQuestObjective(

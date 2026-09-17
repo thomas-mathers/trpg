@@ -1,3 +1,4 @@
+using TRPG.Application.Books.Queries;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Queries;
@@ -74,6 +75,10 @@ public record NpcConversationHistoryResult(
 
 public record NpcConversationRoomBookingStatus(bool HasActiveBooking, string? RoomName);
 
+// Subject only, never the fact's Value — the player has to actually get it out of the NPC via
+// ask_about_fact/offer_bribe/intimidate, not read it off the briefing.
+public record NpcConversationWithheldFact(string Subject, string Guidance);
+
 public record NpcConversationQuest(string Name);
 
 public record NpcConversationQuests(
@@ -89,7 +94,8 @@ public record NpcConversationRuntimeState(
     NpcConversationHistoryResult ConversationHistory,
     NpcConversationQuests Quests,
     NpcConversationRoomBookingStatus? RoomBooking,
-    bool PlayerIsSneaking
+    bool PlayerIsSneaking,
+    NpcConversationWithheldFact? WithheldFact = null
 );
 
 public record NpcConversationBriefing(
@@ -139,7 +145,12 @@ internal class GetNpcConversationBriefingQueryHandler(
         GetRoomBookingsForPlayerInBuildingQuery,
         IReadOnlyCollection<RoomBooking>
     > getRoomBookingsForPlayerInBuilding,
-    IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds
+    IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
+    IQueryHandler<
+        GetActiveLearnFactObjectiveForNpcQuery,
+        LearnFactFromCreatureObjective?
+    > getActiveLearnFactObjectiveForNpc,
+    IQueryHandler<GetFactByIdQuery, Fact?> getFactById
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
@@ -205,6 +216,7 @@ internal class GetNpcConversationBriefingQueryHandler(
         var observedCrimes = await GetObservedCrimes(query, cancellationToken);
         var reputationHistory = await GetReputationHistory(query, cancellationToken);
         var roomBooking = await GetRoomBookingStatus(query, cancellationToken);
+        var withheldFact = await GetWithheldFact(query, cancellationToken);
 
         var dungeonKnowledge = await getDungeonKnowledge.Handle(
             new GetDungeonConversationKnowledgeQuery(
@@ -262,10 +274,54 @@ internal class GetNpcConversationBriefingQueryHandler(
                 ),
                 quests,
                 roomBooking,
-                player.IsSneaking
+                player.IsSneaking,
+                withheldFact
             ),
             dungeonKnowledge
         );
+    }
+
+    private async Task<NpcConversationWithheldFact?> GetWithheldFact(
+        GetNpcConversationBriefingQuery query,
+        CancellationToken cancellationToken
+    )
+    {
+        var objective = await getActiveLearnFactObjectiveForNpc.Handle(
+            new GetActiveLearnFactObjectiveForNpcQuery
+            {
+                WorldId = query.WorldId,
+                PlayerId = query.PlayerId,
+                NpcId = query.NpcId,
+            },
+            cancellationToken
+        );
+        if (objective == null)
+        {
+            return null;
+        }
+
+        var fact = await getFactById.Handle(
+            new GetFactByIdQuery { FactId = objective.FactId },
+            cancellationToken
+        );
+        return fact == null
+            ? null
+            : new NpcConversationWithheldFact(
+                fact.Subject,
+                """
+                This NPC knows the answer to this subject but may refuse to share it.
+                If the player's current message asks about this subject, including a broad question
+                about its topic, call ask_about_fact before narrating an answer. This applies even
+                when you just called start_conversation: opening a conversation does not resolve
+                the player's question. Call offer_bribe for an explicit payment offer or intimidate
+                for an explicit threat instead. Use one disclosure attempt per player message.
+                On a later player message, call again when they press the subject, even after a
+                previous Failed or Blocked result: the backend may now disclose the reason.
+                Never invent details about the subject, evidence, explanations, or a claim that the NPC
+                does not know. Narrate only the disclosure outcome returned by the tool. If
+                ReasonFact is returned, narrate its Text; otherwise keep the refusal unexplained.
+                """
+            );
     }
 
     private async Task<NpcConversationRoomBookingStatus?> GetRoomBookingStatus(

@@ -64,6 +64,9 @@ internal static class ServiceCollectionExtensions
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
+            .AddGameTool<AskAboutFactTool>()
+            .AddGameTool<OfferBribeForFactTool>()
+            .AddGameTool<IntimidateForFactTool>()
             .AddGameTool<BookRoomTool>()
             .AddGameTool<ReturnRoomKeyTool>()
             .AddExceptionHandler<GlobalExceptionHandler>()
@@ -397,7 +400,8 @@ internal static class ServiceCollectionExtensions
             .Configure<FleeOptions>(configuration.GetSection("Flee"))
             .Configure<SuspicionOptions>(configuration.GetSection("Suspicion"))
             .Configure<InnOptions>(configuration.GetSection("Inn"))
-            .Configure<TrapOptions>(configuration.GetSection("Trap"));
+            .Configure<TrapOptions>(configuration.GetSection("Trap"))
+            .Configure<FactDisclosureOptions>(configuration.GetSection("FactDisclosure"));
     }
 
     private static int GetSerializedByteCount(object? value)

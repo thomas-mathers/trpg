@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -12,8 +13,10 @@ public class LearnFactCommand
     public required Guid FactId { get; init; }
 }
 
-internal class LearnFactCommandHandler(IKnowledgeDbContext context)
-    : ICommandHandler<LearnFactCommand, bool>
+internal class LearnFactCommandHandler(
+    IKnowledgeDbContext context,
+    IDomainEventPublisher<FactLearnedEvent> factLearned
+) : ICommandHandler<LearnFactCommand, bool>
 {
     public async Task<bool> Handle(
         LearnFactCommand command,
@@ -42,6 +45,11 @@ internal class LearnFactCommandHandler(IKnowledgeDbContext context)
             }
         );
         await context.SaveChangesAsync(cancellationToken);
+
+        await factLearned.Publish(
+            new FactLearnedEvent(command.WorldId, command.KnowerId, command.FactId),
+            cancellationToken
+        );
 
         return true;
     }

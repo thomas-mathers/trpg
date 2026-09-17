@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260917031835_AddLearnFactFromCreatureObjective")]
+    partial class AddLearnFactFromCreatureObjective
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1407,42 +1410,6 @@ namespace TRPG.Migrations
                     b.ToTable("facts", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Domain.Models.FactDisclosureAttempt", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("FactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("fact_id");
-
-                    b.Property<Guid>("NpcId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("npc_id");
-
-                    b.Property<Guid>("PlayerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("player_id");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_fact_disclosure_attempts");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_fact_disclosure_attempts_world_id");
-
-                    b.HasIndex("PlayerId", "NpcId", "FactId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_fact_disclosure_attempts_player_id_npc_id_fact_id");
-
-                    b.ToTable("fact_disclosure_attempts", (string)null);
-                });
-
             modelBuilder.Entity("TRPG.Domain.Models.FactDisclosureLockout", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2001,10 +1968,6 @@ namespace TRPG.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]")
                         .HasColumnName("prerequisite_quest_ids");
-
-                    b.Property<Guid?>("RequiredFactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("required_fact_id");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -3514,10 +3477,6 @@ namespace TRPG.Migrations
                     b.Property<int>("IntimidationWillingness")
                         .HasColumnType("integer")
                         .HasColumnName("intimidation_willingness");
-
-                    b.Property<Guid?>("ReasonFactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reason_fact_id");
 
                     b.PrimitiveCollection<List<Guid>>("RequiredSupportingQuestIds")
                         .IsRequired()
