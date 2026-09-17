@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
@@ -40,6 +41,7 @@ internal class GenerateQuestChainCommandHandler(
     QuestChainGenerator generator,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
     ICommandHandler<AddQuestCommand> addQuest,
+    ICommandHandler<AddItemsCommand> addItems,
     ILogger<GenerateQuestChainCommandHandler> logger
 ) : ICommandHandler<GenerateQuestChainCommand, bool>
 {
@@ -131,6 +133,15 @@ internal class GenerateQuestChainCommandHandler(
                         $"category={objective.CreatureTypeCategory}, amount={objective.RequiredAmount}",
                     GeneratedObjectiveType.GiveItemKind =>
                         $"item=\"{objective.ItemNameForKind}\", amount={objective.RequiredAmount}, recipient={DescribeEntity(objective.RecipientEntityId!.Value)}",
+                    GeneratedObjectiveType.CollectItem
+                    or GeneratedObjectiveType.GiveItems
+                    or GeneratedObjectiveType.DeliverItem =>
+                        $"newItem=\"{objective.NewItemName}\", heldBy={DescribeEntity(objective.TargetEntityId!.Value)}"
+                            + (
+                                objective.RecipientEntityId is { } itemRecipientId
+                                    ? $", recipient={DescribeEntity(itemRecipientId)}"
+                                    : ""
+                            ),
                     _ => $"target={DescribeEntity(objective.TargetEntityId!.Value)}"
                         + (
                             objective.RecipientEntityId is { } recipientId
@@ -170,38 +181,54 @@ internal class GenerateQuestChainCommandHandler(
         );
 
         var questIdByNodeId = nodes.ToDictionary(node => node.NodeId, _ => Guid.NewGuid());
+        var newItems = new List<Item>();
 
-        foreach (var node in nodes)
-        {
-            var quest = new Quest
+        // Build every quest and its objectives in memory first (minting new Item instances for
+        // CollectItem/GiveItems/DeliverItem into newItems along the way), so all newly-minted items
+        // can be persisted in one batch before any quest that references them is saved.
+        var questBuilds = nodes
+            .Select(node =>
             {
-                Id = questIdByNodeId[node.NodeId],
-                WorldId = worldId,
-                GiverId = node.GiverEntityId,
-                Name = node.Name,
-                Description = node.Description,
-                GoldReward = GoldRewardPerNode,
-                PrerequisiteQuestIds = node
-                    .PrerequisiteNodeIds.Select(nodeId => questIdByNodeId[nodeId])
-                    .ToList(),
-            };
-            quest.ReputationRewards.Add(
-                new QuestReputationReward
+                var quest = new Quest
                 {
+                    Id = questIdByNodeId[node.NodeId],
                     WorldId = worldId,
-                    QuestId = quest.Id,
-                    TargetId = node.GiverEntityId,
-                    TargetType = ReputationTargetType.Creature,
-                    Score = GiverReputationRewardPerNode,
-                }
-            );
+                    GiverId = node.GiverEntityId,
+                    Name = node.Name,
+                    Description = node.Description,
+                    GoldReward = GoldRewardPerNode,
+                    PrerequisiteQuestIds = node
+                        .PrerequisiteNodeIds.Select(nodeId => questIdByNodeId[nodeId])
+                        .ToList(),
+                };
+                quest.ReputationRewards.Add(
+                    new QuestReputationReward
+                    {
+                        WorldId = worldId,
+                        QuestId = quest.Id,
+                        TargetId = node.GiverEntityId,
+                        TargetType = ReputationTargetType.Creature,
+                        Score = GiverReputationRewardPerNode,
+                    }
+                );
 
-            var objectives = node
-                .Objectives.Select(objective =>
-                    MapObjective(worldId, quest.Id, objective, buildingsById)
-                )
-                .ToArray();
+                var objectives = node
+                    .Objectives.Select(objective =>
+                        MapObjective(worldId, quest.Id, objective, buildingsById, newItems)
+                    )
+                    .ToArray();
 
+                return (Quest: quest, Objectives: objectives);
+            })
+            .ToArray();
+
+        if (newItems.Count > 0)
+        {
+            await addItems.Handle(new AddItemsCommand { Items = newItems }, cancellationToken);
+        }
+
+        foreach (var (quest, objectives) in questBuilds)
+        {
             await addQuest.Handle(
                 new AddQuestCommand { Quest = quest, Objectives = objectives },
                 cancellationToken
@@ -214,12 +241,15 @@ internal class GenerateQuestChainCommandHandler(
     // A polymorphic dispatcher over the 10 real QuestObjective subtypes — Validate() in
     // QuestChainGenerator already guarantees every field this switch reads is present and of the
     // right entity type, so the ! null-forgiving operators here are asserting an invariant already
-    // enforced upstream, not skipping a check.
+    // enforced upstream, not skipping a check. CollectItem/GiveItems/DeliverItem don't reference an
+    // existing item — none exists yet — so their branches mint a brand-new Item into newItems,
+    // owned by whichever existing creature TargetEntityId points at, and reference its new id.
     private static QuestObjective MapObjective(
         Guid worldId,
         Guid questId,
         QuestChainGeneratedObjective objective,
-        IReadOnlyDictionary<Guid, Building> buildingsById
+        IReadOnlyDictionary<Guid, Building> buildingsById,
+        List<Item> newItems
     ) =>
         objective.ObjectiveType switch
         {
@@ -280,7 +310,7 @@ internal class GenerateQuestChainCommandHandler(
                 QuestId = questId,
                 Name = objective.Name,
                 Description = objective.Description,
-                ItemId = objective.TargetEntityId!.Value,
+                ItemId = MintItem(worldId, objective, newItems).Id,
             },
             GeneratedObjectiveType.GiveItems => new GiveItemsObjective
             {
@@ -288,7 +318,7 @@ internal class GenerateQuestChainCommandHandler(
                 QuestId = questId,
                 Name = objective.Name,
                 Description = objective.Description,
-                ItemIds = [objective.TargetEntityId!.Value],
+                ItemIds = [MintItem(worldId, objective, newItems).Id],
                 RecipientId = objective.RecipientEntityId!.Value,
                 RequiredAmount = objective.RequiredAmount,
             },
@@ -308,9 +338,31 @@ internal class GenerateQuestChainCommandHandler(
                 QuestId = questId,
                 Name = objective.Name,
                 Description = objective.Description,
-                ItemId = objective.TargetEntityId!.Value,
+                ItemId = MintItem(worldId, objective, newItems).Id,
                 RecipientId = objective.RecipientEntityId!.Value,
             },
             _ => throw new ArgumentOutOfRangeException(nameof(objective)),
         };
+
+    private static Item MintItem(
+        Guid worldId,
+        QuestChainGeneratedObjective objective,
+        List<Item> newItems
+    )
+    {
+        var item = new Item
+        {
+            WorldId = worldId,
+            Name = objective.NewItemName!,
+            Description = objective.Description,
+            Quantity = 1,
+            Ownership = new ItemOwnership
+            {
+                OwnerId = objective.TargetEntityId!.Value,
+                OwnerType = OwnerType.Creature,
+            },
+        };
+        newItems.Add(item);
+        return item;
+    }
 }
