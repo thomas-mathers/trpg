@@ -165,6 +165,69 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
     }
 
     [Fact]
+    public async Task Handle_MintsANewItemOwnedByTheHolder_WhenObjectiveIsCollectItem()
+    {
+        // Arrange
+        var requestId = await SeedPendingRequest();
+        _chatClient.QuestChainSchemaOverride = new QuestChainSchema
+        {
+            Nodes =
+            [
+                new QuestChainNodeSchema
+                {
+                    NodeId = "node-1",
+                    Name = "Recover The Signet",
+                    Description = "Recover the signet ring.",
+                    GiverEntityId = _giver.Id.ToString(),
+                    Objectives =
+                    [
+                        new QuestChainObjectiveSchema
+                        {
+                            Name = "Collect Ring",
+                            Description = "Take the signet ring.",
+                            ObjectiveType = nameof(GeneratedObjectiveType.CollectItem),
+                            TargetEntityId = _giver.Id.ToString(),
+                            NewItemName = "Signet Ring",
+                        },
+                    ],
+                },
+            ],
+        };
+
+        // Act
+        var result = await _handler.Handle(
+            new GenerateQuestChainCommand
+            {
+                RequestId = requestId,
+                ChainPremise = "A test premise.",
+                ChainLength = 1,
+                AvailableEntities =
+                [
+                    new QuestChainCandidateEntity(
+                        _giver.Id,
+                        _giver.Name,
+                        QuestChainEntityTypes.Creature
+                    ),
+                ],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(result);
+        var item = await _context.Items.SingleAsync(
+            i => i.WorldId == _worldId && i.Name == "Signet Ring",
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_giver.Id, item.Ownership.OwnerId);
+        Assert.Equal(OwnerType.Creature, item.Ownership.OwnerType);
+        var collectObjective = await _context
+            .QuestObjectives.OfType<CollectItemObjective>()
+            .SingleAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(item.Id, collectObjective.ItemId);
+    }
+
+    [Fact]
     public async Task Handle_MarksTheRequestFailed_WhenGenerationNeverProducesValidOutput()
     {
         // Arrange — an empty chain never passes validation, so GetValidatedJson exhausts its retries
