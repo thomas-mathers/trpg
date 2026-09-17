@@ -6,10 +6,7 @@ public enum FactDisclosureApproach
     Intimidation,
 }
 
-// Recorded when a bribe or intimidation attempt fails outright, so the player can't just repeat
-// the same tactic hoping for a different result under deterministic scoring. Cleared once any
-// supporting quest for the fact completes, since that raises the NPC's overall disposition rather
-// than validating one specific tactic.
+// A failed approach stays unavailable until supporting progress changes the NPC's disposition.
 public class FactDisclosureLockout
 {
     public Guid Id { get; init; } = Guid.NewGuid();
