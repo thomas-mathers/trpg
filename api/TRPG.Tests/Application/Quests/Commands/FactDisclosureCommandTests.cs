@@ -46,7 +46,21 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
 
         _context.Creatures.AddRange(_player, _npc);
         _context.Facts.Add(_fact);
+        _context.Items.Add(Builders.MakeGold(WorldId, quantity: 10_000, ownerId: _player.Id));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<int> GetPlayerGold()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext
+            .Items.OfType<Gold>()
+            .Where(item =>
+                item.Ownership.OwnerId == _player.Id
+                && item.Ownership.OwnerType == OwnerType.Creature
+            )
+            .Select(item => item.Quantity)
+            .SingleAsync(TestContext.Current.CancellationToken);
     }
 
     public async ValueTask DisposeAsync()
@@ -253,6 +267,64 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
         // Assert
         Assert.Equal(FactDisclosureOutcome.Disclosed, result.Outcome);
         Assert.True(await HasLearnedTheFact());
+        Assert.Equal(9000, await GetPlayerGold());
+    }
+
+    [Fact]
+    public async Task OfferBribeForFact_ReturnsCannotAfford_WhenThePlayerLacksTheGold()
+    {
+        // Arrange
+        var poorPlayer = Builders.MakeCreature(WorldId, level: 5);
+        _context.Creatures.Add(poorPlayer);
+        _context.Items.Add(Builders.MakeGold(WorldId, quantity: 100, ownerId: poorPlayer.Id));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var quest = Builders.MakeQuest(_npc.Id, WorldId);
+        var objective = Builders.MakeLearnFactFromCreatureObjective(
+            quest.Id,
+            _npc.Id,
+            _fact.Id,
+            WorldId,
+            bribeWillingness: 100
+        );
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = poorPlayer.Id,
+                QuestId = quest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        _context.CreatureQuestObjectives.Add(
+            Builders.MakeCreatureQuestObjective(poorPlayer.Id, objective.Id, WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _bribeHandler.Handle(
+            new OfferBribeForFactCommand
+            {
+                WorldId = WorldId,
+                PlayerId = poorPlayer.Id,
+                NpcId = _npc.Id,
+                FactId = _fact.Id,
+                GoldOffered = 1000,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(FactDisclosureOutcome.CannotAfford, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var gold = await verifyContext
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                item => item.Ownership.OwnerId == poorPlayer.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(100, gold.Quantity);
     }
 
     [Fact]
@@ -281,6 +353,7 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
         Assert.Equal(_player.Id, lockout.PlayerId);
         Assert.Equal(_npc.Id, lockout.NpcId);
         Assert.Equal(_fact.Id, lockout.FactId);
+        Assert.Equal(10_000, await GetPlayerGold());
     }
 
     [Fact]

@@ -4,6 +4,7 @@ public enum FactDisclosureOutcome
 {
     Blocked,
     TooWeak,
+    CannotAfford,
     LockedOut,
     Failed,
     Disclosed,
