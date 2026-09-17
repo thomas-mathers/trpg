@@ -5,9 +5,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.Queries;
 
-// Lets a conversation tool find which fact an NPC is withholding without the LLM ever supplying a
-// FactId itself — it only ever knows the NPC by name. GetActiveLearnFactObjectiveQuery is the
-// FactId-known counterpart the resolved commands use once this has found it.
+// Conversation tools find the NPC's active fact without exposing fact identifiers to the LLM.
 public class GetActiveLearnFactObjectiveForNpcQuery
 {
     public required Guid WorldId { get; init; }

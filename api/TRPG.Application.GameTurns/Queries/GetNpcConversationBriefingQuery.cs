@@ -75,8 +75,7 @@ public record NpcConversationHistoryResult(
 
 public record NpcConversationRoomBookingStatus(bool HasActiveBooking, string? RoomName);
 
-// Subject only, never the fact's Value — the player has to actually get it out of the NPC via
-// ask_about_fact/offer_bribe/intimidate, not read it off the briefing.
+// The briefing exposes only the subject, so the player must obtain the fact from the NPC.
 public record NpcConversationWithheldFact(string Subject, string Guidance);
 
 public record NpcConversationQuest(string Name);

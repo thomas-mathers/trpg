@@ -20,8 +20,7 @@ public class OfferBribeForFactCommand
     public required int GoldOffered { get; init; }
 }
 
-// A player can't offer more gold than they actually have (checked up front, before any scoring),
-// and a successful bribe actually spends it — a failed one doesn't, since the NPC never took it.
+// Gold changes hands only when the bribe discloses the primary fact.
 internal class OfferBribeForFactCommandHandler(
     FactDisclosureResolver resolver,
     IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,

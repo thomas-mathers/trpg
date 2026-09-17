@@ -10,17 +10,14 @@ public class FactDisclosureScoreCalculatorTests
         SuccessThreshold = 100,
         ReputationScoreDivisor = 2,
         GoldPerBribeScorePoint = 10,
-        MinimumLevelAdvantageToIntimidate = -2,
+        MinimumLevelAdvantageToIntimidate = 0,
         IntimidationScorePerLevelAdvantage = 15,
     };
 
     [Theory]
     [InlineData(5, 5, true)]
-    [InlineData(5, 6, true)]
-    [InlineData(5, 7, true)]
-    [InlineData(5, 8, false)]
-    [InlineData(1, 3, true)]
-    [InlineData(1, 4, false)]
+    [InlineData(5, 6, false)]
+    [InlineData(1, 2, false)]
     public void CanAttemptIntimidation_ReflectsTheMinimumLevelAdvantageFloor(
         int playerLevel,
         int npcLevel,

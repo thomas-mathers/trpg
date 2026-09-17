@@ -13,9 +13,7 @@ public class AskAboutFactCommand
     public required Guid FactId { get; init; }
 }
 
-// Reputation and completed supporting quests alone, no bribe or intimidation component. Free of
-// stakes and deterministic, so there is no lockout to worry about — repeating this without
-// anything else changing always gives the same answer.
+// Asking is deterministic and has no approach-specific lockout.
 internal class AskAboutFactCommandHandler(
     FactDisclosureResolver resolver,
     IOptionsMonitor<FactDisclosureOptions> factDisclosureOptions

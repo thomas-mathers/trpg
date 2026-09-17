@@ -64,10 +64,7 @@ public sealed class DeliverItemObjective : QuestObjective
     public Guid RecipientId { get; init; }
 }
 
-// Learning the fact is a hard gate while any RequiredSupportingQuestIds entry is incomplete, no
-// matter how high the willingness score climbs — completing one does not just help, it is
-// mandatory. WeightedSupportingQuestIds only adds to the score once its quest is complete. Neither
-// list is a PrerequisiteQuestIds substitute: the NPC is always talkable, only disclosure is gated.
+// Supporting quests gate or increase disclosure without preventing the NPC from being talked to.
 public sealed class LearnFactFromCreatureObjective : QuestObjective
 {
     public Guid CreatureId { get; init; }

@@ -12,10 +12,7 @@ namespace TRPG.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // LearnFactFromCreatureObjective claims the plain "creature_id" column under EF's TPH
-            // sibling-name convention now that a 4th CreatureId-named sibling exists, displacing
-            // KillCreatureObjective's existing data — rename to preserve it instead of leaving it
-            // behind in a vacated column.
+            // Preserve KillCreatureObjective data after LearnFactFromCreatureObjective claims creature_id.
             migrationBuilder.RenameColumn(
                 name: "creature_id",
                 table: "quest_objectives",

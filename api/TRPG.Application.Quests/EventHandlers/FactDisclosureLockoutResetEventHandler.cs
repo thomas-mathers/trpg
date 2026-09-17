@@ -5,9 +5,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.EventHandlers;
 
-// Completing any supporting quest for a fact raises the NPC's overall disposition, so it clears
-// every lockout on that fact regardless of which approach failed — not just the one the completed
-// quest happens to be listed under.
+// Supporting-quest progress can make every disclosure approach viable again.
 internal sealed class FactDisclosureLockoutResetEventHandler(IQuestsDbContext context)
     : IDomainEventConsumer<QuestCompletedEvent>
 {
