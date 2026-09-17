@@ -760,6 +760,33 @@ internal static class Builders
             RequiredAmount = requiredAmount,
         };
 
+    public static LearnFactFromCreatureObjective MakeLearnFactFromCreatureObjective(
+        Guid questId,
+        Guid creatureId,
+        Guid factId,
+        Guid? worldId = null,
+        int baseWillingness = 0,
+        int bribeWillingness = 0,
+        int intimidationWillingness = 0,
+        IReadOnlyCollection<Guid>? requiredSupportingQuestIds = null,
+        IReadOnlyCollection<SupportingFactQuestWeight>? weightedSupportingQuestIds = null,
+        string? name = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            QuestId = questId,
+            Name = name ?? $"Objective-{Guid.NewGuid():N}",
+            Description = "A test objective",
+            CreatureId = creatureId,
+            FactId = factId,
+            BaseWillingness = baseWillingness,
+            BribeWillingness = bribeWillingness,
+            IntimidationWillingness = intimidationWillingness,
+            RequiredSupportingQuestIds = requiredSupportingQuestIds?.ToList() ?? [],
+            WeightedSupportingQuestIds = weightedSupportingQuestIds?.ToList() ?? [],
+        };
+
     public static CreatureQuestObjective MakeCreatureQuestObjective(
         Guid creatureId,
         Guid objectiveId,

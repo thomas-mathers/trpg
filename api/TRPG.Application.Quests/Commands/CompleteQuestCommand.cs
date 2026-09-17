@@ -28,6 +28,7 @@ internal class CompleteQuestCommandHandler(
     IQuestsDbContext context,
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
+    IDomainEventPublisher<QuestCompletedEvent> questCompleted,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
     IQueryHandler<GetItemsByNameForOwnerQuery, IReadOnlyList<Item>> getItemsByNameForOwner,
     IQueryHandler<GetReportedStolenItemIdsQuery, IReadOnlySet<Guid>> getReportedStolenItemIds,
@@ -141,6 +142,11 @@ internal class CompleteQuestCommandHandler(
         creatureQuest.IsTracked = false;
 
         await context.SaveChangesAsync(cancellationToken);
+
+        await questCompleted.Publish(
+            new QuestCompletedEvent(command.PlayerId, command.WorldId, command.QuestId),
+            cancellationToken
+        );
 
         await setItemsCanTrade.Handle(
             new SetItemsCanTradeCommand { ItemIds = requiredItemIds, CanTrade = true },

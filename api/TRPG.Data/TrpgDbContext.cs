@@ -90,6 +90,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<Prop> Props => Set<Prop>();
     public DbSet<QuestObjective> QuestObjectives => Set<QuestObjective>();
     public DbSet<Quest> Quests => Set<Quest>();
+    public DbSet<FactDisclosureLockout> FactDisclosureLockouts => Set<FactDisclosureLockout>();
     public DbSet<QuestReputationReward> QuestReputationRewards => Set<QuestReputationReward>();
     public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Reputation> Reputations => Set<Reputation>();
@@ -537,7 +538,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<GiveItemKindObjective>("GiveItemKind")
                 .HasValue<FreeCreatureObjective>("FreeCreature")
                 .HasValue<ClearLocationObjective>("ClearLocation")
-                .HasValue<DeliverItemObjective>("DeliverItem");
+                .HasValue<DeliverItemObjective>("DeliverItem")
+                .HasValue<LearnFactFromCreatureObjective>("LearnFactFromCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
             entity.Property(o => o.RequiredAmount).HasDefaultValue(1);
@@ -546,6 +548,26 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         modelBuilder.Entity<GiveItemsObjective>(entity =>
         {
             entity.Property(o => o.ItemIds).HasColumnType("uuid[]");
+        });
+
+        modelBuilder.Entity<LearnFactFromCreatureObjective>(entity =>
+        {
+            entity.Property(o => o.RequiredSupportingQuestIds).HasColumnType("uuid[]");
+            entity.OwnsMany(o => o.WeightedSupportingQuestIds, weighted => weighted.ToJson());
+        });
+
+        modelBuilder.Entity<FactDisclosureLockout>(entity =>
+        {
+            entity
+                .HasIndex(l => new
+                {
+                    l.PlayerId,
+                    l.NpcId,
+                    l.FactId,
+                    l.Approach,
+                })
+                .IsUnique();
+            entity.HasIndex(l => l.WorldId);
         });
 
         modelBuilder.Entity<CreatureSkill>(entity =>

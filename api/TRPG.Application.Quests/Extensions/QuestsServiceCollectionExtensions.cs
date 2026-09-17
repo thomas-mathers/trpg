@@ -9,6 +9,7 @@ public static class QuestsServiceCollectionExtensions
     public static IServiceCollection AddQuestServices(this IServiceCollection serviceCollection) =>
         serviceCollection
             .AddTransient<QuestObjectiveAdvancer>()
+            .AddTransient<FactDisclosureResolver>()
             .AddTransient<CreatureKilledQuestEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureKilledQuestEventHandler>()
@@ -36,5 +37,13 @@ public static class QuestsServiceCollectionExtensions
             .AddTransient<CreatureFreedQuestEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureFreedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureFreedQuestEventHandler>()
+            )
+            .AddTransient<FactDisclosedQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<NpcFactDisclosedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<FactDisclosedQuestEventHandler>()
+            )
+            .AddTransient<FactDisclosureLockoutResetEventHandler>()
+            .AddTransient<IDomainEventConsumer<QuestCompletedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<FactDisclosureLockoutResetEventHandler>()
             );
 }
