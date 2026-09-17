@@ -62,10 +62,11 @@ internal static class ChatClientExtensions
             if (error is not null)
             {
                 logger.LogWarning(
-                    "[perf] Validation failed (attempt {Attempt}) after {ElapsedMs}ms: {Error}",
+                    "[perf] Validation failed (attempt {Attempt}) after {ElapsedMs}ms: {Error}. Generated JSON: {GeneratedJson}",
                     attempt + 1,
                     attemptStopwatch.ElapsedMilliseconds,
-                    error
+                    error,
+                    JsonSerializer.Serialize(result, AIJsonUtilities.DefaultOptions)
                 );
                 currentUserPrompt = error + " " + userPrompt;
                 continue;

@@ -35,8 +35,6 @@ internal class TickerQuestChainGenerationScheduler(ITimeTickerManager<TrpgTimeTi
                 Request = TickerHelper.CreateTickerRequest(command),
                 ExecutionTime = DateTime.UtcNow,
                 Function = TickerFunctionProvider.GetFunctionName<GenerateQuestChainJob>(),
-                Retries = 3,
-                RetryIntervals = [1, 2, 4],
             },
             cancellationToken
         );

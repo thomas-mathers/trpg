@@ -30,7 +30,7 @@ public class QuestChainGeneratorTests
         var result = await generator.Generate(input, TestContext.Current.CancellationToken);
 
         // Assert
-        var node = Assert.Single(result);
+        var node = Assert.Single(result.Nodes);
         Assert.Equal(entity.Id, node.GiverEntityId);
         var objective = Assert.Single(node.Objectives);
         Assert.Equal(GeneratedObjectiveType.SpeakToCreature, objective.ObjectiveType);

@@ -2,8 +2,10 @@ using System.Text;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Books.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.WorldGeneration.Generators;
@@ -39,7 +41,9 @@ public interface IQuestChainGenerationScheduler
 internal class GenerateQuestChainCommandHandler(
     ILocationSimulationDbContext context,
     QuestChainGenerator generator,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
+    ICommandHandler<AddFactsCommand> addFacts,
     ICommandHandler<AddQuestCommand> addQuest,
     ICommandHandler<AddItemsCommand> addItems,
     ILogger<GenerateQuestChainCommandHandler> logger
@@ -67,7 +71,7 @@ internal class GenerateQuestChainCommandHandler(
 
         try
         {
-            var nodes = await generator.Generate(
+            var generatedChain = await generator.Generate(
                 new QuestChainGeneratorInput
                 {
                     ChainPremise = command.ChainPremise,
@@ -77,13 +81,18 @@ internal class GenerateQuestChainCommandHandler(
                 cancellationToken
             );
 
-            LogGeneratedChain(command, nodes);
+            LogGeneratedChain(command, generatedChain);
 
-            await Persist(request.WorldId, nodes, cancellationToken);
+            await Persist(
+                request.WorldId,
+                command.AvailableEntities,
+                generatedChain,
+                cancellationToken
+            );
 
             request.Status = QuestChainGenerationStatus.Completed;
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception)
         {
             logger.LogError(
                 exception,
@@ -93,7 +102,7 @@ internal class GenerateQuestChainCommandHandler(
             request.Status = QuestChainGenerationStatus.Failed;
         }
 
-        await context.SaveChangesAsync(cancellationToken);
+        await context.SaveChangesAsync(CancellationToken.None);
         return request.Status == QuestChainGenerationStatus.Completed;
     }
 
@@ -102,7 +111,7 @@ internal class GenerateQuestChainCommandHandler(
     // ultimately succeeded.
     private void LogGeneratedChain(
         GenerateQuestChainCommand command,
-        IReadOnlyList<QuestChainGeneratedNode> nodes
+        QuestChainGeneratedResult generatedChain
     )
     {
         var entityNamesById = command.AvailableEntities.ToDictionary(
@@ -113,9 +122,13 @@ internal class GenerateQuestChainCommandHandler(
 
         var builder = new StringBuilder();
         builder.AppendLine(
-            $"Generated quest chain for request {command.RequestId} ({nodes.Count} nodes):"
+            $"Generated quest chain for request {command.RequestId} ({generatedChain.Nodes.Count} nodes):"
         );
-        foreach (var node in nodes)
+        foreach (var fact in generatedChain.Facts)
+        {
+            builder.AppendLine($"Fact [{fact.Key}] {fact.Subject}: {fact.Value}");
+        }
+        foreach (var node in generatedChain.Nodes)
         {
             var prerequisites =
                 node.PrerequisiteNodeIds.Count == 0
@@ -165,10 +178,18 @@ internal class GenerateQuestChainCommandHandler(
 
     private async Task Persist(
         Guid worldId,
-        IReadOnlyList<QuestChainGeneratedNode> nodes,
+        IReadOnlyList<QuestChainCandidateEntity> availableEntities,
+        QuestChainGeneratedResult generatedChain,
         CancellationToken cancellationToken
     )
     {
+        var nodes = generatedChain.Nodes;
+        await ValidateCurrentEntities(
+            worldId,
+            availableEntities,
+            generatedChain,
+            cancellationToken
+        );
         var buildings = await getBuildingsByWorldId.Handle(
             new GetBuildingsByWorldIdQuery { WorldId = worldId },
             cancellationToken
@@ -180,6 +201,16 @@ internal class GenerateQuestChainCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
+        var factIdByKey = generatedChain.Facts.ToDictionary(fact => fact.Key, _ => Guid.NewGuid());
+        var facts = generatedChain
+            .Facts.Select(fact => new Fact
+            {
+                Id = factIdByKey[fact.Key],
+                WorldId = worldId,
+                Subject = fact.Subject,
+                Value = fact.Value,
+            })
+            .ToArray();
         var questIdByNodeId = nodes.ToDictionary(node => node.NodeId, _ => Guid.NewGuid());
         var newItems = new List<Item>();
 
@@ -197,6 +228,9 @@ internal class GenerateQuestChainCommandHandler(
                     Name = node.Name,
                     Description = node.Description,
                     GoldReward = GoldRewardPerNode,
+                    RequiredFactId = node.RequiredFactKey is { } factKey
+                        ? factIdByKey[factKey]
+                        : null,
                     PrerequisiteQuestIds = node
                         .PrerequisiteNodeIds.Select(nodeId => questIdByNodeId[nodeId])
                         .ToList(),
@@ -214,13 +248,26 @@ internal class GenerateQuestChainCommandHandler(
 
                 var objectives = node
                     .Objectives.Select(objective =>
-                        MapObjective(worldId, quest.Id, objective, buildingsById, newItems)
+                        MapObjective(
+                            worldId,
+                            quest.Id,
+                            objective,
+                            questIdByNodeId,
+                            factIdByKey,
+                            buildingsById,
+                            newItems
+                        )
                     )
                     .ToArray();
 
                 return (Quest: quest, Objectives: objectives);
             })
             .ToArray();
+
+        if (facts.Length > 0)
+        {
+            await addFacts.Handle(new AddFactsCommand { Facts = facts }, cancellationToken);
+        }
 
         if (newItems.Count > 0)
         {
@@ -238,6 +285,49 @@ internal class GenerateQuestChainCommandHandler(
         transaction.Complete();
     }
 
+    private async Task ValidateCurrentEntities(
+        Guid worldId,
+        IReadOnlyList<QuestChainCandidateEntity> availableEntities,
+        QuestChainGeneratedResult generatedChain,
+        CancellationToken cancellationToken
+    )
+    {
+        var entityTypeById = availableEntities.ToDictionary(
+            entity => entity.Id,
+            entity => entity.Type
+        );
+        var referencedCreatureIds = generatedChain
+            .Nodes.SelectMany(node =>
+                node.Objectives.SelectMany(objective =>
+                    new[]
+                    {
+                        node.GiverEntityId,
+                        objective.TargetEntityId,
+                        objective.RecipientEntityId,
+                    }
+                )
+            )
+            .Where(id => id is { } value && entityTypeById[value] == QuestChainEntityTypes.Creature)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToArray();
+        var creatures = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = referencedCreatureIds },
+            cancellationToken
+        );
+        if (
+            creatures.Count != referencedCreatureIds.Length
+            || creatures.Values.Any(creature =>
+                creature.WorldId != worldId || creature.State == CreatureState.Dead
+            )
+        )
+        {
+            throw new InvalidOperationException(
+                "A generated quest-chain creature is no longer available."
+            );
+        }
+    }
+
     // A polymorphic dispatcher over the 10 real QuestObjective subtypes — Validate() in
     // QuestChainGenerator already guarantees every field this switch reads is present and of the
     // right entity type, so the ! null-forgiving operators here are asserting an invariant already
@@ -248,6 +338,8 @@ internal class GenerateQuestChainCommandHandler(
         Guid worldId,
         Guid questId,
         QuestChainGeneratedObjective objective,
+        IReadOnlyDictionary<string, Guid> questIdByNodeId,
+        IReadOnlyDictionary<string, Guid> factIdByKey,
         IReadOnlyDictionary<Guid, Building> buildingsById,
         List<Item> newItems
     ) =>
@@ -303,6 +395,31 @@ internal class GenerateQuestChainCommandHandler(
                 Name = objective.Name,
                 Description = objective.Description,
                 CreatureId = objective.TargetEntityId!.Value,
+            },
+            GeneratedObjectiveType.LearnFactFromCreature => new LearnFactFromCreatureObjective
+            {
+                WorldId = worldId,
+                QuestId = questId,
+                Name = objective.Name,
+                Description = objective.Description,
+                CreatureId = objective.TargetEntityId!.Value,
+                FactId = factIdByKey[objective.FactKey!],
+                ReasonFactId = objective.ReasonFactKey is { } reasonFactKey
+                    ? factIdByKey[reasonFactKey]
+                    : null,
+                BaseWillingness = objective.BaseWillingness!.Value,
+                BribeWillingness = objective.BribeWillingness!.Value,
+                IntimidationWillingness = objective.IntimidationWillingness!.Value,
+                RequiredSupportingQuestIds = objective
+                    .RequiredSupportingQuestNodeIds.Select(nodeId => questIdByNodeId[nodeId])
+                    .ToList(),
+                WeightedSupportingQuestIds = objective
+                    .WeightedSupportingQuestNodeIds.Select(support => new SupportingFactQuestWeight
+                    {
+                        QuestId = questIdByNodeId[support.NodeId],
+                        Weight = support.Weight,
+                    })
+                    .ToList(),
             },
             GeneratedObjectiveType.CollectItem => new CollectItemObjective
             {

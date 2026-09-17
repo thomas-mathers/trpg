@@ -23,7 +23,7 @@ public static class QuestChainEntityTypes
     public static readonly HashSet<string> ExplorableTypes = [Dungeon, Building];
 }
 
-public record QuestChainCandidateEntity(Guid Id, string Name, string Type);
+public record QuestChainCandidateEntity(Guid Id, string Name, string Type, string Description = "");
 
 public class QuestChainGeneratorInput
 {
@@ -45,6 +45,7 @@ public enum GeneratedObjectiveType
     ClearLocation,
     ExploreLocation,
     SpeakToCreature,
+    LearnFactFromCreature,
     CollectItem,
     GiveItems,
     GiveItemKind,
@@ -53,7 +54,15 @@ public enum GeneratedObjectiveType
 
 internal class QuestChainSchema
 {
+    public List<QuestChainFactSchema> Facts { get; init; } = [];
     public List<QuestChainNodeSchema> Nodes { get; init; } = [];
+}
+
+internal class QuestChainFactSchema
+{
+    public string Key { get; init; } = "";
+    public string Subject { get; init; } = "";
+    public string Value { get; init; } = "";
 }
 
 internal class QuestChainNodeSchema
@@ -62,8 +71,15 @@ internal class QuestChainNodeSchema
     public string Name { get; init; } = "";
     public string Description { get; init; } = "";
     public string? GiverEntityId { get; init; }
+    public string? RequiredFactKey { get; init; }
     public List<string> PrerequisiteNodeIds { get; init; } = [];
     public List<QuestChainObjectiveSchema> Objectives { get; init; } = [];
+}
+
+internal class QuestChainSupportingQuestSchema
+{
+    public string NodeId { get; init; } = "";
+    public int Weight { get; init; }
 }
 
 internal class QuestChainObjectiveSchema
@@ -77,16 +93,26 @@ internal class QuestChainObjectiveSchema
     public string? NewItemName { get; init; }
     public string? CreatureTypeCategory { get; init; }
     public int RequiredAmount { get; init; } = 1;
+    public string? FactKey { get; init; }
+    public string? ReasonFactKey { get; init; }
+    public int? BaseWillingness { get; init; }
+    public int? BribeWillingness { get; init; }
+    public int? IntimidationWillingness { get; init; }
+    public List<string> RequiredSupportingQuestNodeIds { get; init; } = [];
+    public List<QuestChainSupportingQuestSchema> WeightedSupportingQuestNodeIds { get; init; } = [];
 }
 
 // Public result shape: NodeId stays a local string label (the caller resolves it to a real Guid
 // per node when persisting), everything else is fully typed/parsed — the internal wire schema
 // above never crosses the assembly boundary.
+public record QuestChainGeneratedFact(string Key, string Subject, string Value);
+
 public record QuestChainGeneratedNode(
     string NodeId,
     string Name,
     string Description,
     Guid GiverEntityId,
+    string? RequiredFactKey,
     IReadOnlyList<string> PrerequisiteNodeIds,
     IReadOnlyList<QuestChainGeneratedObjective> Objectives
 );
@@ -100,7 +126,21 @@ public record QuestChainGeneratedObjective(
     string? ItemNameForKind,
     string? NewItemName,
     CreatureType? CreatureTypeCategory,
-    int RequiredAmount
+    int RequiredAmount,
+    string? FactKey,
+    string? ReasonFactKey,
+    int? BaseWillingness,
+    int? BribeWillingness,
+    int? IntimidationWillingness,
+    IReadOnlyList<string> RequiredSupportingQuestNodeIds,
+    IReadOnlyList<QuestChainGeneratedSupportingQuest> WeightedSupportingQuestNodeIds
+);
+
+public record QuestChainGeneratedSupportingQuest(string NodeId, int Weight);
+
+public record QuestChainGeneratedResult(
+    IReadOnlyList<QuestChainGeneratedFact> Facts,
+    IReadOnlyList<QuestChainGeneratedNode> Nodes
 );
 
 public class QuestChainGenerator(
@@ -111,7 +151,7 @@ public class QuestChainGenerator(
     private static readonly IReadOnlySet<string> ValidObjectiveTypes =
         Enum.GetNames<GeneratedObjectiveType>().ToHashSet(StringComparer.Ordinal);
 
-    public async Task<IReadOnlyList<QuestChainGeneratedNode>> Generate(
+    public async Task<QuestChainGeneratedResult> Generate(
         QuestChainGeneratorInput input,
         CancellationToken cancellationToken
     )
@@ -124,7 +164,7 @@ public class QuestChainGenerator(
         var entityList = string.Join(
             "\n",
             input.AvailableEntities.Select(entity =>
-                $"- id={entity.Id}, name=\"{entity.Name}\", type={entity.Type}"
+                $"- id={entity.Id}, name=\"{entity.Name}\", type={entity.Type}, details=\"{entity.Description}\""
             )
         );
 
@@ -161,15 +201,21 @@ public class QuestChainGenerator(
               labels for this chain only, not real entity ids — use them only in
               PrerequisiteNodeIds to wire up the graph.
             - A node with an empty PrerequisiteNodeIds list is available from the very start.
-            - Use branching: give at least one node 2-3 sibling nodes that share the same single
-              prerequisite, representing mutually exclusive paths the player can choose between
-              (completing one forecloses the others).
+            - PrerequisiteNodeIds use AND semantics: a node unlocks only after every listed
+              prerequisite is complete. Do not represent mutually exclusive paths or OR dependencies.
             - Use convergence at least once: a node may list more than one PrerequisiteNodeIds
               entry, meaning it only unlocks once every one of those nodes is complete.
             - The graph must be acyclic — no node may (transitively) require itself.
-            - Produce approximately {input.ChainLength} nodes total across the whole graph.
+            - Produce exactly {input.ChainLength} nodes total across the whole graph.
             - Every Name field (on each node and each objective) must be a short quest-log title,
               3-6 words, distinct from the longer Description field. Never leave Name blank.
+            - You may add at most one LearnFactFromCreature objective. Its FactKey identifies an
+              authored top-level Fact with a lowercase kebab-case Key, nonblank Subject, and nonblank
+              Value. The fact content is player-facing: write the actual secret, motive, or lead.
+              Its optional ReasonFactKey identifies another authored fact that is revealed after a
+              second unsuccessful attempt. Supporting quest nodes must set RequiredFactKey to that
+              reason, and may be listed as required support or weighted support with a positive Weight.
+              BaseWillingness, BribeWillingness, and IntimidationWillingness are each 0 through 100.
 
             Every objective must be one of these exact ObjectiveType values — the game can only
             mechanically enforce these, nothing else, so do not invent a different kind of
@@ -187,6 +233,9 @@ public class QuestChainGenerator(
             - SpeakToCreature: start a conversation with one specific creature. TargetEntityId =
               that creature's id. (This completes the instant the conversation opens — it cannot
               gate on what gets said or learned.)
+            - LearnFactFromCreature: learn an authored Fact from a specific creature. TargetEntityId
+              = that creature's id. FactKey, the three willingness values, and all supporting-node
+              references must be supplied.
             - CollectItem: acquire a specific new item, no delivery required. TargetEntityId = who
               currently holds it. NewItemName = the item's name.
             - GiveItems: acquire a specific new item and hand it to a recipient. TargetEntityId =
@@ -217,7 +266,7 @@ public class QuestChainGenerator(
             logger,
             systemPrompt,
             userPrompt,
-            schema => Validate(schema, entityTypesById),
+            schema => Validate(schema, entityTypesById, input.ChainLength),
             cancellationToken,
             // A multi-node DAG with several objectives per node runs noticeably longer than the
             // other world-gen schemas (factions, geography) this helper was originally sized for —
@@ -225,36 +274,61 @@ public class QuestChainGenerator(
             options: new ChatOptions { MaxOutputTokens = 8192 }
         );
 
-        return schema
-            .Nodes.Select(node => new QuestChainGeneratedNode(
-                node.NodeId,
-                node.Name,
-                node.Description,
-                Guid.Parse(node.GiverEntityId!),
-                node.PrerequisiteNodeIds,
-                node.Objectives.Select(objective => new QuestChainGeneratedObjective(
-                        objective.Name,
-                        objective.Description,
-                        Enum.Parse<GeneratedObjectiveType>(objective.ObjectiveType),
-                        objective.TargetEntityId is { } targetId ? Guid.Parse(targetId) : null,
-                        objective.RecipientEntityId is { } recipientId
-                            ? Guid.Parse(recipientId)
-                            : null,
-                        objective.ItemNameForKind,
-                        objective.NewItemName,
-                        objective.CreatureTypeCategory is { } category
-                            ? Enum.Parse<CreatureType>(category, true)
-                            : null,
-                        objective.RequiredAmount
-                    ))
-                    .ToArray()
-            ))
-            .ToArray();
+        return new QuestChainGeneratedResult(
+            schema
+                .Facts.Select(fact => new QuestChainGeneratedFact(
+                    fact.Key,
+                    fact.Subject,
+                    fact.Value
+                ))
+                .ToArray(),
+            schema
+                .Nodes.Select(node => new QuestChainGeneratedNode(
+                    node.NodeId,
+                    node.Name,
+                    node.Description,
+                    Guid.Parse(node.GiverEntityId!),
+                    node.RequiredFactKey,
+                    node.PrerequisiteNodeIds,
+                    node.Objectives.Select(objective => new QuestChainGeneratedObjective(
+                            objective.Name,
+                            objective.Description,
+                            Enum.Parse<GeneratedObjectiveType>(objective.ObjectiveType),
+                            objective.TargetEntityId is { } targetId ? Guid.Parse(targetId) : null,
+                            objective.RecipientEntityId is { } recipientId
+                                ? Guid.Parse(recipientId)
+                                : null,
+                            objective.ItemNameForKind,
+                            objective.NewItemName,
+                            objective.CreatureTypeCategory is { } category
+                                ? Enum.Parse<CreatureType>(category, true)
+                                : null,
+                            objective.RequiredAmount,
+                            objective.FactKey,
+                            objective.ReasonFactKey,
+                            objective.BaseWillingness,
+                            objective.BribeWillingness,
+                            objective.IntimidationWillingness,
+                            objective.RequiredSupportingQuestNodeIds,
+                            objective
+                                .WeightedSupportingQuestNodeIds.Select(
+                                    support => new QuestChainGeneratedSupportingQuest(
+                                        support.NodeId,
+                                        support.Weight
+                                    )
+                                )
+                                .ToArray()
+                        ))
+                        .ToArray()
+                ))
+                .ToArray()
+        );
     }
 
     internal static string? Validate(
         QuestChainSchema schema,
-        IReadOnlyDictionary<string, string> entityTypesById
+        IReadOnlyDictionary<string, string> entityTypesById,
+        int? expectedNodeCount = null
     )
     {
         if (schema.Nodes.Count == 0)
@@ -262,9 +336,32 @@ public class QuestChainGenerator(
             return "The chain must contain at least one node.";
         }
 
+        if (expectedNodeCount is { } count && schema.Nodes.Count != count)
+        {
+            return $"The chain must contain exactly {count} nodes.";
+        }
+
+        var factsError = ValidateFacts(schema.Facts);
+        if (factsError != null)
+        {
+            return factsError;
+        }
+
+        var factKeys = schema.Facts.Select(fact => fact.Key).ToHashSet(StringComparer.Ordinal);
+
         var nodeIds = new HashSet<string>(StringComparer.Ordinal);
+        var learnFactCount = 0;
         foreach (var node in schema.Nodes)
         {
+            if (
+                !node.NodeId.StartsWith("node-", StringComparison.Ordinal)
+                || !int.TryParse(node.NodeId[5..], out var nodeNumber)
+                || nodeNumber < 1
+            )
+            {
+                return $"NodeId \"{node.NodeId}\" must have the form node-1.";
+            }
+
             if (!nodeIds.Add(node.NodeId))
             {
                 return $"Duplicate NodeId \"{node.NodeId}\" — every NodeId must be unique.";
@@ -273,6 +370,14 @@ public class QuestChainGenerator(
 
         foreach (var node in schema.Nodes)
         {
+            if (
+                node.PrerequisiteNodeIds.Distinct(StringComparer.Ordinal).Count()
+                != node.PrerequisiteNodeIds.Count
+            )
+            {
+                return $"Node \"{node.NodeId}\" has duplicate prerequisites.";
+            }
+
             foreach (var prerequisiteId in node.PrerequisiteNodeIds)
             {
                 if (!nodeIds.Contains(prerequisiteId))
@@ -284,6 +389,16 @@ public class QuestChainGenerator(
             if (string.IsNullOrWhiteSpace(node.Name))
             {
                 return $"Node \"{node.NodeId}\" has a blank Name.";
+            }
+
+            if (string.IsNullOrWhiteSpace(node.Description))
+            {
+                return $"Node \"{node.NodeId}\" has a blank Description.";
+            }
+
+            if (node.RequiredFactKey is { } requiredFactKey && !factKeys.Contains(requiredFactKey))
+            {
+                return $"Node \"{node.NodeId}\" references unknown RequiredFactKey \"{requiredFactKey}\".";
             }
 
             var giverError = ValidateEntityReference(
@@ -304,11 +419,35 @@ public class QuestChainGenerator(
                 return $"Node \"{node.NodeId}\" has no objectives.";
             }
 
-            var objectiveError = ValidateObjectives(node, entityTypesById);
+            var objectiveError = ValidateObjectives(
+                node,
+                entityTypesById,
+                factKeys,
+                ref learnFactCount
+            );
             if (objectiveError != null)
             {
                 return objectiveError;
             }
+        }
+
+        var supportingQuestError = ValidateSupportingQuestReferences(schema.Nodes, nodeIds);
+        if (supportingQuestError != null)
+        {
+            return supportingQuestError;
+        }
+
+        var referencedFactKeys = schema
+            .Nodes.SelectMany(node =>
+                node.Objectives.SelectMany(objective =>
+                    new[] { node.RequiredFactKey, objective.FactKey, objective.ReasonFactKey }
+                )
+            )
+            .Where(key => key != null)
+            .ToHashSet(StringComparer.Ordinal);
+        if (factKeys.Any(key => !referencedFactKeys.Contains(key)))
+        {
+            return "Every authored fact must be referenced by a quest node or objective.";
         }
 
         var cycleError = DetectCycle(schema.Nodes);
@@ -322,7 +461,9 @@ public class QuestChainGenerator(
 
     internal static string? ValidateObjectives(
         QuestChainNodeSchema node,
-        IReadOnlyDictionary<string, string> entityTypesById
+        IReadOnlyDictionary<string, string> entityTypesById,
+        IReadOnlySet<string> factKeys,
+        ref int learnFactCount
     )
     {
         foreach (var objective in node.Objectives)
@@ -332,6 +473,11 @@ public class QuestChainGenerator(
             if (string.IsNullOrWhiteSpace(objective.Name))
             {
                 return $"An objective on node \"{node.NodeId}\" has a blank Name.";
+            }
+
+            if (string.IsNullOrWhiteSpace(objective.Description))
+            {
+                return $"{label} has a blank Description.";
             }
 
             if (!ValidObjectiveTypes.Contains(objective.ObjectiveType))
@@ -348,7 +494,9 @@ public class QuestChainGenerator(
                 node,
                 objective,
                 entityTypesById,
-                label
+                label,
+                factKeys,
+                ref learnFactCount
             );
             if (requiredFieldError != null)
             {
@@ -367,10 +515,24 @@ public class QuestChainGenerator(
         QuestChainNodeSchema node,
         QuestChainObjectiveSchema objective,
         IReadOnlyDictionary<string, string> entityTypesById,
-        string label
+        string label,
+        IReadOnlySet<string> factKeys,
+        ref int learnFactCount
     )
     {
         var type = Enum.Parse<GeneratedObjectiveType>(objective.ObjectiveType);
+
+        if (type == GeneratedObjectiveType.LearnFactFromCreature)
+        {
+            return ValidateLearnFactObjective(
+                node,
+                objective,
+                entityTypesById,
+                label,
+                factKeys,
+                ref learnFactCount
+            );
+        }
 
         if (type == GeneratedObjectiveType.KillCreatureType)
         {
@@ -465,6 +627,172 @@ public class QuestChainGenerator(
         return expectedTypes.Contains(actualType)
             ? null
             : $"{label} has {fieldName} \"{entityId}\" which is a \"{actualType}\"-type entity, but this field needs one of: {string.Join(", ", expectedTypes)}.";
+    }
+
+    private static string? ValidateFacts(IReadOnlyList<QuestChainFactSchema> facts)
+    {
+        var factKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var fact in facts)
+        {
+            if (
+                string.IsNullOrWhiteSpace(fact.Key)
+                || !fact.Key.All(character =>
+                    char.IsLower(character) || char.IsDigit(character) || character == '-'
+                )
+            )
+            {
+                return $"Fact key \"{fact.Key}\" must be lowercase kebab-case.";
+            }
+
+            if (!factKeys.Add(fact.Key))
+            {
+                return $"Duplicate fact key \"{fact.Key}\".";
+            }
+
+            if (string.IsNullOrWhiteSpace(fact.Subject) || string.IsNullOrWhiteSpace(fact.Value))
+            {
+                return $"Fact \"{fact.Key}\" must have a nonblank Subject and Value.";
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ValidateLearnFactObjective(
+        QuestChainNodeSchema node,
+        QuestChainObjectiveSchema objective,
+        IReadOnlyDictionary<string, string> entityTypesById,
+        string label,
+        IReadOnlySet<string> factKeys,
+        ref int learnFactCount
+    )
+    {
+        if (++learnFactCount > 1)
+        {
+            return "A generated chain may contain only one LearnFactFromCreature objective.";
+        }
+
+        var targetError = ValidateEntityReference(
+            objective.TargetEntityId,
+            [QuestChainEntityTypes.Creature],
+            entityTypesById,
+            label,
+            "TargetEntityId",
+            required: true
+        );
+        if (targetError != null)
+        {
+            return targetError;
+        }
+
+        if (objective.FactKey is not { } factKey || !factKeys.Contains(factKey))
+        {
+            return $"{label} references an unknown FactKey.";
+        }
+
+        if (node.RequiredFactKey == factKey)
+        {
+            return $"{label} cannot require its own primary fact.";
+        }
+
+        var willingness = new[]
+        {
+            objective.BaseWillingness,
+            objective.BribeWillingness,
+            objective.IntimidationWillingness,
+        };
+        if (willingness.Any(value => value is null or < 0 or > 100))
+        {
+            return $"{label} must provide three willingness values from 0 to 100.";
+        }
+
+        if (objective.ReasonFactKey is not { } reasonFactKey)
+        {
+            return
+                objective.RequiredSupportingQuestNodeIds.Count == 0
+                && objective.WeightedSupportingQuestNodeIds.Count == 0
+                ? null
+                : $"{label} has supporting quests but no ReasonFactKey.";
+        }
+
+        if (reasonFactKey == factKey || !factKeys.Contains(reasonFactKey))
+        {
+            return $"{label} has an invalid ReasonFactKey.";
+        }
+
+        if (
+            objective
+                .RequiredSupportingQuestNodeIds.Concat(
+                    objective.WeightedSupportingQuestNodeIds.Select(support => support.NodeId)
+                )
+                .Distinct(StringComparer.Ordinal)
+                .Count()
+            != objective.RequiredSupportingQuestNodeIds.Count
+                + objective.WeightedSupportingQuestNodeIds.Count
+        )
+        {
+            return $"{label} has duplicate supporting quests.";
+        }
+
+        if (
+            objective
+                .RequiredSupportingQuestNodeIds.Concat(
+                    objective.WeightedSupportingQuestNodeIds.Select(support => support.NodeId)
+                )
+                .Any(nodeId =>
+                    nodeId == node.NodeId || !nodeId.StartsWith("node-", StringComparison.Ordinal)
+                )
+        )
+        {
+            return $"{label} has an invalid supporting quest node.";
+        }
+
+        if (
+            objective.WeightedSupportingQuestNodeIds.Any(support =>
+                support.Weight < 1 || support.Weight > 100
+            )
+        )
+        {
+            return $"{label} has a weighted supporting quest outside 1 to 100.";
+        }
+
+        return null;
+    }
+
+    private static string? ValidateSupportingQuestReferences(
+        IReadOnlyList<QuestChainNodeSchema> nodes,
+        IReadOnlySet<string> nodeIds
+    )
+    {
+        foreach (var node in nodes)
+        {
+            foreach (
+                var objective in node.Objectives.Where(objective =>
+                    objective.ObjectiveType == nameof(GeneratedObjectiveType.LearnFactFromCreature)
+                    && objective.ReasonFactKey != null
+                )
+            )
+            {
+                var supportNodeIds = objective.RequiredSupportingQuestNodeIds.Concat(
+                    objective.WeightedSupportingQuestNodeIds.Select(support => support.NodeId)
+                );
+                foreach (var supportNodeId in supportNodeIds)
+                {
+                    if (!nodeIds.Contains(supportNodeId))
+                    {
+                        return $"LearnFactFromCreature on node \"{node.NodeId}\" references unknown supporting node \"{supportNodeId}\".";
+                    }
+
+                    var supportNode = nodes.Single(candidate => candidate.NodeId == supportNodeId);
+                    if (supportNode.RequiredFactKey != objective.ReasonFactKey)
+                    {
+                        return $"Supporting node \"{supportNodeId}\" must require the learn-fact reason.";
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     // Kahn's algorithm: repeatedly remove nodes with no remaining incoming-from-unvisited

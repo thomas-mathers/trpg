@@ -256,6 +256,7 @@ internal static class ServiceCollectionExtensions
     )
     {
         var connectionString = configuration.GetConnectionString("Trpg");
+        serviceCollection.AddHostedService<QuestChainGenerationStartupRecovery>();
         serviceCollection.AddTickerQ<TrpgTimeTicker, TrpgCronTicker>(options =>
         {
             options.AddOperationalStore(ef =>
