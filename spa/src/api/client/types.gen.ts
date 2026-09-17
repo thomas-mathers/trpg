@@ -99,7 +99,7 @@ export type BookPageResponse = {
     pageNumber: number;
     pageCount: number;
     text: string;
-    revealedSecret: boolean;
+    revealedFact: boolean;
 };
 
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';

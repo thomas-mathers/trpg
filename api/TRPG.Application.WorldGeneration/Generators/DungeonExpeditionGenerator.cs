@@ -17,7 +17,7 @@ internal record DungeonExpeditionResult(
     IReadOnlyList<CreatureProfile> Profiles,
     Book Journal,
     BookWork Work,
-    Secret Secret
+    Fact Fact
 );
 
 public class DungeonExpeditionGenerator(CreatureGenerator creatureGenerator)
@@ -87,7 +87,7 @@ public class DungeonExpeditionGenerator(CreatureGenerator creatureGenerator)
             CompanionLocationId = placement.Room.LocationId,
             JournalWorkId = Guid.NewGuid(),
             JournalItemId = Guid.NewGuid(),
-            DiscoverySecretId = Guid.NewGuid(),
+            DiscoveryFactId = Guid.NewGuid(),
             Purpose =
                 $"{survivor.Name} and {companion.Name} came to document the remains of {dungeon.Building.Name}.",
             Separation =
@@ -211,9 +211,9 @@ public class DungeonExpeditionGenerator(CreatureGenerator creatureGenerator)
             [CreateProfile(survivor.Creature), CreateProfile(companion.Creature)],
             CreateJournal(expedition, title),
             CreateWork(expedition, title),
-            new Secret
+            new Fact
             {
-                Id = expedition.DiscoverySecretId,
+                Id = expedition.DiscoveryFactId,
                 WorldId = expedition.WorldId,
                 Subject = "the expedition's final account",
                 Value = expedition.Discovery,
@@ -248,7 +248,7 @@ public class DungeonExpeditionGenerator(CreatureGenerator creatureGenerator)
             SubjectType = BookSubjectType.Building,
             SubjectName = expedition.Purpose,
             PageCount = 1,
-            SecretId = expedition.DiscoverySecretId,
-            SecretPageNumber = 1,
+            FactId = expedition.DiscoveryFactId,
+            FactPageNumber = 1,
         };
 }

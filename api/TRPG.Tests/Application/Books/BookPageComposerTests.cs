@@ -6,7 +6,7 @@ using TRPG.Application.Worlds.Commands;
 using BookSubjectType = TRPG.Domain.Models.BookSubjectType;
 using BookTier = TRPG.Domain.Models.BookTier;
 using BookWork = TRPG.Domain.Models.BookWork;
-using Secret = TRPG.Domain.Models.Secret;
+using Fact = TRPG.Domain.Models.Fact;
 
 namespace TRPG.Tests.Application.Books;
 
@@ -56,21 +56,21 @@ public class BookPageComposerTests
     }
 
     [Fact]
-    public async Task Compose_KeepsASecretOutOfThePrefix()
+    public async Task Compose_KeepsAFactOutOfThePrefix()
     {
         // Arrange
-        var secret = new Secret
+        var fact = new Fact
         {
             WorldId = Work.WorldId,
             Subject = "the countersign of the Ashen Hand",
             Value = "ashes before dawn",
         };
-        var request = new BookPageCompositionRequest(Work, 2, ["Page one."], secret);
+        var request = new BookPageCompositionRequest(Work, 2, ["Page one."], fact);
 
         // Act
         await _client.Compose(request);
 
-        // Assert — a secret inside the prefix would be resent on every later page of the book.
+        // Assert — a fact inside the prefix would be resent on every later page of the book.
         Assert.DoesNotContain("ashes before dawn", _client.Captured[1].Text);
         Assert.Contains("ashes before dawn", _client.Captured[2].Text);
     }

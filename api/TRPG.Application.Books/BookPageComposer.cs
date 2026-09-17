@@ -4,7 +4,7 @@ using TRPG.Application.Common.Llm;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Commands;
 using BookWork = TRPG.Domain.Models.BookWork;
-using Secret = TRPG.Domain.Models.Secret;
+using Fact = TRPG.Domain.Models.Fact;
 
 namespace TRPG.Application.Books;
 
@@ -12,7 +12,7 @@ public record BookPageCompositionRequest(
     BookWork Work,
     int PageNumber,
     IReadOnlyList<string> PriorPages,
-    Secret? Secret,
+    Fact? Fact,
     ExpeditionJournalContext? JournalContext = null
 );
 
@@ -93,16 +93,16 @@ public class BookPageComposer([FromKeyedServices(LlmRoleKeys.Gameplay)] IChatCli
                 rewards, targets, or routes. Do not describe the author's own death or later events.
                 """;
 
-    // Page-specific secrets must stay outside the cacheable prefix.
+    // Page-specific facts must stay outside the cacheable prefix.
     private static ChatMessage BuildPageMessage(BookPageCompositionRequest request)
     {
-        var secret =
-            request.Secret == null
+        var fact =
+            request.Fact == null
                 ? ""
                 : $"""
 
 
-                    This page records {request.Secret.Subject}: {request.Secret.Value}
+                    This page records {request.Fact.Subject}: {request.Fact.Value}
                     {(
                         request.JournalContext == null
                             ? "Work it into the prose naturally, and reproduce the fact exactly as written."
@@ -112,7 +112,7 @@ public class BookPageComposer([FromKeyedServices(LlmRoleKeys.Gameplay)] IChatCli
 
         return new ChatMessage(
             ChatRole.User,
-            $"Write page {request.PageNumber} of {request.Work.PageCount}.{secret}"
+            $"Write page {request.PageNumber} of {request.Work.PageCount}.{fact}"
         );
     }
 }

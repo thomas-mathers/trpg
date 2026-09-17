@@ -95,7 +95,7 @@ internal static class BookEndpoints
                 result.PageNumber,
                 result.PageCount,
                 result.Text,
-                result.RevealedSecret
+                result.RevealedFact
             )
         );
     }

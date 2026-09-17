@@ -5,26 +5,26 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Knowledge.Commands;
 
-public class LearnSecretCommand
+public class LearnFactCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid KnowerId { get; init; }
-    public required Guid SecretId { get; init; }
+    public required Guid FactId { get; init; }
 }
 
-internal class LearnSecretCommandHandler(IKnowledgeDbContext context)
-    : ICommandHandler<LearnSecretCommand, bool>
+internal class LearnFactCommandHandler(IKnowledgeDbContext context)
+    : ICommandHandler<LearnFactCommand, bool>
 {
     public async Task<bool> Handle(
-        LearnSecretCommand command,
+        LearnFactCommand command,
         CancellationToken cancellationToken = default
     )
     {
         var alreadyKnown = await context.CreatureKnowledge.AnyAsync(
             knowledge =>
                 knowledge.KnowerId == command.KnowerId
-                && knowledge.SubjectId == command.SecretId
-                && knowledge.SubjectType == KnowledgeSubjectType.Secret,
+                && knowledge.SubjectId == command.FactId
+                && knowledge.SubjectType == KnowledgeSubjectType.Fact,
             cancellationToken
         );
         if (alreadyKnown)
@@ -37,8 +37,8 @@ internal class LearnSecretCommandHandler(IKnowledgeDbContext context)
             {
                 WorldId = command.WorldId,
                 KnowerId = command.KnowerId,
-                SubjectId = command.SecretId,
-                SubjectType = KnowledgeSubjectType.Secret,
+                SubjectId = command.FactId,
+                SubjectType = KnowledgeSubjectType.Fact,
             }
         );
         await context.SaveChangesAsync(cancellationToken);

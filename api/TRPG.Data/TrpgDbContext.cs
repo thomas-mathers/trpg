@@ -98,7 +98,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<DoorConnectorLever> DoorConnectorLevers => Set<DoorConnectorLever>();
     public DbSet<BookWork> BookWorks => Set<BookWork>();
     public DbSet<BookPage> BookPages => Set<BookPage>();
-    public DbSet<Secret> Secrets => Set<Secret>();
+    public DbSet<Fact> Facts => Set<Fact>();
     public DbSet<Encounter> Encounters => Set<Encounter>();
     public DbSet<EncounterGroup> EncounterGroups => Set<EncounterGroup>();
     public DbSet<EncounterGroupMember> EncounterGroupMembers => Set<EncounterGroupMember>();
@@ -390,9 +390,9 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(p => new { p.WorkId, p.PageNumber }).IsUnique();
         });
 
-        modelBuilder.Entity<Secret>(entity =>
+        modelBuilder.Entity<Fact>(entity =>
         {
-            entity.HasIndex(s => s.WorldId);
+            entity.HasIndex(f => f.WorldId);
         });
 
         modelBuilder.Entity<World>(entity =>

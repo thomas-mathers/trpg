@@ -5,13 +5,13 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Knowledge.Queries;
 
-public record GetKnownSecretIdsQuery(Guid WorldId, Guid KnowerId);
+public record GetKnownFactIdsQuery(Guid WorldId, Guid KnowerId);
 
-internal class GetKnownSecretIdsQueryHandler(IKnowledgeDbContext context)
-    : IQueryHandler<GetKnownSecretIdsQuery, IReadOnlyList<Guid>>
+internal class GetKnownFactIdsQueryHandler(IKnowledgeDbContext context)
+    : IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>>
 {
     public async Task<IReadOnlyList<Guid>> Handle(
-        GetKnownSecretIdsQuery query,
+        GetKnownFactIdsQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context
@@ -19,7 +19,7 @@ internal class GetKnownSecretIdsQueryHandler(IKnowledgeDbContext context)
             .Where(knowledge =>
                 knowledge.WorldId == query.WorldId
                 && knowledge.KnowerId == query.KnowerId
-                && knowledge.SubjectType == KnowledgeSubjectType.Secret
+                && knowledge.SubjectType == KnowledgeSubjectType.Fact
             )
             .Select(knowledge => knowledge.SubjectId)
             .ToArrayAsync(cancellationToken);

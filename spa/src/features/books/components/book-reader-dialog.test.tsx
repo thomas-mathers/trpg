@@ -29,7 +29,7 @@ describe('BookReaderDialog', () => {
           pageNumber: 1,
           pageCount: 3,
           text: 'The city was founded on a bend of the black river.',
-          revealedSecret: false,
+          revealedFact: false,
         }),
       ),
     );
@@ -53,7 +53,7 @@ describe('BookReaderDialog', () => {
           pageNumber: Number(pageNumber),
           pageCount: 3,
           text: `Page ${pageNumber} text.`,
-          revealedSecret: false,
+          revealedFact: false,
         });
       }),
     );
@@ -75,7 +75,7 @@ describe('BookReaderDialog', () => {
           pageNumber: 1,
           pageCount: 1,
           text: 'A single leaf, and nothing more.',
-          revealedSecret: false,
+          revealedFact: false,
         }),
       ),
     );
@@ -96,7 +96,7 @@ describe('BookReaderDialog', () => {
           pageNumber: 1,
           pageCount: 5,
           text: 'Page one text.',
-          revealedSecret: false,
+          revealedFact: false,
         }),
       ),
       handlePrefetchBookPage(({ params }) => {
@@ -120,7 +120,7 @@ describe('BookReaderDialog', () => {
           pageNumber: 1,
           pageCount: 2,
           text: 'Page one text.',
-          revealedSecret: false,
+          revealedFact: false,
         }),
       ),
       handlePrefetchBookPage(({ params }) => {
@@ -144,7 +144,7 @@ describe('BookReaderDialog', () => {
           pageNumber: 1,
           pageCount: 1,
           text: 'A single leaf.',
-          revealedSecret: false,
+          revealedFact: false,
         }),
       ),
       handlePrefetchBookPage(({ params }) => {
@@ -169,7 +169,7 @@ describe('BookReaderDialog', () => {
             pageNumber: Number(params.pageNumber),
             pageCount: 3,
             text: `Page ${params.pageNumber} text.`,
-            revealedSecret: false,
+            revealedFact: false,
           }),
         ),
         handlePrefetchBookPage(async () => {

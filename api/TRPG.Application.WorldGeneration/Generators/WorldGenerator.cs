@@ -25,7 +25,7 @@ public class WorldGeneratorResult
 {
     public IReadOnlyList<DungeonExpedition> DungeonExpeditions { get; init; } = [];
     public IReadOnlyList<BookWork> BookWorks { get; init; } = [];
-    public IReadOnlyList<Secret> Secrets { get; init; } = [];
+    public IReadOnlyList<Fact> Facts { get; init; } = [];
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
@@ -506,7 +506,7 @@ public class WorldGenerator(
         {
             DungeonExpeditions = expeditions.Select(expedition => expedition.Expedition).ToArray(),
             BookWorks = expeditions.Select(expedition => expedition.Work).ToArray(),
-            Secrets = expeditions.Select(expedition => expedition.Secret).ToArray(),
+            Facts = expeditions.Select(expedition => expedition.Fact).ToArray(),
             World = geography.World,
             Countries = geography.Countries,
             States = geography.States,

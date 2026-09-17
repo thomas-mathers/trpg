@@ -90,7 +90,7 @@ describe('BookshelfDialog', () => {
           pageNumber: 1,
           pageCount: 2,
           text: 'The city was founded on a bend of the black river.',
-          revealedSecret: false,
+          revealedFact: false,
         }),
       ),
     );

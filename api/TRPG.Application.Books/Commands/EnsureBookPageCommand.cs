@@ -65,7 +65,7 @@ internal class EnsureBookPageCommandHandler(
             .Select(page => page.Text)
             .ToArrayAsync(cancellationToken);
 
-        var secret = await ResolveSecretForPage(work, command.PageNumber, cancellationToken);
+        var fact = await ResolveFactForPage(work, command.PageNumber, cancellationToken);
 
         logger.LogInformation(
             "[book] composing page {PageNumber}/{PageCount} of {Title}",
@@ -84,7 +84,7 @@ internal class EnsureBookPageCommandHandler(
                 work,
                 command.PageNumber,
                 priorPages,
-                secret,
+                fact,
                 journalContext
             ),
             cancellationToken
@@ -123,19 +123,19 @@ internal class EnsureBookPageCommandHandler(
         return winner.Text;
     }
 
-    private async Task<Secret?> ResolveSecretForPage(
+    private async Task<Fact?> ResolveFactForPage(
         BookWork work,
         int pageNumber,
         CancellationToken cancellationToken
     )
     {
-        if (work.SecretId is not { } secretId || work.SecretPageNumber != pageNumber)
+        if (work.FactId is not { } factId || work.FactPageNumber != pageNumber)
         {
             return null;
         }
 
         return await context
-            .Secrets.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == secretId, cancellationToken);
+            .Facts.AsNoTracking()
+            .FirstOrDefaultAsync(f => f.Id == factId, cancellationToken);
     }
 }
