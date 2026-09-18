@@ -365,7 +365,7 @@ public sealed class FactDisclosureReasonTests(DatabaseFixture db)
             IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
         >();
         var markers = _services.GetRequiredService<
-            IQueryHandler<GetQuestMarkersForCreaturesQuery, IReadOnlyDictionary<Guid, QuestMarker>>
+            IQueryHandler<GetQuestMarkersForCreaturesQuery, QuestMarkersResult>
         >();
         var accept = _services.GetRequiredService<ICommandHandler<AcceptQuestCommand>>();
         var interactionsQuery = new GetQuestInteractionsForGiverQuery
@@ -401,7 +401,7 @@ public sealed class FactDisclosureReasonTests(DatabaseFixture db)
             .Handle(Ask, TestContext.Current.CancellationToken);
         Assert.Null(first.ReasonFact);
         var afterFirst = await markers.Handle(markerQuery, TestContext.Current.CancellationToken);
-        Assert.Empty(afterFirst);
+        Assert.Empty(afterFirst.EntriesByCreatureId);
         var second = await _services
             .GetRequiredService<ICommandHandler<AskAboutFactCommand, FactDisclosureResult>>()
             .Handle(Ask, TestContext.Current.CancellationToken);
@@ -412,7 +412,10 @@ public sealed class FactDisclosureReasonTests(DatabaseFixture db)
         );
         Assert.Equal(supporting.Id, Assert.Single(afterSecond.AvailableQuests).QuestId);
         var afterMarkers = await markers.Handle(markerQuery, TestContext.Current.CancellationToken);
-        Assert.Equal(QuestMarker.Available, afterMarkers[_npc.Id]);
+        Assert.Equal(
+            QuestMarker.Available,
+            Assert.Single(afterMarkers.EntriesByCreatureId[_npc.Id]).Marker
+        );
         Assert.False(
             await _context.CreatureQuests.AnyAsync(
                 x => x.CreatureId == _player.Id && x.QuestId == supporting.Id,

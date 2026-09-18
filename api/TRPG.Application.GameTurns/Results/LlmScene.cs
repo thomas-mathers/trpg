@@ -63,7 +63,8 @@ public record LlmSceneCreature(
     int CurrentHp,
     int MaximumHp,
     bool CanTrade,
-    QuestMarker? QuestMarker
+    IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
+    bool ReadyToDeliver
 );
 
 public record LlmScene(
