@@ -86,6 +86,7 @@ public static class LlmSceneMapper
             creature.CurrentHp,
             creature.MaximumHp,
             CanTrade: creature.TradeWorkstationId != null,
-            creature.QuestMarker
+            creature.QuestMarkers,
+            creature.ReadyToDeliver
         );
 }

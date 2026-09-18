@@ -39,12 +39,13 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
     }
 
     [Fact]
-    public async Task Handle_ReturnsAvailableAndReadyToTurnInMarkers()
+    public async Task Handle_ReturnsEachAvailableAndReadyToTurnInMarker()
     {
         // Arrange
         var availableQuest = Builders.MakeQuest(_availableGiver.Id, WorldId);
+        var secondAvailableQuest = Builders.MakeQuest(_availableGiver.Id, WorldId);
         var readyQuest = Builders.MakeQuest(_readyGiver.Id, WorldId);
-        _context.Quests.AddRange(availableQuest, readyQuest);
+        _context.Quests.AddRange(availableQuest, secondAvailableQuest, readyQuest);
         _context.CreatureQuests.Add(
             new CreatureQuest
             {
@@ -68,8 +69,22 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
         );
 
         // Assert
-        Assert.Equal(QuestMarker.Available, result[_availableGiver.Id]);
-        Assert.Equal(QuestMarker.ReadyToTurnIn, result[_readyGiver.Id]);
+        Assert.Equivalent(
+            new[]
+            {
+                new QuestMarkerEntry(availableQuest.Id, availableQuest.Name, QuestMarker.Available),
+                new QuestMarkerEntry(
+                    secondAvailableQuest.Id,
+                    secondAvailableQuest.Name,
+                    QuestMarker.Available
+                ),
+            },
+            result.EntriesByCreatureId[_availableGiver.Id]
+        );
+        Assert.Equal(
+            new QuestMarkerEntry(readyQuest.Id, readyQuest.Name, QuestMarker.ReadyToTurnIn),
+            Assert.Single(result.EntriesByCreatureId[_readyGiver.Id])
+        );
     }
 
     [Fact]
@@ -96,7 +111,7 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
         );
 
         // Assert
-        Assert.False(result.ContainsKey(_availableGiver.Id));
+        Assert.False(result.EntriesByCreatureId.ContainsKey(_availableGiver.Id));
     }
 
     [Fact]
@@ -139,7 +154,7 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
         );
 
         // Assert
-        Assert.Equal(QuestMarker.ReadyToDeliver, result[_recipient.Id]);
+        Assert.Contains(_recipient.Id, result.ReadyToDeliverCreatureIds);
     }
 
     [Fact]
@@ -182,6 +197,6 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
         );
 
         // Assert
-        Assert.False(result.ContainsKey(_recipient.Id));
+        Assert.DoesNotContain(_recipient.Id, result.ReadyToDeliverCreatureIds);
     }
 }

@@ -81,12 +81,59 @@ internal class GetQuestInteractionsForGiverQueryHandler(
             cancellationToken
         );
 
+        var prerequisiteQuestIds = giverQuests
+            .SelectMany(quest => quest.PrerequisiteQuestIds)
+            .Distinct()
+            .ToArray();
+        var prerequisiteGroupIdsByQuestId = await context
+            .Quests.AsNoTracking()
+            .Where(quest => prerequisiteQuestIds.AsEnumerable().Contains(quest.Id))
+            .Select(quest => new { quest.Id, quest.ExclusiveGroupId })
+            .ToDictionaryAsync(
+                quest => quest.Id,
+                quest => quest.ExclusiveGroupId,
+                cancellationToken
+            );
+        var giverGroupIds = giverQuests
+            .Where(quest => quest.ExclusiveGroupId != null)
+            .Select(quest => quest.ExclusiveGroupId!.Value)
+            .Distinct()
+            .ToArray();
+        var groupedQuests = await context
+            .Quests.AsNoTracking()
+            .Where(quest =>
+                quest.ExclusiveGroupId != null
+                && giverGroupIds.AsEnumerable().Contains(quest.ExclusiveGroupId.Value)
+            )
+            .Select(quest => new { quest.Id, quest.ExclusiveGroupId })
+            .ToArrayAsync(cancellationToken);
+        var questIdsByExclusiveGroupId = groupedQuests
+            .GroupBy(quest => quest.ExclusiveGroupId!.Value)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyCollection<Guid>)group.Select(quest => quest.Id).ToArray()
+            );
+
         var availableQuests = giverQuests
             .Where(quest => !acceptedQuestIds.Contains(quest.Id))
             .Where(quest =>
                 quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value)
             )
-            .Where(quest => quest.PrerequisiteQuestIds.All(completedQuestIds.Contains))
+            .Where(quest =>
+                QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
+                    quest.PrerequisiteQuestIds,
+                    prerequisiteGroupIdsByQuestId,
+                    completedQuestIds
+                )
+            )
+            .Where(quest =>
+                !QuestExclusiveGroupEvaluator.IsClosedBySiblingCompletion(
+                    quest.Id,
+                    quest.ExclusiveGroupId,
+                    questIdsByExclusiveGroupId,
+                    completedQuestIds
+                )
+            )
             .Select(quest => ToResult(quest, objectivesByQuestId))
             .ToArray();
 

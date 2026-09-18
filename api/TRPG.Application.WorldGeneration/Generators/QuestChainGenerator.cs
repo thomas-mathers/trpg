@@ -72,6 +72,7 @@ internal class QuestChainNodeSchema
     public string Description { get; init; } = "";
     public string? GiverEntityId { get; init; }
     public string? RequiredFactKey { get; init; }
+    public int? GroupIndex { get; init; }
     public List<string> PrerequisiteNodeIds { get; init; } = [];
     public List<QuestChainObjectiveSchema> Objectives { get; init; } = [];
 }
@@ -113,6 +114,7 @@ public record QuestChainGeneratedNode(
     string Description,
     Guid GiverEntityId,
     string? RequiredFactKey,
+    int? GroupIndex,
     IReadOnlyList<string> PrerequisiteNodeIds,
     IReadOnlyList<QuestChainGeneratedObjective> Objectives
 );
@@ -202,7 +204,11 @@ public class QuestChainGenerator(
               PrerequisiteNodeIds to wire up the graph.
             - A node with an empty PrerequisiteNodeIds list is available from the very start.
             - PrerequisiteNodeIds use AND semantics: a node unlocks only after every listed
-              prerequisite is complete. Do not represent mutually exclusive paths or OR dependencies.
+              prerequisite is complete unless multiple listed prerequisites share a GroupIndex.
+              Nodes with the same GroupIndex are alternatives: completing one closes the others,
+              and any one can satisfy a downstream prerequisite list that names more than one of
+              them. Every GroupIndex fork must have a real shared prerequisite node; alternatives
+              with no overlapping ancestor are invalid.
             - Use convergence at least once: a node may list more than one PrerequisiteNodeIds
               entry, meaning it only unlocks once every one of those nodes is complete.
             - The graph must be acyclic — no node may (transitively) require itself.
@@ -300,6 +306,7 @@ public class QuestChainGenerator(
                     node.Description,
                     Guid.Parse(node.GiverEntityId!),
                     node.RequiredFactKey,
+                    node.GroupIndex,
                     node.PrerequisiteNodeIds,
                     node.Objectives.Select(objective => new QuestChainGeneratedObjective(
                             objective.Name,
@@ -446,6 +453,12 @@ public class QuestChainGenerator(
         if (supportingQuestError != null)
         {
             return supportingQuestError;
+        }
+
+        var exclusiveGroupError = ValidateExclusiveGroups(schema.Nodes);
+        if (exclusiveGroupError != null)
+        {
+            return exclusiveGroupError;
         }
 
         var referencedFactKeys = schema
@@ -825,19 +838,53 @@ public class QuestChainGenerator(
         QuestChainNodeSchema node,
         string requiredNodeId,
         IReadOnlyDictionary<string, QuestChainNodeSchema> nodesById
+    ) => CollectAncestorNodeIds(node, nodesById).Contains(requiredNodeId);
+
+    private static string? ValidateExclusiveGroups(IReadOnlyList<QuestChainNodeSchema> nodes)
+    {
+        var nodesById = nodes.ToDictionary(node => node.NodeId);
+        foreach (
+            var group in nodes
+                .Where(node => node.GroupIndex != null)
+                .GroupBy(node => node.GroupIndex)
+        )
+        {
+            var groupedNodes = group.ToArray();
+            for (var firstIndex = 0; firstIndex < groupedNodes.Length; firstIndex++)
+            {
+                var firstAncestors = CollectAncestorNodeIds(groupedNodes[firstIndex], nodesById);
+                for (
+                    var secondIndex = firstIndex + 1;
+                    secondIndex < groupedNodes.Length;
+                    secondIndex++
+                )
+                {
+                    var secondAncestors = CollectAncestorNodeIds(
+                        groupedNodes[secondIndex],
+                        nodesById
+                    );
+                    if (!firstAncestors.Overlaps(secondAncestors))
+                    {
+                        return $"Nodes \"{groupedNodes[firstIndex].NodeId}\" and \"{groupedNodes[secondIndex].NodeId}\" share GroupIndex {group.Key} but have no common ancestor.";
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static HashSet<string> CollectAncestorNodeIds(
+        QuestChainNodeSchema node,
+        IReadOnlyDictionary<string, QuestChainNodeSchema> nodesById
     )
     {
+        var ancestors = new HashSet<string>(StringComparer.Ordinal);
         var unvisitedPrerequisiteIds = new Stack<string>(node.PrerequisiteNodeIds);
-        var visitedNodeIds = new HashSet<string>(StringComparer.Ordinal);
         while (unvisitedPrerequisiteIds.TryPop(out var prerequisiteNodeId))
         {
-            if (prerequisiteNodeId == requiredNodeId)
-            {
-                return true;
-            }
-
             if (
-                visitedNodeIds.Add(prerequisiteNodeId)
+                ancestors.Add(prerequisiteNodeId)
                 && nodesById.TryGetValue(prerequisiteNodeId, out var prerequisiteNode)
             )
             {
@@ -848,7 +895,7 @@ public class QuestChainGenerator(
             }
         }
 
-        return false;
+        return ancestors;
     }
 
     // Kahn's algorithm: repeatedly remove nodes with no remaining incoming-from-unvisited

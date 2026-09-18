@@ -16,6 +16,7 @@ public class GetQuestDialogForGiverQuery
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid GiverId { get; init; }
+    public required Guid QuestId { get; init; }
 }
 
 internal class GetQuestDialogForGiverQueryHandler(
@@ -37,13 +38,17 @@ internal class GetQuestDialogForGiverQueryHandler(
             cancellationToken
         );
 
-        var readyQuest = interactions.ReadyToCompleteQuests.FirstOrDefault();
-        if (readyQuest is not null)
+        var readyQuest = interactions.ReadyToCompleteQuests.SingleOrDefault(quest =>
+            quest.QuestId == query.QuestId
+        );
+        if (readyQuest != null)
         {
             return new QuestDialogResult(readyQuest, QuestDialogMode.TurnIn);
         }
 
-        var availableQuest = interactions.AvailableQuests.FirstOrDefault();
+        var availableQuest = interactions.AvailableQuests.SingleOrDefault(quest =>
+            quest.QuestId == query.QuestId
+        );
         return availableQuest is null
             ? null
             : new QuestDialogResult(availableQuest, QuestDialogMode.Offer);

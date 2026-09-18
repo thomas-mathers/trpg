@@ -222,15 +222,18 @@ public record CreatureStatusSnapshot(
     float PoisonResistance,
     float MagicResistance,
     Guid? TradeWorkstationId,
-    QuestMarker? QuestMarker
+    IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
+    bool ReadyToDeliver
 );
+
+[TranspilationSource]
+public record QuestMarkerEntry(Guid QuestId, string Name, QuestMarker Marker);
 
 [TranspilationSource]
 public enum QuestMarker
 {
     Available,
     ReadyToTurnIn,
-    ReadyToDeliver,
 }
 
 [TranspilationSource]

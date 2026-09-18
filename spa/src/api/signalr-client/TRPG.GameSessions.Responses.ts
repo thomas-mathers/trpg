@@ -140,12 +140,24 @@ export type CreatureStatusSnapshot = {
     magicResistance: number;
     /** Transpiled from System.Guid */
     tradeWorkstationId?: string;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.QuestMarkerEntry> */
+    questMarkers: QuestMarkerEntry[];
+    /** Transpiled from bool */
+    readyToDeliver: boolean;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.QuestMarkerEntry */
+export type QuestMarkerEntry = {
+    /** Transpiled from System.Guid */
+    questId: string;
+    /** Transpiled from string */
+    name: string;
     /** Transpiled from TRPG.GameSessions.Responses.QuestMarker */
-    questMarker?: QuestMarker;
+    marker: QuestMarker;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.QuestMarker */
-export type QuestMarker = "Available" | "ReadyToTurnIn" | "ReadyToDeliver";
+export type QuestMarker = "Available" | "ReadyToTurnIn";
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyBuildingSnapshot */
 export type NearbyBuildingSnapshot = {

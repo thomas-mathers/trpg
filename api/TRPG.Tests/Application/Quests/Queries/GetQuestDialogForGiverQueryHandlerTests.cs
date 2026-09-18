@@ -60,6 +60,7 @@ public sealed class GetQuestDialogForGiverQueryHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 GiverId = _giver.Id,
+                QuestId = ready.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -85,6 +86,7 @@ public sealed class GetQuestDialogForGiverQueryHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 GiverId = _giver.Id,
+                QuestId = available.Id,
             },
             TestContext.Current.CancellationToken
         );
@@ -105,6 +107,7 @@ public sealed class GetQuestDialogForGiverQueryHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 GiverId = _giver.Id,
+                QuestId = Guid.NewGuid(),
             },
             TestContext.Current.CancellationToken
         );

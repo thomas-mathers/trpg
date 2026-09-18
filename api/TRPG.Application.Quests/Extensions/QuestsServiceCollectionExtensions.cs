@@ -50,5 +50,9 @@ public static class QuestsServiceCollectionExtensions
             .AddTransient<FactDisclosureLockoutResetEventHandler>()
             .AddTransient<IDomainEventConsumer<QuestCompletedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<FactDisclosureLockoutResetEventHandler>()
+            )
+            .AddTransient<QuestCompletedExclusiveGroupEventHandler>()
+            .AddTransient<IDomainEventConsumer<QuestCompletedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<QuestCompletedExclusiveGroupEventHandler>()
             );
 }
