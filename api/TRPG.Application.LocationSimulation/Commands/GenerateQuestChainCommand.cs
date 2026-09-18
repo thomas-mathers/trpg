@@ -140,7 +140,7 @@ internal class GenerateQuestChainCommandHandler(
                     ? "none"
                     : string.Join(", ", node.PrerequisiteNodeIds);
             builder.AppendLine(
-                $"[{node.NodeId}] \"{node.Name}\" — giver: {DescribeEntity(node.GiverEntityId)}, prerequisites: {prerequisites}"
+                $"[{node.NodeId}] \"{node.Name}\" — giver: {DescribeEntity(node.GiverEntityId)}, prerequisites: {prerequisites}, group: {node.GroupIndex?.ToString() ?? "none"}"
             );
             builder.AppendLine($"    {node.Description}");
             foreach (var objective in node.Objectives)
@@ -217,6 +217,11 @@ internal class GenerateQuestChainCommandHandler(
             })
             .ToArray();
         var questIdByNodeId = nodes.ToDictionary(node => node.NodeId, _ => Guid.NewGuid());
+        var groupIdByIndex = nodes
+            .Where(node => node.GroupIndex != null)
+            .Select(node => node.GroupIndex!.Value)
+            .Distinct()
+            .ToDictionary(groupIndex => groupIndex, _ => Guid.NewGuid());
         var newItems = new List<Item>();
 
         // Build every quest and its objectives in memory first (minting new Item instances for
@@ -233,6 +238,9 @@ internal class GenerateQuestChainCommandHandler(
                     Name = node.Name,
                     Description = node.Description,
                     GoldReward = GoldRewardPerNode,
+                    ExclusiveGroupId = node.GroupIndex is { } groupIndex
+                        ? groupIdByIndex[groupIndex]
+                        : null,
                     RequiredFactId = node.RequiredFactKey is { } factKey
                         ? factIdByKey[factKey]
                         : null,
