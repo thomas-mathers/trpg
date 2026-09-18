@@ -409,7 +409,7 @@ public sealed class FactDisclosureCommandTests(DatabaseFixture db)
     public async Task IntimidateForFact_Discloses_WhenTheLevelAdvantageClearsTheThreshold()
     {
         // Arrange
-        var strongPlayer = Builders.MakeCreature(WorldId, level: 10);
+        var strongPlayer = Builders.MakeCreature(WorldId, level: 12);
         _context.Creatures.Add(strongPlayer);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var quest = Builders.MakeQuest(_npc.Id, WorldId);
