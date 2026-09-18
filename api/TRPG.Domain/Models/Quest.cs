@@ -3,6 +3,7 @@ namespace TRPG.Domain.Models;
 public class Quest
 {
     public string Description { get; init; } = "";
+    public Guid? ExclusiveGroupId { get; init; }
     public Guid GiverId { get; init; }
     public int GoldReward { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();

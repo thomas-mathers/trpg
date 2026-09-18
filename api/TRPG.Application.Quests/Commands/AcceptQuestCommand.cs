@@ -54,13 +54,59 @@ internal class AcceptQuestCommandHandler(
             .CreatureQuests.Where(creatureQuest =>
                 creatureQuest.CreatureId == command.PlayerId
                 && creatureQuest.Status == QuestStatus.Completed
-                && quest.PrerequisiteQuestIds.Contains(creatureQuest.QuestId)
             )
             .Select(creatureQuest => creatureQuest.QuestId)
             .ToArrayAsync(cancellationToken);
-        if (completedQuestIds.Length != quest.PrerequisiteQuestIds.Count)
+        var completedQuestIdSet = completedQuestIds.ToHashSet();
+        var prerequisiteGroupIdsByQuestId = await context
+            .Quests.AsNoTracking()
+            .Where(prerequisiteQuest =>
+                quest.PrerequisiteQuestIds.AsEnumerable().Contains(prerequisiteQuest.Id)
+            )
+            .Select(prerequisiteQuest => new
+            {
+                prerequisiteQuest.Id,
+                prerequisiteQuest.ExclusiveGroupId,
+            })
+            .ToDictionaryAsync(
+                prerequisiteQuest => prerequisiteQuest.Id,
+                prerequisiteQuest => prerequisiteQuest.ExclusiveGroupId,
+                cancellationToken
+            );
+        if (
+            !QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
+                quest.PrerequisiteQuestIds,
+                prerequisiteGroupIdsByQuestId,
+                completedQuestIdSet
+            )
+        )
         {
             throw new InvalidOperationException("Quest prerequisites have not been completed.");
+        }
+
+        var siblingQuestIds = quest.ExclusiveGroupId is { } exclusiveGroupId
+            ? await context
+                .Quests.AsNoTracking()
+                .Where(siblingQuest =>
+                    siblingQuest.WorldId == command.WorldId
+                    && siblingQuest.ExclusiveGroupId == exclusiveGroupId
+                )
+                .Select(siblingQuest => siblingQuest.Id)
+                .ToArrayAsync(cancellationToken)
+            : [];
+        var questIdsByExclusiveGroupId = quest.ExclusiveGroupId is { } groupId
+            ? new Dictionary<Guid, IReadOnlyCollection<Guid>> { [groupId] = siblingQuestIds }
+            : new Dictionary<Guid, IReadOnlyCollection<Guid>>();
+        if (
+            QuestExclusiveGroupEvaluator.IsClosedBySiblingCompletion(
+                quest.Id,
+                quest.ExclusiveGroupId,
+                questIdsByExclusiveGroupId,
+                completedQuestIdSet
+            )
+        )
+        {
+            throw new EntityNotFoundException("Quest", command.QuestId);
         }
 
         var objectiveIds = await context
