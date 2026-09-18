@@ -140,6 +140,7 @@ public sealed class RelocationFactsTests
             PoisonResistance: 0,
             MagicResistance: 0,
             TradeWorkstationId: null,
-            QuestMarker: null
+            QuestMarkers: [],
+            ReadyToDeliver: false
         );
 }

@@ -121,6 +121,7 @@ internal static class QuestEndpoints
         Guid playerId,
         Guid worldId,
         Guid giverId,
+        Guid questId,
         [FromServices]
             IQueryHandler<GetQuestDialogForGiverQuery, QuestDialogResult?> getQuestDialog,
         CancellationToken cancellationToken
@@ -132,6 +133,7 @@ internal static class QuestEndpoints
                 WorldId = worldId,
                 PlayerId = playerId,
                 GiverId = giverId,
+                QuestId = questId,
             },
             cancellationToken
         );

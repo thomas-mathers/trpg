@@ -145,6 +145,7 @@ public sealed class LlmSceneMapperTests
             PoisonResistance: 0,
             MagicResistance: 0,
             TradeWorkstationId: Guid.NewGuid(),
-            QuestMarker: null
+            QuestMarkers: [],
+            ReadyToDeliver: false
         );
 }

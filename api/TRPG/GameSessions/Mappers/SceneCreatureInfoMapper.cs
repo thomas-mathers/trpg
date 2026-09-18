@@ -42,6 +42,7 @@ internal static class SceneCreatureInfoMapper
             creature.PoisonResistance,
             creature.MagicResistance,
             creature.TradeWorkstationId,
-            creature.QuestMarker.ToResponse()
+            creature.QuestMarkers.Select(marker => marker.ToResponse()).ToArray(),
+            creature.ReadyToDeliver
         );
 }
