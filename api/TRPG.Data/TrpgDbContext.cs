@@ -526,6 +526,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.Property(q => q.PrerequisiteQuestIds).HasColumnType("uuid[]");
             entity.HasIndex(q => q.WorldId);
             entity.HasIndex(q => q.GiverId);
+            entity.HasIndex(q => q.ExclusiveGroupId);
         });
 
         modelBuilder.Entity<QuestObjective>(entity =>
