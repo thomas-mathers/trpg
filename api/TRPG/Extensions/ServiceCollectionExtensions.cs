@@ -19,6 +19,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
+using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Combat.Tools;
 using TRPG.Configuration;
@@ -29,6 +30,7 @@ using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Tools;
 using TRPG.NpcConversations.Tools;
+using TRPG.Quests.Jobs;
 using TRPG.RoomBookings.Tools;
 using TRPG.Tools;
 using TRPG.Worlds.Jobs;
@@ -254,6 +256,7 @@ internal static class ServiceCollectionExtensions
     )
     {
         var connectionString = configuration.GetConnectionString("Trpg");
+        serviceCollection.AddHostedService<QuestChainGenerationStartupRecovery>();
         serviceCollection.AddTickerQ<TrpgTimeTicker, TrpgCronTicker>(options =>
         {
             options.AddOperationalStore(ef =>
@@ -274,6 +277,13 @@ internal static class ServiceCollectionExtensions
         serviceCollection
             .MapTicker<CreateWorldJob, CreateWorldCommand>()
             .WithPriority(TickerTaskPriority.LongRunning);
+        serviceCollection
+            .MapTicker<GenerateQuestChainJob, GenerateQuestChainCommand>()
+            .WithPriority(TickerTaskPriority.LongRunning);
+        serviceCollection.AddScoped<
+            IQuestChainGenerationScheduler,
+            TickerQuestChainGenerationScheduler
+        >();
         return serviceCollection;
     }
 
@@ -290,6 +300,20 @@ internal static class ServiceCollectionExtensions
                     return CreateChatClient(
                         worldGeneration.Provider,
                         worldGeneration.Model,
+                        ollamaUri
+                    );
+                }
+            )
+            .AddKeyedSingleton(
+                LlmRoleKeys.QuestGeneration,
+                (sp, _) =>
+                {
+                    var questGeneration = sp.GetRequiredService<IOptionsMonitor<LlmRoleOptions>>()
+                        .Get(LlmRoleKeys.QuestGeneration);
+                    var ollamaUri = sp.GetRequiredService<IOptions<OllamaOptions>>().Value.Uri;
+                    return CreateChatClient(
+                        questGeneration.Provider,
+                        questGeneration.Model,
                         ollamaUri
                     );
                 }
@@ -385,6 +409,10 @@ internal static class ServiceCollectionExtensions
             .Configure<LlmRoleOptions>(
                 LlmRoleKeys.Gameplay,
                 configuration.GetSection("GameplayLlm")
+            )
+            .Configure<LlmRoleOptions>(
+                LlmRoleKeys.QuestGeneration,
+                configuration.GetSection("QuestGenerationLlm")
             )
             .Configure<CombatOptions>(configuration.GetSection("Combat"))
             .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"))

@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916215503_AddQuestChainGenerationRequest")]
+    partial class AddQuestChainGenerationRequest
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,17 +71,17 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid?>("FactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("fact_id");
-
-                    b.Property<int?>("FactPageNumber")
-                        .HasColumnType("integer")
-                        .HasColumnName("fact_page_number");
-
                     b.Property<int>("PageCount")
                         .HasColumnType("integer")
                         .HasColumnName("page_count");
+
+                    b.Property<Guid?>("SecretId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("secret_id");
+
+                    b.Property<int?>("SecretPageNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("secret_page_number");
 
                     b.Property<string>("SubjectName")
                         .IsRequired()
@@ -1191,9 +1194,9 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("discovery");
 
-                    b.Property<Guid>("DiscoveryFactId")
+                    b.Property<Guid>("DiscoverySecretId")
                         .HasColumnType("uuid")
-                        .HasColumnName("discovery_fact_id");
+                        .HasColumnName("discovery_secret_id");
 
                     b.Property<Guid>("EntranceLocationId")
                         .HasColumnType("uuid")
@@ -1375,113 +1378,6 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_encounter_group_members_world_id");
 
                     b.ToTable("encounter_group_members", (string)null);
-                });
-
-            modelBuilder.Entity("TRPG.Domain.Models.Fact", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("subject");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("value");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_facts");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_facts_world_id");
-
-                    b.ToTable("facts", (string)null);
-                });
-
-            modelBuilder.Entity("TRPG.Domain.Models.FactDisclosureAttempt", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("FactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("fact_id");
-
-                    b.Property<Guid>("NpcId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("npc_id");
-
-                    b.Property<Guid>("PlayerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("player_id");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_fact_disclosure_attempts");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_fact_disclosure_attempts_world_id");
-
-                    b.HasIndex("PlayerId", "NpcId", "FactId")
-                        .IsUnique()
-                        .HasDatabaseName("ix_fact_disclosure_attempts_player_id_npc_id_fact_id");
-
-                    b.ToTable("fact_disclosure_attempts", (string)null);
-                });
-
-            modelBuilder.Entity("TRPG.Domain.Models.FactDisclosureLockout", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Approach")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("approach");
-
-                    b.Property<Guid>("FactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("fact_id");
-
-                    b.Property<Guid>("NpcId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("npc_id");
-
-                    b.Property<Guid>("PlayerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("player_id");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_fact_disclosure_lockouts");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_fact_disclosure_lockouts_world_id");
-
-                    b.HasIndex("PlayerId", "NpcId", "FactId", "Approach")
-                        .IsUnique()
-                        .HasDatabaseName("ix_fact_disclosure_lockouts_player_id_npc_id_fact_id_approach");
-
-                    b.ToTable("fact_disclosure_lockouts", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Faction", b =>
@@ -2002,10 +1898,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid[]")
                         .HasColumnName("prerequisite_quest_ids");
 
-                    b.Property<Guid?>("RequiredFactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("required_fact_id");
-
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
@@ -2462,6 +2354,36 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_room_bookings_world_id");
 
                     b.ToTable("room_bookings", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.Secret", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("subject");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("value");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_secrets");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_secrets_world_id");
+
+                    b.ToTable("secrets", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.State", b =>
@@ -3504,11 +3426,7 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creature_id");
 
-                    b.ToTable("quest_objectives", null, t =>
-                        {
-                            t.Property("CreatureId")
-                                .HasColumnName("kill_creature_objective_creature_id");
-                        });
+                    b.ToTable("quest_objectives", (string)null);
 
                     b.HasDiscriminator().HasValue("KillCreature");
                 });
@@ -3525,44 +3443,6 @@ namespace TRPG.Migrations
                     b.ToTable("quest_objectives", (string)null);
 
                     b.HasDiscriminator().HasValue("KillCreatureType");
-                });
-
-            modelBuilder.Entity("TRPG.Domain.Models.LearnFactFromCreatureObjective", b =>
-                {
-                    b.HasBaseType("TRPG.Domain.Models.QuestObjective");
-
-                    b.Property<int>("BaseWillingness")
-                        .HasColumnType("integer")
-                        .HasColumnName("base_willingness");
-
-                    b.Property<int>("BribeWillingness")
-                        .HasColumnType("integer")
-                        .HasColumnName("bribe_willingness");
-
-                    b.Property<Guid>("CreatureId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creature_id");
-
-                    b.Property<Guid>("FactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("fact_id");
-
-                    b.Property<int>("IntimidationWillingness")
-                        .HasColumnType("integer")
-                        .HasColumnName("intimidation_willingness");
-
-                    b.Property<Guid?>("ReasonFactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("reason_fact_id");
-
-                    b.PrimitiveCollection<List<Guid>>("RequiredSupportingQuestIds")
-                        .IsRequired()
-                        .HasColumnType("uuid[]")
-                        .HasColumnName("required_supporting_quest_ids");
-
-                    b.ToTable("quest_objectives", (string)null);
-
-                    b.HasDiscriminator().HasValue("LearnFactFromCreature");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.SpeakToCreatureObjective", b =>
@@ -3943,35 +3823,6 @@ namespace TRPG.Migrations
 
                     b.Navigation("Boundary")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("TRPG.Domain.Models.LearnFactFromCreatureObjective", b =>
-                {
-                    b.OwnsMany("TRPG.Domain.Models.SupportingFactQuestWeight", "WeightedSupportingQuestIds", b1 =>
-                        {
-                            b1.Property<Guid>("LearnFactFromCreatureObjectiveId");
-
-                            b1.Property<int>("__synthesizedOrdinal")
-                                .ValueGeneratedOnAdd();
-
-                            b1.Property<Guid>("QuestId");
-
-                            b1.Property<int>("Weight");
-
-                            b1.HasKey("LearnFactFromCreatureObjectiveId", "__synthesizedOrdinal");
-
-                            b1.ToTable("quest_objectives");
-
-                            b1
-                                .ToJson("weighted_supporting_quest_ids")
-                                .HasColumnType("jsonb");
-
-                            b1.WithOwner()
-                                .HasForeignKey("LearnFactFromCreatureObjectiveId")
-                                .HasConstraintName("fk_quest_objectives_quest_objectives_learn_fact_from_creature_obje");
-                        });
-
-                    b.Navigation("WeightedSupportingQuestIds");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Quest", b =>
