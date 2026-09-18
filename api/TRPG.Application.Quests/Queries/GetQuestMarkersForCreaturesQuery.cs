@@ -10,8 +10,14 @@ public enum QuestMarker
 {
     Available,
     ReadyToTurnIn,
-    ReadyToDeliver,
 }
+
+public record QuestMarkerEntry(Guid QuestId, string Name, QuestMarker Marker);
+
+public record QuestMarkersResult(
+    IReadOnlyDictionary<Guid, IReadOnlyCollection<QuestMarkerEntry>> EntriesByCreatureId,
+    IReadOnlySet<Guid> ReadyToDeliverCreatureIds
+);
 
 public class GetQuestMarkersForCreaturesQuery
 {
@@ -23,29 +29,39 @@ public class GetQuestMarkersForCreaturesQuery
 internal class GetQuestMarkersForCreaturesQueryHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context
-) : IQueryHandler<GetQuestMarkersForCreaturesQuery, IReadOnlyDictionary<Guid, QuestMarker>>
+) : IQueryHandler<GetQuestMarkersForCreaturesQuery, QuestMarkersResult>
 {
-    public async Task<IReadOnlyDictionary<Guid, QuestMarker>> Handle(
+    public async Task<QuestMarkersResult> Handle(
         GetQuestMarkersForCreaturesQuery query,
         CancellationToken cancellationToken = default
     )
     {
         if (query.CreatureIds.Count == 0)
         {
-            return new Dictionary<Guid, QuestMarker>();
+            return new QuestMarkersResult(
+                new Dictionary<Guid, IReadOnlyCollection<QuestMarkerEntry>>(),
+                new HashSet<Guid>()
+            );
         }
 
-        var markers = new Dictionary<Guid, QuestMarker>();
+        var entriesByCreatureId = new Dictionary<Guid, List<QuestMarkerEntry>>();
+        var readyToDeliverCreatureIds = new HashSet<Guid>();
 
-        await AddGiverMarkers(query, markers, cancellationToken);
-        await AddDeliveryMarkers(query, markers, cancellationToken);
+        await AddGiverMarkers(query, entriesByCreatureId, cancellationToken);
+        await AddDeliveryMarkers(query, readyToDeliverCreatureIds, cancellationToken);
 
-        return markers;
+        return new QuestMarkersResult(
+            entriesByCreatureId.ToDictionary(
+                pair => pair.Key,
+                pair => (IReadOnlyCollection<QuestMarkerEntry>)pair.Value.ToArray()
+            ),
+            readyToDeliverCreatureIds
+        );
     }
 
     private async Task AddGiverMarkers(
         GetQuestMarkersForCreaturesQuery query,
-        Dictionary<Guid, QuestMarker> markers,
+        Dictionary<Guid, List<QuestMarkerEntry>> entriesByCreatureId,
         CancellationToken cancellationToken
     )
     {
@@ -84,6 +100,32 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
         var completedQuestIdSet = completedQuestIds.ToHashSet();
         var playerQuestByQuestId = playerQuests.ToDictionary(quest => quest.QuestId);
 
+        var prerequisiteQuestIds = quests.SelectMany(quest => quest.PrerequisiteQuestIds).ToArray();
+        var prerequisiteGroupIdsByQuestId = await context
+            .Quests.AsNoTracking()
+            .Where(quest => prerequisiteQuestIds.AsEnumerable().Contains(quest.Id))
+            .Select(quest => new { quest.Id, quest.ExclusiveGroupId })
+            .ToDictionaryAsync(
+                quest => quest.Id,
+                quest => quest.ExclusiveGroupId,
+                cancellationToken
+            );
+        var siblingQuestIdsByGroupId = await context
+            .Quests.AsNoTracking()
+            .Where(quest =>
+                quest.WorldId == query.WorldId
+                && quest.ExclusiveGroupId != null
+                && quests
+                    .Select(candidate => candidate.ExclusiveGroupId)
+                    .Contains(quest.ExclusiveGroupId)
+            )
+            .GroupBy(quest => quest.ExclusiveGroupId!.Value)
+            .ToDictionaryAsync(
+                group => group.Key,
+                group => (IReadOnlyCollection<Guid>)group.Select(quest => quest.Id).ToArray(),
+                cancellationToken
+            );
+
         var knownFacts = await getKnownFacts.Handle(
             new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
             cancellationToken
@@ -94,10 +136,24 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
             if (
                 !playerQuestByQuestId.ContainsKey(quest.Id)
                 && (quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value))
-                && quest.PrerequisiteQuestIds.All(completedQuestIdSet.Contains)
+                && QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
+                    quest.PrerequisiteQuestIds,
+                    prerequisiteGroupIdsByQuestId,
+                    completedQuestIdSet
+                )
+                && !QuestExclusiveGroupEvaluator.IsClosedBySiblingCompletion(
+                    quest.Id,
+                    quest.ExclusiveGroupId,
+                    siblingQuestIdsByGroupId,
+                    completedQuestIdSet
+                )
             )
             {
-                markers.TryAdd(quest.GiverId, QuestMarker.Available);
+                AddEntry(
+                    entriesByCreatureId,
+                    quest.GiverId,
+                    new QuestMarkerEntry(quest.Id, quest.Name, QuestMarker.Available)
+                );
             }
         }
 
@@ -108,13 +164,33 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
             )
         )
         {
-            markers[questsById[playerQuest.QuestId].GiverId] = QuestMarker.ReadyToTurnIn;
+            var quest = questsById[playerQuest.QuestId];
+            AddEntry(
+                entriesByCreatureId,
+                quest.GiverId,
+                new QuestMarkerEntry(quest.Id, quest.Name, QuestMarker.ReadyToTurnIn)
+            );
         }
+    }
+
+    private static void AddEntry(
+        Dictionary<Guid, List<QuestMarkerEntry>> entriesByCreatureId,
+        Guid creatureId,
+        QuestMarkerEntry entry
+    )
+    {
+        if (!entriesByCreatureId.TryGetValue(creatureId, out var entries))
+        {
+            entries = [];
+            entriesByCreatureId[creatureId] = entries;
+        }
+
+        entries.Add(entry);
     }
 
     private async Task AddDeliveryMarkers(
         GetQuestMarkersForCreaturesQuery query,
-        Dictionary<Guid, QuestMarker> markers,
+        HashSet<Guid> readyToDeliverCreatureIds,
         CancellationToken cancellationToken
     )
     {
@@ -160,7 +236,7 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
 
         foreach (var recipientId in pendingRecipientIds)
         {
-            markers[recipientId] = QuestMarker.ReadyToDeliver;
+            readyToDeliverCreatureIds.Add(recipientId);
         }
     }
 }

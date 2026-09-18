@@ -227,7 +227,8 @@ export type CreatureStatusSnapshot = {
     poisonResistance: number;
     magicResistance: number;
     tradeWorkstationId: null | string;
-    questMarker: null | QuestMarker;
+    questMarkers: Array<QuestMarkerEntry>;
+    readyToDeliver: boolean;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
@@ -760,7 +761,13 @@ export type QuestMapResponse = {
     stateId: string;
 };
 
-export type QuestMarker = 'Available' | 'ReadyToTurnIn' | 'ReadyToDeliver';
+export type QuestMarker = 'Available' | 'ReadyToTurnIn';
+
+export type QuestMarkerEntry = {
+    questId: string;
+    name: string;
+    marker: QuestMarker;
+};
 
 export type QuestObjectiveItemProgressSnapshot = {
     name: string;
@@ -1886,6 +1893,7 @@ export type GetQuestDialogData = {
     query: {
         worldId: string;
         giverId: string;
+        questId: string;
     };
     url: '/players/{playerId}/quest-dialog';
 };

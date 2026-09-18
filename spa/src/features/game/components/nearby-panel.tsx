@@ -190,10 +190,10 @@ export function NearbyPanel({
   const [isSleepOpen, setIsSleepOpen] = useState(false);
   const [bookshelf, setBookshelf] = useState<{ id: string; name: string } | null>(null);
 
-  const handleQuestDialog = async (giverId: string) => {
+  const handleQuestDialog = async (giverId: string, questId: string) => {
     const response = await getQuestDialog({
       path: { playerId: scene.playerStatus.id },
-      query: { worldId: scene.worldId, giverId },
+      query: { worldId: scene.worldId, giverId, questId },
     });
     if (response.data) {
       onQuestDialogRequested({ ...response.data, worldId: scene.worldId });
@@ -267,7 +267,7 @@ export function NearbyPanel({
                 }
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
-              onQuestDialog={() => void handleQuestDialog(creature.id)}
+              onQuestDialog={(questId) => void handleQuestDialog(creature.id, questId)}
               onDeliverItem={() => void handleDeliverItemDialog(creature.id)}
             />
           ))}
@@ -496,13 +496,16 @@ function CreatureRow({
   onOpenInventory: () => void;
   onTrade: () => void;
   tradeEnabled: boolean;
-  onQuestDialog: () => void;
+  onQuestDialog: (questId: string) => void;
   onDeliverItem: () => void;
 }) {
   const dead = creature.state === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
   const reputation = creature.reputation == null ? null : Number(creature.reputation);
   const RaceIcon = CREATURE_TYPE_ICON[creature.creatureType];
+  const questMarkers = creature.questMarkers ?? [];
+  const hasAvailableQuest = questMarkers.some((marker) => marker.marker === 'Available');
+  const hasReadyToTurnInQuest = questMarkers.some((marker) => marker.marker === 'ReadyToTurnIn');
 
   return (
     <div className={cn('flex items-center gap-2 py-1.5', dead && 'opacity-45')}>
@@ -515,21 +518,21 @@ function CreatureRow({
           >
             <GiTombstone className="size-2.5" />
           </span>
-        ) : creature.questMarker === 'Available' ? (
+        ) : hasAvailableQuest ? (
           <span
             className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
             aria-label="Has a quest available"
           >
             <CircleHelp className="size-2.5" />
           </span>
-        ) : creature.questMarker === 'ReadyToTurnIn' ? (
+        ) : hasReadyToTurnInQuest ? (
           <span
             className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2 text-[10px] font-black"
             aria-label="Has a quest ready to turn in"
           >
             !
           </span>
-        ) : creature.questMarker === 'ReadyToDeliver' ? (
+        ) : creature.readyToDeliver ? (
           <span
             className="bg-stamina border-sidebar text-sidebar absolute -top-1 -right-1 flex size-[15px] items-center justify-center rounded-full border-2"
             aria-label="You have something to give them"
@@ -580,10 +583,12 @@ function CreatureRow({
           <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
           {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
           {!dead &&
-            (creature.questMarker === 'Available' || creature.questMarker === 'ReadyToTurnIn') && (
-              <DropdownMenuItem onClick={onQuestDialog}>Quest</DropdownMenuItem>
-            )}
-          {!dead && creature.questMarker === 'ReadyToDeliver' && (
+            questMarkers.map((marker) => (
+              <DropdownMenuItem key={marker.questId} onClick={() => onQuestDialog(marker.questId)}>
+                Quest: {marker.name}
+              </DropdownMenuItem>
+            ))}
+          {!dead && creature.readyToDeliver && (
             <DropdownMenuItem onClick={onDeliverItem}>Give Item</DropdownMenuItem>
           )}
         </DropdownMenuContent>

@@ -41,6 +41,8 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
         state: 'Idle',
         reputation: null,
         tradeWorkstationId,
+        questMarkers: [],
+        readyToDeliver: false,
       },
     ],
     playerStatus: { id: 'player-id', level: 1 },
@@ -284,7 +286,10 @@ describe('NearbyPanel', () => {
           level: 1,
           state: 'Idle',
           reputation: null,
-          questMarker: 'Available',
+          questMarkers: [
+            { questId: 'quest-id', name: 'A Dangerous Delivery', marker: 'Available' },
+          ],
+          readyToDeliver: false,
         },
       ],
     } as unknown as SceneSnapshot;
@@ -292,7 +297,7 @@ describe('NearbyPanel', () => {
     const { user } = renderPanel(sceneWithQuestGiver, onQuestDialogRequested);
 
     await user.click(screen.getByRole('button', { name: 'Actions for Giver' }));
-    await user.click(screen.getByRole('menuitem', { name: 'Quest' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Quest: A Dangerous Delivery' }));
 
     await waitFor(() =>
       expect(onQuestDialogRequested).toHaveBeenCalledWith(

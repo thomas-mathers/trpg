@@ -85,7 +85,8 @@ public record SceneCreatureInfo(
     float PoisonResistance,
     float MagicResistance,
     Guid? TradeWorkstationId,
-    QuestMarker? QuestMarker
+    IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
+    bool ReadyToDeliver
 );
 
 public record SceneNearbyBuildingInfo(Guid Id, string Name, BuildingType Type);

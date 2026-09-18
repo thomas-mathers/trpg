@@ -49,10 +49,7 @@ internal class GetSceneQueryHandler(
         GetEffectiveReputationsQuery,
         IReadOnlyDictionary<Guid, int>
     > getEffectiveReputations,
-    IQueryHandler<
-        GetQuestMarkersForCreaturesQuery,
-        IReadOnlyDictionary<Guid, QuestMarker>
-    > getQuestMarkersForCreatures,
+    IQueryHandler<GetQuestMarkersForCreaturesQuery, QuestMarkersResult> getQuestMarkersForCreatures,
     IQueryHandler<
         GetTotalCharacterXpFromSkillsQuery,
         IReadOnlyDictionary<Guid, int>
@@ -168,7 +165,8 @@ internal class GetSceneQueryHandler(
         int? reputation,
         int totalCharacterXp,
         Guid? tradeWorkstationId = null,
-        QuestMarker? questMarker = null
+        IReadOnlyCollection<QuestMarkerEntry>? questMarkers = null,
+        bool readyToDeliver = false
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
@@ -212,7 +210,8 @@ internal class GetSceneQueryHandler(
             creature.PoisonResistance,
             creature.MagicResistance,
             tradeWorkstationId,
-            questMarker
+            questMarkers ?? [],
+            readyToDeliver
         );
     }
 
@@ -418,7 +417,7 @@ internal class GetSceneQueryHandler(
             new GetTradeWorkstationIdsByOccupantIdsQuery { OccupantIds = nearbyCreatureIds },
             cancellationToken
         );
-        var questMarkersByGiver = await getQuestMarkersForCreatures.Handle(
+        var questMarkers = await getQuestMarkersForCreatures.Handle(
             new GetQuestMarkersForCreaturesQuery
             {
                 PlayerId = query.PlayerId,
@@ -443,9 +442,8 @@ internal class GetSceneQueryHandler(
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
-                    questMarker: questMarkersByGiver.TryGetValue(x.Id, out var marker)
-                        ? marker
-                        : null
+                    questMarkers: questMarkers.EntriesByCreatureId.GetValueOrDefault(x.Id, []),
+                    readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id)
                 )
             )
             .ToArray();
