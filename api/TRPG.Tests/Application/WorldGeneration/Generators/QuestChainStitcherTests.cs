@@ -55,4 +55,27 @@ public class QuestChainStitcherTests
         Assert.Equal(QuestChainBlockType.EpilogueHook, nodes[3].BlockType);
         Assert.Equal(["node-2", "node-3"], nodes[3].PrerequisiteNodeIds);
     }
+
+    [Fact]
+    public void Stitch_ProducesExclusiveRoutesOfDifferentLengthsThatCanConverge()
+    {
+        var nodes = QuestChainStitcher.Stitch([
+            new QuestChainBlockSelection(QuestChainBlockType.IncitingLead, 1),
+            new QuestChainBlockSelection(QuestChainBlockType.ExclusiveBranch, 7),
+            new QuestChainBlockSelection(QuestChainBlockType.Finale, 1),
+        ]);
+
+        var routeGroupIndex = nodes[1].GroupIndex;
+        Assert.NotNull(routeGroupIndex);
+        Assert.Equal(routeGroupIndex, nodes[4].GroupIndex);
+        Assert.Equal(routeGroupIndex, nodes[6].GroupIndex);
+        Assert.Null(nodes[2].GroupIndex);
+        Assert.Null(nodes[3].GroupIndex);
+        Assert.Null(nodes[5].GroupIndex);
+
+        Assert.Equal(routeGroupIndex, nodes[3].PrerequisiteAlternativeGroupIndex);
+        Assert.Equal(routeGroupIndex, nodes[5].PrerequisiteAlternativeGroupIndex);
+        Assert.Equal(routeGroupIndex, nodes[7].PrerequisiteAlternativeGroupIndex);
+        Assert.Equal(["node-4", "node-6", "node-8"], nodes[8].PrerequisiteNodeIds);
+    }
 }

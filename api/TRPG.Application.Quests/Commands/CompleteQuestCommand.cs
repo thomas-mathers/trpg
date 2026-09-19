@@ -8,6 +8,7 @@ using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Knowledge.Commands;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -33,7 +34,8 @@ internal class CompleteQuestCommandHandler(
     IQueryHandler<GetItemsByNameForOwnerQuery, IReadOnlyList<Item>> getItemsByNameForOwner,
     IQueryHandler<GetReportedStolenItemIdsQuery, IReadOnlySet<Guid>> getReportedStolenItemIds,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
-    ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory
+    ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory,
+    ICommandHandler<LearnFactCommand, bool> learnFact
 ) : ICommandHandler<CompleteQuestCommand>
 {
     // A witnessed-and-reported theft of one of this quest's own items halves the payout, flat
@@ -107,6 +109,12 @@ internal class CompleteQuestCommandHandler(
         );
         var allGiveItems = giveItems.Concat(giveItemKindTransfers).ToArray();
 
+        var reportFacts = await context
+            .QuestObjectives.OfType<ReportFactToCreatureObjective>()
+            .Where(objective => objective.QuestId == command.QuestId)
+            .Select(objective => new { objective.CreatureId, objective.FactId })
+            .ToArrayAsync(cancellationToken);
+
         var rewardMultiplier = await GetRewardMultiplier(
             command.PlayerId,
             command.WorldId,
@@ -164,6 +172,19 @@ internal class CompleteQuestCommandHandler(
                     Items = recipientItems
                         .Select(giveItem => new ItemSelection(giveItem.ItemId, 1))
                         .ToArray(),
+                },
+                cancellationToken
+            );
+        }
+
+        foreach (var reportFact in reportFacts)
+        {
+            await learnFact.Handle(
+                new LearnFactCommand
+                {
+                    WorldId = command.WorldId,
+                    KnowerId = reportFact.CreatureId,
+                    FactId = reportFact.FactId,
                 },
                 cancellationToken
             );

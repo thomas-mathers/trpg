@@ -4,12 +4,12 @@ internal static class QuestExclusiveGroupEvaluator
 {
     internal static bool ArePrerequisitesSatisfied(
         IReadOnlyCollection<Guid> prerequisiteQuestIds,
-        IReadOnlyDictionary<Guid, Guid?> exclusiveGroupIdByPrerequisiteQuestId,
+        IReadOnlyDictionary<Guid, Guid?> prerequisiteAlternativeGroupIdByQuestId,
         IReadOnlySet<Guid> completedQuestIds
     ) =>
         prerequisiteQuestIds
             .GroupBy(questId =>
-                exclusiveGroupIdByPrerequisiteQuestId.GetValueOrDefault(questId) ?? questId
+                prerequisiteAlternativeGroupIdByQuestId.GetValueOrDefault(questId) ?? questId
             )
             .All(group => group.Any(completedQuestIds.Contains));
 

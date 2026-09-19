@@ -58,7 +58,7 @@ internal class AcceptQuestCommandHandler(
             .Select(creatureQuest => creatureQuest.QuestId)
             .ToArrayAsync(cancellationToken);
         var completedQuestIdSet = completedQuestIds.ToHashSet();
-        var prerequisiteGroupIdsByQuestId = await context
+        var prerequisiteAlternativeGroupIdsByQuestId = await context
             .Quests.AsNoTracking()
             .Where(prerequisiteQuest =>
                 quest.PrerequisiteQuestIds.AsEnumerable().Contains(prerequisiteQuest.Id)
@@ -66,17 +66,17 @@ internal class AcceptQuestCommandHandler(
             .Select(prerequisiteQuest => new
             {
                 prerequisiteQuest.Id,
-                prerequisiteQuest.ExclusiveGroupId,
+                prerequisiteQuest.PrerequisiteAlternativeGroupId,
             })
             .ToDictionaryAsync(
                 prerequisiteQuest => prerequisiteQuest.Id,
-                prerequisiteQuest => prerequisiteQuest.ExclusiveGroupId,
+                prerequisiteQuest => prerequisiteQuest.PrerequisiteAlternativeGroupId,
                 cancellationToken
             );
         if (
             !QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
                 quest.PrerequisiteQuestIds,
-                prerequisiteGroupIdsByQuestId,
+                prerequisiteAlternativeGroupIdsByQuestId,
                 completedQuestIdSet
             )
         )

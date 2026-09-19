@@ -31,10 +31,11 @@ public static class WorldGenerationServiceCollectionExtensions
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()
             .AddTransient<FactionsGenerator>()
-            .AddTransient<QuestChainGenerator>()
-            .AddTransient<QuestChainBlockSequenceGenerator>()
             .AddTransient<QuestChainContentGenerator>()
-            .AddTransient<QuestChainBlockBasedGenerator>()
-            .AddTransient<QuestChainChapterGenerator>()
+            .AddTransient<QuestChainStoryGenerator>()
+            .AddTransient<QuestChainBlockGraphGenerator>()
+            .AddTransient<QuestChainFactDisclosureRepairer>()
+            .AddTransient<QuestChainGlobalGraphPipeline>()
+            .AddTransient<QuestChainTreatmentFirstGenerator>()
             .AddTransient<WorldGenerator>();
 }

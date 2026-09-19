@@ -3,18 +3,21 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TRPG.Data;
 
 #nullable disable
 
-namespace TRPG.Migrations
+namespace TRPG.Data.Migrations
 {
     [DbContext(typeof(TrpgDbContext))]
-    partial class TrpgDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260919150857_RemoveSpeakToCreatureObjective")]
+    partial class RemoveSpeakToCreatureObjective
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3577,30 +3580,6 @@ namespace TRPG.Migrations
                     b.ToTable("quest_objectives", (string)null);
 
                     b.HasDiscriminator().HasValue("LearnFactFromCreature");
-                });
-
-            modelBuilder.Entity("TRPG.Domain.Models.ReportFactToCreatureObjective", b =>
-                {
-                    b.HasBaseType("TRPG.Domain.Models.QuestObjective");
-
-                    b.Property<Guid>("CreatureId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creature_id");
-
-                    b.Property<Guid>("FactId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("fact_id");
-
-                    b.ToTable("quest_objectives", null, t =>
-                        {
-                            t.Property("CreatureId")
-                                .HasColumnName("report_fact_to_creature_objective_creature_id");
-
-                            t.Property("FactId")
-                                .HasColumnName("report_fact_to_creature_objective_fact_id");
-                        });
-
-                    b.HasDiscriminator().HasValue("ReportFactToCreature");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Country", b =>

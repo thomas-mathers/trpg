@@ -17,10 +17,16 @@ public sealed class FakeChatClient : IChatClient
     public string? TextBeforeToolCall { get; set; }
     public IDictionary<string, object?>? PendingToolCallArguments { get; set; }
 
-    // Overrides the canned single-node quest-chain response below, for tests that need to script a
-    // specific multi-node/multi-objective-type DAG (or a deliberately invalid one, to exercise the
-    // generator's retry-exhaustion failure path).
-    internal QuestChainSchema? QuestChainSchemaOverride { get; set; }
+    // Overrides the canned content-stage quest-chain response below, for tests that need to script
+    // a specific multi-node/multi-objective-type set of quest content (or a deliberately invalid
+    // one, to exercise the generator's retry-exhaustion failure path). The story and block-graph
+    // stages that precede content generation always get a minimal two-node (IncitingLead + Finale)
+    // canned graph, so an override here must supply exactly two content nodes.
+    internal QuestChainContentSchema? QuestChainContentSchemaOverride { get; set; }
+
+    // Overrides the canned two-block (IncitingLead + Finale) graph below, for tests whose content
+    // override needs a differently shaped skeleton (e.g. a FactDisclosure block).
+    internal QuestChainBlockGraphSchema? QuestChainBlockGraphSchemaOverride { get; set; }
 
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -111,36 +117,117 @@ public sealed class FakeChatClient : IChatClient
             return JsonSerializer.Serialize(entity);
         }
 
-        if (text.Contains("directed acyclic graph", StringComparison.OrdinalIgnoreCase))
+        if (text.Contains("compact complete RPG quest story", StringComparison.OrdinalIgnoreCase))
         {
-            if (QuestChainSchemaOverride != null)
+            var chapterCount = ExtractCount(text, @"Chapter count: (\d+)");
+            var schema = new QuestChainStorySchema
             {
-                return JsonSerializer.Serialize(QuestChainSchemaOverride);
+                Summary = "A fake story summary.",
+                Chapters = Enumerable
+                    .Range(0, chapterCount)
+                    .Select(_ => new QuestChainStoryChapterSchema
+                    {
+                        Description = "A fake chapter.",
+                        Turns = ["A fake turn.", "Another fake turn."],
+                    })
+                    .ToList(),
+            };
+            return JsonSerializer.Serialize(schema);
+        }
+
+        if (text.Contains("named quest blocks", StringComparison.OrdinalIgnoreCase))
+        {
+            if (QuestChainBlockGraphSchemaOverride != null)
+            {
+                return JsonSerializer.Serialize(QuestChainBlockGraphSchemaOverride);
+            }
+
+            // Otherwise the minimal feasible graph: a Finale requires one open thread, and only
+            // IncitingLead can open one from nothing, so every test-sized chain gets exactly these
+            // two nodes regardless of the requested node budget.
+            var schema = new QuestChainBlockGraphSchema
+            {
+                Blocks =
+                [
+                    new QuestChainBlockGraphBlockSchema
+                    {
+                        Id = "block-1",
+                        BlockType = nameof(QuestChainBlockType.IncitingLead),
+                        NodeCount = 1,
+                        DependsOnBlockIds = [],
+                    },
+                    new QuestChainBlockGraphBlockSchema
+                    {
+                        Id = "block-2",
+                        BlockType = nameof(QuestChainBlockType.Finale),
+                        NodeCount = 1,
+                        DependsOnBlockIds = ["block-1"],
+                    },
+                ],
+            };
+            return JsonSerializer.Serialize(schema);
+        }
+
+        if (text.Contains("fixed text RPG quest graph", StringComparison.OrdinalIgnoreCase))
+        {
+            if (QuestChainContentSchemaOverride != null)
+            {
+                return JsonSerializer.Serialize(QuestChainContentSchemaOverride);
             }
 
             var entityId = ExtractFirstEntityId(text);
-            var schema = new QuestChainSchema
+            var schema = new QuestChainContentSchema
             {
-                Nodes =
-                [
-                    new QuestChainNodeSchema
+                Nodes = Regex
+                    .Matches(text, @"- node-\d+:")
+                    .Select(_ => new QuestChainContentNodeSchema
                     {
-                        NodeId = "node-1",
                         Name = NextName("Quest"),
                         Description = "A fake quest node.",
                         GiverEntityId = entityId,
                         Objectives =
                         [
-                            new QuestChainObjectiveSchema
+                            new QuestChainContentObjectiveSchema
                             {
                                 Name = NextName("Objective"),
                                 Description = "A fake objective.",
-                                ObjectiveType = nameof(GeneratedObjectiveType.SpeakToCreature),
+                                ObjectiveType = nameof(GeneratedObjectiveType.KillCreature),
                                 TargetEntityId = entityId,
                             },
                         ],
-                    },
-                ],
+                    })
+                    .ToList(),
+            };
+            return JsonSerializer.Serialize(schema);
+        }
+
+        if (text.Contains("blocking fact-disclosure quest", StringComparison.OrdinalIgnoreCase))
+        {
+            var entityId = ExtractFirstEntityId(text);
+            var schema = new FactDisclosureRepairSchema
+            {
+                ReasonFact = new QuestChainContentFactSchema
+                {
+                    FactKey = $"fake-reason-{NextName("")}".ToLowerInvariant(),
+                    Subject = "A fake reason.",
+                    Value = "A fake reason value.",
+                },
+                SupportQuest = new QuestChainContentNodeSchema
+                {
+                    Name = NextName("Support Quest"),
+                    Description = "A fake support quest.",
+                    GiverEntityId = entityId,
+                    Objectives =
+                    [
+                        new QuestChainContentObjectiveSchema
+                        {
+                            Name = NextName("Objective"),
+                            Description = "A fake objective.",
+                            ObjectiveType = nameof(GeneratedObjectiveType.KillCreature),
+                            TargetEntityId = entityId,
+                        },
+                    ],
+                },
             };
             return JsonSerializer.Serialize(schema);
         }

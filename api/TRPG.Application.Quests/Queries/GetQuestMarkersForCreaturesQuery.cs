@@ -101,13 +101,13 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
         var playerQuestByQuestId = playerQuests.ToDictionary(quest => quest.QuestId);
 
         var prerequisiteQuestIds = quests.SelectMany(quest => quest.PrerequisiteQuestIds).ToArray();
-        var prerequisiteGroupIdsByQuestId = await context
+        var prerequisiteAlternativeGroupIdsByQuestId = await context
             .Quests.AsNoTracking()
             .Where(quest => prerequisiteQuestIds.AsEnumerable().Contains(quest.Id))
-            .Select(quest => new { quest.Id, quest.ExclusiveGroupId })
+            .Select(quest => new { quest.Id, quest.PrerequisiteAlternativeGroupId })
             .ToDictionaryAsync(
                 quest => quest.Id,
-                quest => quest.ExclusiveGroupId,
+                quest => quest.PrerequisiteAlternativeGroupId,
                 cancellationToken
             );
         var siblingQuestIdsByGroupId = await context
@@ -138,7 +138,7 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
                 && (quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value))
                 && QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
                     quest.PrerequisiteQuestIds,
-                    prerequisiteGroupIdsByQuestId,
+                    prerequisiteAlternativeGroupIdsByQuestId,
                     completedQuestIdSet
                 )
                 && !QuestExclusiveGroupEvaluator.IsClosedBySiblingCompletion(

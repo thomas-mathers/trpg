@@ -42,7 +42,6 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
     [InlineData(ObjectiveKind.KillCreatureType)]
     [InlineData(ObjectiveKind.CollectItem)]
     [InlineData(ObjectiveKind.ExploreLocation)]
-    [InlineData(ObjectiveKind.SpeakToCreature)]
     [InlineData(ObjectiveKind.GiveItem)]
     [InlineData(ObjectiveKind.GiveItemKind)]
     public async Task Handle_AdvancesAndMarksReady_WhenEventMatchesObjective(ObjectiveKind kind)
@@ -289,12 +288,6 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                 QuestId = questId,
                 LocationId = locationId,
             },
-            ObjectiveKind.SpeakToCreature => new SpeakToCreatureObjective
-            {
-                WorldId = WorldId,
-                QuestId = questId,
-                CreatureId = targetId,
-            },
             ObjectiveKind.GiveItem => new GiveItemsObjective
             {
                 WorldId = WorldId,
@@ -366,13 +359,6 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                         ),
                         cancellationToken
                     ),
-            ObjectiveKind.SpeakToCreature => cancellationToken =>
-                _serviceProvider
-                    .GetRequiredService<ConversationStartedQuestEventHandler>()
-                    .Handle(
-                        new NpcConversationStartedEvent(_player.Id, WorldId, targetId),
-                        cancellationToken
-                    ),
             ObjectiveKind.GiveItem => cancellationToken =>
                 _serviceProvider
                     .GetRequiredService<ItemAcquiredQuestEventHandler>()
@@ -396,7 +382,6 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         KillCreatureType,
         CollectItem,
         ExploreLocation,
-        SpeakToCreature,
         GiveItem,
         GiveItemKind,
     }

@@ -47,6 +47,19 @@ internal class QuestChainContentObjectiveSchema
     public int? IntimidationWillingness { get; init; }
 }
 
+// An entity an earlier content slice already used — either as an objective's target/recipient
+// (Role is the objective type, e.g. "FreeCreature") or as a node's giver (Role is "Giver",
+// meaning it was last established as free and active). Threaded forward so a later slice (a
+// separate LLM call with no visibility into prior slices' output) doesn't independently reuse
+// the same entity in a way that contradicts what's already been established — e.g. freeing an
+// already-freed captive, or silently treating a recently-active giver as already captured.
+public record QuestChainCommittedEntity(
+    Guid EntityId,
+    string EntityName,
+    string Role,
+    string QuestName
+);
+
 public class QuestChainContentGenerator(
     [FromKeyedServices(LlmRoleKeys.QuestGeneration)] IChatClient client,
     ILogger<QuestChainContentGenerator> logger
@@ -56,6 +69,7 @@ public class QuestChainContentGenerator(
         QuestChainGeneratorInput input,
         IReadOnlyList<QuestChainNodeSkeleton> skeleton,
         QuestChainBlockGenerationScope scope,
+        IReadOnlyList<QuestChainCommittedEntity> committedEntities,
         CancellationToken cancellationToken = default
     )
     {
@@ -70,12 +84,33 @@ public class QuestChainContentGenerator(
                 $"- id={entity.Id}, name=\"{entity.Name}\", type={entity.Type}, details=\"{entity.Description}\""
             )
         );
+        var committedEntitiesInstruction =
+            committedEntities.Count == 0
+                ? ""
+                : $"""
+
+                Entities already used earlier in this chain:
+                {string.Join(
+                    "\n",
+                    committedEntities.Select(entity =>
+                        entity.Role == "Giver"
+                            ? $"- {entity.EntityName}: established as free and active, giving \"{entity.QuestName}\""
+                            : $"- {entity.EntityName}: {entity.Role} (via \"{entity.QuestName}\")"
+                    )
+                )}
+                Avoid reusing an entity for the same kind of objective unless the story
+                specifically revisits it — e.g. don't free someone already freed. An entity
+                established as a free, active giver may still change status later (captured,
+                killed, turned) if the story calls for it, but that change must be an explicit
+                narrated event in the beat that causes it, never silently assumed.
+                """;
         var skeletonDescription = string.Join(
             "\n",
             skeleton.Select(node =>
                 $"- {node.NodeId}: requires {FormatNodeIds(node.PrerequisiteNodeIds)}; "
                 + $"block type {node.BlockType}; "
                 + $"exclusive group {node.GroupIndex?.ToString() ?? "none"}; "
+                + $"prerequisite alternative group {node.PrerequisiteAlternativeGroupIndex?.ToString() ?? "none"}; "
                 + $"fact support {node.FactDisclosureSupportingNodeId ?? "none"}"
             )
         );
@@ -97,8 +132,9 @@ public class QuestChainContentGenerator(
             Shape each node's story beat to its block type: Escalation raises the danger or stakes;
             Reversal changes what the player thought they knew; Favor helps an NPC and earns their
             trust or aid; ParallelThreads pursue distinct leads at the same time; EpilogueHook shows
-            consequences and points toward a future story. Do not put a final confrontation in an
-            EpilogueHook.
+            consequences and points toward a future story. ExclusiveBranch commits the player to one
+            distinct approach; keep every quest in a route pursuing that approach through to its own
+            endpoint. Do not put a final confrontation in an EpilogueHook.
 
             Every content node needs a nonblank 3-6 word Name, concrete Description, and a creature
             GiverEntityId from the entity list. Every objective needs a nonblank 3-6 word Name and
@@ -114,9 +150,9 @@ public class QuestChainContentGenerator(
             - FreeCreature: TargetEntityId is a creature.
             - ClearLocation: TargetEntityId is a Dungeon.
             - ExploreLocation: TargetEntityId is a Dungeon or Building.
-            - SpeakToCreature: TargetEntityId is a creature.
-            - LearnFactFromCreature: TargetEntityId is a creature; FactKey, ReasonFactKey, and all
-              three willingness values are required.
+            - LearnFactFromCreature: TargetEntityId is a creature; FactKey and all three willingness
+              values are required. ReasonFactKey and a weighted supporting quest are optional.
+            - ReportFactToCreature: TargetEntityId is a creature and FactKey is required.
             - CollectItem: TargetEntityId is a creature and NewItemName is required.
             - GiveItems: TargetEntityId and RecipientEntityId are creatures and NewItemName is required.
             - GiveItemKind: ItemNameForKind and creature RecipientEntityId are required.
@@ -125,10 +161,11 @@ public class QuestChainContentGenerator(
             The supplied skeleton has {factDisclosureNodeCount} fact-disclosure node(s). When this is
             zero, Facts MUST be [] and LearnFactFromCreature is forbidden. When it is one, author
             exactly one LearnFactFromCreature on that named node. It needs a target creature, FactKey,
-            ReasonFactKey, and BaseWillingness, BribeWillingness, IntimidationWillingness from 0 to
-            100. Game code links the matching support node to the reason fact. Facts have lowercase
-            kebab-case FactKey values and nonblank player-facing Subject and Value. Every FactKey and
-            ReasonFactKey must have a matching entry in Facts. Copy the exact identifier: if an
+            BaseWillingness, BribeWillingness, and IntimidationWillingness from 0 to 100. ReasonFactKey
+            and a weighted supporting quest are optional; use them only when the story includes a
+            concrete reason for refusal. Game code links the matching support node when the skeleton
+            provides one. Facts have lowercase kebab-case FactKey values and nonblank player-facing
+            Subject and Value. Every FactKey and ReasonFactKey must have a matching entry in Facts. Copy the exact identifier: if an
             objective has FactKey "cult-symbol", Facts must contain an entry whose FactKey is
             "cult-symbol"; if it has ReasonFactKey "guard-fears-retaliation", Facts must contain an
             entry whose FactKey is "guard-fears-retaliation". Never leave a Facts entry FactKey blank.
@@ -144,6 +181,7 @@ public class QuestChainContentGenerator(
 
             Available entities:
             {entityList}
+            {committedEntitiesInstruction}
             """;
 
         var content = await client.GetValidatedJson<QuestChainContentSchema>(
@@ -152,7 +190,7 @@ public class QuestChainContentGenerator(
             userPrompt,
             schema => Validate(schema, skeleton, entityTypesById),
             cancellationToken,
-            options: new ChatOptions { MaxOutputTokens = 8192 }
+            options: new ChatOptions { MaxOutputTokens = 16384 }
         );
         return QuestChainBlockAssembler.Assemble(content, skeleton);
     }
@@ -169,7 +207,7 @@ public class QuestChainContentGenerator(
         }
 
         var schema = QuestChainBlockAssembler.Merge(content, skeleton);
-        return QuestChainGenerator.Validate(schema, entityTypesById, skeleton.Count);
+        return QuestChainGenerator.ValidateFields(schema, entityTypesById, skeleton.Count);
     }
 
     private static string FormatNodeIds(IReadOnlyList<string> nodeIds) =>
@@ -200,6 +238,7 @@ internal static class QuestChainBlockAssembler
                     Guid.Parse(node.GiverEntityId!),
                     node.RequiredFactKey,
                     node.GroupIndex,
+                    node.PrerequisiteAlternativeGroupIndex,
                     node.PrerequisiteNodeIds,
                     node.Objectives.Select(objective => new QuestChainGeneratedObjective(
                             objective.Name,
@@ -283,6 +322,8 @@ internal static class QuestChainBlockAssembler
                         ? reasonFactKey
                         : pair.First.RequiredFactKey,
                     GroupIndex = pair.Second.GroupIndex,
+                    PrerequisiteAlternativeGroupIndex =
+                        pair.Second.PrerequisiteAlternativeGroupIndex,
                     PrerequisiteNodeIds = pair.Second.PrerequisiteNodeIds.ToList(),
                     Objectives = pair
                         .First.Objectives.Select(objective => new QuestChainObjectiveSchema
@@ -305,6 +346,7 @@ internal static class QuestChainBlockAssembler
                             WeightedSupportingQuestNodeIds =
                                 objective.ObjectiveType
                                     == nameof(GeneratedObjectiveType.LearnFactFromCreature)
+                                && objective.ReasonFactKey is not null
                                 && pair.Second.FactDisclosureSupportingNodeId is { } supportNodeId
                                     ?
                                     [

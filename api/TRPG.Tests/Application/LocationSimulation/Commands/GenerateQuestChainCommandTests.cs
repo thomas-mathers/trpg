@@ -75,39 +75,37 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
     [Fact]
     public async Task Handle_PersistsTheWholeChainWithPrerequisiteWiring_WhenGenerationSucceeds()
     {
-        // Arrange
+        // Arrange — the fake block-graph stage always stitches a two-node IncitingLead+Finale
+        // skeleton (node-1 -> node-2), so the content override supplies exactly two nodes in order.
         var requestId = await SeedPendingRequest();
-        _chatClient.QuestChainSchemaOverride = new QuestChainSchema
+        _chatClient.QuestChainContentSchemaOverride = new QuestChainContentSchema
         {
             Nodes =
             [
-                new QuestChainNodeSchema
+                new QuestChainContentNodeSchema
                 {
-                    NodeId = "node-1",
-                    Name = "Speak With Giver",
-                    Description = "Talk to the giver.",
+                    Name = "Kill The Giver",
+                    Description = "Defeat the giver.",
                     GiverEntityId = _giver.Id.ToString(),
                     Objectives =
                     [
-                        new QuestChainObjectiveSchema
+                        new QuestChainContentObjectiveSchema
                         {
-                            Name = "Speak",
-                            Description = "Speak to the giver.",
-                            ObjectiveType = nameof(GeneratedObjectiveType.SpeakToCreature),
+                            Name = "Kill",
+                            Description = "Defeat the giver.",
+                            ObjectiveType = nameof(GeneratedObjectiveType.KillCreature),
                             TargetEntityId = _giver.Id.ToString(),
                         },
                     ],
                 },
-                new QuestChainNodeSchema
+                new QuestChainContentNodeSchema
                 {
-                    NodeId = "node-2",
                     Name = "Clear The Dungeon",
                     Description = "Clear it out.",
                     GiverEntityId = _giver.Id.ToString(),
-                    PrerequisiteNodeIds = ["node-1"],
                     Objectives =
                     [
-                        new QuestChainObjectiveSchema
+                        new QuestChainContentObjectiveSchema
                         {
                             Name = "Clear",
                             Description = "Clear the dungeon.",
@@ -149,7 +147,7 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
             .Quests.Where(q => q.WorldId == _worldId)
             .ToListAsync(TestContext.Current.CancellationToken);
         Assert.Equal(2, quests.Count);
-        var firstQuest = Assert.Single(quests, q => q.Name == "Speak With Giver");
+        var firstQuest = Assert.Single(quests, q => q.Name == "Kill The Giver");
         var secondQuest = Assert.Single(quests, q => q.Name == "Clear The Dungeon");
         Assert.Equal([firstQuest.Id], secondQuest.PrerequisiteQuestIds);
         var clearObjective = await _context
@@ -167,27 +165,43 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
     [Fact]
     public async Task Handle_MintsANewItemOwnedByTheHolder_WhenObjectiveIsCollectItem()
     {
-        // Arrange
+        // Arrange — a second trivial node satisfies the fake's minimal two-node skeleton; only the
+        // first node's CollectItem objective is asserted on below.
         var requestId = await SeedPendingRequest();
-        _chatClient.QuestChainSchemaOverride = new QuestChainSchema
+        _chatClient.QuestChainContentSchemaOverride = new QuestChainContentSchema
         {
             Nodes =
             [
-                new QuestChainNodeSchema
+                new QuestChainContentNodeSchema
                 {
-                    NodeId = "node-1",
                     Name = "Recover The Signet",
                     Description = "Recover the signet ring.",
                     GiverEntityId = _giver.Id.ToString(),
                     Objectives =
                     [
-                        new QuestChainObjectiveSchema
+                        new QuestChainContentObjectiveSchema
                         {
                             Name = "Collect Ring",
                             Description = "Take the signet ring.",
                             ObjectiveType = nameof(GeneratedObjectiveType.CollectItem),
                             TargetEntityId = _giver.Id.ToString(),
                             NewItemName = "Signet Ring",
+                        },
+                    ],
+                },
+                new QuestChainContentNodeSchema
+                {
+                    Name = "Report Back",
+                    Description = "Tell the giver it's done.",
+                    GiverEntityId = _giver.Id.ToString(),
+                    Objectives =
+                    [
+                        new QuestChainContentObjectiveSchema
+                        {
+                            Name = "Kill",
+                            Description = "Defeat the giver.",
+                            ObjectiveType = nameof(GeneratedObjectiveType.KillCreature),
+                            TargetEntityId = _giver.Id.ToString(),
                         },
                     ],
                 },
@@ -200,7 +214,7 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
             {
                 RequestId = requestId,
                 ChainPremise = "A test premise.",
-                ChainLength = 1,
+                ChainLength = 2,
                 AvailableEntities =
                 [
                     new QuestChainCandidateEntity(
@@ -230,36 +244,58 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
     [Fact]
     public async Task Handle_PersistsAuthoredFactsAndDisclosureObjectives_WhenGenerationSucceeds()
     {
-        // Arrange
+        // Arrange — a FactDisclosure block stitches a primary node (node-1) and a support node
+        // (node-2) with no explicit wiring in content; the content generator derives the support
+        // link and its 45-weight purely from the skeleton's fact-disclosure pairing plus the
+        // primary objective's ReasonFactKey. A trailing Finale node keeps the graph valid.
         var requestId = await SeedPendingRequest();
-        _chatClient.QuestChainSchemaOverride = new QuestChainSchema
+        _chatClient.QuestChainBlockGraphSchemaOverride = new QuestChainBlockGraphSchema
+        {
+            Blocks =
+            [
+                new QuestChainBlockGraphBlockSchema
+                {
+                    Id = "block-1",
+                    BlockType = nameof(QuestChainBlockType.FactDisclosure),
+                    NodeCount = 2,
+                    DependsOnBlockIds = [],
+                },
+                new QuestChainBlockGraphBlockSchema
+                {
+                    Id = "block-2",
+                    BlockType = nameof(QuestChainBlockType.Finale),
+                    NodeCount = 1,
+                    DependsOnBlockIds = ["block-1"],
+                },
+            ],
+        };
+        _chatClient.QuestChainContentSchemaOverride = new QuestChainContentSchema
         {
             Facts =
             [
-                new QuestChainFactSchema
+                new QuestChainContentFactSchema
                 {
-                    Key = "mara-shipment",
+                    FactKey = "mara-shipment",
                     Subject = "The missing shipment",
                     Value = "Mara hid it in the quarry.",
                 },
-                new QuestChainFactSchema
+                new QuestChainContentFactSchema
                 {
-                    Key = "mara-debt",
+                    FactKey = "mara-debt",
                     Subject = "Why Mara refuses",
                     Value = "Smugglers hold Mara's brother over a debt.",
                 },
             ],
             Nodes =
             [
-                new QuestChainNodeSchema
+                new QuestChainContentNodeSchema
                 {
-                    NodeId = "node-1",
                     Name = "Question Mara Closely",
                     Description = "Get Mara to reveal where the shipment went.",
                     GiverEntityId = _giver.Id.ToString(),
                     Objectives =
                     [
-                        new QuestChainObjectiveSchema
+                        new QuestChainContentObjectiveSchema
                         {
                             Name = "Learn Mara's Secret",
                             Description = "Learn what Mara knows about the shipment.",
@@ -270,32 +306,38 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
                             BaseWillingness = 10,
                             BribeWillingness = 35,
                             IntimidationWillingness = 20,
-                            WeightedSupportingQuestNodeIds =
-                            [
-                                new QuestChainSupportingQuestSchema
-                                {
-                                    NodeId = "node-2",
-                                    Weight = 40,
-                                },
-                            ],
                         },
                     ],
                 },
-                new QuestChainNodeSchema
+                new QuestChainContentNodeSchema
                 {
-                    NodeId = "node-2",
                     Name = "Explore The Quarry",
                     Description = "Find the smugglers' leverage in the quarry.",
                     GiverEntityId = _giver.Id.ToString(),
-                    RequiredFactKey = "mara-debt",
                     Objectives =
                     [
-                        new QuestChainObjectiveSchema
+                        new QuestChainContentObjectiveSchema
                         {
                             Name = "Explore Quarry",
                             Description = "Reach the quarry entrance.",
                             ObjectiveType = nameof(GeneratedObjectiveType.ExploreLocation),
                             TargetEntityId = _dungeon.Id.ToString(),
+                        },
+                    ],
+                },
+                new QuestChainContentNodeSchema
+                {
+                    Name = "Confront Mara",
+                    Description = "Bring the truth to Mara.",
+                    GiverEntityId = _giver.Id.ToString(),
+                    Objectives =
+                    [
+                        new QuestChainContentObjectiveSchema
+                        {
+                            Name = "Confront",
+                            Description = "Confront the giver.",
+                            ObjectiveType = nameof(GeneratedObjectiveType.KillCreature),
+                            TargetEntityId = _giver.Id.ToString(),
                         },
                     ],
                 },
@@ -308,7 +350,7 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
             {
                 RequestId = requestId,
                 ChainPremise = "A test premise.",
-                ChainLength = 2,
+                ChainLength = 3,
                 AvailableEntities =
                 [
                     new QuestChainCandidateEntity(
@@ -345,7 +387,7 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
         Assert.Equal(debtFact.Id, supportingQuest.RequiredFactId);
         var support = Assert.Single(objective.WeightedSupportingQuestIds);
         Assert.Equal(supportingQuest.Id, support.QuestId);
-        Assert.Equal(40, support.Weight);
+        Assert.Equal(45, support.Weight);
     }
 
     [Fact]
@@ -353,7 +395,7 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
     {
         // Arrange — an empty chain never passes validation, so GetValidatedJson exhausts its retries
         var requestId = await SeedPendingRequest();
-        _chatClient.QuestChainSchemaOverride = new QuestChainSchema { Nodes = [] };
+        _chatClient.QuestChainContentSchemaOverride = new QuestChainContentSchema { Nodes = [] };
 
         // Act
         var result = await _handler.Handle(
@@ -361,7 +403,7 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
             {
                 RequestId = requestId,
                 ChainPremise = "A test premise.",
-                ChainLength = 1,
+                ChainLength = 2,
                 AvailableEntities =
                 [
                     new QuestChainCandidateEntity(

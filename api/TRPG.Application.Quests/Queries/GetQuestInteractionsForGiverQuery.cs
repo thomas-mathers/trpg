@@ -85,13 +85,13 @@ internal class GetQuestInteractionsForGiverQueryHandler(
             .SelectMany(quest => quest.PrerequisiteQuestIds)
             .Distinct()
             .ToArray();
-        var prerequisiteGroupIdsByQuestId = await context
+        var prerequisiteAlternativeGroupIdsByQuestId = await context
             .Quests.AsNoTracking()
             .Where(quest => prerequisiteQuestIds.AsEnumerable().Contains(quest.Id))
-            .Select(quest => new { quest.Id, quest.ExclusiveGroupId })
+            .Select(quest => new { quest.Id, quest.PrerequisiteAlternativeGroupId })
             .ToDictionaryAsync(
                 quest => quest.Id,
-                quest => quest.ExclusiveGroupId,
+                quest => quest.PrerequisiteAlternativeGroupId,
                 cancellationToken
             );
         var giverGroupIds = giverQuests
@@ -122,7 +122,7 @@ internal class GetQuestInteractionsForGiverQueryHandler(
             .Where(quest =>
                 QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
                     quest.PrerequisiteQuestIds,
-                    prerequisiteGroupIdsByQuestId,
+                    prerequisiteAlternativeGroupIdsByQuestId,
                     completedQuestIds
                 )
             )

@@ -15,6 +15,10 @@ public static class QuestsServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<FactLearnedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<FactLearnedQuestEventHandler>()
             )
+            .AddTransient<FactLearnedReportQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<FactLearnedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<FactLearnedReportQuestEventHandler>()
+            )
             .AddTransient<CreatureKilledQuestEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureKilledEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureKilledQuestEventHandler>()
@@ -24,10 +28,6 @@ public static class QuestsServiceCollectionExtensions
                 serviceProvider.GetRequiredService<CreatureKilledQuestGiverEventHandler>()
             )
             .AddTransient<PlayerMovedQuestEventHandler>()
-            .AddTransient<ConversationStartedQuestEventHandler>()
-            .AddTransient<IDomainEventConsumer<NpcConversationStartedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<ConversationStartedQuestEventHandler>()
-            )
             .AddTransient<ItemAcquiredQuestEventHandler>()
             .AddTransient<IDomainEventConsumer<ItemAcquiredEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<ItemAcquiredQuestEventHandler>()

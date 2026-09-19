@@ -6,6 +6,7 @@ public enum QuestChainBlockType
     Investigation,
     FactDisclosure,
     ExclusiveApproach,
+    ExclusiveBranch,
     Escalation,
     Reversal,
     Favor,
@@ -54,6 +55,13 @@ public static class QuestChainBlockCatalog
             QuestChainBlockType.ExclusiveApproach,
             MinimumNodeCount: 2,
             MaximumNodeCount: 2,
+            RequiredOpenThreadCount: 1,
+            ResultingOpenThreadCount: 1
+        ),
+        [QuestChainBlockType.ExclusiveBranch] = new(
+            QuestChainBlockType.ExclusiveBranch,
+            MinimumNodeCount: 5,
+            MaximumNodeCount: 12,
             RequiredOpenThreadCount: 1,
             ResultingOpenThreadCount: 1
         ),

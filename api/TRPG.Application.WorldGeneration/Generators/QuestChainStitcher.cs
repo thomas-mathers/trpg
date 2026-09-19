@@ -4,6 +4,7 @@ public record QuestChainNodeSkeleton(
     string NodeId,
     IReadOnlyList<string> PrerequisiteNodeIds,
     int? GroupIndex,
+    int? PrerequisiteAlternativeGroupIndex,
     string? FactDisclosureSupportingNodeId,
     QuestChainBlockType BlockType
 );
@@ -49,6 +50,15 @@ public static class QuestChainStitcher
                         ref nextGroupIndex
                     );
                     break;
+                case QuestChainBlockType.ExclusiveBranch:
+                    openNodeIds = AddExclusiveBranchNodes(
+                        nodes,
+                        openNodeIds,
+                        selection.NodeCount,
+                        ref nextNodeNumber,
+                        ref nextGroupIndex
+                    );
+                    break;
                 case QuestChainBlockType.ParallelThreads:
                     openNodeIds = AddParallelThreadNodes(nodes, openNodeIds, ref nextNodeNumber);
                     break;
@@ -78,6 +88,7 @@ public static class QuestChainStitcher
                     currentPrerequisiteNodeIds,
                     null,
                     null,
+                    null,
                     blockType
                 )
             );
@@ -100,6 +111,7 @@ public static class QuestChainStitcher
                 primaryNodeId,
                 prerequisiteNodeIds,
                 null,
+                null,
                 supportingNodeId,
                 QuestChainBlockType.FactDisclosure
             )
@@ -108,6 +120,7 @@ public static class QuestChainStitcher
             new QuestChainNodeSkeleton(
                 supportingNodeId,
                 prerequisiteNodeIds,
+                null,
                 null,
                 null,
                 QuestChainBlockType.FactDisclosure
@@ -131,6 +144,7 @@ public static class QuestChainStitcher
                 firstNodeId,
                 prerequisiteNodeIds,
                 groupIndex,
+                groupIndex,
                 null,
                 QuestChainBlockType.ExclusiveApproach
             )
@@ -139,6 +153,7 @@ public static class QuestChainStitcher
             new QuestChainNodeSkeleton(
                 secondNodeId,
                 prerequisiteNodeIds,
+                groupIndex,
                 groupIndex,
                 null,
                 QuestChainBlockType.ExclusiveApproach
@@ -161,6 +176,7 @@ public static class QuestChainStitcher
                 prerequisiteNodeIds,
                 null,
                 null,
+                null,
                 QuestChainBlockType.ParallelThreads
             )
         );
@@ -170,9 +186,58 @@ public static class QuestChainStitcher
                 prerequisiteNodeIds,
                 null,
                 null,
+                null,
                 QuestChainBlockType.ParallelThreads
             )
         );
         return [firstNodeId, secondNodeId];
     }
+
+    private static List<string> AddExclusiveBranchNodes(
+        List<QuestChainNodeSkeleton> nodes,
+        List<string> prerequisiteNodeIds,
+        int nodeCount,
+        ref int nextNodeNumber,
+        ref int nextGroupIndex
+    )
+    {
+        var groupIndex = nextGroupIndex++;
+        var terminalNodeIds = new List<string>();
+        foreach (var branchNodeCount in GetExclusiveBranchNodeCounts(nodeCount))
+        {
+            var currentPrerequisiteNodeIds = prerequisiteNodeIds;
+            for (var index = 0; index < branchNodeCount; index++)
+            {
+                var nodeId = $"node-{nextNodeNumber++}";
+                nodes.Add(
+                    new QuestChainNodeSkeleton(
+                        nodeId,
+                        currentPrerequisiteNodeIds,
+                        index == 0 ? groupIndex : null,
+                        index == branchNodeCount - 1 ? groupIndex : null,
+                        null,
+                        QuestChainBlockType.ExclusiveBranch
+                    )
+                );
+                currentPrerequisiteNodeIds = [nodeId];
+            }
+            terminalNodeIds.Add(currentPrerequisiteNodeIds.Single());
+        }
+
+        return terminalNodeIds;
+    }
+
+    private static IReadOnlyList<int> GetExclusiveBranchNodeCounts(int nodeCount) =>
+        nodeCount switch
+        {
+            5 => [3, 2],
+            6 => [4, 2],
+            7 => [3, 2, 2],
+            8 => [4, 2, 2],
+            9 => [4, 3, 2],
+            10 => [4, 2, 2, 2],
+            11 => [4, 3, 2, 2],
+            12 => [4, 3, 3, 2],
+            _ => throw new ArgumentOutOfRangeException(nameof(nodeCount)),
+        };
 }

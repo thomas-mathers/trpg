@@ -44,7 +44,7 @@ internal class SeedLlmQuestChainCommandHandler(
     IQuestChainGenerationScheduler scheduler
 ) : ICommandHandler<SeedLlmQuestChainCommand, bool>
 {
-    private const int ChainLength = 4;
+    private const int ChainLength = 32;
     private const int MaximumGiverCandidates = 6;
     private const int MaximumDungeonBuildings = 2;
     private const int MaximumHostilesPerDungeon = 4;
