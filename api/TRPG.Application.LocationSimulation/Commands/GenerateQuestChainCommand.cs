@@ -2,9 +2,11 @@ using System.Text;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Books.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Quests.Commands;
@@ -41,6 +43,9 @@ public interface IQuestChainGenerationScheduler
 internal class GenerateQuestChainCommandHandler(
     ILocationSimulationDbContext context,
     QuestChainGenerator generator,
+    QuestChainBlockBasedGenerator blockBasedGenerator,
+    QuestChainChapterGenerator chapterGenerator,
+    IOptionsSnapshot<QuestChainGenerationOptions> optionsSnapshot,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
     ICommandHandler<AddFactsCommand> addFacts,
@@ -76,15 +81,13 @@ internal class GenerateQuestChainCommandHandler(
 
         try
         {
-            var generatedChain = await generator.Generate(
-                new QuestChainGeneratorInput
-                {
-                    ChainPremise = command.ChainPremise,
-                    ChainLength = command.ChainLength,
-                    AvailableEntities = command.AvailableEntities,
-                },
-                cancellationToken
-            );
+            var generatorInput = new QuestChainGeneratorInput
+            {
+                ChainPremise = command.ChainPremise,
+                ChainLength = command.ChainLength,
+                AvailableEntities = command.AvailableEntities,
+            };
+            var generatedChain = await GenerateChain(generatorInput, cancellationToken);
 
             LogGeneratedChain(command, generatedChain);
 
@@ -110,6 +113,16 @@ internal class GenerateQuestChainCommandHandler(
         await context.SaveChangesAsync(CancellationToken.None);
         return request.Status == QuestChainGenerationStatus.Completed;
     }
+
+    private Task<QuestChainGeneratedResult> GenerateChain(
+        QuestChainGeneratorInput input,
+        CancellationToken cancellationToken
+    ) =>
+        optionsSnapshot.Value.UseChapterBasedGenerator
+            ? chapterGenerator.Generate(input, cancellationToken)
+        : optionsSnapshot.Value.UseBlockBasedGenerator
+            ? blockBasedGenerator.Generate(input, cancellationToken)
+        : generator.Generate(input, cancellationToken);
 
     // Logged before persistence so the generated shape is visible even if mapping/persistence
     // later throws — useful for inspecting what the LLM actually produced, not just whether it
