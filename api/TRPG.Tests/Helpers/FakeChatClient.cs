@@ -111,6 +111,15 @@ public sealed class FakeChatClient : IChatClient
             return JsonSerializer.Serialize(entity);
         }
 
+        if (text.Contains("complete narrative outline", StringComparison.OrdinalIgnoreCase))
+        {
+            var schema = new QuestChainDescriptionSchema
+            {
+                Description = "A fake narrative outline for the quest chain.",
+            };
+            return JsonSerializer.Serialize(schema);
+        }
+
         if (text.Contains("directed acyclic graph", StringComparison.OrdinalIgnoreCase))
         {
             if (QuestChainSchemaOverride != null)

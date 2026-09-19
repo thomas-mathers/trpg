@@ -158,19 +158,52 @@ public class QuestChainGenerator(
         CancellationToken cancellationToken
     )
     {
-        var entityTypesById = input.AvailableEntities.ToDictionary(
+        var entityTypesById = BuildEntityTypesById(input.AvailableEntities);
+        var entityList = BuildEntityListing(input.AvailableEntities);
+        var systemPrompt = BuildSystemPrompt(input.ChainLength);
+
+        var userPrompt = $"""
+            Chain premise:
+            {input.ChainPremise}
+
+            Available entities:
+            {entityList}
+            """;
+
+        var schema = await client.GetValidatedJson<QuestChainSchema>(
+            logger,
+            systemPrompt,
+            userPrompt,
+            schema => Validate(schema, entityTypesById, input.ChainLength),
+            cancellationToken,
+            // A multi-node DAG with several objectives per node runs noticeably longer than the
+            // other world-gen schemas (factions, geography) this helper was originally sized for —
+            // without raising this, a 4-node chain can get cut off mid-node and fail to parse.
+            options: new ChatOptions { MaxOutputTokens = 8192 }
+        );
+
+        return MapToResult(schema);
+    }
+
+    internal static IReadOnlyDictionary<string, string> BuildEntityTypesById(
+        IReadOnlyList<QuestChainCandidateEntity> entities
+    ) =>
+        entities.ToDictionary(
             entity => entity.Id.ToString(),
             entity => entity.Type,
             StringComparer.Ordinal
         );
-        var entityList = string.Join(
+
+    internal static string BuildEntityListing(IReadOnlyList<QuestChainCandidateEntity> entities) =>
+        string.Join(
             "\n",
-            input.AvailableEntities.Select(entity =>
+            entities.Select(entity =>
                 $"- id={entity.Id}, name=\"{entity.Name}\", type={entity.Type}, details=\"{entity.Description}\""
             )
         );
 
-        var systemPrompt = $"""
+    internal static string BuildSystemPrompt(int chainLength) =>
+        $"""
             You are authoring an entire procedurally generated quest chain in one pass for a text
             RPG, as a directed acyclic graph (DAG) of quest nodes rather than a straight line.
 
@@ -212,7 +245,7 @@ public class QuestChainGenerator(
             - Use convergence at least once: a node may list more than one PrerequisiteNodeIds
               entry, meaning it only unlocks once every one of those nodes is complete.
             - The graph must be acyclic — no node may (transitively) require itself.
-            - Produce exactly {input.ChainLength} nodes total across the whole graph.
+            - Produce exactly {chainLength} nodes total across the whole graph.
             - Every Name field (on each node and each objective) must be a short quest-log title,
               3-6 words, distinct from the longer Description field. Never leave Name blank.
             - You may add at most one LearnFactFromCreature objective. Its FactKey identifies an
@@ -271,27 +304,8 @@ public class QuestChainGenerator(
             markdown, no commentary.
             """;
 
-        var userPrompt = $"""
-            Chain premise:
-            {input.ChainPremise}
-
-            Available entities:
-            {entityList}
-            """;
-
-        var schema = await client.GetValidatedJson<QuestChainSchema>(
-            logger,
-            systemPrompt,
-            userPrompt,
-            schema => Validate(schema, entityTypesById, input.ChainLength),
-            cancellationToken,
-            // A multi-node DAG with several objectives per node runs noticeably longer than the
-            // other world-gen schemas (factions, geography) this helper was originally sized for —
-            // without raising this, a 4-node chain can get cut off mid-node and fail to parse.
-            options: new ChatOptions { MaxOutputTokens = 8192 }
-        );
-
-        return new QuestChainGeneratedResult(
+    internal static QuestChainGeneratedResult MapToResult(QuestChainSchema schema) =>
+        new(
             schema
                 .Facts.Select(fact => new QuestChainGeneratedFact(
                     fact.Key,
@@ -341,7 +355,6 @@ public class QuestChainGenerator(
                 ))
                 .ToArray()
         );
-    }
 
     internal static string? Validate(
         QuestChainSchema schema,
