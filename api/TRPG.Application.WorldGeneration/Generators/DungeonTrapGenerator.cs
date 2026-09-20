@@ -5,7 +5,7 @@ using TRPG.Domain.Models;
 namespace TRPG.Application.WorldGeneration.Generators;
 
 internal record DungeonTrapResult(
-    IReadOnlyList<Trigger> Triggers,
+    IReadOnlyList<Trap> Traps,
     IReadOnlyList<Room> Rooms,
     IReadOnlyList<Location> Locations,
     IReadOnlyList<LocationConnector> LocationConnectors
@@ -53,7 +53,7 @@ public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
         var buildingId = placements[0].Room.BuildingId;
         var basement = new DungeonTrapBasement(worldId, stateId, buildingId);
 
-        var triggers = new List<Trigger>();
+        var traps = new List<Trap>();
         foreach (var placement in chosen)
         {
             var kind = TrapKindByRole[placement.Role];
@@ -67,8 +67,8 @@ public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
                 continue;
             }
 
-            triggers.Add(
-                new Trigger
+            traps.Add(
+                new Trap
                 {
                     LocationId = placement.Room.LocationId,
                     WorldId = worldId,
@@ -81,7 +81,7 @@ public class DungeonTrapGenerator(IOptionsSnapshot<TrapOptions> optionsSnapshot)
         }
 
         return new DungeonTrapResult(
-            triggers,
+            traps,
             basement.Rooms,
             basement.Locations,
             basement.LocationConnectors

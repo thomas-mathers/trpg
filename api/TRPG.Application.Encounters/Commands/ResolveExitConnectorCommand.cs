@@ -25,7 +25,7 @@ internal class ResolveExitConnectorCommandHandler(
         IReadOnlyCollection<LocationConnector>
     > getConnectorsByLocationId,
     IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
-    IQueryHandler<GetPulledLeverIdsQuery, IReadOnlySet<Guid>> getPulledLeverIds,
+    IQueryHandler<GetActivatedTriggerIdsQuery, IReadOnlySet<Guid>> getActivatedTriggerIds,
     ICommandHandler<
         ResolveAccessibleConnectorsCommand,
         IReadOnlyCollection<Guid>
@@ -62,8 +62,8 @@ internal class ResolveExitConnectorCommandHandler(
             cancellationToken
         );
 
-        var pulledLeverIds = await getPulledLeverIds.Handle(
-            new GetPulledLeverIdsQuery { WorldId = command.WorldId },
+        var activatedTriggerIds = await getActivatedTriggerIds.Handle(
+            new GetActivatedTriggerIdsQuery { WorldId = command.WorldId },
             cancellationToken
         );
 
@@ -71,7 +71,7 @@ internal class ResolveExitConnectorCommandHandler(
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = playerKeyItemIds,
-                PulledLeverIds = pulledLeverIds,
+                ActivatedTriggerIds = activatedTriggerIds,
                 Playtime = command.Playtime,
                 ConnectorIds = connectors.Select(connector => connector.Id).ToArray(),
             },

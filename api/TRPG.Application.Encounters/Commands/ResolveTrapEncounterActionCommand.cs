@@ -91,7 +91,7 @@ internal class ResolveTrapEncounterActionCommandHandler(
         }
 
         await markTrapResolved.Handle(
-            new MarkTrapResolvedCommand { TriggerId = encounter.TriggerId },
+            new MarkTrapResolvedCommand { TrapId = encounter.TrapId },
             cancellationToken
         );
         return new TrapEncounterResolutionFact(
@@ -126,7 +126,7 @@ internal class ResolveTrapEncounterActionCommandHandler(
         }
 
         await markTrapResolved.Handle(
-            new MarkTrapResolvedCommand { TriggerId = encounter.TriggerId },
+            new MarkTrapResolvedCommand { TrapId = encounter.TrapId },
             cancellationToken
         );
         return new TrapEncounterResolutionFact(
@@ -144,7 +144,7 @@ internal class ResolveTrapEncounterActionCommandHandler(
     )
     {
         await markTrapResolved.Handle(
-            new MarkTrapResolvedCommand { TriggerId = encounter.TriggerId },
+            new MarkTrapResolvedCommand { TrapId = encounter.TrapId },
             cancellationToken
         );
 

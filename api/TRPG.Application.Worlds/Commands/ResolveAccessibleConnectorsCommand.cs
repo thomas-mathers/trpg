@@ -8,7 +8,7 @@ namespace TRPG.Application.Worlds.Commands;
 public class ResolveAccessibleConnectorsCommand
 {
     public required IReadOnlySet<Guid> PlayerKeyItemIds { get; init; }
-    public required IReadOnlySet<Guid> PulledLeverIds { get; init; }
+    public required IReadOnlySet<Guid> ActivatedTriggerIds { get; init; }
     public required TimeSpan Playtime { get; init; }
     public required IReadOnlyCollection<Guid> ConnectorIds { get; init; }
 }
@@ -79,7 +79,10 @@ internal class ResolveAccessibleConnectorsCommandHandler(
             }
 
             var requiredLeverIds = leverIdsByDoor.GetValueOrDefault(door.Id, []);
-            if (requiredLeverIds.Count > 0 && requiredLeverIds.All(command.PulledLeverIds.Contains))
+            if (
+                requiredLeverIds.Count > 0
+                && requiredLeverIds.All(command.ActivatedTriggerIds.Contains)
+            )
             {
                 continue;
             }

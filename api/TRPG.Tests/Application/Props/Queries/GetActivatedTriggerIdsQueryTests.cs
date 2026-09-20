@@ -5,7 +5,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Props.Queries;
 
-public sealed class GetPulledLeverIdsQueryTests(DatabaseFixture db)
+public sealed class GetActivatedTriggerIdsQueryTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -13,7 +13,7 @@ public sealed class GetPulledLeverIdsQueryTests(DatabaseFixture db)
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private GetPulledLeverIdsQueryHandler _handler = null!;
+    private GetActivatedTriggerIdsQueryHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -21,7 +21,7 @@ public sealed class GetPulledLeverIdsQueryTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<GetPulledLeverIdsQueryHandler>();
+        _handler = _serviceProvider.GetRequiredService<GetActivatedTriggerIdsQueryHandler>();
     }
 
     public async ValueTask DisposeAsync()
@@ -31,22 +31,26 @@ public sealed class GetPulledLeverIdsQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ReturnsOnlyThePulledLevers_ForTheGivenWorld()
+    public async Task Handle_ReturnsOnlyTheActivatedTriggers_ForTheGivenWorld()
     {
         // Arrange
-        var pulledLever = Builders.MakeLever(worldId: WorldId, isPulled: true);
-        var unpulledLever = Builders.MakeLever(worldId: WorldId);
-        var pulledLeverInAnotherWorld = Builders.MakeLever(isPulled: true);
-        _context.Props.AddRange(pulledLever, unpulledLever, pulledLeverInAnotherWorld);
+        var activatedTrigger = Builders.MakeTrigger(worldId: WorldId, isActivated: true);
+        var unactivatedTrigger = Builders.MakeTrigger(worldId: WorldId);
+        var activatedTriggerInAnotherWorld = Builders.MakeTrigger(isActivated: true);
+        _context.Props.AddRange(
+            activatedTrigger,
+            unactivatedTrigger,
+            activatedTriggerInAnotherWorld
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new GetPulledLeverIdsQuery { WorldId = WorldId },
+            new GetActivatedTriggerIdsQuery { WorldId = WorldId },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([pulledLever.Id], result);
+        Assert.Equal([activatedTrigger.Id], result);
     }
 }

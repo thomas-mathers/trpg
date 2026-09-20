@@ -13,7 +13,7 @@ const stateLabels = {
 };
 
 export function RoomMarkers({ markers }: { markers: LocalMapMarkerResponse[] }) {
-  const groups = ['PlayerCorpse', 'Lever', 'Chest'].flatMap((kind) => {
+  const groups = ['PlayerCorpse', 'Trigger', 'Chest'].flatMap((kind) => {
     const matches = markers.filter((marker) => marker.kind === kind);
     return matches.length ? [matches] : [];
   });
@@ -29,7 +29,7 @@ function MarkerGroup({ markers }: { markers: LocalMapMarkerResponse[] }) {
   const Icon =
     kind === 'PlayerCorpse'
       ? GiTombstone
-      : kind === 'Lever'
+      : kind === 'Trigger'
         ? GiLever
         : state === 'Empty'
           ? GiOpenChest
@@ -40,7 +40,7 @@ function MarkerGroup({ markers }: { markers: LocalMapMarkerResponse[] }) {
   const label =
     markers.length === 1
       ? markerLabel(marker)
-      : `${markers.length} ${kind === 'PlayerCorpse' ? 'player corpses' : kind === 'Lever' ? 'levers' : 'chests'}`;
+      : `${markers.length} ${kind === 'PlayerCorpse' ? 'player corpses' : kind === 'Trigger' ? 'levers' : 'chests'}`;
   return (
     <span
       role="img"
@@ -51,7 +51,7 @@ function MarkerGroup({ markers }: { markers: LocalMapMarkerResponse[] }) {
         kind === 'PlayerCorpse' && 'bg-primary text-primary-foreground ring-1 ring-primary',
       )}
     >
-      <Icon className={kind === 'Lever' ? 'size-5' : 'size-6'} aria-hidden="true" />
+      <Icon className={kind === 'Trigger' ? 'size-5' : 'size-6'} aria-hidden="true" />
       {isLocked && (
         <LockKeyhole
           className="bg-card absolute -top-1 -right-1 size-4 rounded-full ring-1 ring-current"

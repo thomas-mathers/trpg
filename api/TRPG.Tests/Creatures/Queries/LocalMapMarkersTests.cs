@@ -58,7 +58,7 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
     {
         // Arrange
         var chest = Builders.MakeContainer(WorldId, _currentLocationId);
-        var lever = Builders.MakeLever(WorldId, _currentLocationId, isPulled: pulled);
+        var lever = Builders.MakeTrigger(WorldId, _currentLocationId, isActivated: pulled);
         _context.Props.AddRange(chest, lever);
         _context.Items.Add(
             Builders.MakeGold(
@@ -94,7 +94,7 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
         );
         _context.Props.AddRange(
             Builders.MakeContainer(WorldId, frontier.LocationId),
-            Builders.MakeLever(WorldId, frontier.LocationId)
+            Builders.MakeTrigger(WorldId, frontier.LocationId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -155,7 +155,7 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
     {
         // Arrange
         var chest = Builders.MakeContainer(WorldId, _currentLocationId);
-        var lever = Builders.MakeLever(WorldId, _currentLocationId);
+        var lever = Builders.MakeTrigger(WorldId, _currentLocationId);
         var gold = Builders.MakeGold(
             WorldId,
             quantity: 3,
@@ -170,10 +170,10 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         await _context
-            .Props.OfType<Lever>()
+            .Props.OfType<Trigger>()
             .Where(prop => prop.Id == lever.Id)
             .ExecuteUpdateAsync(
-                update => update.SetProperty(prop => prop.IsPulled, true),
+                update => update.SetProperty(prop => prop.IsActivated, true),
                 TestContext.Current.CancellationToken
             );
         await _context

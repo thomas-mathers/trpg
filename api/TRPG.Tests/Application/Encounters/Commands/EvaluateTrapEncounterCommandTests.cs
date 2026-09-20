@@ -42,17 +42,17 @@ public sealed class EvaluateTrapEncounterCommandTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
-    private async Task<Trigger> SeedTrap(TrapKind kind = TrapKind.Mechanical)
+    private async Task<Trap> SeedTrap(TrapKind kind = TrapKind.Mechanical)
     {
-        var trigger = Builders.MakeTrigger(
+        var trap = Builders.MakeTrap(
             WorldId,
             locationId: _location.Id,
             targetId: _targetLocation.Id,
             trapKind: kind
         );
-        _context.Props.Add(trigger);
+        _context.Props.Add(trap);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return trigger;
+        return trap;
     }
 
     private EvaluateTrapEncounterCommand MakeCommand() =>
@@ -72,8 +72,8 @@ public sealed class EvaluateTrapEncounterCommandTests(DatabaseFixture db)
     public async Task Handle_ReturnsNull_WhenTheTrapIsAlreadyResolved()
     {
         // Arrange
-        var trigger = await SeedTrap();
-        trigger.IsResolved = true;
+        var trap = await SeedTrap();
+        trap.IsResolved = true;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -87,14 +87,14 @@ public sealed class EvaluateTrapEncounterCommandTests(DatabaseFixture db)
     public async Task Handle_CreatesEncounterAndRecordsDiscovery()
     {
         // Arrange
-        var trigger = await SeedTrap(TrapKind.Water);
+        var trap = await SeedTrap(TrapKind.Water);
 
         // Act
         var result = await _handler.Handle(MakeCommand(), TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(trigger.Id, result.TriggerId);
+        Assert.Equal(trap.Id, result.TrapId);
         Assert.Equal(TrapKind.Water, result.TrapKind);
         Assert.Equal(_targetLocation.Id, result.TargetLocationId);
 
@@ -108,9 +108,9 @@ public sealed class EvaluateTrapEncounterCommandTests(DatabaseFixture db)
             IQueryHandler<GetKnownTrapIdsQuery, IReadOnlySet<Guid>>
         >();
         var known = await knowledgeQuery.Handle(
-            new GetKnownTrapIdsQuery { CreatureId = _player.Id, TrapIds = [trigger.Id] },
+            new GetKnownTrapIdsQuery { CreatureId = _player.Id, TrapIds = [trap.Id] },
             TestContext.Current.CancellationToken
         );
-        Assert.Contains(trigger.Id, known);
+        Assert.Contains(trap.Id, known);
     }
 }

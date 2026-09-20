@@ -48,9 +48,9 @@ public sealed class ResolveTrapEncounterActionCommandTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
-    private async Task<(Trigger Trigger, TrapEncounter Encounter)> SeedTrapEncounter(TrapKind kind)
+    private async Task<(Trap Trap, TrapEncounter Encounter)> SeedTrapEncounter(TrapKind kind)
     {
-        var trigger = Builders.MakeTrigger(
+        var trap = Builders.MakeTrap(
             WorldId,
             locationId: _location.Id,
             targetId: _targetLocation.Id,
@@ -62,15 +62,15 @@ public sealed class ResolveTrapEncounterActionCommandTests(DatabaseFixture db)
             PlayerId = _player.Id,
             LocationId = _location.Id,
             LocationName = "Test Room",
-            TriggerId = trigger.Id,
+            TrapId = trap.Id,
             TrapKind = kind,
             TargetLocationId = _targetLocation.Id,
             TargetLocationName = "Target Room",
         };
-        _context.Props.Add(trigger);
+        _context.Props.Add(trap);
         _context.Encounters.Add(encounter);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return (trigger, encounter);
+        return (trap, encounter);
     }
 
     private ResolveTrapEncounterActionCommand MakeCommand(
@@ -90,7 +90,7 @@ public sealed class ResolveTrapEncounterActionCommandTests(DatabaseFixture db)
     public async Task Handle_Withdraw_LeavesTheTrapUnresolvedAndDoesNotRelocate()
     {
         // Arrange
-        var (trigger, encounter) = await SeedTrapEncounter(TrapKind.Water);
+        var (trap, encounter) = await SeedTrapEncounter(TrapKind.Water);
 
         // Act
         var fact = await _handler.Handle(
@@ -107,17 +107,17 @@ public sealed class ResolveTrapEncounterActionCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_location.Id, player!.LocationId);
-        var resolvedTrigger = await verifyContext
-            .Props.OfType<Trigger>()
-            .SingleAsync(t => t.Id == trigger.Id, TestContext.Current.CancellationToken);
-        Assert.False(resolvedTrigger.IsResolved);
+        var resolvedTrap = await verifyContext
+            .Props.OfType<Trap>()
+            .SingleAsync(t => t.Id == trap.Id, TestContext.Current.CancellationToken);
+        Assert.False(resolvedTrap.IsResolved);
     }
 
     [Fact]
     public async Task Handle_Disarm_ResolvesTheTrapWithoutRelocating_WhenTheRollSucceeds()
     {
         // Arrange
-        var (trigger, encounter) = await SeedTrapEncounter(TrapKind.Mechanical);
+        var (trap, encounter) = await SeedTrapEncounter(TrapKind.Mechanical);
         _chanceRoller.Result = true;
 
         // Act
@@ -135,10 +135,10 @@ public sealed class ResolveTrapEncounterActionCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_location.Id, player!.LocationId);
-        var resolvedTrigger = await verifyContext
-            .Props.OfType<Trigger>()
-            .SingleAsync(t => t.Id == trigger.Id, TestContext.Current.CancellationToken);
-        Assert.True(resolvedTrigger.IsResolved);
+        var resolvedTrap = await verifyContext
+            .Props.OfType<Trap>()
+            .SingleAsync(t => t.Id == trap.Id, TestContext.Current.CancellationToken);
+        Assert.True(resolvedTrap.IsResolved);
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public sealed class ResolveTrapEncounterActionCommandTests(DatabaseFixture db)
     public async Task Handle_Attempt_ResolvesTheTrapWithoutRelocating_WhenTheRollSucceeds()
     {
         // Arrange
-        var (trigger, encounter) = await SeedTrapEncounter(TrapKind.Slope);
+        var (trap, encounter) = await SeedTrapEncounter(TrapKind.Slope);
         _chanceRoller.Result = true;
 
         // Act
@@ -197,10 +197,10 @@ public sealed class ResolveTrapEncounterActionCommandTests(DatabaseFixture db)
         Assert.Equal(TrapEncounterResolutionOutcome.Survived, fact.Outcome);
 
         await using var verifyContext = db.CreateContext();
-        var resolvedTrigger = await verifyContext
-            .Props.OfType<Trigger>()
-            .SingleAsync(t => t.Id == trigger.Id, TestContext.Current.CancellationToken);
-        Assert.True(resolvedTrigger.IsResolved);
+        var resolvedTrap = await verifyContext
+            .Props.OfType<Trap>()
+            .SingleAsync(t => t.Id == trap.Id, TestContext.Current.CancellationToken);
+        Assert.True(resolvedTrap.IsResolved);
     }
 
     [Fact]

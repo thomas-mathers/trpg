@@ -16,7 +16,7 @@ internal class DepartureMovementResumer(
         IReadOnlyCollection<LocationConnector>
     > getConnectors,
     IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeys,
-    IQueryHandler<GetPulledLeverIdsQuery, IReadOnlySet<Guid>> getLevers,
+    IQueryHandler<GetActivatedTriggerIdsQuery, IReadOnlySet<Guid>> getActivatedTriggerIds,
     ICommandHandler<
         ResolveAccessibleConnectorsCommand,
         IReadOnlyCollection<Guid>
@@ -82,8 +82,8 @@ internal class DepartureMovementResumer(
             },
             cancellationToken
         );
-        var levers = await getLevers.Handle(
-            new GetPulledLeverIdsQuery { WorldId = encounter.WorldId },
+        var activatedTriggerIds = await getActivatedTriggerIds.Handle(
+            new GetActivatedTriggerIdsQuery { WorldId = encounter.WorldId },
             cancellationToken
         );
         var accessible = await resolveAccessibleConnectors.Handle(
@@ -91,7 +91,7 @@ internal class DepartureMovementResumer(
             {
                 ConnectorIds = connectorIds,
                 PlayerKeyItemIds = keys,
-                PulledLeverIds = levers,
+                ActivatedTriggerIds = activatedTriggerIds,
                 Playtime = playtime,
             },
             cancellationToken

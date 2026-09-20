@@ -16,7 +16,7 @@ public class EvaluateTrapEncounterCommand
 
 internal class EvaluateTrapEncounterCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetUnresolvedTrapByLocationIdQuery, Trigger?> getUnresolvedTrapByLocationId,
+    IQueryHandler<GetUnresolvedTrapByLocationIdQuery, Trap?> getUnresolvedTrapByLocationId,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<CreateTrapEncounterCommand, TrapEncounter> createTrapEncounter,
     ICommandHandler<RecordTrapDiscoveryCommand> recordTrapDiscovery
@@ -36,11 +36,11 @@ internal class EvaluateTrapEncounterCommandHandler(
             return null;
         }
 
-        var trigger = await getUnresolvedTrapByLocationId.Handle(
+        var trap = await getUnresolvedTrapByLocationId.Handle(
             new GetUnresolvedTrapByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
-        if (trigger == null)
+        if (trap == null)
         {
             return null;
         }
@@ -50,7 +50,7 @@ internal class EvaluateTrapEncounterCommandHandler(
             {
                 WorldId = command.WorldId,
                 KnowerId = command.PlayerId,
-                TriggerId = trigger.Id,
+                TrapId = trap.Id,
             },
             cancellationToken
         );
@@ -61,11 +61,11 @@ internal class EvaluateTrapEncounterCommandHandler(
         );
         var targetLocation =
             await getLocationById.Handle(
-                new GetLocationByIdQuery { Id = trigger.TargetId!.Value },
+                new GetLocationByIdQuery { Id = trap.TargetId!.Value },
                 cancellationToken
             )
             ?? throw new InvalidOperationException(
-                $"Trap target location {trigger.TargetId} not found."
+                $"Trap target location {trap.TargetId} not found."
             );
 
         return await createTrapEncounter.Handle(
@@ -75,9 +75,9 @@ internal class EvaluateTrapEncounterCommandHandler(
                 PlayerId = command.PlayerId,
                 PlayerLocationId = player.LocationId,
                 LocationName = location?.Name,
-                TriggerId = trigger.Id,
-                TrapKind = trigger.TrapKind!.Value,
-                TargetLocationId = trigger.TargetId!.Value,
+                TrapId = trap.Id,
+                TrapKind = trap.TrapKind,
+                TargetLocationId = trap.TargetId!.Value,
                 TargetLocationName = targetLocation.Name,
             },
             cancellationToken

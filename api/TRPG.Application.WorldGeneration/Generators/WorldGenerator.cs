@@ -352,7 +352,7 @@ public class WorldGenerator(
                     wildernessLocation.StateId,
                     Random.Shared
                 );
-                props.AddRange(dungeonTraps.Triggers);
+                props.AddRange(dungeonTraps.Traps);
                 rooms.AddRange(dungeonTraps.Rooms);
                 locations.AddRange(dungeonTraps.Locations);
                 locationConnectors.AddRange(dungeonTraps.LocationConnectors);
@@ -390,7 +390,7 @@ public class WorldGenerator(
                 encounterGroupMembers.AddRange(obstacle.EncounterGroupMembers);
                 factionMembers.AddRange(obstacle.FactionMembers);
                 creatureSpawners.AddRange(obstacle.CreatureSpawners);
-                props.AddRange(obstacle.Triggers);
+                props.AddRange(obstacle.Traps);
                 props.AddRange(obstacle.Levers);
                 doorConnectorLevers.AddRange(obstacle.DoorConnectorLevers);
 

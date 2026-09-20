@@ -14,7 +14,7 @@ public record InteractableProp(
     Guid Id,
     Guid LocationId,
     string Name,
-    bool? IsPulled,
+    bool? IsActivated,
     bool IsLocked
 );
 
@@ -30,7 +30,7 @@ internal class GetInteractablePropsByLocationIdsQueryHandler(IPropsDbContext con
             .Props.AsNoTracking()
             .Where(prop =>
                 query.LocationIds.AsEnumerable().Contains(prop.LocationId)
-                && (prop is Container || prop is Lever || prop is Cell)
+                && (prop is Container || prop is Trigger || prop is Cell)
             )
             .ToArrayAsync(cancellationToken);
 
@@ -39,7 +39,7 @@ internal class GetInteractablePropsByLocationIdsQueryHandler(IPropsDbContext con
                 prop.Id,
                 prop.LocationId,
                 prop.Name,
-                prop is Lever lever ? lever.IsPulled : null,
+                prop is Trigger trigger ? trigger.IsActivated : null,
                 prop switch
                 {
                     Container container => container.KeyItemId != null,

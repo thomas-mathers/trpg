@@ -30,7 +30,7 @@ describe('local map markers', () => {
     ['Activated', 'Activated'],
   ] as const)('describes the lever state %s', (state, label) => {
     renderWithProviders(
-      <RoomMarkers markers={[{ ...chest, name: 'Brass lever', kind: 'Lever', state }]} />,
+      <RoomMarkers markers={[{ ...chest, name: 'Brass lever', kind: 'Trigger', state }]} />,
     );
     expect(screen.getByRole('img', { name: `Brass lever: ${label}` })).toBeVisible();
   });
