@@ -80,6 +80,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<District> Districts => Set<District>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
     public DbSet<Faction> Factions => Set<Faction>();
+    public DbSet<FactionStanding> FactionStandings => Set<FactionStanding>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<CreatureJob> CreatureJobs => Set<CreatureJob>();
     public DbSet<Location> Locations => Set<Location>();
@@ -289,6 +290,15 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         modelBuilder.Entity<Faction>(entity =>
         {
             entity.HasIndex(f => new { f.WorldId, f.CreatureType });
+            entity.HasIndex(f => new { f.WorldId, f.Kind });
+        });
+
+        modelBuilder.Entity<FactionStanding>(entity =>
+        {
+            entity.HasIndex(standing => standing.WorldId);
+            entity
+                .HasIndex(standing => new { standing.FactionId, standing.OtherFactionId })
+                .IsUnique();
         });
 
         modelBuilder.Entity<Item>(entity =>

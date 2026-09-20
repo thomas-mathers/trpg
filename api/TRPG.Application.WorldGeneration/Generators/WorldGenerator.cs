@@ -23,6 +23,9 @@ public class WorldGeneratorInput
 
 public class WorldGeneratorResult
 {
+    public required IReadOnlyList<Quest> InitiationQuests { get; init; }
+    public required IReadOnlyList<QuestObjective> InitiationQuestObjectives { get; init; }
+    public required IReadOnlyList<FactionStanding> FactionStandings { get; init; }
     public IReadOnlyList<DungeonExpedition> DungeonExpeditions { get; init; } = [];
     public IReadOnlyList<BookWork> BookWorks { get; init; } = [];
     public IReadOnlyList<Fact> Facts { get; init; } = [];
@@ -56,7 +59,6 @@ public class WorldGeneratorResult
 }
 
 public class WorldGenerator(
-    FactionsGenerator factionsGenerator,
     GeographyGenerator geographyGenerator,
     CityGenerator cityGenerator,
     DungeonPopulator dungeonPopulator,
@@ -102,17 +104,8 @@ public class WorldGenerator(
             undead, demons, and beasts may lurk at the margins of civilization.
             """;
 
-        var namedFactions = (
-            await factionsGenerator.Generate(
-                new FactionsGeneratorInput
-                {
-                    WorldId = worldId,
-                    Description = groundedDescription,
-                    Count = generatorInput.FactionCount,
-                },
-                cancellationToken
-            )
-        ).ToList();
+        var roster = FactionRosterGenerator.Generate(worldId);
+        var namedFactions = roster.JoinableFactions.ToList();
 
         var geography = await geographyGenerator.Generate(
             new GeographyGeneratorInput
@@ -128,7 +121,12 @@ public class WorldGenerator(
         );
 
         var factions = new List<Faction>(namedFactions);
-        var encounterFactionsByCreatureType = EncounterFactionGenerator.Generate(worldId);
+        factions.AddRange(roster.AntagonistFactions);
+        factions.Add(roster.BrokenToll);
+        var encounterFactionsByCreatureType = EncounterFactionGenerator
+            .Generate(worldId)
+            .ToDictionary();
+        encounterFactionsByCreatureType[CreatureType.Human] = roster.BrokenToll;
         factions.AddRange(encounterFactionsByCreatureType.Values);
         var dungeons = new List<DungeonGeneratorResult>();
         var buildings = new List<Building>();
@@ -178,7 +176,7 @@ public class WorldGenerator(
                 }
             );
 
-            factions.Add(cityResult.CityFaction);
+            factions.AddRange(cityResult.Factions);
             buildings.AddRange(cityResult.Buildings);
             creatures.AddRange(cityResult.Creatures);
             buildingOwners.AddRange(cityResult.BuildingOwners);
@@ -193,6 +191,31 @@ public class WorldGenerator(
             jobs.AddRange(cityResult.Jobs);
             doorConnectorKeys.AddRange(cityResult.DoorConnectorKeys);
             relationships.AddRange(cityResult.Relationships);
+        }
+
+        var factionsById = factions.ToDictionary(faction => faction.Id);
+        var houseCandidates = factionMembers
+            .Where(member => factionsById[member.FactionId].Kind == FactionKind.People)
+            .Select(member => member.CreatureId)
+            .Distinct()
+            .Take(2)
+            .ToArray();
+        var houseFactions = roster
+            .AntagonistFactions.Where(faction =>
+                faction.Name is FactionNames.HouseAshvale or FactionNames.HouseMarrow
+            )
+            .ToArray();
+        foreach (var pair in houseFactions.Zip(houseCandidates))
+        {
+            factionMembers.Add(
+                new FactionMember
+                {
+                    WorldId = worldId,
+                    FactionId = pair.First.Id,
+                    CreatureId = pair.Second,
+                    Role = FactionRole.Leader,
+                }
+            );
         }
 
         var monsters = new List<Creature>();
@@ -412,6 +435,88 @@ public class WorldGenerator(
             AddTravelConnector(link.DestinationStateId, link.OriginStateId, link);
         }
 
+        var lairSpecs = new[]
+        {
+            (FactionNames.RedTalon, BuildingType.Cave, "The Red Talon Den"),
+            (FactionNames.SilverVigil, BuildingType.Ruins, "The Vigil Hunting Lodge"),
+            (FactionNames.CinderPact, BuildingType.Tower, "The Cinder Spire"),
+            (FactionNames.NightboundCourt, BuildingType.Crypt, "The Nightbound Crypt"),
+            (FactionNames.AshwoodPack, BuildingType.Cave, "The Ashwood Den"),
+            (FactionNames.Reclaimers, BuildingType.Mine, "The Reclaimer Redoubt"),
+        };
+        var antagonistFactionsByName = roster.AntagonistFactions.ToDictionary(faction =>
+            faction.Name
+        );
+        var wildernessLocations = wildernessLocationByStateId.Values.ToArray();
+        for (var lairIndex = 0; lairIndex < lairSpecs.Length; lairIndex++)
+        {
+            var spec = lairSpecs[lairIndex];
+            var wildernessLocation = wildernessLocations[lairIndex % wildernessLocations.Length];
+            var lair = DungeonGenerator.Generate(
+                new DungeonGeneratorInput([], wildernessLocation, worldId)
+                {
+                    BuildingType = spec.Item2,
+                    Name = spec.Item3,
+                }
+            );
+            var antagonistFaction = antagonistFactionsByName[spec.Item1];
+            lair.Building.FactionId = antagonistFaction.Id;
+            dungeons.Add(lair);
+            buildings.Add(lair.Building);
+            rooms.AddRange(lair.Rooms);
+            locations.AddRange(lair.Locations);
+            locationConnectors.AddRange(lair.LocationConnectors);
+            doorConnectors.Add(lair.Door);
+
+            foreach (
+                var placement in lair.Placements.Where(placement =>
+                    DungeonContentPolicy.HoldsOccupants(placement.Role, Random.Shared)
+                    || placement.Room.LocationId == lair.BossLocationId
+                )
+            )
+            {
+                var population =
+                    placement.Room.LocationId == lair.BossLocationId
+                        ? dungeonPopulator.GenerateForced(
+                            worldId,
+                            placement.Room.LocationId,
+                            spec.Item2,
+                            playerLevel: 1,
+                            factionsByCreatureType: encounterFactionsByCreatureType,
+                            factionId: antagonistFaction.Id
+                        )
+                        : dungeonPopulator.Generate(
+                            new DungeonPopulatorInput
+                            {
+                                LocationId = placement.Room.LocationId,
+                                WorldId = worldId,
+                                DungeonType = spec.Item2,
+                                FactionsByCreatureType = encounterFactionsByCreatureType,
+                                FactionId = antagonistFaction.Id,
+                            }
+                        );
+                monsters.AddRange(population.Monsters.Select(monster => monster.Creature));
+                items.AddRange(population.Monsters.SelectMany(monster => monster.Items));
+                skills.AddRange(population.Monsters.SelectMany(monster => monster.Skills));
+                jobs.AddRange(population.Jobs);
+                encounterGroups.AddRange(population.EncounterGroups);
+                encounterGroupMembers.AddRange(population.EncounterGroupMembers);
+                factionMembers.AddRange(
+                    population.Monsters.Select(monster => new FactionMember
+                    {
+                        WorldId = worldId,
+                        FactionId = antagonistFaction.Id,
+                        CreatureId = monster.Creature.Id,
+                        Role =
+                            placement.Room.LocationId == lair.BossLocationId
+                                ? FactionRole.Leader
+                                : FactionRole.Member,
+                    })
+                );
+                creatureSpawners.Add(population.Spawner);
+            }
+        }
+
         BiographyGenerator.AssignBiographies(
             new BiographyGeneratorInput(
                 creatures,
@@ -458,6 +563,8 @@ public class WorldGenerator(
 
         creatures.AddRange(monsters);
 
+        var factionStandings = FactionStandingGenerator.Generate(worldId, factions);
+
         var expeditionParticipantIds = new HashSet<Guid>();
         foreach (var expedition in expeditions)
         {
@@ -500,6 +607,21 @@ public class WorldGenerator(
             )
         );
 
+        var initiationQuests = FactionInitiationQuestGenerator.Generate(
+            new FactionInitiationQuestGeneratorInput
+            {
+                WorldId = worldId,
+                Factions = factions,
+                FactionMembers = factionMembers,
+                Buildings = buildings,
+                Rooms = rooms,
+                Locations = anchoredLocations,
+                Creatures = creatures,
+                Props = props,
+            }
+        );
+        items.AddRange(initiationQuests.Items);
+
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
         return new WorldGeneratorResult
@@ -518,6 +640,9 @@ public class WorldGenerator(
             DoorConnectors = doorConnectors,
             TravelConnectors = travelConnectors,
             Factions = factions,
+            FactionStandings = factionStandings,
+            InitiationQuests = initiationQuests.Quests.ToArray(),
+            InitiationQuestObjectives = initiationQuests.Objectives.ToArray(),
             Buildings = buildings,
             Creatures = creatures,
             BuildingOwners = buildingOwners,

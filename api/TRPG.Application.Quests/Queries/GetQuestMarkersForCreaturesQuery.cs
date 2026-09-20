@@ -28,7 +28,8 @@ public class GetQuestMarkersForCreaturesQuery
 
 internal class GetQuestMarkersForCreaturesQueryHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
-    IQuestsDbContext context
+    IQuestsDbContext context,
+    IFactionsDbContext factionsContext
 ) : IQueryHandler<GetQuestMarkersForCreaturesQuery, QuestMarkersResult>
 {
     public async Task<QuestMarkersResult> Handle(
@@ -130,12 +131,21 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
             new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
             cancellationToken
         );
+        var playerFactionIds = await factionsContext
+            .FactionMembers.AsNoTracking()
+            .Where(member => member.WorldId == query.WorldId && member.CreatureId == query.PlayerId)
+            .Select(member => member.FactionId)
+            .ToArrayAsync(cancellationToken);
 
         foreach (var quest in quests)
         {
             if (
                 !playerQuestByQuestId.ContainsKey(quest.Id)
                 && (quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value))
+                && (
+                    quest.RequiredFactionId == null
+                    || playerFactionIds.Contains(quest.RequiredFactionId.Value)
+                )
                 && QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
                     quest.PrerequisiteQuestIds,
                     prerequisiteAlternativeGroupIdsByQuestId,

@@ -21,6 +21,7 @@ public class AcceptQuestCommand
 internal class AcceptQuestCommandHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
+    IFactionsDbContext factionsContext,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
     ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory
@@ -48,6 +49,22 @@ internal class AcceptQuestCommandHandler(
             );
             if (!knownFacts.Contains(requiredFactId))
                 throw new EntityNotFoundException("Quest", command.QuestId);
+        }
+
+        if (
+            quest.RequiredFactionId is { } requiredFactionId
+            && !await factionsContext
+                .FactionMembers.AsNoTracking()
+                .AnyAsync(
+                    member =>
+                        member.WorldId == command.WorldId
+                        && member.CreatureId == command.PlayerId
+                        && member.FactionId == requiredFactionId,
+                    cancellationToken
+                )
+        )
+        {
+            throw new EntityNotFoundException("Quest", command.QuestId);
         }
 
         var completedQuestIds = await context

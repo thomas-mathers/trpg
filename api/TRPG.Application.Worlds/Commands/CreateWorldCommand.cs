@@ -73,8 +73,14 @@ internal class CreateWorldCommandHandler(
             .DungeonExpeditions.Select(ExpeditionQuestGenerator.Generate)
             .ToArray();
         var quests = new QuestGeneratorResult(
-            [.. expeditionQuests.SelectMany(result => result.Quests)],
-            [.. expeditionQuests.SelectMany(result => result.Objectives)]
+            [
+                .. expeditionQuests.SelectMany(result => result.Quests),
+                .. worldResult.InitiationQuests,
+            ],
+            [
+                .. expeditionQuests.SelectMany(result => result.Objectives),
+                .. worldResult.InitiationQuestObjectives,
+            ]
         );
 
         var monsterReputations = MonsterReputationSeeder.Seed(

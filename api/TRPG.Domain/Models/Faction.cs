@@ -8,12 +8,24 @@ public enum FactionTemperament
     Fanatical,
 }
 
+public enum FactionKind
+{
+    Unclassified,
+    People,
+    CityGuard,
+    Castle,
+    Joinable,
+    Antagonist,
+    Wilderness,
+}
+
 public class Faction
 {
     public int Aggression { get; init; }
     public CreatureType? CreatureType { get; init; }
     public string Description { get; init; } = "";
     public Guid Id { get; init; } = Guid.NewGuid();
+    public FactionKind Kind { get; init; }
     public bool IsCityFaction { get; init; }
 
     // Set for city factions so a location can resolve whose law applies there.

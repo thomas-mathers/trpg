@@ -5,6 +5,7 @@ public class CreatureSpawner
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }
     public Guid LocationId { get; init; }
+    public Guid? FactionId { get; init; }
     public List<CreatureType> ArchetypeCreatureTypes { get; init; } = [];
     public int MaxPopulation { get; init; }
 

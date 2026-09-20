@@ -70,6 +70,7 @@ public class QuestChainContentGenerator(
         IReadOnlyList<QuestChainNodeSkeleton> skeleton,
         QuestChainBlockGenerationScope scope,
         IReadOnlyList<QuestChainCommittedEntity> committedEntities,
+        QuestChainCast cast,
         CancellationToken cancellationToken = default
     )
     {
@@ -109,9 +110,11 @@ public class QuestChainContentGenerator(
             skeleton.Select(node =>
                 $"- {node.NodeId}: requires {FormatNodeIds(node.PrerequisiteNodeIds)}; "
                 + $"block type {node.BlockType}; "
+                + $"fixed giver {cast.GiverIdByNodeId[node.NodeId]}; "
                 + $"exclusive group {node.GroupIndex?.ToString() ?? "none"}; "
                 + $"prerequisite alternative group {node.PrerequisiteAlternativeGroupIndex?.ToString() ?? "none"}; "
-                + $"fact support {node.FactDisclosureSupportingNodeId ?? "none"}"
+                + $"fact support {node.FactDisclosureSupportingNodeId ?? "none"}; "
+                + $"handoffs to {FormatHandoffs(cast, node.NodeId)}"
             )
         );
         var factDisclosureNodeCount = skeleton.Count(node =>
@@ -131,14 +134,25 @@ public class QuestChainContentGenerator(
 
             Shape each node's story beat to its block type: Escalation raises the danger or stakes;
             Reversal changes what the player thought they knew; Favor helps an NPC and earns their
-            trust or aid; ParallelThreads pursue distinct leads at the same time; EpilogueHook shows
-            consequences and points toward a future story. ExclusiveBranch commits the player to one
-            distinct approach; keep every quest in a route pursuing that approach through to its own
-            endpoint. Do not put a final confrontation in an EpilogueHook.
+            trust or aid; FloatingModules pursue independent leads that can be tackled in any order;
+            EpilogueHook shows consequences and points toward a future story. BranchAndBottleneck
+            and QuickBottleneck commit the player to one distinct approach; keep every quest in a
+            route pursuing that approach through to its own endpoint. SideQuest is optional flavor
+            content that hangs off the main thread — it never advances the central plot and nothing
+            later depends on it, so give it a self-contained beat (a personal favor, a curiosity, a
+            minor score to settle) rather than a plot-critical development. Do not put a final
+            confrontation in an EpilogueHook.
 
-            Every content node needs a nonblank 3-6 word Name, concrete Description, and a creature
-            GiverEntityId from the entity list. Every objective needs a nonblank 3-6 word Name and
+            Every content node needs a nonblank 3-6 word Name and concrete Description. Copy its
+            fixed GiverEntityId exactly; casting is final and you may not choose or change a giver.
+            When a skeleton line lists a handoff, that node's Description must explicitly name the
+            next giver and explain that both faction colleagues know one another and why the player
+            should seek the next giver out. Every objective needs a nonblank 3-6 word Name and
             concrete Description. Use only real entity ids from the supplied list.
+
+            The fixed antagonist faction is {cast.AntagonistFactionName ?? "not specified"}. The
+            finale must directly target one of these already-cast antagonist entity ids:
+            {string.Join(", ", cast.AntagonistTargetEntityIds)}. Do not invent a different villain.
 
             Every objective MUST set ObjectiveType to exactly one of these literal values; never
             leave it blank:
@@ -188,17 +202,19 @@ public class QuestChainContentGenerator(
             logger,
             systemPrompt,
             userPrompt,
-            schema => Validate(schema, skeleton, entityTypesById),
+            schema => Validate(schema, skeleton, entityTypesById, cast, scope),
             cancellationToken,
             options: new ChatOptions { MaxOutputTokens = 16384 }
         );
-        return QuestChainBlockAssembler.Assemble(content, skeleton);
+        return QuestChainBlockAssembler.Assemble(content, skeleton, cast);
     }
 
     internal static string? Validate(
         QuestChainContentSchema content,
         IReadOnlyList<QuestChainNodeSkeleton> skeleton,
-        IReadOnlyDictionary<string, string> entityTypesById
+        IReadOnlyDictionary<string, string> entityTypesById,
+        QuestChainCast? cast = null,
+        QuestChainBlockGenerationScope scope = QuestChainBlockGenerationScope.ContinuesChain
     )
     {
         if (content.Nodes.Count != skeleton.Count)
@@ -206,22 +222,74 @@ public class QuestChainContentGenerator(
             return $"Write exactly {skeleton.Count} content nodes.";
         }
 
-        var schema = QuestChainBlockAssembler.Merge(content, skeleton);
-        return QuestChainGenerator.ValidateFields(schema, entityTypesById, skeleton.Count);
+        var schema = QuestChainBlockAssembler.Merge(content, skeleton, cast);
+        var fieldError = QuestChainGenerator.ValidateFields(
+            schema,
+            entityTypesById,
+            skeleton.Count
+        );
+        if (fieldError != null || cast == null)
+        {
+            return fieldError;
+        }
+
+        foreach (var pair in content.Nodes.Zip(skeleton))
+        {
+            if (
+                cast.HandoffsByUpstreamNodeId.TryGetValue(pair.Second.NodeId, out var handoffs)
+                && handoffs.Any(handoff =>
+                    !pair.First.Description.Contains(
+                        handoff.NextGiverName,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+            )
+            {
+                return $"Node \"{pair.Second.NodeId}\" must narrate its cast giver handoff by naming the next giver.";
+            }
+        }
+
+        var finaleNodes = schema
+            .Nodes.Zip(skeleton)
+            .Where(pair => pair.Second.BlockType == QuestChainBlockType.Finale)
+            .Select(pair => pair.First)
+            .ToArray();
+        if (
+            scope == QuestChainBlockGenerationScope.ConcludesChain
+            && cast.AntagonistTargetEntityIds.Count > 0
+            && !finaleNodes
+                .SelectMany(node => node.Objectives)
+                .Any(objective =>
+                    objective.TargetEntityId is { } target
+                    && Guid.TryParse(target, out var targetId)
+                    && cast.AntagonistTargetEntityIds.Contains(targetId)
+                )
+        )
+        {
+            return "The finale must directly target the cast antagonist.";
+        }
+
+        return null;
     }
 
     private static string FormatNodeIds(IReadOnlyList<string> nodeIds) =>
         nodeIds.Count == 0 ? "none" : string.Join(", ", nodeIds);
+
+    private static string FormatHandoffs(QuestChainCast cast, string nodeId) =>
+        cast.HandoffsByUpstreamNodeId.TryGetValue(nodeId, out var handoffs)
+            ? string.Join(", ", handoffs.Select(handoff => handoff.NextGiverName))
+            : "none";
 }
 
 internal static class QuestChainBlockAssembler
 {
     public static QuestChainGeneratedResult Assemble(
         QuestChainContentSchema content,
-        IReadOnlyList<QuestChainNodeSkeleton> skeleton
+        IReadOnlyList<QuestChainNodeSkeleton> skeleton,
+        QuestChainCast? cast = null
     )
     {
-        var schema = Merge(content, skeleton);
+        var schema = Merge(content, skeleton, cast);
         return new QuestChainGeneratedResult(
             schema
                 .Facts.Select(fact => new QuestChainGeneratedFact(
@@ -277,7 +345,8 @@ internal static class QuestChainBlockAssembler
 
     internal static QuestChainSchema Merge(
         QuestChainContentSchema content,
-        IReadOnlyList<QuestChainNodeSkeleton> skeleton
+        IReadOnlyList<QuestChainNodeSkeleton> skeleton,
+        QuestChainCast? cast = null
     )
     {
         var reasonFactKeysBySupportNodeId = content
@@ -314,7 +383,9 @@ internal static class QuestChainBlockAssembler
                     NodeId = pair.Second.NodeId,
                     Name = pair.First.Name,
                     Description = pair.First.Description,
-                    GiverEntityId = pair.First.GiverEntityId,
+                    GiverEntityId =
+                        cast?.GiverIdByNodeId[pair.Second.NodeId].ToString()
+                        ?? pair.First.GiverEntityId,
                     RequiredFactKey = reasonFactKeysBySupportNodeId.TryGetValue(
                         pair.Second.NodeId,
                         out var reasonFactKey

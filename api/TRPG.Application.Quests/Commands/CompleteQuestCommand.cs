@@ -27,6 +27,7 @@ internal record GiveItemKindRequirement(string ItemName, int RequiredAmount, Gui
 
 internal class CompleteQuestCommandHandler(
     IQuestsDbContext context,
+    IFactionsDbContext factionsContext,
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
     IDomainEventPublisher<QuestCompletedEvent> questCompleted,
@@ -149,7 +150,61 @@ internal class CompleteQuestCommandHandler(
         creatureQuest.Status = QuestStatus.Completed;
         creatureQuest.IsTracked = false;
 
+        if (
+            creatureQuest.Quest.MembershipRewardFactionId is { } membershipFactionId
+            && !await factionsContext.FactionMembers.AnyAsync(
+                member =>
+                    member.WorldId == command.WorldId
+                    && member.CreatureId == command.PlayerId
+                    && member.FactionId == membershipFactionId,
+                cancellationToken
+            )
+        )
+        {
+            factionsContext.FactionMembers.Add(
+                new FactionMember
+                {
+                    WorldId = command.WorldId,
+                    CreatureId = command.PlayerId,
+                    FactionId = membershipFactionId,
+                    Role = FactionRole.Member,
+                }
+            );
+        }
+
+        if (
+            creatureQuest.Quest.IsChainTerminal
+            && creatureQuest.Quest.ChainGiverFactionId is { } giverFactionId
+            && creatureQuest.Quest.ChainAntagonistFactionId is { } antagonistFactionId
+        )
+        {
+            await factionsContext
+                .FactionStandings.Where(standing =>
+                    standing.WorldId == command.WorldId
+                    && standing.Score < 0
+                    && (
+                        (
+                            standing.FactionId == giverFactionId
+                            && standing.OtherFactionId == antagonistFactionId
+                        )
+                        || (
+                            standing.FactionId == antagonistFactionId
+                            && standing.OtherFactionId == giverFactionId
+                        )
+                    )
+                )
+                .ExecuteUpdateAsync(
+                    setters =>
+                        setters.SetProperty(
+                            standing => standing.Score,
+                            standing => standing.Score - 5
+                        ),
+                    cancellationToken
+                );
+        }
+
         await context.SaveChangesAsync(cancellationToken);
+        await factionsContext.SaveChangesAsync(cancellationToken);
 
         await questCompleted.Publish(
             new QuestCompletedEvent(command.PlayerId, command.WorldId, command.QuestId),

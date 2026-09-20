@@ -8,6 +8,7 @@ internal class DungeonPopulatorInput
     public required Guid WorldId { get; init; }
     public required BuildingType DungeonType { get; init; }
     public required IReadOnlyDictionary<CreatureType, Faction> FactionsByCreatureType { get; init; }
+    public Guid? FactionId { get; init; }
 }
 
 public record DungeonPopulatorResult(
@@ -65,7 +66,8 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         Guid locationId,
         BuildingType dungeonType,
         int playerLevel,
-        IReadOnlyDictionary<CreatureType, Faction> factionsByCreatureType
+        IReadOnlyDictionary<CreatureType, Faction> factionsByCreatureType,
+        Guid? factionId = null
     )
     {
         var archetypeCreatureTypes = ArchetypesByDungeonType[dungeonType]
@@ -76,6 +78,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         {
             WorldId = worldId,
             LocationId = locationId,
+            FactionId = factionId,
             ArchetypeCreatureTypes = archetypeCreatureTypes.ToList(),
             MaxPopulation = 1,
             Schedule = $"0 {Random.Shared.Next(24)} */{RespawnIntervalDays} * *",
@@ -91,7 +94,8 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             worldId,
             locationId,
             spawner.Id,
-            factionsByCreatureType
+            factionsByCreatureType,
+            factionId
         );
 
         return new DungeonPopulatorResult(
@@ -115,6 +119,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         {
             WorldId = input.WorldId,
             LocationId = input.LocationId,
+            FactionId = input.FactionId,
             ArchetypeCreatureTypes = archetypeCreatureTypes.ToList(),
             MaxPopulation = maxPopulation,
             Schedule = $"0 {Random.Shared.Next(24)} */{RespawnIntervalDays} * *",
@@ -130,7 +135,8 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             input.WorldId,
             input.LocationId,
             spawner.Id,
-            input.FactionsByCreatureType
+            input.FactionsByCreatureType,
+            input.FactionId
         );
 
         return new DungeonPopulatorResult(

@@ -18,6 +18,7 @@ public class GetQuestInteractionsForGiverQuery
 internal class GetQuestInteractionsForGiverQueryHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
+    IFactionsDbContext factionsContext,
     IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds
 ) : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
 {
@@ -80,6 +81,11 @@ internal class GetQuestInteractionsForGiverQueryHandler(
             new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
             cancellationToken
         );
+        var playerFactionIds = await factionsContext
+            .FactionMembers.AsNoTracking()
+            .Where(member => member.WorldId == query.WorldId && member.CreatureId == query.PlayerId)
+            .Select(member => member.FactionId)
+            .ToArrayAsync(cancellationToken);
 
         var prerequisiteQuestIds = giverQuests
             .SelectMany(quest => quest.PrerequisiteQuestIds)
@@ -118,6 +124,10 @@ internal class GetQuestInteractionsForGiverQueryHandler(
             .Where(quest => !acceptedQuestIds.Contains(quest.Id))
             .Where(quest =>
                 quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value)
+            )
+            .Where(quest =>
+                quest.RequiredFactionId == null
+                || playerFactionIds.Contains(quest.RequiredFactionId.Value)
             )
             .Where(quest =>
                 QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(

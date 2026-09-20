@@ -114,6 +114,7 @@ internal static class EncounterFactionGenerator
         new()
         {
             WorldId = worldId,
+            Kind = FactionKind.Wilderness,
             CreatureType = creatureType,
             Name = name,
             Description = description,

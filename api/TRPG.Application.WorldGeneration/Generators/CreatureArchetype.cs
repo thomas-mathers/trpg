@@ -99,6 +99,23 @@ public sealed class CreatureArchetype
         biography: "A feral creature of claw and hunger, hostile to intruders."
     );
 
+    public static readonly CreatureArchetype Raider = new(
+        statAffinities: new StatAffinities(
+            Strength: 2,
+            Dexterity: 2,
+            Endurance: 2,
+            Stamina: 2,
+            Mana: 0,
+            Intelligence: 1,
+            GoldMultiplier: 0.8f
+        ),
+        skillAffinities: SoldierSkillAffinities,
+        creatureType: Domain.Models.CreatureType.Human,
+        startingGear: [new WeaponSpec(WeaponType.Sword)],
+        armorClass: Domain.Models.ArmorClass.Leather,
+        biography: "A road raider who survives by extorting and ambushing travelers."
+    );
+
     public static readonly CreatureArchetype Undead = new(
         statAffinities: new StatAffinities(
             Strength: 2,
@@ -635,6 +652,7 @@ public sealed class CreatureArchetype
         CreatureArchetype
     > ByCreatureType = new()
     {
+        [Domain.Models.CreatureType.Human] = Raider,
         [Domain.Models.CreatureType.Beast] = Beast,
         [Domain.Models.CreatureType.Undead] = Undead,
         [Domain.Models.CreatureType.Construct] = Construct,

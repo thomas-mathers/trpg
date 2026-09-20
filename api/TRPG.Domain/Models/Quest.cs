@@ -15,4 +15,9 @@ public class Quest
     public Guid WorldId { get; init; }
 
     public Guid? RequiredFactId { get; init; }
+    public Guid? RequiredFactionId { get; init; }
+    public Guid? MembershipRewardFactionId { get; init; }
+    public Guid? ChainGiverFactionId { get; init; }
+    public Guid? ChainAntagonistFactionId { get; init; }
+    public bool IsChainTerminal { get; init; }
 }

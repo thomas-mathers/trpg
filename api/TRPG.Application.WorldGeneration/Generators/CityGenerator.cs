@@ -16,7 +16,7 @@ internal class CityGeneratorInput
 
 internal class CityGeneratorResult
 {
-    public required Faction CityFaction { get; init; }
+    public required IReadOnlyList<Faction> Factions { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
     public required IReadOnlyList<Creature> Creatures { get; init; }
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
@@ -46,7 +46,9 @@ public class CityGenerator(
     private sealed class CityWorkspace
     {
         public required CityGeneratorInput Input { get; init; }
-        public required Faction CityFaction { get; init; }
+        public required Faction PeopleFaction { get; init; }
+        public required Faction GuardFaction { get; init; }
+        public required Faction CastleFaction { get; init; }
         public required Dictionary<DistrictType, District> DistrictsByType { get; init; }
         public required HouseholdGeneratorInput HouseholdInput { get; init; }
         public required List<IdleCandidate> IdleCandidates { get; init; }
@@ -74,13 +76,32 @@ public class CityGenerator(
 
     internal CityGeneratorResult Generate(CityGeneratorInput input)
     {
-        var cityFaction = new Faction
+        var peopleFaction = new Faction
         {
             WorldId = input.WorldId,
             Name = $"The People of {input.City.Name}",
             Description = $"The common folk of {input.City.Name}.",
             IsCityFaction = true,
             CityId = input.City.Id,
+            Kind = FactionKind.People,
+        };
+        var guardFaction = new Faction
+        {
+            WorldId = input.WorldId,
+            Name = $"{input.City.Name} City Guard",
+            Description = $"The law enforcement and military order of {input.City.Name}.",
+            IsCityFaction = true,
+            CityId = input.City.Id,
+            Kind = FactionKind.CityGuard,
+        };
+        var castleFaction = new Faction
+        {
+            WorldId = input.WorldId,
+            Name = $"{input.City.Name} Castle",
+            Description = $"The ruling authority and castle staff of {input.City.Name}.",
+            IsCityFaction = true,
+            CityId = input.City.Id,
+            Kind = FactionKind.Castle,
         };
 
         var districtsByType = input.Districts.ToDictionary(d => d.DistrictType);
@@ -88,7 +109,9 @@ public class CityGenerator(
         var workspace = new CityWorkspace
         {
             Input = input,
-            CityFaction = cityFaction,
+            PeopleFaction = peopleFaction,
+            GuardFaction = guardFaction,
+            CastleFaction = castleFaction,
             DistrictsByType = districtsByType,
             HouseholdInput = new HouseholdGeneratorInput
             {
@@ -175,7 +198,7 @@ public class CityGenerator(
 
         return new CityGeneratorResult
         {
-            CityFaction = cityFaction,
+            Factions = [peopleFaction, guardFaction, castleFaction],
             Buildings = workspace.Buildings.ToArray(),
             Creatures = workspace.Creatures.ToArray(),
             BuildingOwners = workspace.BuildingOwners.ToArray(),
@@ -210,6 +233,22 @@ public class CityGenerator(
 
         var owner = ownerHousehold.DesignatedWorker!;
         var memberIds = new List<Guid> { owner.Id };
+
+        if (type == BuildingType.Castle)
+        {
+            workspace.FactionMembers.RemoveAll(member =>
+                member.CreatureId == owner.Id && member.FactionId == workspace.PeopleFaction.Id
+            );
+            workspace.FactionMembers.Add(
+                new FactionMember
+                {
+                    WorldId = input.WorldId,
+                    FactionId = workspace.CastleFaction.Id,
+                    CreatureId = owner.Id,
+                    Role = FactionRole.Leader,
+                }
+            );
+        }
 
         var buildingName = SettlementNameGenerator.GenerateBuildingName(
             input.DominantRace,
@@ -336,7 +375,6 @@ public class CityGenerator(
             new GuildHallOccupantGeneratorInput
             {
                 WorldId = input.WorldId,
-                CityFactionId = workspace.CityFaction.Id,
                 GuildFactionId = guildFactionId,
                 Owner = owner,
                 GroundFloorLocationId = groundFloorRoom.LocationId,
@@ -436,7 +474,7 @@ public class CityGenerator(
         var registration = BarracksGuardDutyAssigner.Generate(
             new BarracksGuardDutyAssignerInput(
                 input.WorldId,
-                workspace.CityFaction.Id,
+                workspace.GuardFaction.Id,
                 groundFloorRoom.LocationId,
                 gateLocationId,
                 patrolWaypoints,
@@ -577,7 +615,7 @@ public class CityGenerator(
             workspace.FactionMembers.Add(
                 new FactionMember
                 {
-                    FactionId = workspace.CityFaction.Id,
+                    FactionId = workspace.PeopleFaction.Id,
                     CreatureId = member.Creature.Id,
                     Role = FactionRole.Member,
                     WorldId = workspace.Input.WorldId,

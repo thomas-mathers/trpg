@@ -80,7 +80,12 @@ public class QuestChainFactDisclosureRepairer(
             nodes.Add(repair.SupportQuest);
         }
 
-        return new QuestChainGeneratedResult(facts.ToArray(), nodes.ToArray());
+        return new QuestChainGeneratedResult(
+            facts.ToArray(),
+            nodes.ToArray(),
+            generated.GiverFactionId,
+            generated.AntagonistFactionId
+        );
     }
 
     private async Task<FactDisclosureRepairResult> GenerateRepair(

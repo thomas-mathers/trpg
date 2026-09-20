@@ -19,14 +19,11 @@ public sealed class FakeChatClient : IChatClient
 
     // Overrides the canned content-stage quest-chain response below, for tests that need to script
     // a specific multi-node/multi-objective-type set of quest content (or a deliberately invalid
-    // one, to exercise the generator's retry-exhaustion failure path). The story and block-graph
-    // stages that precede content generation always get a minimal two-node (IncitingLead + Finale)
-    // canned graph, so an override here must supply exactly two content nodes.
+    // one, to exercise the generator's retry-exhaustion failure path). Block-graph structure is
+    // composed deterministically by QuestChainBlockGraphComposer, not by the LLM, so an override
+    // here must supply exactly as many content nodes as whatever skeleton the composer actually
+    // produced for the request's node budget.
     internal QuestChainContentSchema? QuestChainContentSchemaOverride { get; set; }
-
-    // Overrides the canned two-block (IncitingLead + Finale) graph below, for tests whose content
-    // override needs a differently shaped skeleton (e.g. a FactDisclosure block).
-    internal QuestChainBlockGraphSchema? QuestChainBlockGraphSchemaOverride { get; set; }
 
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -87,23 +84,6 @@ public sealed class FakeChatClient : IChatClient
     {
         var text = string.Join(" ", messages.Select(m => m.Text));
 
-        if (text.Contains("unique factions", StringComparison.OrdinalIgnoreCase))
-        {
-            var count = ExtractCount(text, @"Generate (\d+) unique factions");
-            var schema = new FactionListSchema
-            {
-                Factions = Enumerable
-                    .Range(0, count)
-                    .Select(_ => new FactionItemSchema
-                    {
-                        Name = NextName("Faction"),
-                        Description = "A fake faction.",
-                    })
-                    .ToList(),
-            };
-            return JsonSerializer.Serialize(schema);
-        }
-
         if (
             text.Contains("Generate the world", StringComparison.OrdinalIgnoreCase)
             || text.Contains("Generate country", StringComparison.OrdinalIgnoreCase)
@@ -117,53 +97,13 @@ public sealed class FakeChatClient : IChatClient
             return JsonSerializer.Serialize(entity);
         }
 
-        if (text.Contains("compact complete RPG quest story", StringComparison.OrdinalIgnoreCase))
+        if (text.Contains("short story bible", StringComparison.OrdinalIgnoreCase))
         {
-            var chapterCount = ExtractCount(text, @"Chapter count: (\d+)");
-            var schema = new QuestChainStorySchema
+            var schema = new QuestChainStoryBibleSchema
             {
-                Summary = "A fake story summary.",
-                Chapters = Enumerable
-                    .Range(0, chapterCount)
-                    .Select(_ => new QuestChainStoryChapterSchema
-                    {
-                        Description = "A fake chapter.",
-                        Turns = ["A fake turn.", "Another fake turn."],
-                    })
-                    .ToList(),
-            };
-            return JsonSerializer.Serialize(schema);
-        }
-
-        if (text.Contains("named quest blocks", StringComparison.OrdinalIgnoreCase))
-        {
-            if (QuestChainBlockGraphSchemaOverride != null)
-            {
-                return JsonSerializer.Serialize(QuestChainBlockGraphSchemaOverride);
-            }
-
-            // Otherwise the minimal feasible graph: a Finale requires one open thread, and only
-            // IncitingLead can open one from nothing, so every test-sized chain gets exactly these
-            // two nodes regardless of the requested node budget.
-            var schema = new QuestChainBlockGraphSchema
-            {
-                Blocks =
-                [
-                    new QuestChainBlockGraphBlockSchema
-                    {
-                        Id = "block-1",
-                        BlockType = nameof(QuestChainBlockType.IncitingLead),
-                        NodeCount = 1,
-                        DependsOnBlockIds = [],
-                    },
-                    new QuestChainBlockGraphBlockSchema
-                    {
-                        Id = "block-2",
-                        BlockType = nameof(QuestChainBlockType.Finale),
-                        NodeCount = 1,
-                        DependsOnBlockIds = ["block-1"],
-                    },
-                ],
+                Antagonist = "A fake antagonist.",
+                CentralSecret = "A fake secret.",
+                FinalResolution = "A fake resolution.",
             };
             return JsonSerializer.Serialize(schema);
         }

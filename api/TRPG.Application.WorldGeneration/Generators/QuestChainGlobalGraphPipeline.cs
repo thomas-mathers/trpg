@@ -1,8 +1,9 @@
 namespace TRPG.Application.WorldGeneration.Generators;
 
 public class QuestChainGlobalGraphPipeline(
-    QuestChainStoryGenerator storyGenerator,
-    QuestChainBlockGraphGenerator graphGenerator,
+    QuestChainStoryBibleGenerator storyBibleGenerator,
+    QuestChainBlockGraphComposer graphComposer,
+    QuestChainCastingGenerator castingGenerator,
     QuestChainContentGenerator contentGenerator
 )
 {
@@ -17,13 +18,14 @@ public class QuestChainGlobalGraphPipeline(
             entity => entity.Id,
             entity => entity.Name
         );
-        var story = await storyGenerator.Generate(
+        var graph = graphComposer.Compose(input.MinimumChainLength, input.MaximumChainLength);
+        var skeleton = QuestChainBlockGraphStitcher.Stitch(graph);
+        var cast = castingGenerator.Cast(skeleton, input);
+        var storyBible = await storyBibleGenerator.Generate(
             input.ChainPremise,
-            input.ChainLength / MaximumContentSliceNodeCount,
+            cast.AntagonistFactionName,
             cancellationToken
         );
-        var graph = await graphGenerator.Generate(story, input.ChainLength, cancellationToken);
-        var skeleton = QuestChainBlockGraphStitcher.Stitch(graph);
         var prerequisitesByNodeId = skeleton.ToDictionary(
             node => node.NodeId,
             node => node.PrerequisiteNodeIds
@@ -45,8 +47,9 @@ public class QuestChainGlobalGraphPipeline(
             var content = await contentGenerator.Generate(
                 new QuestChainGeneratorInput
                 {
-                    ChainPremise = $"{input.ChainPremise}\nStory: {story.Summary}",
-                    ChainLength = slice.Count,
+                    ChainPremise = $"{input.ChainPremise}\nStory bible: {storyBible}",
+                    MinimumChainLength = slice.Count,
+                    MaximumChainLength = slice.Count,
                     AvailableEntities = input.AvailableEntities,
                 },
                 contentSlice,
@@ -56,6 +59,7 @@ public class QuestChainGlobalGraphPipeline(
                     ? QuestChainBlockGenerationScope.ConcludesChain
                     : QuestChainBlockGenerationScope.ContinuesChain,
                 ExtractCommittedEntities(results, entityNamesById),
+                cast,
                 cancellationToken
             );
             results.Add(
@@ -74,7 +78,9 @@ public class QuestChainGlobalGraphPipeline(
         }
         return new QuestChainGeneratedResult(
             results.SelectMany(result => result.Facts).ToArray(),
-            results.SelectMany(result => result.Nodes).ToArray()
+            results.SelectMany(result => result.Nodes).ToArray(),
+            cast.GiverFactionId,
+            cast.AntagonistFactionId
         );
     }
 

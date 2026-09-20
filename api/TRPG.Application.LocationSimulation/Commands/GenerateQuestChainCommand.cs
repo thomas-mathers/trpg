@@ -19,8 +19,10 @@ public class GenerateQuestChainCommand
 {
     public required Guid RequestId { get; init; }
     public required string ChainPremise { get; init; }
-    public required int ChainLength { get; init; }
+    public required int MinimumChainLength { get; init; }
+    public required int MaximumChainLength { get; init; }
     public required IReadOnlyList<QuestChainCandidateEntity> AvailableEntities { get; init; }
+    public IReadOnlyList<QuestChainFactionStanding> FactionStandings { get; init; } = [];
 }
 
 // TickerQ scheduling (ITimeTickerManager) is host-only — this is the same kind of boundary
@@ -80,8 +82,10 @@ internal class GenerateQuestChainCommandHandler(
             var generatorInput = new QuestChainGeneratorInput
             {
                 ChainPremise = command.ChainPremise,
-                ChainLength = command.ChainLength,
+                MinimumChainLength = command.MinimumChainLength,
+                MaximumChainLength = command.MaximumChainLength,
                 AvailableEntities = command.AvailableEntities,
+                FactionStandings = command.FactionStandings,
             };
             var generatedChain = await treatmentFirstGenerator.Generate(
                 generatorInput,
@@ -231,6 +235,7 @@ internal class GenerateQuestChainCommandHandler(
             .Distinct()
             .ToDictionary(groupIndex => groupIndex, _ => Guid.NewGuid());
         var newItems = new List<Item>();
+        var terminalNodeId = nodes[^1].NodeId;
 
         // Build every quest and its objectives in memory first (minting new Item instances for
         // CollectItem/GiveItems/DeliverItem into newItems along the way), so all newly-minted items
@@ -256,6 +261,11 @@ internal class GenerateQuestChainCommandHandler(
                     RequiredFactId = node.RequiredFactKey is { } factKey
                         ? factIdByKey[factKey]
                         : null,
+                    RequiredFactionId =
+                        node.PrerequisiteNodeIds.Count == 0 ? generatedChain.GiverFactionId : null,
+                    ChainGiverFactionId = generatedChain.GiverFactionId,
+                    ChainAntagonistFactionId = generatedChain.AntagonistFactionId,
+                    IsChainTerminal = node.NodeId == terminalNodeId,
                     PrerequisiteQuestIds = node
                         .PrerequisiteNodeIds.Select(nodeId => questIdByNodeId[nodeId])
                         .ToList(),

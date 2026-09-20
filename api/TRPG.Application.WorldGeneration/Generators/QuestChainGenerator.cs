@@ -18,13 +18,26 @@ public static class QuestChainEntityTypes
     public static readonly HashSet<string> ExplorableTypes = [Dungeon, Building];
 }
 
-public record QuestChainCandidateEntity(Guid Id, string Name, string Type, string Description = "");
+public record QuestChainCandidateEntity(
+    Guid Id,
+    string Name,
+    string Type,
+    string Description = "",
+    Guid? FactionId = null,
+    string? FactionName = null,
+    FactionKind FactionKind = FactionKind.Unclassified,
+    bool CanGiveQuests = true
+);
+
+public record QuestChainFactionStanding(Guid FactionId, Guid OtherFactionId, int Score);
 
 public class QuestChainGeneratorInput
 {
     public required string ChainPremise { get; init; }
-    public required int ChainLength { get; init; }
+    public required int MinimumChainLength { get; init; }
+    public required int MaximumChainLength { get; init; }
     public required IReadOnlyList<QuestChainCandidateEntity> AvailableEntities { get; init; }
+    public IReadOnlyList<QuestChainFactionStanding> FactionStandings { get; init; } = [];
 }
 
 // The real TRPG.Domain.Models.QuestObjective subtypes, as the literal strings the model must
@@ -139,7 +152,9 @@ public record QuestChainGeneratedSupportingQuest(string NodeId, int Weight);
 
 public record QuestChainGeneratedResult(
     IReadOnlyList<QuestChainGeneratedFact> Facts,
-    IReadOnlyList<QuestChainGeneratedNode> Nodes
+    IReadOnlyList<QuestChainGeneratedNode> Nodes,
+    Guid? GiverFactionId = null,
+    Guid? AntagonistFactionId = null
 );
 
 // Schema validation shared by every LLM authoring stage in the treatment-first pipeline
