@@ -23,6 +23,7 @@ public class GenerateQuestChainCommand
     public required int MaximumChainLength { get; init; }
     public required IReadOnlyList<QuestChainCandidateEntity> AvailableEntities { get; init; }
     public IReadOnlyList<QuestChainFactionStanding> FactionStandings { get; init; } = [];
+    public Guid? ForcedGiverFactionId { get; init; }
 }
 
 // TickerQ scheduling (ITimeTickerManager) is host-only — this is the same kind of boundary
@@ -86,6 +87,7 @@ internal class GenerateQuestChainCommandHandler(
                 MaximumChainLength = command.MaximumChainLength,
                 AvailableEntities = command.AvailableEntities,
                 FactionStandings = command.FactionStandings,
+                ForcedGiverFactionId = command.ForcedGiverFactionId,
             };
             var generatedChain = await treatmentFirstGenerator.Generate(
                 generatorInput,

@@ -9,6 +9,11 @@ internal class DungeonPopulatorInput
     public required BuildingType DungeonType { get; init; }
     public required IReadOnlyDictionary<CreatureType, Faction> FactionsByCreatureType { get; init; }
     public Guid? FactionId { get; init; }
+
+    // Overrides the DungeonType-keyed default pool — used for a dedicated antagonist-faction lair,
+    // where the population must match that specific faction's own composition rather than the
+    // generic pool every ordinary dungeon of this BuildingType draws from.
+    public IReadOnlyList<CreatureArchetype>? ArchetypeOverride { get; init; }
 }
 
 public record DungeonPopulatorResult(
@@ -67,10 +72,11 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
         BuildingType dungeonType,
         int playerLevel,
         IReadOnlyDictionary<CreatureType, Faction> factionsByCreatureType,
-        Guid? factionId = null
+        Guid? factionId = null,
+        IReadOnlyList<CreatureArchetype>? archetypeOverride = null
     )
     {
-        var archetypeCreatureTypes = ArchetypesByDungeonType[dungeonType]
+        var archetypeCreatureTypes = (archetypeOverride ?? ArchetypesByDungeonType[dungeonType])
             .Select(archetype => archetype.CreatureType!.Value)
             .ToArray();
 
@@ -110,7 +116,9 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
 
     internal DungeonPopulatorResult Generate(DungeonPopulatorInput input)
     {
-        var archetypeCreatureTypes = ArchetypesByDungeonType[input.DungeonType]
+        var archetypeCreatureTypes = (
+            input.ArchetypeOverride ?? ArchetypesByDungeonType[input.DungeonType]
+        )
             .Select(archetype => archetype.CreatureType!.Value)
             .ToArray();
         var maxPopulation = Random.Shared.Next(MinimumPopulation, MaximumPopulation + 1);

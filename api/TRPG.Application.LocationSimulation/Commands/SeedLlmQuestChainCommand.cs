@@ -19,6 +19,10 @@ public class SeedLlmQuestChainCommand
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
     public required int PlayerLevel { get; init; }
+
+    // Manual-testing hook only: forces the casting pass to a specific giver faction. See
+    // QuestChainGeneratorInput.ForcedGiverFactionId.
+    public Guid? ForcedGiverFactionId { get; init; }
 }
 
 // Finds someone at the seeding location willing to point the player toward a bigger story, then
@@ -161,6 +165,7 @@ internal class SeedLlmQuestChainCommandHandler(
                 MaximumChainLength = maximumChainLength,
                 AvailableEntities = entities,
                 FactionStandings = factionStandings,
+                ForcedGiverFactionId = command.ForcedGiverFactionId,
             },
             cancellationToken
         );

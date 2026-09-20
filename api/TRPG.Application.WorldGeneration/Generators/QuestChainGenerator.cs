@@ -38,6 +38,11 @@ public class QuestChainGeneratorInput
     public required int MaximumChainLength { get; init; }
     public required IReadOnlyList<QuestChainCandidateEntity> AvailableEntities { get; init; }
     public IReadOnlyList<QuestChainFactionStanding> FactionStandings { get; init; } = [];
+
+    // Manual-testing hook only: forces the casting pass to a specific giver faction instead of
+    // its normal random pick, so a dev tool can reliably exercise a chosen faction's roster
+    // rather than retrying until the RNG lands on it. Production callers never set this.
+    public Guid? ForcedGiverFactionId { get; init; }
 }
 
 // The real TRPG.Domain.Models.QuestObjective subtypes, as the literal strings the model must

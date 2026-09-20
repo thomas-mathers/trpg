@@ -224,6 +224,52 @@ public sealed class CreatureArchetype
         biography: "A small, vicious scavenger that hunts in packs and covets anything shiny."
     );
 
+    public static readonly CreatureArchetype Mage = new(
+        statAffinities: new StatAffinities(
+            Strength: 0,
+            Dexterity: 1,
+            Endurance: 1,
+            Stamina: 1,
+            Mana: 4,
+            Intelligence: 3,
+            GoldMultiplier: 0.6f
+        ),
+        skillAffinities: new Dictionary<Skill, int>
+        {
+            [Skill.Destruction] = 3,
+            [Skill.Illusion] = 1,
+            [Skill.General] = 1,
+        },
+        creatureType: Domain.Models.CreatureType.Human,
+        startingGear: [new WeaponSpec(WeaponType.Staff)],
+        armorClass: Domain.Models.ArmorClass.Cloth,
+        hasPotions: true,
+        biography: "An expelled mage who traded the Conclave's restraint for forbidden power."
+    );
+
+    public static readonly CreatureArchetype Noble = new(
+        statAffinities: new StatAffinities(
+            Strength: 1,
+            Dexterity: 2,
+            Endurance: 2,
+            Stamina: 1,
+            Mana: 2,
+            Intelligence: 2,
+            GoldMultiplier: 1.2f
+        ),
+        skillAffinities: new Dictionary<Skill, int>
+        {
+            [Skill.Melee] = 2,
+            [Skill.Illusion] = 2,
+            [Skill.General] = 1,
+        },
+        creatureType: Domain.Models.CreatureType.Human,
+        startingGear: [new WeaponSpec(WeaponType.Dagger)],
+        armorClass: Domain.Models.ArmorClass.Cloth,
+        hasAccessories: true,
+        biography: "A noble whose courtly grace conceals an older, hungrier nature."
+    );
+
     public static readonly CreatureArchetype Wraith = new(
         statAffinities: new StatAffinities(
             Strength: 0,

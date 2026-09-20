@@ -58,6 +58,17 @@ public class WorldGeneratorResult
     public required IReadOnlyList<CreatureSpawner> CreatureSpawners { get; init; }
 }
 
+// Archetypes always leads with LeaderArchetype, which is also always Humanoid — an antagonist
+// faction is led by a person, never sampled down to whatever monster archetype happened to win the
+// ambient population roll.
+internal record AntagonistLairSpec(
+    string FactionName,
+    BuildingType DungeonType,
+    string LairName,
+    IReadOnlyList<CreatureArchetype> Archetypes,
+    CreatureArchetype LeaderArchetype
+);
+
 public class WorldGenerator(
     GeographyGenerator geographyGenerator,
     CityGenerator cityGenerator,
@@ -122,7 +133,6 @@ public class WorldGenerator(
 
         var factions = new List<Faction>(namedFactions);
         factions.AddRange(roster.AntagonistFactions);
-        factions.Add(roster.BrokenToll);
         var encounterFactionsByCreatureType = EncounterFactionGenerator
             .Generate(worldId)
             .ToDictionary();
@@ -437,12 +447,55 @@ public class WorldGenerator(
 
         var lairSpecs = new[]
         {
-            (FactionNames.RedTalon, BuildingType.Cave, "The Red Talon Den"),
-            (FactionNames.SilverVigil, BuildingType.Ruins, "The Vigil Hunting Lodge"),
-            (FactionNames.CinderPact, BuildingType.Tower, "The Cinder Spire"),
-            (FactionNames.NightboundCourt, BuildingType.Crypt, "The Nightbound Crypt"),
-            (FactionNames.AshwoodPack, BuildingType.Cave, "The Ashwood Den"),
-            (FactionNames.Reclaimers, BuildingType.Mine, "The Reclaimer Redoubt"),
+            // Every antagonist-capable faction gets at least one humanoid archetype in its ambient
+            // population, and its BossChamber leader is always that humanoid archetype specifically
+            // (never sampled from the wider pool) — an antagonist faction is a person leading
+            // something, not a monster nest wearing a faction name.
+            new AntagonistLairSpec(
+                FactionNames.RedTalon,
+                BuildingType.Cave,
+                "The Red Talon Den",
+                [CreatureArchetype.Raider, CreatureArchetype.Beast],
+                CreatureArchetype.Raider
+            ),
+            // "Hunts supernatural threats" means the Vigil's own lodge is staffed by the hunters,
+            // not the things they hunt — Undead/Demon/Giant belong to whatever they're chasing,
+            // never to their own membership.
+            new AntagonistLairSpec(
+                FactionNames.SilverVigil,
+                BuildingType.Ruins,
+                "The Vigil Hunting Lodge",
+                [CreatureArchetype.Raider],
+                CreatureArchetype.Raider
+            ),
+            new AntagonistLairSpec(
+                FactionNames.CinderPact,
+                BuildingType.Tower,
+                "The Cinder Spire",
+                [CreatureArchetype.Mage, CreatureArchetype.Elemental, CreatureArchetype.Demon],
+                CreatureArchetype.Mage
+            ),
+            new AntagonistLairSpec(
+                FactionNames.NightboundCourt,
+                BuildingType.Crypt,
+                "The Nightbound Crypt",
+                [CreatureArchetype.Noble, CreatureArchetype.Undead, CreatureArchetype.Wraith],
+                CreatureArchetype.Noble
+            ),
+            new AntagonistLairSpec(
+                FactionNames.AshwoodPack,
+                BuildingType.Cave,
+                "The Ashwood Den",
+                [CreatureArchetype.Raider, CreatureArchetype.Beast],
+                CreatureArchetype.Raider
+            ),
+            new AntagonistLairSpec(
+                FactionNames.Reclaimers,
+                BuildingType.Mine,
+                "The Reclaimer Redoubt",
+                [CreatureArchetype.Raider, CreatureArchetype.Construct],
+                CreatureArchetype.Raider
+            ),
         };
         var antagonistFactionsByName = roster.AntagonistFactions.ToDictionary(faction =>
             faction.Name
@@ -455,11 +508,11 @@ public class WorldGenerator(
             var lair = DungeonGenerator.Generate(
                 new DungeonGeneratorInput([], wildernessLocation, worldId)
                 {
-                    BuildingType = spec.Item2,
-                    Name = spec.Item3,
+                    BuildingType = spec.DungeonType,
+                    Name = spec.LairName,
                 }
             );
-            var antagonistFaction = antagonistFactionsByName[spec.Item1];
+            var antagonistFaction = antagonistFactionsByName[spec.FactionName];
             lair.Building.FactionId = antagonistFaction.Id;
             dungeons.Add(lair);
             buildings.Add(lair.Building);
@@ -480,19 +533,21 @@ public class WorldGenerator(
                         ? dungeonPopulator.GenerateForced(
                             worldId,
                             placement.Room.LocationId,
-                            spec.Item2,
+                            spec.DungeonType,
                             playerLevel: 1,
                             factionsByCreatureType: encounterFactionsByCreatureType,
-                            factionId: antagonistFaction.Id
+                            factionId: antagonistFaction.Id,
+                            archetypeOverride: [spec.LeaderArchetype]
                         )
                         : dungeonPopulator.Generate(
                             new DungeonPopulatorInput
                             {
                                 LocationId = placement.Room.LocationId,
                                 WorldId = worldId,
-                                DungeonType = spec.Item2,
+                                DungeonType = spec.DungeonType,
                                 FactionsByCreatureType = encounterFactionsByCreatureType,
                                 FactionId = antagonistFaction.Id,
+                                ArchetypeOverride = spec.Archetypes,
                             }
                         );
                 monsters.AddRange(population.Monsters.Select(monster => monster.Creature));
