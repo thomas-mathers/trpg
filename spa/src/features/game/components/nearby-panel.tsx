@@ -215,7 +215,7 @@ export function NearbyPanel({
     entityType: 'Building' as const,
   }));
   const nearbyContainers = scene.nearbyProps.filter((prop) => prop.type === 'Container');
-  const nearbyLevers = scene.nearbyProps.filter((prop) => prop.type === 'Lever');
+  const nearbyTriggers = scene.nearbyProps.filter((prop) => prop.type === 'Trigger');
   const nearbyTradeWorkstations = scene.nearbyProps.filter((prop) => prop.type === 'Trade');
   const nearbyBeds = scene.nearbyProps.filter((prop) => prop.type === 'Bed');
   const nearbyBookshelves = scene.nearbyProps.filter((prop) => prop.type === 'Reading');
@@ -301,23 +301,26 @@ export function NearbyPanel({
         </Section>
       )}
 
-      {nearbyLevers.length > 0 && (
-        <Section title="Nearby Levers">
-          {nearbyLevers.map((lever) => (
-            <div key={lever.id} className="flex items-center justify-between gap-2 py-1.5">
+      {nearbyTriggers.length > 0 && (
+        <Section title="Nearby Triggers">
+          {nearbyTriggers.map((trigger) => (
+            <div key={trigger.id} className="flex items-center justify-between gap-2 py-1.5">
               <span className="flex min-w-0 items-center gap-1.5">
                 <GiLever className="text-muted-foreground size-[18px] shrink-0" />
-                <span className="truncate font-medium">{lever.name}</span>
+                <span className="truncate font-medium">{trigger.name}</span>
               </span>
               <Button
                 variant="outline"
                 size="xs"
                 className="border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
                 onClick={() =>
-                  submitNarratedTurn(`Pull ${lever.name}`, chatHub.sendActivateTrigger(lever.id))
+                  submitNarratedTurn(
+                    `Activate ${trigger.name}`,
+                    chatHub.sendActivateTrigger(trigger.id),
+                  )
                 }
               >
-                Pull
+                Activate
               </Button>
             </div>
           ))}

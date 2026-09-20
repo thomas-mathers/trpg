@@ -23,6 +23,7 @@ public class QuestChainGeneratorValidationTests
         string? recipientEntityId = null,
         string? itemNameForKind = null,
         string? newItemName = null,
+        string? newPropName = null,
         string? creatureTypeCategory = null,
         int requiredAmount = 1
     ) =>
@@ -41,6 +42,7 @@ public class QuestChainGeneratorValidationTests
             RecipientEntityId = recipientEntityId,
             ItemNameForKind = itemNameForKind,
             NewItemName = newItemName,
+            NewPropName = newPropName,
             CreatureTypeCategory = creatureTypeCategory,
             RequiredAmount = requiredAmount,
         };
@@ -611,6 +613,78 @@ public class QuestChainGeneratorValidationTests
 
         // Assert
         Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsError_WhenInteractWithPropHasNoNewPropName()
+    {
+        // Arrange
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.InteractWithProp),
+            targetEntityId: BuildingEntityId
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsError_WhenInteractWithPropTargetsACreature()
+    {
+        // Arrange: the target identifies where the minted prop is placed, so it must be a
+        // Dungeon or Building, not a Creature.
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.InteractWithProp),
+            targetEntityId: CreatureEntityId,
+            newPropName: "Cracked Well Valve"
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsNull_WhenInteractWithPropTargetsABuildingWithANewPropName()
+    {
+        // Arrange
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.InteractWithProp),
+            targetEntityId: BuildingEntityId,
+            newPropName: "Cracked Well Valve"
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void Validate_ReturnsNull_WhenInteractWithPropTargetsADungeonWithANewPropName()
+    {
+        // Arrange
+        var objective = MakeObjective(
+            objectiveType: nameof(GeneratedObjectiveType.InteractWithProp),
+            targetEntityId: DungeonEntityId,
+            newPropName: "Warded Brazier"
+        );
+        var schema = new QuestChainSchema { Nodes = [MakeNode(objectives: [objective])] };
+
+        // Act
+        var error = QuestChainGenerator.Validate(schema, EntityTypesById);
+
+        // Assert
+        Assert.Null(error);
     }
 
     [Fact]

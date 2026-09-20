@@ -44,6 +44,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
     [InlineData(ObjectiveKind.ExploreLocation)]
     [InlineData(ObjectiveKind.GiveItem)]
     [InlineData(ObjectiveKind.GiveItemKind)]
+    [InlineData(ObjectiveKind.InteractWithProp)]
     public async Task Handle_AdvancesAndMarksReady_WhenEventMatchesObjective(ObjectiveKind kind)
     {
         // Arrange
@@ -302,6 +303,12 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                 ItemName = GiveItemKindItemName,
                 RecipientId = recipientId,
             },
+            ObjectiveKind.InteractWithProp => new InteractWithPropObjective
+            {
+                WorldId = WorldId,
+                QuestId = questId,
+                TriggerId = targetId,
+            },
             _ => throw new InvalidOperationException(),
         };
 
@@ -373,6 +380,13 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                         new ItemAcquiredEvent(_player.Id, WorldId, targetId),
                         cancellationToken
                     ),
+            ObjectiveKind.InteractWithProp => cancellationToken =>
+                _serviceProvider
+                    .GetRequiredService<TriggerActivatedQuestEventHandler>()
+                    .Handle(
+                        new TriggerActivatedEvent(_player.Id, WorldId, targetId),
+                        cancellationToken
+                    ),
             _ => throw new InvalidOperationException(),
         };
 
@@ -384,6 +398,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         ExploreLocation,
         GiveItem,
         GiveItemKind,
+        InteractWithProp,
     }
 
     private sealed record SeededObjective(

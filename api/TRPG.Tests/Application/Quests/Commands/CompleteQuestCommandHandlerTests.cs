@@ -71,6 +71,46 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_DeletesTheMintedTrigger_WhenQuestHadAnInteractWithPropObjective()
+    {
+        // Arrange
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete);
+        var trigger = Builders.MakeTrigger(WorldId);
+        _context.Props.Add(trigger);
+        _context.QuestObjectives.Add(
+            new InteractWithPropObjective
+            {
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+                Name = "Activate the valve",
+                Description = "Activate the valve",
+                TriggerId = trigger.Id,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new CompleteQuestCommand
+            {
+                PlayerId = _player.Id,
+                QuestId = creatureQuest.QuestId,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext.Props.AnyAsync(
+                prop => prop.Id == trigger.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
     public async Task Handle_Throws_WhenQuestIsNotReady()
     {
         // Arrange

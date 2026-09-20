@@ -63,6 +63,7 @@ public enum GeneratedObjectiveType
     GiveItems,
     GiveItemKind,
     DeliverItem,
+    InteractWithProp,
 }
 
 internal class QuestChainSchema
@@ -106,6 +107,7 @@ internal class QuestChainObjectiveSchema
     public string? RecipientEntityId { get; init; }
     public string? ItemNameForKind { get; init; }
     public string? NewItemName { get; init; }
+    public string? NewPropName { get; init; }
     public string? CreatureTypeCategory { get; init; }
     public int? RequiredAmount { get; init; }
     public string? FactKey { get; init; }
@@ -142,6 +144,7 @@ public record QuestChainGeneratedObjective(
     Guid? RecipientEntityId,
     string? ItemNameForKind,
     string? NewItemName,
+    string? NewPropName,
     CreatureType? CreatureTypeCategory,
     int RequiredAmount,
     string? FactKey,
@@ -450,6 +453,14 @@ public static class QuestChainGenerator
             return $"{label} is {objective.ObjectiveType} but has no NewItemName.";
         }
 
+        if (
+            type == GeneratedObjectiveType.InteractWithProp
+            && string.IsNullOrWhiteSpace(objective.NewPropName)
+        )
+        {
+            return $"{label} is InteractWithProp but has no NewPropName.";
+        }
+
         var expectedTargetTypes = type switch
         {
             GeneratedObjectiveType.KillCreature
@@ -459,7 +470,8 @@ public static class QuestChainGenerator
             or GeneratedObjectiveType.GiveItems
             or GeneratedObjectiveType.DeliverItem => [QuestChainEntityTypes.Creature],
             GeneratedObjectiveType.ClearLocation => [QuestChainEntityTypes.Dungeon],
-            GeneratedObjectiveType.ExploreLocation => QuestChainEntityTypes.ExplorableTypes,
+            GeneratedObjectiveType.ExploreLocation or GeneratedObjectiveType.InteractWithProp =>
+                QuestChainEntityTypes.ExplorableTypes,
             _ => throw new ArgumentOutOfRangeException(nameof(objective)),
         };
 

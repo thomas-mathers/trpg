@@ -78,6 +78,11 @@ public sealed class ReportFactToCreatureObjective : QuestObjective
     public Guid FactId { get; init; }
 }
 
+public sealed class InteractWithPropObjective : QuestObjective
+{
+    public Guid TriggerId { get; init; }
+}
+
 public class SupportingFactQuestWeight
 {
     public Guid QuestId { get; init; }

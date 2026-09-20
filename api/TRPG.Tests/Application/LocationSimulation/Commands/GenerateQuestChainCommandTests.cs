@@ -253,6 +253,94 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
     }
 
     [Fact]
+    public async Task Handle_MintsANewTriggerAtTheTargetLocation_WhenObjectiveIsInteractWithProp()
+    {
+        // Arrange — a second trivial node satisfies the node-budget-2 skeleton; only the first
+        // node's InteractWithProp objective is asserted on below.
+        var requestId = await SeedPendingRequest();
+        _chatClient.QuestChainContentSchemaOverride = new QuestChainContentSchema
+        {
+            Nodes =
+            [
+                new QuestChainContentNodeSchema
+                {
+                    Name = "Restore The Well",
+                    Description = "Fix the well's valve.",
+                    GiverEntityId = _giver.Id.ToString(),
+                    Objectives =
+                    [
+                        new QuestChainContentObjectiveSchema
+                        {
+                            Name = "Activate The Valve",
+                            Description = "Turn the cracked valve to restore the flow.",
+                            ObjectiveType = nameof(GeneratedObjectiveType.InteractWithProp),
+                            TargetEntityId = _dungeon.Id.ToString(),
+                            NewPropName = "Cracked Well Valve",
+                        },
+                    ],
+                },
+                new QuestChainContentNodeSchema
+                {
+                    Name = "Report Back",
+                    Description = "Tell the giver it's done.",
+                    GiverEntityId = _giver.Id.ToString(),
+                    Objectives =
+                    [
+                        new QuestChainContentObjectiveSchema
+                        {
+                            Name = "Kill",
+                            Description = "Defeat the giver.",
+                            ObjectiveType = nameof(GeneratedObjectiveType.KillCreature),
+                            TargetEntityId = _giver.Id.ToString(),
+                        },
+                    ],
+                },
+            ],
+        };
+
+        // Act
+        var result = await _handler.Handle(
+            new GenerateQuestChainCommand
+            {
+                RequestId = requestId,
+                ChainPremise = "A test premise.",
+                MinimumChainLength = 2,
+                MaximumChainLength = 2,
+                AvailableEntities =
+                [
+                    new QuestChainCandidateEntity(
+                        _giver.Id,
+                        _giver.Name,
+                        QuestChainEntityTypes.Creature
+                    ),
+                    new QuestChainCandidateEntity(
+                        _dungeon.Id,
+                        _dungeon.Name,
+                        QuestChainEntityTypes.Dungeon
+                    ),
+                ],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(result);
+        var trigger = await _context
+            .Props.OfType<Trigger>()
+            .SingleAsync(
+                prop => prop.WorldId == _worldId && prop.Name == "Cracked Well Valve",
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(_dungeonExteriorLocation.Id, trigger.LocationId);
+        Assert.False(trigger.IsActivated);
+        var interactObjective = await _context
+            .QuestObjectives.OfType<InteractWithPropObjective>()
+            .SingleAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(trigger.Id, interactObjective.TriggerId);
+        Assert.Equal(_dungeonExteriorLocation.Id, interactObjective.LocationId);
+    }
+
+    [Fact]
     public async Task Handle_PersistsAuthoredFactsAndDisclosureObjectives_WhenGenerationSucceeds()
     {
         // Arrange — a node budget of 5 with a Random fixed at 0.8 deterministically composes

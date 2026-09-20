@@ -36,6 +36,11 @@ public static class QuestsServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<ItemGivenToCreatureEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<ItemGivenToCreatureQuestEventHandler>()
             )
+            .AddTransient<TriggerActivatedQuestEventHandler>()
+            .AddTransient<IDomainEventConsumer<TriggerActivatedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<TriggerActivatedQuestEventHandler>()
+            )
+            .AddTransient<QuestInteractablePropCleaner>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedQuestEventHandler>()
             )

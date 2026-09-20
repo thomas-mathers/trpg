@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Quests.Events;
@@ -8,7 +9,8 @@ namespace TRPG.Application.Quests.EventHandlers;
 
 internal sealed class CreatureKilledQuestGiverEventHandler(
     IQuestsDbContext context,
-    IGameClientEventSink gameEvents
+    IGameClientEventSink gameEvents,
+    QuestInteractablePropCleaner questInteractablePropCleaner
 ) : IDomainEventConsumer<CreatureKilledEvent>
 {
     public async Task Handle(
@@ -40,7 +42,19 @@ internal sealed class CreatureKilledQuestGiverEventHandler(
             quest.IsTracked = false;
         }
 
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
         await context.SaveChangesAsync(cancellationToken);
+
+        foreach (var quest in quests)
+        {
+            await questInteractablePropCleaner.CleanUp(quest.QuestId, cancellationToken);
+        }
+
+        transaction.Complete();
 
         foreach (var quest in quests)
         {

@@ -578,7 +578,7 @@ internal class GetSceneQueryHandler(
             Seat => "Seat",
             Container => "Container",
             Trap => "Trap",
-            Trigger => "Lever",
+            Trigger => "Trigger",
             _ => prop.GetType().Name,
         };
     }
