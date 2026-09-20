@@ -28,11 +28,6 @@ public sealed class CollectItemObjective : QuestObjective
 
 public sealed class ExploreLocationObjective : QuestObjective { }
 
-public sealed class SpeakToCreatureObjective : QuestObjective
-{
-    public Guid CreatureId { get; init; }
-}
-
 public sealed class GiveItemsObjective : QuestObjective
 {
     public List<Guid> ItemIds { get; init; } = [];
@@ -75,6 +70,12 @@ public sealed class LearnFactFromCreatureObjective : QuestObjective
     public int IntimidationWillingness { get; init; }
     public List<Guid> RequiredSupportingQuestIds { get; init; } = [];
     public List<SupportingFactQuestWeight> WeightedSupportingQuestIds { get; init; } = [];
+}
+
+public sealed class ReportFactToCreatureObjective : QuestObjective
+{
+    public Guid CreatureId { get; init; }
+    public Guid FactId { get; init; }
 }
 
 public class SupportingFactQuestWeight

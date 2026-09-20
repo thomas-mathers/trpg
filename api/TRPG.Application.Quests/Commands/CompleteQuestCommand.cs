@@ -8,6 +8,7 @@ using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Knowledge.Commands;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -26,6 +27,7 @@ internal record GiveItemKindRequirement(string ItemName, int RequiredAmount, Gui
 
 internal class CompleteQuestCommandHandler(
     IQuestsDbContext context,
+    IFactionsDbContext factionsContext,
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
     IDomainEventPublisher<QuestCompletedEvent> questCompleted,
@@ -33,7 +35,8 @@ internal class CompleteQuestCommandHandler(
     IQueryHandler<GetItemsByNameForOwnerQuery, IReadOnlyList<Item>> getItemsByNameForOwner,
     IQueryHandler<GetReportedStolenItemIdsQuery, IReadOnlySet<Guid>> getReportedStolenItemIds,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
-    ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory
+    ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory,
+    ICommandHandler<LearnFactCommand, bool> learnFact
 ) : ICommandHandler<CompleteQuestCommand>
 {
     // A witnessed-and-reported theft of one of this quest's own items halves the payout, flat
@@ -107,6 +110,12 @@ internal class CompleteQuestCommandHandler(
         );
         var allGiveItems = giveItems.Concat(giveItemKindTransfers).ToArray();
 
+        var reportFacts = await context
+            .QuestObjectives.OfType<ReportFactToCreatureObjective>()
+            .Where(objective => objective.QuestId == command.QuestId)
+            .Select(objective => new { objective.CreatureId, objective.FactId })
+            .ToArrayAsync(cancellationToken);
+
         var rewardMultiplier = await GetRewardMultiplier(
             command.PlayerId,
             command.WorldId,
@@ -141,7 +150,61 @@ internal class CompleteQuestCommandHandler(
         creatureQuest.Status = QuestStatus.Completed;
         creatureQuest.IsTracked = false;
 
+        if (
+            creatureQuest.Quest.MembershipRewardFactionId is { } membershipFactionId
+            && !await factionsContext.FactionMembers.AnyAsync(
+                member =>
+                    member.WorldId == command.WorldId
+                    && member.CreatureId == command.PlayerId
+                    && member.FactionId == membershipFactionId,
+                cancellationToken
+            )
+        )
+        {
+            factionsContext.FactionMembers.Add(
+                new FactionMember
+                {
+                    WorldId = command.WorldId,
+                    CreatureId = command.PlayerId,
+                    FactionId = membershipFactionId,
+                    Role = FactionRole.Member,
+                }
+            );
+        }
+
+        if (
+            creatureQuest.Quest.IsChainTerminal
+            && creatureQuest.Quest.ChainGiverFactionId is { } giverFactionId
+            && creatureQuest.Quest.ChainAntagonistFactionId is { } antagonistFactionId
+        )
+        {
+            await factionsContext
+                .FactionStandings.Where(standing =>
+                    standing.WorldId == command.WorldId
+                    && standing.Score < 0
+                    && (
+                        (
+                            standing.FactionId == giverFactionId
+                            && standing.OtherFactionId == antagonistFactionId
+                        )
+                        || (
+                            standing.FactionId == antagonistFactionId
+                            && standing.OtherFactionId == giverFactionId
+                        )
+                    )
+                )
+                .ExecuteUpdateAsync(
+                    setters =>
+                        setters.SetProperty(
+                            standing => standing.Score,
+                            standing => standing.Score - 5
+                        ),
+                    cancellationToken
+                );
+        }
+
         await context.SaveChangesAsync(cancellationToken);
+        await factionsContext.SaveChangesAsync(cancellationToken);
 
         await questCompleted.Publish(
             new QuestCompletedEvent(command.PlayerId, command.WorldId, command.QuestId),
@@ -164,6 +227,19 @@ internal class CompleteQuestCommandHandler(
                     Items = recipientItems
                         .Select(giveItem => new ItemSelection(giveItem.ItemId, 1))
                         .ToArray(),
+                },
+                cancellationToken
+            );
+        }
+
+        foreach (var reportFact in reportFacts)
+        {
+            await learnFact.Handle(
+                new LearnFactCommand
+                {
+                    WorldId = command.WorldId,
+                    KnowerId = reportFact.CreatureId,
+                    FactId = reportFact.FactId,
                 },
                 cancellationToken
             );

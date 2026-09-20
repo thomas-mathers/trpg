@@ -11,6 +11,7 @@ internal static class CreatureLevelScaling
         [CreatureType.Beast] = new LevelScaling(MinLevel: 1, MaxLevel: 10, Rate: 0.3f),
         [CreatureType.Elemental] = new LevelScaling(MinLevel: 1, MaxLevel: 10, Rate: 0.3f),
         [CreatureType.Goblin] = new LevelScaling(MinLevel: 1, MaxLevel: 15, Rate: 0.4f),
+        [CreatureType.Human] = new LevelScaling(MinLevel: 1, MaxLevel: 15, Rate: 0.4f),
         [CreatureType.Construct] = new LevelScaling(MinLevel: 1, MaxLevel: 20, Rate: 0.5f),
         [CreatureType.Wraith] = new LevelScaling(MinLevel: 2, MaxLevel: 25, Rate: 0.5f),
         [CreatureType.Undead] = new LevelScaling(MinLevel: 2, MaxLevel: 25, Rate: 0.6f),

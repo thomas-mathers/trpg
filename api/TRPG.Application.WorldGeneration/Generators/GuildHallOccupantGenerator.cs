@@ -5,7 +5,6 @@ namespace TRPG.Application.WorldGeneration.Generators;
 internal class GuildHallOccupantGeneratorInput
 {
     public required Guid WorldId { get; init; }
-    public required Guid CityFactionId { get; init; }
     public required Guid GuildFactionId { get; init; }
     public required Guid GroundFloorLocationId { get; init; }
     public required IReadOnlyList<Bed> Beds { get; init; }
@@ -42,16 +41,6 @@ internal static class GuildHallOccupantGenerator
                     WorldId = input.WorldId,
                 }
             );
-            factionMembers.Add(
-                new FactionMember
-                {
-                    FactionId = input.CityFactionId,
-                    CreatureId = occupant.Id,
-                    Role = FactionRole.Member,
-                    WorldId = input.WorldId,
-                }
-            );
-
             occupant.LocationId = input.GroundFloorLocationId;
 
             var bedLocationId = input

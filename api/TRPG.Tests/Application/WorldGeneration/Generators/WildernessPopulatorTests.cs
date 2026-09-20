@@ -11,8 +11,22 @@ public class WildernessPopulatorTests
     private readonly WildernessPopulator _wildernessPopulator = new(
         Builders.MakeCreatureGenerator()
     );
+
+    // Mirrors WorldGenerator's own wiring: EncounterFactionGenerator has no Human entry, but the
+    // wilderness archetype pool includes Raider (Human, for Broken Toll bandits), so every caller
+    // must fold that override in the same way or a Human roll throws KeyNotFoundException.
     private readonly IReadOnlyDictionary<CreatureType, Faction> _factionsByCreatureType =
-        EncounterFactionGenerator.Generate(Guid.NewGuid());
+        BuildFactionsByCreatureType();
+
+    private static IReadOnlyDictionary<CreatureType, Faction> BuildFactionsByCreatureType()
+    {
+        var worldId = Guid.NewGuid();
+        var factionsByCreatureType = EncounterFactionGenerator.Generate(worldId).ToDictionary();
+        factionsByCreatureType[CreatureType.Human] = FactionRosterGenerator
+            .Generate(worldId)
+            .BrokenToll;
+        return factionsByCreatureType;
+    }
 
     private WildernessPopulatorInput MakeInput() =>
         new()
@@ -36,7 +50,7 @@ public class WildernessPopulatorTests
     }
 
     [Fact]
-    public void Generate_ThemesEveryMonster_AsBeastsOrGoblins()
+    public void Generate_ThemesEveryMonster_AsBeastsGoblinsOrHumans()
     {
         for (var i = 0; i < 30; i++)
         {
@@ -49,7 +63,7 @@ public class WildernessPopulatorTests
                 m =>
                     Assert.Contains(
                         m.Creature.CreatureType,
-                        new[] { CreatureType.Beast, CreatureType.Goblin }
+                        new[] { CreatureType.Beast, CreatureType.Goblin, CreatureType.Human }
                     )
             );
         }

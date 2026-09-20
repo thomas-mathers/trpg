@@ -26,7 +26,8 @@ internal static class QuestChainDevEndpoints
         Guid playerId,
         int playerLevel,
         [FromServices] ICommandHandler<SeedLlmQuestChainCommand, bool> seedLlmQuestChain,
-        CancellationToken cancellationToken
+        CancellationToken cancellationToken,
+        Guid? giverFactionId = null
     )
     {
         var scheduled = await seedLlmQuestChain.Handle(
@@ -36,6 +37,7 @@ internal static class QuestChainDevEndpoints
                 PlayerId = playerId,
                 LocationId = locationId,
                 PlayerLevel = playerLevel,
+                ForcedGiverFactionId = giverFactionId,
             },
             cancellationToken
         );

@@ -71,7 +71,8 @@ internal class SyncCreatureSpawnerCommandHandler(
             spawner.WorldId,
             spawner.LocationId,
             spawner.Id,
-            factionsByCreatureType
+            factionsByCreatureType,
+            spawner.FactionId
         );
 
         using var transaction = new TransactionScope(

@@ -825,6 +825,10 @@ namespace TRPG.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("archetype_creature_types");
 
+                    b.Property<Guid?>("FactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("faction_id");
+
                     b.Property<TimeSpan>("LastSyncPlaytime")
                         .HasColumnType("interval")
                         .HasColumnName("last_sync_playtime");
@@ -1512,6 +1516,11 @@ namespace TRPG.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_city_faction");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1541,6 +1550,9 @@ namespace TRPG.Migrations
 
                     b.HasIndex("WorldId", "CreatureType")
                         .HasDatabaseName("ix_factions_world_id_creature_type");
+
+                    b.HasIndex("WorldId", "Kind")
+                        .HasDatabaseName("ix_factions_world_id_kind");
 
                     b.HasIndex("WorldId", "Name")
                         .IsUnique()
@@ -1587,6 +1599,42 @@ namespace TRPG.Migrations
                         .HasDatabaseName("ix_faction_members_creature_id_faction_id");
 
                     b.ToTable("faction_members", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.FactionStanding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("FactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("faction_id");
+
+                    b.Property<Guid>("OtherFactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("other_faction_id");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer")
+                        .HasColumnName("score");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_faction_standings");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_faction_standings_world_id");
+
+                    b.HasIndex("FactionId", "OtherFactionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_faction_standings_faction_id_other_faction_id");
+
+                    b.ToTable("faction_standings", (string)null);
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.GameSession", b =>
@@ -1974,6 +2022,14 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("ChainAntagonistFactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chain_antagonist_faction_id");
+
+                    b.Property<Guid?>("ChainGiverFactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("chain_giver_faction_id");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1991,15 +2047,27 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("gold_reward");
 
+                    b.Property<bool>("IsChainTerminal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_chain_terminal");
+
                     b.PrimitiveCollection<List<Guid>>("ItemRewards")
                         .IsRequired()
                         .HasColumnType("uuid[]")
                         .HasColumnName("item_rewards");
 
+                    b.Property<Guid?>("MembershipRewardFactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("membership_reward_faction_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
+
+                    b.Property<Guid?>("PrerequisiteAlternativeGroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("prerequisite_alternative_group_id");
 
                     b.PrimitiveCollection<List<Guid>>("PrerequisiteQuestIds")
                         .IsRequired()
@@ -2009,6 +2077,10 @@ namespace TRPG.Migrations
                     b.Property<Guid?>("RequiredFactId")
                         .HasColumnType("uuid")
                         .HasColumnName("required_fact_id");
+
+                    b.Property<Guid?>("RequiredFactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("required_faction_id");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -2022,6 +2094,9 @@ namespace TRPG.Migrations
 
                     b.HasIndex("GiverId")
                         .HasDatabaseName("ix_quests_giver_id");
+
+                    b.HasIndex("PrerequisiteAlternativeGroupId")
+                        .HasDatabaseName("ix_quests_prerequisite_alternative_group_id");
 
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_quests_world_id");
@@ -3572,7 +3647,7 @@ namespace TRPG.Migrations
                     b.HasDiscriminator().HasValue("LearnFactFromCreature");
                 });
 
-            modelBuilder.Entity("TRPG.Domain.Models.SpeakToCreatureObjective", b =>
+            modelBuilder.Entity("TRPG.Domain.Models.ReportFactToCreatureObjective", b =>
                 {
                     b.HasBaseType("TRPG.Domain.Models.QuestObjective");
 
@@ -3580,13 +3655,20 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creature_id");
 
+                    b.Property<Guid>("FactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("fact_id");
+
                     b.ToTable("quest_objectives", null, t =>
                         {
                             t.Property("CreatureId")
-                                .HasColumnName("speak_to_creature_objective_creature_id");
+                                .HasColumnName("report_fact_to_creature_objective_creature_id");
+
+                            t.Property("FactId")
+                                .HasColumnName("report_fact_to_creature_objective_fact_id");
                         });
 
-                    b.HasDiscriminator().HasValue("SpeakToCreature");
+                    b.HasDiscriminator().HasValue("ReportFactToCreature");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Country", b =>

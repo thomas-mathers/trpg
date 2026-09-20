@@ -80,6 +80,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<District> Districts => Set<District>();
     public DbSet<FactionMember> FactionMembers => Set<FactionMember>();
     public DbSet<Faction> Factions => Set<Faction>();
+    public DbSet<FactionStanding> FactionStandings => Set<FactionStanding>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<CreatureJob> CreatureJobs => Set<CreatureJob>();
     public DbSet<Location> Locations => Set<Location>();
@@ -289,6 +290,15 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         modelBuilder.Entity<Faction>(entity =>
         {
             entity.HasIndex(f => new { f.WorldId, f.CreatureType });
+            entity.HasIndex(f => new { f.WorldId, f.Kind });
+        });
+
+        modelBuilder.Entity<FactionStanding>(entity =>
+        {
+            entity.HasIndex(standing => standing.WorldId);
+            entity
+                .HasIndex(standing => new { standing.FactionId, standing.OtherFactionId })
+                .IsUnique();
         });
 
         modelBuilder.Entity<Item>(entity =>
@@ -527,6 +537,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(q => q.WorldId);
             entity.HasIndex(q => q.GiverId);
             entity.HasIndex(q => q.ExclusiveGroupId);
+            entity.HasIndex(q => q.PrerequisiteAlternativeGroupId);
         });
 
         modelBuilder.Entity<QuestObjective>(entity =>
@@ -537,13 +548,13 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<KillCreatureTypeObjective>("KillCreatureType")
                 .HasValue<CollectItemObjective>("CollectItem")
                 .HasValue<ExploreLocationObjective>("ExploreLocation")
-                .HasValue<SpeakToCreatureObjective>("SpeakToCreature")
                 .HasValue<GiveItemsObjective>("GiveItem")
                 .HasValue<GiveItemKindObjective>("GiveItemKind")
                 .HasValue<FreeCreatureObjective>("FreeCreature")
                 .HasValue<ClearLocationObjective>("ClearLocation")
                 .HasValue<DeliverItemObjective>("DeliverItem")
-                .HasValue<LearnFactFromCreatureObjective>("LearnFactFromCreature");
+                .HasValue<LearnFactFromCreatureObjective>("LearnFactFromCreature")
+                .HasValue<ReportFactToCreatureObjective>("ReportFactToCreature");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
             entity.Property(o => o.RequiredAmount).HasDefaultValue(1);

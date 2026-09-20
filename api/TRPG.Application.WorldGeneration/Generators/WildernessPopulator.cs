@@ -28,6 +28,7 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
 
     private static readonly CreatureArchetype[] Archetypes =
     [
+        CreatureArchetype.Raider,
         CreatureArchetype.Beast,
         CreatureArchetype.Goblin,
     ];

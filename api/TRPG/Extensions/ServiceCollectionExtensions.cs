@@ -429,7 +429,8 @@ internal static class ServiceCollectionExtensions
             .Configure<SuspicionOptions>(configuration.GetSection("Suspicion"))
             .Configure<InnOptions>(configuration.GetSection("Inn"))
             .Configure<TrapOptions>(configuration.GetSection("Trap"))
-            .Configure<FactDisclosureOptions>(configuration.GetSection("FactDisclosure"));
+            .Configure<FactDisclosureOptions>(configuration.GetSection("FactDisclosure"))
+            .Configure<QuestChainSeedingOptions>(configuration.GetSection("QuestChainSeeding"));
     }
 
     private static int GetSerializedByteCount(object? value)

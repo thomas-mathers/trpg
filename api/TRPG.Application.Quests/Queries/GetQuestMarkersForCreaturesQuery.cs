@@ -28,7 +28,8 @@ public class GetQuestMarkersForCreaturesQuery
 
 internal class GetQuestMarkersForCreaturesQueryHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
-    IQuestsDbContext context
+    IQuestsDbContext context,
+    IFactionsDbContext factionsContext
 ) : IQueryHandler<GetQuestMarkersForCreaturesQuery, QuestMarkersResult>
 {
     public async Task<QuestMarkersResult> Handle(
@@ -101,13 +102,13 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
         var playerQuestByQuestId = playerQuests.ToDictionary(quest => quest.QuestId);
 
         var prerequisiteQuestIds = quests.SelectMany(quest => quest.PrerequisiteQuestIds).ToArray();
-        var prerequisiteGroupIdsByQuestId = await context
+        var prerequisiteAlternativeGroupIdsByQuestId = await context
             .Quests.AsNoTracking()
             .Where(quest => prerequisiteQuestIds.AsEnumerable().Contains(quest.Id))
-            .Select(quest => new { quest.Id, quest.ExclusiveGroupId })
+            .Select(quest => new { quest.Id, quest.PrerequisiteAlternativeGroupId })
             .ToDictionaryAsync(
                 quest => quest.Id,
-                quest => quest.ExclusiveGroupId,
+                quest => quest.PrerequisiteAlternativeGroupId,
                 cancellationToken
             );
         var siblingQuestIdsByGroupId = await context
@@ -130,15 +131,24 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
             new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
             cancellationToken
         );
+        var playerFactionIds = await factionsContext
+            .FactionMembers.AsNoTracking()
+            .Where(member => member.WorldId == query.WorldId && member.CreatureId == query.PlayerId)
+            .Select(member => member.FactionId)
+            .ToArrayAsync(cancellationToken);
 
         foreach (var quest in quests)
         {
             if (
                 !playerQuestByQuestId.ContainsKey(quest.Id)
                 && (quest.RequiredFactId == null || knownFacts.Contains(quest.RequiredFactId.Value))
+                && (
+                    quest.RequiredFactionId == null
+                    || playerFactionIds.Contains(quest.RequiredFactionId.Value)
+                )
                 && QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
                     quest.PrerequisiteQuestIds,
-                    prerequisiteGroupIdsByQuestId,
+                    prerequisiteAlternativeGroupIdsByQuestId,
                     completedQuestIdSet
                 )
                 && !QuestExclusiveGroupEvaluator.IsClosedBySiblingCompletion(

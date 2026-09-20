@@ -10,8 +10,14 @@ public class Quest
     public List<Guid> ItemRewards { get; init; } = [];
     public string Name { get; init; } = "";
     public List<Guid> PrerequisiteQuestIds { get; init; } = [];
+    public Guid? PrerequisiteAlternativeGroupId { get; init; }
     public List<QuestReputationReward> ReputationRewards { get; init; } = [];
     public Guid WorldId { get; init; }
 
     public Guid? RequiredFactId { get; init; }
+    public Guid? RequiredFactionId { get; init; }
+    public Guid? MembershipRewardFactionId { get; init; }
+    public Guid? ChainGiverFactionId { get; init; }
+    public Guid? ChainAntagonistFactionId { get; init; }
+    public bool IsChainTerminal { get; init; }
 }

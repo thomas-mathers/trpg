@@ -120,12 +120,68 @@ public sealed class SeedLlmQuestChainCommandTests : IAsyncLifetime, IClassFixtur
         var scheduled = Assert.Single(_scheduler.ScheduledCommands);
         Assert.True(scheduled.AvailableEntities.Count >= 4);
         Assert.Contains(scheduled.AvailableEntities, entity => entity.Id == _giver.Id);
+        Assert.Equal(4, scheduled.MinimumChainLength);
+        Assert.Equal(8, scheduled.MaximumChainLength);
         var request = await _context.QuestChainGenerationRequests.SingleAsync(
             r => r.WorldId == _worldId,
             TestContext.Current.CancellationToken
         );
         Assert.Equal(QuestChainGenerationStatus.Pending, request.Status);
         Assert.Equal(scheduled.RequestId, request.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ScalesBothEndsOfTheChainLengthRangeByPlayerLevel()
+    {
+        // Arrange — giver + dungeon location + 2 hostiles = 4 entities, meeting the minimum
+        await SeedLivingHostile("Wolf One");
+        await SeedLivingHostile("Wolf Two");
+
+        // Act
+        await _handler.Handle(
+            new SeedLlmQuestChainCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _entranceLocation.Id,
+                PlayerLevel = 11,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — default ChainLengthPerLevel is 1, so level 11 adds +10 to both the 4-node and
+        // 8-node bases, well short of the 32-node ceiling
+        var scheduled = Assert.Single(_scheduler.ScheduledCommands);
+        Assert.Equal(14, scheduled.MinimumChainLength);
+        Assert.Equal(18, scheduled.MaximumChainLength);
+    }
+
+    [Fact]
+    public async Task Handle_ClampsTheChainLengthRangeToTheCeiling_AtHighPlayerLevels()
+    {
+        // Arrange — giver + dungeon location + 2 hostiles = 4 entities, meeting the minimum
+        await SeedLivingHostile("Wolf One");
+        await SeedLivingHostile("Wolf Two");
+
+        // Act
+        await _handler.Handle(
+            new SeedLlmQuestChainCommand
+            {
+                WorldId = _worldId,
+                PlayerId = Guid.NewGuid(),
+                LocationId = _entranceLocation.Id,
+                PlayerLevel = 30,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — level 30 would raise the maximum to 37 (8 + 29) and the minimum to 33 (4 + 29),
+        // both past the 32-node ceiling that generation has proven reliable at; the range
+        // collapses to exactly the ceiling instead of requesting a budget known to exhaust every
+        // retry
+        var scheduled = Assert.Single(_scheduler.ScheduledCommands);
+        Assert.Equal(32, scheduled.MinimumChainLength);
+        Assert.Equal(32, scheduled.MaximumChainLength);
     }
 
     [Fact]

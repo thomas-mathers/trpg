@@ -7,4 +7,5 @@ public interface IFactionsDbContext : ITrpgDbContext
 {
     DbSet<FactionMember> FactionMembers { get; }
     DbSet<Faction> Factions { get; }
+    DbSet<FactionStanding> FactionStandings { get; }
 }

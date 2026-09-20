@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -17,6 +19,10 @@ public class SeedLlmQuestChainCommand
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
     public required int PlayerLevel { get; init; }
+
+    // Manual-testing hook only: forces the casting pass to a specific giver faction. See
+    // QuestChainGeneratorInput.ForcedGiverFactionId.
+    public Guid? ForcedGiverFactionId { get; init; }
 }
 
 // Finds someone at the seeding location willing to point the player toward a bigger story, then
@@ -27,8 +33,10 @@ public class SeedLlmQuestChainCommand
 // as the other Seed*QuestCommand types.
 internal class SeedLlmQuestChainCommandHandler(
     ILocationSimulationDbContext context,
+    IFactionsDbContext factionsContext,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
+    IQueryHandler<GetLocationIdsByStateIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByStateId,
     IQueryHandler<
         GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
@@ -41,10 +49,10 @@ internal class SeedLlmQuestChainCommandHandler(
         GetLivingHostileCreatureIdsByLocationQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
     > getLivingHostileCreatureIdsByLocation,
-    IQuestChainGenerationScheduler scheduler
+    IQuestChainGenerationScheduler scheduler,
+    IOptionsSnapshot<QuestChainSeedingOptions> optionsSnapshot
 ) : ICommandHandler<SeedLlmQuestChainCommand, bool>
 {
-    private const int ChainLength = 4;
     private const int MaximumGiverCandidates = 6;
     private const int MaximumDungeonBuildings = 2;
     private const int MaximumHostilesPerDungeon = 4;
@@ -84,6 +92,7 @@ internal class SeedLlmQuestChainCommandHandler(
         entities.AddRange(
             await GatherGiverCandidates(entranceLocation.CityId.Value, cancellationToken)
         );
+
         entities.AddRange(
             await GatherDungeonEntities(
                 command.WorldId,
@@ -98,6 +107,17 @@ internal class SeedLlmQuestChainCommandHandler(
                 cancellationToken
             )
         );
+        entities.AddRange(
+            await GatherWildernessEntities(
+                command.WorldId,
+                entranceLocation.StateId,
+                cancellationToken
+            )
+        );
+        entities = entities.DistinctBy(entity => entity.Id).ToList();
+        entities = (
+            await AttachFactionBindings(command.WorldId, entities, cancellationToken)
+        ).ToList();
 
         if (entities.Count < MinimumEntityPoolSize)
         {
@@ -112,20 +132,112 @@ internal class SeedLlmQuestChainCommandHandler(
         context.QuestChainGenerationRequests.Add(request);
         await context.SaveChangesAsync(cancellationToken);
 
+        // Both ends scale with level, from a short, tight early-game range up toward
+        // ChainLengthCeiling — a 45-61 node budget (uncapped level-30 math from an earlier pass)
+        // exhausted every block-graph retry and never completed, so nothing may ever exceed the
+        // ceiling regardless of how much level scaling would otherwise add.
+        var options = optionsSnapshot.Value;
+        var levelBonus = options.ChainLengthPerLevel * (command.PlayerLevel - 1);
+        var maximumChainLength = Math.Min(
+            options.MaximumChainLengthBase + levelBonus,
+            options.ChainLengthCeiling
+        );
+        var minimumChainLength = Math.Min(
+            options.MinimumChainLengthBase + levelBonus,
+            maximumChainLength
+        );
+        var factionStandings = await factionsContext
+            .FactionStandings.AsNoTracking()
+            .Where(standing => standing.WorldId == command.WorldId && standing.Score < 0)
+            .Select(standing => new QuestChainFactionStanding(
+                standing.FactionId,
+                standing.OtherFactionId,
+                standing.Score
+            ))
+            .ToArrayAsync(cancellationToken);
         await scheduler.ScheduleAsync(
             new GenerateQuestChainCommand
             {
                 RequestId = request.Id,
                 ChainPremise =
                     "A new multi-step story is unfolding, drawing on the people and dangers in and around this city.",
-                ChainLength = ChainLength,
+                MinimumChainLength = minimumChainLength,
+                MaximumChainLength = maximumChainLength,
                 AvailableEntities = entities,
+                FactionStandings = factionStandings,
+                ForcedGiverFactionId = command.ForcedGiverFactionId,
             },
             cancellationToken
         );
 
         return true;
     }
+
+    private async Task<IReadOnlyList<QuestChainCandidateEntity>> AttachFactionBindings(
+        Guid worldId,
+        IReadOnlyCollection<QuestChainCandidateEntity> entities,
+        CancellationToken cancellationToken
+    )
+    {
+        var creatureIds = entities
+            .Where(entity => entity.Type == QuestChainEntityTypes.Creature)
+            .Select(entity => entity.Id)
+            .ToArray();
+        var factions = await factionsContext
+            .Factions.AsNoTracking()
+            .Where(faction => faction.WorldId == worldId)
+            .ToDictionaryAsync(faction => faction.Id, cancellationToken);
+        var factionIdsByCreatureId = await factionsContext
+            .FactionMembers.AsNoTracking()
+            .Where(member => creatureIds.AsEnumerable().Contains(member.CreatureId))
+            .GroupBy(member => member.CreatureId)
+            .ToDictionaryAsync(
+                group => group.Key,
+                group => group.Select(member => member.FactionId).ToArray(),
+                cancellationToken
+            );
+
+        return entities
+            .Select(entity =>
+            {
+                Faction? faction =
+                    entity.FactionId is { } entityFactionId
+                    && factions.TryGetValue(entityFactionId, out var boundFaction)
+                        ? boundFaction
+                        : null;
+                if (
+                    faction == null
+                    && factionIdsByCreatureId.TryGetValue(entity.Id, out var factionIds)
+                    && factionIds
+                        .Select(id => factions[id])
+                        .OrderBy(f => FactionPriority(f.Kind))
+                        .FirstOrDefault()
+                        is { } creatureFaction
+                )
+                {
+                    faction = creatureFaction;
+                }
+
+                return faction == null
+                    ? entity
+                    : entity with
+                    {
+                        FactionId = faction.Id,
+                        FactionName = faction.Name,
+                        FactionKind = faction.Kind,
+                    };
+            })
+            .ToArray();
+    }
+
+    private static int FactionPriority(FactionKind kind) =>
+        kind switch
+        {
+            FactionKind.Joinable or FactionKind.Antagonist => 0,
+            FactionKind.CityGuard or FactionKind.Castle => 1,
+            FactionKind.Wilderness => 2,
+            _ => 3,
+        };
 
     private async Task<IReadOnlyList<QuestChainCandidateEntity>> GatherGiverCandidates(
         Guid cityId,
@@ -144,10 +256,28 @@ internal class SeedLlmQuestChainCommandHandler(
             new GetCreaturesByIdsQuery { Ids = candidateIds },
             cancellationToken
         );
+        var priorityFactionIds = await factionsContext
+            .Factions.AsNoTracking()
+            .Where(faction =>
+                faction.Kind == FactionKind.Joinable
+                || faction.Kind == FactionKind.Antagonist
+                || (
+                    faction.CityId == cityId
+                    && (faction.Kind == FactionKind.CityGuard || faction.Kind == FactionKind.Castle)
+                )
+            )
+            .Select(faction => faction.Id)
+            .ToArrayAsync(cancellationToken);
+        var priorityCreatureIds = await factionsContext
+            .FactionMembers.AsNoTracking()
+            .Where(member => priorityFactionIds.AsEnumerable().Contains(member.FactionId))
+            .Select(member => member.CreatureId)
+            .ToHashSetAsync(cancellationToken);
 
         return candidates
             .Values.Where(creature => CreatureTypes.Humanoid.Contains(creature.CreatureType))
-            .OrderBy(_ => Random.Shared.Next())
+            .OrderBy(creature => priorityCreatureIds.Contains(creature.Id) ? 0 : 1)
+            .ThenBy(_ => Random.Shared.Next())
             .Take(MaximumGiverCandidates)
             .Select(creature => new QuestChainCandidateEntity(
                 creature.Id,
@@ -188,7 +318,8 @@ internal class SeedLlmQuestChainCommandHandler(
                 exteriorLocationsById.TryGetValue(building.ExteriorLocationId, out var location)
                 && location.StateId == stateId
             )
-            .OrderBy(_ => Random.Shared.Next())
+            .OrderBy(building => building.FactionId == null ? 1 : 0)
+            .ThenBy(_ => Random.Shared.Next())
             .Take(MaximumDungeonBuildings)
             .ToArray();
         if (candidateBuildings.Length == 0)
@@ -227,7 +358,8 @@ internal class SeedLlmQuestChainCommandHandler(
                 building.Id,
                 building.Name,
                 QuestChainEntityTypes.Dungeon,
-                DescribeBuilding(building)
+                DescribeBuilding(building),
+                building.FactionId
             ))
         );
         entities.AddRange(
@@ -235,11 +367,52 @@ internal class SeedLlmQuestChainCommandHandler(
                 creature.Id,
                 creature.Name,
                 QuestChainEntityTypes.Creature,
-                DescribeCreature(creature)
+                DescribeCreature(creature),
+                CanGiveQuests: false
             ))
         );
 
         return entities;
+    }
+
+    private async Task<IReadOnlyList<QuestChainCandidateEntity>> GatherWildernessEntities(
+        Guid worldId,
+        Guid stateId,
+        CancellationToken cancellationToken
+    )
+    {
+        var locationIds = await getLocationIdsByStateId.Handle(
+            new GetLocationIdsByStateIdQuery { StateId = stateId },
+            cancellationToken
+        );
+        var hostilesByLocation = await getLivingHostileCreatureIdsByLocation.Handle(
+            new GetLivingHostileCreatureIdsByLocationQuery
+            {
+                WorldId = worldId,
+                LocationIds = locationIds,
+            },
+            cancellationToken
+        );
+        var hostileIds = hostilesByLocation
+            .Values.SelectMany(ids => ids)
+            .Distinct()
+            .OrderBy(_ => Random.Shared.Next())
+            .Take(MaximumHostilesPerDungeon)
+            .ToArray();
+        var hostiles = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = hostileIds },
+            cancellationToken
+        );
+
+        return hostiles
+            .Values.Select(creature => new QuestChainCandidateEntity(
+                creature.Id,
+                creature.Name,
+                QuestChainEntityTypes.Creature,
+                DescribeCreature(creature),
+                CanGiveQuests: false
+            ))
+            .ToArray();
     }
 
     // ExploreLocation isn't inherently dungeon-only — "reach this place" applies just as well to a

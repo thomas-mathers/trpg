@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Events;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -21,10 +20,8 @@ public class OpenNpcConversationCommand
     public required string NpcName { get; init; }
 }
 
-internal class OpenNpcConversationCommandHandler(
-    INpcConversationsDbContext context,
-    IDomainEventPublisher<NpcConversationStartedEvent> domainEvents
-) : ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult>
+internal class OpenNpcConversationCommandHandler(INpcConversationsDbContext context)
+    : ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult>
 {
     public async Task<OpenNpcConversationResult> Handle(
         OpenNpcConversationCommand command,
@@ -57,14 +54,6 @@ internal class OpenNpcConversationCommandHandler(
         state.OpenConversationCreatureIdsByName[command.NpcName] = command.NpcId;
         await context.SaveChangesAsync(cancellationToken);
 
-        await domainEvents.Publish(
-            new NpcConversationStartedEvent(
-                PlayerId: command.PlayerId,
-                WorldId: command.WorldId,
-                NpcId: command.NpcId
-            ),
-            cancellationToken
-        );
         await transaction.CommitAsync(cancellationToken);
         return OpenNpcConversationResult.Opened;
     }

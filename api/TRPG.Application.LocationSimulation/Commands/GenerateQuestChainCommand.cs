@@ -19,8 +19,11 @@ public class GenerateQuestChainCommand
 {
     public required Guid RequestId { get; init; }
     public required string ChainPremise { get; init; }
-    public required int ChainLength { get; init; }
+    public required int MinimumChainLength { get; init; }
+    public required int MaximumChainLength { get; init; }
     public required IReadOnlyList<QuestChainCandidateEntity> AvailableEntities { get; init; }
+    public IReadOnlyList<QuestChainFactionStanding> FactionStandings { get; init; } = [];
+    public Guid? ForcedGiverFactionId { get; init; }
 }
 
 // TickerQ scheduling (ITimeTickerManager) is host-only — this is the same kind of boundary
@@ -40,7 +43,8 @@ public interface IQuestChainGenerationScheduler
 // offer this chain, the same failure shape as the historical stuck CreateWorldJob bug.
 internal class GenerateQuestChainCommandHandler(
     ILocationSimulationDbContext context,
-    QuestChainGenerator generator,
+    QuestChainTreatmentFirstGenerator treatmentFirstGenerator,
+    QuestChainFactDisclosureRepairer factDisclosureRepairer,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
     ICommandHandler<AddFactsCommand> addFacts,
@@ -76,13 +80,22 @@ internal class GenerateQuestChainCommandHandler(
 
         try
         {
-            var generatedChain = await generator.Generate(
-                new QuestChainGeneratorInput
-                {
-                    ChainPremise = command.ChainPremise,
-                    ChainLength = command.ChainLength,
-                    AvailableEntities = command.AvailableEntities,
-                },
+            var generatorInput = new QuestChainGeneratorInput
+            {
+                ChainPremise = command.ChainPremise,
+                MinimumChainLength = command.MinimumChainLength,
+                MaximumChainLength = command.MaximumChainLength,
+                AvailableEntities = command.AvailableEntities,
+                FactionStandings = command.FactionStandings,
+                ForcedGiverFactionId = command.ForcedGiverFactionId,
+            };
+            var generatedChain = await treatmentFirstGenerator.Generate(
+                generatorInput,
+                cancellationToken
+            );
+            generatedChain = await factDisclosureRepairer.Repair(
+                generatorInput,
+                generatedChain,
                 cancellationToken
             );
 
@@ -140,7 +153,7 @@ internal class GenerateQuestChainCommandHandler(
                     ? "none"
                     : string.Join(", ", node.PrerequisiteNodeIds);
             builder.AppendLine(
-                $"[{node.NodeId}] \"{node.Name}\" — giver: {DescribeEntity(node.GiverEntityId)}, prerequisites: {prerequisites}, group: {node.GroupIndex?.ToString() ?? "none"}"
+                $"[{node.NodeId}] \"{node.Name}\" — giver: {DescribeEntity(node.GiverEntityId)}, prerequisites: {prerequisites}, exclusive group: {node.GroupIndex?.ToString() ?? "none"}, prerequisite alternative group: {node.PrerequisiteAlternativeGroupIndex?.ToString() ?? "none"}"
             );
             builder.AppendLine($"    {node.Description}");
             foreach (var objective in node.Objectives)
@@ -218,11 +231,13 @@ internal class GenerateQuestChainCommandHandler(
             .ToArray();
         var questIdByNodeId = nodes.ToDictionary(node => node.NodeId, _ => Guid.NewGuid());
         var groupIdByIndex = nodes
-            .Where(node => node.GroupIndex != null)
-            .Select(node => node.GroupIndex!.Value)
+            .SelectMany(node => new[] { node.GroupIndex, node.PrerequisiteAlternativeGroupIndex })
+            .Where(groupIndex => groupIndex != null)
+            .Select(groupIndex => groupIndex!.Value)
             .Distinct()
             .ToDictionary(groupIndex => groupIndex, _ => Guid.NewGuid());
         var newItems = new List<Item>();
+        var terminalNodeId = nodes[^1].NodeId;
 
         // Build every quest and its objectives in memory first (minting new Item instances for
         // CollectItem/GiveItems/DeliverItem into newItems along the way), so all newly-minted items
@@ -241,9 +256,18 @@ internal class GenerateQuestChainCommandHandler(
                     ExclusiveGroupId = node.GroupIndex is { } groupIndex
                         ? groupIdByIndex[groupIndex]
                         : null,
+                    PrerequisiteAlternativeGroupId = node.PrerequisiteAlternativeGroupIndex
+                        is { } prerequisiteAlternativeGroupIndex
+                        ? groupIdByIndex[prerequisiteAlternativeGroupIndex]
+                        : null,
                     RequiredFactId = node.RequiredFactKey is { } factKey
                         ? factIdByKey[factKey]
                         : null,
+                    RequiredFactionId =
+                        node.PrerequisiteNodeIds.Count == 0 ? generatedChain.GiverFactionId : null,
+                    ChainGiverFactionId = generatedChain.GiverFactionId,
+                    ChainAntagonistFactionId = generatedChain.AntagonistFactionId,
+                    IsChainTerminal = node.NodeId == terminalNodeId,
                     PrerequisiteQuestIds = node
                         .PrerequisiteNodeIds.Select(nodeId => questIdByNodeId[nodeId])
                         .ToList(),
@@ -401,14 +425,6 @@ internal class GenerateQuestChainCommandHandler(
                 Description = objective.Description,
                 LocationId = buildingsById[objective.TargetEntityId!.Value].ExteriorLocationId,
             },
-            GeneratedObjectiveType.SpeakToCreature => new SpeakToCreatureObjective
-            {
-                WorldId = worldId,
-                QuestId = questId,
-                Name = objective.Name,
-                Description = objective.Description,
-                CreatureId = objective.TargetEntityId!.Value,
-            },
             GeneratedObjectiveType.LearnFactFromCreature => new LearnFactFromCreatureObjective
             {
                 WorldId = worldId,
@@ -433,6 +449,15 @@ internal class GenerateQuestChainCommandHandler(
                         Weight = support.Weight,
                     })
                     .ToList(),
+            },
+            GeneratedObjectiveType.ReportFactToCreature => new ReportFactToCreatureObjective
+            {
+                WorldId = worldId,
+                QuestId = questId,
+                Name = objective.Name,
+                Description = objective.Description,
+                CreatureId = objective.TargetEntityId!.Value,
+                FactId = factIdByKey[objective.FactKey!],
             },
             GeneratedObjectiveType.CollectItem => new CollectItemObjective
             {

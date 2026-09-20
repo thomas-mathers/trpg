@@ -41,12 +41,20 @@ internal static class ChatClientExtensions
             }
             catch (Exception ex)
             {
+                var responseText = ex is InvalidJsonResponseException parseException
+                    ? Truncate(parseException.ResponseText)
+                    : null;
+                var finishReason = ex is InvalidJsonResponseException parseFailure
+                    ? parseFailure.FinishReason
+                    : null;
                 logger.LogWarning(
                     ex,
-                    "[perf] GetValidatedJson<{Type}> failed (attempt {Attempt}) after {ElapsedMs}ms",
+                    "[perf] GetValidatedJson<{Type}> failed (attempt {Attempt}) after {ElapsedMs}ms. Finish reason: {FinishReason}. Response: {Response}",
                     typeof(T).Name,
                     attempt + 1,
-                    attemptStopwatch.ElapsedMilliseconds
+                    attemptStopwatch.ElapsedMilliseconds,
+                    finishReason,
+                    responseText
                 );
             }
 
@@ -109,13 +117,37 @@ internal static class ChatClientExtensions
             var end = text.LastIndexOfAny(['}', ']']);
             if (start < 0 || end <= start)
             {
-                throw;
+                throw new InvalidJsonResponseException(ex, text, response.FinishReason?.ToString());
             }
 
-            return JsonSerializer.Deserialize<T>(
-                text[start..(end + 1)],
-                AIJsonUtilities.DefaultOptions
-            );
+            try
+            {
+                return JsonSerializer.Deserialize<T>(
+                    text[start..(end + 1)],
+                    AIJsonUtilities.DefaultOptions
+                );
+            }
+            catch (JsonException jsonException)
+            {
+                throw new InvalidJsonResponseException(
+                    jsonException,
+                    text,
+                    response.FinishReason?.ToString()
+                );
+            }
         }
+    }
+
+    private static string Truncate(string value) =>
+        value.Length <= 4000 ? value : value[..4000] + "…";
+
+    private class InvalidJsonResponseException(
+        Exception innerException,
+        string responseText,
+        string? finishReason
+    ) : InvalidOperationException(innerException.Message, innerException)
+    {
+        public string ResponseText { get; } = responseText;
+        public string? FinishReason { get; } = finishReason;
     }
 }

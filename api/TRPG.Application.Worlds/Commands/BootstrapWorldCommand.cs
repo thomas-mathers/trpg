@@ -43,6 +43,7 @@ internal class BootstrapWorldCommandHandler(
         context.Cities.AddRange(world.Cities);
         context.Districts.AddRange(world.Districts);
         context.Factions.AddRange(world.Factions);
+        context.FactionStandings.AddRange(world.FactionStandings);
         context.FactionMembers.AddRange(world.FactionMembers);
         context.EncounterGroups.AddRange(world.EncounterGroups);
         context.EncounterGroupMembers.AddRange(world.EncounterGroupMembers);

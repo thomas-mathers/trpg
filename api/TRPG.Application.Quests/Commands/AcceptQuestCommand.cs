@@ -21,6 +21,7 @@ public class AcceptQuestCommand
 internal class AcceptQuestCommandHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
+    IFactionsDbContext factionsContext,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
     ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory
@@ -50,6 +51,22 @@ internal class AcceptQuestCommandHandler(
                 throw new EntityNotFoundException("Quest", command.QuestId);
         }
 
+        if (
+            quest.RequiredFactionId is { } requiredFactionId
+            && !await factionsContext
+                .FactionMembers.AsNoTracking()
+                .AnyAsync(
+                    member =>
+                        member.WorldId == command.WorldId
+                        && member.CreatureId == command.PlayerId
+                        && member.FactionId == requiredFactionId,
+                    cancellationToken
+                )
+        )
+        {
+            throw new EntityNotFoundException("Quest", command.QuestId);
+        }
+
         var completedQuestIds = await context
             .CreatureQuests.Where(creatureQuest =>
                 creatureQuest.CreatureId == command.PlayerId
@@ -58,7 +75,7 @@ internal class AcceptQuestCommandHandler(
             .Select(creatureQuest => creatureQuest.QuestId)
             .ToArrayAsync(cancellationToken);
         var completedQuestIdSet = completedQuestIds.ToHashSet();
-        var prerequisiteGroupIdsByQuestId = await context
+        var prerequisiteAlternativeGroupIdsByQuestId = await context
             .Quests.AsNoTracking()
             .Where(prerequisiteQuest =>
                 quest.PrerequisiteQuestIds.AsEnumerable().Contains(prerequisiteQuest.Id)
@@ -66,17 +83,17 @@ internal class AcceptQuestCommandHandler(
             .Select(prerequisiteQuest => new
             {
                 prerequisiteQuest.Id,
-                prerequisiteQuest.ExclusiveGroupId,
+                prerequisiteQuest.PrerequisiteAlternativeGroupId,
             })
             .ToDictionaryAsync(
                 prerequisiteQuest => prerequisiteQuest.Id,
-                prerequisiteQuest => prerequisiteQuest.ExclusiveGroupId,
+                prerequisiteQuest => prerequisiteQuest.PrerequisiteAlternativeGroupId,
                 cancellationToken
             );
         if (
             !QuestExclusiveGroupEvaluator.ArePrerequisitesSatisfied(
                 quest.PrerequisiteQuestIds,
-                prerequisiteGroupIdsByQuestId,
+                prerequisiteAlternativeGroupIdsByQuestId,
                 completedQuestIdSet
             )
         )

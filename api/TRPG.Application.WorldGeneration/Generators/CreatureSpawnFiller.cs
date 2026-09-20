@@ -21,7 +21,8 @@ public static class CreatureSpawnFiller
         Guid worldId,
         Guid locationId,
         Guid spawnerId,
-        IReadOnlyDictionary<CreatureType, Faction> factionsByCreatureType
+        IReadOnlyDictionary<CreatureType, Faction> factionsByCreatureType,
+        Guid? factionId = null
     )
     {
         var missing = maxPopulation - currentPopulation;
@@ -56,7 +57,7 @@ public static class CreatureSpawnFiller
         {
             WorldId = worldId,
             LocationId = locationId,
-            FactionId = factionsByCreatureType[creatureType].Id,
+            FactionId = factionId ?? factionsByCreatureType[creatureType].Id,
         };
         var members = monsters
             .Select(monster => new EncounterGroupMember

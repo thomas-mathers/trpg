@@ -3,20 +3,20 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Quests.EventHandlers;
 
-internal sealed class ConversationStartedQuestEventHandler(
+internal sealed class FactLearnedReportQuestEventHandler(
     QuestObjectiveAdvancer questObjectiveAdvancer
-) : IDomainEventConsumer<NpcConversationStartedEvent>
+) : IDomainEventConsumer<FactLearnedEvent>
 {
     public Task Handle(
-        NpcConversationStartedEvent domainEvent,
+        FactLearnedEvent domainEvent,
         CancellationToken cancellationToken = default
     ) =>
         questObjectiveAdvancer.Advance(
-            domainEvent.PlayerId,
+            domainEvent.KnowerId,
             domainEvent.WorldId,
             objective =>
-                objective is SpeakToCreatureObjective speak
-                && speak.CreatureId == domainEvent.NpcId,
+                objective is ReportFactToCreatureObjective report
+                && report.FactId == domainEvent.FactId,
             cancellationToken
         );
 }

@@ -9,6 +9,8 @@ internal record DungeonGeneratorInput(
 )
 {
     public Random Random { get; init; } = Random.Shared;
+    public BuildingType? BuildingType { get; init; }
+    public string? Name { get; init; }
 }
 
 internal record DungeonRoomPlacement(
@@ -382,6 +384,11 @@ internal static class DungeonGenerator
 
     private static (BuildingType Type, string Name) ChooseNamedType(DungeonGeneratorInput input)
     {
+        if (input.BuildingType is { } buildingType && input.Name is { } name)
+        {
+            return (buildingType, name);
+        }
+
         var availablePairs = DungeonBuildingTypes
             .SelectMany(type =>
                 Names[type]

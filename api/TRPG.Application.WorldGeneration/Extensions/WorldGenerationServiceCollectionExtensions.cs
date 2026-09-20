@@ -30,7 +30,13 @@ public static class WorldGenerationServiceCollectionExtensions
             .AddTransient<CityGenerator>()
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()
-            .AddTransient<FactionsGenerator>()
-            .AddTransient<QuestChainGenerator>()
+            .AddTransient<QuestChainContentGenerator>()
+            .AddTransient<QuestChainStoryBibleGenerator>()
+            .AddTransient<QuestChainBlockGraphComposer>()
+            .AddTransient<QuestChainCastingGenerator>()
+            .AddTransient<QuestChainFactDisclosureRepairer>()
+            .AddTransient<QuestChainGlobalGraphPipeline>()
+            .AddTransient<QuestChainTreatmentFirstGenerator>()
+            .AddSingleton(Random.Shared)
             .AddTransient<WorldGenerator>();
 }

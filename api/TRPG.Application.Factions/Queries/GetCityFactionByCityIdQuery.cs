@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Factions.Queries;
 
@@ -18,7 +19,11 @@ internal class GetCityFactionByCityIdQueryHandler(IFactionsDbContext context)
     ) =>
         context
             .Factions.AsNoTracking()
-            .Where(faction => faction.IsCityFaction && faction.CityId == query.CityId)
+            .Where(faction =>
+                faction.IsCityFaction
+                && faction.CityId == query.CityId
+                && (faction.Kind == FactionKind.People || faction.Kind == FactionKind.Unclassified)
+            )
             .Select(faction => (Guid?)faction.Id)
             .FirstOrDefaultAsync(cancellationToken);
 }
