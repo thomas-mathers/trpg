@@ -554,7 +554,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<ClearLocationObjective>("ClearLocation")
                 .HasValue<DeliverItemObjective>("DeliverItem")
                 .HasValue<LearnFactFromCreatureObjective>("LearnFactFromCreature")
-                .HasValue<ReportFactToCreatureObjective>("ReportFactToCreature");
+                .HasValue<ReportFactToCreatureObjective>("ReportFactToCreature")
+                .HasValue<InteractWithPropObjective>("InteractWithProp");
             entity.HasIndex(o => o.QuestId);
             entity.HasIndex(o => o.WorldId);
             entity.Property(o => o.RequiredAmount).HasDefaultValue(1);

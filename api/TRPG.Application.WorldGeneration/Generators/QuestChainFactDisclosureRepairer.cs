@@ -122,8 +122,8 @@ public class QuestChainFactDisclosureRepairer(
             entities, and one or more ordinary objectives. Do not use LearnFactFromCreature for the
             support quest. Use only real entity ids and these objective types: KillCreature,
             KillCreatureType, FreeCreature, ClearLocation, ExploreLocation,
-            CollectItem, GiveItems, GiveItemKind, or DeliverItem. Follow their normal entity and
-            required-field rules. Respond with raw JSON only.
+            CollectItem, GiveItems, GiveItemKind, DeliverItem, or InteractWithProp. Follow their
+            normal entity and required-field rules. Respond with raw JSON only.
             """;
         var userPrompt = $"""
             Premise: {input.ChainPremise}
@@ -223,6 +223,7 @@ public class QuestChainFactDisclosureRepairer(
                             RecipientEntityId = objective.RecipientEntityId,
                             ItemNameForKind = objective.ItemNameForKind,
                             NewItemName = objective.NewItemName,
+                            NewPropName = objective.NewPropName,
                             CreatureTypeCategory = objective.CreatureTypeCategory,
                             RequiredAmount = objective.RequiredAmount,
                         })
@@ -256,6 +257,7 @@ public class QuestChainFactDisclosureRepairer(
                     objective.RecipientEntityId is { } recipientId ? Guid.Parse(recipientId) : null,
                     objective.ItemNameForKind,
                     objective.NewItemName,
+                    objective.NewPropName,
                     objective.CreatureTypeCategory is { } category
                         ? Enum.Parse<CreatureType>(category, true)
                         : null,

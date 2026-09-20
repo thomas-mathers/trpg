@@ -1,3 +1,4 @@
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
@@ -12,8 +13,10 @@ public class FailExclusiveGroupSiblingsCommand
     public required Guid CompletedQuestId { get; init; }
 }
 
-internal class FailExclusiveGroupSiblingsCommandHandler(IQuestsDbContext context)
-    : ICommandHandler<FailExclusiveGroupSiblingsCommand>
+internal class FailExclusiveGroupSiblingsCommandHandler(
+    IQuestsDbContext context,
+    QuestInteractablePropCleaner questInteractablePropCleaner
+) : ICommandHandler<FailExclusiveGroupSiblingsCommand>
 {
     public async Task Handle(
         FailExclusiveGroupSiblingsCommand command,
@@ -64,6 +67,21 @@ internal class FailExclusiveGroupSiblingsCommandHandler(IQuestsDbContext context
             siblingPlayerQuest.IsTracked = false;
         }
 
+        using var transaction = new TransactionScope(
+            TransactionScopeOption.Required,
+            TransactionScopeAsyncFlowOption.Enabled
+        );
+
         await context.SaveChangesAsync(cancellationToken);
+
+        foreach (var siblingPlayerQuest in siblingPlayerQuests)
+        {
+            await questInteractablePropCleaner.CleanUp(
+                siblingPlayerQuest.QuestId,
+                cancellationToken
+            );
+        }
+
+        transaction.Complete();
     }
 }

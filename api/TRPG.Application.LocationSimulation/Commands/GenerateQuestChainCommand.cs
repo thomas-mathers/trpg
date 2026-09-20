@@ -7,6 +7,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Props.Commands;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
@@ -50,6 +51,7 @@ internal class GenerateQuestChainCommandHandler(
     ICommandHandler<AddFactsCommand> addFacts,
     ICommandHandler<AddQuestCommand> addQuest,
     ICommandHandler<AddItemsCommand> addItems,
+    ICommandHandler<AddTriggersCommand> addTriggers,
     ILogger<GenerateQuestChainCommandHandler> logger
 ) : ICommandHandler<GenerateQuestChainCommand, bool>
 {
@@ -173,6 +175,8 @@ internal class GenerateQuestChainCommandHandler(
                                     ? $", recipient={DescribeEntity(itemRecipientId)}"
                                     : ""
                             ),
+                    GeneratedObjectiveType.InteractWithProp =>
+                        $"newProp=\"{objective.NewPropName}\", location={DescribeEntity(objective.TargetEntityId!.Value)}",
                     _ => $"target={DescribeEntity(objective.TargetEntityId!.Value)}"
                         + (
                             objective.RecipientEntityId is { } recipientId
@@ -237,6 +241,7 @@ internal class GenerateQuestChainCommandHandler(
             .Distinct()
             .ToDictionary(groupIndex => groupIndex, _ => Guid.NewGuid());
         var newItems = new List<Item>();
+        var newTriggers = new List<Trigger>();
         var terminalNodeId = nodes[^1].NodeId;
 
         // Build every quest and its objectives in memory first (minting new Item instances for
@@ -292,7 +297,8 @@ internal class GenerateQuestChainCommandHandler(
                             questIdByNodeId,
                             factIdByKey,
                             buildingsById,
-                            newItems
+                            newItems,
+                            newTriggers
                         )
                     )
                     .ToArray();
@@ -309,6 +315,14 @@ internal class GenerateQuestChainCommandHandler(
         if (newItems.Count > 0)
         {
             await addItems.Handle(new AddItemsCommand { Items = newItems }, cancellationToken);
+        }
+
+        if (newTriggers.Count > 0)
+        {
+            await addTriggers.Handle(
+                new AddTriggersCommand { Triggers = newTriggers },
+                cancellationToken
+            );
         }
 
         foreach (var (quest, objectives) in questBuilds)
@@ -378,7 +392,8 @@ internal class GenerateQuestChainCommandHandler(
         IReadOnlyDictionary<string, Guid> questIdByNodeId,
         IReadOnlyDictionary<string, Guid> factIdByKey,
         IReadOnlyDictionary<Guid, Building> buildingsById,
-        List<Item> newItems
+        List<Item> newItems,
+        List<Trigger> newTriggers
     ) =>
         objective.ObjectiveType switch
         {
@@ -496,6 +511,15 @@ internal class GenerateQuestChainCommandHandler(
                 ItemId = MintItem(worldId, objective, newItems).Id,
                 RecipientId = objective.RecipientEntityId!.Value,
             },
+            GeneratedObjectiveType.InteractWithProp => new InteractWithPropObjective
+            {
+                WorldId = worldId,
+                QuestId = questId,
+                Name = objective.Name,
+                Description = objective.Description,
+                TriggerId = MintTrigger(worldId, objective, buildingsById, newTriggers).Id,
+                LocationId = buildingsById[objective.TargetEntityId!.Value].ExteriorLocationId,
+            },
             _ => throw new ArgumentOutOfRangeException(nameof(objective)),
         };
 
@@ -519,5 +543,23 @@ internal class GenerateQuestChainCommandHandler(
         };
         newItems.Add(item);
         return item;
+    }
+
+    private static Trigger MintTrigger(
+        Guid worldId,
+        QuestChainGeneratedObjective objective,
+        IReadOnlyDictionary<Guid, Building> buildingsById,
+        List<Trigger> newTriggers
+    )
+    {
+        var trigger = new Trigger
+        {
+            WorldId = worldId,
+            Name = objective.NewPropName!,
+            Description = objective.Description,
+            LocationId = buildingsById[objective.TargetEntityId!.Value].ExteriorLocationId,
+        };
+        newTriggers.Add(trigger);
+        return trigger;
     }
 }

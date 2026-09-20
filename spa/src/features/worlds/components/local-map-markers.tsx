@@ -40,7 +40,7 @@ function MarkerGroup({ markers }: { markers: LocalMapMarkerResponse[] }) {
   const label =
     markers.length === 1
       ? markerLabel(marker)
-      : `${markers.length} ${kind === 'PlayerCorpse' ? 'player corpses' : kind === 'Trigger' ? 'levers' : 'chests'}`;
+      : `${markers.length} ${kind === 'PlayerCorpse' ? 'player corpses' : kind === 'Trigger' ? 'triggers' : 'chests'}`;
   return (
     <span
       role="img"

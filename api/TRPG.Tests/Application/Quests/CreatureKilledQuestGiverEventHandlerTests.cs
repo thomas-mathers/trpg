@@ -109,6 +109,55 @@ public sealed class CreatureKilledQuestGiverEventHandlerTests(DatabaseFixture db
     }
 
     [Fact]
+    public async Task Handle_DeletesTheMintedTrigger_WhenAQuestWithAnInteractWithPropObjectiveFails()
+    {
+        // Arrange
+        var trigger = Builders.MakeTrigger(WorldId);
+        var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        var objective = new InteractWithPropObjective
+        {
+            WorldId = WorldId,
+            QuestId = quest.Id,
+            TriggerId = trigger.Id,
+        };
+        _context.Props.Add(trigger);
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuests.Add(
+            new CreatureQuest
+            {
+                CreatureId = _player.Id,
+                QuestId = quest.Id,
+                Status = QuestStatus.Accepted,
+                WorldId = WorldId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var handler = _serviceProvider.GetRequiredService<CreatureKilledQuestGiverEventHandler>();
+
+        // Act
+        await handler.Handle(
+            new CreatureKilledEvent(
+                _player.Id,
+                WorldId,
+                _giver.Id,
+                _giver.CreatureType,
+                Guid.NewGuid()
+            ),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext.Props.AnyAsync(
+                prop => prop.Id == trigger.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
     public async Task Handle_LeavesCompletedQuestsUnchanged_WhenQuestGiverIsKilled()
     {
         // Arrange

@@ -38,6 +38,7 @@ internal class QuestChainContentObjectiveSchema
     public string? RecipientEntityId { get; init; }
     public string? ItemNameForKind { get; init; }
     public string? NewItemName { get; init; }
+    public string? NewPropName { get; init; }
     public string? CreatureTypeCategory { get; init; }
     public int? RequiredAmount { get; init; }
     public string? FactKey { get; init; }
@@ -171,6 +172,11 @@ public class QuestChainContentGenerator(
             - GiveItems: TargetEntityId and RecipientEntityId are creatures and NewItemName is required.
             - GiveItemKind: ItemNameForKind and creature RecipientEntityId are required.
             - DeliverItem: TargetEntityId and RecipientEntityId are creatures and NewItemName is required.
+            - InteractWithProp: TargetEntityId is a Dungeon or Building and NewPropName is required
+              — mints a new named interactable (a valve, shrine, mechanism, lever, whatever fits the
+              beat) at that location for the player to activate. Use this when the story's
+              resolution is a place or object changing state directly, not just something nearby
+              being killed.
 
             The supplied skeleton has {factDisclosureNodeCount} fact-disclosure node(s). When this is
             zero, Facts MUST be [] and LearnFactFromCreature is forbidden. When it is one, author
@@ -318,6 +324,7 @@ internal static class QuestChainBlockAssembler
                                 : null,
                             objective.ItemNameForKind,
                             objective.NewItemName,
+                            objective.NewPropName,
                             objective.CreatureTypeCategory is { } category
                                 ? Enum.Parse<CreatureType>(category, true)
                                 : null,
@@ -406,6 +413,7 @@ internal static class QuestChainBlockAssembler
                             RecipientEntityId = objective.RecipientEntityId,
                             ItemNameForKind = objective.ItemNameForKind,
                             NewItemName = objective.NewItemName,
+                            NewPropName = objective.NewPropName,
                             CreatureTypeCategory = objective.CreatureTypeCategory,
                             RequiredAmount = objective.RequiredAmount,
                             FactKey = objective.FactKey,

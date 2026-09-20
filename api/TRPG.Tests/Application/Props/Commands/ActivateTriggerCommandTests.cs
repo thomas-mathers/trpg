@@ -12,6 +12,8 @@ public sealed class ActivateTriggerCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
+    private static readonly Guid PlayerId = Guid.NewGuid();
+
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ActivateTriggerCommandHandler _handler = null!;
@@ -41,7 +43,7 @@ public sealed class ActivateTriggerCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new ActivateTriggerCommand { TriggerId = trigger.Id },
+            new ActivateTriggerCommand { TriggerId = trigger.Id, PlayerId = PlayerId },
             TestContext.Current.CancellationToken
         );
 
@@ -63,7 +65,7 @@ public sealed class ActivateTriggerCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new ActivateTriggerCommand { TriggerId = trigger.Id },
+            new ActivateTriggerCommand { TriggerId = trigger.Id, PlayerId = PlayerId },
             TestContext.Current.CancellationToken
         );
 
@@ -81,7 +83,7 @@ public sealed class ActivateTriggerCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new ActivateTriggerCommand { TriggerId = trigger.Id },
+            new ActivateTriggerCommand { TriggerId = trigger.Id, PlayerId = PlayerId },
             TestContext.Current.CancellationToken
         );
 
@@ -90,12 +92,59 @@ public sealed class ActivateTriggerCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_AdvancesAMatchingInteractWithPropObjectiveOnce_EvenWhenActivatedTwice()
+    {
+        // Arrange
+        var trigger = Builders.MakeTrigger();
+        var giver = Builders.MakeCreature(trigger.WorldId);
+        var quest = Builders.MakeQuest(giver.Id, trigger.WorldId);
+        var objective = new InteractWithPropObjective
+        {
+            WorldId = trigger.WorldId,
+            QuestId = quest.Id,
+            TriggerId = trigger.Id,
+        };
+        var progress = new CreatureQuestObjective
+        {
+            CreatureId = PlayerId,
+            ObjectiveId = objective.Id,
+            WorldId = trigger.WorldId,
+        };
+        var creatureQuest = new CreatureQuest
+        {
+            CreatureId = PlayerId,
+            QuestId = quest.Id,
+            Status = QuestStatus.Accepted,
+            WorldId = trigger.WorldId,
+        };
+        _context.Props.Add(trigger);
+        _context.Creatures.Add(giver);
+        _context.Quests.Add(quest);
+        _context.QuestObjectives.Add(objective);
+        _context.CreatureQuestObjectives.Add(progress);
+        _context.CreatureQuests.Add(creatureQuest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var command = new ActivateTriggerCommand { TriggerId = trigger.Id, PlayerId = PlayerId };
+
+        // Act
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updatedProgress = await _context.CreatureQuestObjectives.SingleAsync(
+            creatureQuestObjective => creatureQuestObjective.Id == progress.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(1, updatedProgress.Amount);
+    }
+
+    [Fact]
     public async Task Handle_ThrowsEntityNotFoundException_WhenTheTriggerDoesNotExist()
     {
         // Act & Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(() =>
             _handler.Handle(
-                new ActivateTriggerCommand { TriggerId = Guid.NewGuid() },
+                new ActivateTriggerCommand { TriggerId = Guid.NewGuid(), PlayerId = PlayerId },
                 TestContext.Current.CancellationToken
             )
         );

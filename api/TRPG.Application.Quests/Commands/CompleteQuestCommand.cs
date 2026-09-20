@@ -36,7 +36,8 @@ internal class CompleteQuestCommandHandler(
     IQueryHandler<GetReportedStolenItemIdsQuery, IReadOnlySet<Guid>> getReportedStolenItemIds,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory,
-    ICommandHandler<LearnFactCommand, bool> learnFact
+    ICommandHandler<LearnFactCommand, bool> learnFact,
+    QuestInteractablePropCleaner questInteractablePropCleaner
 ) : ICommandHandler<CompleteQuestCommand>
 {
     // A witnessed-and-reported theft of one of this quest's own items halves the payout, flat
@@ -149,6 +150,8 @@ internal class CompleteQuestCommandHandler(
 
         creatureQuest.Status = QuestStatus.Completed;
         creatureQuest.IsTracked = false;
+
+        await questInteractablePropCleaner.CleanUp(command.QuestId, cancellationToken);
 
         if (
             creatureQuest.Quest.MembershipRewardFactionId is { } membershipFactionId

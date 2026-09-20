@@ -12,15 +12,21 @@ internal class StreamActivateTriggerTurnHandler(
         GameTurnSession session,
         Guid triggerId,
         CancellationToken cancellationToken = default
-    ) => streamer.StreamTurn(session, ct => ResolveTurn(triggerId, ct), cancellationToken);
+    ) =>
+        streamer.StreamTurn(
+            session,
+            ct => ResolveTurn(session.PlayerId, triggerId, ct),
+            cancellationToken
+        );
 
     private async Task<GameTurnPrompt> ResolveTurn(
+        Guid playerId,
         Guid triggerId,
         CancellationToken cancellationToken
     )
     {
         var result = await activateTrigger.Handle(
-            new ActivateTriggerCommand { TriggerId = triggerId },
+            new ActivateTriggerCommand { TriggerId = triggerId, PlayerId = playerId },
             cancellationToken
         );
 

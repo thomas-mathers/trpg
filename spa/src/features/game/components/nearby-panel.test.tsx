@@ -225,19 +225,19 @@ describe('NearbyPanel', () => {
     expect(screen.getByRole('region', { name: "Wooden Chest's inventory" })).toBeVisible();
   });
 
-  it('pulls a nearby lever when its Pull button is clicked', async () => {
-    const sceneWithLever = {
+  it('activates a nearby trigger when its Activate button is clicked', async () => {
+    const sceneWithTrigger = {
       ...scene(undefined),
-      nearbyProps: [{ id: 'lever-id', name: 'Rusty Lever', description: '', type: 'Lever' }],
+      nearbyProps: [{ id: 'lever-id', name: 'Rusty Lever', description: '', type: 'Trigger' }],
     };
-    const { user, chatHub, gameChat } = renderPanel(sceneWithLever);
+    const { user, chatHub, gameChat } = renderPanel(sceneWithTrigger);
     const fakeStream = {};
     vi.mocked(chatHub.sendActivateTrigger).mockReturnValue(fakeStream as never);
 
-    await user.click(screen.getByRole('button', { name: 'Pull' }));
+    await user.click(screen.getByRole('button', { name: 'Activate' }));
 
     expect(chatHub.sendActivateTrigger).toHaveBeenCalledWith('lever-id');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith('Pull Rusty Lever', fakeStream);
+    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith('Activate Rusty Lever', fakeStream);
   });
 
   it('opens a nearby trade workstation inventory when clicked', async () => {
