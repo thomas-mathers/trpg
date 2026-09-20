@@ -282,7 +282,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
     public async Task Invoke_IgnoresUnresolvedTrap_WhenLeavingItsLocation()
     {
         // Arrange
-        var trap = Builders.MakeTrigger(
+        var trap = Builders.MakeTrap(
             WorldId,
             locationId: _oldLocation.Id,
             targetId: _newLocation.Id,
@@ -305,7 +305,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
         );
         Assert.Equal(_newLocation.Id, player!.LocationId);
         var persistedTrap = await verifyContext
-            .Props.OfType<Trigger>()
+            .Props.OfType<Trap>()
             .SingleAsync(t => t.Id == trap.Id, TestContext.Current.CancellationToken);
         Assert.False(persistedTrap.IsResolved);
     }
@@ -315,7 +315,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
     {
         // Arrange
         _guard.State = CreatureState.Dead;
-        var trap = Builders.MakeTrigger(
+        var trap = Builders.MakeTrap(
             WorldId,
             locationId: _newLocation.Id,
             targetId: _oldLocation.Id,
@@ -339,7 +339,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
         var encounter = await verifyContext
             .Encounters.OfType<TrapEncounter>()
             .SingleAsync(e => e.PlayerId == _player.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(trap.Id, encounter.TriggerId);
+        Assert.Equal(trap.Id, encounter.TrapId);
     }
 
     [Fact]

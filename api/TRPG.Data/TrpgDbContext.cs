@@ -505,8 +505,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<Workstation>("Workstation")
                 .HasValue<Bed>("Bed")
                 .HasValue<Container>("Container")
+                .HasValue<Trap>("Trap")
                 .HasValue<Trigger>("Trigger")
-                .HasValue<Lever>("Lever")
                 .HasValue<Cell>("Cell");
             entity.Property<string>("behavior_type").HasColumnType("text");
             entity.HasIndex(p => p.LocationId);

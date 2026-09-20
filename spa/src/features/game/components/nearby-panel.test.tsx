@@ -63,7 +63,7 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     sendChat: vi.fn(),
     sendWait: vi.fn(),
     sendSleep: vi.fn(),
-    sendPullLever: vi.fn(),
+    sendActivateTrigger: vi.fn(),
     sendFlee: vi.fn(),
     ...overrides,
   } as IChatHub;
@@ -232,11 +232,11 @@ describe('NearbyPanel', () => {
     };
     const { user, chatHub, gameChat } = renderPanel(sceneWithLever);
     const fakeStream = {};
-    vi.mocked(chatHub.sendPullLever).mockReturnValue(fakeStream as never);
+    vi.mocked(chatHub.sendActivateTrigger).mockReturnValue(fakeStream as never);
 
     await user.click(screen.getByRole('button', { name: 'Pull' }));
 
-    expect(chatHub.sendPullLever).toHaveBeenCalledWith('lever-id');
+    expect(chatHub.sendActivateTrigger).toHaveBeenCalledWith('lever-id');
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith('Pull Rusty Lever', fakeStream);
   });
 

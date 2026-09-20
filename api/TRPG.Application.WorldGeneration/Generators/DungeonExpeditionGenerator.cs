@@ -25,7 +25,7 @@ public class DungeonExpeditionGenerator(CreatureGenerator creatureGenerator)
     internal DungeonExpeditionResult? Generate(DungeonExpeditionInput input)
     {
         var occupied = input.Spawners.Select(spawner => spawner.LocationId).ToHashSet();
-        occupied.UnionWith(input.Props.OfType<Trigger>().Select(trigger => trigger.LocationId));
+        occupied.UnionWith(input.Props.OfType<Trap>().Select(trap => trap.LocationId));
         occupied.UnionWith(input.InhabitantLocationIds);
         foreach (var dungeon in input.Dungeons.OrderBy(_ => input.Random.Next()))
         {

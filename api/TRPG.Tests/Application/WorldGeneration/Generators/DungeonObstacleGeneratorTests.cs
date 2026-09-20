@@ -235,16 +235,16 @@ public class DungeonObstacleGeneratorTests
         var result = _generator.Generate(input, DungeonObstacleKind.TrapGauntlet);
 
         // Assert
-        Assert.Equal(4, result.Triggers.Count);
+        Assert.Equal(4, result.Traps.Count);
         Assert.Equal(
             [TrapKind.Mechanical, TrapKind.Collapse, TrapKind.Slope, TrapKind.Water],
             result
-                .Triggers.OrderBy(trigger =>
+                .Traps.OrderBy(trap =>
                     input
-                        .Placements.Single(p => p.Room.LocationId == trigger.LocationId)
+                        .Placements.Single(p => p.Room.LocationId == trap.LocationId)
                         .DepthFromEntrance
                 )
-                .Select(trigger => trigger.TrapKind)
+                .Select(trap => trap.TrapKind)
         );
     }
 
@@ -258,7 +258,7 @@ public class DungeonObstacleGeneratorTests
         var result = _generator.Generate(input, DungeonObstacleKind.TrapGauntlet);
 
         // Assert
-        var trap = Assert.Single(result.Triggers);
+        var trap = Assert.Single(result.Traps);
         Assert.Equal(TrapKind.Mechanical, trap.TrapKind);
         var trapCellar = result.Rooms.Single(room => room.Name == "Trap Cellar");
         var rubbleLanding = result.Rooms.Single(room => room.Name == "Rubble Landing");

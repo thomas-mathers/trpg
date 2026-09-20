@@ -314,11 +314,7 @@ internal class GetSceneQueryHandler(
         CancellationToken cancellationToken
     )
     {
-        var trapIds = props
-            .OfType<Trigger>()
-            .Where(trigger => trigger.TrapKind != null)
-            .Select(trigger => trigger.Id)
-            .ToArray();
+        var trapIds = props.OfType<Trap>().Select(trap => trap.Id).ToArray();
         if (trapIds.Length == 0)
         {
             return props;
@@ -329,13 +325,7 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
-        return props
-            .Where(p =>
-                p is not Trigger trigger
-                || trigger.TrapKind == null
-                || knownTrapIds.Contains(trigger.Id)
-            )
-            .ToArray();
+        return props.Where(p => p is not Trap trap || knownTrapIds.Contains(trap.Id)).ToArray();
     }
 
     private async Task<Faction?> GetFaction(Guid? factionId, CancellationToken cancellationToken)
@@ -587,8 +577,8 @@ internal class GetSceneQueryHandler(
             Bed => "Bed",
             Seat => "Seat",
             Container => "Container",
-            Trigger => "Trigger",
-            Lever => "Lever",
+            Trap => "Trap",
+            Trigger => "Lever",
             _ => prop.GetType().Name,
         };
     }

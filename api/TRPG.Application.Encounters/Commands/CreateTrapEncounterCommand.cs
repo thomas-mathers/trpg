@@ -10,7 +10,7 @@ public class CreateTrapEncounterCommand
     public required Guid PlayerId { get; init; }
     public required Guid PlayerLocationId { get; init; }
     public string? LocationName { get; init; }
-    public required Guid TriggerId { get; init; }
+    public required Guid TrapId { get; init; }
     public required TrapKind TrapKind { get; init; }
     public required Guid TargetLocationId { get; init; }
     public required string TargetLocationName { get; init; }
@@ -30,7 +30,7 @@ internal class CreateTrapEncounterCommandHandler(IEncountersDbContext context)
             PlayerId = command.PlayerId,
             LocationId = command.PlayerLocationId,
             LocationName = command.LocationName,
-            TriggerId = command.TriggerId,
+            TrapId = command.TrapId,
             TrapKind = command.TrapKind,
             TargetLocationId = command.TargetLocationId,
             TargetLocationName = command.TargetLocationName,

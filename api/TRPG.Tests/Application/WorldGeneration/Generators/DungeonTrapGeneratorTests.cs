@@ -27,7 +27,7 @@ public class DungeonTrapGeneratorTests
             var result = generator.Generate(placements, _worldId, _stateId, Random.Shared);
 
             // Assert
-            Assert.True(result.Triggers.Count <= 2);
+            Assert.True(result.Traps.Count <= 2);
         }
     }
 
@@ -63,7 +63,7 @@ public class DungeonTrapGeneratorTests
 
         // Act
         var trap = Assert.Single(
-            generator.Generate(placements, _worldId, _stateId, Random.Shared).Triggers
+            generator.Generate(placements, _worldId, _stateId, Random.Shared).Traps
         );
 
         // Assert
@@ -102,8 +102,8 @@ public class DungeonTrapGeneratorTests
         var result = generator.Generate(placements, _worldId, _stateId, Random.Shared);
 
         // Assert
-        Assert.Equal(2, result.Triggers.Count);
-        var targets = result.Triggers.Select(trap => trap.TargetId).Distinct().ToArray();
+        Assert.Equal(2, result.Traps.Count);
+        var targets = result.Traps.Select(trap => trap.TargetId).Distinct().ToArray();
         var rubbleLanding = Assert.Single(targets);
         var rubbleLandingRoom = Assert.Single(result.Rooms);
         Assert.Equal(rubbleLandingRoom.LocationId, rubbleLanding);
@@ -125,7 +125,7 @@ public class DungeonTrapGeneratorTests
         var result = generator.Generate(placements, _worldId, _stateId, Random.Shared);
 
         // Assert
-        var trap = Assert.Single(result.Triggers);
+        var trap = Assert.Single(result.Traps);
         var trapCellar = result.Rooms.Single(room => room.Name == "Trap Cellar");
         var rubbleLanding = result.Rooms.Single(room => room.Name == "Rubble Landing");
         Assert.Equal(trapCellar.LocationId, trap.TargetId);
@@ -166,7 +166,7 @@ public class DungeonTrapGeneratorTests
 
         // Assert — exactly one Rubble Landing and one Trap Cellar, no matter how many falling
         // traps landed in this dungeon.
-        Assert.Equal(3, result.Triggers.Count);
+        Assert.Equal(3, result.Traps.Count);
         Assert.Equal(2, result.Rooms.Count);
     }
 
@@ -198,7 +198,7 @@ public class DungeonTrapGeneratorTests
 
         // Act
         var trap = Assert.Single(
-            generator.Generate(placements, _worldId, _stateId, Random.Shared).Triggers
+            generator.Generate(placements, _worldId, _stateId, Random.Shared).Traps
         );
 
         // Assert
@@ -234,7 +234,7 @@ public class DungeonTrapGeneratorTests
         var result = generator.Generate(placements, _worldId, _stateId, Random.Shared);
 
         // Assert
-        Assert.Empty(result.Triggers);
+        Assert.Empty(result.Traps);
     }
 
     [Fact]
@@ -251,7 +251,7 @@ public class DungeonTrapGeneratorTests
             var result = generator.Generate(placements, _worldId, _stateId, Random.Shared);
 
             // Assert — with no other candidate, both traps must come back targetless.
-            Assert.Empty(result.Triggers);
+            Assert.Empty(result.Traps);
         }
     }
 
@@ -265,7 +265,7 @@ public class DungeonTrapGeneratorTests
         var result = generator.Generate(placements, _worldId, _stateId, Random.Shared);
 
         // Assert
-        Assert.Empty(result.Triggers);
+        Assert.Empty(result.Traps);
         Assert.Empty(result.Rooms);
     }
 

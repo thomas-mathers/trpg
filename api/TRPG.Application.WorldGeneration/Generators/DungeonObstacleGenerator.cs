@@ -36,8 +36,8 @@ internal record DungeonObstacleResult(
     IReadOnlyList<EncounterGroupMember> EncounterGroupMembers,
     IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<CreatureSpawner> CreatureSpawners,
-    IReadOnlyList<Trigger> Triggers,
-    IReadOnlyList<Lever> Levers,
+    IReadOnlyList<Trap> Traps,
+    IReadOnlyList<Trigger> Levers,
     IReadOnlyList<DoorConnectorLever> DoorConnectorLevers
 )
 {
@@ -145,7 +145,7 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             IsLocked = true,
             WorldId = input.WorldId,
         };
-        var lever = new Lever
+        var lever = new Trigger
         {
             WorldId = input.WorldId,
             Name = "Lever",
@@ -191,7 +191,7 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
         var gauntletLocationIds = orderedRooms.Select(room => room.Room.LocationId).ToHashSet();
         var basement = new DungeonTrapBasement(input.WorldId, input.StateId, input.BuildingId);
 
-        var triggers = new List<Trigger>();
+        var traps = new List<Trap>();
         for (var step = 0; step < orderedRooms.Length; step++)
         {
             var room = orderedRooms[step];
@@ -206,8 +206,8 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
                 continue;
             }
 
-            triggers.Add(
-                new Trigger
+            traps.Add(
+                new Trap
                 {
                     LocationId = room.Room.LocationId,
                     WorldId = input.WorldId,
@@ -224,7 +224,7 @@ public class DungeonObstacleGenerator(DungeonPopulator dungeonPopulator)
             Rooms = basement.Rooms,
             Locations = basement.Locations,
             LocationConnectors = basement.LocationConnectors,
-            Triggers = triggers,
+            Traps = traps,
         };
     }
 

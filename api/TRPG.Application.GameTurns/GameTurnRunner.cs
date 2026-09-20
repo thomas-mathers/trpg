@@ -9,7 +9,7 @@ public class GameTurnRunner
     private readonly StreamChatTurnHandler _streamChatTurn;
     private readonly StreamWaitTurnHandler _streamWaitTurn;
     private readonly StreamSleepTurnHandler _streamSleepTurn;
-    private readonly StreamPullLeverTurnHandler _streamPullLeverTurn;
+    private readonly StreamActivateTriggerTurnHandler _streamActivateTriggerTurn;
     private readonly StreamAcceptQuestTurnHandler _streamAcceptQuestTurn;
     private readonly StreamDeclineQuestTurnHandler _streamDeclineQuestTurn;
     private readonly StreamCompleteQuestTurnHandler _streamCompleteQuestTurn;
@@ -29,7 +29,7 @@ public class GameTurnRunner
         StreamChatTurnHandler streamChatTurn,
         StreamWaitTurnHandler streamWaitTurn,
         StreamSleepTurnHandler streamSleepTurn,
-        StreamPullLeverTurnHandler streamPullLeverTurn,
+        StreamActivateTriggerTurnHandler streamActivateTriggerTurn,
         StreamAcceptQuestTurnHandler streamAcceptQuestTurn,
         StreamDeclineQuestTurnHandler streamDeclineQuestTurn,
         StreamCompleteQuestTurnHandler streamCompleteQuestTurn,
@@ -49,7 +49,7 @@ public class GameTurnRunner
         _streamChatTurn = streamChatTurn;
         _streamWaitTurn = streamWaitTurn;
         _streamSleepTurn = streamSleepTurn;
-        _streamPullLeverTurn = streamPullLeverTurn;
+        _streamActivateTriggerTurn = streamActivateTriggerTurn;
         _streamAcceptQuestTurn = streamAcceptQuestTurn;
         _streamDeclineQuestTurn = streamDeclineQuestTurn;
         _streamCompleteQuestTurn = streamCompleteQuestTurn;
@@ -90,11 +90,11 @@ public class GameTurnRunner
         CancellationToken cancellationToken = default
     ) => _streamSleepTurn.Handle(session, hours, minutes, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamPullLever(
+    public IAsyncEnumerable<string> StreamActivateTrigger(
         GameTurnSession session,
-        Guid leverId,
+        Guid triggerId,
         CancellationToken cancellationToken = default
-    ) => _streamPullLeverTurn.Handle(session, leverId, cancellationToken);
+    ) => _streamActivateTriggerTurn.Handle(session, triggerId, cancellationToken);
 
     public IAsyncEnumerable<string> StreamAcceptQuest(
         GameTurnSession session,

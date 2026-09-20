@@ -17,7 +17,7 @@ public class GetLocalMapMarkersQuery
 public enum LocalMapMarkerKind
 {
     Chest,
-    Lever,
+    Trigger,
     PlayerCorpse,
 }
 
@@ -60,7 +60,7 @@ internal class GetLocalMapMarkersQueryHandler(
             new GetItemCountsByOwnersQuery
             {
                 OwnerIds = props
-                    .Where(prop => prop.IsPulled == null)
+                    .Where(prop => prop.IsActivated == null)
                     .Select(prop => prop.Id)
                     .ToArray(),
                 OwnerType = OwnerType.Container,
@@ -80,8 +80,8 @@ internal class GetLocalMapMarkersQueryHandler(
             Id: prop.Id,
             LocationId: prop.LocationId,
             Name: prop.Name,
-            Kind: prop.IsPulled.HasValue ? LocalMapMarkerKind.Lever : LocalMapMarkerKind.Chest,
-            State: prop.IsPulled switch
+            Kind: prop.IsActivated.HasValue ? LocalMapMarkerKind.Trigger : LocalMapMarkerKind.Chest,
+            State: prop.IsActivated switch
             {
                 true => LocalMapMarkerState.Activated,
                 false => LocalMapMarkerState.Unactivated,

@@ -7,7 +7,7 @@ namespace TRPG.Application.Props.Commands;
 
 public class MarkTrapResolvedCommand
 {
-    public required Guid TriggerId { get; init; }
+    public required Guid TrapId { get; init; }
 }
 
 internal class MarkTrapResolvedCommandHandler(IPropsDbContext context)
@@ -18,7 +18,7 @@ internal class MarkTrapResolvedCommandHandler(IPropsDbContext context)
         CancellationToken cancellationToken = default
     ) =>
         await context
-            .Props.OfType<Trigger>()
-            .Where(t => t.Id == command.TriggerId)
+            .Props.OfType<Trap>()
+            .Where(t => t.Id == command.TrapId)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsResolved, true), cancellationToken);
 }

@@ -27,7 +27,10 @@ public interface IChatHub
     IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendWait(int hours, int minutes, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendSleep(int hours, int minutes, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendPullLever(Guid leverId, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendActivateTrigger(
+        Guid triggerId,
+        CancellationToken cancellationToken
+    );
     IAsyncEnumerable<string> SendAcceptQuest(Guid questId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendDeclineQuest(Guid questId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendCompleteQuest(Guid questId, CancellationToken cancellationToken);
@@ -152,10 +155,10 @@ internal sealed class ChatHub(
         CancellationToken cancellationToken
     ) => gameTurnRunner.StreamSleep(Session, hours, minutes, cancellationToken);
 
-    public IAsyncEnumerable<string> SendPullLever(
-        Guid leverId,
+    public IAsyncEnumerable<string> SendActivateTrigger(
+        Guid triggerId,
         CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamPullLever(Session, leverId, cancellationToken);
+    ) => gameTurnRunner.StreamActivateTrigger(Session, triggerId, cancellationToken);
 
     public IAsyncEnumerable<string> SendAcceptQuest(
         Guid questId,

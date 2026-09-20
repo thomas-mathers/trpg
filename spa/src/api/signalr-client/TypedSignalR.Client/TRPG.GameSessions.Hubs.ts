@@ -40,11 +40,11 @@ export type IChatHub = {
     */
     sendSleep(hours: number, minutes: number): IStreamResult<string>;
     /**
-    * @param leverId Transpiled from System.Guid
+    * @param triggerId Transpiled from System.Guid
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
-    sendPullLever(leverId: string): IStreamResult<string>;
+    sendActivateTrigger(triggerId: string): IStreamResult<string>;
     /**
     * @param questId Transpiled from System.Guid
     * @param cancellationToken Transpiled from System.Threading.CancellationToken

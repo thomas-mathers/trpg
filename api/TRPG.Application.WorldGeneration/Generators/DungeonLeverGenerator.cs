@@ -3,7 +3,7 @@ using TRPG.Domain.Models;
 namespace TRPG.Application.WorldGeneration.Generators;
 
 internal record DungeonLeverGeneratorResult(
-    IReadOnlyList<Lever> Levers,
+    IReadOnlyList<Trigger> Levers,
     IReadOnlyList<DoorConnector> DoorConnectors,
     IReadOnlyList<DoorConnectorLever> DoorConnectorLevers
 )
@@ -44,7 +44,7 @@ internal static class DungeonLeverGenerator
             IsLocked = true,
             WorldId = worldId,
         };
-        var lever = new Lever
+        var lever = new Trigger
         {
             WorldId = worldId,
             Name = "Lever",
@@ -82,7 +82,7 @@ internal static class DungeonLeverGenerator
             WorldId = worldId,
         };
 
-        var levers = new List<Lever>();
+        var levers = new List<Trigger>();
         var doorConnectorLevers = new List<DoorConnectorLever>();
         foreach (var kind in GateRouteKinds)
         {
@@ -95,7 +95,7 @@ internal static class DungeonLeverGenerator
             }
 
             var lastRoom = routeRooms.OrderByDescending(room => room.DepthFromEntrance).First();
-            var lever = new Lever
+            var lever = new Trigger
             {
                 WorldId = worldId,
                 Name = "Lever",

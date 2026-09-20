@@ -9,7 +9,7 @@ public class RecordTrapDiscoveryCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid KnowerId { get; init; }
-    public required Guid TriggerId { get; init; }
+    public required Guid TrapId { get; init; }
 }
 
 internal class RecordTrapDiscoveryCommandHandler(IKnowledgeDbContext context)
@@ -23,7 +23,7 @@ internal class RecordTrapDiscoveryCommandHandler(IKnowledgeDbContext context)
         var alreadyKnown = await context.CreatureKnowledge.AnyAsync(
             knowledge =>
                 knowledge.KnowerId == command.KnowerId
-                && knowledge.SubjectId == command.TriggerId
+                && knowledge.SubjectId == command.TrapId
                 && knowledge.SubjectType == KnowledgeSubjectType.Trap,
             cancellationToken
         );
@@ -37,7 +37,7 @@ internal class RecordTrapDiscoveryCommandHandler(IKnowledgeDbContext context)
             {
                 WorldId = command.WorldId,
                 KnowerId = command.KnowerId,
-                SubjectId = command.TriggerId,
+                SubjectId = command.TrapId,
                 SubjectType = KnowledgeSubjectType.Trap,
             }
         );

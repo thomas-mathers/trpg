@@ -291,12 +291,28 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
         };
 
-    public static Trigger MakeTrigger(
+    public static Trap MakeTrap(
         Guid? worldId = null,
         Guid? locationId = null,
         Guid? targetId = null,
-        TrapKind? trapKind = null,
+        TrapKind trapKind = TrapKind.Mechanical,
         bool isResolved = false
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Trap-{Guid.NewGuid():N}",
+            Description = "A test trap",
+            LocationId = locationId ?? Guid.NewGuid(),
+            TargetId = targetId,
+            TrapKind = trapKind,
+            IsResolved = isResolved,
+        };
+
+    public static Trigger MakeTrigger(
+        Guid? worldId = null,
+        Guid? locationId = null,
+        bool isActivated = false
     ) =>
         new()
         {
@@ -304,23 +320,7 @@ internal static class Builders
             Name = $"Trigger-{Guid.NewGuid():N}",
             Description = "A test trigger",
             LocationId = locationId ?? Guid.NewGuid(),
-            TargetId = targetId,
-            TrapKind = trapKind,
-            IsResolved = isResolved,
-        };
-
-    public static Lever MakeLever(
-        Guid? worldId = null,
-        Guid? locationId = null,
-        bool isPulled = false
-    ) =>
-        new()
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            Name = $"Lever-{Guid.NewGuid():N}",
-            Description = "A test lever",
-            LocationId = locationId ?? Guid.NewGuid(),
-            IsPulled = isPulled,
+            IsActivated = isActivated,
         };
 
     public static Workstation MakeWorkstation(

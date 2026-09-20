@@ -583,7 +583,7 @@ export type LeechType = 'Life' | 'Mana';
 
 export type LocalMapLockKind = 'None' | 'LockedDoor' | 'KeyLockedDoor' | 'Portcullis';
 
-export type LocalMapMarkerKind = 'Chest' | 'Lever' | 'PlayerCorpse';
+export type LocalMapMarkerKind = 'Chest' | 'Trigger' | 'PlayerCorpse';
 
 export type LocalMapMarkerResponse = {
     id: string;
@@ -902,6 +902,28 @@ export type WorldSummary = {
     name: string;
     hasPlayer: boolean;
 };
+
+export type DevGenerateQuestChainData = {
+    body?: never;
+    path?: never;
+    query: {
+        worldId: string;
+        locationId: string;
+        playerId: string;
+        playerLevel: number;
+        giverFactionId?: string;
+    };
+    url: '/dev/quest-chains/generate';
+};
+
+export type DevGenerateQuestChainResponses = {
+    /**
+     * OK
+     */
+    200: boolean;
+};
+
+export type DevGenerateQuestChainResponse = DevGenerateQuestChainResponses[keyof DevGenerateQuestChainResponses];
 
 export type ListWorldsData = {
     body?: never;

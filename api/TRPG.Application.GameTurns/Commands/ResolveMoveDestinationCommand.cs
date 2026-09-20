@@ -33,7 +33,7 @@ internal class ResolveMoveDestinationCommandHandler(
     > resolveAccessibleConnectors,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
-    IQueryHandler<GetPulledLeverIdsQuery, IReadOnlySet<Guid>> getPulledLeverIds
+    IQueryHandler<GetActivatedTriggerIdsQuery, IReadOnlySet<Guid>> getActivatedTriggerIds
 ) : ICommandHandler<ResolveMoveDestinationCommand, ResolveMoveDestinationResult>
 {
     public async Task<ResolveMoveDestinationResult> Handle(
@@ -96,8 +96,8 @@ internal class ResolveMoveDestinationCommandHandler(
             cancellationToken
         );
 
-        var pulledLeverIds = await getPulledLeverIds.Handle(
-            new GetPulledLeverIdsQuery { WorldId = player.WorldId },
+        var activatedTriggerIds = await getActivatedTriggerIds.Handle(
+            new GetActivatedTriggerIdsQuery { WorldId = player.WorldId },
             cancellationToken
         );
 
@@ -105,7 +105,7 @@ internal class ResolveMoveDestinationCommandHandler(
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = playerKeyItemIds,
-                PulledLeverIds = pulledLeverIds,
+                ActivatedTriggerIds = activatedTriggerIds,
                 Playtime = playtime,
                 ConnectorIds = [connectorId],
             },

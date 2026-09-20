@@ -314,7 +314,7 @@ export function NearbyPanel({
                 size="xs"
                 className="border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
                 onClick={() =>
-                  submitNarratedTurn(`Pull ${lever.name}`, chatHub.sendPullLever(lever.id))
+                  submitNarratedTurn(`Pull ${lever.name}`, chatHub.sendActivateTrigger(lever.id))
                 }
               >
                 Pull

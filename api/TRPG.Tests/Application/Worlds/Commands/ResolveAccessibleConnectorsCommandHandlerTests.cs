@@ -25,13 +25,13 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
     private static ResolveAccessibleConnectorsCommand MakeCommand(
         Guid connectorId,
         IReadOnlySet<Guid>? playerKeyItemIds = null,
-        IReadOnlySet<Guid>? pulledLeverIds = null,
+        IReadOnlySet<Guid>? activatedTriggerIds = null,
         TimeSpan? playtime = null
     ) =>
         new()
         {
             PlayerKeyItemIds = playerKeyItemIds ?? new HashSet<Guid>(),
-            PulledLeverIds = pulledLeverIds ?? new HashSet<Guid>(),
+            ActivatedTriggerIds = activatedTriggerIds ?? new HashSet<Guid>(),
             Playtime = playtime ?? TimeSpan.Zero,
             ConnectorIds = [connectorId],
         };
@@ -203,7 +203,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
 
         // Act
         var accessible = await _handler.Handle(
-            MakeCommand(connectorId, pulledLeverIds: new HashSet<Guid> { pulledLeverId }),
+            MakeCommand(connectorId, activatedTriggerIds: new HashSet<Guid> { pulledLeverId }),
             TestContext.Current.CancellationToken
         );
 
@@ -229,7 +229,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
         var accessible = await _handler.Handle(
             MakeCommand(
                 connectorId,
-                pulledLeverIds: new HashSet<Guid> { firstLeverId, secondLeverId }
+                activatedTriggerIds: new HashSet<Guid> { firstLeverId, secondLeverId }
             ),
             TestContext.Current.CancellationToken
         );
@@ -260,7 +260,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
             new ResolveAccessibleConnectorsCommand
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
-                PulledLeverIds = new HashSet<Guid>(),
+                ActivatedTriggerIds = new HashSet<Guid>(),
                 Playtime = TimeSpan.Zero,
                 ConnectorIds = [openConnectorId, lockedConnectorId],
             },

@@ -104,7 +104,7 @@ public class SuspicionEncounter : Encounter
 
 public class TrapEncounter : Encounter
 {
-    public required Guid TriggerId { get; init; }
+    public required Guid TrapId { get; init; }
     public required TrapKind TrapKind { get; init; }
     public required Guid TargetLocationId { get; init; }
     public required string TargetLocationName { get; init; }

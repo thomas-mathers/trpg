@@ -11,17 +11,17 @@ public class GetUnresolvedTrapByLocationIdQuery
 }
 
 internal class GetUnresolvedTrapByLocationIdQueryHandler(IPropsDbContext context)
-    : IQueryHandler<GetUnresolvedTrapByLocationIdQuery, Trigger?>
+    : IQueryHandler<GetUnresolvedTrapByLocationIdQuery, Trap?>
 {
-    public async Task<Trigger?> Handle(
+    public async Task<Trap?> Handle(
         GetUnresolvedTrapByLocationIdQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context
             .Props.AsNoTracking()
-            .OfType<Trigger>()
+            .OfType<Trap>()
             .FirstOrDefaultAsync(
-                p => p.LocationId == query.LocationId && p.TrapKind != null && !p.IsResolved,
+                p => p.LocationId == query.LocationId && !p.IsResolved,
                 cancellationToken
             );
 }
