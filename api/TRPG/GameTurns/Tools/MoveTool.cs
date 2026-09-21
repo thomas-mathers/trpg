@@ -9,6 +9,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
@@ -67,6 +68,7 @@ internal class MoveTool(
         EncounterEvaluationResult
     > evaluateMoveInterception,
     ICommandHandler<MovePlayerCommand> movePlayer,
+    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetSceneQuery, SceneResult> getScene,
@@ -141,12 +143,25 @@ internal class MoveTool(
             return interception;
         }
 
+        var arrivalPlaytime = playtime;
+        if (destinationResult.TravelTimeHours > 0)
+        {
+            arrivalPlaytime = await advanceTime.Handle(
+                new AdvanceTimeCommand
+                {
+                    SessionId = turnContext.SessionId,
+                    Delta = GameClock.RealTimePerInGameHour * destinationResult.TravelTimeHours,
+                },
+                cancellationToken
+            );
+        }
+
         await movePlayer.Handle(
             new MovePlayerCommand
             {
                 PlayerId = turnContext.PlayerId,
                 DestinationLocationId = destinationResult.DestinationLocationId!.Value,
-                Playtime = playtime,
+                Playtime = arrivalPlaytime,
             },
             cancellationToken
         );
@@ -172,7 +187,7 @@ internal class MoveTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(playtime),
+                CurrentDate = GameClock.GetCurrentInGameDate(arrivalPlaytime),
             },
             cancellationToken
         );

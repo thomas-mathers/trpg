@@ -553,4 +553,142 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         Assert.Equal(EntryOutcome.Entered, result.Outcome);
         Assert.Equal(cityCenter.LocationId, result.DestinationLocationId);
     }
+
+    private async Task<TravelRoute> SeedTravelRoute(
+        float distance,
+        int dexterity = 8,
+        bool isSneaking = false,
+        ArmorClass? armorClass = null
+    )
+    {
+        var destinationLocation = Builders.MakeLocation(WorldId, _stateId);
+        var connector = Builders.MakeLocationConnector(
+            _outdoorLocation.Id,
+            destinationLocationId: destinationLocation.Id,
+            name: "Road",
+            description: "A long road.",
+            destinationLabel: "Faraway City"
+        );
+        var travelConnector = Builders.MakeTravelConnector(
+            connector.Id,
+            distance: distance,
+            worldId: WorldId
+        );
+        var player = Builders.MakeCreature(
+            WorldId,
+            locationId: _outdoorLocation.Id,
+            baseAttributes: Builders.MakeAttributes() with
+            {
+                Dexterity = dexterity,
+            },
+            isSneaking: isSneaking
+        );
+        _context.Locations.Add(destinationLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(travelConnector);
+        _context.Creatures.Add(player);
+
+        if (armorClass != null)
+        {
+            var armor = Builders.MakeArmor(
+                worldId: WorldId,
+                armorClass: armorClass.Value,
+                quantity: 1
+            );
+            armor.Ownership.OwnerId = player.Id;
+            armor.Ownership.OwnerType = OwnerType.Creature;
+            armor.Ownership.EquippedSlot = EquipmentSlot.Chest;
+            _context.Items.Add(armor);
+        }
+
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return new TravelRoute(player, destinationLocation);
+    }
+
+    private sealed record TravelRoute(Creature Player, Location Destination);
+
+    [Fact]
+    public async Task Handle_SetsTravelTimeHours_FromDistanceAndPlayerSpeed_WhenTheConnectorHasATravelConnector()
+    {
+        // Arrange — base speed 50 + dexterity 8 = 58; 116 / 58 = 2 hours
+        var route = await SeedTravelRoute(distance: 116, dexterity: 8);
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveMoveDestinationCommand
+            {
+                PlayerId = route.Player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Faraway City",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(EntryOutcome.Entered, result.Outcome);
+        Assert.Equal(2, result.TravelTimeHours);
+    }
+
+    [Fact]
+    public async Task Handle_ReducesTravelSpeed_WhenThePlayerIsSneaking()
+    {
+        // Arrange — base speed 50 halved by sneaking to 25; 100 / 25 = 4 hours
+        var route = await SeedTravelRoute(distance: 100, dexterity: 0, isSneaking: true);
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveMoveDestinationCommand
+            {
+                PlayerId = route.Player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Faraway City",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(4, result.TravelTimeHours);
+    }
+
+    [Fact]
+    public async Task Handle_ReducesTravelSpeed_WhenThePlayerIsWearingHeavyArmor()
+    {
+        // Arrange — base speed 50 minus the default plate penalty of 10 = 40; 80 / 40 = 2 hours
+        var route = await SeedTravelRoute(distance: 80, dexterity: 0, armorClass: ArmorClass.Plate);
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveMoveDestinationCommand
+            {
+                PlayerId = route.Player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Faraway City",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(2, result.TravelTimeHours);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesTravelTimeHoursAtZero_WhenTheConnectorHasNoTravelConnector()
+    {
+        // Arrange
+        var route = await SeedOutdoorBuildingEntrance("The Rusty Anchor");
+
+        // Act
+        var result = await _handler.Handle(
+            new ResolveMoveDestinationCommand
+            {
+                PlayerId = route.Player.Id,
+                SessionId = _session.Id,
+                DestinationName = "The Rusty Anchor",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(0, result.TravelTimeHours);
+    }
 }

@@ -1,5 +1,8 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
@@ -20,7 +23,11 @@ public class ResolveMoveDestinationCommand
     public required string DestinationName { get; init; }
 }
 
-public record ResolveMoveDestinationResult(EntryOutcome Outcome, Guid? DestinationLocationId);
+public record ResolveMoveDestinationResult(
+    EntryOutcome Outcome,
+    Guid? DestinationLocationId,
+    int TravelTimeHours = 0
+);
 
 internal class ResolveMoveDestinationCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
@@ -33,7 +40,10 @@ internal class ResolveMoveDestinationCommandHandler(
     > resolveAccessibleConnectors,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
-    IQueryHandler<GetActivatedTriggerIdsQuery, IReadOnlySet<Guid>> getActivatedTriggerIds
+    IQueryHandler<GetActivatedTriggerIdsQuery, IReadOnlySet<Guid>> getActivatedTriggerIds,
+    IQueryHandler<GetTravelDistanceByConnectorIdQuery, float?> getTravelDistance,
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
+    IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
 ) : ICommandHandler<ResolveMoveDestinationCommand, ResolveMoveDestinationResult>
 {
     public async Task<ResolveMoveDestinationResult> Handle(
@@ -112,8 +122,48 @@ internal class ResolveMoveDestinationCommandHandler(
             cancellationToken
         );
 
-        return accessibleConnectorIds.Contains(connectorId)
-            ? new ResolveMoveDestinationResult(EntryOutcome.Entered, destinationLocationId)
-            : new ResolveMoveDestinationResult(EntryOutcome.Locked, null);
+        if (!accessibleConnectorIds.Contains(connectorId))
+        {
+            return new ResolveMoveDestinationResult(EntryOutcome.Locked, null);
+        }
+
+        var travelTimeHours = await ResolveTravelTimeHours(player, connectorId, cancellationToken);
+        return new ResolveMoveDestinationResult(
+            EntryOutcome.Entered,
+            destinationLocationId,
+            travelTimeHours
+        );
+    }
+
+    private async Task<int> ResolveTravelTimeHours(
+        Creature player,
+        Guid connectorId,
+        CancellationToken cancellationToken
+    )
+    {
+        var distance = await getTravelDistance.Handle(
+            new GetTravelDistanceByConnectorIdQuery { ConnectorId = connectorId },
+            cancellationToken
+        );
+        if (distance == null)
+        {
+            return 0;
+        }
+
+        var equippedItems = await getInventoryItemsByOwner.Handle(
+            new GetInventoryItemsByOwnerQuery
+            {
+                Owner = new ItemOwnerReference(player.Id, OwnerType.Creature),
+            },
+            cancellationToken
+        );
+        var speed = StatFormulas.CalculateTravelSpeed(
+            player.Dexterity,
+            equippedItems.Where(item => item.Ownership.EquippedSlot != null).ToArray(),
+            player.IsSneaking,
+            optionsSnapshot.Value
+        );
+
+        return Math.Max(1, (int)(distance.Value / speed));
     }
 }
