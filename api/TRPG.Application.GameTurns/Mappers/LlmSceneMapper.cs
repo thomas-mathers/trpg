@@ -20,7 +20,8 @@ public static class LlmSceneMapper
             scene.Exits.Select(exit => exit.ToLlmSceneExit()).ToArray(),
             scene.NearbyProps.Select(prop => prop.ToLlmSceneProp()).ToArray(),
             scene.NearbyCreatures.Select(creature => creature.ToLlmSceneCreature()).ToArray(),
-            scene.NearbyBuildings.Select(building => building.ToLlmSceneNearbyBuilding()).ToArray()
+            scene.NearbyBuildings.Select(building => building.ToLlmSceneNearbyBuilding()).ToArray(),
+            scene.Weather
         );
 
     private static LlmSceneDate ToLlmSceneDate(this SceneDateInfo date) =>

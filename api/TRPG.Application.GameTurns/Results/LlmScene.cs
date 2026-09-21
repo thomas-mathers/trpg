@@ -78,5 +78,6 @@ public record LlmScene(
     IReadOnlyCollection<LlmSceneExit> Exits,
     IReadOnlyCollection<LlmSceneProp> NearbyProps,
     IReadOnlyCollection<LlmSceneCreature> NearbyCreatures,
-    IReadOnlyCollection<LlmSceneNearbyBuilding> NearbyBuildings
+    IReadOnlyCollection<LlmSceneNearbyBuilding> NearbyBuildings,
+    WeatherCondition? Weather
 );

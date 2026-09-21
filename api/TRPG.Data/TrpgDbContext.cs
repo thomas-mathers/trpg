@@ -121,6 +121,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<QuestChainGenerationRequest> QuestChainGenerationRequests =>
         Set<QuestChainGenerationRequest>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
+    public DbSet<WeatherState> WeatherStates => Set<WeatherState>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -662,6 +663,12 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(b => b.WorldId);
             entity.HasIndex(b => b.RoomId);
             entity.HasIndex(b => b.PlayerId);
+        });
+
+        modelBuilder.Entity<WeatherState>(entity =>
+        {
+            entity.HasIndex(w => w.WorldId);
+            entity.HasIndex(w => w.StateId).IsUnique();
         });
 
         modelBuilder.Entity<World>().HasIndex(w => w.Name).IsUnique();

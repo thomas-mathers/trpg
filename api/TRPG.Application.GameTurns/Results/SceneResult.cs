@@ -103,5 +103,6 @@ public record SceneResult(
     IReadOnlyCollection<SceneExitInfo> Exits,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyCreatures,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
+    WeatherCondition? Weather
 );

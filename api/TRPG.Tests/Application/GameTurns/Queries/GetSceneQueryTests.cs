@@ -483,6 +483,77 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_IncludesWeather_WhenOutdoors()
+    {
+        // Arrange
+        _context.WeatherStates.Add(
+            new WeatherState
+            {
+                WorldId = WorldId,
+                StateId = _state.Id,
+                Condition = WeatherCondition.Storm,
+                NextChangePlaytime = TimeSpan.FromHours(10),
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(WeatherCondition.Storm, result.Weather);
+    }
+
+    [Fact]
+    public async Task Handle_OmitsWeather_WhenIndoors()
+    {
+        // Arrange
+        _context.WeatherStates.Add(
+            new WeatherState
+            {
+                WorldId = WorldId,
+                StateId = _state.Id,
+                Condition = WeatherCondition.Storm,
+                NextChangePlaytime = TimeSpan.FromHours(10),
+            }
+        );
+        var roomId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId, _state.Id, roomId: roomId);
+        var building = Builders.MakeBuilding();
+        var room = Builders.MakeRoom(
+            building.Id,
+            worldId: WorldId,
+            id: roomId,
+            locationId: location.Id
+        );
+        _context.Buildings.Add(building);
+        _context.Rooms.Add(room);
+        _context.Locations.Add(location);
+        _player.LocationId = location.Id;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Null(result.Weather);
+    }
+
+    [Fact]
     public async Task Handle_ExcludesBuildingEntranceFromExits_WhenOutdoors()
     {
         // Arrange

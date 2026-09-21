@@ -551,6 +551,39 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         Assert.True(updatedDoor.IsLocked);
     }
 
+    [Fact]
+    public async Task Handle_CreatesWeatherState_ForTheLocationsState()
+    {
+        // Arrange
+        var stateId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId, stateId: stateId);
+        _context.Locations.Add(location);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new CatchUpLocationCommand
+            {
+                WorldId = WorldId,
+                PlayerId = PlayerId,
+                LocationId = location.Id,
+                CurrentDate = Builders.MakeInGameDate(12),
+                PlayerLevel = 1,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.True(
+            await verifyContext.WeatherStates.AnyAsync(
+                w => w.StateId == stateId,
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
     private async Task<Building> SeedBuilding(Guid ownerId)
     {
         var building = Builders.MakeBuilding(worldId: WorldId);

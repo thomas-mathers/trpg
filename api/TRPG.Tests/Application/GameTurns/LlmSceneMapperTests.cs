@@ -78,6 +78,19 @@ public sealed class LlmSceneMapperTests
         Assert.False(exit.IsLocked);
     }
 
+    [Fact]
+    public void ToLlmScene_PassesThroughTheAmbientWeather()
+    {
+        // Arrange
+        var scene = MakeScene();
+
+        // Act
+        var result = scene.ToLlmScene();
+
+        // Assert
+        Assert.Equal(WeatherCondition.Storm, result.Weather);
+    }
+
     private static SceneResult MakeScene() =>
         new(
             Guid.NewGuid(),
@@ -100,7 +113,8 @@ public sealed class LlmSceneMapperTests
             ],
             [new ScenePropInfo(Guid.NewGuid(), "Chair", "A wooden chair.", "Seat")],
             [MakeCreature("Cora", gold: 1449, profession: Profession.Guard, level: 49)],
-            [new SceneNearbyBuildingInfo(Guid.NewGuid(), "The Trading Post", BuildingType.Inn)]
+            [new SceneNearbyBuildingInfo(Guid.NewGuid(), "The Trading Post", BuildingType.Inn)],
+            WeatherCondition.Storm
         );
 
     private static SceneCreatureInfo MakeCreature(
