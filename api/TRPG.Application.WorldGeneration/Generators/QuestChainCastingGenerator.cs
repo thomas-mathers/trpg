@@ -54,16 +54,18 @@ public class QuestChainCastingGenerator(Random random)
         QuestChainCandidateEntity[] giverRoster;
         Guid? giverFactionId = null;
         string? giverFactionName = null;
-        if (input.ForcedGiverFactionId is { } forcedFactionId)
+        if (input.GiverFactionId is { } specifiedFactionId)
         {
-            giverRoster = creatures.Where(entity => entity.FactionId == forcedFactionId).ToArray();
+            giverRoster = creatures
+                .Where(entity => entity.FactionId == specifiedFactionId)
+                .ToArray();
             if (giverRoster.Length == 0)
             {
                 throw new InvalidOperationException(
-                    "The forced giver faction has no eligible candidates in the entity pool."
+                    "The specified giver faction has no eligible candidates in the entity pool."
                 );
             }
-            giverFactionId = forcedFactionId;
+            giverFactionId = specifiedFactionId;
             giverFactionName = giverRoster[0].FactionName;
         }
         else if (useFaction)

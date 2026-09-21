@@ -26,5 +26,9 @@ public static class LocationSimulationServiceCollectionExtensions
             .AddTransient<PlayerMovedFreedCaptiveRelocationEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedFreedCaptiveRelocationEventHandler>()
+            )
+            .AddTransient<QuestCompletedFactionChainSeedEventHandler>()
+            .AddTransient<IDomainEventConsumer<QuestCompletedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<QuestCompletedFactionChainSeedEventHandler>()
             );
 }
