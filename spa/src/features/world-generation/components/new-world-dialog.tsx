@@ -101,9 +101,7 @@ const newWorldFormSchema = z.object({
   cityStates: z.tuple([z.number(), z.number()]),
   ruralStates: z.tuple([z.number(), z.number()]),
   dungeonsPerState: z.tuple([z.number(), z.number()]),
-  factionMembers: z.tuple([z.number(), z.number()]),
   householdSize: z.tuple([z.number(), z.number()]),
-  factionCount: z.number(),
   housesPerCity: z.number(),
 });
 
@@ -127,15 +125,10 @@ const defaultValues = {
     WorldGenerationDefaults.minBuildingsPerState,
     WorldGenerationDefaults.maxBuildingsPerState,
   ] as [number, number],
-  factionMembers: [
-    WorldGenerationDefaults.minFactionMembers,
-    WorldGenerationDefaults.maxFactionMembers,
-  ] as [number, number],
   householdSize: [
     WorldGenerationDefaults.minHouseholdSize,
     WorldGenerationDefaults.maxHouseholdSize,
   ] as [number, number],
-  factionCount: WorldGenerationDefaults.factionCount,
   housesPerCity: WorldGenerationDefaults.housesPerCity,
 };
 
@@ -205,9 +198,6 @@ export function NewWorldDialog() {
             maxRuralStates: value.ruralStates[1],
             minBuildingsPerState: value.dungeonsPerState[0],
             maxBuildingsPerState: value.dungeonsPerState[1],
-            minFactionMembers: value.factionMembers[0],
-            maxFactionMembers: value.factionMembers[1],
-            factionCount: value.factionCount,
             housesPerCity: value.housesPerCity,
             minHouseholdSize: value.householdSize[0],
             maxHouseholdSize: value.householdSize[1],
@@ -547,16 +537,6 @@ export function NewWorldDialog() {
                         />
                       )}
                     </form.Field>
-                    <form.Field name="factionMembers">
-                      {(field) => (
-                        <RangeField
-                          label="Faction Members"
-                          value={field.state.value}
-                          onChange={field.handleChange}
-                          max={20}
-                        />
-                      )}
-                    </form.Field>
                     <form.Field name="householdSize">
                       {(field) => (
                         <RangeField
@@ -568,18 +548,6 @@ export function NewWorldDialog() {
                       )}
                     </form.Field>
 
-                    <form.Field name="factionCount">
-                      {(field) => (
-                        <Field orientation="horizontal">
-                          <FieldLabel htmlFor={field.name}>Factions</FieldLabel>
-                          <NumericStepper
-                            value={field.state.value}
-                            onChange={field.handleChange}
-                            max={30}
-                          />
-                        </Field>
-                      )}
-                    </form.Field>
                     <form.Field name="housesPerCity">
                       {(field) => (
                         <Field orientation="horizontal">
