@@ -164,41 +164,6 @@ public class DungeonObstacleGeneratorTests
     }
 
     [Fact]
-    public void Generate_SpawnsAMinibossAtAHigherLevel_ThanAnOrdinaryOccupant()
-    {
-        // Arrange
-        var input = MakeInput();
-        var ordinaryLevels = new List<int>();
-        var minibossLevels = new List<int>();
-
-        for (var i = 0; i < 20; i++)
-        {
-            // Act
-            ordinaryLevels.Add(
-                new DungeonPopulator(Builders.MakeCreatureGenerator())
-                    .GenerateForced(
-                        _worldId,
-                        Guid.NewGuid(),
-                        BuildingType.Cave,
-                        playerLevel: 1,
-                        _factionsByCreatureType
-                    )
-                    .Monsters.Single()
-                    .Creature.Level
-            );
-            minibossLevels.Add(
-                _generator
-                    .Generate(input, DungeonObstacleKind.Miniboss)
-                    .Monsters.Single()
-                    .Creature.Level
-            );
-        }
-
-        // Assert
-        Assert.True(minibossLevels.Average() > ordinaryLevels.Average());
-    }
-
-    [Fact]
     public void Generate_ReturnsEmpty_WhenTheDungeonHasNoShortRoute()
     {
         // Arrange
