@@ -579,6 +579,7 @@ internal static class Builders
     public static Armor MakeArmor(
         Guid? worldId = null,
         ArmorType type = ArmorType.Chest,
+        ArmorClass armorClass = ArmorClass.Cloth,
         int quantity = 0,
         IReadOnlyCollection<ItemModifier>? modifiers = null
     )
@@ -592,6 +593,7 @@ internal static class Builders
             Quantity = quantity,
             GoldValue = 40,
             Type = type,
+            ArmorClass = armorClass,
             Defense = 10,
             DurabilityMax = 100,
             DurabilityCurrent = 100,

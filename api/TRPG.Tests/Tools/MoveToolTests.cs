@@ -8,6 +8,7 @@ using TRPG.Application.Encounters.Events;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Inventory;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameTurns.Tools;
 using TRPG.Tests.Helpers;
@@ -445,6 +446,50 @@ public sealed class MoveToolTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return innkeeper.Name;
+    }
+
+    [Fact]
+    public async Task Invoke_AdvancesPlaytime_WhenCrossingATravelConnector()
+    {
+        // Arrange — default player has Dexterity 8, so speed is 50 + 8 = 58; 116 / 58 = 2 hours
+        var connector = await _context.LocationConnectors.SingleAsync(
+            c => c.OriginLocationId == _oldLocation.Id,
+            TestContext.Current.CancellationToken
+        );
+        _context.TravelConnectors.Add(
+            Builders.MakeTravelConnector(connector.Id, distance: 116, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var session = await verifyContext.GameSessions.SingleAsync(
+            s => s.PlayerId == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(GameClock.RealTimePerInGameHour * 2, session.Playtime);
+    }
+
+    [Fact]
+    public async Task Invoke_DoesNotAdvancePlaytime_WhenTheConnectorHasNoTravelConnector()
+    {
+        // Arrange
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var session = await verifyContext.GameSessions.SingleAsync(
+            s => s.PlayerId == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(TimeSpan.Zero, session.Playtime);
     }
 
     [Fact]

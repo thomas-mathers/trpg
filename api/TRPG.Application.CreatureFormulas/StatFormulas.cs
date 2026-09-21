@@ -219,6 +219,42 @@ public static class StatFormulas
     private static int Regen(int current, int maximum, float percentPerHour, double elapsedHours) =>
         Math.Min(maximum, current + (int)Math.Round(maximum * percentPerHour * elapsedHours));
 
+    public static float CalculateTravelSpeed(
+        int dexterity,
+        IReadOnlyCollection<Item> equippedItems,
+        bool isSneaking,
+        CreatureGeneratorOptions options
+    )
+    {
+        var dexterityBonus =
+            Math.Min(dexterity, options.MovementSpeedDexterityCap)
+            * options.MovementSpeedPerDexterity;
+        var armorPenalty = equippedItems
+            .OfType<Armor>()
+            .Sum(armor => ArmorMovementPenalty(armor.ArmorClass, options));
+
+        var speed = options.BaseMovementSpeed + dexterityBonus - armorPenalty;
+        if (isSneaking)
+        {
+            speed *= options.SneakSpeedMultiplier;
+        }
+
+        return Math.Max(options.MinimumMovementSpeed, speed);
+    }
+
+    private static float ArmorMovementPenalty(
+        ArmorClass armorClass,
+        CreatureGeneratorOptions options
+    ) =>
+        armorClass switch
+        {
+            ArmorClass.Cloth => options.ClothMovementPenalty,
+            ArmorClass.Leather => options.LeatherMovementPenalty,
+            ArmorClass.Mail => options.MailMovementPenalty,
+            ArmorClass.Plate => options.PlateMovementPenalty,
+            _ => throw new ArgumentOutOfRangeException(nameof(armorClass), armorClass, null),
+        };
+
     public static IReadOnlyCollection<ActiveBuff> ToActiveBuffs(Creature creature) =>
         creature
             .ActiveBuffs.Select(buff => new ActiveBuff
