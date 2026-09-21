@@ -28,6 +28,9 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<StreamTheftEncounterNarrationTurnHandler>()
             .AddTransient<StreamTheftEncounterActionTurnHandler>()
             .AddTransient<StreamCombatActionTurnHandler>()
+            .AddTransient<StreamPurchaseCaravanTicketTurnHandler>()
+            .AddTransient<StreamDeclineCaravanTicketTurnHandler>()
+            .AddTransient<StreamBoardCaravanTurnHandler>()
             .AddTransient<GameTurnRunner>(serviceProvider => new GameTurnRunner(
                 serviceProvider.GetRequiredService<StreamOpeningTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamChatTurnHandler>(),
@@ -46,6 +49,9 @@ public static class GameTurnsServiceCollectionExtensions
                 serviceProvider.GetRequiredService<StreamTrapEncounterActionTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamTheftEncounterNarrationTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamTheftEncounterActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamCombatActionTurnHandler>()
+                serviceProvider.GetRequiredService<StreamCombatActionTurnHandler>(),
+                serviceProvider.GetRequiredService<StreamPurchaseCaravanTicketTurnHandler>(),
+                serviceProvider.GetRequiredService<StreamDeclineCaravanTicketTurnHandler>(),
+                serviceProvider.GetRequiredService<StreamBoardCaravanTurnHandler>()
             ));
 }

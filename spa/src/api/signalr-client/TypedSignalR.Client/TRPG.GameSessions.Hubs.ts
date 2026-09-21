@@ -70,6 +70,24 @@ export type IChatHub = {
     */
     sendDeliverItem(recipientId: string): IStreamResult<string>;
     /**
+    * @param caravanId Transpiled from System.Guid
+    * @param destinationLocationId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendPurchaseCaravanTicket(caravanId: string, destinationLocationId: string): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendDeclineCaravanTicket(): IStreamResult<string>;
+    /**
+    * @param caravanId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendBoardCaravan(caravanId: string): IStreamResult<string>;
+    /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */

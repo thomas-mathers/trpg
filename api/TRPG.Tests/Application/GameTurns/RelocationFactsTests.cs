@@ -91,7 +91,8 @@ public sealed class RelocationFactsTests
             [],
             others.Select(MakeCreature).ToArray(),
             [],
-            null
+            null,
+            []
         );
 
     private static SceneExitInfo MakeExit(string destinationName, bool isLocked) =>

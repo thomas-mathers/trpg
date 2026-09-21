@@ -26,6 +26,7 @@ internal static class SceneSnapshotMapper
                 .NearbyBuildings.Select(building => building.ToSnapshot())
                 .ToArray(),
             NearbyProps: scene.NearbyProps.Select(prop => prop.ToSnapshot()).ToArray(),
-            Exits: scene.Exits.Select(exit => exit.ToSnapshot()).ToArray()
+            Exits: scene.Exits.Select(exit => exit.ToSnapshot()).ToArray(),
+            NearbyCaravans: scene.NearbyCaravans.Select(caravan => caravan.ToSnapshot()).ToArray()
         );
 }

@@ -66,6 +66,8 @@ export type SceneSnapshot = {
     nearbyProps: NearbyPropSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyExitSnapshot> */
     exits: NearbyExitSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyCaravanSnapshot> */
+    nearbyCaravans: NearbyCaravanSnapshot[];
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */
@@ -223,5 +225,31 @@ export type NearbyExitSnapshot = {
     isVisited: boolean;
     /** Transpiled from bool */
     isWayBack: boolean;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.CaravanDestinationSnapshot */
+export type CaravanDestinationSnapshot = {
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from int */
+    travelTimeHours: number;
+    /** Transpiled from bool */
+    hasTicket: boolean;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.NearbyCaravanSnapshot */
+export type NearbyCaravanSnapshot = {
+    /** Transpiled from System.Guid */
+    caravanId: string;
+    /** Transpiled from string */
+    routeName: string;
+    /** Transpiled from int */
+    ticketFeeGold: number;
+    /** Transpiled from int */
+    minutesUntilDeparture: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CaravanDestinationSnapshot> */
+    destinations: CaravanDestinationSnapshot[];
 }
 

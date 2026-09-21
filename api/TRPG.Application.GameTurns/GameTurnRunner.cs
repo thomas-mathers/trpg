@@ -23,6 +23,9 @@ public class GameTurnRunner
     private readonly StreamTheftEncounterNarrationTurnHandler _streamTheftEncounterNarrationTurn;
     private readonly StreamTheftEncounterActionTurnHandler _streamTheftEncounterActionTurn;
     private readonly StreamCombatActionTurnHandler _streamCombatActionTurn;
+    private readonly StreamPurchaseCaravanTicketTurnHandler _streamPurchaseCaravanTicketTurn;
+    private readonly StreamDeclineCaravanTicketTurnHandler _streamDeclineCaravanTicketTurn;
+    private readonly StreamBoardCaravanTurnHandler _streamBoardCaravanTurn;
 
     internal GameTurnRunner(
         StreamOpeningTurnHandler streamOpeningTurn,
@@ -42,7 +45,10 @@ public class GameTurnRunner
         StreamTrapEncounterActionTurnHandler streamTrapEncounterActionTurn,
         StreamTheftEncounterNarrationTurnHandler streamTheftEncounterNarrationTurn,
         StreamTheftEncounterActionTurnHandler streamTheftEncounterActionTurn,
-        StreamCombatActionTurnHandler streamCombatActionTurn
+        StreamCombatActionTurnHandler streamCombatActionTurn,
+        StreamPurchaseCaravanTicketTurnHandler streamPurchaseCaravanTicketTurn,
+        StreamDeclineCaravanTicketTurnHandler streamDeclineCaravanTicketTurn,
+        StreamBoardCaravanTurnHandler streamBoardCaravanTurn
     )
     {
         _streamOpeningTurn = streamOpeningTurn;
@@ -63,6 +69,9 @@ public class GameTurnRunner
         _streamTheftEncounterNarrationTurn = streamTheftEncounterNarrationTurn;
         _streamTheftEncounterActionTurn = streamTheftEncounterActionTurn;
         _streamCombatActionTurn = streamCombatActionTurn;
+        _streamPurchaseCaravanTicketTurn = streamPurchaseCaravanTicketTurn;
+        _streamDeclineCaravanTicketTurn = streamDeclineCaravanTicketTurn;
+        _streamBoardCaravanTurn = streamBoardCaravanTurn;
     }
 
     public IAsyncEnumerable<string> StreamOpening(
@@ -171,4 +180,28 @@ public class GameTurnRunner
         PlayerCombatAction action,
         CancellationToken cancellationToken = default
     ) => _streamCombatActionTurn.Handle(session, action, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamPurchaseCaravanTicket(
+        GameTurnSession session,
+        Guid caravanId,
+        Guid destinationLocationId,
+        CancellationToken cancellationToken = default
+    ) =>
+        _streamPurchaseCaravanTicketTurn.Handle(
+            session,
+            caravanId,
+            destinationLocationId,
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> StreamDeclineCaravanTicket(
+        GameTurnSession session,
+        CancellationToken cancellationToken = default
+    ) => _streamDeclineCaravanTicketTurn.Handle(session, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamBoardCaravan(
+        GameTurnSession session,
+        Guid caravanId,
+        CancellationToken cancellationToken = default
+    ) => _streamBoardCaravanTurn.Handle(session, caravanId, cancellationToken);
 }

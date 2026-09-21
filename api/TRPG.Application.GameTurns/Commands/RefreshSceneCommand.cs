@@ -57,6 +57,7 @@ internal class RefreshSceneCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 CurrentDate = currentDate,
+                Playtime = playtime,
             },
             cancellationToken
         );

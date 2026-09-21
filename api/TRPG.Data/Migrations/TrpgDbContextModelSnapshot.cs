@@ -203,6 +203,157 @@ namespace TRPG.Migrations
                     b.ToTable("building_owners", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Domain.Models.Caravan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CaravanRouteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("caravan_route_id");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("direction");
+
+                    b.Property<double>("PhaseOffsetHours")
+                        .HasColumnType("double precision")
+                        .HasColumnName("phase_offset_hours");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_caravans");
+
+                    b.HasIndex("CaravanRouteId")
+                        .HasDatabaseName("ix_caravans_caravan_route_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_caravans_world_id");
+
+                    b.ToTable("caravans", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.CaravanRoute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double>("LingerHours")
+                        .HasColumnType("double precision")
+                        .HasColumnName("linger_hours");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("TicketFeeGold")
+                        .HasColumnType("integer")
+                        .HasColumnName("ticket_fee_gold");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_caravan_routes");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_caravan_routes_world_id");
+
+                    b.ToTable("caravan_routes", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.CaravanRouteStop", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CaravanRouteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("caravan_route_id");
+
+                    b.Property<float>("DistanceToNextStop")
+                        .HasColumnType("real")
+                        .HasColumnName("distance_to_next_stop");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<int>("SequenceIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("sequence_index");
+
+                    b.HasKey("Id")
+                        .HasName("pk_caravan_route_stops");
+
+                    b.HasIndex("CaravanRouteId")
+                        .HasDatabaseName("ix_caravan_route_stops_caravan_route_id");
+
+                    b.HasIndex("CaravanRouteId", "SequenceIndex")
+                        .IsUnique()
+                        .HasDatabaseName("ix_caravan_route_stops_caravan_route_id_sequence_index");
+
+                    b.ToTable("caravan_route_stops", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.CaravanTicket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CaravanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("caravan_id");
+
+                    b.Property<Guid>("CreatureId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creature_id");
+
+                    b.Property<Guid>("DestinationLocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("destination_location_id");
+
+                    b.Property<Guid>("OriginStopLocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("origin_stop_location_id");
+
+                    b.Property<TimeSpan>("PurchasedAtPlaytime")
+                        .HasColumnType("interval")
+                        .HasColumnName("purchased_at_playtime");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_caravan_tickets");
+
+                    b.HasIndex("CaravanId")
+                        .HasDatabaseName("ix_caravan_tickets_caravan_id");
+
+                    b.HasIndex("CreatureId")
+                        .HasDatabaseName("ix_caravan_tickets_creature_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_caravan_tickets_world_id");
+
+                    b.ToTable("caravan_tickets", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Domain.Models.ChatMessage", b =>
                 {
                     b.Property<Guid>("Id")

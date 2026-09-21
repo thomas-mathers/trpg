@@ -293,6 +293,9 @@ function WorkbenchProviders({
     sendDeclineQuest: noopStream,
     sendCompleteQuest: noopStream,
     sendDeliverItem: noopStream,
+    sendPurchaseCaravanTicket: noopStream,
+    sendDeclineCaravanTicket: noopStream,
+    sendBoardCaravan: noopStream,
     sendFlee: resolveFlee,
     sendRespawn: noopStream,
     resolveUseAbilityCombatAction: (targetId, abilityName) =>

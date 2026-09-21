@@ -124,6 +124,18 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("SendDeliverItem", recipientId);
     }
 
+    public readonly sendPurchaseCaravanTicket = (caravanId: string, destinationLocationId: string): IStreamResult<string> => {
+        return this.connection.stream("SendPurchaseCaravanTicket", caravanId, destinationLocationId);
+    }
+
+    public readonly sendDeclineCaravanTicket = (): IStreamResult<string> => {
+        return this.connection.stream("SendDeclineCaravanTicket");
+    }
+
+    public readonly sendBoardCaravan = (caravanId: string): IStreamResult<string> => {
+        return this.connection.stream("SendBoardCaravan", caravanId);
+    }
+
     public readonly sendFlee = (): IStreamResult<string> => {
         return this.connection.stream("SendFlee");
     }

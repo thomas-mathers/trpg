@@ -1,4 +1,8 @@
+using Microsoft.Extensions.Options;
+using TRPG.Application.Caravans;
+using TRPG.Application.Caravans.Queries;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
@@ -20,6 +24,7 @@ public class GetSceneQuery
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required InGameDate CurrentDate { get; init; }
+    public required TimeSpan Playtime { get; init; }
 }
 
 internal record SceneLocationData(
@@ -76,7 +81,15 @@ internal class GetSceneQueryHandler(
         GetTradeWorkstationIdsByOccupantIdsQuery,
         IReadOnlyDictionary<Guid, Guid?>
     > getTradeWorkstationIdsByOccupantIds,
-    IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?> getWeatherByStateId
+    IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?> getWeatherByStateId,
+    IQueryHandler<
+        GetCaravansByLocationIdQuery,
+        IReadOnlyList<CaravanSummary>
+    > getCaravansByLocationId,
+    IQueryHandler<ResolveCaravanPositionQuery, CaravanPosition?> resolveCaravanPosition,
+    IQueryHandler<GetCaravanTicketQuery, CaravanTicket?> getCaravanTicket,
+    IQueryHandler<GetCitiesByIdsQuery, IReadOnlyDictionary<Guid, City>> getCitiesByIds,
+    IOptionsSnapshot<CaravanOptions> caravanOptions
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -121,6 +134,13 @@ internal class GetSceneQueryHandler(
                     cancellationToken
                 )
                 : null;
+        var nearbyCaravans = await BuildNearbyCaravans(
+            query.WorldId,
+            query.PlayerId,
+            player.LocationId,
+            query.Playtime,
+            cancellationToken
+        );
 
         return new SceneResult(
             query.WorldId,
@@ -141,8 +161,200 @@ internal class GetSceneQueryHandler(
             details.NearbyProps,
             nearbyPeople,
             details.NearbyBuildings,
-            weather
+            weather,
+            nearbyCaravans
         );
+    }
+
+    private async Task<IReadOnlyCollection<SceneCaravanInfo>> BuildNearbyCaravans(
+        Guid worldId,
+        Guid playerId,
+        Guid playerLocationId,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    )
+    {
+        var lingeringCaravans = await ResolveLingeringCaravans(
+            worldId,
+            playerId,
+            playerLocationId,
+            playtime,
+            cancellationToken
+        );
+        if (lingeringCaravans.Count == 0)
+        {
+            return [];
+        }
+
+        var destinationLocationIds = lingeringCaravans
+            .SelectMany(entry => entry.Caravan.Stops.Select(stop => stop.LocationId))
+            .Distinct()
+            .ToArray();
+        var namesByLocationId = await ResolveCaravanStopNames(
+            destinationLocationIds,
+            cancellationToken
+        );
+
+        var result = new List<SceneCaravanInfo>();
+        foreach (var (caravan, position) in lingeringCaravans)
+        {
+            var ticket = await getCaravanTicket.Handle(
+                new GetCaravanTicketQuery { CreatureId = playerId, CaravanId = caravan.CaravanId },
+                cancellationToken
+            );
+
+            var destinations = BuildCaravanDestinations(
+                caravan,
+                position.StopIndex,
+                ticket,
+                namesByLocationId
+            );
+            result.Add(
+                new SceneCaravanInfo(
+                    caravan.CaravanId,
+                    caravan.RouteName,
+                    caravan.TicketFeeGold,
+                    (int)Math.Ceiling(position.HoursUntilDeparture * 60),
+                    destinations
+                )
+            );
+        }
+
+        return result;
+    }
+
+    private async Task<
+        List<(CaravanSummary Caravan, CaravanPosition.Lingering Position)>
+    > ResolveLingeringCaravans(
+        Guid worldId,
+        Guid playerId,
+        Guid playerLocationId,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    )
+    {
+        var caravans = await getCaravansByLocationId.Handle(
+            new GetCaravansByLocationIdQuery { WorldId = worldId, LocationId = playerLocationId },
+            cancellationToken
+        );
+
+        var lingering = new List<(CaravanSummary, CaravanPosition.Lingering)>();
+        foreach (var caravan in caravans)
+        {
+            var position = await resolveCaravanPosition.Handle(
+                new ResolveCaravanPositionQuery
+                {
+                    CaravanId = caravan.CaravanId,
+                    Playtime = playtime,
+                },
+                cancellationToken
+            );
+            if (
+                position is CaravanPosition.Lingering atThisStop
+                && atThisStop.LocationId == playerLocationId
+            )
+            {
+                lingering.Add((caravan, atThisStop));
+                continue;
+            }
+
+            // A ticketed player standing right here shouldn't see the caravan vanish just because
+            // ordinary narration-time overhead (every narrated turn advances playtime a little)
+            // nudged its live position past the strict window — BoardCaravanCommand honors the
+            // same ticket regardless of this drift, so the scene has to agree.
+            var ticket = await getCaravanTicket.Handle(
+                new GetCaravanTicketQuery { CreatureId = playerId, CaravanId = caravan.CaravanId },
+                cancellationToken
+            );
+            if (ticket != null && ticket.OriginStopLocationId == playerLocationId)
+            {
+                var stopIndex = caravan
+                    .Stops.ToList()
+                    .FindIndex(stop => stop.LocationId == playerLocationId);
+                lingering.Add(
+                    (
+                        caravan,
+                        new CaravanPosition.Lingering(
+                            playerLocationId,
+                            stopIndex,
+                            HoursUntilDeparture: 0
+                        )
+                    )
+                );
+            }
+        }
+
+        return lingering;
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, string>> ResolveCaravanStopNames(
+        IReadOnlyCollection<Guid> locationIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var locations = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = locationIds },
+            cancellationToken
+        );
+        var districtIds = locations
+            .Values.Select(location => location.DistrictId)
+            .OfType<Guid>()
+            .ToArray();
+        var districts = await getDistrictsByIds.Handle(
+            new GetDistrictsByIdsQuery { Ids = districtIds },
+            cancellationToken
+        );
+        var cityIds = districts.Values.Select(district => district.CityId).Distinct().ToArray();
+        var cities = await getCitiesByIds.Handle(
+            new GetCitiesByIdsQuery { Ids = cityIds },
+            cancellationToken
+        );
+
+        // A caravan stop's location is a CityEntrance district — its own name is a generic gate
+        // name reused across many cities (e.g. "The Outer Gate"), so the destination the player
+        // actually cares about is the city it belongs to, not the district.
+        return locationIds.ToDictionary(
+            id => id,
+            id =>
+                locations.TryGetValue(id, out var location)
+                && location.DistrictId is { } districtId
+                && districts.TryGetValue(districtId, out var district)
+                    ? cities.GetValueOrDefault(district.CityId)?.Name ?? "Unknown"
+                    : "Unknown"
+        );
+    }
+
+    private IReadOnlyCollection<SceneCaravanDestination> BuildCaravanDestinations(
+        CaravanSummary caravan,
+        int currentStopIndex,
+        CaravanTicket? ticket,
+        IReadOnlyDictionary<Guid, string> namesByLocationId
+    )
+    {
+        var destinations = new List<SceneCaravanDestination>();
+        for (var offset = 1; offset < caravan.Stops.Count; offset++)
+        {
+            var destinationIndex = (currentStopIndex + offset) % caravan.Stops.Count;
+            var destinationLocationId = caravan.Stops[destinationIndex].LocationId;
+            var travelTimeHours = CaravanCycle.HoursBetween(
+                caravan.Stops,
+                caravan.LingerHours,
+                caravanOptions.Value.SpeedUnitsPerHour,
+                currentStopIndex,
+                destinationIndex
+            );
+
+            destinations.Add(
+                new SceneCaravanDestination(
+                    destinationLocationId,
+                    namesByLocationId.GetValueOrDefault(destinationLocationId, "Unknown"),
+                    (int)Math.Ceiling(travelTimeHours),
+                    ticket?.DestinationLocationId == destinationLocationId
+                )
+            );
+        }
+
+        return destinations;
     }
 
     private async Task<SceneCreatureInfo> BuildPlayerCreatureInfo(

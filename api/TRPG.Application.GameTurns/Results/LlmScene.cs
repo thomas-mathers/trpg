@@ -35,6 +35,13 @@ public record LlmSceneProp(string Name, string Description, string Type);
 
 public record LlmSceneNearbyBuilding(string Name, BuildingType Type);
 
+public record LlmSceneCaravan(
+    string RouteName,
+    int TicketFeeGold,
+    int MinutesUntilDeparture,
+    IReadOnlyCollection<string> DestinationNames
+);
+
 public record LlmScenePlayer(
     string Name,
     CreatureType CreatureType,
@@ -79,5 +86,6 @@ public record LlmScene(
     IReadOnlyCollection<LlmSceneProp> NearbyProps,
     IReadOnlyCollection<LlmSceneCreature> NearbyCreatures,
     IReadOnlyCollection<LlmSceneNearbyBuilding> NearbyBuildings,
-    WeatherCondition? Weather
+    WeatherCondition? Weather,
+    IReadOnlyCollection<LlmSceneCaravan> NearbyCaravans
 );

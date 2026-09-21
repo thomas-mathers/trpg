@@ -32,6 +32,7 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
     exits: [],
     nearbyBuildings: [],
     nearbyProps: [],
+    nearbyCaravans: [],
     nearbyCreatures: [
       {
         id: 'merchant-id',
@@ -319,5 +320,39 @@ describe('NearbyPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Sleep' })).toBeVisible();
     expect(screen.getByLabelText('Sleep until')).toBeVisible();
+  });
+
+  it('does not show a Caravans section when no caravan is nearby', () => {
+    renderPanel(scene(undefined));
+
+    expect(screen.queryByText('Caravans')).not.toBeInTheDocument();
+  });
+
+  it('opens the caravan dialog for a lingering caravan', async () => {
+    const sceneWithCaravan = {
+      ...scene(undefined),
+      nearbyCaravans: [
+        {
+          caravanId: 'caravan-id',
+          routeName: 'The Capital Circuit',
+          ticketFeeGold: 10,
+          minutesUntilDeparture: 15,
+          destinations: [
+            {
+              locationId: 'destination-id',
+              locationName: 'Stonebridge',
+              travelTimeHours: 4,
+              hasTicket: false,
+            },
+          ],
+        },
+      ],
+    } as unknown as SceneSnapshot;
+    const { user } = renderPanel(sceneWithCaravan);
+
+    await user.click(screen.getByRole('button', { name: 'The Capital Circuit' }));
+
+    expect(await screen.findByRole('heading', { name: 'The Capital Circuit' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Buy ticket' })).toBeVisible();
   });
 });
