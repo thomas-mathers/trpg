@@ -116,17 +116,25 @@ public static class FactionRosterGenerator
                 worldId,
                 FactionNames.BrokenToll,
                 "Human raiders who prey on trade roads.",
-                FactionKind.Wilderness
+                FactionKind.Wilderness,
+                creatureType: CreatureType.Human
             )
         );
 
-    private static Faction Make(Guid worldId, string name, string description, FactionKind kind) =>
+    private static Faction Make(
+        Guid worldId,
+        string name,
+        string description,
+        FactionKind kind,
+        CreatureType? creatureType = null
+    ) =>
         new()
         {
             WorldId = worldId,
             Name = name,
             Description = description,
             Kind = kind,
+            CreatureType = creatureType,
             Aggression = kind == FactionKind.Antagonist ? 70 : 0,
             ReputationSensitivity = kind == FactionKind.Antagonist ? 50 : 0,
             RiskAversion = kind == FactionKind.Antagonist ? 35 : 0,
