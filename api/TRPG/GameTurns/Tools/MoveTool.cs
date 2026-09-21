@@ -188,6 +188,7 @@ internal class MoveTool(
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
                 CurrentDate = GameClock.GetCurrentInGameDate(arrivalPlaytime),
+                Playtime = arrivalPlaytime,
             },
             cancellationToken
         );
@@ -244,6 +245,7 @@ internal class MoveTool(
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
                 CurrentDate = GameClock.GetCurrentInGameDate(playtime),
+                Playtime = playtime,
             },
             cancellationToken
         );

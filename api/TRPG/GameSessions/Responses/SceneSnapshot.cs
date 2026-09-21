@@ -182,7 +182,8 @@ public record SceneSnapshot(
     IReadOnlyCollection<CreatureStatusSnapshot> NearbyCreatures,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
-    IReadOnlyCollection<NearbyExitSnapshot> Exits
+    IReadOnlyCollection<NearbyExitSnapshot> Exits,
+    IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans
 );
 
 [TranspilationSource]
@@ -277,4 +278,21 @@ public record NearbyExitSnapshot(
     CompassDirection? Direction,
     bool IsVisited,
     bool IsWayBack
+);
+
+[TranspilationSource]
+public record CaravanDestinationSnapshot(
+    Guid LocationId,
+    string LocationName,
+    int TravelTimeHours,
+    bool HasTicket
+);
+
+[TranspilationSource]
+public record NearbyCaravanSnapshot(
+    Guid CaravanId,
+    string RouteName,
+    int TicketFeeGold,
+    int MinutesUntilDeparture,
+    IReadOnlyCollection<CaravanDestinationSnapshot> Destinations
 );

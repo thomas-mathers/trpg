@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -62,6 +63,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -80,6 +82,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -106,6 +109,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -125,6 +129,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -151,6 +156,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -170,6 +176,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = currentDate,
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -226,6 +233,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -268,6 +276,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -313,6 +322,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -342,6 +352,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -370,6 +381,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -405,6 +417,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -438,6 +451,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -470,6 +484,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -502,6 +517,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -544,6 +560,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -588,6 +605,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
         };
 
         // Act
@@ -596,5 +614,136 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         // Assert
         Assert.Contains(result.NearbyBuildings, b => b.Name == building.Name);
         Assert.Empty(result.Exits);
+    }
+
+    [Fact]
+    public async Task Handle_IncludesTheCaravan_WhenItIsLingeringAtThePlayerLocation()
+    {
+        // Arrange
+        var destinationLocationId = Guid.NewGuid();
+        var caravan = await SeedCaravanAtPlayerLocation(destinationLocationId);
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var caravanInfo = Assert.Single(result.NearbyCaravans);
+        Assert.Equal(caravan.Id, caravanInfo.CaravanId);
+        Assert.Equal(15, caravanInfo.TicketFeeGold);
+        var destination = Assert.Single(caravanInfo.Destinations);
+        Assert.Equal(destinationLocationId, destination.LocationId);
+        Assert.Equal("Faraway City", destination.LocationName);
+        Assert.False(destination.HasTicket);
+    }
+
+    [Fact]
+    public async Task Handle_ExcludesTheCaravan_WhenItIsInTransit()
+    {
+        // Arrange
+        await SeedCaravanAtPlayerLocation(Guid.NewGuid());
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = GameClock.RealTimePerInGameHour * 2,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(result.NearbyCaravans);
+    }
+
+    [Fact]
+    public async Task Handle_StillIncludesTheCaravan_WhenThePlayerHoldsATicketDespiteTimeDrift()
+    {
+        // Arrange — the live position looks departed (same elapsed time as the "excludes" case
+        // above), but the player bought a ticket while it was actually here and never left.
+        var destinationLocationId = Guid.NewGuid();
+        var caravan = await SeedCaravanAtPlayerLocation(destinationLocationId);
+        _context.CaravanTickets.Add(
+            Builders.MakeCaravanTicket(
+                caravan.Id,
+                _player.Id,
+                _player.LocationId,
+                destinationLocationId,
+                purchasedAtPlaytime: TimeSpan.Zero
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = GameClock.RealTimePerInGameHour * 2,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var caravanInfo = Assert.Single(result.NearbyCaravans);
+        Assert.Equal(caravan.Id, caravanInfo.CaravanId);
+        var destination = Assert.Single(caravanInfo.Destinations);
+        Assert.True(destination.HasTicket);
+    }
+
+    private async Task<Caravan> SeedCaravanAtPlayerLocation(Guid destinationLocationId)
+    {
+        var destinationCity = Builders.MakeCity(
+            _state.Id,
+            Guid.NewGuid(),
+            name: "Faraway City",
+            worldId: WorldId
+        );
+        var destinationDistrictId = Guid.NewGuid();
+        var destinationLocation = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: destinationDistrictId,
+            id: destinationLocationId
+        );
+        var destinationDistrict = Builders.MakeDistrict(
+            destinationCity.Id,
+            name: "The Outer Gate",
+            worldId: WorldId,
+            id: destinationDistrictId,
+            locationId: destinationLocationId
+        );
+
+        var route = Builders.MakeCaravanRoute(WorldId, ticketFeeGold: 15, lingerHours: 1);
+        var stopHere = Builders.MakeCaravanRouteStop(
+            route.Id,
+            0,
+            _player.LocationId,
+            distanceToNextStop: 10
+        );
+        var stopThere = Builders.MakeCaravanRouteStop(
+            route.Id,
+            1,
+            destinationLocationId,
+            distanceToNextStop: 10
+        );
+        var caravan = Builders.MakeCaravan(route.Id, WorldId);
+
+        _context.Cities.Add(destinationCity);
+        _context.Locations.Add(destinationLocation);
+        _context.Districts.Add(destinationDistrict);
+        _context.CaravanRoutes.Add(route);
+        _context.CaravanRouteStops.AddRange(stopHere, stopThere);
+        _context.Caravans.Add(caravan);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return caravan;
     }
 }

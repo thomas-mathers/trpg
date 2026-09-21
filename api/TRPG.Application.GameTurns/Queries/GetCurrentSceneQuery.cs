@@ -27,6 +27,7 @@ internal class GetCurrentSceneQueryHandler(IQueryHandler<GetSceneQuery, SceneRes
                 WorldId = query.WorldId,
                 PlayerId = query.PlayerId,
                 CurrentDate = currentDate,
+                Playtime = query.Playtime,
             },
             cancellationToken
         );

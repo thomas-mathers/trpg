@@ -104,6 +104,13 @@ export type BookPageResponse = {
 
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
+export type CaravanDestinationSnapshot = {
+    locationId: string;
+    locationName: string;
+    travelTimeHours: number;
+    hasTicket: boolean;
+};
+
 export type CityMapResponse = {
     id: string;
     stateId: string;
@@ -637,6 +644,14 @@ export type NearbyBuildingSnapshot = {
     typeDescription: string;
 };
 
+export type NearbyCaravanSnapshot = {
+    caravanId: string;
+    routeName: string;
+    ticketFeeGold: number;
+    minutesUntilDeparture: number;
+    destinations: Array<CaravanDestinationSnapshot>;
+};
+
 export type NearbyCorpseSummary = {
     id: string;
     name: string;
@@ -824,6 +839,7 @@ export type SceneSnapshot = {
     nearbyBuildings: Array<NearbyBuildingSnapshot>;
     nearbyProps: Array<NearbyPropSnapshot>;
     exits: Array<NearbyExitSnapshot>;
+    nearbyCaravans: Array<NearbyCaravanSnapshot>;
 };
 
 export type SessionCreatedResponse = {

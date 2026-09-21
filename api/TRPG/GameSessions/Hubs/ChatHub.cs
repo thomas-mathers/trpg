@@ -35,6 +35,13 @@ public interface IChatHub
     IAsyncEnumerable<string> SendDeclineQuest(Guid questId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendCompleteQuest(Guid questId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendDeliverItem(Guid recipientId, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendPurchaseCaravanTicket(
+        Guid caravanId,
+        Guid destinationLocationId,
+        CancellationToken cancellationToken
+    );
+    IAsyncEnumerable<string> SendDeclineCaravanTicket(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendBoardCaravan(Guid caravanId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendRespawn(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveUseAbilityCombatAction(
@@ -179,6 +186,26 @@ internal sealed class ChatHub(
         Guid recipientId,
         CancellationToken cancellationToken
     ) => gameTurnRunner.StreamDeliverItem(Session, recipientId, cancellationToken);
+
+    public IAsyncEnumerable<string> SendPurchaseCaravanTicket(
+        Guid caravanId,
+        Guid destinationLocationId,
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamPurchaseCaravanTicket(
+            Session,
+            caravanId,
+            destinationLocationId,
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> SendDeclineCaravanTicket(CancellationToken cancellationToken) =>
+        gameTurnRunner.StreamDeclineCaravanTicket(Session, cancellationToken);
+
+    public IAsyncEnumerable<string> SendBoardCaravan(
+        Guid caravanId,
+        CancellationToken cancellationToken
+    ) => gameTurnRunner.StreamBoardCaravan(Session, caravanId, cancellationToken);
 
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
         gameTurnRunner.StreamFlee(Session, cancellationToken);

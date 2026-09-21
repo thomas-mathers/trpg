@@ -91,6 +91,21 @@ public record SceneCreatureInfo(
 
 public record SceneNearbyBuildingInfo(Guid Id, string Name, BuildingType Type);
 
+public record SceneCaravanDestination(
+    Guid LocationId,
+    string LocationName,
+    int TravelTimeHours,
+    bool HasTicket
+);
+
+public record SceneCaravanInfo(
+    Guid CaravanId,
+    string RouteName,
+    int TicketFeeGold,
+    int MinutesUntilDeparture,
+    IReadOnlyCollection<SceneCaravanDestination> Destinations
+);
+
 public record SceneResult(
     Guid WorldId,
     SceneDateInfo CurrentDate,
@@ -104,5 +119,6 @@ public record SceneResult(
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneCreatureInfo> NearbyCreatures,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
-    WeatherCondition? Weather
+    WeatherCondition? Weather,
+    IReadOnlyCollection<SceneCaravanInfo> NearbyCaravans
 );

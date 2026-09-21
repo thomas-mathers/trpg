@@ -30,6 +30,7 @@ const scene = {
   exits: [],
   nearbyBuildings: [],
   nearbyProps: [{ id: 'chest-id', name: 'Wooden Chest', description: '', type: 'Container' }],
+  nearbyCaravans: [],
   nearbyCreatures: [],
   playerStatus: { id: 'player-id', level: 1 },
 } as unknown as SceneSnapshot;

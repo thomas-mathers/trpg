@@ -21,7 +21,8 @@ public static class LlmSceneMapper
             scene.NearbyProps.Select(prop => prop.ToLlmSceneProp()).ToArray(),
             scene.NearbyCreatures.Select(creature => creature.ToLlmSceneCreature()).ToArray(),
             scene.NearbyBuildings.Select(building => building.ToLlmSceneNearbyBuilding()).ToArray(),
-            scene.Weather
+            scene.Weather,
+            scene.NearbyCaravans.Select(caravan => caravan.ToLlmSceneCaravan()).ToArray()
         );
 
     private static LlmSceneDate ToLlmSceneDate(this SceneDateInfo date) =>
@@ -56,6 +57,14 @@ public static class LlmSceneMapper
     private static LlmSceneNearbyBuilding ToLlmSceneNearbyBuilding(
         this SceneNearbyBuildingInfo building
     ) => new(building.Name, building.Type);
+
+    private static LlmSceneCaravan ToLlmSceneCaravan(this SceneCaravanInfo caravan) =>
+        new(
+            caravan.RouteName,
+            caravan.TicketFeeGold,
+            caravan.MinutesUntilDeparture,
+            caravan.Destinations.Select(destination => destination.LocationName).ToArray()
+        );
 
     private static LlmScenePlayer ToLlmScenePlayer(this SceneCreatureInfo creature) =>
         new(

@@ -62,7 +62,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         ICrimesDbContext,
         ILocationSimulationDbContext,
         IRoomBookingsDbContext,
-        IBooksDbContext
+        IBooksDbContext,
+        ICaravansDbContext
 {
     public DbSet<DungeonExpedition> DungeonExpeditions => Set<DungeonExpedition>();
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
@@ -122,6 +123,10 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         Set<QuestChainGenerationRequest>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
     public DbSet<WeatherState> WeatherStates => Set<WeatherState>();
+    public DbSet<CaravanRoute> CaravanRoutes => Set<CaravanRoute>();
+    public DbSet<CaravanRouteStop> CaravanRouteStops => Set<CaravanRouteStop>();
+    public DbSet<Caravan> Caravans => Set<Caravan>();
+    public DbSet<CaravanTicket> CaravanTickets => Set<CaravanTicket>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -669,6 +674,30 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.HasIndex(w => w.WorldId);
             entity.HasIndex(w => w.StateId).IsUnique();
+        });
+
+        modelBuilder.Entity<CaravanRoute>(entity =>
+        {
+            entity.HasIndex(r => r.WorldId);
+        });
+
+        modelBuilder.Entity<CaravanRouteStop>(entity =>
+        {
+            entity.HasIndex(s => s.CaravanRouteId);
+            entity.HasIndex(s => new { s.CaravanRouteId, s.SequenceIndex }).IsUnique();
+        });
+
+        modelBuilder.Entity<Caravan>(entity =>
+        {
+            entity.HasIndex(c => c.WorldId);
+            entity.HasIndex(c => c.CaravanRouteId);
+        });
+
+        modelBuilder.Entity<CaravanTicket>(entity =>
+        {
+            entity.HasIndex(t => t.WorldId);
+            entity.HasIndex(t => t.CaravanId);
+            entity.HasIndex(t => t.CreatureId);
         });
 
         modelBuilder.Entity<World>().HasIndex(w => w.Name).IsUnique();

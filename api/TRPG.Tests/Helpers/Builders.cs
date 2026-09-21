@@ -1410,4 +1410,64 @@ internal static class Builders
             CombatantIds = combatantIds.ToList(),
         };
     }
+
+    public static CaravanRoute MakeCaravanRoute(
+        Guid? worldId = null,
+        string name = "The Capital Circuit",
+        int ticketFeeGold = 10,
+        double lingerHours = 1
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = name,
+            TicketFeeGold = ticketFeeGold,
+            LingerHours = lingerHours,
+        };
+
+    public static CaravanRouteStop MakeCaravanRouteStop(
+        Guid caravanRouteId,
+        int sequenceIndex,
+        Guid locationId,
+        float distanceToNextStop = 10
+    ) =>
+        new()
+        {
+            CaravanRouteId = caravanRouteId,
+            SequenceIndex = sequenceIndex,
+            LocationId = locationId,
+            DistanceToNextStop = distanceToNextStop,
+        };
+
+    public static Caravan MakeCaravan(
+        Guid caravanRouteId,
+        Guid? worldId = null,
+        double phaseOffsetHours = 0,
+        CaravanDirection direction = CaravanDirection.Clockwise
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            CaravanRouteId = caravanRouteId,
+            PhaseOffsetHours = phaseOffsetHours,
+            Direction = direction,
+        };
+
+    public static CaravanTicket MakeCaravanTicket(
+        Guid caravanId,
+        Guid creatureId,
+        Guid originStopLocationId,
+        Guid destinationLocationId,
+        Guid? worldId = null,
+        TimeSpan purchasedAtPlaytime = default
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            CaravanId = caravanId,
+            CreatureId = creatureId,
+            OriginStopLocationId = originStopLocationId,
+            DestinationLocationId = destinationLocationId,
+            PurchasedAtPlaytime = purchasedAtPlaytime,
+        };
 }

@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.WorldGeneration.Mappers;
@@ -26,7 +28,8 @@ public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
-    ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld
+    ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld,
+    IOptionsSnapshot<CaravanOptions> caravanOptions
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
     public async Task<CreateWorldResult> Handle(
@@ -104,6 +107,8 @@ internal class CreateWorldCommandHandler(
             })
             .ToArray();
 
+        var caravanRoutes = CaravanRouteSeeder.Seed(worldResult, caravanOptions.Value);
+
         var bootstrapResult = await bootstrapWorld.Handle(
             new BootstrapWorldCommand
             {
@@ -112,6 +117,9 @@ internal class CreateWorldCommandHandler(
                 Quests = quests,
                 PlayerReputations = monsterReputations,
                 QuestSeedSchedules = questSeedSchedules,
+                CaravanRoute = caravanRoutes.Route,
+                CaravanRouteStops = caravanRoutes.Stops,
+                Caravans = caravanRoutes.Caravans,
             },
             cancellationToken
         );
