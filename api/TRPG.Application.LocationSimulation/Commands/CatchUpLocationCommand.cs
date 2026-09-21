@@ -43,6 +43,7 @@ internal class CatchUpLocationCommandHandler(
     ICommandHandler<SyncCreatureSpawnerCommand> syncCreatureSpawner,
     ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy,
     ICommandHandler<SyncQuestSeedScheduleCommand> syncQuestSeedSchedule,
+    ICommandHandler<SyncWeatherCommand> syncWeather,
     LocationCatchUpCache catchUpCache
 ) : ICommandHandler<CatchUpLocationCommand, bool>
 {
@@ -99,6 +100,7 @@ internal class CatchUpLocationCommandHandler(
         await SynchronizeCreatureSpawner(command, cancellationToken);
         await SynchronizeRestockPolicy(command, cancellationToken);
         await SynchronizeQuestSeedSchedule(command, cancellationToken);
+        await SynchronizeWeather(command, location, cancellationToken);
     }
 
     // Creatures whose job targets this location and creatures already standing in its district
@@ -195,6 +197,23 @@ internal class CatchUpLocationCommandHandler(
                 PlayerId = command.PlayerId,
                 LocationId = command.LocationId,
                 PlayerLevel = command.PlayerLevel,
+                CurrentPlaytime = command.Playtime,
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task SynchronizeWeather(
+        CatchUpLocationCommand command,
+        Location location,
+        CancellationToken cancellationToken
+    )
+    {
+        await syncWeather.Handle(
+            new SyncWeatherCommand
+            {
+                WorldId = command.WorldId,
+                StateId = location.StateId,
                 CurrentPlaytime = command.Playtime,
             },
             cancellationToken

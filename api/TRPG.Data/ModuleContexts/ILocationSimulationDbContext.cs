@@ -9,4 +9,5 @@ public interface ILocationSimulationDbContext : ITrpgDbContext
     DbSet<RestockPolicy> RestockPolicies { get; }
     DbSet<QuestSeedSchedule> QuestSeedSchedules { get; }
     DbSet<QuestChainGenerationRequest> QuestChainGenerationRequests { get; }
+    DbSet<WeatherState> WeatherStates { get; }
 }

@@ -34,4 +34,28 @@ public class GameClockTests
         // Assert
         Assert.Equal(TimeSpan.FromHours(5), after - before);
     }
+
+    [Theory]
+    [InlineData(1, Season.Winter)] // Frostwane
+    [InlineData(2, Season.Winter)] // Coldmere
+    [InlineData(3, Season.Spring)] // Thawmoon
+    [InlineData(5, Season.Spring)] // Bloomrise
+    [InlineData(6, Season.Summer)] // Suncrest
+    [InlineData(8, Season.Summer)] // Emberfall
+    [InlineData(9, Season.Autumn)] // Harvestide
+    [InlineData(11, Season.Autumn)] // Graytide
+    [InlineData(12, Season.Winter)] // Hearthwane
+    public void GetCurrentSeason_MapsTheMonthToItsSeason(int month, Season expected)
+    {
+        // Arrange - the 15th of each month sits safely away from any month-boundary rounding
+        var epoch = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero);
+        var target = new DateTime(epoch.Year, month, 15, epoch.Hour, epoch.Minute, epoch.Second);
+        var bankedPlaytime = (target - epoch).TotalHours * GameClock.RealTimePerInGameHour;
+
+        // Act
+        var season = GameClock.GetCurrentSeason(bankedPlaytime);
+
+        // Assert
+        Assert.Equal(expected, season);
+    }
 }

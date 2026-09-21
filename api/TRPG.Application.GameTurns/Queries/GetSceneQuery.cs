@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Results;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Knowledge.Queries;
+using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
@@ -74,7 +75,8 @@ internal class GetSceneQueryHandler(
     IQueryHandler<
         GetTradeWorkstationIdsByOccupantIdsQuery,
         IReadOnlyDictionary<Guid, Guid?>
-    > getTradeWorkstationIdsByOccupantIds
+    > getTradeWorkstationIdsByOccupantIds,
+    IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?> getWeatherByStateId
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -112,6 +114,13 @@ internal class GetSceneQueryHandler(
                 ? await BuildIndoorScene(player, cancellationToken)
                 : await BuildOutdoorScene(player, state, cancellationToken);
         var playerCreatureInfo = await BuildPlayerCreatureInfo(query, player, cancellationToken);
+        var weather =
+            player.RoomId == null
+                ? await getWeatherByStateId.Handle(
+                    new GetWeatherByStateIdQuery { StateId = player.StateId },
+                    cancellationToken
+                )
+                : null;
 
         return new SceneResult(
             query.WorldId,
@@ -131,7 +140,8 @@ internal class GetSceneQueryHandler(
             exitInfos,
             details.NearbyProps,
             nearbyPeople,
-            details.NearbyBuildings
+            details.NearbyBuildings,
+            weather
         );
     }
 

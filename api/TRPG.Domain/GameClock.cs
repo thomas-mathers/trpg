@@ -3,6 +3,14 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Domain;
 
+public enum Season
+{
+    Winter,
+    Spring,
+    Summer,
+    Autumn,
+}
+
 public static class GameClock
 {
     public const int EpochYear = 975;
@@ -52,6 +60,25 @@ public static class GameClock
     {
         return CalendarFormat.DayNames[(int)day];
     }
+
+    private static readonly Season[] MonthSeasons =
+    [
+        Season.Winter,
+        Season.Winter,
+        Season.Spring,
+        Season.Spring,
+        Season.Spring,
+        Season.Summer,
+        Season.Summer,
+        Season.Summer,
+        Season.Autumn,
+        Season.Autumn,
+        Season.Autumn,
+        Season.Winter,
+    ];
+
+    public static Season GetCurrentSeason(TimeSpan bankedPlaytime) =>
+        MonthSeasons[GetCurrentInGameDateTime(bankedPlaytime).Month - 1];
 
     public static InGameDate GetCurrentInGameDate(TimeSpan bankedPlaytime)
     {

@@ -90,7 +90,8 @@ public sealed class RelocationFactsTests
             exits ?? [],
             [],
             others.Select(MakeCreature).ToArray(),
-            []
+            [],
+            null
         );
 
     private static SceneExitInfo MakeExit(string destinationName, bool isLocked) =>
