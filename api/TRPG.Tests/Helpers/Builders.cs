@@ -674,7 +674,8 @@ internal static class Builders
         Guid giverId,
         Guid? worldId = null,
         string? name = null,
-        Guid? requiredFactId = null
+        Guid? requiredFactId = null,
+        Guid? membershipRewardFactionId = null
     )
     {
         return new Quest
@@ -685,6 +686,7 @@ internal static class Builders
             Description = "A test quest",
             GoldReward = 100,
             RequiredFactId = requiredFactId,
+            MembershipRewardFactionId = membershipRewardFactionId,
         };
     }
 

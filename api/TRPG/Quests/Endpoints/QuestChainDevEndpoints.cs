@@ -37,7 +37,7 @@ internal static class QuestChainDevEndpoints
                 PlayerId = playerId,
                 LocationId = locationId,
                 PlayerLevel = playerLevel,
-                ForcedGiverFactionId = giverFactionId,
+                GiverFactionId = giverFactionId,
             },
             cancellationToken
         );
