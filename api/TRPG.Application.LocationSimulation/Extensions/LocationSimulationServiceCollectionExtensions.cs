@@ -22,5 +22,9 @@ public static class LocationSimulationServiceCollectionExtensions
             .AddTransient<PlayerMovedArrivalEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedArrivalEventHandler>()
+            )
+            .AddTransient<PlayerMovedFreedCaptiveRelocationEventHandler>()
+            .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<PlayerMovedFreedCaptiveRelocationEventHandler>()
             );
 }
