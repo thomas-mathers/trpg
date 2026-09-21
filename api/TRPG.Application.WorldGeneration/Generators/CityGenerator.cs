@@ -40,6 +40,8 @@ public class CityGenerator(
 )
 {
     private const int TotalGuards = 7;
+    private const int MinGuildHallMembers = 3;
+    private const int MaxGuildHallMembers = 6;
 
     private int _guildHallIndex;
 
@@ -321,10 +323,7 @@ public class CityGenerator(
         );
         var owner = ownerCreatures[0].Creature;
 
-        var numMembers = Random.Shared.Next(
-            input.GeneratorInput.MinFactionMembers,
-            input.GeneratorInput.MaxFactionMembers + 1
-        );
+        var numMembers = Random.Shared.Next(MinGuildHallMembers, MaxGuildHallMembers + 1);
         var memberCreatures = creatureGroupGenerator.Generate(
             new CreatureGroupGeneratorInput(
                 input.DominantRace,

@@ -172,12 +172,9 @@ export type CreateWorldRequest = {
     maxRuralStates?: number;
     minBuildingsPerState?: number;
     maxBuildingsPerState?: number;
-    minFactionMembers?: number;
-    maxFactionMembers?: number;
     housesPerCity?: number;
     minHouseholdSize?: number;
     maxHouseholdSize?: number;
-    factionCount?: number;
 };
 
 export type CreatureGenerationOptionsResponse = {

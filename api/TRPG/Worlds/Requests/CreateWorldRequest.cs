@@ -18,10 +18,7 @@ public record CreateWorldRequest
     public int MaxRuralStates { get; init; }
     public int MinBuildingsPerState { get; init; }
     public int MaxBuildingsPerState { get; init; }
-    public int MinFactionMembers { get; init; }
-    public int MaxFactionMembers { get; init; }
     public int HousesPerCity { get; init; }
     public int MinHouseholdSize { get; init; }
     public int MaxHouseholdSize { get; init; }
-    public int FactionCount { get; init; }
 }

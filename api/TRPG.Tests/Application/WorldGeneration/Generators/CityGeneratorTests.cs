@@ -18,8 +18,6 @@ public class CityGeneratorTests
         HousesPerCity = 0,
         MinHouseholdSize = 1,
         MaxHouseholdSize = 4,
-        MinFactionMembers = 1,
-        MaxFactionMembers = 1,
     };
     private readonly CityGenerator _cityGenerator = MakeCityGenerator();
 
