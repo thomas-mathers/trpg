@@ -38,58 +38,6 @@ internal class SyncGuardPatrolCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var lingeringTravelerIds = await ResolveLingeringPatrolTravelerIds(
-            command,
-            cancellationToken
-        );
-        if (lingeringTravelerIds.Count == 0)
-        {
-            return;
-        }
-
-        var membersByTraveler = await getGuardPatrolMembersByRouteTravelerIds.Handle(
-            new GetGuardPatrolMembersByRouteTravelerIdsQuery
-            {
-                RouteTravelerIds = lingeringTravelerIds,
-            },
-            cancellationToken
-        );
-        var guardCreatureIds = membersByTraveler.Values.SelectMany(ids => ids).Distinct().ToArray();
-        if (guardCreatureIds.Length == 0)
-        {
-            return;
-        }
-
-        var creaturesById = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = guardCreatureIds },
-            cancellationToken
-        );
-        var toRelocate = creaturesById
-            .Values.Where(creature =>
-                creature.State != CreatureState.Dead && creature.LocationId != command.LocationId
-            )
-            .Select(creature => creature.Id)
-            .ToArray();
-        if (toRelocate.Length == 0)
-        {
-            return;
-        }
-
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = toRelocate,
-                LocationId = command.LocationId,
-            },
-            cancellationToken
-        );
-    }
-
-    private async Task<IReadOnlyList<Guid>> ResolveLingeringPatrolTravelerIds(
-        SyncGuardPatrolCommand command,
-        CancellationToken cancellationToken
-    )
-    {
         var travelers = await getRouteTravelersByLocationId.Handle(
             new GetRouteTravelersByLocationIdQuery
             {
@@ -100,30 +48,115 @@ internal class SyncGuardPatrolCommandHandler(
         );
         if (travelers.Count == 0)
         {
-            return [];
+            return;
         }
 
-        var lingeringTravelerIds = new List<Guid>();
+        var travelerIds = travelers.Select(t => t.RouteTravelerId).ToArray();
+        var membersByTraveler = await getGuardPatrolMembersByRouteTravelerIds.Handle(
+            new GetGuardPatrolMembersByRouteTravelerIdsQuery { RouteTravelerIds = travelerIds },
+            cancellationToken
+        );
+        if (membersByTraveler.Count == 0)
+        {
+            return;
+        }
+
+        var guardCreatureIds = membersByTraveler.Values.SelectMany(ids => ids).Distinct().ToArray();
+        var creaturesById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = guardCreatureIds },
+            cancellationToken
+        );
+
+        var relocationsByTargetLocationId = new Dictionary<Guid, List<Guid>>();
         foreach (var traveler in travelers)
         {
-            var position = await resolveRouteTravelerPosition.Handle(
-                new ResolveRouteTravelerPositionQuery
+            if (!membersByTraveler.TryGetValue(traveler.RouteTravelerId, out var memberIds))
+            {
+                continue;
+            }
+
+            var targetLocationId = await ResolveTargetLocationId(
+                traveler,
+                command,
+                cancellationToken
+            );
+            if (targetLocationId == null)
+            {
+                continue;
+            }
+
+            AddStragglers(
+                relocationsByTargetLocationId,
+                targetLocationId.Value,
+                memberIds,
+                creaturesById
+            );
+        }
+
+        foreach (var (targetLocationId, creatureIds) in relocationsByTargetLocationId)
+        {
+            await updateCreatures.Handle(
+                new UpdateCreaturesCommand
                 {
-                    RouteTravelerId = traveler.RouteTravelerId,
-                    Playtime = command.Playtime,
-                    SpeedUnitsPerHour = countryPatrolOptions.Value.SpeedUnitsPerHour,
+                    CreatureIds = creatureIds,
+                    LocationId = targetLocationId,
                 },
                 cancellationToken
             );
-            if (
-                position is RoutePosition.Lingering atThisStop
-                && atThisStop.LocationId == command.LocationId
-            )
-            {
-                lingeringTravelerIds.Add(traveler.RouteTravelerId);
-            }
         }
+    }
 
-        return lingeringTravelerIds;
+    // A squad always relocates together to wherever its traveler currently resolves to, even when
+    // that's a stop other than the one being caught up right now — this is what lets a location
+    // catch-up evict a squad that has since moved on, not just pull one in that has just arrived.
+    // Neither this codebase nor RouteCycle models mid-leg travel time visually (CreatureJob-driven
+    // NPCs teleport between schedule points the same way), so "in transit" resolves to the
+    // destination stop rather than leaving the squad stranded at the stop it already departed.
+    private async Task<Guid?> ResolveTargetLocationId(
+        RouteTravelerSummary traveler,
+        SyncGuardPatrolCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var position = await resolveRouteTravelerPosition.Handle(
+            new ResolveRouteTravelerPositionQuery
+            {
+                RouteTravelerId = traveler.RouteTravelerId,
+                Playtime = command.Playtime,
+                SpeedUnitsPerHour = countryPatrolOptions.Value.SpeedUnitsPerHour,
+            },
+            cancellationToken
+        );
+
+        return position switch
+        {
+            RoutePosition.Lingering lingering => lingering.LocationId,
+            RoutePosition.InTransit inTransit => inTransit.ToLocationId,
+            _ => null,
+        };
+    }
+
+    private static void AddStragglers(
+        Dictionary<Guid, List<Guid>> relocationsByTargetLocationId,
+        Guid targetLocationId,
+        IReadOnlyList<Guid> memberIds,
+        IReadOnlyDictionary<Guid, Creature> creaturesById
+    )
+    {
+        foreach (var creatureId in memberIds)
+        {
+            if (!creaturesById.TryGetValue(creatureId, out var creature))
+            {
+                continue;
+            }
+
+            if (creature.State == CreatureState.Dead || creature.LocationId == targetLocationId)
+            {
+                continue;
+            }
+
+            relocationsByTargetLocationId.TryAdd(targetLocationId, []);
+            relocationsByTargetLocationId[targetLocationId].Add(creatureId);
+        }
     }
 }

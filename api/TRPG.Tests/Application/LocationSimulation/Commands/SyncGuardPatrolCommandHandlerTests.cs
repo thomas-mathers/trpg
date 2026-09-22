@@ -112,27 +112,32 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_DoesNotRelocate_WhenThePatrolIsNotCurrentlyLingeringHere()
+    public async Task Handle_RelocatesTheWholeSquadToTheNextStop_WhenThePatrolHasDepartedThisLocation()
     {
-        // Act — stop A's linger window is [0, 1); 4 in-game hours in, the traveler is out on the
-        // leg toward stop B, not lingering at A.
+        // Arrange — stop A's linger window is [0, 1); both guards are still (stale) shown at A
+        // from an earlier sync, but at exactly 1 in-game hour in, the traveler has just left on
+        // the leg toward stop B.
+        _guard1.LocationId = _locationA;
+        _guard2.LocationId = _locationA;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
         await _handler.Handle(
             new SyncGuardPatrolCommand
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = GameClock.RealTimePerInGameHour * 4,
+                Playtime = GameClock.RealTimePerInGameHour,
             },
             TestContext.Current.CancellationToken
         );
 
-        // Assert
+        // Assert — the whole squad relocates together, none left behind at A.
         await using var verifyContext = db.CreateContext();
-        var guard = await verifyContext.Creatures.SingleAsync(
-            c => c.Id == _guard1.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_guard1.LocationId, guard.LocationId);
+        var guards = await verifyContext
+            .Creatures.Where(c => c.Id == _guard1.Id || c.Id == _guard2.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(guards, guard => Assert.Equal(_locationB, guard.LocationId));
     }
 
     [Fact]
