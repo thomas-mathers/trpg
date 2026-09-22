@@ -35,6 +35,8 @@ import {
   HoverPopoverTrigger,
 } from '@/components/ui/hover-popover';
 
+import { normalizeWorldMapGeometry } from './world-map-geometry';
+
 import '@xyflow/react/dist/style.css';
 
 // Fixed parchment/ink palette — the map is a paper map, not themed with the app's own light/dark mode.
@@ -277,12 +279,15 @@ function buildWorldMap(
   corpses: CorpseMapResponse[],
   questMarkers: QuestMapResponse[],
 ) {
-  const scale = computeScale(countries, states);
-  const countryColors = colorsByCountryId(countries);
+  const displayGeometry = normalizeWorldMapGeometry(countries, states);
+  const displayCountries = displayGeometry.countries;
+  const displayStates = displayGeometry.states;
+  const scale = computeScale(displayCountries, displayStates);
+  const countryColors = colorsByCountryId(displayCountries);
   const cityByStateId = new Map(cities.map((city) => [city.stateId, city]));
 
   const statesByCountryId = new Map<string, StateMapResponse[]>();
-  for (const state of states) {
+  for (const state of displayStates) {
     const group = statesByCountryId.get(state.countryId) ?? [];
     group.push(state);
     statesByCountryId.set(state.countryId, group);
@@ -292,7 +297,7 @@ function buildWorldMap(
   const countryLabels: CountryLabelFlowNode[] = [];
   const countryLabelConnectors: CountryLabelConnectorFlowNode[] = [];
 
-  for (const country of countries) {
+  for (const country of displayCountries) {
     const box = boundingBoxOf(country.boundary);
     const color = countryColors.get(country.id)!;
 
@@ -361,7 +366,7 @@ function buildWorldMap(
   const stateBorders: StateBorderFlowNode[] = [];
   const stateLabels: StateLabelFlowNode[] = [];
 
-  for (const state of states) {
+  for (const state of displayStates) {
     const box = boundingBoxOf(state.boundary);
     const color = countryColors.get(state.countryId)!;
     const city = cityByStateId.get(state.id) ?? null;
@@ -395,7 +400,7 @@ function buildWorldMap(
     });
   }
 
-  const stateEdges = dedupedStateEdges(states, countryColors);
+  const stateEdges = dedupedStateEdges(displayStates, countryColors);
   const stateBorderLinesNode: StateBorderLinesFlowNode[] = [];
   if (stateEdges.length > 0) {
     const edgesBox = boundingBoxOf(stateEdges.flatMap((edge) => [edge.from, edge.to]));
@@ -418,7 +423,7 @@ function buildWorldMap(
     });
   }
 
-  const stateById = new Map(states.map((state) => [state.id, state]));
+  const stateById = new Map(displayStates.map((state) => [state.id, state]));
 
   // Markers stack as badges beside the settlement icon they share a vertex with — collected by state first since the group's total size must be known before laying out its members.
   const markerInputs: Array<{ stateId: string; id: string; data: MarkerData }> = [
