@@ -21,10 +21,14 @@ public class CountryPatrolRouteSeederTests
     );
 
     [Fact]
-    public void Seed_BuildsOneRoutePerCountry_CoveringOnlyThatCountrysOwnCities()
+    public void Seed_BuildsOneRoutePerCountry_LingeringOnlyAtThatCountrysOwnWilderness()
     {
         var worldId = Guid.NewGuid();
-        var (world, entranceLocationIdsByCountryId) = BuildTwoCountryWorld(worldId);
+        var (world, entranceLocationIdsByCountryId, hubLocationIdByCountryId) =
+            BuildTwoCountryWorld(worldId);
+        var everyEntranceLocationId = entranceLocationIdsByCountryId
+            .Values.SelectMany(ids => ids)
+            .ToHashSet();
 
         var result = _seeder.Seed(world, Options);
 
@@ -33,12 +37,17 @@ public class CountryPatrolRouteSeederTests
         {
             var country = world.Countries.Single(c => c.Id == countryId);
             var route = result.Routes.Single(r => r.Name == $"{country.Name} Road Patrol");
-            var stopLocationIds = result
-                .Stops.Where(s => s.RouteId == route.Id)
-                .Select(s => s.LocationId)
-                .OrderBy(id => id)
-                .ToArray();
-            Assert.Equal(expectedLocationIds.OrderBy(id => id), stopLocationIds);
+            var stops = result.Stops.Where(s => s.RouteId == route.Id).ToArray();
+
+            // Every leg in this fixture's star topology has to pass through that country's own
+            // single shared hub, so the loop lingers there once per city-to-city leg — never at a
+            // city gate, and never at the other country's hub either.
+            Assert.Equal(expectedLocationIds.Count, stops.Length);
+            Assert.All(
+                stops,
+                stop => Assert.Equal(hubLocationIdByCountryId[countryId], stop.LocationId)
+            );
+            Assert.DoesNotContain(stops, stop => everyEntranceLocationId.Contains(stop.LocationId));
         }
     }
 
@@ -46,7 +55,7 @@ public class CountryPatrolRouteSeederTests
     public void Seed_GeneratesOneSquadPerCountry_LinkedToItsOwnPatrolTraveler()
     {
         var worldId = Guid.NewGuid();
-        var (world, _) = BuildTwoCountryWorld(worldId);
+        var (world, _, _) = BuildTwoCountryWorld(worldId);
 
         var result = _seeder.Seed(world, Options);
 
@@ -72,7 +81,7 @@ public class CountryPatrolRouteSeederTests
     public void Seed_LinksEveryGuard_ToTheirCountrysCapitalGuardFaction()
     {
         var worldId = Guid.NewGuid();
-        var (world, _) = BuildTwoCountryWorld(worldId);
+        var (world, _, _) = BuildTwoCountryWorld(worldId);
 
         var result = _seeder.Seed(world, Options);
 
@@ -91,7 +100,7 @@ public class CountryPatrolRouteSeederTests
     public void Seed_SkipsACountry_WhenFewerThanTwoOfItsCitiesHaveAnEntrance()
     {
         var worldId = Guid.NewGuid();
-        var (world, _) = BuildTwoCountryWorld(worldId, secondCountryCityCount: 1);
+        var (world, _, _) = BuildTwoCountryWorld(worldId, secondCountryCityCount: 1);
 
         var result = _seeder.Seed(world, Options);
 
@@ -105,7 +114,8 @@ public class CountryPatrolRouteSeederTests
     // a country's route to its own cities without needing a shared-hub topology to prove it.
     private static (
         WorldGeneratorResult World,
-        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> EntranceLocationIdsByCountryId
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> EntranceLocationIdsByCountryId,
+        IReadOnlyDictionary<Guid, Guid> HubLocationIdByCountryId
     ) BuildTwoCountryWorld(Guid worldId, int secondCountryCityCount = 3)
     {
         var countries = new List<Country>();
@@ -117,6 +127,7 @@ public class CountryPatrolRouteSeederTests
         var travelConnectors = new List<TravelConnector>();
         var factions = new List<Faction>();
         var entranceLocationIdsByCountryId = new Dictionary<Guid, IReadOnlyList<Guid>>();
+        var hubLocationIdByCountryId = new Dictionary<Guid, Guid>();
 
         foreach (var cityCount in new[] { 3, secondCountryCityCount })
         {
@@ -147,6 +158,7 @@ public class CountryPatrolRouteSeederTests
                 StateId = state.Id,
             };
             locations.Add(hubLocation);
+            hubLocationIdByCountryId[country.Id] = hubLocation.Id;
 
             var entranceLocationIds = new List<Guid>();
             for (var i = 0; i < cityCount; i++)
@@ -239,7 +251,7 @@ public class CountryPatrolRouteSeederTests
             CreatureSpawners = [],
         };
 
-        return (world, entranceLocationIdsByCountryId);
+        return (world, entranceLocationIdsByCountryId, hubLocationIdByCountryId);
     }
 
     private static void AddBidirectionalConnector(
