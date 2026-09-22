@@ -1,13 +1,16 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Caravans.Queries;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Routing.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Caravans.Commands;
@@ -37,10 +40,12 @@ public record PurchaseCaravanTicketResult(
 );
 
 internal class PurchaseCaravanTicketCommandHandler(
-    ICaravansDbContext context,
-    IQueryHandler<ResolveCaravanPositionQuery, CaravanPosition?> resolveCaravanPosition,
+    ICaravansDbContext caravansContext,
+    IRoutingDbContext routingContext,
+    IQueryHandler<ResolveRouteTravelerPositionQuery, RoutePosition?> resolveRouteTravelerPosition,
     IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
-    ICommandHandler<RemoveGoldCommand> removeGold
+    ICommandHandler<RemoveGoldCommand> removeGold,
+    IOptionsSnapshot<CaravanOptions> caravanOptions
 ) : ICommandHandler<PurchaseCaravanTicketCommand, PurchaseCaravanTicketResult>
 {
     public async Task<PurchaseCaravanTicketResult> Handle(
@@ -48,19 +53,19 @@ internal class PurchaseCaravanTicketCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var caravan =
-            await context
-                .Caravans.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.Id == command.CaravanId, cancellationToken)
-            ?? throw new EntityNotFoundException(nameof(Caravan), command.CaravanId);
+        var traveler =
+            await routingContext
+                .RouteTravelers.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == command.CaravanId, cancellationToken)
+            ?? throw new EntityNotFoundException(nameof(RouteTraveler), command.CaravanId);
 
-        var route = await context
-            .CaravanRoutes.AsNoTracking()
-            .FirstAsync(r => r.Id == caravan.CaravanRouteId, cancellationToken);
+        var fare = await caravansContext
+            .CaravanFares.AsNoTracking()
+            .FirstAsync(f => f.RouteId == traveler.RouteId, cancellationToken);
 
-        var stopLocationIds = await context
-            .CaravanRouteStops.AsNoTracking()
-            .Where(s => s.CaravanRouteId == caravan.CaravanRouteId)
+        var stopLocationIds = await routingContext
+            .RouteStops.AsNoTracking()
+            .Where(s => s.RouteId == traveler.RouteId)
             .Select(s => s.LocationId)
             .ToArrayAsync(cancellationToken);
 
@@ -72,26 +77,27 @@ internal class PurchaseCaravanTicketCommandHandler(
             return new PurchaseCaravanTicketResult(PurchaseCaravanTicketOutcome.InvalidDestination);
         }
 
-        var position = await resolveCaravanPosition.Handle(
-            new ResolveCaravanPositionQuery
+        var position = await resolveRouteTravelerPosition.Handle(
+            new ResolveRouteTravelerPositionQuery
             {
-                CaravanId = command.CaravanId,
+                RouteTravelerId = command.CaravanId,
                 Playtime = command.Playtime,
+                SpeedUnitsPerHour = caravanOptions.Value.SpeedUnitsPerHour,
             },
             cancellationToken
         );
         if (
-            position is not CaravanPosition.Lingering lingering
+            position is not RoutePosition.Lingering lingering
             || lingering.LocationId != command.PlayerLocationId
         )
         {
             return new PurchaseCaravanTicketResult(PurchaseCaravanTicketOutcome.CaravanNotPresent);
         }
 
-        var hasTicket = await context
+        var hasTicket = await caravansContext
             .CaravanTickets.AsNoTracking()
             .AnyAsync(
-                t => t.CreatureId == command.PlayerId && t.CaravanId == command.CaravanId,
+                t => t.CreatureId == command.PlayerId && t.RouteTravelerId == command.CaravanId,
                 cancellationToken
             );
         if (hasTicket)
@@ -99,7 +105,7 @@ internal class PurchaseCaravanTicketCommandHandler(
             return new PurchaseCaravanTicketResult(PurchaseCaravanTicketOutcome.AlreadyHoldsTicket);
         }
 
-        var fee = route.TicketFeeGold;
+        var fee = fare.TicketFeeGold;
         var playerGold = await getGoldQuantity.Handle(
             new GetGoldQuantityQuery
             {
@@ -128,18 +134,18 @@ internal class PurchaseCaravanTicketCommandHandler(
             cancellationToken
         );
 
-        context.CaravanTickets.Add(
+        caravansContext.CaravanTickets.Add(
             new CaravanTicket
             {
                 WorldId = command.WorldId,
-                CaravanId = command.CaravanId,
+                RouteTravelerId = command.CaravanId,
                 CreatureId = command.PlayerId,
                 OriginStopLocationId = command.PlayerLocationId,
                 DestinationLocationId = command.DestinationLocationId,
                 PurchasedAtPlaytime = command.Playtime,
             }
         );
-        await context.SaveChangesAsync(cancellationToken);
+        await caravansContext.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
 

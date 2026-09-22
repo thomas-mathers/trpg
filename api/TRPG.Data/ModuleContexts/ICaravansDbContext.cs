@@ -5,8 +5,6 @@ namespace TRPG.Data.ModuleContexts;
 
 public interface ICaravansDbContext : ITrpgDbContext
 {
-    DbSet<CaravanRoute> CaravanRoutes { get; }
-    DbSet<CaravanRouteStop> CaravanRouteStops { get; }
-    DbSet<Caravan> Caravans { get; }
+    DbSet<CaravanFare> CaravanFares { get; }
     DbSet<CaravanTicket> CaravanTickets { get; }
 }

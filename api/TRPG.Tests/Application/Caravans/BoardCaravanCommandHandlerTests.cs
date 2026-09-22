@@ -1,11 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using TRPG.Application.Caravans;
 using TRPG.Application.Caravans.Commands;
-using TRPG.Application.Caravans.Queries;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
+using TRPG.Application.Routing.Queries;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -24,7 +23,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private BoardCaravanCommandHandler _handler = null!;
-    private Caravan _caravan = null!;
+    private RouteTraveler _caravan = null!;
     private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
@@ -46,9 +45,9 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
         _caravan = Builders.MakeCaravan(route.Id, WorldId);
         _player = Builders.MakeCreature(worldId: WorldId, locationId: LocationA);
 
-        _context.CaravanRoutes.Add(route);
-        _context.CaravanRouteStops.AddRange(stopA, stopB);
-        _context.Caravans.Add(_caravan);
+        _context.Routes.Add(route);
+        _context.RouteStops.AddRange(stopA, stopB);
+        _context.RouteTravelers.Add(_caravan);
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -106,7 +105,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var resolvePosition = _serviceProvider.GetRequiredService<
-            IQueryHandler<ResolveCaravanPositionQuery, CaravanPosition?>
+            IQueryHandler<ResolveRouteTravelerPositionQuery, RoutePosition?>
         >();
 
         // Act
@@ -124,10 +123,15 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
         // Assert
         var arrivalPlaytime = GameClock.RealTimePerInGameHour * result.TravelTimeHours!.Value;
         var position = await resolvePosition.Handle(
-            new ResolveCaravanPositionQuery { CaravanId = _caravan.Id, Playtime = arrivalPlaytime },
+            new ResolveRouteTravelerPositionQuery
+            {
+                RouteTravelerId = _caravan.Id,
+                Playtime = arrivalPlaytime,
+                SpeedUnitsPerHour = 5,
+            },
             TestContext.Current.CancellationToken
         );
-        var lingering = Assert.IsType<CaravanPosition.Lingering>(position);
+        var lingering = Assert.IsType<RoutePosition.Lingering>(position);
         Assert.Equal(LocationB, lingering.LocationId);
     }
 

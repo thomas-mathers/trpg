@@ -45,20 +45,17 @@ public class CaravanRouteSeederTests
         // 3 stops * (1 linger hour + 2 leg hours) = 9 total cycle hours. CaravansPerStop = 1 gives
         // 3 instances per direction (one per stop), so 6 total — one clockwise and one
         // counter-clockwise anchored to each capital.
-        Assert.Equal(3 * 2, result.Caravans.Count);
+        Assert.Equal(3 * 2, result.Travelers.Count);
         Assert.Equal(
             [0d, 0d, 3d, 3d, 6d, 6d],
-            result.Caravans.Select(caravan => caravan.PhaseOffsetHours).OrderBy(hours => hours)
+            result.Travelers.Select(traveler => traveler.PhaseOffsetHours).OrderBy(hours => hours)
         );
-        Assert.Equal(3, result.Caravans.Count(c => c.Direction == CaravanDirection.Clockwise));
+        Assert.Equal(3, result.Travelers.Count(t => t.Direction == RouteDirection.Clockwise));
         Assert.Equal(
             3,
-            result.Caravans.Count(c => c.Direction == CaravanDirection.CounterClockwise)
+            result.Travelers.Count(t => t.Direction == RouteDirection.CounterClockwise)
         );
-        Assert.All(
-            result.Caravans,
-            caravan => Assert.Equal(result.Route!.Id, caravan.CaravanRouteId)
-        );
+        Assert.All(result.Travelers, traveler => Assert.Equal(result.Route!.Id, traveler.RouteId));
     }
 
     [Fact]
@@ -88,7 +85,7 @@ public class CaravanRouteSeederTests
 
         Assert.Null(result.Route);
         Assert.Empty(result.Stops);
-        Assert.Empty(result.Caravans);
+        Assert.Empty(result.Travelers);
         Assert.Empty(result.Signs);
     }
 

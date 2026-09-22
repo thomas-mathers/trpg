@@ -728,7 +728,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         Assert.True(destination.HasTicket);
     }
 
-    private async Task<Caravan> SeedCaravanAtPlayerLocation(Guid destinationLocationId)
+    private async Task<RouteTraveler> SeedCaravanAtPlayerLocation(Guid destinationLocationId)
     {
         var destinationCity = Builders.MakeCity(
             _state.Id,
@@ -751,7 +751,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             locationId: destinationLocationId
         );
 
-        var route = Builders.MakeCaravanRoute(WorldId, ticketFeeGold: 15, lingerHours: 1);
+        var route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
         var stopHere = Builders.MakeCaravanRouteStop(
             route.Id,
             0,
@@ -764,14 +764,16 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             destinationLocationId,
             distanceToNextStop: 10
         );
+        var fare = Builders.MakeCaravanFare(route.Id, WorldId, ticketFeeGold: 15);
         var caravan = Builders.MakeCaravan(route.Id, WorldId);
 
         _context.Cities.Add(destinationCity);
         _context.Locations.Add(destinationLocation);
         _context.Districts.Add(destinationDistrict);
-        _context.CaravanRoutes.Add(route);
-        _context.CaravanRouteStops.AddRange(stopHere, stopThere);
-        _context.Caravans.Add(caravan);
+        _context.Routes.Add(route);
+        _context.RouteStops.AddRange(stopHere, stopThere);
+        _context.CaravanFares.Add(fare);
+        _context.RouteTravelers.Add(caravan);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return caravan;

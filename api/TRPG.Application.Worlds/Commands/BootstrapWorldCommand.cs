@@ -15,9 +15,10 @@ public class BootstrapWorldCommand
     public required QuestGeneratorResult Quests { get; init; }
     public IReadOnlyList<Reputation> PlayerReputations { get; init; } = [];
     public IReadOnlyList<QuestSeedSchedule> QuestSeedSchedules { get; init; } = [];
-    public CaravanRoute? CaravanRoute { get; init; }
-    public IReadOnlyList<CaravanRouteStop> CaravanRouteStops { get; init; } = [];
-    public IReadOnlyList<Caravan> Caravans { get; init; } = [];
+    public Route? CaravanRoute { get; init; }
+    public IReadOnlyList<RouteStop> CaravanRouteStops { get; init; } = [];
+    public IReadOnlyList<RouteTraveler> CaravanRouteTravelers { get; init; } = [];
+    public CaravanFare? CaravanFare { get; init; }
     public IReadOnlyList<CaravanScheduleSign> CaravanRouteSigns { get; init; } = [];
 }
 
@@ -95,9 +96,10 @@ internal class BootstrapWorldCommandHandler(
 
         if (command.CaravanRoute != null)
         {
-            context.CaravanRoutes.Add(command.CaravanRoute);
-            context.CaravanRouteStops.AddRange(command.CaravanRouteStops);
-            context.Caravans.AddRange(command.Caravans);
+            context.Routes.Add(command.CaravanRoute);
+            context.RouteStops.AddRange(command.CaravanRouteStops);
+            context.RouteTravelers.AddRange(command.CaravanRouteTravelers);
+            context.CaravanFares.Add(command.CaravanFare!);
             context.Props.AddRange(command.CaravanRouteSigns);
         }
 

@@ -23,7 +23,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetNextCaravanArrivalsQueryHandler _handler = null!;
-    private CaravanRoute _route = null!;
+    private Route _route = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -43,8 +43,10 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
         _route = Builders.MakeCaravanRoute(_worldId, lingerHours: 1);
         var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, _locationA, distanceToNextStop: 10);
         var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, _locationB, distanceToNextStop: 10);
-        _context.CaravanRoutes.Add(_route);
-        _context.CaravanRouteStops.AddRange(stopA, stopB);
+        var fare = Builders.MakeCaravanFare(_route.Id, _worldId);
+        _context.Routes.Add(_route);
+        _context.RouteStops.AddRange(stopA, stopB);
+        _context.CaravanFares.Add(fare);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -58,7 +60,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsZero_WhenACaravanIsAlreadyLingeringAtTheStop()
     {
         // Arrange
-        _context.Caravans.Add(Builders.MakeCaravan(_route.Id, _worldId, phaseOffsetHours: 0));
+        _context.RouteTravelers.Add(Builders.MakeCaravan(_route.Id, _worldId, phaseOffsetHours: 0));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -74,7 +76,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
 
         // Assert
         var arrival = Assert.Single(arrivals);
-        Assert.Equal(CaravanDirection.Clockwise, arrival.Direction);
+        Assert.Equal(RouteDirection.Clockwise, arrival.Direction);
         Assert.Equal(0, arrival.HoursUntilArrival);
     }
 
@@ -82,7 +84,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsHoursUntilArrival_OncePastTheLingerWindow()
     {
         // Arrange
-        _context.Caravans.Add(Builders.MakeCaravan(_route.Id, _worldId, phaseOffsetHours: 0));
+        _context.RouteTravelers.Add(Builders.MakeCaravan(_route.Id, _worldId, phaseOffsetHours: 0));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -106,7 +108,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsTheSoonestInstance_WhenSeveralShareADirection()
     {
         // Arrange
-        _context.Caravans.AddRange(
+        _context.RouteTravelers.AddRange(
             Builders.MakeCaravan(_route.Id, _worldId, phaseOffsetHours: 0),
             Builders.MakeCaravan(_route.Id, _worldId, phaseOffsetHours: 3)
         );
@@ -132,9 +134,9 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsOneEntryPerDirection_WhenBothServeTheStop()
     {
         // Arrange
-        _context.Caravans.AddRange(
-            Builders.MakeCaravan(_route.Id, _worldId, direction: CaravanDirection.Clockwise),
-            Builders.MakeCaravan(_route.Id, _worldId, direction: CaravanDirection.CounterClockwise)
+        _context.RouteTravelers.AddRange(
+            Builders.MakeCaravan(_route.Id, _worldId, direction: RouteDirection.Clockwise),
+            Builders.MakeCaravan(_route.Id, _worldId, direction: RouteDirection.CounterClockwise)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -151,7 +153,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(
-            [CaravanDirection.Clockwise, CaravanDirection.CounterClockwise],
+            [RouteDirection.Clockwise, RouteDirection.CounterClockwise],
             arrivals.Select(arrival => arrival.Direction).OrderBy(direction => direction)
         );
     }

@@ -63,7 +63,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         ILocationSimulationDbContext,
         IRoomBookingsDbContext,
         IBooksDbContext,
-        ICaravansDbContext
+        ICaravansDbContext,
+        IRoutingDbContext
 {
     public DbSet<DungeonExpedition> DungeonExpeditions => Set<DungeonExpedition>();
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
@@ -123,9 +124,10 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         Set<QuestChainGenerationRequest>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
     public DbSet<WeatherState> WeatherStates => Set<WeatherState>();
-    public DbSet<CaravanRoute> CaravanRoutes => Set<CaravanRoute>();
-    public DbSet<CaravanRouteStop> CaravanRouteStops => Set<CaravanRouteStop>();
-    public DbSet<Caravan> Caravans => Set<Caravan>();
+    public DbSet<Route> Routes => Set<Route>();
+    public DbSet<RouteStop> RouteStops => Set<RouteStop>();
+    public DbSet<RouteTraveler> RouteTravelers => Set<RouteTraveler>();
+    public DbSet<CaravanFare> CaravanFares => Set<CaravanFare>();
     public DbSet<CaravanTicket> CaravanTickets => Set<CaravanTicket>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -678,27 +680,33 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(w => w.StateId).IsUnique();
         });
 
-        modelBuilder.Entity<CaravanRoute>(entity =>
+        modelBuilder.Entity<Route>(entity =>
         {
             entity.HasIndex(r => r.WorldId);
         });
 
-        modelBuilder.Entity<CaravanRouteStop>(entity =>
+        modelBuilder.Entity<RouteStop>(entity =>
         {
-            entity.HasIndex(s => s.CaravanRouteId);
-            entity.HasIndex(s => new { s.CaravanRouteId, s.SequenceIndex }).IsUnique();
+            entity.HasIndex(s => s.RouteId);
+            entity.HasIndex(s => new { s.RouteId, s.SequenceIndex }).IsUnique();
         });
 
-        modelBuilder.Entity<Caravan>(entity =>
+        modelBuilder.Entity<RouteTraveler>(entity =>
         {
-            entity.HasIndex(c => c.WorldId);
-            entity.HasIndex(c => c.CaravanRouteId);
+            entity.HasIndex(t => t.WorldId);
+            entity.HasIndex(t => t.RouteId);
+        });
+
+        modelBuilder.Entity<CaravanFare>(entity =>
+        {
+            entity.HasIndex(f => f.WorldId);
+            entity.HasIndex(f => f.RouteId);
         });
 
         modelBuilder.Entity<CaravanTicket>(entity =>
         {
             entity.HasIndex(t => t.WorldId);
-            entity.HasIndex(t => t.CaravanId);
+            entity.HasIndex(t => t.RouteTravelerId);
             entity.HasIndex(t => t.CreatureId);
         });
 

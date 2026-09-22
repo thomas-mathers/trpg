@@ -1420,50 +1420,60 @@ internal static class Builders
         };
     }
 
-    public static CaravanRoute MakeCaravanRoute(
+    public static Route MakeCaravanRoute(
         Guid? worldId = null,
         string name = "The Capital Circuit",
-        int ticketFeeGold = 10,
         double lingerHours = 1
     ) =>
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
-            TicketFeeGold = ticketFeeGold,
             LingerHours = lingerHours,
         };
 
-    public static CaravanRouteStop MakeCaravanRouteStop(
-        Guid caravanRouteId,
+    public static RouteStop MakeCaravanRouteStop(
+        Guid routeId,
         int sequenceIndex,
         Guid locationId,
         float distanceToNextStop = 10
     ) =>
         new()
         {
-            CaravanRouteId = caravanRouteId,
+            RouteId = routeId,
             SequenceIndex = sequenceIndex,
             LocationId = locationId,
             DistanceToNextStop = distanceToNextStop,
         };
 
-    public static Caravan MakeCaravan(
-        Guid caravanRouteId,
+    public static RouteTraveler MakeCaravan(
+        Guid routeId,
         Guid? worldId = null,
         double phaseOffsetHours = 0,
-        CaravanDirection direction = CaravanDirection.Clockwise
+        RouteDirection direction = RouteDirection.Clockwise
     ) =>
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
-            CaravanRouteId = caravanRouteId,
+            RouteId = routeId,
             PhaseOffsetHours = phaseOffsetHours,
             Direction = direction,
         };
 
+    public static CaravanFare MakeCaravanFare(
+        Guid routeId,
+        Guid? worldId = null,
+        int ticketFeeGold = 10
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            RouteId = routeId,
+            TicketFeeGold = ticketFeeGold,
+        };
+
     public static CaravanTicket MakeCaravanTicket(
-        Guid caravanId,
+        Guid routeTravelerId,
         Guid creatureId,
         Guid originStopLocationId,
         Guid destinationLocationId,
@@ -1473,7 +1483,7 @@ internal static class Builders
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
-            CaravanId = caravanId,
+            RouteTravelerId = routeTravelerId,
             CreatureId = creatureId,
             OriginStopLocationId = originStopLocationId,
             DestinationLocationId = destinationLocationId,

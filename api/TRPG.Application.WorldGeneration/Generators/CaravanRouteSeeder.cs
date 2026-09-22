@@ -4,9 +4,10 @@ using TRPG.Domain.Models;
 namespace TRPG.Application.WorldGeneration.Generators;
 
 public record CaravanRouteSeederResult(
-    CaravanRoute? Route,
-    IReadOnlyList<CaravanRouteStop> Stops,
-    IReadOnlyList<Caravan> Caravans,
+    Route? Route,
+    IReadOnlyList<RouteStop> Stops,
+    IReadOnlyList<RouteTraveler> Travelers,
+    CaravanFare? Fare,
     IReadOnlyList<CaravanScheduleSign> Signs
 );
 
@@ -23,7 +24,7 @@ public static class CaravanRouteSeeder
         var capitalLocationIds = ResolveCapitalEntranceLocationIds(world);
         if (capitalLocationIds.Count < 2)
         {
-            return new CaravanRouteSeederResult(null, [], [], []);
+            return new CaravanRouteSeederResult(null, [], [], null, []);
         }
 
         var adjacency = BuildTravelAdjacency(world);
@@ -33,9 +34,9 @@ public static class CaravanRouteSeeder
         var stops = orderedStops
             .Select(
                 (locationId, index) =>
-                    new CaravanRouteStop
+                    new RouteStop
                     {
-                        CaravanRouteId = routeId,
+                        RouteId = routeId,
                         SequenceIndex = index,
                         LocationId = locationId,
                         DistanceToNextStop = PathDistance(
@@ -52,27 +53,33 @@ public static class CaravanRouteSeeder
             + LegHours(stop.DistanceToNextStop, options.SpeedUnitsPerHour)
         );
 
-        var route = new CaravanRoute
+        var route = new Route
         {
             Id = routeId,
             WorldId = world.World.Id,
             Name = "The Capital Circuit",
-            TicketFeeGold = options.DefaultTicketFeeGold,
             LingerHours = options.DefaultLingerHours,
+        };
+
+        var fare = new CaravanFare
+        {
+            WorldId = world.World.Id,
+            RouteId = routeId,
+            TicketFeeGold = options.DefaultTicketFeeGold,
         };
 
         // Traveling the loop backward covers the same set of legs in a different order, so the
         // total cycle length is identical for both directions — each direction's instances are
         // spread independently over that same span.
         var instancesPerDirection = stops.Length * options.CaravansPerStop;
-        var caravans = new[] { CaravanDirection.Clockwise, CaravanDirection.CounterClockwise }
+        var travelers = new[] { RouteDirection.Clockwise, RouteDirection.CounterClockwise }
             .SelectMany(direction =>
                 Enumerable
                     .Range(0, instancesPerDirection)
-                    .Select(i => new Caravan
+                    .Select(i => new RouteTraveler
                     {
                         WorldId = world.World.Id,
-                        CaravanRouteId = route.Id,
+                        RouteId = route.Id,
                         Direction = direction,
                         PhaseOffsetHours = (double)i * totalCycleHours / instancesPerDirection,
                     })
@@ -92,7 +99,7 @@ public static class CaravanRouteSeeder
             })
             .ToArray();
 
-        return new CaravanRouteSeederResult(route, stops, caravans, signs);
+        return new CaravanRouteSeederResult(route, stops, travelers, fare, signs);
     }
 
     private static int LegHours(float distance, float speedUnitsPerHour) =>

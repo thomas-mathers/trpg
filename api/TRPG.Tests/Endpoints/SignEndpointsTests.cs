@@ -78,6 +78,7 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
         var route = Builders.MakeCaravanRoute(_worldId, lingerHours: 1);
         var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, distanceToNextStop: 10);
         var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, distanceToNextStop: 10);
+        var fare = Builders.MakeCaravanFare(route.Id, _worldId);
         var caravan = Builders.MakeCaravan(route.Id, _worldId, phaseOffsetHours: 0);
         var sign = new CaravanScheduleSign
         {
@@ -95,9 +96,10 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-            context.CaravanRoutes.Add(route);
-            context.CaravanRouteStops.AddRange(stopA, stopB);
-            context.Caravans.Add(caravan);
+            context.Routes.Add(route);
+            context.RouteStops.AddRange(stopA, stopB);
+            context.CaravanFares.Add(fare);
+            context.RouteTravelers.Add(caravan);
             context.Props.Add(sign);
             context.GameSessions.Add(session);
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
