@@ -247,13 +247,73 @@ internal static class MapGenerator
             DistanceTo
         );
 
-        return edges
+        var roads = edges
             .Select(edge => new MapRoad
             {
                 OriginStateId = stateBySite[edge.From].Id,
                 DestinationStateId = stateBySite[edge.To].Id,
             })
+            .ToList();
+
+        // The global MST above only guarantees the whole world is one connected graph — it can
+        // still route a same-country pair's only path through another country's territory. Top up
+        // any such gaps with the cheapest same-country roads needed to keep every country's own
+        // states reachable from one another without crossing a border.
+        roads.AddRange(ConnectSameCountryComponents(stateBySite, edges));
+
+        return roads.ToArray();
+    }
+
+    private static IReadOnlyList<MapRoad> ConnectSameCountryComponents(
+        Dictionary<VoronoiSite, MapState> stateBySite,
+        IReadOnlyList<(VoronoiSite From, VoronoiSite To)> mstEdges
+    )
+    {
+        var parent = stateBySite.Keys.ToDictionary(site => site, site => site);
+
+        VoronoiSite Find(VoronoiSite site) =>
+            parent[site] == site ? site : parent[site] = Find(parent[site]);
+
+        void Union(VoronoiSite a, VoronoiSite b) => parent[Find(a)] = Find(b);
+
+        foreach (var (from, to) in mstEdges)
+        {
+            if (stateBySite[from].CountryId == stateBySite[to].CountryId)
+            {
+                Union(from, to);
+            }
+        }
+
+        var candidateEdges = stateBySite
+            .Keys.SelectMany(site =>
+                site.Neighbours.Where(neighbour =>
+                        stateBySite[neighbour].CountryId == stateBySite[site].CountryId
+                    )
+                    .Select(neighbour => (From: site, To: neighbour))
+            )
+            .OrderBy(edge => DistanceTo(edge.From, edge.To))
             .ToArray();
+
+        var bridges = new List<MapRoad>();
+
+        foreach (var (from, to) in candidateEdges)
+        {
+            if (Find(from) == Find(to))
+            {
+                continue;
+            }
+
+            Union(from, to);
+            bridges.Add(
+                new MapRoad
+                {
+                    OriginStateId = stateBySite[from].Id,
+                    DestinationStateId = stateBySite[to].Id,
+                }
+            );
+        }
+
+        return bridges;
     }
 
     private static double DistanceTo(VoronoiSite a, VoronoiSite b)
