@@ -222,7 +222,8 @@ internal static class ServiceCollectionExtensions
             .AddScoped<ILocationSimulationDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<IRoomBookingsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<IBooksDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
-            .AddScoped<ICaravansDbContext>(sp => sp.GetRequiredService<TrpgDbContext>());
+            .AddScoped<ICaravansDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IRoutingDbContext>(sp => sp.GetRequiredService<TrpgDbContext>());
 
     public static IServiceCollection AddTrpgSessionState(this IServiceCollection serviceCollection)
     {

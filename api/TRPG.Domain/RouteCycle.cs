@@ -1,32 +1,32 @@
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Caravans;
+namespace TRPG.Domain;
 
-public record CaravanStop(Guid LocationId, float DistanceToNextStop);
+public record RouteWaypoint(Guid LocationId, float DistanceToNextStop);
 
-public abstract record CaravanPosition
+public abstract record RoutePosition
 {
     public sealed record Lingering(Guid LocationId, int StopIndex, double HoursUntilDeparture)
-        : CaravanPosition;
+        : RoutePosition;
 
     public sealed record InTransit(Guid FromLocationId, Guid ToLocationId, double HoursUntilArrival)
-        : CaravanPosition;
+        : RoutePosition;
 }
 
-// Pure arithmetic over a caravan's fixed loop — no persistence, no DI, so the boundary conditions
+// Pure arithmetic over a traveler's fixed loop — no persistence, no DI, so the boundary conditions
 // (exact arrival/departure instants, cycle wraparound) can be tested directly.
-public static class CaravanCycle
+public static class RouteCycle
 {
     // A CounterClockwise instance walks the same stops backward. The distance for traveling stop
     // i -> i-1 is the same physical leg as the stored i-1 -> i distance, so this just re-derives a
     // "forward" sequence that already encodes the reverse walk — every other method here can stay
     // direction-agnostic as long as callers pass stops through this first.
-    public static IReadOnlyList<CaravanStop> ToTravelOrder(
-        IReadOnlyList<CaravanStop> stopsInStoredOrder,
-        CaravanDirection direction
+    public static IReadOnlyList<RouteWaypoint> ToTravelOrder(
+        IReadOnlyList<RouteWaypoint> stopsInStoredOrder,
+        RouteDirection direction
     )
     {
-        if (direction == CaravanDirection.Clockwise)
+        if (direction == RouteDirection.Clockwise)
         {
             return stopsInStoredOrder;
         }
@@ -34,7 +34,7 @@ public static class CaravanCycle
         var count = stopsInStoredOrder.Count;
         return Enumerable
             .Range(0, count)
-            .Select(j => new CaravanStop(
+            .Select(j => new RouteWaypoint(
                 stopsInStoredOrder[(count - j) % count].LocationId,
                 stopsInStoredOrder[(count - j - 1 + count) % count].DistanceToNextStop
             ))
@@ -42,13 +42,13 @@ public static class CaravanCycle
     }
 
     public static double TotalCycleHours(
-        IReadOnlyList<CaravanStop> stops,
+        IReadOnlyList<RouteWaypoint> stops,
         double lingerHours,
         float speedUnitsPerHour
     ) => stops.Sum(stop => lingerHours + LegHours(stop, speedUnitsPerHour));
 
-    public static CaravanPosition Resolve(
-        IReadOnlyList<CaravanStop> stops,
+    public static RoutePosition Resolve(
+        IReadOnlyList<RouteWaypoint> stops,
         double lingerHours,
         float speedUnitsPerHour,
         double elapsedHours
@@ -61,11 +61,7 @@ public static class CaravanCycle
         {
             if (position < lingerHours)
             {
-                return new CaravanPosition.Lingering(
-                    stops[i].LocationId,
-                    i,
-                    lingerHours - position
-                );
+                return new RoutePosition.Lingering(stops[i].LocationId, i, lingerHours - position);
             }
             position -= lingerHours;
 
@@ -73,7 +69,7 @@ public static class CaravanCycle
             var nextIndex = (i + 1) % stops.Count;
             if (position < legHours)
             {
-                return new CaravanPosition.InTransit(
+                return new RoutePosition.InTransit(
                     stops[i].LocationId,
                     stops[nextIndex].LocationId,
                     legHours - position
@@ -84,7 +80,7 @@ public static class CaravanCycle
 
         // Floating-point rounding can land exactly on the cycle boundary — treat it as having just
         // arrived back at the first stop rather than falling through with no match.
-        return new CaravanPosition.Lingering(stops[0].LocationId, 0, lingerHours);
+        return new RoutePosition.Lingering(stops[0].LocationId, 0, lingerHours);
     }
 
     // Total hours to travel from one stop to another going forward around the loop, including the
@@ -92,7 +88,7 @@ public static class CaravanCycle
     // the origin's remaining linger) and disembarks immediately on arrival (skipping the
     // destination's linger).
     public static double HoursBetween(
-        IReadOnlyList<CaravanStop> stops,
+        IReadOnlyList<RouteWaypoint> stops,
         double lingerHours,
         float speedUnitsPerHour,
         int fromStopIndex,
@@ -118,7 +114,7 @@ public static class CaravanCycle
     // there, otherwise the forward distance to that stop's next linger window, wrapping around the
     // loop if the current position has already passed it this cycle.
     public static double HoursUntilNextArrivalAt(
-        IReadOnlyList<CaravanStop> stops,
+        IReadOnlyList<RouteWaypoint> stops,
         double lingerHours,
         float speedUnitsPerHour,
         double elapsedHours,
@@ -151,6 +147,6 @@ public static class CaravanCycle
         );
     }
 
-    private static int LegHours(CaravanStop stop, float speedUnitsPerHour) =>
+    private static int LegHours(RouteWaypoint stop, float speedUnitsPerHour) =>
         Math.Max(1, (int)(stop.DistanceToNextStop / speedUnitsPerHour));
 }

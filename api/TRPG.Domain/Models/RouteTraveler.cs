@@ -1,16 +1,16 @@
 namespace TRPG.Domain.Models;
 
-public enum CaravanDirection
+public enum RouteDirection
 {
     Clockwise,
     CounterClockwise,
 }
 
-public class Caravan
+public class RouteTraveler
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }
-    public Guid CaravanRouteId { get; init; }
+    public Guid RouteId { get; init; }
     public required double PhaseOffsetHours { get; init; }
-    public required CaravanDirection Direction { get; init; }
+    public required RouteDirection Direction { get; init; }
 }

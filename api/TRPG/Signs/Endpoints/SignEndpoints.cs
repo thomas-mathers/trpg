@@ -77,7 +77,7 @@ internal static class SignEndpoints
     private static string FormatArrival(NextCaravanArrival arrival, TimeSpan currentPlaytime)
     {
         var directionLabel =
-            arrival.Direction == CaravanDirection.Clockwise ? "Clockwise" : "Counter-clockwise";
+            arrival.Direction == RouteDirection.Clockwise ? "Clockwise" : "Counter-clockwise";
         if (arrival.HoursUntilArrival <= 0)
         {
             return $"{directionLabel}: here now";

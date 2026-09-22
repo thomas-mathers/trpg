@@ -21,7 +21,7 @@ internal class GetCaravanTicketQueryHandler(ICaravansDbContext context)
         context
             .CaravanTickets.AsNoTracking()
             .FirstOrDefaultAsync(
-                t => t.CreatureId == query.CreatureId && t.CaravanId == query.CaravanId,
+                t => t.CreatureId == query.CreatureId && t.RouteTravelerId == query.CaravanId,
                 cancellationToken
             );
 }

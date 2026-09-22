@@ -21,8 +21,8 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private PurchaseCaravanTicketCommandHandler _handler = null!;
-    private CaravanRoute _route = null!;
-    private Caravan _caravan = null!;
+    private Route _route = null!;
+    private RouteTraveler _caravan = null!;
     private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
@@ -38,15 +38,17 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<PurchaseCaravanTicketCommandHandler>();
 
-        _route = Builders.MakeCaravanRoute(WorldId, ticketFeeGold: 10, lingerHours: 1);
+        _route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
         var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, LocationA, distanceToNextStop: 10);
         var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, LocationB, distanceToNextStop: 10);
+        var fare = Builders.MakeCaravanFare(_route.Id, WorldId, ticketFeeGold: 10);
         _caravan = Builders.MakeCaravan(_route.Id, WorldId);
         _player = Builders.MakeCreature(worldId: WorldId, locationId: LocationA);
 
-        _context.CaravanRoutes.Add(_route);
-        _context.CaravanRouteStops.AddRange(stopA, stopB);
-        _context.Caravans.Add(_caravan);
+        _context.Routes.Add(_route);
+        _context.RouteStops.AddRange(stopA, stopB);
+        _context.CaravanFares.Add(fare);
+        _context.RouteTravelers.Add(_caravan);
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -101,7 +103,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
             t => t.CreatureId == _player.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_caravan.Id, ticket.CaravanId);
+        Assert.Equal(_caravan.Id, ticket.RouteTravelerId);
         Assert.Equal(LocationA, ticket.OriginStopLocationId);
         Assert.Equal(LocationB, ticket.DestinationLocationId);
     }

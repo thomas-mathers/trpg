@@ -119,7 +119,8 @@ internal class CreateWorldCommandHandler(
                 QuestSeedSchedules = questSeedSchedules,
                 CaravanRoute = caravanRoutes.Route,
                 CaravanRouteStops = caravanRoutes.Stops,
-                Caravans = caravanRoutes.Caravans,
+                CaravanRouteTravelers = caravanRoutes.Travelers,
+                CaravanFare = caravanRoutes.Fare,
                 CaravanRouteSigns = caravanRoutes.Signs,
             },
             cancellationToken
