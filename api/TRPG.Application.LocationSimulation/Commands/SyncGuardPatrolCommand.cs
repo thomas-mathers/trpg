@@ -67,7 +67,7 @@ internal class SyncGuardPatrolCommandHandler(
             cancellationToken
         );
 
-        var relocationsByTargetLocationId = new Dictionary<Guid, List<Guid>>();
+        var relocationsByTarget = new Dictionary<GuardPatrolTarget, List<Guid>>();
         foreach (var traveler in travelers)
         {
             if (!membersByTraveler.TryGetValue(traveler.RouteTravelerId, out var memberIds))
@@ -75,31 +75,23 @@ internal class SyncGuardPatrolCommandHandler(
                 continue;
             }
 
-            var targetLocationId = await ResolveTargetLocationId(
-                traveler,
-                command,
-                cancellationToken
-            );
-            if (targetLocationId == null)
+            var target = await ResolveTarget(traveler, command, cancellationToken);
+            if (target == null)
             {
                 continue;
             }
 
-            AddStragglers(
-                relocationsByTargetLocationId,
-                targetLocationId.Value,
-                memberIds,
-                creaturesById
-            );
+            AddStragglers(relocationsByTarget, target, memberIds, creaturesById);
         }
 
-        foreach (var (targetLocationId, creatureIds) in relocationsByTargetLocationId)
+        foreach (var (target, creatureIds) in relocationsByTarget)
         {
             await updateCreatures.Handle(
                 new UpdateCreaturesCommand
                 {
                     CreatureIds = creatureIds,
-                    LocationId = targetLocationId,
+                    LocationId = target.LocationId,
+                    State = target.State,
                 },
                 cancellationToken
             );
@@ -109,10 +101,12 @@ internal class SyncGuardPatrolCommandHandler(
     // A squad always relocates together to wherever its traveler currently resolves to, even when
     // that's a stop other than the one being caught up right now — this is what lets a location
     // catch-up evict a squad that has since moved on, not just pull one in that has just arrived.
-    // Neither this codebase nor RouteCycle models mid-leg travel time visually (CreatureJob-driven
-    // NPCs teleport between schedule points the same way), so "in transit" resolves to the
-    // destination stop rather than leaving the squad stranded at the stop it already departed.
-    private async Task<Guid?> ResolveTargetLocationId(
+    // Patrol routes have no linger time, so a traveler is effectively always InTransit — this
+    // attributes it to the stop it just departed (not the destination), so State.Patrolling and the
+    // location never contradict each other ("marching along the road" said of a squad already shown
+    // standing at the far end would be a lie). A nonzero-linger route (none exist yet, but the math
+    // still supports it) still resolves Lingering to a real stop with State.Idle.
+    private async Task<GuardPatrolTarget?> ResolveTarget(
         RouteTravelerSummary traveler,
         SyncGuardPatrolCommand command,
         CancellationToken cancellationToken
@@ -130,15 +124,21 @@ internal class SyncGuardPatrolCommandHandler(
 
         return position switch
         {
-            RoutePosition.Lingering lingering => lingering.LocationId,
-            RoutePosition.InTransit inTransit => inTransit.ToLocationId,
+            RoutePosition.Lingering lingering => new GuardPatrolTarget(
+                lingering.LocationId,
+                CreatureState.Idle
+            ),
+            RoutePosition.InTransit inTransit => new GuardPatrolTarget(
+                inTransit.FromLocationId,
+                CreatureState.Patrolling
+            ),
             _ => null,
         };
     }
 
     private static void AddStragglers(
-        Dictionary<Guid, List<Guid>> relocationsByTargetLocationId,
-        Guid targetLocationId,
+        Dictionary<GuardPatrolTarget, List<Guid>> relocationsByTarget,
+        GuardPatrolTarget target,
         IReadOnlyList<Guid> memberIds,
         IReadOnlyDictionary<Guid, Creature> creaturesById
     )
@@ -150,13 +150,15 @@ internal class SyncGuardPatrolCommandHandler(
                 continue;
             }
 
-            if (creature.State == CreatureState.Dead || creature.LocationId == targetLocationId)
+            if (creature.State == CreatureState.Dead || creature.LocationId == target.LocationId)
             {
                 continue;
             }
 
-            relocationsByTargetLocationId.TryAdd(targetLocationId, []);
-            relocationsByTargetLocationId[targetLocationId].Add(creatureId);
+            relocationsByTarget.TryAdd(target, []);
+            relocationsByTarget[target].Add(creatureId);
         }
     }
+
+    private record GuardPatrolTarget(Guid LocationId, CreatureState State);
 }

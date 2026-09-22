@@ -3,12 +3,12 @@ namespace TRPG.Application.Configuration;
 public class CountryPatrolOptions
 {
     // Guards walk their beat rather than ride an express route, so this stays at a pace far
-    // below CaravanOptions.SpeedUnitsPerHour — measured against real generated worlds, this
-    // keeps a full country loop in the ~1-3 in-game day range.
+    // below CaravanOptions.SpeedUnitsPerHour.
     public float SpeedUnitsPerHour { get; init; } = 60;
 
-    // Short enough that the patrol reads as passing through rather than parked.
-    public double DefaultLingerHours { get; init; } = 1;
+    // No rest stop: a patrol is always mid-leg (Creature.State.Patrolling), never genuinely
+    // stationary, so there's nothing for a linger window to represent.
+    public double DefaultLingerHours { get; init; } = 0;
 
     public int SquadSize { get; init; } = 3;
     public int MinGuardLevel { get; init; } = 25;

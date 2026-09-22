@@ -85,7 +85,14 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
         var guards = await verifyContext
             .Creatures.Where(c => c.Id == _guard1.Id || c.Id == _guard2.Id)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-        Assert.All(guards, guard => Assert.Equal(_locationA, guard.LocationId));
+        Assert.All(
+            guards,
+            guard =>
+            {
+                Assert.Equal(_locationA, guard.LocationId);
+                Assert.Equal(CreatureState.Idle, guard.State);
+            }
+        );
     }
 
     [Fact]
@@ -112,13 +119,14 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_RelocatesTheWholeSquadToTheNextStop_WhenThePatrolHasDepartedThisLocation()
+    public async Task Handle_RelocatesTheWholeSquadToTheDepartureStop_WhenInTransitToTheNextOne()
     {
-        // Arrange — stop A's linger window is [0, 1); both guards are still (stale) shown at A
-        // from an earlier sync, but at exactly 1 in-game hour in, the traveler has just left on
-        // the leg toward stop B.
-        _guard1.LocationId = _locationA;
-        _guard2.LocationId = _locationA;
+        // Arrange — stop A's linger window is [0, 1); both guards are still (stale) shown at B
+        // from an earlier leg, but at exactly 1 in-game hour in, the traveler is now InTransit
+        // from A toward B — a squad in transit is attributed to the stop it just left, not the
+        // one it's heading toward, so it belongs back at A.
+        _guard1.LocationId = _locationB;
+        _guard2.LocationId = _locationB;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -132,12 +140,20 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
 
-        // Assert — the whole squad relocates together, none left behind at A.
+        // Assert — the whole squad relocates together, none left behind at B, and both are now
+        // flagged as mid-patrol rather than genuinely stationed here.
         await using var verifyContext = db.CreateContext();
         var guards = await verifyContext
             .Creatures.Where(c => c.Id == _guard1.Id || c.Id == _guard2.Id)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-        Assert.All(guards, guard => Assert.Equal(_locationB, guard.LocationId));
+        Assert.All(
+            guards,
+            guard =>
+            {
+                Assert.Equal(_locationA, guard.LocationId);
+                Assert.Equal(CreatureState.Patrolling, guard.State);
+            }
+        );
     }
 
     [Fact]
