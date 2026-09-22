@@ -55,6 +55,7 @@ import {
   GiStoneTower,
   GiTombstone,
   GiWolfHead,
+  GiWoodenSign,
 } from 'react-icons/gi';
 
 import { getDeliverItemDialog, getQuestDialog } from '@/api/client';
@@ -79,6 +80,7 @@ import { CaravanDialog } from '@/features/game/components/caravan-dialog';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { ExitDirectionArrow } from '@/features/game/components/exit-direction-arrow';
 import { ExitFamiliarity } from '@/features/game/components/exit-familiarity';
+import { SignDialog } from '@/features/game/components/sign-dialog';
 import { SleepDialog } from '@/features/game/components/sleep-dialog';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
@@ -192,6 +194,7 @@ export function NearbyPanel({
   const [isSleepOpen, setIsSleepOpen] = useState(false);
   const [bookshelf, setBookshelf] = useState<{ id: string; name: string } | null>(null);
   const [caravan, setCaravan] = useState<NearbyCaravanSnapshot | null>(null);
+  const [sign, setSign] = useState<{ id: string; name: string } | null>(null);
 
   const handleQuestDialog = async (giverId: string, questId: string) => {
     const response = await getQuestDialog({
@@ -222,6 +225,7 @@ export function NearbyPanel({
   const nearbyTradeWorkstations = scene.nearbyProps.filter((prop) => prop.type === 'Trade');
   const nearbyBeds = scene.nearbyProps.filter((prop) => prop.type === 'Bed');
   const nearbyBookshelves = scene.nearbyProps.filter((prop) => prop.type === 'Reading');
+  const nearbySigns = scene.nearbyProps.filter((prop) => prop.type === 'Sign');
 
   return (
     <div className="flex flex-col gap-6 p-4 text-sm">
@@ -399,6 +403,25 @@ export function NearbyPanel({
         </Section>
       )}
 
+      {nearbySigns.length > 0 && (
+        <Section title="Signs">
+          {nearbySigns.map((nearbySign) => (
+            <div key={nearbySign.id} className="flex items-center justify-between gap-2 py-1.5">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <GiWoodenSign className="text-muted-foreground size-[18px] shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => setSign({ id: nearbySign.id, name: nearbySign.name })}
+                  className="cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2"
+                >
+                  {nearbySign.name}
+                </button>
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
       {scene.nearbyCaravans.length > 0 && (
         <Section title="Caravans">
           {scene.nearbyCaravans.map((nearbyCaravan) => (
@@ -476,6 +499,14 @@ export function NearbyPanel({
         name={bookshelf?.name ?? ''}
         open={bookshelf !== null}
         onClose={() => setBookshelf(null)}
+      />
+
+      <SignDialog
+        worldId={scene.worldId}
+        signId={sign?.id ?? null}
+        name={sign?.name ?? ''}
+        open={sign !== null}
+        onClose={() => setSign(null)}
       />
     </div>
   );

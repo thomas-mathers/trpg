@@ -498,6 +498,36 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_IncludesProps_WhenOutdoors()
+    {
+        // Arrange
+        var sign = Builders.MakeSign(
+            worldId: WorldId,
+            locationId: _player.LocationId,
+            text: "Caravan schedule:\nClockwise: every 1 day at 07:00"
+        );
+        _context.Props.Add(sign);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            Playtime = TimeSpan.Zero,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var nearbyProp = Assert.Single(result.NearbyProps);
+        Assert.Equal(sign.Name, nearbyProp.Name);
+        Assert.Equal(sign.Description, nearbyProp.Description);
+        Assert.Equal("Sign", nearbyProp.Type);
+    }
+
+    [Fact]
     public async Task Handle_IncludesWeather_WhenOutdoors()
     {
         // Arrange

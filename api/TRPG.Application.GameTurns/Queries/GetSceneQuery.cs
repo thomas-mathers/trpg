@@ -579,7 +579,16 @@ internal class GetSceneQueryHandler(
             .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
             .ToArray();
 
-        return new SceneLocationData(null, null, state?.Description, [], nearbyBuildings);
+        var props = await getAllPropsByLocationId.Handle(
+            new GetPropsByLocationIdQuery { LocationId = player.LocationId },
+            cancellationToken
+        );
+        var visibleProps = await ExcludeUndiscoveredTraps(props, player.Id, cancellationToken);
+        var nearbyProps = visibleProps
+            .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
+            .ToArray();
+
+        return new SceneLocationData(null, null, state?.Description, nearbyProps, nearbyBuildings);
     }
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
@@ -801,6 +810,7 @@ internal class GetSceneQueryHandler(
             Container => "Container",
             Trap => "Trap",
             Trigger => "Trigger",
+            Sign => "Sign",
             _ => prop.GetType().Name,
         };
     }

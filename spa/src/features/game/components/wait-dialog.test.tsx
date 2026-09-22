@@ -1,5 +1,5 @@
 import { HubConnectionState } from '@microsoft/signalr';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -76,14 +76,17 @@ describe('WaitDialog', () => {
   it('defaults the target time to the current in-game hour', () => {
     renderDialog({ hour: 14 });
 
-    expect(screen.getByLabelText('Wait until')).toHaveValue('14:00');
+    expect(screen.getByLabelText('Wait until')).toHaveValue(14);
+    expect(screen.getByLabelText('Minute')).toHaveValue(0);
   });
 
   it('sends the hour delta to the picked time later the same day', async () => {
     const { user, gameChat, chatHub, onClose } = renderDialog({ hour: 8 });
 
     await user.clear(screen.getByLabelText('Wait until'));
-    await user.type(screen.getByLabelText('Wait until'), '1430');
+    await user.type(screen.getByLabelText('Wait until'), '14');
+    await user.clear(screen.getByLabelText('Minute'));
+    await user.type(screen.getByLabelText('Minute'), '30');
     await user.click(screen.getByRole('button', { name: 'Wait' }));
 
     expect(chatHub.sendWait).toHaveBeenCalledWith(6, 30);
@@ -98,7 +101,7 @@ describe('WaitDialog', () => {
     const { user, chatHub } = renderDialog({ hour: 14 });
 
     await user.clear(screen.getByLabelText('Wait until'));
-    await user.type(screen.getByLabelText('Wait until'), '0800');
+    await user.type(screen.getByLabelText('Wait until'), '08');
     await user.click(screen.getByRole('button', { name: 'Wait' }));
 
     expect(chatHub.sendWait).toHaveBeenCalledWith(18, 0);
@@ -107,7 +110,7 @@ describe('WaitDialog', () => {
   it('waits a full day when the picked time matches the current hour', async () => {
     const { chatHub } = renderDialog({ hour: 8 });
 
-    await screen.findByDisplayValue('08:00');
+    await waitFor(() => expect(screen.getByLabelText('Wait until')).toHaveValue(8));
     (await screen.findByRole('button', { name: 'Wait' })).click();
 
     expect(chatHub.sendWait).toHaveBeenCalledWith(24, 0);

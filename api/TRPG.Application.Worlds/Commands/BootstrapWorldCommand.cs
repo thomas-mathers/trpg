@@ -18,6 +18,7 @@ public class BootstrapWorldCommand
     public CaravanRoute? CaravanRoute { get; init; }
     public IReadOnlyList<CaravanRouteStop> CaravanRouteStops { get; init; } = [];
     public IReadOnlyList<Caravan> Caravans { get; init; } = [];
+    public IReadOnlyList<CaravanScheduleSign> CaravanRouteSigns { get; init; } = [];
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -97,6 +98,7 @@ internal class BootstrapWorldCommandHandler(
             context.CaravanRoutes.Add(command.CaravanRoute);
             context.CaravanRouteStops.AddRange(command.CaravanRouteStops);
             context.Caravans.AddRange(command.Caravans);
+            context.Props.AddRange(command.CaravanRouteSigns);
         }
 
         if (player != null)

@@ -6,7 +6,8 @@ namespace TRPG.Application.WorldGeneration.Generators;
 public record CaravanRouteSeederResult(
     CaravanRoute? Route,
     IReadOnlyList<CaravanRouteStop> Stops,
-    IReadOnlyList<Caravan> Caravans
+    IReadOnlyList<Caravan> Caravans,
+    IReadOnlyList<CaravanScheduleSign> Signs
 );
 
 // Cities never connect to each other directly — every trip already goes
@@ -22,26 +23,19 @@ public static class CaravanRouteSeeder
         var capitalLocationIds = ResolveCapitalEntranceLocationIds(world);
         if (capitalLocationIds.Count < 2)
         {
-            return new CaravanRouteSeederResult(null, [], []);
+            return new CaravanRouteSeederResult(null, [], [], []);
         }
 
         var adjacency = BuildTravelAdjacency(world);
         var orderedStops = OrderByDfsPreorder(capitalLocationIds, adjacency);
-
-        var route = new CaravanRoute
-        {
-            WorldId = world.World.Id,
-            Name = "The Capital Circuit",
-            TicketFeeGold = options.DefaultTicketFeeGold,
-            LingerHours = options.DefaultLingerHours,
-        };
+        var routeId = Guid.NewGuid();
 
         var stops = orderedStops
             .Select(
                 (locationId, index) =>
                     new CaravanRouteStop
                     {
-                        CaravanRouteId = route.Id,
+                        CaravanRouteId = routeId,
                         SequenceIndex = index,
                         LocationId = locationId,
                         DistanceToNextStop = PathDistance(
@@ -54,8 +48,18 @@ public static class CaravanRouteSeeder
             .ToArray();
 
         var totalCycleHours = stops.Sum(stop =>
-            route.LingerHours + LegHours(stop.DistanceToNextStop, options.SpeedUnitsPerHour)
+            options.DefaultLingerHours
+            + LegHours(stop.DistanceToNextStop, options.SpeedUnitsPerHour)
         );
+
+        var route = new CaravanRoute
+        {
+            Id = routeId,
+            WorldId = world.World.Id,
+            Name = "The Capital Circuit",
+            TicketFeeGold = options.DefaultTicketFeeGold,
+            LingerHours = options.DefaultLingerHours,
+        };
 
         // Traveling the loop backward covers the same set of legs in a different order, so the
         // total cycle length is identical for both directions — each direction's instances are
@@ -75,7 +79,20 @@ public static class CaravanRouteSeeder
             )
             .ToArray();
 
-        return new CaravanRouteSeederResult(route, stops, caravans);
+        // The sign's Description is a static placeholder only — its actual displayed text is
+        // computed live from current caravan positions by the /signs/{signId} endpoint, so it
+        // never goes stale the way baking a schedule in at world creation would.
+        var signs = stops
+            .Select(stop => new CaravanScheduleSign
+            {
+                WorldId = world.World.Id,
+                LocationId = stop.LocationId,
+                Name = "Caravan Schedule",
+                Description = "A wooden signpost listing caravan arrival times.",
+            })
+            .ToArray();
+
+        return new CaravanRouteSeederResult(route, stops, caravans, signs);
     }
 
     private static int LegHours(float distance, float speedUnitsPerHour) =>

@@ -120,6 +120,7 @@ internal class CreateWorldCommandHandler(
                 CaravanRoute = caravanRoutes.Route,
                 CaravanRouteStops = caravanRoutes.Stops,
                 Caravans = caravanRoutes.Caravans,
+                CaravanRouteSigns = caravanRoutes.Signs,
             },
             cancellationToken
         );

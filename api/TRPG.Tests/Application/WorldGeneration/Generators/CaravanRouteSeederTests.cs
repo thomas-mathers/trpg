@@ -62,6 +62,23 @@ public class CaravanRouteSeederTests
     }
 
     [Fact]
+    public void Seed_BuildsAScheduleSignAtEveryStop()
+    {
+        var worldId = Guid.NewGuid();
+        var (world, capitalLocationIds) = BuildStarTopologyWorld(worldId, countryCount: 3);
+
+        var result = CaravanRouteSeeder.Seed(world, Options);
+
+        Assert.Equal(capitalLocationIds.Count, result.Signs.Count);
+        Assert.Equal(
+            capitalLocationIds.OrderBy(id => id),
+            result.Signs.Select(sign => sign.LocationId).OrderBy(id => id)
+        );
+        Assert.All(result.Signs, sign => Assert.Equal(worldId, sign.WorldId));
+        Assert.All(result.Signs, sign => Assert.NotEmpty(sign.Description));
+    }
+
+    [Fact]
     public void Seed_ReturnsNoRoute_WhenFewerThanTwoCapitalsExist()
     {
         var worldId = Guid.NewGuid();
@@ -72,6 +89,7 @@ public class CaravanRouteSeederTests
         Assert.Null(result.Route);
         Assert.Empty(result.Stops);
         Assert.Empty(result.Caravans);
+        Assert.Empty(result.Signs);
     }
 
     // Every capital's entrance connects only to a single shared hub location, so every capital
