@@ -256,40 +256,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
     }
 
     [Fact]
-    public async Task ResolveEncounterAction_Evade_AlwaysCompletesTheEncounter_AndConsistentlyLinksAnyFightThatStarts()
+    public async Task ResolveEncounterAction_Flee_AlwaysCompletesTheEncounter_AndMovesThePlayerBackOnlyWhenNoFightStarts()
     {
-        // Arrange
-        var (faction, monster) = await SeedHostileGroup();
-        var encounter = await SeedActiveEncounter(faction, monster);
-        var sessionId = await StartSession();
-        await using var gameHub = await Connect(sessionId);
-
-        // Act — the evade roll is random, so this asserts the invariants that hold either way
-        await Drain(
-            gameHub.StreamAsync<string>(
-                "ResolveEvadeEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
-
-        // Assert
-        var persistedEncounter = await GetEncounter(encounter.Id);
-        Assert.Equal(EncounterState.Completed, persistedEncounter.State);
-
-        var fight = await FindFight(_playerId);
-        if (fight != null)
-        {
-            Assert.Equal(
-                new[] { _playerId, monster.Id }.OrderBy(id => id),
-                fight.CombatantIds.OrderBy(id => id)
-            );
-        }
-    }
-
-    [Fact]
-    public async Task ResolveEncounterAction_Retreat_MovesThePlayerBack_OnlyWhenNoFightStarts()
-    {
-        // Arrange
+        // Arrange — no exit connector is seeded at this location, so a successful flee falls
+        // back to the player's previous location.
         var originLocation = Builders.MakeLocation(_worldId, _stateId);
         await using (var scope = fixture.CreateScope())
         {
@@ -304,20 +274,23 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         }
 
         var (faction, monster) = await SeedHostileGroup();
-        await SeedActiveEncounter(faction, monster);
+        var encounter = await SeedActiveEncounter(faction, monster);
 
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
-        // Act — the retreat roll is random, so this asserts the invariant that holds either way
+        // Act — the flee roll is random, so this asserts the invariants that hold either way
         await Drain(
             gameHub.StreamAsync<string>(
-                "ResolveRetreatEncounterAction",
+                "ResolveFleeEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );
 
         // Assert
+        var persistedEncounter = await GetEncounter(encounter.Id);
+        Assert.Equal(EncounterState.Completed, persistedEncounter.State);
+
         await using var verifyScope = fixture.CreateScope();
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var player = await verifyContext.Creatures.SingleAsync(
@@ -333,6 +306,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         else
         {
             Assert.Equal(_locationId, player.LocationId);
+            Assert.Equal(
+                new[] { _playerId, monster.Id }.OrderBy(id => id),
+                fight.CombatantIds.OrderBy(id => id)
+            );
         }
     }
 

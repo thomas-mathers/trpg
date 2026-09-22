@@ -16,12 +16,9 @@ internal static class HostileEncounterActionResolver
         action switch
         {
             AttackEncounterAction => HostileEncounterResolutionOutcome.Attacked,
-            EvadeEncounterAction => IsCaught(fleeOptions, player, groupMembers, roll)
-                ? HostileEncounterResolutionOutcome.EvadeFailed
-                : HostileEncounterResolutionOutcome.Evaded,
-            RetreatEncounterAction => IsCaught(fleeOptions, player, groupMembers, roll)
-                ? HostileEncounterResolutionOutcome.RetreatFailed
-                : HostileEncounterResolutionOutcome.Retreated,
+            FleeEncounterAction => IsCaught(fleeOptions, player, groupMembers, roll)
+                ? HostileEncounterResolutionOutcome.FleeFailed
+                : HostileEncounterResolutionOutcome.Fled,
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
 

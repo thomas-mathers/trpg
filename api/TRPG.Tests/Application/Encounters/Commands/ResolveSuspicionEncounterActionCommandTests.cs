@@ -148,7 +148,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
     {
         // Arrange
         var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
-        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        var encounter = await SeedActiveEncounter(_player.LocationId);
 
         // Act
         var fact = await handler.Handle(
@@ -198,6 +198,69 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
                 TestContext.Current.CancellationToken
             );
         Assert.Equal(destination.Id, player.LocationId);
+    }
+
+    [Fact]
+    public async Task Handle_Flee_UsesALiveExit_WhenCaughtStandingStillWithNoInterruptedMove()
+    {
+        // Arrange — caught with no departure destination, so fleeing exits through whatever
+        // connector is actually in this room rather than standing still.
+        var exitLocation = Builders.MakeLocation(WorldId);
+        _context.Locations.Add(exitLocation);
+        _context.LocationConnectors.Add(
+            Builders.MakeLocationConnector(
+                _player.LocationId,
+                destinationLocationId: exitLocation.Id,
+                worldId: WorldId
+            )
+        );
+        var encounter = await SeedActiveEncounter(_player.LocationId);
+        var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
+
+        // Act
+        await handler.Handle(
+            MakeCommand(new FleeSuspicionAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(exitLocation.Id, player.LocationId);
+    }
+
+    [Fact]
+    public async Task Handle_Flee_FallsBackToThePreviousLocation_WhenNoExitExists()
+    {
+        // Arrange — no connector out of this room, so fleeing falls back to wherever the player
+        // came from rather than leaving them stuck with the guard.
+        var origin = Builders.MakeLocation(WorldId);
+        _player.PreviousLocationId = origin.Id;
+        _context.Locations.Add(origin);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedActiveEncounter(_player.LocationId);
+        var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
+
+        // Act
+        await handler.Handle(
+            MakeCommand(new FleeSuspicionAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(origin.Id, player.LocationId);
     }
 
     [Fact]

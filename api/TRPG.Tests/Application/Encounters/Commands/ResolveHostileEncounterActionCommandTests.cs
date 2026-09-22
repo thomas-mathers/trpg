@@ -62,12 +62,15 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
             EncounterId = encounterId,
         };
 
-    private async Task<HostileEncounter> SeedActiveEncounter(Guid? destinationLocationId = null)
+    private async Task<HostileEncounter> SeedActiveEncounter(
+        Guid? destinationLocationId = null,
+        Guid? playerId = null
+    )
     {
         var encounter = new HostileEncounter
         {
             WorldId = WorldId,
-            PlayerId = _player.Id,
+            PlayerId = playerId ?? _player.Id,
             LocationId = _player.LocationId,
             DepartureDestinationLocationId = destinationLocationId,
             LocationName = "Market Square",
@@ -138,20 +141,22 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
     }
 
     [Fact]
-    public async Task Handle_Evade_ReturnsEvadedAndDoesNotStartAFight_WhenTheEscapeSucceeds()
+    public async Task Handle_Flee_MovesToPreviousLocationAndDoesNotStartAFight_WhenArrivalEscapeSucceeds()
     {
-        // Arrange
+        // Arrange — no departure destination means this encounter was triggered on arrival, so a
+        // successful flee has nowhere forward to continue to and falls back to where the player
+        // came from.
         var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
         var encounter = await SeedActiveEncounter();
 
         // Act
         var result = await handler.Handle(
-            MakeCommand(new EvadeEncounterAction(), encounter.Id),
+            MakeCommand(new FleeEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.Evaded, result.Outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.Fled, result.Outcome);
         await using var verifyContext = db.CreateContext();
         var player = await verifyContext
             .Creatures.AsNoTracking()
@@ -159,7 +164,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
                 creature => creature.Id == _player.Id,
                 TestContext.Current.CancellationToken
             );
-        Assert.Equal(_player.LocationId, player.LocationId);
+        Assert.Equal(_previousLocationId, player.LocationId);
         Assert.False(
             await verifyContext
                 .Encounters.OfType<FightEncounter>()
@@ -167,10 +172,47 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         );
     }
 
+    [Fact]
+    public async Task Handle_Flee_StaysPut_WhenNoDestinationExitOrPreviousLocationExists()
+    {
+        // Arrange — a dead-end location (no connectors) confronting a player with no move
+        // history: nowhere to resume, exit, or retreat to, so fleeing just leaves them in place.
+        var playerWithNoHistory = Builders.MakeCreature(WorldId, locationId: _player.LocationId);
+        _context.Creatures.Add(playerWithNoHistory);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = await SeedActiveEncounter(playerId: playerWithNoHistory.Id);
+        _context.ChangeTracker.Clear();
+        var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
+
+        // Act
+        var result = await handler.Handle(
+            new ResolveHostileEncounterActionCommand
+            {
+                SessionId = _session.Id,
+                WorldId = WorldId,
+                PlayerId = playerWithNoHistory.Id,
+                Action = new FleeEncounterAction(),
+                EncounterId = encounter.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HostileEncounterResolutionOutcome.Fled, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == playerWithNoHistory.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(playerWithNoHistory.LocationId, player.LocationId);
+    }
+
     [Theory]
     [InlineData(0f)]
     [InlineData(1f)]
-    public async Task Handle_Evade_ResumesDepartureOnlyOnSuccess_WhenMovementWasInterrupted(
+    public async Task Handle_Flee_ResumesDepartureOnlyOnSuccess_WhenMovementWasInterrupted(
         float catchChance
     )
     {
@@ -190,7 +232,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
 
         // Act
         var result = await handler.Handle(
-            MakeCommand(new EvadeEncounterAction(), encounter.Id),
+            MakeCommand(new FleeEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -205,36 +247,41 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         Assert.Equal(catchChance == 0f ? destination.Id : _player.LocationId, player.LocationId);
         Assert.Equal(
             catchChance == 0f
-                ? HostileEncounterResolutionOutcome.Evaded
-                : HostileEncounterResolutionOutcome.EvadeFailed,
+                ? HostileEncounterResolutionOutcome.Fled
+                : HostileEncounterResolutionOutcome.FleeFailed,
             result.Outcome
         );
     }
 
     [Fact]
-    public async Task Handle_Evade_RejectsDisconnectedDestinationWithoutCompletingEncounter()
+    public async Task Handle_Flee_FallsBackToThePreviousLocation_WhenTheDepartureDestinationIsDisconnected()
     {
-        // Arrange
+        // Arrange — the saved destination no longer has any connector to it, so fleeing falls
+        // back to wherever the player came from instead of failing the action outright.
         var encounter = await SeedActiveEncounter(Guid.NewGuid());
         var handler = BuildHandlerWithFleeOptions(0f, 0f);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            handler.Handle(
-                MakeCommand(new EvadeEncounterAction(), encounter.Id),
-                TestContext.Current.CancellationToken
-            )
+        // Act
+        var result = await handler.Handle(
+            MakeCommand(new FleeEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
         );
 
+        // Assert
+        Assert.Equal(HostileEncounterResolutionOutcome.Fled, result.Outcome);
         await using var verifyContext = db.CreateContext();
         var persisted = await verifyContext
             .Encounters.AsNoTracking()
             .SingleAsync(item => item.Id == encounter.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(EncounterState.Active, persisted.State);
+        Assert.Equal(EncounterState.Completed, persisted.State);
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(item => item.Id == _player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(_previousLocationId, player.LocationId);
     }
 
     [Fact]
-    public async Task Handle_Evade_StartsArrivalEncounter_WhenDestinationHasHostiles()
+    public async Task Handle_Flee_StartsArrivalEncounter_WhenDestinationHasHostiles()
     {
         // Arrange
         var destination = Builders.MakeLocation(WorldId, Guid.NewGuid());
@@ -260,7 +307,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
 
         // Act
         await handler.Handle(
-            MakeCommand(new EvadeEncounterAction(), encounter.Id),
+            MakeCommand(new FleeEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -277,9 +324,10 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
     }
 
     [Fact]
-    public async Task Handle_Evade_RejectsLockedDestinationWithoutMoving()
+    public async Task Handle_Flee_FallsBackToThePreviousLocation_WhenTheDepartureDestinationIsLocked()
     {
-        // Arrange
+        // Arrange — the door to the saved destination is now locked, and it's the only
+        // connector out of this room, so fleeing falls back to the player's previous location.
         var destination = Builders.MakeLocation(WorldId, Guid.NewGuid());
         var connector = Builders.MakeLocationConnector(
             _player.LocationId,
@@ -299,23 +347,23 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
         var encounter = await SeedActiveEncounter(destination.Id);
         var handler = BuildHandlerWithFleeOptions(0f, 0f);
 
-        // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            handler.Handle(
-                MakeCommand(new EvadeEncounterAction(), encounter.Id),
-                TestContext.Current.CancellationToken
-            )
+        // Act
+        var result = await handler.Handle(
+            MakeCommand(new FleeEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
         );
 
+        // Assert
+        Assert.Equal(HostileEncounterResolutionOutcome.Fled, result.Outcome);
         await using var verifyContext = db.CreateContext();
         var player = await verifyContext
             .Creatures.AsNoTracking()
             .SingleAsync(item => item.Id == _player.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(_player.LocationId, player.LocationId);
+        Assert.Equal(_previousLocationId, player.LocationId);
     }
 
     [Fact]
-    public async Task Handle_Evade_StartsAFight_WhenTheEscapeFails()
+    public async Task Handle_Flee_StartsAFight_WhenTheEscapeFails()
     {
         // Arrange
         var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 1f, maximumCatchChance: 1f);
@@ -323,58 +371,12 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
 
         // Act
         var result = await handler.Handle(
-            MakeCommand(new EvadeEncounterAction(), encounter.Id),
+            MakeCommand(new FleeEncounterAction(), encounter.Id),
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.EvadeFailed, result.Outcome);
-        await using var verifyContext = db.CreateContext();
-        Assert.True(
-            await verifyContext
-                .Encounters.OfType<FightEncounter>()
-                .AnyAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken)
-        );
-    }
-
-    [Fact]
-    public async Task Handle_Retreat_MovesThePlayerToThePreviousLocation_WhenTheEscapeSucceeds()
-    {
-        // Arrange
-        var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
-        var encounter = await SeedActiveEncounter();
-
-        // Act
-        var result = await handler.Handle(
-            MakeCommand(new RetreatEncounterAction(), encounter.Id),
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.Retreated, result.Outcome);
-        await using var verifyContext = db.CreateContext();
-        var updatedPlayer = await verifyContext.Creatures.FindAsync(
-            [_player.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_previousLocationId, updatedPlayer!.LocationId);
-    }
-
-    [Fact]
-    public async Task Handle_Retreat_StartsAFight_WhenTheEscapeFails()
-    {
-        // Arrange
-        var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 1f, maximumCatchChance: 1f);
-        var encounter = await SeedActiveEncounter();
-
-        // Act
-        var result = await handler.Handle(
-            MakeCommand(new RetreatEncounterAction(), encounter.Id),
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Equal(HostileEncounterResolutionOutcome.RetreatFailed, result.Outcome);
+        Assert.Equal(HostileEncounterResolutionOutcome.FleeFailed, result.Outcome);
         await using var verifyContext = db.CreateContext();
         Assert.True(
             await verifyContext

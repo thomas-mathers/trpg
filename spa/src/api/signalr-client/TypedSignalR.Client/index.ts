@@ -156,12 +156,8 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("ResolveAttackEncounterAction");
     }
 
-    public readonly resolveEvadeEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveEvadeEncounterAction");
-    }
-
-    public readonly resolveRetreatEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveRetreatEncounterAction");
+    public readonly resolveFleeEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveFleeEncounterAction");
     }
 
     public readonly resolvePayFineEncounterAction = (): IStreamResult<string> => {

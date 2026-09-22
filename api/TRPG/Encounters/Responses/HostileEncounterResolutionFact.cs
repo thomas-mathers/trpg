@@ -3,10 +3,8 @@ namespace TRPG.Encounters.Responses;
 [Tapper.TranspilationSource]
 public enum HostileEncounterResolutionOutcome
 {
-    Evaded,
-    EvadeFailed,
-    Retreated,
-    RetreatFailed,
+    Fled,
+    FleeFailed,
     Attacked,
 }
 

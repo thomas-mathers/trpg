@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
@@ -10,7 +11,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters;
 
-internal class DepartureMovementResumer(
+internal class EncounterFleeResolver(
     IQueryHandler<
         GetConnectorsByLocationIdQuery,
         IReadOnlyCollection<LocationConnector>
@@ -21,10 +22,11 @@ internal class DepartureMovementResumer(
         ResolveAccessibleConnectorsCommand,
         IReadOnlyCollection<Guid>
     > resolveAccessibleConnectors,
+    ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector,
     ICommandHandler<MovePlayerCommand> movePlayer
 )
 {
-    public async Task Resume(
+    public async Task<bool> Resolve(
         Encounter encounter,
         Creature player,
         TimeSpan playtime,
@@ -34,10 +36,52 @@ internal class DepartureMovementResumer(
         if (player.WorldId != encounter.WorldId || player.LocationId != encounter.LocationId)
         {
             throw new InvalidOperationException(
-                "The player is no longer at the interrupted departure location."
+                "The player is no longer at the encounter location."
             );
         }
 
+        if (
+            encounter.DepartureDestinationLocationId != null
+            && await TryResumeDeparture(encounter, player, playtime, cancellationToken)
+        )
+        {
+            return true;
+        }
+
+        var exitLocationId = await resolveExitConnector.Handle(
+            new ResolveExitConnectorCommand
+            {
+                WorldId = encounter.WorldId,
+                PlayerId = player.Id,
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
+        if (exitLocationId != null)
+        {
+            await MoveTo(player.Id, exitLocationId.Value, playtime, cancellationToken);
+            return true;
+        }
+
+        if (player.PreviousLocationId is { } originLocationId)
+        {
+            await MoveTo(player.Id, originLocationId, playtime, cancellationToken);
+            return true;
+        }
+
+        return false;
+    }
+
+    // Returns false rather than throwing when the specific saved destination has become
+    // unreachable, so the caller can fall back to any other way out instead of stranding the
+    // player over a since-locked door.
+    private async Task<bool> TryResumeDeparture(
+        Encounter encounter,
+        Creature player,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    )
+    {
         var connectors = await getConnectors.Handle(
             new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
@@ -48,20 +92,21 @@ internal class DepartureMovementResumer(
             )
             .Select(connector => connector.Id)
             .ToArray();
-        await ValidateAccess(encounter, matchingIds, playtime, cancellationToken);
+        if (!await IsDepartureAccessible(encounter, matchingIds, playtime, cancellationToken))
+        {
+            return false;
+        }
 
-        await movePlayer.Handle(
-            new MovePlayerCommand
-            {
-                PlayerId = player.Id,
-                DestinationLocationId = encounter.DepartureDestinationLocationId!.Value,
-                Playtime = playtime,
-            },
+        await MoveTo(
+            player.Id,
+            encounter.DepartureDestinationLocationId!.Value,
+            playtime,
             cancellationToken
         );
+        return true;
     }
 
-    private async Task ValidateAccess(
+    private async Task<bool> IsDepartureAccessible(
         Encounter encounter,
         IReadOnlyCollection<Guid> connectorIds,
         TimeSpan playtime,
@@ -70,9 +115,7 @@ internal class DepartureMovementResumer(
     {
         if (connectorIds.Count == 0)
         {
-            throw new InvalidOperationException(
-                "The interrupted destination is no longer connected to this location."
-            );
+            return false;
         }
 
         var keys = await getKeys.Handle(
@@ -96,11 +139,22 @@ internal class DepartureMovementResumer(
             },
             cancellationToken
         );
-        if (accessible.Count == 0)
-        {
-            throw new InvalidOperationException(
-                "The way to the interrupted destination is now locked."
-            );
-        }
+        return accessible.Count > 0;
     }
+
+    private Task MoveTo(
+        Guid playerId,
+        Guid destinationLocationId,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    ) =>
+        movePlayer.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = playerId,
+                DestinationLocationId = destinationLocationId,
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
 }

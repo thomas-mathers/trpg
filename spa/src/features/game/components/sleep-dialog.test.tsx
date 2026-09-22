@@ -41,8 +41,7 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveAttackEncounterAction: vi.fn(),
-    resolveEvadeEncounterAction: vi.fn(),
-    resolveRetreatEncounterAction: vi.fn(),
+    resolveFleeEncounterAction: vi.fn(),
     ...overrides,
   } as IChatHub;
 }

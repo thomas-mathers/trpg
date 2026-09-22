@@ -1,7 +1,6 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Encounters.Mappers;
@@ -31,9 +30,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    ICommandHandler<MovePlayerCommand> movePlayer,
-    ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector,
-    DepartureMovementResumer departureMovementResumer
+    EncounterFleeResolver encounterFleeResolver
 )
     : EncounterResolutionCommandHandlerBase<
         TheftEncounter,
@@ -133,40 +130,12 @@ internal class ResolveTheftEncounterActionCommandHandler(
             new GetPlaytimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
-
-        bool leftTheScene;
-        if (encounter.DepartureDestinationLocationId != null)
-        {
-            await departureMovementResumer.Resume(encounter, player, playtime, cancellationToken);
-            leftTheScene = true;
-        }
-        else
-        {
-            var destinationLocationId = await resolveExitConnector.Handle(
-                new ResolveExitConnectorCommand
-                {
-                    WorldId = command.WorldId,
-                    PlayerId = command.PlayerId,
-                    Playtime = playtime,
-                },
-                cancellationToken
-            );
-
-            if (destinationLocationId is { } locationId)
-            {
-                await movePlayer.Handle(
-                    new MovePlayerCommand
-                    {
-                        PlayerId = command.PlayerId,
-                        DestinationLocationId = locationId,
-                        Playtime = playtime,
-                    },
-                    cancellationToken
-                );
-            }
-
-            leftTheScene = destinationLocationId != null;
-        }
+        var leftTheScene = await encounterFleeResolver.Resolve(
+            encounter,
+            player,
+            playtime,
+            cancellationToken
+        );
 
         return new TheftEncounterResolutionFact(
             encounter.Id,

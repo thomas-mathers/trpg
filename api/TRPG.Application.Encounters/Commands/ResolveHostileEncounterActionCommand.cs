@@ -26,10 +26,9 @@ internal class ResolveHostileEncounterActionCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<MovePlayerCommand> movePlayer,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<StartFightCommand> startFight,
-    DepartureMovementResumer departureMovementResumer,
+    EncounterFleeResolver encounterFleeResolver,
     IOptionsSnapshot<FleeOptions> fleeOptions
 )
     : EncounterResolutionCommandHandlerBase<
@@ -88,45 +87,19 @@ internal class ResolveHostileEncounterActionCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        if (
-            outcome == HostileEncounterResolutionOutcome.Evaded
-            && encounter.DepartureDestinationLocationId != null
-        )
+        if (outcome == HostileEncounterResolutionOutcome.Fled)
         {
             var playtime = await getPlaytime.Handle(
                 new GetPlaytimeQuery { SessionId = command.SessionId },
                 cancellationToken
             );
-            await departureMovementResumer.Resume(encounter, player, playtime, cancellationToken);
-            return;
-        }
-
-        if (
-            outcome == HostileEncounterResolutionOutcome.Retreated
-            && player.PreviousLocationId is { } originLocationId
-        )
-        {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
-                cancellationToken
-            );
-
-            await movePlayer.Handle(
-                new MovePlayerCommand
-                {
-                    PlayerId = player.Id,
-                    DestinationLocationId = originLocationId,
-                    Playtime = playtime,
-                },
-                cancellationToken
-            );
+            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
             return;
         }
 
         var startsFight = outcome switch
         {
-            HostileEncounterResolutionOutcome.EvadeFailed
-            or HostileEncounterResolutionOutcome.RetreatFailed
+            HostileEncounterResolutionOutcome.FleeFailed
             or HostileEncounterResolutionOutcome.Attacked => true,
             _ => false,
         };

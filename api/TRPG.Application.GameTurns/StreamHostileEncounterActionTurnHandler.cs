@@ -59,8 +59,7 @@ internal class StreamHostileEncounterActionTurnHandler(
         resolution.Outcome switch
         {
             HostileEncounterResolutionOutcome.Attacked
-            or HostileEncounterResolutionOutcome.EvadeFailed
-            or HostileEncounterResolutionOutcome.RetreatFailed =>
+            or HostileEncounterResolutionOutcome.FleeFailed =>
                 $"The player chose to {DescribeAction(action)} the {resolution.FactionName} encounter, and it has erupted into a fight. Narrate only the confrontation beginning. The fight has not been resolved yet: do not describe who wins, who is hurt, or how it ends. Do not call any tools.",
             _ =>
                 $"The player chose to {DescribeAction(action)} the {resolution.FactionName} encounter. Result: {JsonSerializer.Serialize(resolution, TRPG.Application.Common.Serialization.TrpgJsonOptions.Default)}. Narrate the outcome vividly based on this result. Do not call any tools.",
@@ -70,8 +69,7 @@ internal class StreamHostileEncounterActionTurnHandler(
         action switch
         {
             AttackEncounterAction => "attack",
-            EvadeEncounterAction => "evade",
-            RetreatEncounterAction => "retreat from",
+            FleeEncounterAction => "flee from",
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
 }

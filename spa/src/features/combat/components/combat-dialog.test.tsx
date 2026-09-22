@@ -96,8 +96,7 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     resolveUseAbilityCombatAction: vi.fn(() => noopStreamResult()),
     resolveUseItemCombatAction: vi.fn(() => noopStreamResult()),
     resolveAttackEncounterAction: vi.fn(),
-    resolveEvadeEncounterAction: vi.fn(),
-    resolveRetreatEncounterAction: vi.fn(),
+    resolveFleeEncounterAction: vi.fn(),
     ...overrides,
   } as IChatHub;
 }

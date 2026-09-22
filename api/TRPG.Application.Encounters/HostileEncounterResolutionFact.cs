@@ -2,10 +2,8 @@ namespace TRPG.Application.Encounters;
 
 public enum HostileEncounterResolutionOutcome
 {
-    Evaded,
-    EvadeFailed,
-    Retreated,
-    RetreatFailed,
+    Fled,
+    FleeFailed,
     Attacked,
 }
 
