@@ -1057,7 +1057,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         await Drain(
             connection.StreamAsync<string>(
-                "ResolveEvadeEncounterAction",
+                "ResolveFleeEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );
@@ -1404,7 +1404,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ResolveRetreatEncounterAction_PublishesSceneSnapshot_WhenEncounterResolves()
+    public async Task ResolveFleeEncounterAction_PublishesSceneSnapshot_WhenEncounterResolves()
     {
         // Arrange
         await using var scope = fixture.CreateScope();
@@ -1439,7 +1439,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         context.Locations.Add(previousLocation);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Retreat only relocates the player when a previous location was recorded to retreat to.
+        // No exit connector is seeded at this location, so a successful flee falls back to the
+        // player's previous location.
         var trackedPlayer = await context.Creatures.SingleAsync(
             c => c.Id == _playerId,
             TestContext.Current.CancellationToken
@@ -1455,7 +1456,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act
         await Drain(
             gameHub.StreamAsync<string>(
-                "ResolveRetreatEncounterAction",
+                "ResolveFleeEncounterAction",
                 TestContext.Current.CancellationToken
             )
         );

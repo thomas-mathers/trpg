@@ -7,7 +7,7 @@ namespace TRPG.GameSessions.Hubs;
 internal sealed class HostileEncounterStartedEventMapper
     : GameClientEventMapper<HostileEncounterStartedEvent>
 {
-    private static readonly string[] AllowedActions = ["Attack", "Evade", "Retreat"];
+    private static readonly string[] AllowedActions = ["Attack", "Flee"];
 
     protected override IGameClientCall Map(HostileEncounterStartedEvent gameEvent) =>
         new GameClientCall<HostileEncounterState>(

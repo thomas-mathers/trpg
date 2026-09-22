@@ -32,7 +32,7 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsSnapshot<FleeOptions> fleeOptions,
     IOptionsMonitor<SuspicionOptions> suspicionOptions,
-    DepartureMovementResumer departureMovementResumer,
+    EncounterFleeResolver encounterFleeResolver,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
 )
     : EncounterResolutionCommandHandlerBase<
@@ -115,19 +115,11 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
 
         if (!isCaught)
         {
-            if (encounter.DepartureDestinationLocationId != null)
-            {
-                var playtime = await getPlaytime.Handle(
-                    new GetPlaytimeQuery { SessionId = command.SessionId },
-                    cancellationToken
-                );
-                await departureMovementResumer.Resume(
-                    encounter,
-                    player,
-                    playtime,
-                    cancellationToken
-                );
-            }
+            var playtime = await getPlaytime.Handle(
+                new GetPlaytimeQuery { SessionId = command.SessionId },
+                cancellationToken
+            );
+            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
 
             return new SuspicionEncounterResolutionFact(
                 command.EncounterId,

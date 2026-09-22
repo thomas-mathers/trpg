@@ -19,7 +19,7 @@ export type {
   TrapKind,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
 
-export type EncounterActionName = 'Attack' | 'Evade' | 'Retreat';
+export type EncounterActionName = 'Attack' | 'Flee';
 export type GuardEncounterActionName = 'PayFine' | 'GoToJail' | 'ResistArrest';
 export type SuspicionEncounterActionName = 'Comply' | 'Flee';
 export type TheftEncounterActionName = 'Apologize' | 'Flee';

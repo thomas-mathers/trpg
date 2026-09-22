@@ -22,7 +22,7 @@ const encounter: HostileEncounterState = {
     { name: 'Snag', creatureType: 'Goblin', level: 2 },
     { name: 'Rusk', creatureType: 'Goblin', level: 3 },
   ],
-  allowedActions: ['Attack', 'Evade', 'Retreat'],
+  allowedActions: ['Attack', 'Flee'],
 };
 
 function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
@@ -44,8 +44,7 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveAttackEncounterAction: vi.fn(),
-    resolveEvadeEncounterAction: vi.fn(),
-    resolveRetreatEncounterAction: vi.fn(),
+    resolveFleeEncounterAction: vi.fn(),
     ...overrides,
   } as IChatHub;
 }
@@ -120,12 +119,12 @@ describe('HostileEncounterDialog', () => {
     const { user, gameChat, chatHub } = renderDialog();
 
     gameEventBus.emit('HostileEncounterStarted', encounter);
-    await user.click(await screen.findByRole('button', { name: /evade/i }));
+    await user.click(await screen.findByRole('button', { name: /flee/i }));
 
-    expect(chatHub.resolveEvadeEncounterAction).toHaveBeenCalledOnce();
+    expect(chatHub.resolveFleeEncounterAction).toHaveBeenCalledOnce();
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Evade',
-      vi.mocked(chatHub.resolveEvadeEncounterAction).mock.results[0]?.value,
+      'Flee',
+      vi.mocked(chatHub.resolveFleeEncounterAction).mock.results[0]?.value,
     );
   });
 
@@ -137,7 +136,7 @@ describe('HostileEncounterDialog', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     gameEventBus.emit('HostileEncounterResolved', {
       encounterId: encounter.encounterId,
-      outcome: 'Evaded',
+      outcome: 'Fled',
       factionName: encounter.factionName,
       locationName: encounter.locationName,
       memberNames: encounter.members.map((member) => member.name),

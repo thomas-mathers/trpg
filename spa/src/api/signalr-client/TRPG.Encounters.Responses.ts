@@ -43,7 +43,7 @@ export type GuardEncounterState = {
 }
 
 /** Transpiled from TRPG.Encounters.Responses.HostileEncounterResolutionOutcome */
-export type HostileEncounterResolutionOutcome = "Evaded" | "EvadeFailed" | "Retreated" | "RetreatFailed" | "Attacked";
+export type HostileEncounterResolutionOutcome = "Fled" | "FleeFailed" | "Attacked";
 
 /** Transpiled from TRPG.Encounters.Responses.HostileEncounterResolutionFact */
 export type HostileEncounterResolutionFact = {

@@ -119,12 +119,7 @@ export type IChatHub = {
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
-    resolveEvadeEncounterAction(): IStreamResult<string>;
-    /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
-    */
-    resolveRetreatEncounterAction(): IStreamResult<string>;
+    resolveFleeEncounterAction(): IStreamResult<string>;
     /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>

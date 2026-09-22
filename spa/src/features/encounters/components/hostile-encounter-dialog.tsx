@@ -13,7 +13,7 @@ import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
-const ACTION_NAMES: readonly EncounterActionName[] = ['Attack', 'Evade', 'Retreat'];
+const ACTION_NAMES: readonly EncounterActionName[] = ['Attack', 'Flee'];
 
 function isEncounterActionName(name: string): name is EncounterActionName {
   return (ACTION_NAMES as readonly string[]).includes(name);
@@ -35,17 +35,11 @@ export function HostileEncounterDialog() {
       submit: (displayText) =>
         submitNarratedTurn(displayText, chatHub.resolveAttackEncounterAction()),
     },
-    Evade: {
-      description: 'Try to slip past unnoticed.',
+    Flee: {
+      description: 'Try to get away.',
       icon: Footprints,
       submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveEvadeEncounterAction()),
-    },
-    Retreat: {
-      description: 'Fall back the way you came.',
-      icon: ShieldAlert,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveRetreatEncounterAction()),
+        submitNarratedTurn(displayText, chatHub.resolveFleeEncounterAction()),
     },
   };
 
@@ -71,7 +65,7 @@ export function HostileEncounterDialog() {
 
         <div className="space-y-5 p-5">
           <EncounterMembers encounter={encounter} />
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2">
             {encounter.allowedActions.map((actionName) => {
               if (!isEncounterActionName(actionName)) {
                 return null;

@@ -448,12 +448,13 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_Flee_IgnoresAStalePreviousLocation_WhenNoLiveExitExists()
+    public async Task Handle_Flee_FallsBackToThePreviousLocation_WhenNoLiveExitExists()
     {
-        // Arrange — a stale PreviousLocationId with no connector from the current room to it
-        var staleOrigin = Builders.MakeLocation(WorldId, id: Guid.NewGuid());
-        _player.PreviousLocationId = staleOrigin.Id;
-        _context.Locations.Add(staleOrigin);
+        // Arrange — no connector out of this room, so fleeing falls back to wherever the player
+        // came from rather than leaving them stuck with the confronter.
+        var origin = Builders.MakeLocation(WorldId, id: Guid.NewGuid());
+        _player.PreviousLocationId = origin.Id;
+        _context.Locations.Add(origin);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var encounter = await SeedEncounter(
             sourceOwnerId: _owner.Id,
@@ -468,14 +469,14 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.False(fact.LeftTheScene);
+        Assert.True(fact.LeftTheScene);
 
         await using var verifyContext = db.CreateContext();
         var updatedPlayer = await verifyContext.Creatures.FindAsync(
             [_player.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_locationId, updatedPlayer!.LocationId);
+        Assert.Equal(origin.Id, updatedPlayer!.LocationId);
     }
 
     [Fact]
