@@ -148,7 +148,7 @@ public sealed class ResolveSuspicionEncounterActionCommandTests(DatabaseFixture 
     {
         // Arrange
         var handler = BuildHandlerWithFleeOptions(minimumCatchChance: 0f, maximumCatchChance: 0f);
-        var encounter = await SeedActiveEncounter(Guid.NewGuid());
+        var encounter = await SeedActiveEncounter(_player.LocationId);
 
         // Act
         var fact = await handler.Handle(
