@@ -135,14 +135,16 @@ public static class FactionRosterGenerator
             Description = description,
             Kind = kind,
             CreatureType = creatureType,
-            Aggression = kind == FactionKind.Antagonist ? 70 : 0,
-            ReputationSensitivity = kind == FactionKind.Antagonist ? 50 : 0,
-            RiskAversion = kind == FactionKind.Antagonist ? 35 : 0,
-            Temperament =
-                kind == FactionKind.Antagonist
-                    ? FactionTemperament.Predatory
-                    : FactionTemperament.Authoritative,
+            Aggression = IsHostile(kind) ? 70 : 0,
+            ReputationSensitivity = IsHostile(kind) ? 50 : 0,
+            RiskAversion = IsHostile(kind) ? 35 : 0,
+            Temperament = IsHostile(kind)
+                ? FactionTemperament.Predatory
+                : FactionTemperament.Authoritative,
         };
+
+    private static bool IsHostile(FactionKind kind) =>
+        kind is FactionKind.Antagonist or FactionKind.Wilderness;
 }
 
 public static class FactionStandingGenerator
