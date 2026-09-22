@@ -1472,6 +1472,18 @@ internal static class Builders
             TicketFeeGold = ticketFeeGold,
         };
 
+    public static GuardPatrolMember MakeGuardPatrolMember(
+        Guid routeTravelerId,
+        Guid creatureId,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            RouteTravelerId = routeTravelerId,
+            CreatureId = creatureId,
+        };
+
     public static CaravanTicket MakeCaravanTicket(
         Guid routeTravelerId,
         Guid creatureId,

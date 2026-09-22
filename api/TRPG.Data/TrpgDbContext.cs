@@ -64,7 +64,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         IRoomBookingsDbContext,
         IBooksDbContext,
         ICaravansDbContext,
-        IRoutingDbContext
+        IRoutingDbContext,
+        IGuardPatrolsDbContext
 {
     public DbSet<DungeonExpedition> DungeonExpeditions => Set<DungeonExpedition>();
     public DbSet<BuildingOwner> BuildingOwners => Set<BuildingOwner>();
@@ -129,6 +130,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<RouteTraveler> RouteTravelers => Set<RouteTraveler>();
     public DbSet<CaravanFare> CaravanFares => Set<CaravanFare>();
     public DbSet<CaravanTicket> CaravanTickets => Set<CaravanTicket>();
+    public DbSet<GuardPatrolMember> GuardPatrolMembers => Set<GuardPatrolMember>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -708,6 +710,13 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(t => t.WorldId);
             entity.HasIndex(t => t.RouteTravelerId);
             entity.HasIndex(t => t.CreatureId);
+        });
+
+        modelBuilder.Entity<GuardPatrolMember>(entity =>
+        {
+            entity.HasIndex(m => m.WorldId);
+            entity.HasIndex(m => m.RouteTravelerId);
+            entity.HasIndex(m => m.CreatureId);
         });
 
         modelBuilder.Entity<World>().HasIndex(w => w.Name).IsUnique();

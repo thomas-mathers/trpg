@@ -3,6 +3,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
@@ -32,6 +33,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<MovePlayerCommand> movePlayer,
     ICommandHandler<StartFightCommand> startFight,
+    IQueryHandler<GetGuardsAtLocationQuery, IReadOnlyList<Creature>> getGuardsAtLocation,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
@@ -211,12 +213,26 @@ internal class ResolveGuardEncounterActionCommandHandler(
             cancellationToken
         );
 
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand
+        // Resisting pulls in every guard standing here, not just the one who confronted the
+        // player — a patrol or a city post backs each other up rather than fighting alone.
+        var guardsHere = await getGuardsAtLocation.Handle(
+            new GetGuardsAtLocationQuery
             {
-                CreatureIds = [encounter.GuardCreatureId],
-                State = CreatureState.Alerted,
+                WorldId = command.WorldId,
+                LocationId = encounter.LocationId,
             },
+            cancellationToken
+        );
+        // The confronting guard is always included even if a location lookup somehow misses them
+        // (e.g. they've just been re-stated elsewhere between confrontation and resolution).
+        var guardIds = guardsHere
+            .Select(guard => guard.Id)
+            .Append(encounter.GuardCreatureId)
+            .Distinct()
+            .ToArray();
+
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand { CreatureIds = guardIds, State = CreatureState.Alerted },
             cancellationToken
         );
 
@@ -226,7 +242,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
                 SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                EnemyCreatureIds = [encounter.GuardCreatureId],
+                EnemyCreatureIds = guardIds,
                 HasSurpriseRound = false,
             },
             cancellationToken

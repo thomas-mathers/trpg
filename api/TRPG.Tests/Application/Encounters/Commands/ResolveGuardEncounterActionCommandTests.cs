@@ -106,6 +106,9 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
         Guid? triggeringCrimeId = null
     )
     {
+        // The confronting guard is standing wherever the confrontation happened.
+        _guard.LocationId = locationId;
+
         var encounter = new GuardEncounter
         {
             WorldId = WorldId,
@@ -455,6 +458,41 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
             .Encounters.OfType<FightEncounter>()
             .SingleAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken);
         Assert.Contains(_guard.Id, fight.CombatantIds);
+    }
+
+    [Fact]
+    public async Task Handle_ResistArrest_PullsInEveryGuardAtTheLocation_NotJustTheConfrontingOne()
+    {
+        // Arrange
+        var encounterLocationId = Guid.NewGuid();
+        var encounter = await SeedActiveEncounter(encounterLocationId);
+        var backupGuard = Builders.MakeCreature(
+            WorldId,
+            profession: Profession.Guard,
+            locationId: encounterLocationId
+        );
+        _context.Creatures.Add(backupGuard);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(new ResistArrestEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedBackupGuard = await verifyContext.Creatures.FindAsync(
+            [backupGuard.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Alerted, updatedBackupGuard!.State);
+
+        var fight = await verifyContext
+            .Encounters.OfType<FightEncounter>()
+            .SingleAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken);
+        Assert.Contains(_guard.Id, fight.CombatantIds);
+        Assert.Contains(backupGuard.Id, fight.CombatantIds);
     }
 
     [Fact]
