@@ -123,7 +123,7 @@ public static class CaravanRouteSeeder
             .ToArray();
     }
 
-    private static Dictionary<Guid, List<(Guid Neighbor, float Distance)>> BuildTravelAdjacency(
+    internal static Dictionary<Guid, List<(Guid Neighbor, float Distance)>> BuildTravelAdjacency(
         WorldGeneratorResult world
     )
     {
@@ -152,7 +152,7 @@ public static class CaravanRouteSeeder
         return adjacency;
     }
 
-    private static IReadOnlyList<Guid> OrderByDfsPreorder(
+    internal static IReadOnlyList<Guid> OrderByDfsPreorder(
         IReadOnlyCollection<Guid> capitalLocationIds,
         IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency
     )
@@ -188,7 +188,7 @@ public static class CaravanRouteSeeder
         return order;
     }
 
-    private static float PathDistance(
+    internal static float PathDistance(
         IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
         Guid from,
         Guid to

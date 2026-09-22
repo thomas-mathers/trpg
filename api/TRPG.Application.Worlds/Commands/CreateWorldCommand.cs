@@ -28,8 +28,10 @@ public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
+    CountryPatrolRouteSeeder countryPatrolRouteSeeder,
     ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld,
-    IOptionsSnapshot<CaravanOptions> caravanOptions
+    IOptionsSnapshot<CaravanOptions> caravanOptions,
+    IOptionsSnapshot<CountryPatrolOptions> countryPatrolOptions
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
     public async Task<CreateWorldResult> Handle(
@@ -108,6 +110,10 @@ internal class CreateWorldCommandHandler(
             .ToArray();
 
         var caravanRoutes = CaravanRouteSeeder.Seed(worldResult, caravanOptions.Value);
+        var countryPatrolRoutes = countryPatrolRouteSeeder.Seed(
+            worldResult,
+            countryPatrolOptions.Value
+        );
 
         var bootstrapResult = await bootstrapWorld.Handle(
             new BootstrapWorldCommand
@@ -122,6 +128,14 @@ internal class CreateWorldCommandHandler(
                 CaravanRouteTravelers = caravanRoutes.Travelers,
                 CaravanFare = caravanRoutes.Fare,
                 CaravanRouteSigns = caravanRoutes.Signs,
+                CountryPatrolRoutes = countryPatrolRoutes.Routes,
+                CountryPatrolRouteStops = countryPatrolRoutes.Stops,
+                CountryPatrolRouteTravelers = countryPatrolRoutes.Travelers,
+                GuardPatrolMembers = countryPatrolRoutes.Members,
+                GuardPatrolCreatures = countryPatrolRoutes.Creatures,
+                GuardPatrolFactionMembers = countryPatrolRoutes.FactionMembers,
+                GuardPatrolItems = countryPatrolRoutes.Items,
+                GuardPatrolSkills = countryPatrolRoutes.Skills,
             },
             cancellationToken
         );

@@ -20,6 +20,14 @@ public class BootstrapWorldCommand
     public IReadOnlyList<RouteTraveler> CaravanRouteTravelers { get; init; } = [];
     public CaravanFare? CaravanFare { get; init; }
     public IReadOnlyList<CaravanScheduleSign> CaravanRouteSigns { get; init; } = [];
+    public IReadOnlyList<Route> CountryPatrolRoutes { get; init; } = [];
+    public IReadOnlyList<RouteStop> CountryPatrolRouteStops { get; init; } = [];
+    public IReadOnlyList<RouteTraveler> CountryPatrolRouteTravelers { get; init; } = [];
+    public IReadOnlyList<GuardPatrolMember> GuardPatrolMembers { get; init; } = [];
+    public IReadOnlyList<Creature> GuardPatrolCreatures { get; init; } = [];
+    public IReadOnlyList<FactionMember> GuardPatrolFactionMembers { get; init; } = [];
+    public IReadOnlyList<Item> GuardPatrolItems { get; init; } = [];
+    public IReadOnlyList<CreatureSkill> GuardPatrolSkills { get; init; } = [];
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -102,6 +110,15 @@ internal class BootstrapWorldCommandHandler(
             context.CaravanFares.Add(command.CaravanFare!);
             context.Props.AddRange(command.CaravanRouteSigns);
         }
+
+        context.Routes.AddRange(command.CountryPatrolRoutes);
+        context.RouteStops.AddRange(command.CountryPatrolRouteStops);
+        context.RouteTravelers.AddRange(command.CountryPatrolRouteTravelers);
+        context.GuardPatrolMembers.AddRange(command.GuardPatrolMembers);
+        context.Creatures.AddRange(command.GuardPatrolCreatures);
+        context.FactionMembers.AddRange(command.GuardPatrolFactionMembers);
+        context.Items.AddRange(command.GuardPatrolItems);
+        context.CreatureSkills.AddRange(command.GuardPatrolSkills);
 
         if (player != null)
         {

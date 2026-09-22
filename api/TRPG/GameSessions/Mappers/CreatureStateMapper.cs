@@ -16,5 +16,6 @@ internal static class CreatureStateMapper
             DataCreatureState.Alerted => ContractCreatureState.Alerted,
             DataCreatureState.Dead => ContractCreatureState.Dead,
             DataCreatureState.Restrained => ContractCreatureState.Restrained,
+            DataCreatureState.Patrolling => ContractCreatureState.Patrolling,
         };
 }

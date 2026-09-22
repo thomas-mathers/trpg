@@ -42,6 +42,7 @@ public enum CreatureState
     Alerted,
     Dead,
     Restrained,
+    Patrolling,
 }
 
 public enum Gender

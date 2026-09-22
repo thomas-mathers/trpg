@@ -17,11 +17,13 @@
     <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
     <ProjectReference Include="..\TRPG.Application.Encounters\TRPG.Application.Encounters.csproj" />
     <ProjectReference Include="..\TRPG.Application.Factions\TRPG.Application.Factions.csproj" />
+    <ProjectReference Include="..\TRPG.Application.GuardPatrols\TRPG.Application.GuardPatrols.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
     <ProjectReference Include="..\TRPG.Application.Knowledge\TRPG.Application.Knowledge.csproj" />
     <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
     <ProjectReference Include="..\TRPG.Application.RoomBookings\TRPG.Application.RoomBookings.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Routing\TRPG.Application.Routing.csproj" />
     <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
