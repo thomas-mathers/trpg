@@ -150,7 +150,12 @@ internal class SyncGuardPatrolCommandHandler(
                 continue;
             }
 
-            if (creature.State == CreatureState.Dead || creature.LocationId == target.LocationId)
+            if (creature.State == CreatureState.Dead)
+            {
+                continue;
+            }
+
+            if (creature.LocationId == target.LocationId && creature.State == target.State)
             {
                 continue;
             }

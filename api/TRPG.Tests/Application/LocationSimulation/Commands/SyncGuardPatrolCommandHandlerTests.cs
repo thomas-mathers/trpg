@@ -157,6 +157,36 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_CorrectsAStaleState_EvenWhenTheLocationAlreadyMatches()
+    {
+        // Arrange — guard1 is already at stop A (e.g. its world-gen starting spot), but still
+        // carries the default Idle state; 1 hour in, the traveler is InTransit from A toward B, so
+        // the location needs no change but the state is stale and must still be corrected.
+        _guard1.LocationId = _locationA;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new SyncGuardPatrolCommand
+            {
+                WorldId = _worldId,
+                LocationId = _locationA,
+                Playtime = GameClock.RealTimePerInGameHour,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var guard = await verifyContext.Creatures.SingleAsync(
+            c => c.Id == _guard1.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_locationA, guard.LocationId);
+        Assert.Equal(CreatureState.Patrolling, guard.State);
+    }
+
+    [Fact]
     public async Task Handle_SkipsDeadGuards()
     {
         // Arrange
