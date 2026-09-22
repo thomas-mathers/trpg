@@ -703,6 +703,7 @@ export type NearbyExitSnapshot = {
 export type NearbyPropSnapshot = {
     id: string;
     name: string;
+    description: string;
     type: string;
 };
 
@@ -853,6 +854,10 @@ export type SetQuestTrackingRequest = {
 
 export type SetSneakingRequest = {
     isSneaking: boolean;
+};
+
+export type SignTextResponse = {
+    text: string;
 };
 
 export type Skill = 'Melee' | 'Unarmed' | 'Sneak' | 'Pickpocketing' | 'Destruction' | 'Illusion' | 'Archery' | 'Restoration' | 'Alteration' | 'General' | 'Blocking' | 'Lockpicking';
@@ -1970,3 +1975,32 @@ export type GetDeliverItemDialogResponses = {
 };
 
 export type GetDeliverItemDialogResponse = GetDeliverItemDialogResponses[keyof GetDeliverItemDialogResponses];
+
+export type GetSignTextData = {
+    body?: never;
+    path: {
+        signId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/signs/{signId}';
+};
+
+export type GetSignTextErrors = {
+    /**
+     * Not Found
+     */
+    404: ProblemDetails;
+};
+
+export type GetSignTextError = GetSignTextErrors[keyof GetSignTextErrors];
+
+export type GetSignTextResponses = {
+    /**
+     * OK
+     */
+    200: SignTextResponse;
+};
+
+export type GetSignTextResponse = GetSignTextResponses[keyof GetSignTextResponses];

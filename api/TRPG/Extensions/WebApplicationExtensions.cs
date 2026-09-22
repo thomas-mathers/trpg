@@ -14,6 +14,7 @@ using TRPG.Inventory.Endpoints;
 using TRPG.Jobs.Endpoints;
 using TRPG.Players.Endpoints;
 using TRPG.Quests.Endpoints;
+using TRPG.Signs.Endpoints;
 using TRPG.Worlds.Endpoints;
 
 namespace TRPG.Extensions;
@@ -69,6 +70,7 @@ internal static class WebApplicationExtensions
         app.MapInventoryEndpoints();
         app.MapBookEndpoints();
         app.MapQuestEndpoints();
+        app.MapSignEndpoints();
         app.MapHub<ChatHub>("/hubs/chat");
 
         return app;

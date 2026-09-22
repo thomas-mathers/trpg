@@ -246,7 +246,7 @@ public record NearbyBuildingSnapshot(
 );
 
 [TranspilationSource]
-public record NearbyPropSnapshot(Guid Id, string Name, string Type);
+public record NearbyPropSnapshot(Guid Id, string Name, string Description, string Type);
 
 [TranspilationSource]
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]

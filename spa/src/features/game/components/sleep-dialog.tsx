@@ -30,6 +30,10 @@ function parseTime(value: string): { hour: number; minute: number } {
   return { hour, minute };
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 export function SleepDialog({ open, onClose }: SleepDialogProps) {
   const scene = useScene();
   const chatHub = useChatHub();
@@ -45,6 +49,26 @@ export function SleepDialog({ open, onClose }: SleepDialogProps) {
   if (!scene) {
     return null;
   }
+
+  const { hour, minute } = parseTime(targetTime);
+
+  const setHour = (value: number) => {
+    if (Number.isNaN(value)) {
+      return;
+    }
+    setTargetTime(
+      `${clamp(value, 0, 23).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+    );
+  };
+
+  const setMinute = (value: number) => {
+    if (Number.isNaN(value)) {
+      return;
+    }
+    setTargetTime(
+      `${hour.toString().padStart(2, '0')}:${clamp(value, 0, 59).toString().padStart(2, '0')}`,
+    );
+  };
 
   const handleConfirm = () => {
     const { hour: targetHour, minute: targetMinute } = parseTime(targetTime);
@@ -67,14 +91,29 @@ export function SleepDialog({ open, onClose }: SleepDialogProps) {
           <DialogTitle>Sleep</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="sleep-target-time">Sleep until</Label>
-          <Input
-            type="time"
-            id="sleep-target-time"
-            value={targetTime}
-            onChange={(event) => setTargetTime(event.target.value)}
-            className="bg-card appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-          />
+          <Label htmlFor="sleep-target-hour">Sleep until</Label>
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              id="sleep-target-hour"
+              min={0}
+              max={23}
+              value={hour}
+              onChange={(event) => setHour(Number(event.target.value))}
+              className="bg-card w-16 text-center"
+            />
+            <span aria-hidden="true">:</span>
+            <Input
+              type="number"
+              id="sleep-target-minute"
+              aria-label="Minute"
+              min={0}
+              max={59}
+              value={minute.toString().padStart(2, '0')}
+              onChange={(event) => setMinute(Number(event.target.value))}
+              className="bg-card w-16 text-center"
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

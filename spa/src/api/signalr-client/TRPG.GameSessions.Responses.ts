@@ -180,6 +180,8 @@ export type NearbyPropSnapshot = {
     /** Transpiled from string */
     name: string;
     /** Transpiled from string */
+    description: string;
+    /** Transpiled from string */
     type: string;
 }
 

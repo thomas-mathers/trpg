@@ -2,7 +2,7 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DevGenerateQuestChainResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetDeliverItemDialogResponses, GetJobResponses, GetLocalMapResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestDialogResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DevGenerateQuestChainResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetDeliverItemDialogResponses, GetJobResponses, GetLocalMapResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestDialogResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetSignTextResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
@@ -1537,6 +1537,37 @@ export function handleGetDeliverItemDialog(response?: HandleGetDeliverItemDialog
     }, options);
 }
 
+export type HandleGetSignTextResponse = {
+    body: GetSignTextResponses[200];
+    status?: 200;
+};
+
+/**
+ * Handler for the `GET /signs/{signId}` operation.
+ */
+export function handleGetSignText(response?: HandleGetSignTextResponse | HttpResponseResolver<{
+    signId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.get<{
+        signId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/signs/:signId`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
 export type MswHandlerFactories = {
     /**
      * Handler for the `POST /dev/quest-chains/generate` operation.
@@ -1734,6 +1765,10 @@ export type MswHandlerFactories = {
      * Handler for the `GET /players/{playerId}/deliver-item-dialog` operation.
      */
     getDeliverItemDialog: typeof handleGetDeliverItemDialog;
+    /**
+     * Handler for the `GET /signs/{signId}` operation.
+     */
+    getSignText: typeof handleGetSignText;
 };
 
 export type CreateMswHandlersResult = {
@@ -1799,7 +1834,8 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         completeQuest: wrap(handleCompleteQuest),
         setQuestTracking: wrap(handleSetQuestTracking),
         getQuestDialog: wrap(handleGetQuestDialog),
-        getDeliverItemDialog: wrap(handleGetDeliverItemDialog)
+        getDeliverItemDialog: wrap(handleGetDeliverItemDialog),
+        getSignText: wrap(handleGetSignText)
     };
     const all: CreateMswHandlersResult['all'] = (options = {}) => {
         type OverrideValue<R> = R | [
@@ -1857,6 +1893,7 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.dropWorld, overrides.dropWorld),
             invoke(pick.getAbilitiesBySkill, overrides.getAbilitiesBySkill),
             invoke(pick.getJob, overrides.getJob),
+            invoke(pick.getSignText, overrides.getSignText),
             invoke(pick.listWorlds, overrides.listWorlds),
             invoke(pick.createWorld, overrides.createWorld),
             invoke(pick.createSession, overrides.createSession)

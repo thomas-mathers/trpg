@@ -114,6 +114,43 @@ public static class CaravanCycle
         return hours;
     }
 
+    // Hours from now until this instance is next lingering at the given stop — 0 if it's already
+    // there, otherwise the forward distance to that stop's next linger window, wrapping around the
+    // loop if the current position has already passed it this cycle.
+    public static double HoursUntilNextArrivalAt(
+        IReadOnlyList<CaravanStop> stops,
+        double lingerHours,
+        float speedUnitsPerHour,
+        double elapsedHours,
+        int targetStopIndex
+    )
+    {
+        var totalCycleHours = TotalCycleHours(stops, lingerHours, speedUnitsPerHour);
+        var position = ((elapsedHours % totalCycleHours) + totalCycleHours) % totalCycleHours;
+
+        double cumulative = 0;
+        for (var i = 0; i < stops.Count; i++)
+        {
+            if (i == targetStopIndex)
+            {
+                if (position >= cumulative && position < cumulative + lingerHours)
+                {
+                    return 0;
+                }
+
+                return (cumulative - position + totalCycleHours) % totalCycleHours;
+            }
+
+            cumulative += lingerHours + LegHours(stops[i], speedUnitsPerHour);
+        }
+
+        throw new ArgumentOutOfRangeException(
+            nameof(targetStopIndex),
+            targetStopIndex,
+            "Target stop index is outside the route's stop list."
+        );
+    }
+
     private static int LegHours(CaravanStop stop, float speedUnitsPerHour) =>
         Math.Max(1, (int)(stop.DistanceToNextStop / speedUnitsPerHour));
 }

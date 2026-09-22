@@ -291,6 +291,15 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
         };
 
+    public static Sign MakeSign(Guid? worldId = null, Guid? locationId = null, string text = "") =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = $"Sign-{Guid.NewGuid():N}",
+            Description = text,
+            LocationId = locationId ?? Guid.NewGuid(),
+        };
+
     public static Trap MakeTrap(
         Guid? worldId = null,
         Guid? locationId = null,

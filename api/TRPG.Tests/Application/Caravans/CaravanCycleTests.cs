@@ -174,6 +174,65 @@ public class CaravanCycleTests
     }
 
     [Fact]
+    public void HoursUntilNextArrivalAt_ReturnsZero_WhenAlreadyLingeringAtTheTargetStop()
+    {
+        var hours = CaravanCycle.HoursUntilNextArrivalAt(
+            _stops,
+            LingerHours,
+            SpeedUnitsPerHour,
+            elapsedHours: 0,
+            targetStopIndex: 0
+        );
+
+        Assert.Equal(0, hours);
+    }
+
+    [Fact]
+    public void HoursUntilNextArrivalAt_ReturnsZero_MidwayThroughTheTargetStopsOwnLinger()
+    {
+        var hours = CaravanCycle.HoursUntilNextArrivalAt(
+            _stops,
+            LingerHours,
+            SpeedUnitsPerHour,
+            elapsedHours: 1,
+            targetStopIndex: 0
+        );
+
+        Assert.Equal(0, hours);
+    }
+
+    [Fact]
+    public void HoursUntilNextArrivalAt_ReturnsTheForwardDistance_ToAnUpcomingStop()
+    {
+        // Stop 1's linger begins at cumulative hour 4 (2 linger + 2 leg hours past stop 0).
+        var hours = CaravanCycle.HoursUntilNextArrivalAt(
+            _stops,
+            LingerHours,
+            SpeedUnitsPerHour,
+            elapsedHours: 0,
+            targetStopIndex: 1
+        );
+
+        Assert.Equal(4, hours);
+    }
+
+    [Fact]
+    public void HoursUntilNextArrivalAt_WrapsAroundTheLoop_WhenThisCyclesWindowAlreadyPassed()
+    {
+        // Stop 1's linger window is [4, 6); at hour 7 it has already closed, so the next
+        // occurrence is a full cycle (18 hours) later, minus the 3 hours since it began.
+        var hours = CaravanCycle.HoursUntilNextArrivalAt(
+            _stops,
+            LingerHours,
+            SpeedUnitsPerHour,
+            elapsedHours: 7,
+            targetStopIndex: 1
+        );
+
+        Assert.Equal(15, hours);
+    }
+
+    [Fact]
     public void ToTravelOrder_ReturnsTheSameStops_ForClockwise()
     {
         var travelOrder = CaravanCycle.ToTravelOrder(_stops, CaravanDirection.Clockwise);

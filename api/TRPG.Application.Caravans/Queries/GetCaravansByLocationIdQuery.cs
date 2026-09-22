@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Caravans.Queries;
 
@@ -10,6 +11,7 @@ public record CaravanSummary(
     string RouteName,
     int TicketFeeGold,
     double LingerHours,
+    CaravanDirection Direction,
     IReadOnlyList<CaravanStop> Stops
 );
 
@@ -75,6 +77,7 @@ internal class GetCaravansByLocationIdQueryHandler(ICaravansDbContext context)
                     route.Name,
                     route.TicketFeeGold,
                     route.LingerHours,
+                    caravan.Direction,
                     CaravanCycle.ToTravelOrder(
                         stopsGroupedByRouteId[caravan.CaravanRouteId],
                         caravan.Direction

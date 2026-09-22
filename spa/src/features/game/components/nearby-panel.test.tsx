@@ -9,6 +9,7 @@ import {
   handleGetCreatureInventory,
   handleGetQuestDialog,
   handleGetQuestJournal,
+  handleGetSignText,
   handleGetTrade,
   handleGetWorkstationInventory,
 } from '@/api/client/msw.gen';
@@ -320,6 +321,35 @@ describe('NearbyPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Sleep' })).toBeVisible();
     expect(screen.getByLabelText('Sleep until')).toBeVisible();
+  });
+
+  it('opens the sign dialog and fetches its live text from a nearby sign', async () => {
+    server.use(
+      handleGetSignText(() =>
+        HttpResponse.json({
+          text: 'Caravan schedule:\nClockwise: next arrival Duskday, Frostwane 6 - 15:00',
+        }),
+      ),
+    );
+    const sceneWithSign = {
+      ...scene(undefined),
+      nearbyProps: [
+        {
+          id: 'sign-id',
+          name: 'Caravan Schedule',
+          description: 'A wooden signpost listing caravan arrival times.',
+          type: 'Sign',
+        },
+      ],
+    };
+    const { user } = renderPanel(sceneWithSign);
+
+    await user.click(screen.getByRole('button', { name: 'Caravan Schedule' }));
+
+    expect(await screen.findByRole('heading', { name: 'Caravan Schedule' })).toBeVisible();
+    expect(
+      await screen.findByText(/Clockwise: next arrival Duskday, Frostwane 6 - 15:00/),
+    ).toBeVisible();
   });
 
   it('does not show a Caravans section when no caravan is nearby', () => {
