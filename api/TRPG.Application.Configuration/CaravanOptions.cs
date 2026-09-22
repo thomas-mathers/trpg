@@ -2,11 +2,10 @@ namespace TRPG.Application.Configuration;
 
 public class CaravanOptions
 {
-    // A capital-to-capital loop routes through several intermediate states on the state-hub tree,
-    // not one hop, so this needs to read as a dedicated express route rather than a walking pace —
-    // measured against real generated worlds, this keeps a full loop in the ~1-2 in-game week
-    // range instead of ~3-5 weeks.
-    public float SpeedUnitsPerHour { get; init; } = 300;
+    // 3x CreatureGeneratorOptions.WalkingSpeedUnitsPerHour — a scheduled coach with relay stops
+    // reads as faster and more comfortable than walking, without implying galloping-horse speed.
+    public float SpeedUnitsPerHour { get; init; } =
+        CreatureGeneratorOptions.WalkingSpeedUnitsPerHour * 3;
 
     // Boarding is ticket-anchored (see BoardCaravanCommand), immune to ordinary narration-time
     // drift once purchased, so this no longer needs slack for interaction overhead — 20 minutes.

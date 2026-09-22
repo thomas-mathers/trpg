@@ -100,7 +100,6 @@ internal static class Builders
     public static TravelConnector MakeTravelConnector(
         Guid connectorId,
         float distance = 1,
-        int travelTimeHours = 1,
         float dangerLevel = 0,
         Guid? worldId = null
     ) =>
@@ -108,7 +107,6 @@ internal static class Builders
         {
             ConnectorId = connectorId,
             Distance = distance,
-            TravelTimeHours = travelTimeHours,
             DangerLevel = dangerLevel,
             WorldId = worldId ?? Guid.NewGuid(),
         };

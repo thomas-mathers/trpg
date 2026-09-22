@@ -38,13 +38,10 @@ public class WildernessConnectorGeneratorTests
         Assert.All(
             result.TravelConnectors,
             connector =>
-            {
-                Assert.Equal(1, connector.TravelTimeHours);
                 Assert.Contains(
                     result.LocationConnectors,
                     locationConnector => locationConnector.Id == connector.ConnectorId
-                );
-            }
+                )
         );
     }
 }

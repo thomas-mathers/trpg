@@ -15,9 +15,9 @@ internal class GeographyGeneratorInput
     public int MaxRuralStates { get; init; }
     public int MinCityStates { get; init; }
     public int MinRuralStates { get; init; }
-    public int WorldHeight { get; init; } = 10000;
+    public int WorldHeight { get; init; } = 400;
     public Guid? WorldId { get; init; }
-    public int WorldWidth { get; init; } = 10000;
+    public int WorldWidth { get; init; } = 400;
 }
 
 internal class GeographyGeneratorResult
@@ -466,7 +466,6 @@ public class GeographyGenerator(
                     originState.Id,
                     destState.Id,
                     distance,
-                    Math.Max(1, (int)(distance / 50)),
                     (float)Random.Shared.NextDouble() * 0.5f
                 );
             })
@@ -513,7 +512,6 @@ internal record StateTravelLink(
     Guid OriginStateId,
     Guid DestinationStateId,
     float Distance,
-    int TravelTimeHours,
     float DangerLevel
 );
 

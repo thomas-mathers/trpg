@@ -737,7 +737,6 @@ public class WorldGenerator(
                     ConnectorId = connector.Id,
                     Distance = link.Distance,
                     DangerLevel = link.DangerLevel,
-                    TravelTimeHours = link.TravelTimeHours,
                     WorldId = worldId,
                 }
             );

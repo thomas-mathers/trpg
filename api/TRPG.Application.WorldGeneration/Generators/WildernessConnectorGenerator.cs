@@ -4,8 +4,6 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class WildernessConnectorGenerator
 {
-    private const int TravelTimeHours = 1;
-
     public static WildernessConnectorGeneratorResult Generate(
         City city,
         District cityEntranceDistrict,
@@ -39,7 +37,6 @@ internal static class WildernessConnectorGenerator
             {
                 ConnectorId = connector.Id,
                 Distance = 1,
-                TravelTimeHours = TravelTimeHours,
                 WorldId = worldId,
             })
             .ToArray();
