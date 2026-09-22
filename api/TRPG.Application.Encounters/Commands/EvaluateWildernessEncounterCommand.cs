@@ -13,13 +13,13 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class EvaluateHostileEncounterCommand
+public class EvaluateWildernessEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
 }
 
-internal class EvaluateHostileEncounterCommandHandler(
+internal class EvaluateWildernessEncounterCommandHandler(
     IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
@@ -30,13 +30,15 @@ internal class EvaluateHostileEncounterCommandHandler(
     > getReputationsByCreatureId,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
+    ICommandHandler<CreateShakedownEncounterCommand, ShakedownEncounter> createShakedownEncounter,
     SneakDetectionService sneakDetectionService,
     IChanceRoller chanceRoller,
-    IOptionsMonitor<SneakOptions> sneakOptions
-) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
+    IOptionsMonitor<SneakOptions> sneakOptions,
+    IOptionsMonitor<ShakedownOptions> shakedownOptions
+) : ICommandHandler<EvaluateWildernessEncounterCommand, Encounter?>
 {
-    public async Task<HostileEncounter?> Handle(
-        EvaluateHostileEncounterCommand command,
+    public async Task<Encounter?> Handle(
+        EvaluateWildernessEncounterCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -138,6 +140,38 @@ internal class EvaluateHostileEncounterCommandHandler(
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Location {player.LocationId} not found.");
 
+        var memberSnapshots = selectedLivingMembers
+            .Select(member => new HostileEncounterMemberSnapshot(
+                member.Id,
+                member.Name,
+                member.CreatureType,
+                member.Level
+            ))
+            .ToArray();
+
+        // Human wilderness groups are always Broken Toll bandits who negotiate; every other
+        // creature type is a mindless monster that only ever attacks.
+        if (selectedFaction.CreatureType == CreatureType.Human)
+        {
+            return await createShakedownEncounter.Handle(
+                new CreateShakedownEncounterCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    PlayerLocationId = player.LocationId,
+                    LocationName = location.Name,
+                    FactionId = selectedFaction.Id,
+                    FactionName = selectedFaction.Name,
+                    TollAmount = ShakedownEncounterCalculator.ComputeTollGold(
+                        selectedLivingMembers.Select(member => member.Level).ToArray(),
+                        shakedownOptions.CurrentValue
+                    ),
+                    Members = memberSnapshots,
+                },
+                cancellationToken
+            );
+        }
+
         return await createHostileEncounter.Handle(
             new CreateHostileEncounterCommand
             {
@@ -147,14 +181,7 @@ internal class EvaluateHostileEncounterCommandHandler(
                 LocationName = location.Name,
                 FactionId = selectedFaction.Id,
                 FactionName = selectedFaction.Name,
-                Members = selectedLivingMembers
-                    .Select(member => new HostileEncounterMemberSnapshot(
-                        member.Id,
-                        member.Name,
-                        member.CreatureType,
-                        member.Level
-                    ))
-                    .ToArray(),
+                Members = memberSnapshots,
             },
             cancellationToken
         );

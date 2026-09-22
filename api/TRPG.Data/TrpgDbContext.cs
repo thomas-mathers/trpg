@@ -253,10 +253,16 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<GuardEncounter>("Guard")
                 .HasValue<TheftEncounter>("Theft")
                 .HasValue<SuspicionEncounter>("Suspicion")
-                .HasValue<TrapEncounter>("Trap");
+                .HasValue<TrapEncounter>("Trap")
+                .HasValue<ShakedownEncounter>("Shakedown");
         });
 
         modelBuilder.Entity<HostileEncounter>(entity =>
+        {
+            entity.Property(e => e.Members).HasJsonConversion(() => []);
+        });
+
+        modelBuilder.Entity<ShakedownEncounter>(entity =>
         {
             entity.Property(e => e.Members).HasJsonConversion(() => []);
         });

@@ -5,6 +5,8 @@ import type {
   GuardEncounterState,
   HostileEncounterResolutionFact,
   HostileEncounterState,
+  ShakedownEncounterResolutionFact,
+  ShakedownEncounterState,
   SuspicionEncounterResolutionFact,
   SuspicionEncounterState,
   TheftEncounterResolutionFact,
@@ -33,6 +35,8 @@ interface GameEventMap {
   CombatOutcomeKnown: TerminalCombatOutcome;
   HostileEncounterStarted: HostileEncounterState;
   HostileEncounterResolved: HostileEncounterResolutionFact;
+  ShakedownEncounterStarted: ShakedownEncounterState;
+  ShakedownEncounterResolved: ShakedownEncounterResolutionFact;
   GuardEncounterStarted: GuardEncounterState;
   GuardEncounterResolved: GuardEncounterResolutionFact;
   SuspicionEncounterStarted: SuspicionEncounterState;

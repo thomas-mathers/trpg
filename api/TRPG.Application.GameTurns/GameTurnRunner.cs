@@ -17,6 +17,7 @@ public class GameTurnRunner
     private readonly StreamFleeTurnHandler _streamFleeTurn;
     private readonly StreamRespawnTurnHandler _streamRespawnTurn;
     private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
+    private readonly StreamShakedownEncounterActionTurnHandler _streamShakedownEncounterActionTurn;
     private readonly StreamGuardEncounterActionTurnHandler _streamGuardEncounterActionTurn;
     private readonly StreamSuspicionEncounterActionTurnHandler _streamSuspicionEncounterActionTurn;
     private readonly StreamTrapEncounterActionTurnHandler _streamTrapEncounterActionTurn;
@@ -40,6 +41,7 @@ public class GameTurnRunner
         StreamFleeTurnHandler streamFleeTurn,
         StreamRespawnTurnHandler streamRespawnTurn,
         StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
+        StreamShakedownEncounterActionTurnHandler streamShakedownEncounterActionTurn,
         StreamGuardEncounterActionTurnHandler streamGuardEncounterActionTurn,
         StreamSuspicionEncounterActionTurnHandler streamSuspicionEncounterActionTurn,
         StreamTrapEncounterActionTurnHandler streamTrapEncounterActionTurn,
@@ -63,6 +65,7 @@ public class GameTurnRunner
         _streamFleeTurn = streamFleeTurn;
         _streamRespawnTurn = streamRespawnTurn;
         _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
+        _streamShakedownEncounterActionTurn = streamShakedownEncounterActionTurn;
         _streamGuardEncounterActionTurn = streamGuardEncounterActionTurn;
         _streamSuspicionEncounterActionTurn = streamSuspicionEncounterActionTurn;
         _streamTrapEncounterActionTurn = streamTrapEncounterActionTurn;
@@ -144,6 +147,12 @@ public class GameTurnRunner
         HostileEncounterAction action,
         CancellationToken cancellationToken = default
     ) => _streamHostileEncounterActionTurn.Handle(session, action, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamShakedownEncounterAction(
+        GameTurnSession session,
+        ShakedownEncounterAction action,
+        CancellationToken cancellationToken = default
+    ) => _streamShakedownEncounterActionTurn.Handle(session, action, cancellationToken);
 
     public IAsyncEnumerable<string> StreamGuardEncounterAction(
         GameTurnSession session,

@@ -6,6 +6,9 @@ export type {
   HostileEncounterResolutionFact,
   HostileEncounterResolutionOutcome,
   HostileEncounterState,
+  ShakedownEncounterResolutionFact,
+  ShakedownEncounterResolutionOutcome,
+  ShakedownEncounterState,
   SuspicionCause,
   SuspicionEncounterResolutionFact,
   SuspicionEncounterResolutionOutcome,
@@ -20,6 +23,7 @@ export type {
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
 
 export type EncounterActionName = 'Attack' | 'Flee';
+export type ShakedownEncounterActionName = 'Intimidate' | 'PayToll' | 'Fight' | 'Flee';
 export type GuardEncounterActionName = 'PayFine' | 'GoToJail' | 'ResistArrest';
 export type SuspicionEncounterActionName = 'Comply' | 'Flee';
 export type TheftEncounterActionName = 'Apologize' | 'Flee';

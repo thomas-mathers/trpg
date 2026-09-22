@@ -8,7 +8,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Commands;
 
-public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
+public sealed class EvaluateWildernessEncounterCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -17,7 +17,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     private readonly TestChanceRoller _chanceRoller = new() { Result = true };
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private EvaluateHostileEncounterCommandHandler _handler = null!;
+    private EvaluateWildernessEncounterCommandHandler _handler = null!;
     private readonly Location _location = Builders.MakeLocation(WorldId, Guid.NewGuid());
     private readonly Creature _player = Builders.MakeCreature(WorldId, level: 1);
 
@@ -28,7 +28,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .AddSingleton<IChanceRoller>(_chanceRoller)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<EvaluateHostileEncounterCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<EvaluateWildernessEncounterCommandHandler>();
 
         _player.LocationId = _location.Id;
         _context.Locations.Add(_location);
@@ -51,7 +51,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     {
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -60,7 +60,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_CreatesAndReturnsAnEncounter_WhenOneEligibleGroupEngages()
+    public async Task Handle_CreatesAndReturnsAHostileEncounter_WhenOneEligibleGroupEngages()
     {
         // Arrange
         var faction = Builders.MakeFaction(WorldId, aggression: 150);
@@ -80,14 +80,14 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(faction.Name, result.FactionName);
-        Assert.Equal(monster.Name, Assert.Single(result.Members).Name);
+        var hostileEncounter = Assert.IsType<HostileEncounter>(result);
+        Assert.Equal(faction.Name, hostileEncounter.FactionName);
+        Assert.Equal(monster.Name, Assert.Single(hostileEncounter.Members).Name);
 
         await using var verifyContext = db.CreateContext();
         var persisted = await verifyContext
@@ -96,6 +96,77 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
         Assert.Equal(faction.Id, persisted.FactionId);
         Assert.Equal(monster.Id, Assert.Single(persisted.Members).Id);
         Assert.Equal(EncounterState.Active, persisted.State);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesAndReturnsAShakedownEncounter_WhenTheWinningGroupIsHuman()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(
+            WorldId,
+            aggression: 150,
+            creatureType: CreatureType.Human
+        );
+        var bandit = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Human,
+            locationId: _location.Id,
+            level: 4
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, bandit.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(bandit);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var shakedownEncounter = Assert.IsType<ShakedownEncounter>(result);
+        Assert.Equal(faction.Name, shakedownEncounter.FactionName);
+        Assert.Equal(bandit.Name, Assert.Single(shakedownEncounter.Members).Name);
+        Assert.True(shakedownEncounter.TollAmount > 0);
+    }
+
+    // A monster faction (Goblin here) never negotiates a toll, even if it were somehow tagged
+    // onto a wilderness road alongside Broken Toll — only Human groups get the Shakedown branch.
+    [Fact]
+    public async Task Handle_CreatesAHostileEncounter_WhenTheWinningGroupIsGoblin()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(
+            WorldId,
+            aggression: 150,
+            creatureType: CreatureType.Goblin
+        );
+        var goblin = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Goblin,
+            locationId: _location.Id,
+            level: 1
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, goblin.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(goblin);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.IsType<HostileEncounter>(result);
     }
 
     [Fact]
@@ -120,7 +191,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -162,12 +233,13 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(awakeMonster.Name, Assert.Single(result!.Members).Name);
+        var hostileEncounter = Assert.IsType<HostileEncounter>(result);
+        Assert.Equal(awakeMonster.Name, Assert.Single(hostileEncounter.Members).Name);
     }
 
     [Fact]
@@ -194,7 +266,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -231,7 +303,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateWildernessEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 

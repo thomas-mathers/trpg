@@ -904,6 +904,30 @@ internal static class Builders
             State = state,
         };
 
+    public static ShakedownEncounter MakeShakedownEncounter(
+        Guid worldId,
+        Guid playerId,
+        Guid locationId,
+        Guid? factionId = null,
+        string factionName = "Faction",
+        string locationName = "Location",
+        int tollAmount = 25,
+        IReadOnlyList<HostileEncounterMemberSnapshot>? members = null,
+        EncounterState state = EncounterState.Active
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            LocationId = locationId,
+            FactionId = factionId ?? Guid.NewGuid(),
+            FactionName = factionName,
+            LocationName = locationName,
+            TollAmount = tollAmount,
+            Members = members?.ToList() ?? [],
+            State = state,
+        };
+
     public static GuardEncounter MakeGuardEncounter(
         Guid worldId,
         Guid playerId,

@@ -5,7 +5,7 @@ using TRPG.Domain.Models;
 namespace TRPG.Application.Encounters;
 
 internal class EncounterEvaluationService(
-    ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?> evaluateHostileEncounter,
+    ICommandHandler<EvaluateWildernessEncounterCommand, Encounter?> evaluateWildernessEncounter,
     ICommandHandler<EvaluateJailbreakEncounterCommand, GuardEncounter?> evaluateJailbreakEncounter,
     ICommandHandler<EvaluateGuardEncounterCommand, GuardEncounter?> evaluateGuardEncounter,
     ICommandHandler<
@@ -25,13 +25,13 @@ internal class EncounterEvaluationService(
         CancellationToken cancellationToken = default
     )
     {
-        var hostileEncounter = await evaluateHostileEncounter.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = worldId, PlayerId = playerId },
+        var wildernessEncounter = await evaluateWildernessEncounter.Handle(
+            new EvaluateWildernessEncounterCommand { WorldId = worldId, PlayerId = playerId },
             cancellationToken
         );
-        if (hostileEncounter != null)
+        if (wildernessEncounter != null)
         {
-            return new EncounterEvaluationResult(hostileEncounter);
+            return new EncounterEvaluationResult(wildernessEncounter);
         }
 
         // Being caught escaping outranks a routine stop, and does not wait on standing reputation.

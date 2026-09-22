@@ -5,7 +5,7 @@
 import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
@@ -124,6 +124,26 @@ export type IChatHub = {
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
+    resolveIntimidateEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolvePayTollEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveFightEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    resolveFleeShakedownEncounterAction(): IStreamResult<string>;
+    /**
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
     resolvePayFineEncounterAction(): IStreamResult<string>;
     /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
@@ -209,6 +229,16 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     hostileEncounterResolved(fact: HostileEncounterResolutionFact): Promise<void>;
+    /**
+    * @param encounter Transpiled from TRPG.Encounters.Responses.ShakedownEncounterState
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    shakedownEncounterStarted(encounter: ShakedownEncounterState): Promise<void>;
+    /**
+    * @param fact Transpiled from TRPG.Encounters.Responses.ShakedownEncounterResolutionFact
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    shakedownEncounterResolved(fact: ShakedownEncounterResolutionFact): Promise<void>;
     /**
     * @param encounter Transpiled from TRPG.Encounters.Responses.GuardEncounterState
     * @returns Transpiled from System.Threading.Tasks.Task

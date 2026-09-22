@@ -29,6 +29,21 @@ internal class PublishEncounterStartedCommandHandler(
             case HostileEncounter hostileEncounter:
                 gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
                 break;
+            case ShakedownEncounter shakedownEncounter:
+                var goldForToll = await getGoldQuantity.Handle(
+                    new GetGoldQuantityQuery
+                    {
+                        Owner = new ItemOwnerReference(command.PlayerId, OwnerType.Creature),
+                    },
+                    cancellationToken
+                );
+                gameEvents.Enqueue(
+                    new ShakedownEncounterStartedEvent(
+                        shakedownEncounter,
+                        goldForToll >= shakedownEncounter.TollAmount
+                    )
+                );
+                break;
             case GuardEncounter guardEncounter:
                 var playerGold = await getGoldQuantity.Handle(
                     new GetGoldQuantityQuery
