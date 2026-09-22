@@ -16,12 +16,14 @@ public record CountryPatrolRouteSeederResult(
 
 // A country's own cities never connect to each other directly — every trip already goes
 // cityEntrance -> own state's shared wilderness hub -> (state-hub tree edges) -> destination
-// state's hub -> cityEntrance, and the world's full state-hub graph is a single minimum spanning
-// tree across every country. A country's states form a connected subtree of that larger tree (the
-// same-country road-reachability guarantee world generation enforces elsewhere), and a tree has
-// exactly one simple path between any two nodes — so the unique path between two of this
-// country's own cities can never pass through a node outside that subtree, i.e. it never crosses
-// into another country's territory, without needing to filter the adjacency graph by country here.
+// state's hub -> cityEntrance. The world's full state-hub graph is NOT a pure tree, though: the
+// global MST that builds it only guarantees the whole world is connected, so MapGenerator layers
+// extra same-country "bridge" roads on top wherever the base MST would otherwise force a
+// same-country trip through another country's territory (see MapGenerator.ConnectSameCountryComponents).
+// Those bridges create cycles, so a same-country pair can have more than one path between them, and
+// an unfiltered shortest-path/DFS walk over the whole graph is not guaranteed to prefer the
+// same-country one. This seeder therefore restricts the adjacency graph to same-country edges only
+// before pathfinding, rather than relying on graph shape to keep patrols from crossing a border.
 public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenerator)
 {
     public CountryPatrolRouteSeederResult Seed(
@@ -39,6 +41,7 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
         var skills = new List<CreatureSkill>();
 
         var adjacency = CaravanRouteSeeder.BuildTravelAdjacency(world);
+        var countryIdByLocationId = BuildCountryIdByLocationId(world);
         var districtsByCityId = world.Districts.ToLookup(d => d.CityId);
 
         foreach (var country in world.Countries)
@@ -73,10 +76,21 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                 continue;
             }
 
+            var sameCountryAdjacency = FilterAdjacencyToCountry(
+                adjacency,
+                countryIdByLocationId,
+                country.Id
+            );
+
             var orderedStops = CaravanRouteSeeder.OrderByDfsPreorder(
                 entranceLocationIds,
-                adjacency
+                sameCountryAdjacency
             );
+            if (orderedStops.Count < 2)
+            {
+                continue;
+            }
+
             var routeId = Guid.NewGuid();
 
             var routeStops = orderedStops
@@ -88,7 +102,7 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                             SequenceIndex = index,
                             LocationId = locationId,
                             DistanceToNextStop = CaravanRouteSeeder.PathDistance(
-                                adjacency,
+                                sameCountryAdjacency,
                                 locationId,
                                 orderedStops[(index + 1) % orderedStops.Count]
                             ),
@@ -159,5 +173,48 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
             items,
             skills
         );
+    }
+
+    private static IReadOnlyDictionary<Guid, Guid> BuildCountryIdByLocationId(
+        WorldGeneratorResult world
+    )
+    {
+        var countryIdByStateId = world.States.ToDictionary(
+            state => state.Id,
+            state => state.CountryId
+        );
+        return world.Locations.ToDictionary(
+            location => location.Id,
+            location => countryIdByStateId[location.StateId]
+        );
+    }
+
+    private static Dictionary<Guid, List<(Guid Neighbor, float Distance)>> FilterAdjacencyToCountry(
+        IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
+        IReadOnlyDictionary<Guid, Guid> countryIdByLocationId,
+        Guid countryId
+    )
+    {
+        var filtered = new Dictionary<Guid, List<(Guid Neighbor, float Distance)>>();
+
+        foreach (var (locationId, neighbors) in adjacency)
+        {
+            if (
+                !countryIdByLocationId.TryGetValue(locationId, out var locationCountryId)
+                || locationCountryId != countryId
+            )
+            {
+                continue;
+            }
+
+            filtered[locationId] = neighbors
+                .Where(neighbor =>
+                    countryIdByLocationId.TryGetValue(neighbor.Neighbor, out var neighborCountryId)
+                    && neighborCountryId == countryId
+                )
+                .ToList();
+        }
+
+        return filtered;
     }
 }

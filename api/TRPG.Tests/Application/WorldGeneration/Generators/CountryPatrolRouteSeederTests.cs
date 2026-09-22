@@ -109,6 +109,7 @@ public class CountryPatrolRouteSeederTests
     ) BuildTwoCountryWorld(Guid worldId, int secondCountryCityCount = 3)
     {
         var countries = new List<Country>();
+        var states = new List<State>();
         var cities = new List<City>();
         var districts = new List<District>();
         var locations = new List<Location>();
@@ -128,7 +129,23 @@ public class CountryPatrolRouteSeederTests
             };
             countries.Add(country);
 
-            var hubLocation = new Location { Id = Guid.NewGuid(), WorldId = worldId };
+            // One shared state per country is enough here: every location this fixture creates
+            // just needs to resolve back to this country through its StateId, which is all the
+            // seeder's same-country adjacency filter looks at.
+            var state = new State
+            {
+                Id = Guid.NewGuid(),
+                WorldId = worldId,
+                CountryId = country.Id,
+            };
+            states.Add(state);
+
+            var hubLocation = new Location
+            {
+                Id = Guid.NewGuid(),
+                WorldId = worldId,
+                StateId = state.Id,
+            };
             locations.Add(hubLocation);
 
             var entranceLocationIds = new List<Guid>();
@@ -157,7 +174,12 @@ public class CountryPatrolRouteSeederTests
                     );
                 }
 
-                var entranceLocation = new Location { Id = Guid.NewGuid(), WorldId = worldId };
+                var entranceLocation = new Location
+                {
+                    Id = Guid.NewGuid(),
+                    WorldId = worldId,
+                    StateId = state.Id,
+                };
                 var entranceDistrict = new District
                 {
                     Id = Guid.NewGuid(),
@@ -187,7 +209,7 @@ public class CountryPatrolRouteSeederTests
         {
             World = new World { Id = worldId },
             Countries = countries,
-            States = [],
+            States = states,
             Cities = cities,
             Districts = districts,
             Locations = locations,

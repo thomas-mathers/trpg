@@ -7,9 +7,8 @@ public class CountryPatrolOptions
     // keeps a full country loop in the ~1-3 in-game day range.
     public float SpeedUnitsPerHour { get; init; } = 60;
 
-    // Long enough to plausibly find the patrol resting at a stop across a normal play session,
-    // without making them feel stationary.
-    public double DefaultLingerHours { get; init; } = 3;
+    // Short enough that the patrol reads as passing through rather than parked.
+    public double DefaultLingerHours { get; init; } = 1;
 
     public int SquadSize { get; init; } = 3;
     public int MinGuardLevel { get; init; } = 25;
