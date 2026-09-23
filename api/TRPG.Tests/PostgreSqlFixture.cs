@@ -36,7 +36,7 @@ public sealed class PostgreSqlFixture : IAsyncLifetime
             )
             .Options;
         await using var context = new TrpgDbContext(options);
-        await context.Database.MigrateAsync();
+        await context.Database.EnsureCreatedAsync();
     }
 
     public async ValueTask DisposeAsync() => await _container.DisposeAsync();
