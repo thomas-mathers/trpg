@@ -154,6 +154,52 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_CreatesAnActiveShakedown_WhenMovingIntoABrokenTollGroup()
+    {
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id, level: 1);
+        var faction = Builders.MakeFaction(
+            WorldId,
+            aggression: 70,
+            creatureType: CreatureType.Human
+        );
+        var bandit = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Human,
+            locationId: newLocation.Id,
+            level: 2
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, newLocation.Id, faction.Id);
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.AddRange(player, bandit);
+        _context.Factions.Add(faction);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(
+            Builders.MakeEncounterGroupMember(WorldId, group.Id, bandit.Id)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                DestinationLocationId = newLocation.Id,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var encounter = await verifyContext
+            .Encounters.OfType<ShakedownEncounter>()
+            .SingleAsync(e => e.PlayerId == player.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(EncounterState.Active, encounter.State);
+        Assert.Equal(faction.Name, encounter.FactionName);
+        Assert.Equal(bandit.Id, Assert.Single(encounter.Members).Id);
+    }
+
+    [Fact]
     public async Task Handle_CatchesTheDestinationUpBeforeEvaluating_WhenTheEngagingGroupIsOnlySpawnedOnArrival()
     {
         // Arrange — no encounter group exists yet; only the arrival catch-up's spawner creates one,
