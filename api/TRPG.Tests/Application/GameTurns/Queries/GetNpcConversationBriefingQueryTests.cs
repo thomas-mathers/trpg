@@ -92,7 +92,6 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
         var routeTraveler = Builders.MakeCaravan(
             route.Id,
             WorldId,
-            kind: RouteTravelerKind.Pilgrim,
             purpose: "Making a pilgrimage to the Dawn Temple."
         );
         var connectorA = Builders.MakeTravelConnector(
@@ -125,7 +124,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
 
         var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
-        Assert.Equal(RouteTravelerKind.Pilgrim, result.Journey?.Kind);
+        Assert.Equal("Making a pilgrimage to the Dawn Temple.", result.Journey?.Purpose);
         Assert.Equal("Westmere Gate", result.Journey?.NextDestination);
     }
 

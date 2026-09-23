@@ -6,7 +6,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Routing.Queries;
 
-public record RouteTravelerJourney(RouteTravelerKind Kind, string Purpose, string NextDestination);
+public record RouteTravelerJourney(string Purpose, string NextDestination);
 
 public class GetRouteTravelerJourneysByCreatureIdsQuery
 {
@@ -77,7 +77,6 @@ internal class GetRouteTravelerJourneysByCreatureIdsQueryHandler(
                     var traveler = travelers[member.RouteTravelerId];
                     var nextLocationId = positions[member.RouteTravelerId].NextLocationId;
                     return new RouteTravelerJourney(
-                        traveler.Kind,
                         traveler.Purpose!,
                         locations.GetValueOrDefault(nextLocationId)?.Name ?? "Unknown"
                     );

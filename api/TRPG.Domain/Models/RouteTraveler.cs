@@ -1,14 +1,5 @@
 namespace TRPG.Domain.Models;
 
-public enum RouteTravelerKind
-{
-    Caravan,
-    GuardPatrol,
-    Pilgrim,
-    Adventurer,
-    Worker,
-}
-
 public class RouteTraveler
 {
     public Guid Id { get; init; } = Guid.NewGuid();
@@ -16,6 +7,5 @@ public class RouteTraveler
     public Guid RouteId { get; init; }
     public required TimeSpan StartedAtPlaytime { get; init; }
     public required double SpeedUnitsPerHour { get; init; }
-    public RouteTravelerKind Kind { get; init; }
     public string? Purpose { get; init; }
 }

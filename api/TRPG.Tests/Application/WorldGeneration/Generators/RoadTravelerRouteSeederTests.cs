@@ -29,11 +29,13 @@ public class RoadTravelerRouteSeederTests
         Assert.Equal(3, result.Members.Count);
         Assert.Single(
             result.RouteTravelers,
-            traveler => traveler.Kind == RouteTravelerKind.Pilgrim
+            traveler => traveler.Purpose!.Contains("pilgrimage", StringComparison.OrdinalIgnoreCase)
         );
         Assert.Equal(
             2,
-            result.RouteTravelers.Count(traveler => traveler.Kind == RouteTravelerKind.Adventurer)
+            result.RouteTravelers.Count(traveler =>
+                traveler.Purpose!.Contains("adventure", StringComparison.OrdinalIgnoreCase)
+            )
         );
         Assert.Equal(3, result.Creatures.Count);
         Assert.Equal(3, result.Profiles.Count);

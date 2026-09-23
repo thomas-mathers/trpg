@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using TRPG.Application.Configuration;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Data;
 using TRPG.Domain;
@@ -10,7 +8,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.LocationSimulation.Commands;
 
-public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
+public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -21,7 +19,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private SyncGuardPatrolCommandHandler _handler = null!;
+    private SyncRouteTravelersCommandHandler _handler = null!;
     private Route _route = null!;
     private RouteTraveler _traveler = null!;
     private Creature _guard1 = null!;
@@ -32,13 +30,8 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
-            .AddSingleton<IOptionsSnapshot<CountryPatrolOptions>>(
-                new TestOptionsSnapshot<CountryPatrolOptions>(
-                    new CountryPatrolOptions { SpeedUnitsPerHour = 5 }
-                )
-            )
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<SyncGuardPatrolCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<SyncRouteTravelersCommandHandler>();
 
         // 2 stops, 10 units apart each way at speed 5 = 2 leg hours; with a 1-hour linger the
         // total cycle is 2 * (1 + 2) = 6 hours, and stop A's own linger window is [0, 1).
@@ -59,7 +52,6 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
             _route.Id,
             _worldId,
             phaseOffsetHours: 0,
-            kind: RouteTravelerKind.GuardPatrol,
             purpose: "Patrolling the roads."
         );
         _guard1 = Builders.MakeCreature(_worldId, profession: Profession.Guard);
@@ -88,7 +80,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
     {
         // Act
         await _handler.Handle(
-            new SyncGuardPatrolCommand
+            new SyncRouteTravelersCommand
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
@@ -117,7 +109,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
     {
         // Act
         await _handler.Handle(
-            new SyncGuardPatrolCommand
+            new SyncRouteTravelersCommand
             {
                 WorldId = _worldId,
                 LocationId = _locationC,
@@ -148,7 +140,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncGuardPatrolCommand
+            new SyncRouteTravelersCommand
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
@@ -157,8 +149,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
 
-        // Assert — the whole squad relocates together, none left behind at B, and both are now
-        // flagged as mid-patrol rather than genuinely stationed here.
+        // Assert — the whole squad relocates together, none left behind at B, and both are walking.
         await using var verifyContext = db.CreateContext();
         var guards = await verifyContext
             .Creatures.Where(c => c.Id == _guard1.Id || c.Id == _guard2.Id)
@@ -168,7 +159,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
             guard =>
             {
                 Assert.Equal(_locationA, guard.LocationId);
-                Assert.Equal(CreatureState.Patrolling, guard.State);
+                Assert.Equal(CreatureState.Walking, guard.State);
             }
         );
     }
@@ -184,7 +175,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncGuardPatrolCommand
+            new SyncRouteTravelersCommand
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
@@ -200,7 +191,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_locationA, guard.LocationId);
-        Assert.Equal(CreatureState.Patrolling, guard.State);
+        Assert.Equal(CreatureState.Walking, guard.State);
     }
 
     [Fact]
@@ -213,7 +204,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncGuardPatrolCommand
+            new SyncRouteTravelersCommand
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
@@ -245,7 +236,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncGuardPatrolCommand
+            new SyncRouteTravelersCommand
             {
                 WorldId = _worldId,
                 LocationId = _locationA,

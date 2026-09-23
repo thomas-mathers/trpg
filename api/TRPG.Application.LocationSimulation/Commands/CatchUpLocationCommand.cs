@@ -44,8 +44,7 @@ internal class CatchUpLocationCommandHandler(
     ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy,
     ICommandHandler<SyncQuestSeedScheduleCommand> syncQuestSeedSchedule,
     ICommandHandler<SyncWeatherCommand> syncWeather,
-    ICommandHandler<SyncGuardPatrolCommand> syncGuardPatrol,
-    ICommandHandler<SyncRoadTravelersCommand> syncRoadTravelers,
+    ICommandHandler<SyncRouteTravelersCommand> syncRouteTravelers,
     LocationCatchUpCache catchUpCache
 ) : ICommandHandler<CatchUpLocationCommand, bool>
 {
@@ -103,8 +102,7 @@ internal class CatchUpLocationCommandHandler(
         await SynchronizeRestockPolicy(command, cancellationToken);
         await SynchronizeQuestSeedSchedule(command, cancellationToken);
         await SynchronizeWeather(command, location, cancellationToken);
-        await SynchronizeGuardPatrol(command, cancellationToken);
-        await SynchronizeRoadTravelers(command, cancellationToken);
+        await SynchronizeRouteTravelers(command, cancellationToken);
     }
 
     // Creatures whose job targets this location and creatures already standing in its district
@@ -224,29 +222,13 @@ internal class CatchUpLocationCommandHandler(
         );
     }
 
-    private async Task SynchronizeGuardPatrol(
+    private async Task SynchronizeRouteTravelers(
         CatchUpLocationCommand command,
         CancellationToken cancellationToken
     )
     {
-        await syncGuardPatrol.Handle(
-            new SyncGuardPatrolCommand
-            {
-                WorldId = command.WorldId,
-                LocationId = command.LocationId,
-                Playtime = command.Playtime,
-            },
-            cancellationToken
-        );
-    }
-
-    private async Task SynchronizeRoadTravelers(
-        CatchUpLocationCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        await syncRoadTravelers.Handle(
-            new SyncRoadTravelersCommand
+        await syncRouteTravelers.Handle(
+            new SyncRouteTravelersCommand
             {
                 WorldId = command.WorldId,
                 LocationId = command.LocationId,

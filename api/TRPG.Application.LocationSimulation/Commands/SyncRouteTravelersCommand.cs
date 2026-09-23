@@ -8,14 +8,14 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.LocationSimulation.Commands;
 
-public class SyncRoadTravelersCommand
+public class SyncRouteTravelersCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
     public required TimeSpan Playtime { get; init; }
 }
 
-internal class SyncRoadTravelersCommandHandler(
+internal class SyncRouteTravelersCommandHandler(
     IQueryHandler<
         GetRouteTravelersByLocationIdQuery,
         IReadOnlyList<RouteTravelerSummary>
@@ -30,30 +30,30 @@ internal class SyncRoadTravelersCommandHandler(
     > resolveRouteTravelerPositions,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures
-) : ICommandHandler<SyncRoadTravelersCommand>
+) : ICommandHandler<SyncRouteTravelersCommand>
 {
     public async Task Handle(
-        SyncRoadTravelersCommand command,
+        SyncRouteTravelersCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var roadTravelers = await GetRoadTravelers(command, cancellationToken);
-        if (roadTravelers.Count == 0)
+        var travelers = await GetCreatureTravelers(command, cancellationToken);
+        if (travelers.Count == 0)
         {
             return;
         }
 
-        var syncData = await GetSyncData(command, roadTravelers, cancellationToken);
+        var syncData = await GetSyncData(command, travelers, cancellationToken);
         var relocations = BuildRelocations(
-            roadTravelers,
+            travelers,
             syncData.PositionsByTravelerId,
             syncData.CreaturesById
         );
         await PersistRelocations(relocations, cancellationToken);
     }
 
-    private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetRoadTravelers(
-        SyncRoadTravelersCommand command,
+    private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetCreatureTravelers(
+        SyncRouteTravelersCommand command,
         CancellationToken cancellationToken
     )
     {
@@ -70,26 +70,27 @@ internal class SyncRoadTravelersCommandHandler(
             return new Dictionary<Guid, IReadOnlyList<Guid>>();
         }
 
-        var travelerIds = routeTravelers
-            .Where(t => t.Kind is RouteTravelerKind.Pilgrim or RouteTravelerKind.Adventurer)
-            .Select(t => t.RouteTravelerId)
-            .ToArray();
         return await getRouteTravelerMembersByRouteTravelerIds.Handle(
-            new GetRouteTravelerMembersByRouteTravelerIdsQuery { RouteTravelerIds = travelerIds },
+            new GetRouteTravelerMembersByRouteTravelerIdsQuery
+            {
+                RouteTravelerIds = routeTravelers
+                    .Select(traveler => traveler.RouteTravelerId)
+                    .ToArray(),
+            },
             cancellationToken
         );
     }
 
-    private async Task<RoadTravelerSyncData> GetSyncData(
-        SyncRoadTravelersCommand command,
-        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> roadTravelers,
+    private async Task<RouteTravelerSyncData> GetSyncData(
+        SyncRouteTravelersCommand command,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> travelers,
         CancellationToken cancellationToken
     )
     {
         var positionsByTravelerId = await resolveRouteTravelerPositions.Handle(
             new ResolveRouteTravelerPositionsQuery
             {
-                RouteTravelerIds = roadTravelers.Keys.ToArray(),
+                RouteTravelerIds = travelers.Keys.ToArray(),
                 Playtime = command.Playtime,
             },
             cancellationToken
@@ -97,15 +98,15 @@ internal class SyncRoadTravelersCommandHandler(
         var creaturesById = await getCreaturesByIds.Handle(
             new GetCreaturesByIdsQuery
             {
-                Ids = roadTravelers.Values.SelectMany(ids => ids).Distinct().ToArray(),
+                Ids = travelers.Values.SelectMany(ids => ids).Distinct().ToArray(),
             },
             cancellationToken
         );
-        return new RoadTravelerSyncData(positionsByTravelerId, creaturesById);
+        return new RouteTravelerSyncData(positionsByTravelerId, creaturesById);
     }
 
     private async Task PersistRelocations(
-        IReadOnlyDictionary<RoadTravelerTarget, List<Guid>> relocations,
+        IReadOnlyDictionary<RouteTravelerTarget, List<Guid>> relocations,
         CancellationToken cancellationToken
     )
     {
@@ -123,14 +124,14 @@ internal class SyncRoadTravelersCommandHandler(
         }
     }
 
-    private static IReadOnlyDictionary<RoadTravelerTarget, List<Guid>> BuildRelocations(
-        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> roadTravelersByRouteTravelerId,
+    private static IReadOnlyDictionary<RouteTravelerTarget, List<Guid>> BuildRelocations(
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> travelersByRouteTravelerId,
         IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition> positionsByTravelerId,
         IReadOnlyDictionary<Guid, Creature> creaturesById
     )
     {
-        var relocations = new Dictionary<RoadTravelerTarget, List<Guid>>();
-        foreach (var (routeTravelerId, memberIds) in roadTravelersByRouteTravelerId)
+        var relocations = new Dictionary<RouteTravelerTarget, List<Guid>>();
+        foreach (var (routeTravelerId, memberIds) in travelersByRouteTravelerId)
         {
             if (positionsByTravelerId.TryGetValue(routeTravelerId, out var position))
             {
@@ -147,8 +148,8 @@ internal class SyncRoadTravelersCommandHandler(
     }
 
     private static void AddRelocation(
-        Dictionary<RoadTravelerTarget, List<Guid>> relocations,
-        RoadTravelerTarget target,
+        Dictionary<RouteTravelerTarget, List<Guid>> relocations,
+        RouteTravelerTarget target,
         Creature creature
     )
     {
@@ -164,32 +165,32 @@ internal class SyncRoadTravelersCommandHandler(
         relocations[target].Add(creature.Id);
     }
 
-    private static RoadTravelerTarget ResolveTarget(RouteTimelinePosition position) =>
+    private static RouteTravelerTarget ResolveTarget(RouteTimelinePosition position) =>
         position switch
         {
-            RouteTimelinePosition.Pending pending => new RoadTravelerTarget(
+            RouteTimelinePosition.Pending pending => new RouteTravelerTarget(
                 pending.LocationId,
                 CreatureState.Idle
             ),
-            RouteTimelinePosition.Lingering lingering => new RoadTravelerTarget(
+            RouteTimelinePosition.Lingering lingering => new RouteTravelerTarget(
                 lingering.LocationId,
                 CreatureState.Idle
             ),
-            RouteTimelinePosition.InTransit inTransit => new RoadTravelerTarget(
+            RouteTimelinePosition.InTransit inTransit => new RouteTravelerTarget(
                 inTransit.FromLocationId,
                 CreatureState.Walking
             ),
-            RouteTimelinePosition.Arrived arrived => new RoadTravelerTarget(
+            RouteTimelinePosition.Arrived arrived => new RouteTravelerTarget(
                 arrived.LocationId,
                 CreatureState.Idle
             ),
             _ => throw new InvalidOperationException("Unknown route position."),
         };
 
-    private record RoadTravelerSyncData(
+    private record RouteTravelerSyncData(
         IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition> PositionsByTravelerId,
         IReadOnlyDictionary<Guid, Creature> CreaturesById
     );
 
-    private record RoadTravelerTarget(Guid LocationId, CreatureState State);
+    private record RouteTravelerTarget(Guid LocationId, CreatureState State);
 }

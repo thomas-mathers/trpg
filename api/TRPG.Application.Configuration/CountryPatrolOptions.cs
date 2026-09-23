@@ -7,7 +7,7 @@ public class CountryPatrolOptions
     public float SpeedUnitsPerHour { get; init; } =
         CreatureGeneratorOptions.WalkingSpeedUnitsPerHour;
 
-    // No rest stop: a patrol is always mid-leg (Creature.State.Patrolling), never genuinely
+    // No rest stop: a patrol is always mid-leg (Creature.State.Walking), never genuinely
     // stationary, so there's nothing for a linger window to represent.
     public double DefaultLingerHours { get; init; } = 0;
 

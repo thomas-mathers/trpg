@@ -100,10 +100,6 @@ public static class LlmSceneMapper
             creature.ReadyToDeliver,
             creature.Journey == null
                 ? null
-                : new LlmSceneJourney(
-                    creature.Journey.Kind,
-                    creature.Journey.Purpose,
-                    creature.Journey.NextDestination
-                )
+                : new LlmSceneJourney(creature.Journey.Purpose, creature.Journey.NextDestination)
         );
 }

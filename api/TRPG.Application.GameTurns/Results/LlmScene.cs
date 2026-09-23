@@ -35,7 +35,7 @@ public record LlmSceneProp(string Name, string Description, string Type);
 
 public record LlmSceneNearbyBuilding(string Name, BuildingType Type);
 
-public record LlmSceneJourney(RouteTravelerKind Kind, string Purpose, string NextDestination);
+public record LlmSceneJourney(string Purpose, string NextDestination);
 
 public record LlmSceneCaravan(
     string RouteName,

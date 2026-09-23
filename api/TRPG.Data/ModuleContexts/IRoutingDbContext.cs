@@ -9,5 +9,6 @@ public interface IRoutingDbContext : ITrpgDbContext
     DbSet<RouteStep> RouteSteps { get; }
     DbSet<RouteTraveler> RouteTravelers { get; }
     DbSet<RouteTravelerMember> RouteTravelerMembers { get; }
+    DbSet<LocationConnector> LocationConnectors { get; }
     DbSet<TravelConnector> TravelConnectors { get; }
 }

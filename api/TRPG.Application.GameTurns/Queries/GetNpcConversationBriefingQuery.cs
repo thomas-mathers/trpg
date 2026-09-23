@@ -77,11 +77,7 @@ public record NpcConversationHistoryResult(
 
 public record NpcConversationRoomBookingStatus(bool HasActiveBooking, string? RoomName);
 
-public record NpcConversationJourney(
-    RouteTravelerKind Kind,
-    string Purpose,
-    string NextDestination
-);
+public record NpcConversationJourney(string Purpose, string NextDestination);
 
 // The briefing exposes only the subject, so the player must obtain the fact from the NPC.
 public record NpcConversationWithheldFact(string Subject, string Guidance);
@@ -308,7 +304,7 @@ internal class GetNpcConversationBriefingQueryHandler(
     ) =>
         journey == null
             ? null
-            : new NpcConversationJourney(journey.Kind, journey.Purpose, journey.NextDestination);
+            : new NpcConversationJourney(journey.Purpose, journey.NextDestination);
 
     private async Task<NpcConversationWithheldFact?> GetWithheldFact(
         GetNpcConversationBriefingQuery query,
