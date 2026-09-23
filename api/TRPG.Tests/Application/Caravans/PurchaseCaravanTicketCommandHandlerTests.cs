@@ -46,7 +46,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
         _player = Builders.MakeCreature(worldId: WorldId, locationId: LocationA);
 
         _context.Routes.Add(_route);
-        _context.RouteStops.AddRange(stopA, stopB);
+        _context.RouteSteps.AddRange(stopA, stopB);
         _context.CaravanFares.Add(fare);
         _context.RouteTravelers.Add(_caravan);
         _context.Creatures.Add(_player);

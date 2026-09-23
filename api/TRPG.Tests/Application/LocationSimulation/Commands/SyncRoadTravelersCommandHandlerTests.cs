@@ -45,7 +45,7 @@ public sealed class SyncRoadTravelersCommandHandlerTests(DatabaseFixture db)
         );
         _traveler = Builders.MakeCreature(WorldId, locationId: LocationB);
         _context.Routes.Add(route);
-        _context.RouteStops.AddRange(
+        _context.RouteSteps.AddRange(
             Builders.MakeCaravanRouteStop(route.Id, 0, LocationA),
             Builders.MakeCaravanRouteStop(route.Id, 1, LocationB)
         );

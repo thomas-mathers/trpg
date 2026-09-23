@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Options;
 using TRPG.Application.Caravans.Queries;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
@@ -87,7 +85,10 @@ internal class GetSceneQueryHandler(
         GetRouteTravelersByLocationIdQuery,
         IReadOnlyList<RouteTravelerSummary>
     > getRouteTravelersByLocationId,
-    IQueryHandler<ResolveRouteTravelerPositionQuery, RoutePosition?> resolveRouteTravelerPosition,
+    IQueryHandler<
+        ResolveRouteTravelerPositionQuery,
+        RouteTimelinePosition?
+    > resolveRouteTravelerPosition,
     IQueryHandler<
         GetCaravanFaresByRouteIdsQuery,
         IReadOnlyDictionary<Guid, CaravanFare>
@@ -97,8 +98,7 @@ internal class GetSceneQueryHandler(
     IQueryHandler<
         GetRouteTravelerJourneysByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, RouteTravelerJourney>
-    > getRouteTravelerJourneysByCreatureIds,
-    IOptionsSnapshot<CaravanOptions> caravanOptions
+    > getRouteTravelerJourneysByCreatureIds
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -196,7 +196,11 @@ internal class GetSceneQueryHandler(
         }
 
         var destinationLocationIds = lingeringCaravans
-            .SelectMany(entry => entry.Traveler.Stops.Select(stop => stop.LocationId))
+            .SelectMany(entry =>
+                entry
+                    .Traveler.Steps.Where(step => step.DwellHours > 0)
+                    .Select(step => step.LocationId)
+            )
             .Distinct()
             .ToArray();
         var namesByLocationId = await ResolveCaravanStopNames(
@@ -218,7 +222,7 @@ internal class GetSceneQueryHandler(
 
             var destinations = BuildCaravanDestinations(
                 traveler,
-                position.StopIndex,
+                position.StepIndex,
                 ticket,
                 namesByLocationId
             );
@@ -237,7 +241,11 @@ internal class GetSceneQueryHandler(
     }
 
     private async Task<
-        List<(RouteTravelerSummary Traveler, CaravanFare Fare, RoutePosition.Lingering Position)>
+        List<(
+            RouteTravelerSummary Traveler,
+            CaravanFare Fare,
+            RouteTimelinePosition.Lingering Position
+        )>
     > ResolveLingeringCaravans(
         Guid worldId,
         Guid playerId,
@@ -268,7 +276,8 @@ internal class GetSceneQueryHandler(
             .Where(traveler => faresByRouteId.ContainsKey(traveler.RouteId))
             .ToArray();
 
-        var lingering = new List<(RouteTravelerSummary, CaravanFare, RoutePosition.Lingering)>();
+        var lingering =
+            new List<(RouteTravelerSummary, CaravanFare, RouteTimelinePosition.Lingering)>();
         foreach (var traveler in caravanTravelers)
         {
             var position = await resolveRouteTravelerPosition.Handle(
@@ -276,12 +285,11 @@ internal class GetSceneQueryHandler(
                 {
                     RouteTravelerId = traveler.RouteTravelerId,
                     Playtime = playtime,
-                    SpeedUnitsPerHour = caravanOptions.Value.SpeedUnitsPerHour,
                 },
                 cancellationToken
             );
             if (
-                position is RoutePosition.Lingering atThisStop
+                position is RouteTimelinePosition.Lingering atThisStop
                 && atThisStop.LocationId == playerLocationId
             )
             {
@@ -304,13 +312,13 @@ internal class GetSceneQueryHandler(
             if (ticket != null && ticket.OriginStopLocationId == playerLocationId)
             {
                 var stopIndex = traveler
-                    .Stops.ToList()
-                    .FindIndex(stop => stop.LocationId == playerLocationId);
+                    .Steps.ToList()
+                    .FindIndex(step => step.LocationId == playerLocationId && step.DwellHours > 0);
                 lingering.Add(
                     (
                         traveler,
                         faresByRouteId[traveler.RouteId],
-                        new RoutePosition.Lingering(
+                        new RouteTimelinePosition.Lingering(
                             playerLocationId,
                             stopIndex,
                             HoursUntilDeparture: 0
@@ -368,14 +376,17 @@ internal class GetSceneQueryHandler(
     )
     {
         var destinations = new List<SceneCaravanDestination>();
-        for (var offset = 1; offset < traveler.Stops.Count; offset++)
+        var destinationIndexes = Enumerable
+            .Range(1, traveler.Steps.Count - 1)
+            .Select(offset => (currentStopIndex + offset) % traveler.Steps.Count)
+            .Where(index => traveler.Steps[index].DwellHours > 0)
+            .ToArray();
+        foreach (var destinationIndex in destinationIndexes)
         {
-            var destinationIndex = (currentStopIndex + offset) % traveler.Stops.Count;
-            var destinationLocationId = traveler.Stops[destinationIndex].LocationId;
-            var travelTimeHours = RouteCycle.HoursBetween(
-                traveler.Stops,
-                traveler.LingerHours,
-                caravanOptions.Value.SpeedUnitsPerHour,
+            var destinationLocationId = traveler.Steps[destinationIndex].LocationId;
+            var travelTimeHours = RouteTimeline.HoursBetween(
+                traveler.Steps,
+                traveler.SpeedUnitsPerHour,
                 currentStopIndex,
                 destinationIndex
             );
@@ -695,7 +706,6 @@ internal class GetSceneQueryHandler(
             {
                 CreatureIds = nearbyCreatureIds,
                 Playtime = query.Playtime,
-                SpeedUnitsPerHour = CreatureGeneratorOptions.WalkingSpeedUnitsPerHour,
             },
             cancellationToken
         );

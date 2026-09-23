@@ -1,17 +1,12 @@
 namespace TRPG.Domain.Models;
 
-public enum RouteDirection
-{
-    Clockwise,
-    CounterClockwise,
-}
-
 public enum RouteTravelerKind
 {
     Caravan,
     GuardPatrol,
     Pilgrim,
     Adventurer,
+    Worker,
 }
 
 public class RouteTraveler
@@ -19,8 +14,8 @@ public class RouteTraveler
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid WorldId { get; init; }
     public Guid RouteId { get; init; }
-    public required double PhaseOffsetHours { get; init; }
-    public required RouteDirection Direction { get; init; }
+    public required TimeSpan StartedAtPlaytime { get; init; }
+    public required double SpeedUnitsPerHour { get; init; }
     public RouteTravelerKind Kind { get; init; }
     public string? Purpose { get; init; }
 }

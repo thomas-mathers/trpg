@@ -10,10 +10,11 @@ public record RouteTravelerSummary(
     Guid RouteTravelerId,
     Guid RouteId,
     string RouteName,
-    double LingerHours,
-    RouteDirection Direction,
+    RouteTraversal Traversal,
+    TimeSpan StartedAtPlaytime,
+    double SpeedUnitsPerHour,
     RouteTravelerKind Kind,
-    IReadOnlyList<RouteWaypoint> Stops
+    IReadOnlyList<RouteTimelineStep> Steps
 );
 
 public class GetRouteTravelersByLocationIdQuery
@@ -31,9 +32,9 @@ internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext conte
     )
     {
         var routeIds = await context
-            .RouteStops.AsNoTracking()
-            .Where(s => s.LocationId == query.LocationId)
-            .Select(s => s.RouteId)
+            .RouteSteps.AsNoTracking()
+            .Where(step => step.LocationId == query.LocationId)
+            .Select(step => step.RouteId)
             .Distinct()
             .ToArrayAsync(cancellationToken);
         if (routeIds.Length == 0)
@@ -43,27 +44,50 @@ internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext conte
 
         var routesById = await context
             .Routes.AsNoTracking()
-            .Where(r => r.WorldId == query.WorldId && routeIds.AsEnumerable().Contains(r.Id))
-            .ToDictionaryAsync(r => r.Id, cancellationToken);
+            .Where(route =>
+                route.WorldId == query.WorldId && routeIds.AsEnumerable().Contains(route.Id)
+            )
+            .ToDictionaryAsync(route => route.Id, cancellationToken);
 
         var travelers = await context
             .RouteTravelers.AsNoTracking()
-            .Where(t => routeIds.AsEnumerable().Contains(t.RouteId))
+            .Where(traveler => routeIds.AsEnumerable().Contains(traveler.RouteId))
             .ToArrayAsync(cancellationToken);
 
-        var stopsByRouteId = await context
-            .RouteStops.AsNoTracking()
-            .Where(s => routeIds.AsEnumerable().Contains(s.RouteId))
-            .OrderBy(s => s.SequenceIndex)
+        var routeSteps = await context
+            .RouteSteps.AsNoTracking()
+            .Where(step => routeIds.AsEnumerable().Contains(step.RouteId))
+            .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(cancellationToken);
-        var stopsGroupedByRouteId = stopsByRouteId
-            .GroupBy(s => s.RouteId)
+        var connectorIds = routeSteps
+            .Where(step => step.ConnectorId != null)
+            .Select(step => step.ConnectorId!.Value)
+            .Distinct()
+            .ToArray();
+
+        var distancesByConnectorId = await context
+            .TravelConnectors.AsNoTracking()
+            .Where(connector => connectorIds.AsEnumerable().Contains(connector.ConnectorId))
+            .ToDictionaryAsync(
+                connector => connector.ConnectorId,
+                connector => (double)connector.Distance,
+                cancellationToken
+            );
+        var stepsByRouteId = routeSteps
+            .GroupBy(step => step.RouteId)
             .ToDictionary(
                 group => group.Key,
                 group =>
-                    (IReadOnlyList<RouteWaypoint>)
+                    (IReadOnlyList<RouteTimelineStep>)
                         group
-                            .Select(s => new RouteWaypoint(s.LocationId, s.DistanceToNextStop))
+                            .Select(step => new RouteTimelineStep(
+                                step.LocationId,
+                                step.ConnectorId,
+                                step.ConnectorId == null
+                                    ? 0
+                                    : distancesByConnectorId[step.ConnectorId.Value],
+                                step.DwellHours
+                            ))
                             .ToArray()
             );
 
@@ -76,13 +100,11 @@ internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext conte
                     traveler.Id,
                     traveler.RouteId,
                     route.Name,
-                    route.LingerHours,
-                    traveler.Direction,
+                    route.Traversal,
+                    traveler.StartedAtPlaytime,
+                    traveler.SpeedUnitsPerHour,
                     traveler.Kind,
-                    RouteCycle.ToTravelOrder(
-                        stopsGroupedByRouteId[traveler.RouteId],
-                        traveler.Direction
-                    )
+                    stepsByRouteId[traveler.RouteId]
                 );
             })
             .ToArray();

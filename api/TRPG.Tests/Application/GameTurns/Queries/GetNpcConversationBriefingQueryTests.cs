@@ -97,7 +97,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
         );
         _context.Locations.AddRange(origin, destination);
         _context.Routes.Add(route);
-        _context.RouteStops.AddRange(
+        _context.RouteSteps.AddRange(
             Builders.MakeCaravanRouteStop(route.Id, 0, origin.Id),
             Builders.MakeCaravanRouteStop(route.Id, 1, destination.Id)
         );

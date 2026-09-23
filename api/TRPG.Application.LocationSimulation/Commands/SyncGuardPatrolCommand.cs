@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Routing.Queries;
@@ -31,8 +29,7 @@ internal class SyncGuardPatrolCommandHandler(
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
     > getRouteTravelerMembersByRouteTravelerIds,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IOptionsSnapshot<CountryPatrolOptions> countryPatrolOptions
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures
 ) : ICommandHandler<SyncGuardPatrolCommand>
 {
     public async Task Handle(
@@ -71,7 +68,6 @@ internal class SyncGuardPatrolCommandHandler(
             {
                 RouteTravelerIds = membersByTraveler.Keys.ToArray(),
                 Playtime = command.Playtime,
-                SpeedUnitsPerHour = countryPatrolOptions.Value.SpeedUnitsPerHour,
             },
             cancellationToken
         );
@@ -123,16 +119,24 @@ internal class SyncGuardPatrolCommandHandler(
     // location never contradict each other ("marching along the road" said of a squad already shown
     // standing at the far end would be a lie). A nonzero-linger route (none exist yet, but the math
     // still supports it) still resolves Lingering to a real stop with State.Idle.
-    private static GuardPatrolTarget? ResolveTarget(RoutePosition? position) =>
+    private static GuardPatrolTarget? ResolveTarget(RouteTimelinePosition? position) =>
         position switch
         {
-            RoutePosition.Lingering lingering => new GuardPatrolTarget(
+            RouteTimelinePosition.Pending pending => new GuardPatrolTarget(
+                pending.LocationId,
+                CreatureState.Idle
+            ),
+            RouteTimelinePosition.Lingering lingering => new GuardPatrolTarget(
                 lingering.LocationId,
                 CreatureState.Idle
             ),
-            RoutePosition.InTransit inTransit => new GuardPatrolTarget(
+            RouteTimelinePosition.InTransit inTransit => new GuardPatrolTarget(
                 inTransit.FromLocationId,
                 CreatureState.Patrolling
+            ),
+            RouteTimelinePosition.Arrived arrived => new GuardPatrolTarget(
+                arrived.LocationId,
+                CreatureState.Idle
             ),
             _ => null,
         };

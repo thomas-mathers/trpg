@@ -56,7 +56,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
         _guard2 = Builders.MakeCreature(_worldId, profession: Profession.Guard);
 
         _context.Routes.Add(_route);
-        _context.RouteStops.AddRange(stopA, stopB);
+        _context.RouteSteps.AddRange(stopA, stopB);
         _context.RouteTravelers.Add(_traveler);
         _context.Creatures.AddRange(_guard1, _guard2);
         _context.RouteTravelerMembers.AddRange(

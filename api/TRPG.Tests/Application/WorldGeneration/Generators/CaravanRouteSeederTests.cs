@@ -1,5 +1,6 @@
 using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.WorldGeneration.Generators;
@@ -22,16 +23,17 @@ public class CaravanRouteSeederTests
 
         var result = CaravanRouteSeeder.Seed(world, Options);
 
-        Assert.NotNull(result.Route);
-        Assert.Equal(capitalLocationIds.Count, result.Stops.Count);
+        Assert.Equal(2, result.Routes.Count);
+        Assert.Equal(12, result.Steps.Count);
         Assert.Equal(
             capitalLocationIds.OrderBy(id => id),
-            result.Stops.Select(stop => stop.LocationId).OrderBy(id => id)
+            result
+                .Steps.Where(step => step.DwellHours > 0)
+                .Select(step => step.LocationId)
+                .Distinct()
+                .OrderBy(id => id)
         );
-        Assert.Equal([0, 1, 2], result.Stops.Select(stop => stop.SequenceIndex).OrderBy(i => i));
-        // Every capital sits one hop off the shared hub in the star topology below, so every leg
-        // (in either direction) covers the same distance regardless of visiting order.
-        Assert.All(result.Stops, stop => Assert.Equal(10, stop.DistanceToNextStop));
+        Assert.All(result.Steps, step => Assert.NotNull(step.ConnectorId));
     }
 
     [Fact]
@@ -47,15 +49,17 @@ public class CaravanRouteSeederTests
         // counter-clockwise anchored to each capital.
         Assert.Equal(3 * 2, result.Travelers.Count);
         Assert.Equal(
-            [0d, 0d, 3d, 3d, 6d, 6d],
-            result.Travelers.Select(traveler => traveler.PhaseOffsetHours).OrderBy(hours => hours)
+            [-6d, -6d, -3d, -3d, 0d, 0d],
+            result
+                .Travelers.Select(traveler =>
+                    traveler.StartedAtPlaytime / GameClock.RealTimePerInGameHour
+                )
+                .OrderBy(hours => hours)
         );
-        Assert.Equal(3, result.Travelers.Count(t => t.Direction == RouteDirection.Clockwise));
-        Assert.Equal(
-            3,
-            result.Travelers.Count(t => t.Direction == RouteDirection.CounterClockwise)
+        Assert.All(
+            result.Routes,
+            route => Assert.Equal(3, result.Travelers.Count(t => t.RouteId == route.Id))
         );
-        Assert.All(result.Travelers, traveler => Assert.Equal(result.Route!.Id, traveler.RouteId));
     }
 
     [Fact]
@@ -83,8 +87,8 @@ public class CaravanRouteSeederTests
 
         var result = CaravanRouteSeeder.Seed(world, Options);
 
-        Assert.Null(result.Route);
-        Assert.Empty(result.Stops);
+        Assert.Empty(result.Routes);
+        Assert.Empty(result.Steps);
         Assert.Empty(result.Travelers);
         Assert.Empty(result.Signs);
     }

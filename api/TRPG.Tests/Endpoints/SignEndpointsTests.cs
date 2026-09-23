@@ -97,7 +97,7 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
             context.Routes.Add(route);
-            context.RouteStops.AddRange(stopA, stopB);
+            context.RouteSteps.AddRange(stopA, stopB);
             context.CaravanFares.Add(fare);
             context.RouteTravelers.Add(caravan);
             context.Props.Add(sign);

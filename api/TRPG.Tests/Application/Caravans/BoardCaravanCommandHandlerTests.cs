@@ -46,7 +46,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
         _player = Builders.MakeCreature(worldId: WorldId, locationId: LocationA);
 
         _context.Routes.Add(route);
-        _context.RouteStops.AddRange(stopA, stopB);
+        _context.RouteSteps.AddRange(stopA, stopB);
         _context.RouteTravelers.Add(_caravan);
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -105,7 +105,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var resolvePosition = _serviceProvider.GetRequiredService<
-            IQueryHandler<ResolveRouteTravelerPositionQuery, RoutePosition?>
+            IQueryHandler<ResolveRouteTravelerPositionQuery, RouteTimelinePosition?>
         >();
 
         // Act
@@ -127,11 +127,10 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
             {
                 RouteTravelerId = _caravan.Id,
                 Playtime = arrivalPlaytime,
-                SpeedUnitsPerHour = 5,
             },
             TestContext.Current.CancellationToken
         );
-        var lingering = Assert.IsType<RoutePosition.Lingering>(position);
+        var lingering = Assert.IsType<RouteTimelinePosition.Lingering>(position);
         Assert.Equal(LocationB, lingering.LocationId);
     }
 

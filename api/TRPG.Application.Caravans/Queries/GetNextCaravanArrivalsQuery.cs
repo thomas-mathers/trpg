@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Routing.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
@@ -9,7 +7,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Caravans.Queries;
 
-public record NextCaravanArrival(RouteDirection Direction, double HoursUntilArrival);
+public record NextCaravanArrival(string RouteName, double HoursUntilArrival);
 
 // Powers a caravan schedule sign's live "next arrival" text — unlike the seeder, which only ever
 // runs once at world creation, this is recomputed from the current playtime on every read, so it
@@ -26,8 +24,7 @@ internal class GetNextCaravanArrivalsQueryHandler(
         GetRouteTravelersByLocationIdQuery,
         IReadOnlyList<RouteTravelerSummary>
     > getRouteTravelersByLocationId,
-    ICaravansDbContext context,
-    IOptionsSnapshot<CaravanOptions> caravanOptions
+    ICaravansDbContext context
 ) : IQueryHandler<GetNextCaravanArrivalsQuery, IReadOnlyList<NextCaravanArrival>>
 {
     public async Task<IReadOnlyList<NextCaravanArrival>> Handle(
@@ -52,31 +49,27 @@ internal class GetNextCaravanArrivalsQueryHandler(
             .ToArrayAsync(cancellationToken);
         var caravanTravelers = travelers.Where(t => caravanRouteIds.Contains(t.RouteId)).ToArray();
 
-        var elapsedHours = query.Playtime / GameClock.RealTimePerInGameHour;
-
-        // Several instances of the same direction can serve this stop — the player only cares
-        // about whichever one gets here first, not every instance's own individual schedule.
         return caravanTravelers
             .Select(traveler =>
             {
                 var stopIndex = traveler
-                    .Stops.ToList()
-                    .FindIndex(stop => stop.LocationId == query.LocationId);
-                var hoursUntilArrival = RouteCycle.HoursUntilNextArrivalAt(
-                    traveler.Stops,
-                    traveler.LingerHours,
-                    caravanOptions.Value.SpeedUnitsPerHour,
-                    elapsedHours,
+                    .Steps.ToList()
+                    .FindIndex(step => step.LocationId == query.LocationId && step.DwellHours > 0);
+                var hoursUntilArrival = RouteTimeline.HoursUntilNextArrivalAt(
+                    traveler.Steps,
+                    traveler.SpeedUnitsPerHour,
+                    traveler.StartedAtPlaytime,
+                    query.Playtime,
                     stopIndex
                 );
-                return (traveler.Direction, HoursUntilArrival: hoursUntilArrival);
+                return (traveler.RouteName, HoursUntilArrival: hoursUntilArrival);
             })
-            .GroupBy(arrival => arrival.Direction)
+            .GroupBy(arrival => arrival.RouteName)
             .Select(group => new NextCaravanArrival(
                 group.Key,
                 group.Min(arrival => arrival.HoursUntilArrival)
             ))
-            .OrderBy(arrival => arrival.Direction)
+            .OrderBy(arrival => arrival.RouteName)
             .ToArray();
     }
 }

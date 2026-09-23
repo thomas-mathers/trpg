@@ -771,7 +771,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         _context.Locations.Add(destinationLocation);
         _context.Districts.Add(destinationDistrict);
         _context.Routes.Add(route);
-        _context.RouteStops.AddRange(stopHere, stopThere);
+        _context.RouteSteps.AddRange(stopHere, stopThere);
         _context.CaravanFares.Add(fare);
         _context.RouteTravelers.Add(caravan);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

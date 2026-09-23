@@ -45,7 +45,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
         var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, _locationB, distanceToNextStop: 10);
         var fare = Builders.MakeCaravanFare(_route.Id, _worldId);
         _context.Routes.Add(_route);
-        _context.RouteStops.AddRange(stopA, stopB);
+        _context.RouteSteps.AddRange(stopA, stopB);
         _context.CaravanFares.Add(fare);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -76,7 +76,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
 
         // Assert
         var arrival = Assert.Single(arrivals);
-        Assert.Equal(RouteDirection.Clockwise, arrival.Direction);
+        Assert.Equal(_route.Name, arrival.RouteName);
         Assert.Equal(0, arrival.HoursUntilArrival);
     }
 
@@ -105,7 +105,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ReturnsTheSoonestInstance_WhenSeveralShareADirection()
+    public async Task Handle_ReturnsTheSoonestInstance_WhenSeveralShareARoute()
     {
         // Arrange
         _context.RouteTravelers.AddRange(
@@ -131,12 +131,22 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ReturnsOneEntryPerDirection_WhenBothServeTheStop()
+    public async Task Handle_ReturnsOneEntryPerRoute_WhenBothServeTheStop()
     {
         // Arrange
+        var secondRoute = Builders.MakeCaravanRoute(
+            _worldId,
+            name: "The Capital Circuit — Counter-clockwise"
+        );
+        _context.Routes.Add(secondRoute);
+        _context.RouteSteps.AddRange(
+            Builders.MakeCaravanRouteStop(secondRoute.Id, 0, _locationA),
+            Builders.MakeCaravanRouteStop(secondRoute.Id, 1, _locationB)
+        );
+        _context.CaravanFares.Add(Builders.MakeCaravanFare(secondRoute.Id, _worldId));
         _context.RouteTravelers.AddRange(
-            Builders.MakeCaravan(_route.Id, _worldId, direction: RouteDirection.Clockwise),
-            Builders.MakeCaravan(_route.Id, _worldId, direction: RouteDirection.CounterClockwise)
+            Builders.MakeCaravan(_route.Id, _worldId),
+            Builders.MakeCaravan(secondRoute.Id, _worldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -153,8 +163,8 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(
-            [RouteDirection.Clockwise, RouteDirection.CounterClockwise],
-            arrivals.Select(arrival => arrival.Direction).OrderBy(direction => direction)
+            [_route.Name, secondRoute.Name],
+            arrivals.Select(arrival => arrival.RouteName).OrderBy(name => name)
         );
     }
 }
