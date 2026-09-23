@@ -26,7 +26,7 @@ public class ResolveMoveDestinationCommand
 public record ResolveMoveDestinationResult(
     EntryOutcome Outcome,
     Guid? DestinationLocationId,
-    int TravelTimeHours = 0
+    double TravelTimeHours = 0
 );
 
 internal class ResolveMoveDestinationCommandHandler(
@@ -135,7 +135,7 @@ internal class ResolveMoveDestinationCommandHandler(
         );
     }
 
-    private async Task<int> ResolveTravelTimeHours(
+    private async Task<double> ResolveTravelTimeHours(
         Creature player,
         Guid connectorId,
         CancellationToken cancellationToken
@@ -164,6 +164,6 @@ internal class ResolveMoveDestinationCommandHandler(
             optionsSnapshot.Value
         );
 
-        return Math.Max(1, (int)(distance.Value / speed));
+        return distance.Value / speed;
     }
 }

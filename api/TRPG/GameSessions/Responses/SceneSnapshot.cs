@@ -72,7 +72,7 @@ public enum CreatureState
     Dead,
     Restrained,
     Patrolling,
-    Traveling,
+    Walking,
 }
 
 [TranspilationSource]

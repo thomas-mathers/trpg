@@ -630,6 +630,24 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
     }
 
     [Fact]
+    public async Task Handle_PreservesFractionalTravelTime()
+    {
+        var route = await SeedTravelRoute(distance: 5, dexterity: 0);
+
+        var result = await _handler.Handle(
+            new ResolveMoveDestinationCommand
+            {
+                PlayerId = route.Player.Id,
+                SessionId = _session.Id,
+                DestinationName = "Faraway City",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(0.1, result.TravelTimeHours, precision: 6);
+    }
+
+    [Fact]
     public async Task Handle_ReducesTravelSpeed_WhenThePlayerIsSneaking()
     {
         // Arrange — base speed 50 halved by sneaking to 25; 100 / 25 = 4 hours

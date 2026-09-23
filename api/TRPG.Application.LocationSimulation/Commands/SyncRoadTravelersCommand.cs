@@ -177,7 +177,7 @@ internal class SyncRoadTravelersCommandHandler(
             ),
             RouteTimelinePosition.InTransit inTransit => new RoadTravelerTarget(
                 inTransit.FromLocationId,
-                CreatureState.Traveling
+                CreatureState.Walking
             ),
             RouteTimelinePosition.Arrived arrived => new RoadTravelerTarget(
                 arrived.LocationId,

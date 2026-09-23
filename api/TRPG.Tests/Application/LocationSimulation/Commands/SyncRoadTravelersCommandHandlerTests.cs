@@ -80,7 +80,7 @@ public sealed class SyncRoadTravelersCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_RelocatesTravelerAndSetsTravelingState_WhileInTransit()
+    public async Task Handle_RelocatesTravelerAndSetsWalkingState_WhileInTransit()
     {
         await _handler.Handle(
             new SyncRoadTravelersCommand
@@ -98,7 +98,7 @@ public sealed class SyncRoadTravelersCommandHandlerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(LocationA, traveler.LocationId);
-        Assert.Equal(CreatureState.Traveling, traveler.State);
+        Assert.Equal(CreatureState.Walking, traveler.State);
     }
 
     [Fact]
