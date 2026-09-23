@@ -23,11 +23,18 @@ public class BootstrapWorldCommand
     public IReadOnlyList<Route> CountryPatrolRoutes { get; init; } = [];
     public IReadOnlyList<RouteStop> CountryPatrolRouteStops { get; init; } = [];
     public IReadOnlyList<RouteTraveler> CountryPatrolRouteTravelers { get; init; } = [];
-    public IReadOnlyList<GuardPatrolMember> GuardPatrolMembers { get; init; } = [];
     public IReadOnlyList<Creature> GuardPatrolCreatures { get; init; } = [];
     public IReadOnlyList<FactionMember> GuardPatrolFactionMembers { get; init; } = [];
     public IReadOnlyList<Item> GuardPatrolItems { get; init; } = [];
     public IReadOnlyList<CreatureSkill> GuardPatrolSkills { get; init; } = [];
+    public IReadOnlyList<Route> RoadTravelerRoutes { get; init; } = [];
+    public IReadOnlyList<RouteStop> RoadTravelerRouteStops { get; init; } = [];
+    public IReadOnlyList<RouteTraveler> RoadTravelerRouteTravelers { get; init; } = [];
+    public IReadOnlyList<RouteTravelerMember> RouteTravelerMembers { get; init; } = [];
+    public IReadOnlyList<Creature> RoadTravelerCreatures { get; init; } = [];
+    public IReadOnlyList<Item> RoadTravelerItems { get; init; } = [];
+    public IReadOnlyList<CreatureSkill> RoadTravelerSkills { get; init; } = [];
+    public IReadOnlyList<CreatureProfile> RoadTravelerProfiles { get; init; } = [];
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -114,11 +121,19 @@ internal class BootstrapWorldCommandHandler(
         context.Routes.AddRange(command.CountryPatrolRoutes);
         context.RouteStops.AddRange(command.CountryPatrolRouteStops);
         context.RouteTravelers.AddRange(command.CountryPatrolRouteTravelers);
-        context.GuardPatrolMembers.AddRange(command.GuardPatrolMembers);
         context.Creatures.AddRange(command.GuardPatrolCreatures);
         context.FactionMembers.AddRange(command.GuardPatrolFactionMembers);
         context.Items.AddRange(command.GuardPatrolItems);
         context.CreatureSkills.AddRange(command.GuardPatrolSkills);
+
+        context.Routes.AddRange(command.RoadTravelerRoutes);
+        context.RouteStops.AddRange(command.RoadTravelerRouteStops);
+        context.RouteTravelers.AddRange(command.RoadTravelerRouteTravelers);
+        context.RouteTravelerMembers.AddRange(command.RouteTravelerMembers);
+        context.Creatures.AddRange(command.RoadTravelerCreatures);
+        context.Items.AddRange(command.RoadTravelerItems);
+        context.CreatureSkills.AddRange(command.RoadTravelerSkills);
+        context.CreatureProfiles.AddRange(command.RoadTravelerProfiles);
 
         if (player != null)
         {

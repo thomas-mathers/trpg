@@ -45,6 +45,7 @@ internal class CatchUpLocationCommandHandler(
     ICommandHandler<SyncQuestSeedScheduleCommand> syncQuestSeedSchedule,
     ICommandHandler<SyncWeatherCommand> syncWeather,
     ICommandHandler<SyncGuardPatrolCommand> syncGuardPatrol,
+    ICommandHandler<SyncRoadTravelersCommand> syncRoadTravelers,
     LocationCatchUpCache catchUpCache
 ) : ICommandHandler<CatchUpLocationCommand, bool>
 {
@@ -103,6 +104,7 @@ internal class CatchUpLocationCommandHandler(
         await SynchronizeQuestSeedSchedule(command, cancellationToken);
         await SynchronizeWeather(command, location, cancellationToken);
         await SynchronizeGuardPatrol(command, cancellationToken);
+        await SynchronizeRoadTravelers(command, cancellationToken);
     }
 
     // Creatures whose job targets this location and creatures already standing in its district
@@ -229,6 +231,22 @@ internal class CatchUpLocationCommandHandler(
     {
         await syncGuardPatrol.Handle(
             new SyncGuardPatrolCommand
+            {
+                WorldId = command.WorldId,
+                LocationId = command.LocationId,
+                Playtime = command.Playtime,
+            },
+            cancellationToken
+        );
+    }
+
+    private async Task SynchronizeRoadTravelers(
+        CatchUpLocationCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        await syncRoadTravelers.Handle(
+            new SyncRoadTravelersCommand
             {
                 WorldId = command.WorldId,
                 LocationId = command.LocationId,

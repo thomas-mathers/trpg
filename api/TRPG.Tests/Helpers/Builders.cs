@@ -1474,7 +1474,9 @@ internal static class Builders
         Guid routeId,
         Guid? worldId = null,
         double phaseOffsetHours = 0,
-        RouteDirection direction = RouteDirection.Clockwise
+        RouteDirection direction = RouteDirection.Clockwise,
+        RouteTravelerKind kind = RouteTravelerKind.Caravan,
+        string? purpose = null
     ) =>
         new()
         {
@@ -1482,6 +1484,8 @@ internal static class Builders
             RouteId = routeId,
             PhaseOffsetHours = phaseOffsetHours,
             Direction = direction,
+            Kind = kind,
+            Purpose = purpose,
         };
 
     public static CaravanFare MakeCaravanFare(
@@ -1496,7 +1500,7 @@ internal static class Builders
             TicketFeeGold = ticketFeeGold,
         };
 
-    public static GuardPatrolMember MakeGuardPatrolMember(
+    public static RouteTravelerMember MakeRouteTravelerMember(
         Guid routeTravelerId,
         Guid creatureId,
         Guid? worldId = null

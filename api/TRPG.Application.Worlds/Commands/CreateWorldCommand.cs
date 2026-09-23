@@ -29,9 +29,11 @@ internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
     CountryPatrolRouteSeeder countryPatrolRouteSeeder,
+    RoadTravelerRouteSeeder roadTravelerRouteSeeder,
     ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld,
     IOptionsSnapshot<CaravanOptions> caravanOptions,
-    IOptionsSnapshot<CountryPatrolOptions> countryPatrolOptions
+    IOptionsSnapshot<CountryPatrolOptions> countryPatrolOptions,
+    IOptionsSnapshot<RoadTravelerOptions> roadTravelerOptions
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
     public async Task<CreateWorldResult> Handle(
@@ -114,6 +116,10 @@ internal class CreateWorldCommandHandler(
             worldResult,
             countryPatrolOptions.Value
         );
+        var roadTravelerRoutes = roadTravelerRouteSeeder.Seed(
+            worldResult,
+            roadTravelerOptions.Value
+        );
 
         var bootstrapResult = await bootstrapWorld.Handle(
             new BootstrapWorldCommand
@@ -131,11 +137,20 @@ internal class CreateWorldCommandHandler(
                 CountryPatrolRoutes = countryPatrolRoutes.Routes,
                 CountryPatrolRouteStops = countryPatrolRoutes.Stops,
                 CountryPatrolRouteTravelers = countryPatrolRoutes.Travelers,
-                GuardPatrolMembers = countryPatrolRoutes.Members,
                 GuardPatrolCreatures = countryPatrolRoutes.Creatures,
                 GuardPatrolFactionMembers = countryPatrolRoutes.FactionMembers,
                 GuardPatrolItems = countryPatrolRoutes.Items,
                 GuardPatrolSkills = countryPatrolRoutes.Skills,
+                RoadTravelerRoutes = roadTravelerRoutes.Routes,
+                RoadTravelerRouteStops = roadTravelerRoutes.Stops,
+                RoadTravelerRouteTravelers = roadTravelerRoutes.RouteTravelers,
+                RouteTravelerMembers = countryPatrolRoutes
+                    .Members.Concat(roadTravelerRoutes.Members)
+                    .ToArray(),
+                RoadTravelerCreatures = roadTravelerRoutes.Creatures,
+                RoadTravelerItems = roadTravelerRoutes.Items,
+                RoadTravelerSkills = roadTravelerRoutes.Skills,
+                RoadTravelerProfiles = roadTravelerRoutes.Profiles,
             },
             cancellationToken
         );

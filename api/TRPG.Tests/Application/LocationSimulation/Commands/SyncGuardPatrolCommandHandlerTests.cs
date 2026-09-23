@@ -45,7 +45,13 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
         _route = Builders.MakeCaravanRoute(_worldId, lingerHours: 1);
         var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, _locationA, distanceToNextStop: 10);
         var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, _locationB, distanceToNextStop: 10);
-        _traveler = Builders.MakeCaravan(_route.Id, _worldId, phaseOffsetHours: 0);
+        _traveler = Builders.MakeCaravan(
+            _route.Id,
+            _worldId,
+            phaseOffsetHours: 0,
+            kind: RouteTravelerKind.GuardPatrol,
+            purpose: "Patrolling the roads."
+        );
         _guard1 = Builders.MakeCreature(_worldId, profession: Profession.Guard);
         _guard2 = Builders.MakeCreature(_worldId, profession: Profession.Guard);
 
@@ -53,9 +59,9 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
         _context.RouteStops.AddRange(stopA, stopB);
         _context.RouteTravelers.Add(_traveler);
         _context.Creatures.AddRange(_guard1, _guard2);
-        _context.GuardPatrolMembers.AddRange(
-            Builders.MakeGuardPatrolMember(_traveler.Id, _guard1.Id, _worldId),
-            Builders.MakeGuardPatrolMember(_traveler.Id, _guard2.Id, _worldId)
+        _context.RouteTravelerMembers.AddRange(
+            Builders.MakeRouteTravelerMember(_traveler.Id, _guard1.Id, _worldId),
+            Builders.MakeRouteTravelerMember(_traveler.Id, _guard2.Id, _worldId)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

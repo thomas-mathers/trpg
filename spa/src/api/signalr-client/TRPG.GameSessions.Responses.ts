@@ -18,7 +18,7 @@ export type Gender = "Male" | "Female";
 export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Mercenary" | "Alchemist" | "Blacksmith" | "Scholar" | "Merchant" | "Politician" | "StableMaster" | "Bartender" | "Guard" | "Baker" | "Innkeeper" | "Tailor" | "Carpenter" | "Jeweler" | "Homemaker" | "Unemployed";
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
-export type CreatureState = "Idle" | "Sleeping" | "Busy" | "Studying" | "Praying" | "Alerted" | "Dead" | "Restrained" | "Patrolling";
+export type CreatureState = "Idle" | "Sleeping" | "Busy" | "Studying" | "Praying" | "Alerted" | "Dead" | "Restrained" | "Patrolling" | "Traveling";
 
 /** Transpiled from TRPG.GameSessions.Responses.RoomRole */
 export type RoomRole = "Entrance" | "BossChamber" | "Passage" | "GuardPost" | "Storeroom" | "TreasureRoom" | "Shrine" | "Study" | "CellBlock" | "CollapsedGallery" | "FloodedSump";

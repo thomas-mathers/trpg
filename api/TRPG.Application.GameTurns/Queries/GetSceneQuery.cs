@@ -94,6 +94,10 @@ internal class GetSceneQueryHandler(
     > getCaravanFaresByRouteIds,
     IQueryHandler<GetCaravanTicketQuery, CaravanTicket?> getCaravanTicket,
     IQueryHandler<GetCitiesByIdsQuery, IReadOnlyDictionary<Guid, City>> getCitiesByIds,
+    IQueryHandler<
+        GetRouteTravelerJourneysByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, RouteTravelerJourney>
+    > getRouteTravelerJourneysByCreatureIds,
     IOptionsSnapshot<CaravanOptions> caravanOptions
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
@@ -420,7 +424,8 @@ internal class GetSceneQueryHandler(
         int totalCharacterXp,
         Guid? tradeWorkstationId = null,
         IReadOnlyCollection<QuestMarkerEntry>? questMarkers = null,
-        bool readyToDeliver = false
+        bool readyToDeliver = false,
+        SceneJourneyInfo? journey = null
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
@@ -465,7 +470,8 @@ internal class GetSceneQueryHandler(
             creature.MagicResistance,
             tradeWorkstationId,
             questMarkers ?? [],
-            readyToDeliver
+            readyToDeliver,
+            journey
         );
     }
 
@@ -684,6 +690,15 @@ internal class GetSceneQueryHandler(
             new GetTotalCharacterXpFromSkillsQuery { CreatureIds = nearbyCreatureIds },
             cancellationToken
         );
+        var journeysByCreature = await getRouteTravelerJourneysByCreatureIds.Handle(
+            new GetRouteTravelerJourneysByCreatureIdsQuery
+            {
+                CreatureIds = nearbyCreatureIds,
+                Playtime = query.Playtime,
+                SpeedUnitsPerHour = CreatureGeneratorOptions.WalkingSpeedUnitsPerHour,
+            },
+            cancellationToken
+        );
 
         return nearby
             .Select(x =>
@@ -696,11 +711,17 @@ internal class GetSceneQueryHandler(
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
                     questMarkers: questMarkers.EntriesByCreatureId.GetValueOrDefault(x.Id, []),
-                    readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id)
+                    readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id),
+                    journey: ToSceneJourney(journeysByCreature.GetValueOrDefault(x.Id))
                 )
             )
             .ToArray();
     }
+
+    private static SceneJourneyInfo? ToSceneJourney(RouteTravelerJourney? journey) =>
+        journey == null
+            ? null
+            : new SceneJourneyInfo(journey.Kind, journey.Purpose, journey.NextDestination);
 
     private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(
         IReadOnlyCollection<LocationConnector> connectors,

@@ -6,6 +6,14 @@ public enum RouteDirection
     CounterClockwise,
 }
 
+public enum RouteTravelerKind
+{
+    Caravan,
+    GuardPatrol,
+    Pilgrim,
+    Adventurer,
+}
+
 public class RouteTraveler
 {
     public Guid Id { get; init; } = Guid.NewGuid();
@@ -13,4 +21,6 @@ public class RouteTraveler
     public Guid RouteId { get; init; }
     public required double PhaseOffsetHours { get; init; }
     public required RouteDirection Direction { get; init; }
+    public RouteTravelerKind Kind { get; init; }
+    public string? Purpose { get; init; }
 }
