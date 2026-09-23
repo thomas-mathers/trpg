@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Algorithms;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -28,14 +29,28 @@ internal static class TravelGraph
             .ToDictionary(
                 group => group.Key,
                 group =>
-                    (IReadOnlyList<TravelGraphEdge>)
-                        group
-                            .Select(connector => new TravelGraphEdge(
-                                connector.Id,
-                                connector.DestinationLocationId,
-                                travelConnectorsByConnectorId[connector.Id].Distance
-                            ))
-                            .ToArray()
+                {
+                    var edges = group
+                        .Select(connector => new TravelGraphEdge(
+                            connector.Id,
+                            connector.DestinationLocationId,
+                            travelConnectorsByConnectorId[connector.Id].Distance
+                        ))
+                        .ToArray();
+
+                    if (
+                        edges
+                            .GroupBy(edge => edge.DestinationLocationId)
+                            .Any(group => group.Count() > 1)
+                    )
+                    {
+                        throw new InvalidOperationException(
+                            $"Multiple travel connectors originate at {group.Key} and lead to the same destination."
+                        );
+                    }
+
+                    return (IReadOnlyList<TravelGraphEdge>)edges;
+                }
             );
     }
 
@@ -45,60 +60,36 @@ internal static class TravelGraph
         Guid destinationLocationId
     )
     {
-        var distances = new Dictionary<Guid, float> { [originLocationId] = 0 };
-        var previous = new Dictionary<Guid, PreviousTravelEdge>();
-        var queue = new PriorityQueue<Guid, float>();
-        queue.Enqueue(originLocationId, 0);
+        var edgesByEndpoints = graph
+            .SelectMany(pair => pair.Value.Select(edge => (pair.Key, Edge: edge)))
+            .ToDictionary(
+                pair => (OriginLocationId: pair.Key, pair.Edge.DestinationLocationId),
+                pair => pair.Edge
+            );
 
-        while (queue.TryDequeue(out var locationId, out var distance))
-        {
-            if (locationId == destinationLocationId)
-            {
-                break;
-            }
+        var locations = Graphs.ShortestPath(
+            originLocationId,
+            destinationLocationId,
+            locationId =>
+                graph.GetValueOrDefault(locationId, []).Select(edge => edge.DestinationLocationId),
+            (from, to) => edgesByEndpoints[(from, to)].Distance
+        );
 
-            if (distance > distances[locationId])
-            {
-                continue;
-            }
-
-            foreach (var edge in graph.GetValueOrDefault(locationId, []))
-            {
-                var candidateDistance = distance + edge.Distance;
-                if (
-                    distances.TryGetValue(edge.DestinationLocationId, out var knownDistance)
-                    && knownDistance <= candidateDistance
-                )
-                {
-                    continue;
-                }
-
-                distances[edge.DestinationLocationId] = candidateDistance;
-                previous[edge.DestinationLocationId] = new PreviousTravelEdge(
-                    locationId,
-                    edge.ConnectorId,
-                    edge.Distance
-                );
-                queue.Enqueue(edge.DestinationLocationId, candidateDistance);
-            }
-        }
-
-        if (!distances.ContainsKey(destinationLocationId))
+        if (locations.Count < 2)
         {
             return [];
         }
 
-        var reversed = new List<TravelPathLeg>();
-        for (var current = destinationLocationId; current != originLocationId; )
+        var legs = new List<TravelPathLeg>();
+        for (var index = 0; index < locations.Count - 1; index++)
         {
-            var edge = previous[current];
-            reversed.Add(
-                new TravelPathLeg(edge.OriginLocationId, edge.ConnectorId, current, edge.Distance)
-            );
-            current = edge.OriginLocationId;
+            var origin = locations[index];
+            var destination = locations[index + 1];
+            var edge = edgesByEndpoints[(origin, destination)];
+            legs.Add(new TravelPathLeg(origin, edge.ConnectorId, destination, edge.Distance));
         }
-        reversed.Reverse();
-        return reversed.ToArray();
+
+        return legs.ToArray();
     }
 
     public static IReadOnlyList<TravelPathLeg> BuildCycle(
@@ -115,6 +106,4 @@ internal static class TravelGraph
         }
         return legs.ToArray();
     }
-
-    private record PreviousTravelEdge(Guid OriginLocationId, Guid ConnectorId, float Distance);
 }
