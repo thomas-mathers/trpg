@@ -112,14 +112,27 @@ public static class FactionRosterGenerator
                     FactionKind.Antagonist
                 ),
             ],
-            Make(
+            MakeBrokenToll(
                 worldId,
                 FactionNames.BrokenToll,
-                "Human raiders who prey on trade roads.",
-                FactionKind.Wilderness,
-                creatureType: CreatureType.Human
+                "Human raiders who prey on trade roads."
             )
         );
+
+    private static Faction MakeBrokenToll(Guid worldId, string name, string description) =>
+        new()
+        {
+            WorldId = worldId,
+            Name = name,
+            Description = description,
+            Kind = FactionKind.Wilderness,
+            CreatureType = CreatureType.Human,
+            EncounterApproach = EncounterApproach.Shakedown,
+            Aggression = 100,
+            ReputationSensitivity = 50,
+            RiskAversion = 35,
+            Temperament = FactionTemperament.Predatory,
+        };
 
     private static Faction Make(
         Guid worldId,
@@ -135,16 +148,11 @@ public static class FactionRosterGenerator
             Description = description,
             Kind = kind,
             CreatureType = creatureType,
-            Aggression = IsHostile(kind) ? 70 : 0,
-            ReputationSensitivity = IsHostile(kind) ? 50 : 0,
-            RiskAversion = IsHostile(kind) ? 35 : 0,
-            Temperament = IsHostile(kind)
-                ? FactionTemperament.Predatory
-                : FactionTemperament.Authoritative,
+            Aggression = 0,
+            ReputationSensitivity = 0,
+            RiskAversion = 0,
+            Temperament = FactionTemperament.Authoritative,
         };
-
-    private static bool IsHostile(FactionKind kind) =>
-        kind is FactionKind.Antagonist or FactionKind.Wilderness;
 }
 
 public static class FactionStandingGenerator

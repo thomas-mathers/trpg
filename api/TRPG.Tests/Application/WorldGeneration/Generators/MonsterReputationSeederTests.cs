@@ -39,10 +39,29 @@ public class MonsterReputationSeederTests
     }
 
     [Fact]
-    public void Generate_GivesEveryMonsterFactionReputationSensitivity()
+    public void Generate_GivesOnlySocialMonsterFactionsReputationSensitivity()
     {
         var factions = EncounterFactionGenerator.Generate(Guid.NewGuid());
 
-        Assert.All(factions.Values, faction => Assert.True(faction.ReputationSensitivity > 0));
+        Assert.Equal(0, factions[CreatureType.Beast].ReputationSensitivity);
+        Assert.Equal(0, factions[CreatureType.Undead].ReputationSensitivity);
+        Assert.Equal(0, factions[CreatureType.Wraith].ReputationSensitivity);
+        Assert.Equal(0, factions[CreatureType.Construct].ReputationSensitivity);
+        Assert.Equal(0, factions[CreatureType.Elemental].ReputationSensitivity);
+        Assert.True(factions[CreatureType.Goblin].ReputationSensitivity > 0);
+        Assert.True(factions[CreatureType.Giant].ReputationSensitivity > 0);
+        Assert.True(factions[CreatureType.Dragon].ReputationSensitivity > 0);
+        Assert.True(factions[CreatureType.Demon].ReputationSensitivity > 0);
+    }
+
+    [Fact]
+    public void Generate_AssignsAttackApproachToEveryMonsterFaction()
+    {
+        var factions = EncounterFactionGenerator.Generate(Guid.NewGuid());
+
+        Assert.All(
+            factions.Values,
+            faction => Assert.Equal(EncounterApproach.Attack, faction.EncounterApproach)
+        );
     }
 }

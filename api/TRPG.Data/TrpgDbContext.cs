@@ -303,6 +303,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             .Property(f => f.Temperament)
             .HasDefaultValue(FactionTemperament.Authoritative);
 
+        modelBuilder
+            .Entity<Faction>()
+            .Property(f => f.EncounterApproach)
+            .HasDefaultValue(EncounterApproach.None);
+
         modelBuilder.Entity<Faction>(entity =>
         {
             entity.HasIndex(f => new { f.WorldId, f.CreatureType });

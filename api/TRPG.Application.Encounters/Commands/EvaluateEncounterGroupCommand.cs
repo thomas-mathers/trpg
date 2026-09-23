@@ -13,13 +13,13 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class EvaluateWildernessEncounterCommand
+public class EvaluateEncounterGroupCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
 }
 
-internal class EvaluateWildernessEncounterCommandHandler(
+internal class EvaluateEncounterGroupCommandHandler(
     IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
@@ -35,10 +35,10 @@ internal class EvaluateWildernessEncounterCommandHandler(
     IChanceRoller chanceRoller,
     IOptionsMonitor<SneakOptions> sneakOptions,
     IOptionsMonitor<ShakedownOptions> shakedownOptions
-) : ICommandHandler<EvaluateWildernessEncounterCommand, Encounter?>
+) : ICommandHandler<EvaluateEncounterGroupCommand, Encounter?>
 {
     public async Task<Encounter?> Handle(
-        EvaluateWildernessEncounterCommand command,
+        EvaluateEncounterGroupCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -104,7 +104,7 @@ internal class EvaluateWildernessEncounterCommandHandler(
             )
             .ToArray();
 
-        var selectedGroupId = HostileEncounterInitiationResolver.Resolve(
+        var selectedGroupId = EncounterGroupInitiationResolver.Resolve(
             player!.Level,
             candidates,
             chanceRoller
@@ -149,11 +149,22 @@ internal class EvaluateWildernessEncounterCommandHandler(
             ))
             .ToArray();
 
-        // Human wilderness groups are always Broken Toll bandits who negotiate; every other
-        // creature type is a mindless monster that only ever attacks.
-        if (selectedFaction.CreatureType == CreatureType.Human)
+        return selectedFaction.EncounterApproach switch
         {
-            return await createShakedownEncounter.Handle(
+            EncounterApproach.Attack => await createHostileEncounter.Handle(
+                new CreateHostileEncounterCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    PlayerLocationId = player.LocationId,
+                    LocationName = location.Name,
+                    FactionId = selectedFaction.Id,
+                    FactionName = selectedFaction.Name,
+                    Members = memberSnapshots,
+                },
+                cancellationToken
+            ),
+            EncounterApproach.Shakedown => await createShakedownEncounter.Handle(
                 new CreateShakedownEncounterCommand
                 {
                     WorldId = command.WorldId,
@@ -169,25 +180,14 @@ internal class EvaluateWildernessEncounterCommandHandler(
                     Members = memberSnapshots,
                 },
                 cancellationToken
-            );
-        }
-
-        return await createHostileEncounter.Handle(
-            new CreateHostileEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                PlayerLocationId = player.LocationId,
-                LocationName = location.Name,
-                FactionId = selectedFaction.Id,
-                FactionName = selectedFaction.Name,
-                Members = memberSnapshots,
-            },
-            cancellationToken
-        );
+            ),
+            _ => throw new InvalidOperationException(
+                $"Faction {selectedFaction.Id} has no encounter approach."
+            ),
+        };
     }
 
-    private static HostileEncounterCandidateGroup BuildCandidate(
+    private static EncounterGroupCandidate BuildCandidate(
         EncounterGroup group,
         IReadOnlyCollection<EncounterGroupMember> members,
         IReadOnlyDictionary<Guid, Creature> livingCreaturesById,
@@ -202,8 +202,9 @@ internal class EvaluateWildernessEncounterCommandHandler(
             .Select(m => livingCreaturesById[m.CreatureId].Level)
             .ToArray();
 
-        return new HostileEncounterCandidateGroup(
+        return new EncounterGroupCandidate(
             GroupId: group.Id,
+            Approach: faction.EncounterApproach,
             Aggression: faction.Aggression,
             ReputationSensitivity: faction.ReputationSensitivity,
             RiskAversion: faction.RiskAversion,

@@ -110,7 +110,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
         var oldLocation = Builders.MakeLocation(WorldId, _stateId);
         var newLocation = Builders.MakeLocation(WorldId, _stateId);
         var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id, level: 1);
-        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var faction = Builders.MakeFaction(WorldId, aggression: 100);
         var monster = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
@@ -161,8 +161,9 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
         var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id, level: 1);
         var faction = Builders.MakeFaction(
             WorldId,
-            aggression: 70,
-            creatureType: CreatureType.Human
+            aggression: 100,
+            creatureType: CreatureType.Human,
+            encounterApproach: EncounterApproach.Shakedown
         );
         var bandit = Builders.MakeCreature(
             WorldId,
@@ -209,7 +210,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
         var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id, level: 1);
         var faction = Builders.MakeFaction(
             WorldId,
-            aggression: 150,
+            aggression: 100,
             creatureType: CreatureType.Beast
         );
         var spawner = Builders.MakeCreatureSpawner(

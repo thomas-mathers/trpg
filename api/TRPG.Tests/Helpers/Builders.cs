@@ -827,7 +827,8 @@ internal static class Builders
         int riskAversion = 0,
         bool isCityFaction = false,
         CreatureType? creatureType = null,
-        Guid? cityId = null
+        Guid? cityId = null,
+        EncounterApproach encounterApproach = EncounterApproach.Attack
     )
     {
         return new Faction
@@ -841,6 +842,7 @@ internal static class Builders
             RiskAversion = riskAversion,
             IsCityFaction = isCityFaction,
             CreatureType = creatureType,
+            EncounterApproach = encounterApproach,
         };
     }
 
