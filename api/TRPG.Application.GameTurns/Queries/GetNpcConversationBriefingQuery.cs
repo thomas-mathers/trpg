@@ -1,5 +1,6 @@
 using TRPG.Application.Books.Queries;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -11,6 +12,7 @@ using TRPG.Application.Reputations;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.RoomBookings.Queries;
+using TRPG.Application.Routing.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -23,6 +25,7 @@ public class GetNpcConversationBriefingQuery
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
+    public TimeSpan Playtime { get; init; }
 }
 
 public record NpcConversationIdentity(string Name, string Race, Gender Gender, int Age);
@@ -75,6 +78,12 @@ public record NpcConversationHistoryResult(
 
 public record NpcConversationRoomBookingStatus(bool HasActiveBooking, string? RoomName);
 
+public record NpcConversationJourney(
+    RouteTravelerKind Kind,
+    string Purpose,
+    string NextDestination
+);
+
 // The briefing exposes only the subject, so the player must obtain the fact from the NPC.
 public record NpcConversationWithheldFact(string Subject, string Guidance);
 
@@ -103,7 +112,8 @@ public record NpcConversationBriefing(
     NpcConversationBehavior Behavior,
     NpcConversationBackground PrivateBackground,
     NpcConversationRuntimeState RuntimeState,
-    DungeonConversationKnowledge? DungeonKnowledge = null
+    DungeonConversationKnowledge? DungeonKnowledge = null,
+    NpcConversationJourney? Journey = null
 );
 
 internal class GetNpcConversationBriefingQueryHandler(
@@ -149,7 +159,11 @@ internal class GetNpcConversationBriefingQueryHandler(
         GetActiveLearnFactObjectiveForNpcQuery,
         LearnFactFromCreatureObjective?
     > getActiveLearnFactObjectiveForNpc,
-    IQueryHandler<GetFactByIdQuery, Fact?> getFactById
+    IQueryHandler<GetFactByIdQuery, Fact?> getFactById,
+    IQueryHandler<
+        GetRouteTravelerJourneysByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, RouteTravelerJourney>
+    > getRouteTravelerJourneysByCreatureIds
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
@@ -225,6 +239,16 @@ internal class GetNpcConversationBriefingQueryHandler(
             ),
             cancellationToken
         );
+        var roadTravelerJourneys = await getRouteTravelerJourneysByCreatureIds.Handle(
+            new GetRouteTravelerJourneysByCreatureIdsQuery
+            {
+                CreatureIds = [query.NpcId],
+                Playtime = query.Playtime,
+                SpeedUnitsPerHour = CreatureGeneratorOptions.WalkingSpeedUnitsPerHour,
+            },
+            cancellationToken
+        );
+        var journey = ToNpcConversationJourney(roadTravelerJourneys.GetValueOrDefault(query.NpcId));
 
         return new NpcConversationBriefing(
             new NpcConversationIdentity(
@@ -276,9 +300,17 @@ internal class GetNpcConversationBriefingQueryHandler(
                 player.IsSneaking,
                 withheldFact
             ),
-            dungeonKnowledge
+            dungeonKnowledge,
+            journey
         );
     }
+
+    private static NpcConversationJourney? ToNpcConversationJourney(
+        RouteTravelerJourney? journey
+    ) =>
+        journey == null
+            ? null
+            : new NpcConversationJourney(journey.Kind, journey.Purpose, journey.NextDestination);
 
     private async Task<NpcConversationWithheldFact?> GetWithheldFact(
         GetNpcConversationBriefingQuery query,

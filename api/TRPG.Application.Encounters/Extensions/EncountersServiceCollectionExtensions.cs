@@ -9,6 +9,7 @@ public static class EncountersServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddTransient<EncounterEvaluationService>()
+            .AddTransient<EncounterDepartureResolver>()
             .AddTransient<EncounterFleeResolver>()
             .AddTransient<TheftSourceResolver>()
             .AddTransient<LocationCityResolver>()

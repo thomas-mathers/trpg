@@ -7,7 +7,7 @@ public record CountryPatrolRouteSeederResult(
     IReadOnlyList<Route> Routes,
     IReadOnlyList<RouteStop> Stops,
     IReadOnlyList<RouteTraveler> Travelers,
-    IReadOnlyList<GuardPatrolMember> Members,
+    IReadOnlyList<RouteTravelerMember> Members,
     IReadOnlyList<Creature> Creatures,
     IReadOnlyList<FactionMember> FactionMembers,
     IReadOnlyList<Item> Items,
@@ -42,7 +42,7 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
         var routes = new List<Route>();
         var stops = new List<RouteStop>();
         var travelers = new List<RouteTraveler>();
-        var members = new List<GuardPatrolMember>();
+        var members = new List<RouteTravelerMember>();
         var creatures = new List<Creature>();
         var factionMembers = new List<FactionMember>();
         var items = new List<Item>();
@@ -125,6 +125,8 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                 RouteId = routeId,
                 Direction = RouteDirection.Clockwise,
                 PhaseOffsetHours = 0,
+                Kind = RouteTravelerKind.GuardPatrol,
+                Purpose = $"Patrolling the roads of {country.Name}.",
             };
 
             var guardGroup = creatureGroupGenerator.Generate(
@@ -143,7 +145,7 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
             stops.AddRange(routeStops);
             travelers.Add(traveler);
             members.AddRange(
-                guardGroup.Select(guard => new GuardPatrolMember
+                guardGroup.Select(guard => new RouteTravelerMember
                 {
                     WorldId = world.World.Id,
                     RouteTravelerId = traveler.Id,

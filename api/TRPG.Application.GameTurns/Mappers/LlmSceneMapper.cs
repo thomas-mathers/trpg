@@ -97,6 +97,13 @@ public static class LlmSceneMapper
             creature.MaximumHp,
             CanTrade: creature.TradeWorkstationId != null,
             creature.QuestMarkers,
-            creature.ReadyToDeliver
+            creature.ReadyToDeliver,
+            creature.Journey == null
+                ? null
+                : new LlmSceneJourney(
+                    creature.Journey.Kind,
+                    creature.Journey.Purpose,
+                    creature.Journey.NextDestination
+                )
         );
 }

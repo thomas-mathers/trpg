@@ -26,6 +26,8 @@ public sealed class LlmSceneMapperTests
         Assert.Equal(-50, creature.Reputation);
         Assert.Equal(700, creature.CurrentHp);
         Assert.True(creature.CanTrade);
+        Assert.Equal(RouteTravelerKind.Pilgrim, creature.Journey?.Kind);
+        Assert.Equal("Westmere", creature.Journey?.NextDestination);
     }
 
     [Fact]
@@ -161,6 +163,13 @@ public sealed class LlmSceneMapperTests
             MagicResistance: 0,
             TradeWorkstationId: Guid.NewGuid(),
             QuestMarkers: [],
-            ReadyToDeliver: false
+            ReadyToDeliver: false,
+            Journey: name == "Cora"
+                ? new SceneJourneyInfo(
+                    RouteTravelerKind.Pilgrim,
+                    "Making a pilgrimage.",
+                    "Westmere"
+                )
+                : null
         );
 }

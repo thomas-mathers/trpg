@@ -35,6 +35,8 @@ public record LlmSceneProp(string Name, string Description, string Type);
 
 public record LlmSceneNearbyBuilding(string Name, BuildingType Type);
 
+public record LlmSceneJourney(RouteTravelerKind Kind, string Purpose, string NextDestination);
+
 public record LlmSceneCaravan(
     string RouteName,
     int TicketFeeGold,
@@ -71,7 +73,8 @@ public record LlmSceneCreature(
     int MaximumHp,
     bool CanTrade,
     IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
-    bool ReadyToDeliver
+    bool ReadyToDeliver,
+    LlmSceneJourney? Journey
 );
 
 public record LlmScene(

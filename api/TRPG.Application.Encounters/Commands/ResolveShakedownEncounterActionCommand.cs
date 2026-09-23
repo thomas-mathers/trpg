@@ -31,6 +31,7 @@ internal class ResolveShakedownEncounterActionCommandHandler(
     ICommandHandler<RemoveGoldCommand> removeGold,
     IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<StartFightCommand> startFight,
+    EncounterDepartureResolver encounterDepartureResolver,
     EncounterFleeResolver encounterFleeResolver,
     IOptionsSnapshot<FleeOptions> fleeOptions,
     IOptionsSnapshot<IntimidationOptions> intimidationOptions
@@ -110,6 +111,20 @@ internal class ResolveShakedownEncounterActionCommandHandler(
                 },
                 cancellationToken
             );
+
+            if (encounter.DepartureDestinationLocationId != null)
+            {
+                var playtime = await getPlaytime.Handle(
+                    new GetPlaytimeQuery { SessionId = command.SessionId },
+                    cancellationToken
+                );
+                await encounterDepartureResolver.TryResume(
+                    encounter,
+                    player,
+                    playtime,
+                    cancellationToken
+                );
+            }
             return;
         }
 

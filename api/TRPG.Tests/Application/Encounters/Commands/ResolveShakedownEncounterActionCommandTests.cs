@@ -64,13 +64,17 @@ public sealed class ResolveShakedownEncounterActionCommandTests(DatabaseFixture 
             EncounterId = encounterId,
         };
 
-    private async Task<ShakedownEncounter> SeedActiveEncounter(int tollAmount = 25)
+    private async Task<ShakedownEncounter> SeedActiveEncounter(
+        int tollAmount = 25,
+        Guid? departureDestinationLocationId = null
+    )
     {
         var encounter = new ShakedownEncounter
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
             LocationId = _player.LocationId,
+            DepartureDestinationLocationId = departureDestinationLocationId,
             LocationName = "The Old Road",
             FactionId = _faction.Id,
             FactionName = _faction.Name,
@@ -160,6 +164,98 @@ public sealed class ResolveShakedownEncounterActionCommandTests(DatabaseFixture 
             TestContext.Current.CancellationToken
         );
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
+    }
+
+    [Fact]
+    public async Task Handle_PayToll_ResumesDeparture_WhenMovementWasInterrupted()
+    {
+        // Arrange
+        var destination = Builders.MakeLocation(WorldId, Guid.NewGuid());
+        _context.Locations.Add(destination);
+        _context.LocationConnectors.Add(
+            Builders.MakeLocationConnector(
+                _player.LocationId,
+                destinationLocationId: destination.Id,
+                worldId: WorldId
+            )
+        );
+        _context.Items.Add(
+            new Gold
+            {
+                WorldId = WorldId,
+                Name = "Gold",
+                Quantity = 100,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = _player.Id,
+                    OwnerType = OwnerType.Creature,
+                },
+            }
+        );
+        var encounter = await SeedActiveEncounter(
+            tollAmount: 40,
+            departureDestinationLocationId: destination.Id
+        );
+
+        // Act
+        var result = await _handler.Handle(
+            MakeCommand(new PayTollEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(ShakedownEncounterResolutionOutcome.PaidToll, result.Outcome);
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(destination.Id, player.LocationId);
+        var gold = await verifyContext
+            .Items.OfType<Gold>()
+            .SingleAsync(
+                item => item.Ownership.OwnerId == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(60, gold.Quantity);
+    }
+
+    [Fact]
+    public async Task Handle_PayToll_StaysAtEncounterLocation_WhenEncounterStartedOnArrival()
+    {
+        // Arrange
+        _context.Items.Add(
+            new Gold
+            {
+                WorldId = WorldId,
+                Name = "Gold",
+                Quantity = 100,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = _player.Id,
+                    OwnerType = OwnerType.Creature,
+                },
+            }
+        );
+        var encounter = await SeedActiveEncounter();
+
+        // Act
+        await _handler.Handle(
+            MakeCommand(new PayTollEncounterAction(), encounter.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == _player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal(_player.LocationId, player.LocationId);
     }
 
     [Fact]

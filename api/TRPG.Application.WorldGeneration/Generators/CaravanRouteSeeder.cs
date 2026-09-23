@@ -82,6 +82,7 @@ public static class CaravanRouteSeeder
                         RouteId = route.Id,
                         Direction = direction,
                         PhaseOffsetHours = (double)i * totalCycleHours / instancesPerDirection,
+                        Kind = RouteTravelerKind.Caravan,
                     })
             )
             .ToArray();

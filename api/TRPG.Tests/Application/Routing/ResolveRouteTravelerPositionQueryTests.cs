@@ -124,4 +124,30 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
         Assert.Equal(locationX, inTransit.FromLocationId);
         Assert.Equal(locationZ, inTransit.ToLocationId);
     }
+
+    [Fact]
+    public async Task Handle_ResolvesMultipleTravelers_InOneBatch()
+    {
+        var secondTraveler = Builders.MakeCaravan(_traveler.RouteId, WorldId, phaseOffsetHours: 3);
+        _context.RouteTravelers.Add(secondTraveler);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var handler =
+            _serviceProvider.GetRequiredService<ResolveRouteTravelerPositionsQueryHandler>();
+
+        var positions = await handler.Handle(
+            new ResolveRouteTravelerPositionsQuery
+            {
+                RouteTravelerIds = [_traveler.Id, secondTraveler.Id],
+                Playtime = TimeSpan.Zero,
+                SpeedUnitsPerHour = SpeedUnitsPerHour,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(2, positions.Count);
+        Assert.IsType<RoutePosition.Lingering>(positions[_traveler.Id].Position);
+        Assert.Equal(LocationB, positions[_traveler.Id].NextLocationId);
+        Assert.IsType<RoutePosition.Lingering>(positions[secondTraveler.Id].Position);
+        Assert.Equal(LocationA, positions[secondTraveler.Id].NextLocationId);
+    }
 }

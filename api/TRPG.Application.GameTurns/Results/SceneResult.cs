@@ -49,6 +49,8 @@ public record SceneRoomInfo(string Name, string Description, int FloorNumber);
 
 public record ScenePropInfo(Guid Id, string Name, string Description, string Type);
 
+public record SceneJourneyInfo(RouteTravelerKind Kind, string Purpose, string NextDestination);
+
 public record SceneCreatureInfo(
     Guid Id,
     string Name,
@@ -86,7 +88,8 @@ public record SceneCreatureInfo(
     float MagicResistance,
     Guid? TradeWorkstationId,
     IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
-    bool ReadyToDeliver
+    bool ReadyToDeliver,
+    SceneJourneyInfo? Journey = null
 );
 
 public record SceneNearbyBuildingInfo(Guid Id, string Name, BuildingType Type);

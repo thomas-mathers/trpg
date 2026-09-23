@@ -12,6 +12,7 @@ public record RouteTravelerSummary(
     string RouteName,
     double LingerHours,
     RouteDirection Direction,
+    RouteTravelerKind Kind,
     IReadOnlyList<RouteWaypoint> Stops
 );
 
@@ -77,6 +78,7 @@ internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext conte
                     route.Name,
                     route.LingerHours,
                     traveler.Direction,
+                    traveler.Kind,
                     RouteCycle.ToTravelOrder(
                         stopsGroupedByRouteId[traveler.RouteId],
                         traveler.Direction

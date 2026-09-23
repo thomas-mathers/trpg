@@ -4,7 +4,6 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GuardPatrols.Queries;
 using TRPG.Application.Routing.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -23,11 +22,14 @@ internal class SyncGuardPatrolCommandHandler(
         GetRouteTravelersByLocationIdQuery,
         IReadOnlyList<RouteTravelerSummary>
     > getRouteTravelersByLocationId,
-    IQueryHandler<ResolveRouteTravelerPositionQuery, RoutePosition?> resolveRouteTravelerPosition,
     IQueryHandler<
-        GetGuardPatrolMembersByRouteTravelerIdsQuery,
+        ResolveRouteTravelerPositionsQuery,
+        IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition>
+    > resolveRouteTravelerPositions,
+    IQueryHandler<
+        GetRouteTravelerMembersByRouteTravelerIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
-    > getGuardPatrolMembersByRouteTravelerIds,
+    > getRouteTravelerMembersByRouteTravelerIds,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     IOptionsSnapshot<CountryPatrolOptions> countryPatrolOptions
@@ -51,15 +53,28 @@ internal class SyncGuardPatrolCommandHandler(
             return;
         }
 
-        var travelerIds = travelers.Select(t => t.RouteTravelerId).ToArray();
-        var membersByTraveler = await getGuardPatrolMembersByRouteTravelerIds.Handle(
-            new GetGuardPatrolMembersByRouteTravelerIdsQuery { RouteTravelerIds = travelerIds },
+        var travelerIds = travelers
+            .Where(t => t.Kind == RouteTravelerKind.GuardPatrol)
+            .Select(t => t.RouteTravelerId)
+            .ToArray();
+        var membersByTraveler = await getRouteTravelerMembersByRouteTravelerIds.Handle(
+            new GetRouteTravelerMembersByRouteTravelerIdsQuery { RouteTravelerIds = travelerIds },
             cancellationToken
         );
         if (membersByTraveler.Count == 0)
         {
             return;
         }
+
+        var positionsByTravelerId = await resolveRouteTravelerPositions.Handle(
+            new ResolveRouteTravelerPositionsQuery
+            {
+                RouteTravelerIds = membersByTraveler.Keys.ToArray(),
+                Playtime = command.Playtime,
+                SpeedUnitsPerHour = countryPatrolOptions.Value.SpeedUnitsPerHour,
+            },
+            cancellationToken
+        );
 
         var guardCreatureIds = membersByTraveler.Values.SelectMany(ids => ids).Distinct().ToArray();
         var creaturesById = await getCreaturesByIds.Handle(
@@ -75,7 +90,9 @@ internal class SyncGuardPatrolCommandHandler(
                 continue;
             }
 
-            var target = await ResolveTarget(traveler, command, cancellationToken);
+            var target = ResolveTarget(
+                positionsByTravelerId.GetValueOrDefault(traveler.RouteTravelerId)?.Position
+            );
             if (target == null)
             {
                 continue;
@@ -106,23 +123,8 @@ internal class SyncGuardPatrolCommandHandler(
     // location never contradict each other ("marching along the road" said of a squad already shown
     // standing at the far end would be a lie). A nonzero-linger route (none exist yet, but the math
     // still supports it) still resolves Lingering to a real stop with State.Idle.
-    private async Task<GuardPatrolTarget?> ResolveTarget(
-        RouteTravelerSummary traveler,
-        SyncGuardPatrolCommand command,
-        CancellationToken cancellationToken
-    )
-    {
-        var position = await resolveRouteTravelerPosition.Handle(
-            new ResolveRouteTravelerPositionQuery
-            {
-                RouteTravelerId = traveler.RouteTravelerId,
-                Playtime = command.Playtime,
-                SpeedUnitsPerHour = countryPatrolOptions.Value.SpeedUnitsPerHour,
-            },
-            cancellationToken
-        );
-
-        return position switch
+    private static GuardPatrolTarget? ResolveTarget(RoutePosition? position) =>
+        position switch
         {
             RoutePosition.Lingering lingering => new GuardPatrolTarget(
                 lingering.LocationId,
@@ -134,7 +136,6 @@ internal class SyncGuardPatrolCommandHandler(
             ),
             _ => null,
         };
-    }
 
     private static void AddStragglers(
         Dictionary<GuardPatrolTarget, List<Guid>> relocationsByTarget,
