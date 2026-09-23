@@ -31,6 +31,13 @@ internal record MoveToolHostileEncounter(
     IReadOnlyCollection<MoveToolEncounterMember> Members
 );
 
+internal record MoveToolShakedownEncounter(
+    string FactionName,
+    string LocationName,
+    int TollAmount,
+    IReadOnlyCollection<MoveToolEncounterMember> Members
+);
+
 internal record MoveToolGuardOffense(string Description, bool AgainstTheGuard);
 
 internal record MoveToolGuardEncounter(
@@ -51,6 +58,7 @@ internal record MoveToolSuspicionEncounter(string GuardName, string LocationName
 internal record MoveToolResult(
     LlmScene Scene,
     MoveToolHostileEncounter? HostileEncounter,
+    MoveToolShakedownEncounter? ShakedownEncounter,
     MoveToolGuardEncounter? GuardEncounter,
     MoveToolOverdueKeyEncounter? OverdueRoomKeyEncounter,
     MoveToolSuspicionEncounter? SuspicionEncounter
@@ -266,6 +274,7 @@ internal class MoveTool(
         new(
             scene.ToLlmScene(),
             (encounter as HostileEncounter)?.ToMoveToolSummary(),
+            (encounter as ShakedownEncounter)?.ToMoveToolSummary(),
             (encounter as GuardEncounter)?.ToMoveToolSummary(),
             (encounter as TheftEncounter)?.ToMoveToolSummary(),
             (encounter as SuspicionEncounter)?.ToMoveToolSummary()

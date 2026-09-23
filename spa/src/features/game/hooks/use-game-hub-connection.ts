@@ -102,6 +102,10 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       hostileEncounterStarted: async (encounter) =>
         gameEventBus.emit('HostileEncounterStarted', encounter),
       hostileEncounterResolved: async (fact) => gameEventBus.emit('HostileEncounterResolved', fact),
+      shakedownEncounterStarted: async (encounter) =>
+        gameEventBus.emit('ShakedownEncounterStarted', encounter),
+      shakedownEncounterResolved: async (fact) =>
+        gameEventBus.emit('ShakedownEncounterResolved', fact),
       guardEncounterStarted: async (encounter) =>
         gameEventBus.emit('GuardEncounterStarted', encounter),
       guardEncounterResolved: async (fact) => gameEventBus.emit('GuardEncounterResolved', fact),

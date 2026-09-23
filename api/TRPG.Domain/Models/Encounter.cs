@@ -109,3 +109,11 @@ public class TrapEncounter : Encounter
     public required Guid TargetLocationId { get; init; }
     public required string TargetLocationName { get; init; }
 }
+
+public class ShakedownEncounter : Encounter
+{
+    public required Guid FactionId { get; init; }
+    public required string FactionName { get; init; }
+    public required int TollAmount { get; init; }
+    public List<HostileEncounterMemberSnapshot> Members { get; init; } = [];
+}

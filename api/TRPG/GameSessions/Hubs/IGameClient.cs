@@ -15,6 +15,8 @@ public interface IGameClient
     Task CombatUpdated(CombatUpdated update);
     Task HostileEncounterStarted(HostileEncounterState encounter);
     Task HostileEncounterResolved(HostileEncounterResolutionFact fact);
+    Task ShakedownEncounterStarted(ShakedownEncounterState encounter);
+    Task ShakedownEncounterResolved(ShakedownEncounterResolutionFact fact);
     Task GuardEncounterStarted(GuardEncounterState encounter);
     Task GuardEncounterResolved(GuardEncounterResolutionFact fact);
     Task SuspicionEncounterStarted(SuspicionEncounterState encounter);

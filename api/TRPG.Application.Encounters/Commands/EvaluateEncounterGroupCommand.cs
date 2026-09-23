@@ -13,13 +13,13 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
 
-public class EvaluateHostileEncounterCommand
+public class EvaluateEncounterGroupCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
 }
 
-internal class EvaluateHostileEncounterCommandHandler(
+internal class EvaluateEncounterGroupCommandHandler(
     IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
@@ -30,13 +30,15 @@ internal class EvaluateHostileEncounterCommandHandler(
     > getReputationsByCreatureId,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<CreateHostileEncounterCommand, HostileEncounter> createHostileEncounter,
+    ICommandHandler<CreateShakedownEncounterCommand, ShakedownEncounter> createShakedownEncounter,
     SneakDetectionService sneakDetectionService,
     IChanceRoller chanceRoller,
-    IOptionsMonitor<SneakOptions> sneakOptions
-) : ICommandHandler<EvaluateHostileEncounterCommand, HostileEncounter?>
+    IOptionsMonitor<SneakOptions> sneakOptions,
+    IOptionsMonitor<ShakedownOptions> shakedownOptions
+) : ICommandHandler<EvaluateEncounterGroupCommand, Encounter?>
 {
-    public async Task<HostileEncounter?> Handle(
-        EvaluateHostileEncounterCommand command,
+    public async Task<Encounter?> Handle(
+        EvaluateEncounterGroupCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -102,7 +104,7 @@ internal class EvaluateHostileEncounterCommandHandler(
             )
             .ToArray();
 
-        var selectedGroupId = HostileEncounterInitiationResolver.Resolve(
+        var selectedGroupId = EncounterGroupInitiationResolver.Resolve(
             player!.Level,
             candidates,
             chanceRoller
@@ -138,29 +140,54 @@ internal class EvaluateHostileEncounterCommandHandler(
                 cancellationToken
             ) ?? throw new InvalidOperationException($"Location {player.LocationId} not found.");
 
-        return await createHostileEncounter.Handle(
-            new CreateHostileEncounterCommand
-            {
-                WorldId = command.WorldId,
-                PlayerId = command.PlayerId,
-                PlayerLocationId = player.LocationId,
-                LocationName = location.Name,
-                FactionId = selectedFaction.Id,
-                FactionName = selectedFaction.Name,
-                Members = selectedLivingMembers
-                    .Select(member => new HostileEncounterMemberSnapshot(
-                        member.Id,
-                        member.Name,
-                        member.CreatureType,
-                        member.Level
-                    ))
-                    .ToArray(),
-            },
-            cancellationToken
-        );
+        var memberSnapshots = selectedLivingMembers
+            .Select(member => new HostileEncounterMemberSnapshot(
+                member.Id,
+                member.Name,
+                member.CreatureType,
+                member.Level
+            ))
+            .ToArray();
+
+        return selectedFaction.EncounterApproach switch
+        {
+            EncounterApproach.Attack => await createHostileEncounter.Handle(
+                new CreateHostileEncounterCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    PlayerLocationId = player.LocationId,
+                    LocationName = location.Name,
+                    FactionId = selectedFaction.Id,
+                    FactionName = selectedFaction.Name,
+                    Members = memberSnapshots,
+                },
+                cancellationToken
+            ),
+            EncounterApproach.Shakedown => await createShakedownEncounter.Handle(
+                new CreateShakedownEncounterCommand
+                {
+                    WorldId = command.WorldId,
+                    PlayerId = command.PlayerId,
+                    PlayerLocationId = player.LocationId,
+                    LocationName = location.Name,
+                    FactionId = selectedFaction.Id,
+                    FactionName = selectedFaction.Name,
+                    TollAmount = ShakedownEncounterCalculator.ComputeTollGold(
+                        selectedLivingMembers.Select(member => member.Level).ToArray(),
+                        shakedownOptions.CurrentValue
+                    ),
+                    Members = memberSnapshots,
+                },
+                cancellationToken
+            ),
+            _ => throw new InvalidOperationException(
+                $"Faction {selectedFaction.Id} has no encounter approach."
+            ),
+        };
     }
 
-    private static HostileEncounterCandidateGroup BuildCandidate(
+    private static EncounterGroupCandidate BuildCandidate(
         EncounterGroup group,
         IReadOnlyCollection<EncounterGroupMember> members,
         IReadOnlyDictionary<Guid, Creature> livingCreaturesById,
@@ -175,8 +202,9 @@ internal class EvaluateHostileEncounterCommandHandler(
             .Select(m => livingCreaturesById[m.CreatureId].Level)
             .ToArray();
 
-        return new HostileEncounterCandidateGroup(
+        return new EncounterGroupCandidate(
             GroupId: group.Id,
+            Approach: faction.EncounterApproach,
             Aggression: faction.Aggression,
             ReputationSensitivity: faction.ReputationSensitivity,
             RiskAversion: faction.RiskAversion,

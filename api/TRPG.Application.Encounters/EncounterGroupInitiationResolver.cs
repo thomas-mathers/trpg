@@ -1,9 +1,11 @@
 namespace TRPG.Application.Encounters;
 
 using TRPG.Application.Creatures;
+using TRPG.Domain.Models;
 
-internal record HostileEncounterCandidateGroup(
+internal record EncounterGroupCandidate(
     Guid GroupId,
+    EncounterApproach Approach,
     int Aggression,
     int ReputationSensitivity,
     int RiskAversion,
@@ -11,18 +13,34 @@ internal record HostileEncounterCandidateGroup(
     IReadOnlyList<int> LivingMemberLevels
 );
 
-internal static class HostileEncounterInitiationResolver
+internal static class EncounterGroupInitiationResolver
 {
     private const double EngagementThreshold = 100.0;
 
     public static Guid? Resolve(
         int playerLevel,
-        IReadOnlyList<HostileEncounterCandidateGroup> candidates,
+        IReadOnlyList<EncounterGroupCandidate> candidates,
         IChanceRoller chanceRoller
     )
     {
-        var strongestCandidate = candidates
-            .Where(candidate => candidate.LivingMemberLevels.Count > 0)
+        var eligibleCandidates = candidates
+            .Where(candidate =>
+                candidate.Approach != EncounterApproach.None
+                && candidate.LivingMemberLevels.Count > 0
+                && candidate.Aggression > 0
+            )
+            .ToArray();
+        var guaranteedCandidate = eligibleCandidates
+            .Where(candidate => candidate.Aggression == 100)
+            .OrderByDescending(candidate => candidate.LivingMemberLevels.Sum())
+            .ThenBy(candidate => candidate.GroupId)
+            .FirstOrDefault();
+        if (guaranteedCandidate != null)
+        {
+            return guaranteedCandidate.GroupId;
+        }
+
+        var strongestCandidate = eligibleCandidates
             .Select(candidate =>
                 (candidate.GroupId, Score: EngagementScore(playerLevel, candidate))
             )
@@ -43,7 +61,7 @@ internal static class HostileEncounterInitiationResolver
         return chanceRoller.Roll(engagementChance) ? strongestCandidate.GroupId : null;
     }
 
-    private static double EngagementScore(int playerLevel, HostileEncounterCandidateGroup candidate)
+    private static double EngagementScore(int playerLevel, EncounterGroupCandidate candidate)
     {
         var groupPower = candidate.LivingMemberLevels.Sum();
         var strengthAdvantageFactor = (groupPower - playerLevel) / (double)playerLevel;

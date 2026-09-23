@@ -8,7 +8,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Encounters.Commands;
 
-public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
+public sealed class EvaluateEncounterGroupCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -17,8 +17,12 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     private readonly TestChanceRoller _chanceRoller = new() { Result = true };
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private EvaluateHostileEncounterCommandHandler _handler = null!;
-    private readonly Location _location = Builders.MakeLocation(WorldId, Guid.NewGuid());
+    private EvaluateEncounterGroupCommandHandler _handler = null!;
+    private readonly Location _location = Builders.MakeLocation(
+        WorldId,
+        Guid.NewGuid(),
+        roomId: Guid.NewGuid()
+    );
     private readonly Creature _player = Builders.MakeCreature(WorldId, level: 1);
 
     public async ValueTask InitializeAsync()
@@ -28,7 +32,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .AddSingleton<IChanceRoller>(_chanceRoller)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<EvaluateHostileEncounterCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<EvaluateEncounterGroupCommandHandler>();
 
         _player.LocationId = _location.Id;
         _context.Locations.Add(_location);
@@ -51,7 +55,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     {
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -60,10 +64,10 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_CreatesAndReturnsAnEncounter_WhenOneEligibleGroupEngages()
+    public async Task Handle_CreatesAndReturnsAHostileEncounter_WhenGroupEngagesInsideRoom()
     {
         // Arrange
-        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var faction = Builders.MakeFaction(WorldId, aggression: 100);
         var monster = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
@@ -80,14 +84,14 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(faction.Name, result.FactionName);
-        Assert.Equal(monster.Name, Assert.Single(result.Members).Name);
+        var hostileEncounter = Assert.IsType<HostileEncounter>(result);
+        Assert.Equal(faction.Name, hostileEncounter.FactionName);
+        Assert.Equal(monster.Name, Assert.Single(hostileEncounter.Members).Name);
 
         await using var verifyContext = db.CreateContext();
         var persisted = await verifyContext
@@ -99,10 +103,81 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_CreatesAndReturnsAShakedownEncounter_WhenFactionApproachIsShakedown()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(
+            WorldId,
+            aggression: 100,
+            creatureType: CreatureType.Beast,
+            encounterApproach: EncounterApproach.Shakedown
+        );
+        var bandit = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 4
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, bandit.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(bandit);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var shakedownEncounter = Assert.IsType<ShakedownEncounter>(result);
+        Assert.Equal(faction.Name, shakedownEncounter.FactionName);
+        Assert.Equal(bandit.Name, Assert.Single(shakedownEncounter.Members).Name);
+        Assert.True(shakedownEncounter.TollAmount > 0);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesAHostileEncounter_WhenHumanFactionApproachIsAttack()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(
+            WorldId,
+            aggression: 100,
+            creatureType: CreatureType.Human,
+            encounterApproach: EncounterApproach.Attack
+        );
+        var bandit = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Human,
+            locationId: _location.Id,
+            level: 1
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, bandit.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(bandit);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(member);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.IsType<HostileEncounter>(result);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsNull_WhenOnlyGroupMemberIsSleeping()
     {
         // Arrange
-        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var faction = Builders.MakeFaction(WorldId, aggression: 100);
         var monster = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
@@ -120,7 +195,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -132,7 +207,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     public async Task Handle_ExcludesSleepingMembers_FromTheInitialEncounterRoster()
     {
         // Arrange
-        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var faction = Builders.MakeFaction(WorldId, aggression: 100);
         var awakeMonster = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
@@ -162,19 +237,20 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(awakeMonster.Name, Assert.Single(result!.Members).Name);
+        var hostileEncounter = Assert.IsType<HostileEncounter>(result);
+        Assert.Equal(awakeMonster.Name, Assert.Single(hostileEncounter.Members).Name);
     }
 
     [Fact]
     public async Task Handle_ReturnsNull_WhenSneakingAndTheDetectionRollAvoidsTheGroup()
     {
         // Arrange
-        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var faction = Builders.MakeFaction(WorldId, aggression: 100);
         var monster = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
@@ -188,13 +264,12 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
         _context.EncounterGroups.Add(group);
         _context.EncounterGroupMembers.Add(member);
         _player.IsSneaking = true;
-        _chanceRoller.Results.Enqueue(true);
         _chanceRoller.Results.Enqueue(false);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 
@@ -212,7 +287,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
     public async Task Handle_CreatesEncounterAndClearsSneaking_WhenSneakingButDetected()
     {
         // Arrange
-        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var faction = Builders.MakeFaction(WorldId, aggression: 100);
         var monster = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
@@ -231,7 +306,7 @@ public sealed class EvaluateHostileEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateHostileEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateEncounterGroupCommand { WorldId = WorldId, PlayerId = _player.Id },
             TestContext.Current.CancellationToken
         );
 

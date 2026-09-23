@@ -55,6 +55,12 @@ public interface IChatHub
     );
     IAsyncEnumerable<string> ResolveAttackEncounterAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveFleeEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveIntimidateEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolvePayTollEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveFightEncounterAction(CancellationToken cancellationToken);
+    IAsyncEnumerable<string> ResolveFleeShakedownEncounterAction(
+        CancellationToken cancellationToken
+    );
     IAsyncEnumerable<string> ResolvePayFineEncounterAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveGoToJailEncounterAction(CancellationToken cancellationToken);
     IAsyncEnumerable<string> ResolveResistArrestEncounterAction(
@@ -227,6 +233,42 @@ internal sealed class ChatHub(
         gameTurnRunner.StreamHostileEncounterAction(
             Session,
             new FleeEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveIntimidateEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamShakedownEncounterAction(
+            Session,
+            new IntimidateEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolvePayTollEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamShakedownEncounterAction(
+            Session,
+            new PayTollEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveFightEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamShakedownEncounterAction(
+            Session,
+            new FightEncounterAction(),
+            cancellationToken
+        );
+
+    public IAsyncEnumerable<string> ResolveFleeShakedownEncounterAction(
+        CancellationToken cancellationToken
+    ) =>
+        gameTurnRunner.StreamShakedownEncounterAction(
+            Session,
+            new FleeShakedownEncounterAction(),
             cancellationToken
         );
 

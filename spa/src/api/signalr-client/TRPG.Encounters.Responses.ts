@@ -83,6 +83,43 @@ export type HostileEncounterState = {
     allowedActions: string[];
 }
 
+/** Transpiled from TRPG.Encounters.Responses.ShakedownEncounterResolutionOutcome */
+export type ShakedownEncounterResolutionOutcome = "Intimidated" | "IntimidateFailed" | "PaidToll" | "Fought" | "Fled" | "FleeFailed";
+
+/** Transpiled from TRPG.Encounters.Responses.ShakedownEncounterResolutionFact */
+export type ShakedownEncounterResolutionFact = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from TRPG.Encounters.Responses.ShakedownEncounterResolutionOutcome */
+    outcome: ShakedownEncounterResolutionOutcome;
+    /** Transpiled from string */
+    factionName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from int */
+    tollAmount: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    memberNames: string[];
+}
+
+/** Transpiled from TRPG.Encounters.Responses.ShakedownEncounterState */
+export type ShakedownEncounterState = {
+    /** Transpiled from System.Guid */
+    encounterId: string;
+    /** Transpiled from string */
+    factionName: string;
+    /** Transpiled from string */
+    locationName: string;
+    /** Transpiled from int */
+    tollAmount: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Encounters.Responses.HostileEncounterMemberState> */
+    members: HostileEncounterMemberState[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    allowedActions: string[];
+    /** Transpiled from bool */
+    canAffordToll: boolean;
+}
+
 /** Transpiled from TRPG.Encounters.Responses.SuspicionEncounterResolutionOutcome */
 export type SuspicionEncounterResolutionOutcome = "Complied" | "Fled" | "FleeFailed";
 

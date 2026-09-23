@@ -827,7 +827,8 @@ internal static class Builders
         int riskAversion = 0,
         bool isCityFaction = false,
         CreatureType? creatureType = null,
-        Guid? cityId = null
+        Guid? cityId = null,
+        EncounterApproach encounterApproach = EncounterApproach.Attack
     )
     {
         return new Faction
@@ -841,6 +842,7 @@ internal static class Builders
             RiskAversion = riskAversion,
             IsCityFaction = isCityFaction,
             CreatureType = creatureType,
+            EncounterApproach = encounterApproach,
         };
     }
 
@@ -900,6 +902,30 @@ internal static class Builders
             FactionId = factionId ?? Guid.NewGuid(),
             FactionName = factionName,
             LocationName = locationName,
+            Members = members?.ToList() ?? [],
+            State = state,
+        };
+
+    public static ShakedownEncounter MakeShakedownEncounter(
+        Guid worldId,
+        Guid playerId,
+        Guid locationId,
+        Guid? factionId = null,
+        string factionName = "Faction",
+        string locationName = "Location",
+        int tollAmount = 25,
+        IReadOnlyList<HostileEncounterMemberSnapshot>? members = null,
+        EncounterState state = EncounterState.Active
+    ) =>
+        new()
+        {
+            WorldId = worldId,
+            PlayerId = playerId,
+            LocationId = locationId,
+            FactionId = factionId ?? Guid.NewGuid(),
+            FactionName = factionName,
+            LocationName = locationName,
+            TollAmount = tollAmount,
             Members = members?.ToList() ?? [],
             State = state,
         };

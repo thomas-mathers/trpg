@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { CombatDialog } from '@/features/combat/components/combat-dialog';
 import { GuardEncounterDialog } from '@/features/encounters/components/guard-encounter-dialog';
 import { HostileEncounterDialog } from '@/features/encounters/components/hostile-encounter-dialog';
+import { ShakedownEncounterDialog } from '@/features/encounters/components/shakedown-encounter-dialog';
 import { SuspicionEncounterDialog } from '@/features/encounters/components/suspicion-encounter-dialog';
 import { TheftEncounterDialog } from '@/features/encounters/components/theft-encounter-dialog';
 import { TrapEncounterDialog } from '@/features/encounters/components/trap-encounter-dialog';
@@ -70,6 +71,7 @@ function GameChatControls({
     <div className="mx-auto w-full max-w-2xl p-4">
       <CombatDialog />
       <HostileEncounterDialog />
+      <ShakedownEncounterDialog />
       <GuardEncounterDialog />
       <SuspicionEncounterDialog />
       <TheftEncounterDialog />

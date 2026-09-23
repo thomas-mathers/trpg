@@ -186,6 +186,50 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
             );
     }
 
+    private async Task<ShakedownEncounter> SeedActiveShakedownEncounter(int goldQuantity)
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+
+        var faction = Builders.MakeFaction(_worldId, creatureType: DataCreatureType.Human);
+        var bandit = Builders.MakeCreature(
+            _worldId,
+            name: "Mara Vane",
+            creatureType: DataCreatureType.Human,
+            locationId: _locationId,
+            level: 3
+        );
+        var encounter = Builders.MakeShakedownEncounter(
+            _worldId,
+            _playerId,
+            _locationId,
+            faction.Id,
+            factionName: "The Broken Toll",
+            locationName: "The Old Road",
+            tollAmount: 25,
+            members:
+            [
+                new HostileEncounterMemberSnapshot(
+                    bandit.Id,
+                    bandit.Name,
+                    bandit.CreatureType,
+                    bandit.Level
+                ),
+            ]
+        );
+        var gold = Builders.MakeGold(_worldId, quantity: goldQuantity);
+        gold.Ownership.OwnerId = _playerId;
+        gold.Ownership.OwnerType = OwnerType.Creature;
+
+        context.Factions.Add(faction);
+        context.Creatures.Add(bandit);
+        context.Encounters.Add(encounter);
+        context.Items.Add(gold);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return encounter;
+    }
+
     private async Task<(TheftEncounter Encounter, Creature Owner)> SeedActiveTheftEncounter()
     {
         await using var scope = fixture.CreateScope();
@@ -311,6 +355,93 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
                 fight.CombatantIds.OrderBy(id => id)
             );
         }
+    }
+
+    [Fact]
+    public async Task Reconnect_PushesShakedownEncounterStarted_WithActionsAndAffordability()
+    {
+        // Arrange
+        var encounter = await SeedActiveShakedownEncounter(goldQuantity: 10);
+        var sessionId = await StartSession();
+        var encounterStarted = new TaskCompletionSource<ShakedownEncounterState>();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        connection.Register<IGameClient>(
+            new TestGameClient
+            {
+                Connection = connection,
+                OnShakedownEncounterStarted = state => encounterStarted.TrySetResult(state),
+            }
+        );
+
+        // Act
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        var state = await encounterStarted.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(encounter.Id, state.EncounterId);
+        Assert.Equal("The Broken Toll", state.FactionName);
+        Assert.Equal("The Old Road", state.LocationName);
+        Assert.Equal(25, state.TollAmount);
+        Assert.Equal("Mara Vane", Assert.Single(state.Members).Name);
+        Assert.Equal(["Intimidate", "PayToll", "Fight", "Flee"], state.AllowedActions);
+        Assert.False(state.CanAffordToll);
+    }
+
+    [Fact]
+    public async Task ResolvePayTollEncounterAction_CompletesEncounterAndPublishesResolution()
+    {
+        // Arrange
+        var encounter = await SeedActiveShakedownEncounter(goldQuantity: 100);
+        var sessionId = await StartSession();
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        var encounterResolved = new TaskCompletionSource<ShakedownEncounterResolutionFact>();
+        var sceneUpdated = new TaskCompletionSource<SceneSnapshot>();
+        connection.Register<IGameClient>(
+            new TestGameClient
+            {
+                Connection = connection,
+                OnShakedownEncounterResolved = fact => encounterResolved.TrySetResult(fact),
+                OnSceneSnapshot = scene =>
+                {
+                    if (scene.PlayerStatus.Gold == 75)
+                    {
+                        sceneUpdated.TrySetResult(scene);
+                    }
+                },
+            }
+        );
+
+        // Act
+        var narration = await Drain(
+            connection.StreamAsync<string>(
+                "ResolvePayTollEncounterAction",
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        var resolution = await encounterResolved.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(encounter.Id, resolution.EncounterId);
+        Assert.Equal(ShakedownEncounterResolutionOutcome.PaidToll, resolution.Outcome);
+        Assert.Equal(25, resolution.TollAmount);
+
+        var scene = await sceneUpdated.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(75, scene.PlayerStatus.Gold);
+
+        var persistedEncounter = await GetEncounter(encounter.Id);
+        Assert.Equal(EncounterState.Completed, persistedEncounter.State);
     }
 
     [Fact]

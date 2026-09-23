@@ -58,6 +58,61 @@ public sealed class PublishEncounterStartedCommandHandlerTests(DatabaseFixture d
     }
 
     [Fact]
+    public async Task Handle_MarksTheTollAffordable_WhenShakedownEncounterAndPlayerHasEnoughGold()
+    {
+        // Arrange
+        var gold = Builders.MakeGold(WorldId, quantity: 100);
+        gold.Ownership.OwnerId = _player.Id;
+        gold.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(gold);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = Builders.MakeShakedownEncounter(
+            WorldId,
+            _player.Id,
+            _player.LocationId,
+            tollAmount: 25
+        );
+
+        // Act
+        await _handler.Handle(
+            new PublishEncounterStartedCommand { PlayerId = _player.Id, Encounter = encounter },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var startedEvent = Assert.Single(
+            _eventSink.EnqueuedEvents.OfType<ShakedownEncounterStartedEvent>()
+        );
+        Assert.Same(encounter, startedEvent.Encounter);
+        Assert.True(startedEvent.CanAffordToll);
+    }
+
+    [Fact]
+    public async Task Handle_MarksTheTollUnaffordable_WhenShakedownEncounterAndPlayerLacksGold()
+    {
+        // Arrange
+        var encounter = Builders.MakeShakedownEncounter(
+            WorldId,
+            _player.Id,
+            _player.LocationId,
+            tollAmount: 25
+        );
+
+        // Act
+        await _handler.Handle(
+            new PublishEncounterStartedCommand { PlayerId = _player.Id, Encounter = encounter },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var startedEvent = Assert.Single(
+            _eventSink.EnqueuedEvents.OfType<ShakedownEncounterStartedEvent>()
+        );
+        Assert.Same(encounter, startedEvent.Encounter);
+        Assert.False(startedEvent.CanAffordToll);
+    }
+
+    [Fact]
     public async Task Handle_MarksTheFineAffordable_WhenGuardEncounterAndPlayerHasEnoughGold()
     {
         // Arrange

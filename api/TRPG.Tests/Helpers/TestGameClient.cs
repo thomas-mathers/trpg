@@ -16,6 +16,8 @@ internal sealed class TestGameClient : IGameClient
     public Action<CombatUpdated>? OnCombatUpdated { get; set; }
     public Action<HostileEncounterState>? OnHostileEncounterStarted { get; set; }
     public Action<HostileEncounterResolutionFact>? OnHostileEncounterResolved { get; set; }
+    public Action<ShakedownEncounterState>? OnShakedownEncounterStarted { get; set; }
+    public Action<ShakedownEncounterResolutionFact>? OnShakedownEncounterResolved { get; set; }
     public Action<GuardEncounterState>? OnGuardEncounterStarted { get; set; }
     public Action<GuardEncounterResolutionFact>? OnGuardEncounterResolved { get; set; }
     public Action<SuspicionEncounterState>? OnSuspicionEncounterStarted { get; set; }
@@ -58,6 +60,18 @@ internal sealed class TestGameClient : IGameClient
     public Task HostileEncounterResolved(HostileEncounterResolutionFact fact)
     {
         OnHostileEncounterResolved?.Invoke(fact);
+        return Task.CompletedTask;
+    }
+
+    public Task ShakedownEncounterStarted(ShakedownEncounterState encounter)
+    {
+        OnShakedownEncounterStarted?.Invoke(encounter);
+        return Task.CompletedTask;
+    }
+
+    public Task ShakedownEncounterResolved(ShakedownEncounterResolutionFact fact)
+    {
+        OnShakedownEncounterResolved?.Invoke(fact);
         return Task.CompletedTask;
     }
 

@@ -19,11 +19,19 @@ public enum FactionKind
     Wilderness,
 }
 
+public enum EncounterApproach
+{
+    None,
+    Attack,
+    Shakedown,
+}
+
 public class Faction
 {
     public int Aggression { get; init; }
     public CreatureType? CreatureType { get; init; }
     public string Description { get; init; } = "";
+    public EncounterApproach EncounterApproach { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public FactionKind Kind { get; init; }
     public bool IsCityFaction { get; init; }

@@ -6,7 +6,7 @@ import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
-import type { HostileEncounterState, HostileEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
+import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
@@ -160,6 +160,22 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("ResolveFleeEncounterAction");
     }
 
+    public readonly resolveIntimidateEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveIntimidateEncounterAction");
+    }
+
+    public readonly resolvePayTollEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolvePayTollEncounterAction");
+    }
+
+    public readonly resolveFightEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveFightEncounterAction");
+    }
+
+    public readonly resolveFleeShakedownEncounterAction = (): IStreamResult<string> => {
+        return this.connection.stream("ResolveFleeShakedownEncounterAction");
+    }
+
     public readonly resolvePayFineEncounterAction = (): IStreamResult<string> => {
         return this.connection.stream("ResolvePayFineEncounterAction");
     }
@@ -226,6 +242,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __combatUpdated = (...args: [CombatUpdated]) => receiver.combatUpdated(...args);
         const __hostileEncounterStarted = (...args: [HostileEncounterState]) => receiver.hostileEncounterStarted(...args);
         const __hostileEncounterResolved = (...args: [HostileEncounterResolutionFact]) => receiver.hostileEncounterResolved(...args);
+        const __shakedownEncounterStarted = (...args: [ShakedownEncounterState]) => receiver.shakedownEncounterStarted(...args);
+        const __shakedownEncounterResolved = (...args: [ShakedownEncounterResolutionFact]) => receiver.shakedownEncounterResolved(...args);
         const __guardEncounterStarted = (...args: [GuardEncounterState]) => receiver.guardEncounterStarted(...args);
         const __guardEncounterResolved = (...args: [GuardEncounterResolutionFact]) => receiver.guardEncounterResolved(...args);
         const __suspicionEncounterStarted = (...args: [SuspicionEncounterState]) => receiver.suspicionEncounterStarted(...args);
@@ -247,6 +265,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("CombatUpdated", __combatUpdated);
         connection.on("HostileEncounterStarted", __hostileEncounterStarted);
         connection.on("HostileEncounterResolved", __hostileEncounterResolved);
+        connection.on("ShakedownEncounterStarted", __shakedownEncounterStarted);
+        connection.on("ShakedownEncounterResolved", __shakedownEncounterResolved);
         connection.on("GuardEncounterStarted", __guardEncounterStarted);
         connection.on("GuardEncounterResolved", __guardEncounterResolved);
         connection.on("SuspicionEncounterStarted", __suspicionEncounterStarted);
@@ -269,6 +289,8 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "CombatUpdated", method: __combatUpdated },
             { methodName: "HostileEncounterStarted", method: __hostileEncounterStarted },
             { methodName: "HostileEncounterResolved", method: __hostileEncounterResolved },
+            { methodName: "ShakedownEncounterStarted", method: __shakedownEncounterStarted },
+            { methodName: "ShakedownEncounterResolved", method: __shakedownEncounterResolved },
             { methodName: "GuardEncounterStarted", method: __guardEncounterStarted },
             { methodName: "GuardEncounterResolved", method: __guardEncounterResolved },
             { methodName: "SuspicionEncounterStarted", method: __suspicionEncounterStarted },

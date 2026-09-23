@@ -425,6 +425,8 @@ internal static class ServiceCollectionExtensions
             .Configure<GameClientEventAckOptions>(configuration.GetSection("GameClientEventAck"))
             .Configure<ReputationOptions>(configuration.GetSection("Reputation"))
             .Configure<GuardEncounterOptions>(configuration.GetSection("GuardEncounter"))
+            .Configure<ShakedownOptions>(configuration.GetSection("Shakedown"))
+            .Configure<IntimidationOptions>(configuration.GetSection("Intimidation"))
             .Configure<TheftOptions>(configuration.GetSection("Theft"))
             .Configure<LockpickingOptions>(configuration.GetSection("Lockpicking"))
             .Configure<SneakOptions>(configuration.GetSection("Sneak"))
