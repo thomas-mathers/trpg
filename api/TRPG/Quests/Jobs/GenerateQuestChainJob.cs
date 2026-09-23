@@ -24,6 +24,8 @@ public class GenerateQuestChainJob(ICommandHandler<GenerateQuestChainCommand, bo
 internal class TickerQuestChainGenerationScheduler(ITimeTickerManager<TrpgTimeTicker> timeTicker)
     : IQuestChainGenerationScheduler
 {
+    internal static readonly TimeSpan DispatchDelay = TimeSpan.FromSeconds(5);
+
     public async Task ScheduleAsync(
         GenerateQuestChainCommand command,
         CancellationToken cancellationToken = default
@@ -33,7 +35,8 @@ internal class TickerQuestChainGenerationScheduler(ITimeTickerManager<TrpgTimeTi
             new TrpgTimeTicker
             {
                 Request = TickerHelper.CreateTickerRequest(command),
-                ExecutionTime = DateTime.UtcNow,
+                // Near-now TickerQ jobs execute inline, before an ambient gameplay transaction commits.
+                ExecutionTime = DateTime.UtcNow.Add(DispatchDelay),
                 Function = TickerFunctionProvider.GetFunctionName<GenerateQuestChainJob>(),
             },
             cancellationToken
