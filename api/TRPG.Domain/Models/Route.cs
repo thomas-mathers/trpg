@@ -1,5 +1,11 @@
 namespace TRPG.Domain.Models;
 
+public enum RouteTraversal
+{
+    Cyclic,
+    Finite,
+}
+
 public class Route
 {
     public Guid Id { get; init; } = Guid.NewGuid();
