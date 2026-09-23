@@ -68,6 +68,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     private async Task<Creature> SeedCreature(Guid? locationId = null)
     {
         var creature = Builders.MakeCreature(WorldId, locationId: locationId);
+        creature.MovementSpeed = 5;
         await _addCreature.Handle(
             new AddCreatureCommand { Creature = creature },
             TestContext.Current.CancellationToken
@@ -80,6 +81,27 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             new AddCreatureJobCommand { CreatureJob = job },
             TestContext.Current.CancellationToken
         );
+
+    private async Task AddMeasuredConnector(Guid originLocationId, Guid destinationLocationId)
+    {
+        var connector = new LocationConnector
+        {
+            WorldId = WorldId,
+            OriginLocationId = originLocationId,
+            DestinationLocationId = destinationLocationId,
+            DestinationLabel = "Destination",
+        };
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(
+            new TravelConnector
+            {
+                WorldId = WorldId,
+                ConnectorId = connector.Id,
+                Distance = 5,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 
     [Fact]
     public async Task Handle_EvictsTheClaim_WhenTheLocationDoesNotExist()
@@ -108,11 +130,12 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_MovesCreatureIntoRoom_WhenSleepJobActive()
+    public async Task Handle_StartsCreatureWalkingToRoom_WhenSleepJobIsNext()
     {
         // Arrange
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
         var creature = await SeedCreature();
+        await AddMeasuredConnector(creature.LocationId, sleepLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -144,16 +167,18 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(sleepLocation.Id, updated!.LocationId);
+        Assert.Equal(creature.LocationId, updated!.LocationId);
+        Assert.Equal(CreatureState.Walking, updated.State);
     }
 
     [Fact]
-    public async Task Handle_MovesCreatureOut_WhenHigherPriorityWorkJobActiveElsewhere()
+    public async Task Handle_StartsCreatureWalkingOut_WhenWorkJobActiveElsewhere()
     {
         // Arrange
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
         var workLocation = await SeedLocation(roomId: Guid.NewGuid());
         var creature = await SeedCreature(sleepLocation.Id);
+        await AddMeasuredConnector(sleepLocation.Id, workLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -195,7 +220,8 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(workLocation.Id, updated!.LocationId);
+        Assert.Equal(sleepLocation.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Walking, updated.State);
     }
 
     [Fact]
@@ -230,13 +256,14 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_MovesCreatureOutdoors_WhenIdleJobActive()
+    public async Task Handle_StartsCreatureWalkingOutdoors_WhenIdleJobActive()
     {
         // Arrange
         var districtId = Guid.NewGuid();
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid(), districtId: districtId);
         var idleLocation = await SeedLocation(districtId: districtId);
         var creature = await SeedCreature(sleepLocation.Id);
+        await AddMeasuredConnector(sleepLocation.Id, idleLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -279,11 +306,12 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(idleLocation.Id, updated!.LocationId);
+        Assert.Equal(sleepLocation.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Walking, updated.State);
     }
 
     [Fact]
-    public async Task Handle_MovesCreatureIntoDistrict_WhenDueJobArrivesFromElsewhere()
+    public async Task Handle_StartsCreatureWalkingIntoDistrict_WhenJobIsDueThere()
     {
         // Arrange — the creature is currently in a different district entirely (e.g. sleeping
         // in a barracks across town), not merely a different location within the target district
@@ -295,6 +323,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         );
         var gateLocation = await SeedLocation(districtId: targetDistrictId);
         var creature = await SeedCreature(currentLocation.Id);
+        await AddMeasuredConnector(currentLocation.Id, gateLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -326,7 +355,8 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(gateLocation.Id, updated!.LocationId);
+        Assert.Equal(currentLocation.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Walking, updated.State);
     }
 
     [Fact]
@@ -354,8 +384,8 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         _context.Props.AddRange(counter, oven);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var owner = await SeedCreature();
-        var employee = await SeedCreature();
+        var owner = await SeedCreature(shopLocation.Id);
+        var employee = await SeedCreature(shopLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 owner.Id,
@@ -431,7 +461,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         _context.Props.AddRange(counter, oven);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var owner = await SeedCreature();
+        var owner = await SeedCreature(shopLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 owner.Id,

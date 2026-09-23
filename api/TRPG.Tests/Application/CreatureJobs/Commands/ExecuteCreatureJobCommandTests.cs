@@ -35,37 +35,37 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_UpdatesCreatureLocationAndState_ForSleepJob()
+    public async Task Handle_UpdatesCreatureState_ForSleepJob()
     {
-        await AssertLocationIdUpdated(CreatureJobAction.Sleep, CreatureState.Sleeping);
+        await AssertStateUpdated(CreatureJobAction.Sleep, CreatureState.Sleeping);
     }
 
     [Fact]
-    public async Task Handle_UpdatesCreatureLocationAndState_ForWorkJob()
+    public async Task Handle_UpdatesCreatureState_ForWorkJob()
     {
-        await AssertLocationIdUpdated(CreatureJobAction.Work, CreatureState.Busy);
+        await AssertStateUpdated(CreatureJobAction.Work, CreatureState.Busy);
     }
 
     [Fact]
-    public async Task Handle_UpdatesCreatureLocationAndState_ForIdleJob()
+    public async Task Handle_UpdatesCreatureState_ForIdleJob()
     {
-        await AssertLocationIdUpdated(CreatureJobAction.Idle, CreatureState.Idle);
+        await AssertStateUpdated(CreatureJobAction.Idle, CreatureState.Idle);
     }
 
     [Fact]
-    public async Task Handle_UpdatesCreatureLocationAndState_ForStudyJob()
+    public async Task Handle_UpdatesCreatureState_ForStudyJob()
     {
-        await AssertLocationIdUpdated(CreatureJobAction.Study, CreatureState.Studying);
+        await AssertStateUpdated(CreatureJobAction.Study, CreatureState.Studying);
     }
 
     [Fact]
-    public async Task Handle_UpdatesCreatureLocationAndState_ForPrayJob()
+    public async Task Handle_UpdatesCreatureState_ForPrayJob()
     {
-        await AssertLocationIdUpdated(CreatureJobAction.Pray, CreatureState.Praying);
+        await AssertStateUpdated(CreatureJobAction.Pray, CreatureState.Praying);
     }
 
     [Fact]
-    public async Task Handle_SetsPreviousLocationId_WhenJobMovesCreature()
+    public async Task Handle_DoesNotMoveCreature_WhenJobLocationDiffers()
     {
         // Arrange
         var originalLocationId = _creature.LocationId;
@@ -90,8 +90,8 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(originalLocationId, updated!.PreviousLocationId);
-        Assert.Equal(newLocationId, updated.LocationId);
+        Assert.Equal(originalLocationId, updated!.LocationId);
+        Assert.Null(updated.PreviousLocationId);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
             new ExecuteCreatureJobCommand
             {
                 CreatureId = _creature.Id,
-                CurrentLocationId = _creature.LocationId,
+                CurrentLocationId = locationId,
                 CurrentState = _creature.State,
                 CreatureJobAction = CreatureJobAction.Sleep,
                 JobLocationId = locationId,
@@ -222,7 +222,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
     public async Task Handle_LeavesNoBedOccupied_WhenTheCreatureHasNoAssignedBedAtTheLocation()
     {
         // Arrange
-        var locationId = Guid.NewGuid();
+        var locationId = _creature.LocationId;
         var bed = Builders.MakeBed(
             _creature.WorldId,
             locationId: locationId,
@@ -274,7 +274,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CurrentLocationId = locationId,
                 CurrentState = CreatureState.Sleeping,
                 CreatureJobAction = CreatureJobAction.Work,
-                JobLocationId = Guid.NewGuid(),
+                JobLocationId = locationId,
             },
             TestContext.Current.CancellationToken
         );
@@ -287,13 +287,10 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
         Assert.Null(updatedBed.OccupantId);
     }
 
-    private async Task AssertLocationIdUpdated(
-        CreatureJobAction action,
-        CreatureState expectedState
-    )
+    private async Task AssertStateUpdated(CreatureJobAction action, CreatureState expectedState)
     {
         // Arrange
-        var locationId = Guid.NewGuid();
+        var locationId = _creature.LocationId;
 
         // Act
         await _handler.Handle(
@@ -314,7 +311,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(locationId, updated!.LocationId);
+        Assert.Equal(_creature.LocationId, updated!.LocationId);
         Assert.Equal(expectedState, updated.State);
     }
 }

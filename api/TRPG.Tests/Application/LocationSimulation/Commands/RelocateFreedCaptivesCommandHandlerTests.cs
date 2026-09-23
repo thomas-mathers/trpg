@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Data;
@@ -51,6 +52,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
             locationId: _cellLocation.Id,
             state: CreatureState.Idle
         );
+        captive.MovementSpeed = 5;
         var quest = Builders.MakeQuest(GiverId, WorldId);
         var objective = new FreeCreatureObjective
         {
@@ -75,12 +77,28 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_RelocatesAFreedCaptive_ToTheirDueJobLocation()
+    public async Task Handle_StartsAFreedCaptiveWalking_ToTheirDueJobLocation()
     {
         // Arrange
         var captiveId = await SeedFreedCaptive();
         var homeLocation = Builders.MakeLocation(WorldId, _stateId);
+        var connector = new LocationConnector
+        {
+            WorldId = WorldId,
+            OriginLocationId = _cellLocation.Id,
+            DestinationLocationId = homeLocation.Id,
+            DestinationLabel = "Home",
+        };
         _context.Locations.Add(homeLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(
+            new TravelConnector
+            {
+                WorldId = WorldId,
+                ConnectorId = connector.Id,
+                Distance = 5,
+            }
+        );
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 captiveId,
@@ -109,8 +127,14 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
             [captiveId],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(homeLocation.Id, relocated!.LocationId);
-        Assert.Equal(CreatureState.Busy, relocated.State);
+        Assert.Equal(_cellLocation.Id, relocated!.LocationId);
+        Assert.Equal(CreatureState.Walking, relocated.State);
+        Assert.Contains(
+            await verifyContext.RouteTravelerMembers.ToArrayAsync(
+                TestContext.Current.CancellationToken
+            ),
+            member => member.CreatureId == captiveId
+        );
     }
 
     [Fact]

@@ -31,6 +31,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             name: "Captive",
             state: CreatureState.Restrained
         );
+        _captive.MovementSpeed = 5;
         _cell = new Cell
         {
             WorldId = _worldId,
@@ -53,7 +54,13 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             ICommandHandler<AttemptCellUnlockCommand, AttemptCellUnlockResult>
         >();
 
-        _context.Locations.Add(_location);
+        var jobLocation = Builders.MakeLocation(_worldId, id: _captiveJobLocationId);
+        var connector = Builders.MakeLocationConnector(_location.Id, jobLocation.Id, _worldId);
+        _context.Locations.AddRange(_location, jobLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(
+            Builders.MakeTravelConnector(connector.Id, distance: 5, worldId: _worldId)
+        );
         _context.Creatures.AddRange(_player, _captive);
         _context.Props.Add(_cell);
         // Playtime defaults to TimeSpan.Zero, which GameClock resolves to hour 8 at the world
@@ -115,8 +122,14 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             c => c.Id == _captive.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_captiveJobLocationId, captive.LocationId);
-        Assert.Equal(CreatureState.Busy, captive.State);
+        Assert.Equal(_location.Id, captive.LocationId);
+        Assert.Equal(CreatureState.Walking, captive.State);
+        Assert.Contains(
+            await verification.RouteTravelerMembers.ToArrayAsync(
+                TestContext.Current.CancellationToken
+            ),
+            member => member.CreatureId == captive.Id
+        );
     }
 
     [Fact]

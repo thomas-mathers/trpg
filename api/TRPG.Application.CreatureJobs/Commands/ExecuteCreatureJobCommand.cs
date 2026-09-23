@@ -22,8 +22,7 @@ internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<SetBedOccupantCommand> setBedOccupant
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
-    // A creature in any of these states is not living its ordinary schedule right now, so its
-    // job should not move or re-state it.
+    // These states temporarily suppress ordinary schedule effects.
     private static readonly HashSet<CreatureState> NonSchedulableStates =
     [
         CreatureState.Alerted,
@@ -37,6 +36,11 @@ internal class ExecuteCreatureJobCommandHandler(
     )
     {
         if (NonSchedulableStates.Contains(command.CurrentState))
+        {
+            return;
+        }
+
+        if (command.CurrentLocationId != command.JobLocationId)
         {
             return;
         }
@@ -73,12 +77,7 @@ internal class ExecuteCreatureJobCommandHandler(
         }
 
         await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [command.CreatureId],
-                LocationId = command.JobLocationId,
-                State = targetState,
-            },
+            new UpdateCreaturesCommand { CreatureIds = [command.CreatureId], State = targetState },
             cancellationToken
         );
 
