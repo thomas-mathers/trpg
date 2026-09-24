@@ -88,19 +88,30 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
             StateId = destination.StateId,
             Name = "Ashford Gate",
         };
-        var route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
+        var route = Builders.MakeCaravanRoute(WorldId);
         var routeTraveler = Builders.MakeCaravan(
             route.Id,
             WorldId,
             kind: RouteTravelerKind.Pilgrim,
             purpose: "Making a pilgrimage to the Dawn Temple."
         );
+        var connectorA = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
+        var connectorB = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
         _context.Locations.AddRange(origin, destination);
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(
-            Builders.MakeCaravanRouteStop(route.Id, 0, origin.Id),
-            Builders.MakeCaravanRouteStop(route.Id, 1, destination.Id)
+            Builders.MakeCaravanRouteStop(route.Id, 0, origin.Id, connectorA.ConnectorId),
+            Builders.MakeCaravanRouteStop(route.Id, 1, destination.Id, connectorB.ConnectorId)
         );
+        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.RouteTravelers.Add(routeTraveler);
         _context.RouteTravelerMembers.Add(
             new RouteTravelerMember

@@ -39,9 +39,23 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<BoardCaravanCommandHandler>();
 
-        var route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
-        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, LocationA, distanceToNextStop: 10);
-        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, LocationB, distanceToNextStop: 10);
+        var route = Builders.MakeCaravanRoute(WorldId);
+
+        var stopAB = Builders.MakeLocationConnector(LocationA, LocationB, worldId: WorldId);
+        var stopBA = Builders.MakeLocationConnector(LocationB, LocationA, worldId: WorldId);
+        var travelConnectorAB = Builders.MakeTravelConnector(
+            stopAB.Id,
+            worldId: WorldId,
+            distance: 10
+        );
+        var travelConnectorBA = Builders.MakeTravelConnector(
+            stopBA.Id,
+            worldId: WorldId,
+            distance: 10
+        );
+
+        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, LocationA, stopAB.Id);
+        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, LocationB, stopBA.Id);
         _caravan = Builders.MakeCaravan(route.Id, WorldId);
         _player = Builders.MakeCreature(worldId: WorldId, locationId: LocationA);
 
@@ -49,6 +63,8 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
         _context.RouteSteps.AddRange(stopA, stopB);
         _context.RouteTravelers.Add(_caravan);
         _context.Creatures.Add(_player);
+        _context.LocationConnectors.AddRange(stopAB, stopBA);
+        _context.TravelConnectors.AddRange(travelConnectorAB, travelConnectorBA);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 

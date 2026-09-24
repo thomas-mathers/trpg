@@ -36,7 +36,7 @@ public sealed class SyncRoadTravelersCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<SyncRoadTravelersCommandHandler>();
 
-        var route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
+        var route = Builders.MakeCaravanRoute(WorldId);
         var routeTraveler = Builders.MakeCaravan(
             route.Id,
             WorldId,
@@ -44,11 +44,22 @@ public sealed class SyncRoadTravelersCommandHandlerTests(DatabaseFixture db)
             purpose: "Seeking work in the next city."
         );
         _traveler = Builders.MakeCreature(WorldId, locationId: LocationB);
+        var connectorA = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
+        var connectorB = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(
-            Builders.MakeCaravanRouteStop(route.Id, 0, LocationA),
-            Builders.MakeCaravanRouteStop(route.Id, 1, LocationB)
+            Builders.MakeCaravanRouteStop(route.Id, 0, LocationA, connectorA.ConnectorId),
+            Builders.MakeCaravanRouteStop(route.Id, 1, LocationB, connectorB.ConnectorId)
         );
+        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.RouteTravelers.Add(routeTraveler);
         _context.Creatures.Add(_traveler);
         _context.RouteTravelerMembers.Add(

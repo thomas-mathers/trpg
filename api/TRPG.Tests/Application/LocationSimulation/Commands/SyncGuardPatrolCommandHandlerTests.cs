@@ -42,9 +42,19 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
 
         // 2 stops, 10 units apart each way at speed 5 = 2 leg hours; with a 1-hour linger the
         // total cycle is 2 * (1 + 2) = 6 hours, and stop A's own linger window is [0, 1).
-        _route = Builders.MakeCaravanRoute(_worldId, lingerHours: 1);
-        var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, _locationA, distanceToNextStop: 10);
-        var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, _locationB, distanceToNextStop: 10);
+        _route = Builders.MakeCaravanRoute(_worldId);
+        var connectorA = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: _worldId
+        );
+        var connectorB = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: _worldId
+        );
+        var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, _locationA, connectorA.ConnectorId);
+        var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, _locationB, connectorB.ConnectorId);
         _traveler = Builders.MakeCaravan(
             _route.Id,
             _worldId,
@@ -57,6 +67,7 @@ public sealed class SyncGuardPatrolCommandHandlerTests(DatabaseFixture db)
 
         _context.Routes.Add(_route);
         _context.RouteSteps.AddRange(stopA, stopB);
+        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.RouteTravelers.Add(_traveler);
         _context.Creatures.AddRange(_guard1, _guard2);
         _context.RouteTravelerMembers.AddRange(

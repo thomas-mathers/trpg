@@ -1447,8 +1447,7 @@ internal static class Builders
 
     public static Route MakeCaravanRoute(
         Guid? worldId = null,
-        string name = "The Capital Circuit",
-        double lingerHours = 1
+        string name = "The Capital Circuit"
     ) =>
         new()
         {
@@ -1461,15 +1460,16 @@ internal static class Builders
         Guid routeId,
         int sequenceIndex,
         Guid locationId,
-        float distanceToNextStop = 10
+        Guid connectorId,
+        double dwellHours = 1
     ) =>
         new()
         {
             RouteId = routeId,
             SequenceIndex = sequenceIndex,
             LocationId = locationId,
-            ConnectorId = Guid.NewGuid(),
-            DwellHours = 1,
+            ConnectorId = connectorId,
+            DwellHours = dwellHours,
         };
 
     public static RouteTraveler MakeCaravan(
@@ -1478,7 +1478,7 @@ internal static class Builders
         double phaseOffsetHours = 0,
         RouteTravelerKind kind = RouteTravelerKind.Caravan,
         string? purpose = null,
-        double speedUnitsPerHour = 10
+        double speedUnitsPerHour = 5
     ) =>
         new()
         {

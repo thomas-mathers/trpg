@@ -75,9 +75,19 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
     {
         // Arrange — 2 stops, 10 units apart each way at speed 5 = 2 leg hours; with a 1-hour
         // linger the total cycle is 2 * (1 + 2) = 6 hours, and stop A's window is [0, 1).
-        var route = Builders.MakeCaravanRoute(_worldId, lingerHours: 1);
-        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, distanceToNextStop: 10);
-        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, distanceToNextStop: 10);
+        var route = Builders.MakeCaravanRoute(_worldId);
+        var connectorA = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: _worldId
+        );
+        var connectorB = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: _worldId
+        );
+        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, connectorA.ConnectorId);
+        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, connectorB.ConnectorId);
         var fare = Builders.MakeCaravanFare(route.Id, _worldId);
         var caravan = Builders.MakeCaravan(route.Id, _worldId, phaseOffsetHours: 0);
         var sign = new CaravanScheduleSign
@@ -98,6 +108,7 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
             context.Routes.Add(route);
             context.RouteSteps.AddRange(stopA, stopB);
+            context.TravelConnectors.AddRange(connectorA, connectorB);
             context.CaravanFares.Add(fare);
             context.RouteTravelers.Add(caravan);
             context.Props.Add(sign);
@@ -116,7 +127,7 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
         // Assert — stop A's window [0, 1) closed 1 hour ago at playtime 2 in-game hours, so the
         // live text should report a future arrival rather than the sign's stored placeholder.
         Assert.StartsWith("Caravan schedule:", result!.Text);
-        Assert.Contains("Clockwise: next arrival", result.Text);
+        Assert.Contains("The Capital Circuit: next arrival", result.Text);
         Assert.DoesNotContain("A wooden signpost", result.Text);
     }
 }
