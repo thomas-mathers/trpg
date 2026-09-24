@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using TRPG.Application.Configuration;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -76,6 +78,7 @@ public class WorldGenerator(
     DungeonTrapGenerator dungeonTrapGenerator,
     DungeonObstacleGenerator dungeonObstacleGenerator,
     WildernessPopulator wildernessPopulator,
+    IOptionsSnapshot<CityTravelOptions> cityTravelOptions,
     ILogger<WorldGenerator> logger
 )
 {
@@ -673,6 +676,17 @@ public class WorldGenerator(
             }
         );
         items.AddRange(initiationQuests.Items);
+
+        travelConnectors.AddRange(
+            CityTravelConnectorGenerator.Generate(
+                worldId,
+                geography.Districts,
+                buildings,
+                rooms,
+                locationConnectors,
+                cityTravelOptions.Value
+            )
+        );
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 

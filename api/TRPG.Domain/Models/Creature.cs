@@ -43,7 +43,7 @@ public enum CreatureState
     Dead,
     Restrained,
     Patrolling,
-    Traveling,
+    Walking,
 }
 
 public enum Gender
