@@ -42,7 +42,6 @@ public enum CreatureState
     Alerted,
     Dead,
     Restrained,
-    Patrolling,
     Walking,
 }
 

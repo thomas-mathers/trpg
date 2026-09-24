@@ -1476,7 +1476,6 @@ internal static class Builders
         Guid routeId,
         Guid? worldId = null,
         double phaseOffsetHours = 0,
-        RouteTravelerKind kind = RouteTravelerKind.Caravan,
         string? purpose = null,
         double speedUnitsPerHour = 5
     ) =>
@@ -1486,7 +1485,6 @@ internal static class Builders
             RouteId = routeId,
             StartedAtPlaytime = -GameClock.RealTimePerInGameHour * phaseOffsetHours,
             SpeedUnitsPerHour = speedUnitsPerHour,
-            Kind = kind,
             Purpose = purpose,
         };
 

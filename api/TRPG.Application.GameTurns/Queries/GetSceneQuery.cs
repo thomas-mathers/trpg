@@ -729,9 +729,7 @@ internal class GetSceneQueryHandler(
     }
 
     private static SceneJourneyInfo? ToSceneJourney(RouteTravelerJourney? journey) =>
-        journey == null
-            ? null
-            : new SceneJourneyInfo(journey.Kind, journey.Purpose, journey.NextDestination);
+        journey == null ? null : new SceneJourneyInfo(journey.Purpose, journey.NextDestination);
 
     private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(
         IReadOnlyCollection<LocationConnector> connectors,

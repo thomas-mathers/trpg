@@ -108,7 +108,6 @@ public static class CaravanRouteSeeder
                 StartedAtPlaytime =
                     -GameClock.RealTimePerInGameHour * durationHours * index / instanceCount,
                 SpeedUnitsPerHour = options.SpeedUnitsPerHour,
-                Kind = RouteTravelerKind.Caravan,
                 Purpose = name,
             })
             .ToArray();

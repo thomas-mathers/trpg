@@ -49,7 +49,7 @@ public record SceneRoomInfo(string Name, string Description, int FloorNumber);
 
 public record ScenePropInfo(Guid Id, string Name, string Description, string Type);
 
-public record SceneJourneyInfo(RouteTravelerKind Kind, string Purpose, string NextDestination);
+public record SceneJourneyInfo(string Purpose, string NextDestination);
 
 public record SceneCreatureInfo(
     Guid Id,

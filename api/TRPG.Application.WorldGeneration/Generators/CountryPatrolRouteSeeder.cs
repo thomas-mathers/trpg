@@ -107,7 +107,6 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                 RouteId = route.Id,
                 StartedAtPlaytime = TimeSpan.Zero,
                 SpeedUnitsPerHour = options.SpeedUnitsPerHour,
-                Kind = RouteTravelerKind.GuardPatrol,
                 Purpose = $"Patrolling the roads of {country.Name}.",
             };
             var guardGroup = creatureGroupGenerator.Generate(

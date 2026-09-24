@@ -26,7 +26,7 @@ public sealed class LlmSceneMapperTests
         Assert.Equal(-50, creature.Reputation);
         Assert.Equal(700, creature.CurrentHp);
         Assert.True(creature.CanTrade);
-        Assert.Equal(RouteTravelerKind.Pilgrim, creature.Journey?.Kind);
+        Assert.Equal("Making a pilgrimage.", creature.Journey?.Purpose);
         Assert.Equal("Westmere", creature.Journey?.NextDestination);
     }
 
@@ -165,11 +165,7 @@ public sealed class LlmSceneMapperTests
             QuestMarkers: [],
             ReadyToDeliver: false,
             Journey: name == "Cora"
-                ? new SceneJourneyInfo(
-                    RouteTravelerKind.Pilgrim,
-                    "Making a pilgrimage.",
-                    "Westmere"
-                )
+                ? new SceneJourneyInfo("Making a pilgrimage.", "Westmere")
                 : null
         );
 }

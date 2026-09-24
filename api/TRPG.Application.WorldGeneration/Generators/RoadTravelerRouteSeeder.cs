@@ -18,7 +18,7 @@ public record RoadTravelerRouteSeederResult(
 internal record RoadTravelerSeedInput(
     WorldGeneratorResult World,
     Country Country,
-    RouteTravelerKind Kind,
+    RoadTravelerType Type,
     CityRoadStop Origin,
     CityRoadStop Destination,
     IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> Graph,
@@ -26,6 +26,12 @@ internal record RoadTravelerSeedInput(
     int SequenceIndex,
     int TravelerCount
 );
+
+internal enum RoadTravelerType
+{
+    Pilgrim,
+    Adventurer,
+}
 
 internal record CityRoadStop(City City, Guid LocationId, string? TempleName);
 
@@ -102,7 +108,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                     new RoadTravelerSeedInput(
                         world,
                         country,
-                        RouteTravelerKind.Pilgrim,
+                        RoadTravelerType.Pilgrim,
                         origin,
                         destination,
                         graph,
@@ -131,7 +137,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                     new RoadTravelerSeedInput(
                         world,
                         country,
-                        RouteTravelerKind.Adventurer,
+                        RoadTravelerType.Adventurer,
                         stops[index % stops.Count],
                         stops[(index + 1) % stops.Count],
                         graph,
@@ -203,7 +209,6 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                 * input.SequenceIndex
                 / input.TravelerCount,
             SpeedUnitsPerHour = input.Options.SpeedUnitsPerHour,
-            Kind = input.Kind,
             Purpose = BuildPurpose(input),
         };
     }
@@ -211,15 +216,15 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
     private CreatureGeneratorResult GenerateCreature(RoadTravelerSeedInput input, Guid locationId)
     {
         var profession =
-            input.Kind == RouteTravelerKind.Pilgrim
+            input.Type == RoadTravelerType.Pilgrim
                 ? Profession.Cleric
                 : AdventurerProfessions[input.SequenceIndex % AdventurerProfessions.Length];
         var minimumLevel =
-            input.Kind == RouteTravelerKind.Pilgrim
+            input.Type == RoadTravelerType.Pilgrim
                 ? input.Options.MinimumPilgrimLevel
                 : input.Options.MinimumAdventurerLevel;
         var maximumLevel =
-            input.Kind == RouteTravelerKind.Pilgrim
+            input.Type == RoadTravelerType.Pilgrim
                 ? input.Options.MaximumPilgrimLevel
                 : input.Options.MaximumAdventurerLevel;
 
@@ -239,7 +244,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
     }
 
     private static string BuildPurpose(RoadTravelerSeedInput input) =>
-        input.Kind == RouteTravelerKind.Pilgrim
+        input.Type == RoadTravelerType.Pilgrim
             ? $"Making a pilgrimage to {input.Destination.TempleName} in {input.Destination.City.Name}."
             : $"Traveling to {input.Destination.City.Name} in search of work, rumors, and adventure.";
 
