@@ -12,7 +12,6 @@ public class GetRouteTravelerJourneysByCreatureIdsQuery
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
     public required TimeSpan Playtime { get; init; }
-    public required float SpeedUnitsPerHour { get; init; }
 }
 
 internal class GetRouteTravelerJourneysByCreatureIdsQueryHandler(
@@ -52,7 +51,6 @@ internal class GetRouteTravelerJourneysByCreatureIdsQueryHandler(
             {
                 RouteTravelerIds = travelerIds,
                 Playtime = query.Playtime,
-                SpeedUnitsPerHour = query.SpeedUnitsPerHour,
             },
             cancellationToken
         );

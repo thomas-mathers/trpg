@@ -5,6 +5,7 @@ using TRPG.Application.Combat.Results;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using Profession = TRPG.Domain.Models.Profession;
 
@@ -1446,44 +1447,45 @@ internal static class Builders
 
     public static Route MakeCaravanRoute(
         Guid? worldId = null,
-        string name = "The Capital Circuit",
-        double lingerHours = 1
+        string name = "The Capital Circuit"
     ) =>
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
-            LingerHours = lingerHours,
+            Traversal = RouteTraversal.Cyclic,
         };
 
-    public static RouteStop MakeCaravanRouteStop(
+    public static RouteStep MakeCaravanRouteStop(
         Guid routeId,
         int sequenceIndex,
         Guid locationId,
-        float distanceToNextStop = 10
+        Guid connectorId,
+        double dwellHours = 1
     ) =>
         new()
         {
             RouteId = routeId,
             SequenceIndex = sequenceIndex,
             LocationId = locationId,
-            DistanceToNextStop = distanceToNextStop,
+            ConnectorId = connectorId,
+            DwellHours = dwellHours,
         };
 
     public static RouteTraveler MakeCaravan(
         Guid routeId,
         Guid? worldId = null,
         double phaseOffsetHours = 0,
-        RouteDirection direction = RouteDirection.Clockwise,
         RouteTravelerKind kind = RouteTravelerKind.Caravan,
-        string? purpose = null
+        string? purpose = null,
+        double speedUnitsPerHour = 5
     ) =>
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
             RouteId = routeId,
-            PhaseOffsetHours = phaseOffsetHours,
-            Direction = direction,
+            StartedAtPlaytime = -GameClock.RealTimePerInGameHour * phaseOffsetHours,
+            SpeedUnitsPerHour = speedUnitsPerHour,
             Kind = kind,
             Purpose = purpose,
         };

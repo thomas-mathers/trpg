@@ -1,6 +1,5 @@
 using TRPG.Application.Books.Queries;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -244,7 +243,6 @@ internal class GetNpcConversationBriefingQueryHandler(
             {
                 CreatureIds = [query.NpcId],
                 Playtime = query.Playtime,
-                SpeedUnitsPerHour = CreatureGeneratorOptions.WalkingSpeedUnitsPerHour,
             },
             cancellationToken
         );

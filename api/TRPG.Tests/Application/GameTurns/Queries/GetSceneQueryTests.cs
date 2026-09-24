@@ -751,18 +751,28 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             locationId: destinationLocationId
         );
 
-        var route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
+        var route = Builders.MakeCaravanRoute(WorldId);
+        var connectorHere = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
+        var connectorThere = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
         var stopHere = Builders.MakeCaravanRouteStop(
             route.Id,
             0,
             _player.LocationId,
-            distanceToNextStop: 10
+            connectorHere.ConnectorId
         );
         var stopThere = Builders.MakeCaravanRouteStop(
             route.Id,
             1,
             destinationLocationId,
-            distanceToNextStop: 10
+            connectorThere.ConnectorId
         );
         var fare = Builders.MakeCaravanFare(route.Id, WorldId, ticketFeeGold: 15);
         var caravan = Builders.MakeCaravan(route.Id, WorldId);
@@ -771,7 +781,8 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         _context.Locations.Add(destinationLocation);
         _context.Districts.Add(destinationDistrict);
         _context.Routes.Add(route);
-        _context.RouteStops.AddRange(stopHere, stopThere);
+        _context.RouteSteps.AddRange(stopHere, stopThere);
+        _context.TravelConnectors.AddRange(connectorHere, connectorThere);
         _context.CaravanFares.Add(fare);
         _context.RouteTravelers.Add(caravan);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

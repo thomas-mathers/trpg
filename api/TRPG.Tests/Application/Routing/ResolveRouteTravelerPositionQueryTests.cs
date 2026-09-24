@@ -11,8 +11,6 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private const float SpeedUnitsPerHour = 5;
-
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid LocationA = Guid.NewGuid();
     private static readonly Guid LocationB = Guid.NewGuid();
@@ -30,13 +28,24 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ResolveRouteTravelerPositionQueryHandler>();
 
-        var route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
-        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, LocationA, distanceToNextStop: 10);
-        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, LocationB, distanceToNextStop: 10);
+        var route = Builders.MakeCaravanRoute(WorldId);
+        var connectorA = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
+        var connectorB = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
+        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, LocationA, connectorA.ConnectorId);
+        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, LocationB, connectorB.ConnectorId);
         _traveler = Builders.MakeCaravan(route.Id, WorldId);
 
         _context.Routes.Add(route);
-        _context.RouteStops.AddRange(stopA, stopB);
+        _context.RouteSteps.AddRange(stopA, stopB);
+        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.RouteTravelers.Add(_traveler);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -56,13 +65,12 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
             {
                 RouteTravelerId = _traveler.Id,
                 Playtime = TimeSpan.Zero,
-                SpeedUnitsPerHour = SpeedUnitsPerHour,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var lingering = Assert.IsType<RoutePosition.Lingering>(position);
+        var lingering = Assert.IsType<RouteTimelinePosition.Lingering>(position);
         Assert.Equal(LocationA, lingering.LocationId);
     }
 
@@ -75,54 +83,64 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
             {
                 RouteTravelerId = _traveler.Id,
                 Playtime = GameClock.RealTimePerInGameHour * 2,
-                SpeedUnitsPerHour = SpeedUnitsPerHour,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var inTransit = Assert.IsType<RoutePosition.InTransit>(position);
+        var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position);
         Assert.Equal(LocationA, inTransit.FromLocationId);
         Assert.Equal(LocationB, inTransit.ToLocationId);
     }
 
     [Fact]
-    public async Task Handle_WalksStopsBackward_ForACounterClockwiseTraveler()
+    public async Task Handle_FollowsTheStoredStepOrder()
     {
         // Arrange — a separate 3-stop route so the counter-clockwise leg order (X -> Z -> Y) is
         // distinguishable from clockwise (X -> Y -> Z).
         var locationX = Guid.NewGuid();
         var locationY = Guid.NewGuid();
         var locationZ = Guid.NewGuid();
-        var route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
-        var stopX = Builders.MakeCaravanRouteStop(route.Id, 0, locationX, distanceToNextStop: 10);
-        var stopY = Builders.MakeCaravanRouteStop(route.Id, 1, locationY, distanceToNextStop: 20);
-        var stopZ = Builders.MakeCaravanRouteStop(route.Id, 2, locationZ, distanceToNextStop: 5);
-        var counterClockwiseTraveler = Builders.MakeCaravan(
-            route.Id,
-            WorldId,
-            direction: RouteDirection.CounterClockwise
+        var route = Builders.MakeCaravanRoute(WorldId);
+        var connectorX = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
         );
+        var connectorY = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 20,
+            worldId: WorldId
+        );
+        var connectorZ = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 5,
+            worldId: WorldId
+        );
+        var stopX = Builders.MakeCaravanRouteStop(route.Id, 0, locationX, connectorX.ConnectorId);
+        var stopY = Builders.MakeCaravanRouteStop(route.Id, 1, locationY, connectorY.ConnectorId);
+        var stopZ = Builders.MakeCaravanRouteStop(route.Id, 2, locationZ, connectorZ.ConnectorId);
+        var traveler = Builders.MakeCaravan(route.Id, WorldId);
         _context.Routes.Add(route);
-        _context.RouteStops.AddRange(stopX, stopY, stopZ);
-        _context.RouteTravelers.Add(counterClockwiseTraveler);
+        _context.RouteSteps.AddRange(stopX, stopY, stopZ);
+        _context.TravelConnectors.AddRange(connectorX, connectorY, connectorZ);
+        _context.RouteTravelers.Add(traveler);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var position = await _handler.Handle(
             new ResolveRouteTravelerPositionQuery
             {
-                RouteTravelerId = counterClockwiseTraveler.Id,
+                RouteTravelerId = traveler.Id,
                 Playtime = GameClock.RealTimePerInGameHour * 1,
-                SpeedUnitsPerHour = SpeedUnitsPerHour,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var inTransit = Assert.IsType<RoutePosition.InTransit>(position);
+        var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position);
         Assert.Equal(locationX, inTransit.FromLocationId);
-        Assert.Equal(locationZ, inTransit.ToLocationId);
+        Assert.Equal(locationY, inTransit.ToLocationId);
     }
 
     [Fact]
@@ -139,15 +157,14 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
             {
                 RouteTravelerIds = [_traveler.Id, secondTraveler.Id],
                 Playtime = TimeSpan.Zero,
-                SpeedUnitsPerHour = SpeedUnitsPerHour,
             },
             TestContext.Current.CancellationToken
         );
 
         Assert.Equal(2, positions.Count);
-        Assert.IsType<RoutePosition.Lingering>(positions[_traveler.Id].Position);
+        Assert.IsType<RouteTimelinePosition.Lingering>(positions[_traveler.Id].Position);
         Assert.Equal(LocationB, positions[_traveler.Id].NextLocationId);
-        Assert.IsType<RoutePosition.Lingering>(positions[secondTraveler.Id].Position);
+        Assert.IsType<RouteTimelinePosition.Lingering>(positions[secondTraveler.Id].Position);
         Assert.Equal(LocationA, positions[secondTraveler.Id].NextLocationId);
     }
 }

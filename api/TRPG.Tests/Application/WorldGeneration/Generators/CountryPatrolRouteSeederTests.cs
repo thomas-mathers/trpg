@@ -37,17 +37,27 @@ public class CountryPatrolRouteSeederTests
         {
             var country = world.Countries.Single(c => c.Id == countryId);
             var route = result.Routes.Single(r => r.Name == $"{country.Name} Road Patrol");
-            var stops = result.Stops.Where(s => s.RouteId == route.Id).ToArray();
+            var steps = result.Steps.Where(step => step.RouteId == route.Id).ToArray();
 
             // Every leg in this fixture's star topology has to pass through that country's own
             // single shared hub, so the loop lingers there once per city-to-city leg — never at a
             // city gate, and never at the other country's hub either.
-            Assert.Equal(expectedLocationIds.Count, stops.Length);
+            Assert.Equal(expectedLocationIds.Count * 2, steps.Length);
             Assert.All(
-                stops,
-                stop => Assert.Equal(hubLocationIdByCountryId[countryId], stop.LocationId)
+                steps.Where(step => step.DwellHours > 0),
+                step => Assert.Equal(hubLocationIdByCountryId[countryId], step.LocationId)
             );
-            Assert.DoesNotContain(stops, stop => everyEntranceLocationId.Contains(stop.LocationId));
+            Assert.Equal(
+                expectedLocationIds.OrderBy(id => id),
+                steps
+                    .Where(step => step.DwellHours == 0)
+                    .Select(step => step.LocationId)
+                    .OrderBy(id => id)
+            );
+            Assert.DoesNotContain(
+                steps.Where(step => step.DwellHours > 0),
+                step => everyEntranceLocationId.Contains(step.LocationId)
+            );
         }
     }
 

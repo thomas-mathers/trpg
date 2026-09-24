@@ -67,7 +67,7 @@ internal static class SignEndpoints
         );
 
         var lines = arrivals
-            .OrderBy(arrival => arrival.Direction)
+            .OrderBy(arrival => arrival.RouteName)
             .Select(arrival => FormatArrival(arrival, playtime));
         return TypedResults.Ok(
             new SignTextResponse("Caravan schedule:\n" + string.Join("\n", lines))
@@ -76,17 +76,20 @@ internal static class SignEndpoints
 
     private static string FormatArrival(NextCaravanArrival arrival, TimeSpan currentPlaytime)
     {
-        var directionLabel =
-            arrival.Direction == RouteDirection.Clockwise ? "Clockwise" : "Counter-clockwise";
+        var routeLabel = arrival.RouteName.Replace(
+            "The Capital Circuit — ",
+            "",
+            StringComparison.Ordinal
+        );
         if (arrival.HoursUntilArrival <= 0)
         {
-            return $"{directionLabel}: here now";
+            return $"{routeLabel}: here now";
         }
 
         var arrivalPlaytime =
             currentPlaytime + GameClock.RealTimePerInGameHour * arrival.HoursUntilArrival;
         var arrivalDate = GameClock.GetCurrentInGameDate(arrivalPlaytime);
 
-        return $"{directionLabel}: next arrival {arrivalDate.WeekdayName}, {arrivalDate.MonthName} {arrivalDate.Day} - {arrivalDate.Hour}:00";
+        return $"{routeLabel}: next arrival {arrivalDate.WeekdayName}, {arrivalDate.MonthName} {arrivalDate.Day} - {arrivalDate.Hour}:00";
     }
 }

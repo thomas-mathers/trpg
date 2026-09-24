@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Routing.Queries;
@@ -31,8 +29,7 @@ internal class SyncRoadTravelersCommandHandler(
         IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition>
     > resolveRouteTravelerPositions,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IOptionsSnapshot<RoadTravelerOptions> options
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures
 ) : ICommandHandler<SyncRoadTravelersCommand>
 {
     public async Task Handle(
@@ -94,7 +91,6 @@ internal class SyncRoadTravelersCommandHandler(
             {
                 RouteTravelerIds = roadTravelers.Keys.ToArray(),
                 Playtime = command.Playtime,
-                SpeedUnitsPerHour = options.Value.SpeedUnitsPerHour,
             },
             cancellationToken
         );
@@ -168,16 +164,24 @@ internal class SyncRoadTravelersCommandHandler(
         relocations[target].Add(creature.Id);
     }
 
-    private static RoadTravelerTarget ResolveTarget(RoutePosition position) =>
+    private static RoadTravelerTarget ResolveTarget(RouteTimelinePosition position) =>
         position switch
         {
-            RoutePosition.Lingering lingering => new RoadTravelerTarget(
+            RouteTimelinePosition.Pending pending => new RoadTravelerTarget(
+                pending.LocationId,
+                CreatureState.Idle
+            ),
+            RouteTimelinePosition.Lingering lingering => new RoadTravelerTarget(
                 lingering.LocationId,
                 CreatureState.Idle
             ),
-            RoutePosition.InTransit inTransit => new RoadTravelerTarget(
+            RouteTimelinePosition.InTransit inTransit => new RoadTravelerTarget(
                 inTransit.FromLocationId,
                 CreatureState.Traveling
+            ),
+            RouteTimelinePosition.Arrived arrived => new RoadTravelerTarget(
+                arrived.LocationId,
+                CreatureState.Idle
             ),
             _ => throw new InvalidOperationException("Unknown route position."),
         };

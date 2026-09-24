@@ -6,7 +6,7 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 public record RoadTravelerRouteSeederResult(
     IReadOnlyList<Route> Routes,
-    IReadOnlyList<RouteStop> Stops,
+    IReadOnlyList<RouteStep> Steps,
     IReadOnlyList<RouteTraveler> RouteTravelers,
     IReadOnlyList<RouteTravelerMember> Members,
     IReadOnlyList<Creature> Creatures,
@@ -21,15 +21,13 @@ internal record RoadTravelerSeedInput(
     RouteTravelerKind Kind,
     CityRoadStop Origin,
     CityRoadStop Destination,
-    IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> Adjacency,
+    IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> Graph,
     RoadTravelerOptions Options,
     int SequenceIndex,
     int TravelerCount
 );
 
 internal record CityRoadStop(City City, Guid LocationId, string? TempleName);
-
-internal record RoadPathNode(Guid LocationId, float DistanceFromPrevious);
 
 public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerator)
 {
@@ -49,7 +47,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
     )
     {
         var results = new List<SeededRoadTraveler>();
-        var adjacency = CaravanRouteSeeder.BuildTravelAdjacency(world);
+        var graph = TravelGraph.Build(world);
         var countryIdByLocationId = BuildCountryIdByLocationId(world);
         var cityStops = BuildCityStops(world);
 
@@ -61,16 +59,16 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                 continue;
             }
 
-            var countryAdjacency = FilterToCountry(adjacency, countryIdByLocationId, country.Id);
-            results.AddRange(SeedPilgrims(world, country, stops, countryAdjacency, options));
-            results.AddRange(SeedAdventurers(world, country, stops, countryAdjacency, options));
+            var countryGraph = FilterToCountry(graph, countryIdByLocationId, country.Id);
+            results.AddRange(SeedPilgrims(world, country, stops, countryGraph, options));
+            results.AddRange(SeedAdventurers(world, country, stops, countryGraph, options));
         }
 
         var creatures = results.Select(result => result.Creature.Creature).ToArray();
         var profiles = GenerateProfiles(world, creatures);
         return new RoadTravelerRouteSeederResult(
             results.Select(result => result.Route).ToArray(),
-            results.SelectMany(result => result.Stops).ToArray(),
+            results.SelectMany(result => result.Steps).ToArray(),
             results.Select(result => result.RouteTraveler).ToArray(),
             results.Select(result => result.Member).ToArray(),
             creatures,
@@ -84,7 +82,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
         WorldGeneratorResult world,
         Country country,
         IReadOnlyList<CityRoadStop> stops,
-        IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
+        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
         RoadTravelerOptions options
     )
     {
@@ -107,7 +105,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                         RouteTravelerKind.Pilgrim,
                         origin,
                         destination,
-                        adjacency,
+                        graph,
                         options,
                         index,
                         options.PilgrimsPerCountry
@@ -123,7 +121,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
         WorldGeneratorResult world,
         Country country,
         IReadOnlyList<CityRoadStop> stops,
-        IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
+        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
         RoadTravelerOptions options
     ) =>
         Enumerable
@@ -136,7 +134,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                         RouteTravelerKind.Adventurer,
                         stops[index % stops.Count],
                         stops[(index + 1) % stops.Count],
-                        adjacency,
+                        graph,
                         options,
                         index,
                         options.AdventurersPerCountry
@@ -149,23 +147,36 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
 
     private SeededRoadTraveler? SeedTraveler(RoadTravelerSeedInput input)
     {
-        var path = FindPath(input.Adjacency, input.Origin.LocationId, input.Destination.LocationId);
-        if (path.Count < 2)
+        var forwardPath = TravelGraph.FindShortestPath(
+            input.Graph,
+            input.Origin.LocationId,
+            input.Destination.LocationId
+        );
+        var returnPath = TravelGraph.FindShortestPath(
+            input.Graph,
+            input.Destination.LocationId,
+            input.Origin.LocationId
+        );
+        if (forwardPath.Count == 0 || returnPath.Count == 0)
         {
             return null;
         }
 
         var routeId = Guid.NewGuid();
-        var stops = BuildRoundTripStops(path, input.Adjacency, routeId);
+        var seededSteps = BuildRoundTripSteps(
+            forwardPath.Concat(returnPath).ToArray(),
+            input,
+            routeId
+        );
         var route = new Route
         {
             Id = routeId,
             WorldId = input.World.World.Id,
             Name = $"{input.Origin.City.Name} to {input.Destination.City.Name} journey",
-            LingerHours = input.Options.LingerHours,
+            Traversal = RouteTraversal.Cyclic,
         };
-        var routeTraveler = BuildRouteTraveler(input, route, stops);
-        var creature = GenerateCreature(input, stops[0].LocationId);
+        var routeTraveler = BuildRouteTraveler(input, route, seededSteps.DurationHours);
+        var creature = GenerateCreature(input, seededSteps.Steps[0].LocationId);
         var member = new RouteTravelerMember
         {
             WorldId = input.World.World.Id,
@@ -173,29 +184,25 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
             CreatureId = creature.Creature.Id,
         };
 
-        return new SeededRoadTraveler(route, stops, routeTraveler, member, creature);
+        return new SeededRoadTraveler(route, seededSteps.Steps, routeTraveler, member, creature);
     }
 
     private static RouteTraveler BuildRouteTraveler(
         RoadTravelerSeedInput input,
         Route route,
-        IReadOnlyList<RouteStop> stops
+        double durationHours
     )
     {
-        var waypoints = stops
-            .Select(stop => new RouteWaypoint(stop.LocationId, stop.DistanceToNextStop))
-            .ToArray();
-        var cycleHours = RouteCycle.TotalCycleHours(
-            waypoints,
-            route.LingerHours,
-            input.Options.SpeedUnitsPerHour
-        );
         return new RouteTraveler
         {
             WorldId = input.World.World.Id,
             RouteId = route.Id,
-            Direction = RouteDirection.Clockwise,
-            PhaseOffsetHours = cycleHours * input.SequenceIndex / input.TravelerCount,
+            StartedAtPlaytime =
+                -GameClock.RealTimePerInGameHour
+                * durationHours
+                * input.SequenceIndex
+                / input.TravelerCount,
+            SpeedUnitsPerHour = input.Options.SpeedUnitsPerHour,
             Kind = input.Kind,
             Purpose = BuildPurpose(input),
         };
@@ -236,89 +243,30 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
             ? $"Making a pilgrimage to {input.Destination.TempleName} in {input.Destination.City.Name}."
             : $"Traveling to {input.Destination.City.Name} in search of work, rumors, and adventure.";
 
-    private static IReadOnlyList<RouteStop> BuildRoundTripStops(
-        IReadOnlyList<RoadPathNode> path,
-        IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
+    private static SeededRouteSteps BuildRoundTripSteps(
+        IReadOnlyList<TravelPathLeg> legs,
+        RoadTravelerSeedInput input,
         Guid routeId
     )
     {
-        var locationIds = path.Select(node => node.LocationId)
-            .Concat(path.Skip(1).SkipLast(1).Reverse().Select(node => node.LocationId))
-            .ToArray();
-        return locationIds
-            .Select(
-                (locationId, index) =>
-                    new RouteStop
+        var steps = legs.Select(
+                (leg, index) =>
+                    new RouteStep
                     {
+                        WorldId = input.World.World.Id,
                         RouteId = routeId,
                         SequenceIndex = index,
-                        LocationId = locationId,
-                        DistanceToNextStop = FindDistance(
-                            adjacency,
-                            locationId,
-                            locationIds[(index + 1) % locationIds.Length]
-                        ),
+                        LocationId = leg.OriginLocationId,
+                        ConnectorId = leg.ConnectorId,
+                        DwellHours = input.Options.LingerHours,
                     }
             )
             .ToArray();
+        var durationHours = legs.Sum(leg =>
+            input.Options.LingerHours + leg.Distance / input.Options.SpeedUnitsPerHour
+        );
+        return new SeededRouteSteps(steps, durationHours);
     }
-
-    private static IReadOnlyList<RoadPathNode> FindPath(
-        IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
-        Guid origin,
-        Guid destination
-    )
-    {
-        var cameFrom = new Dictionary<Guid, (Guid Parent, float Distance)>
-        {
-            [origin] = (origin, 0),
-        };
-        var queue = new Queue<Guid>();
-        queue.Enqueue(origin);
-        while (queue.Count > 0 && !cameFrom.ContainsKey(destination))
-        {
-            var current = queue.Dequeue();
-            foreach (var edge in adjacency.GetValueOrDefault(current, []))
-            {
-                if (cameFrom.TryAdd(edge.Neighbor, (current, edge.Distance)))
-                {
-                    queue.Enqueue(edge.Neighbor);
-                }
-            }
-        }
-
-        return ReconstructPath(cameFrom, origin, destination);
-    }
-
-    private static IReadOnlyList<RoadPathNode> ReconstructPath(
-        IReadOnlyDictionary<Guid, (Guid Parent, float Distance)> cameFrom,
-        Guid origin,
-        Guid destination
-    )
-    {
-        if (!cameFrom.ContainsKey(destination))
-        {
-            return [];
-        }
-
-        var path = new List<RoadPathNode>();
-        for (var node = destination; ; node = cameFrom[node].Parent)
-        {
-            path.Add(new RoadPathNode(node, cameFrom[node].Distance));
-            if (node == origin)
-            {
-                break;
-            }
-        }
-        path.Reverse();
-        return path;
-    }
-
-    private static float FindDistance(
-        IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
-        Guid origin,
-        Guid destination
-    ) => adjacency[origin].First(edge => edge.Neighbor == destination).Distance;
 
     private static IReadOnlyList<CityRoadStop> BuildCityStops(WorldGeneratorResult world)
     {
@@ -356,20 +304,23 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
         );
     }
 
-    private static IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> FilterToCountry(
-        IReadOnlyDictionary<Guid, List<(Guid Neighbor, float Distance)>> adjacency,
+    private static IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> FilterToCountry(
+        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
         IReadOnlyDictionary<Guid, Guid> countryIdByLocationId,
         Guid countryId
     ) =>
-        adjacency
+        graph
             .Where(pair => countryIdByLocationId.GetValueOrDefault(pair.Key) == countryId)
             .ToDictionary(
                 pair => pair.Key,
                 pair =>
-                    pair.Value.Where(edge =>
-                            countryIdByLocationId.GetValueOrDefault(edge.Neighbor) == countryId
-                        )
-                        .ToList()
+                    (IReadOnlyList<TravelGraphEdge>)
+                        pair
+                            .Value.Where(edge =>
+                                countryIdByLocationId.GetValueOrDefault(edge.DestinationLocationId)
+                                == countryId
+                            )
+                            .ToArray()
             );
 
     private static IReadOnlyList<CreatureProfile> GenerateProfiles(
@@ -392,9 +343,11 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
 
     private record SeededRoadTraveler(
         Route Route,
-        IReadOnlyList<RouteStop> Stops,
+        IReadOnlyList<RouteStep> Steps,
         RouteTraveler RouteTraveler,
         RouteTravelerMember Member,
         CreatureGeneratorResult Creature
     );
+
+    private record SeededRouteSteps(IReadOnlyList<RouteStep> Steps, double DurationHours);
 }

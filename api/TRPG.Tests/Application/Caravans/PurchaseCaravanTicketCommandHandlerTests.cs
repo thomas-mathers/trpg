@@ -38,15 +38,26 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<PurchaseCaravanTicketCommandHandler>();
 
-        _route = Builders.MakeCaravanRoute(WorldId, lingerHours: 1);
-        var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, LocationA, distanceToNextStop: 10);
-        var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, LocationB, distanceToNextStop: 10);
+        _route = Builders.MakeCaravanRoute(WorldId);
+        var connectorA = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
+        var connectorB = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: WorldId
+        );
+        var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, LocationA, connectorA.ConnectorId);
+        var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, LocationB, connectorB.ConnectorId);
         var fare = Builders.MakeCaravanFare(_route.Id, WorldId, ticketFeeGold: 10);
         _caravan = Builders.MakeCaravan(_route.Id, WorldId);
         _player = Builders.MakeCreature(worldId: WorldId, locationId: LocationA);
 
         _context.Routes.Add(_route);
-        _context.RouteStops.AddRange(stopA, stopB);
+        _context.RouteSteps.AddRange(stopA, stopB);
+        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.CaravanFares.Add(fare);
         _context.RouteTravelers.Add(_caravan);
         _context.Creatures.Add(_player);

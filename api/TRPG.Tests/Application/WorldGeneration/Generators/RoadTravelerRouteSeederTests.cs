@@ -52,9 +52,9 @@ public class RoadTravelerRouteSeederTests
 
         foreach (var routeTraveler in result.RouteTravelers)
         {
-            var stops = result.Stops.Where(stop => stop.RouteId == routeTraveler.RouteId).ToArray();
-            Assert.Contains(stops, stop => stop.LocationId == world.HubLocationId);
-            Assert.Equal(4, stops.Length);
+            var steps = result.Steps.Where(step => step.RouteId == routeTraveler.RouteId).ToArray();
+            Assert.Contains(steps, step => step.LocationId == world.HubLocationId);
+            Assert.Equal(4, steps.Length);
         }
     }
 

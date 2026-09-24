@@ -6,13 +6,12 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Routing.Queries;
 
-public record ResolvedRouteTravelerPosition(RoutePosition Position, Guid NextLocationId);
+public record ResolvedRouteTravelerPosition(RouteTimelinePosition Position, Guid NextLocationId);
 
 public class ResolveRouteTravelerPositionsQuery
 {
     public required IReadOnlyCollection<Guid> RouteTravelerIds { get; init; }
     public required TimeSpan Playtime { get; init; }
-    public required float SpeedUnitsPerHour { get; init; }
 }
 
 internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext context)
@@ -28,7 +27,7 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
     {
         var travelers = await context
             .RouteTravelers.AsNoTracking()
-            .Where(t => query.RouteTravelerIds.AsEnumerable().Contains(t.Id))
+            .Where(traveler => query.RouteTravelerIds.AsEnumerable().Contains(traveler.Id))
             .ToArrayAsync(cancellationToken);
         var routeIds = travelers.Select(traveler => traveler.RouteId).Distinct().ToArray();
 
@@ -37,57 +36,78 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
             .Where(route => routeIds.AsEnumerable().Contains(route.Id))
             .ToDictionaryAsync(route => route.Id, cancellationToken);
 
-        var storedStops = await context
-            .RouteStops.AsNoTracking()
-            .Where(stop => routeIds.AsEnumerable().Contains(stop.RouteId))
-            .OrderBy(stop => stop.SequenceIndex)
+        var routeSteps = await context
+            .RouteSteps.AsNoTracking()
+            .Where(step => routeIds.AsEnumerable().Contains(step.RouteId))
+            .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(cancellationToken);
-        var stopsByRouteId = storedStops
-            .GroupBy(stop => stop.RouteId)
+        var connectorIds = routeSteps
+            .Where(step => step.ConnectorId != null)
+            .Select(step => step.ConnectorId!.Value)
+            .Distinct()
+            .ToArray();
+
+        var distancesByConnectorId = await context
+            .TravelConnectors.AsNoTracking()
+            .Where(connector => connectorIds.AsEnumerable().Contains(connector.ConnectorId))
+            .ToDictionaryAsync(
+                connector => connector.ConnectorId,
+                connector => (double)connector.Distance,
+                cancellationToken
+            );
+        var timelineStepsByRouteId = routeSteps
+            .GroupBy(step => step.RouteId)
             .ToDictionary(
                 group => group.Key,
                 group =>
                     group
-                        .Select(stop => new RouteWaypoint(stop.LocationId, stop.DistanceToNextStop))
+                        .Select(step => new RouteTimelineStep(
+                            step.LocationId,
+                            step.ConnectorId,
+                            step.ConnectorId == null
+                                ? 0
+                                : distancesByConnectorId[step.ConnectorId.Value],
+                            step.DwellHours
+                        ))
                         .ToArray()
             );
 
-        return ResolvePositions(query, travelers, routesById, stopsByRouteId);
-    }
-
-    private static IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition> ResolvePositions(
-        ResolveRouteTravelerPositionsQuery query,
-        IReadOnlyCollection<RouteTraveler> travelers,
-        IReadOnlyDictionary<Guid, Route> routesById,
-        IReadOnlyDictionary<Guid, RouteWaypoint[]> stopsByRouteId
-    )
-    {
-        var elapsedHours = query.Playtime / GameClock.RealTimePerInGameHour;
         return travelers.ToDictionary(
             traveler => traveler.Id,
             traveler =>
-            {
-                var route = routesById[traveler.RouteId];
-                var stops = RouteCycle.ToTravelOrder(
-                    stopsByRouteId[traveler.RouteId],
-                    traveler.Direction
-                );
-                var position = RouteCycle.Resolve(
-                    stops,
-                    route.LingerHours,
-                    query.SpeedUnitsPerHour,
-                    elapsedHours + traveler.PhaseOffsetHours
-                );
-                var nextLocationId = position switch
-                {
-                    RoutePosition.Lingering lingering => stops[
-                        (lingering.StopIndex + 1) % stops.Count
-                    ].LocationId,
-                    RoutePosition.InTransit inTransit => inTransit.ToLocationId,
-                    _ => throw new InvalidOperationException("Unknown route position."),
-                };
-                return new ResolvedRouteTravelerPosition(position, nextLocationId);
-            }
+                Resolve(
+                    traveler,
+                    routesById[traveler.RouteId],
+                    timelineStepsByRouteId[traveler.RouteId],
+                    query.Playtime
+                )
         );
+    }
+
+    internal static ResolvedRouteTravelerPosition Resolve(
+        RouteTraveler traveler,
+        Route route,
+        IReadOnlyList<RouteTimelineStep> steps,
+        TimeSpan playtime
+    )
+    {
+        var position = RouteTimeline.Resolve(
+            steps,
+            route.Traversal,
+            traveler.SpeedUnitsPerHour,
+            traveler.StartedAtPlaytime,
+            playtime
+        );
+        var nextLocationId = position switch
+        {
+            RouteTimelinePosition.Pending pending => pending.LocationId,
+            RouteTimelinePosition.Lingering lingering => steps[
+                (lingering.StepIndex + 1) % steps.Count
+            ].LocationId,
+            RouteTimelinePosition.InTransit inTransit => inTransit.ToLocationId,
+            RouteTimelinePosition.Arrived arrived => arrived.LocationId,
+            _ => throw new InvalidOperationException("Unknown route position."),
+        };
+        return new ResolvedRouteTravelerPosition(position, nextLocationId);
     }
 }

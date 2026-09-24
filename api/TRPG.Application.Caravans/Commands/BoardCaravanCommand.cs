@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Routing.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
@@ -33,8 +31,10 @@ public record BoardCaravanResult(
 internal class BoardCaravanCommandHandler(
     ICaravansDbContext caravansContext,
     IRoutingDbContext routingContext,
-    IQueryHandler<ResolveRouteTravelerPositionQuery, RoutePosition?> resolveRouteTravelerPosition,
-    IOptionsSnapshot<CaravanOptions> caravanOptions
+    IQueryHandler<
+        ResolveRouteTravelerPositionQuery,
+        RouteTimelinePosition?
+    > resolveRouteTravelerPosition
 ) : ICommandHandler<BoardCaravanCommand, BoardCaravanResult>
 {
     public async Task<BoardCaravanResult> Handle(
@@ -65,11 +65,10 @@ internal class BoardCaravanCommandHandler(
             {
                 RouteTravelerId = command.CaravanId,
                 Playtime = ticket.PurchasedAtPlaytime,
-                SpeedUnitsPerHour = caravanOptions.Value.SpeedUnitsPerHour,
             },
             cancellationToken
         );
-        if (positionAtPurchase is not RoutePosition.Lingering lingeringAtPurchase)
+        if (positionAtPurchase is not RouteTimelinePosition.Lingering lingeringAtPurchase)
         {
             return new BoardCaravanResult(BoardCaravanOutcome.CaravanNotPresent);
         }
@@ -77,19 +76,43 @@ internal class BoardCaravanCommandHandler(
         var traveler = await routingContext
             .RouteTravelers.AsNoTracking()
             .FirstAsync(t => t.Id == command.CaravanId, cancellationToken);
-        var route = await routingContext
-            .Routes.AsNoTracking()
-            .FirstAsync(r => r.Id == traveler.RouteId, cancellationToken);
-        var storedStops = await routingContext
-            .RouteStops.AsNoTracking()
-            .Where(s => s.RouteId == traveler.RouteId)
-            .OrderBy(s => s.SequenceIndex)
-            .Select(s => new RouteWaypoint(s.LocationId, s.DistanceToNextStop))
+        var routeSteps = await routingContext
+            .RouteSteps.AsNoTracking()
+            .Where(step => step.RouteId == traveler.RouteId)
+            .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(cancellationToken);
-        var stops = RouteCycle.ToTravelOrder(storedStops, traveler.Direction);
+        var connectorIds = routeSteps
+            .Where(step => step.ConnectorId != null)
+            .Select(step => step.ConnectorId!.Value)
+            .ToArray();
 
-        var fromIndex = stops.ToList().FindIndex(s => s.LocationId == ticket.OriginStopLocationId);
-        var toIndex = stops.ToList().FindIndex(s => s.LocationId == ticket.DestinationLocationId);
+        var distancesByConnectorId = await routingContext
+            .TravelConnectors.AsNoTracking()
+            .Where(connector => connectorIds.AsEnumerable().Contains(connector.ConnectorId))
+            .ToDictionaryAsync(
+                connector => connector.ConnectorId,
+                connector => (double)connector.Distance,
+                cancellationToken
+            );
+        var steps = routeSteps
+            .Select(step => new RouteTimelineStep(
+                step.LocationId,
+                step.ConnectorId,
+                step.ConnectorId == null ? 0 : distancesByConnectorId[step.ConnectorId.Value],
+                step.DwellHours
+            ))
+            .ToArray();
+
+        var fromIndex = steps
+            .ToList()
+            .FindIndex(step =>
+                step.LocationId == ticket.OriginStopLocationId && step.DwellHours > 0
+            );
+        var toIndex = steps
+            .ToList()
+            .FindIndex(step =>
+                step.LocationId == ticket.DestinationLocationId && step.DwellHours > 0
+            );
 
         // The trip's total duration is fixed the moment the ticket is valid to buy — anchoring to
         // the purchase instant (rather than "now") keeps the destination arrival in sync with the
@@ -97,13 +120,7 @@ internal class BoardCaravanCommandHandler(
         // buying the ticket and actually clicking Board.
         var idealTripHours =
             lingeringAtPurchase.HoursUntilDeparture
-            + RouteCycle.HoursBetween(
-                stops,
-                route.LingerHours,
-                caravanOptions.Value.SpeedUnitsPerHour,
-                fromIndex,
-                toIndex
-            );
+            + RouteTimeline.HoursBetween(steps, traveler.SpeedUnitsPerHour, fromIndex, toIndex);
         var elapsedHoursSincePurchase =
             (command.Playtime - ticket.PurchasedAtPlaytime) / GameClock.RealTimePerInGameHour;
         var travelTimeHours = Math.Max(0, idealTripHours - elapsedHoursSincePurchase);

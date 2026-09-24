@@ -1,10 +1,8 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -42,10 +40,12 @@ public record PurchaseCaravanTicketResult(
 internal class PurchaseCaravanTicketCommandHandler(
     ICaravansDbContext caravansContext,
     IRoutingDbContext routingContext,
-    IQueryHandler<ResolveRouteTravelerPositionQuery, RoutePosition?> resolveRouteTravelerPosition,
+    IQueryHandler<
+        ResolveRouteTravelerPositionQuery,
+        RouteTimelinePosition?
+    > resolveRouteTravelerPosition,
     IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
-    ICommandHandler<RemoveGoldCommand> removeGold,
-    IOptionsSnapshot<CaravanOptions> caravanOptions
+    ICommandHandler<RemoveGoldCommand> removeGold
 ) : ICommandHandler<PurchaseCaravanTicketCommand, PurchaseCaravanTicketResult>
 {
     public async Task<PurchaseCaravanTicketResult> Handle(
@@ -64,8 +64,8 @@ internal class PurchaseCaravanTicketCommandHandler(
             .FirstAsync(f => f.RouteId == traveler.RouteId, cancellationToken);
 
         var stopLocationIds = await routingContext
-            .RouteStops.AsNoTracking()
-            .Where(s => s.RouteId == traveler.RouteId)
+            .RouteSteps.AsNoTracking()
+            .Where(step => step.RouteId == traveler.RouteId && step.DwellHours > 0)
             .Select(s => s.LocationId)
             .ToArrayAsync(cancellationToken);
 
@@ -82,12 +82,11 @@ internal class PurchaseCaravanTicketCommandHandler(
             {
                 RouteTravelerId = command.CaravanId,
                 Playtime = command.Playtime,
-                SpeedUnitsPerHour = caravanOptions.Value.SpeedUnitsPerHour,
             },
             cancellationToken
         );
         if (
-            position is not RoutePosition.Lingering lingering
+            position is not RouteTimelinePosition.Lingering lingering
             || lingering.LocationId != command.PlayerLocationId
         )
         {

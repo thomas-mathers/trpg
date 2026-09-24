@@ -125,7 +125,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
     public DbSet<WeatherState> WeatherStates => Set<WeatherState>();
     public DbSet<Route> Routes => Set<Route>();
-    public DbSet<RouteStop> RouteStops => Set<RouteStop>();
+    public DbSet<RouteStep> RouteSteps => Set<RouteStep>();
     public DbSet<RouteTraveler> RouteTravelers => Set<RouteTraveler>();
     public DbSet<CaravanFare> CaravanFares => Set<CaravanFare>();
     public DbSet<CaravanTicket> CaravanTickets => Set<CaravanTicket>();
@@ -697,10 +697,12 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(r => r.WorldId);
         });
 
-        modelBuilder.Entity<RouteStop>(entity =>
+        modelBuilder.Entity<RouteStep>(entity =>
         {
+            entity.HasIndex(s => s.WorldId);
             entity.HasIndex(s => s.RouteId);
             entity.HasIndex(s => new { s.RouteId, s.SequenceIndex }).IsUnique();
+            entity.HasIndex(s => s.ConnectorId);
         });
 
         modelBuilder.Entity<RouteTraveler>(entity =>

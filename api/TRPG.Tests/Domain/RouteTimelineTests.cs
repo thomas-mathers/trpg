@@ -129,4 +129,45 @@ public class RouteTimelineTests
 
         Assert.Contains("terminal step", exception.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void HoursBetween_IncludesIntermediateDwellButNotEndpointDwell()
+    {
+        RouteTimelineStep[] steps =
+        [
+            new(LocationA, ConnectorA, Distance: 5, DwellHours: 0.25),
+            new(LocationB, ConnectorB, Distance: 10, DwellHours: 0.5),
+            new(LocationC, Guid.NewGuid(), Distance: 5, DwellHours: 0.75),
+        ];
+
+        var hours = RouteTimeline.HoursBetween(
+            steps,
+            SpeedUnitsPerHour,
+            fromStepIndex: 0,
+            toStepIndex: 2
+        );
+
+        Assert.Equal(2, hours, precision: 10);
+    }
+
+    [Fact]
+    public void HoursUntilNextArrivalAt_UsesTheSharedStartTime()
+    {
+        RouteTimelineStep[] steps =
+        [
+            new(LocationA, ConnectorA, Distance: 5, DwellHours: 0.5),
+            new(LocationB, ConnectorB, Distance: 5, DwellHours: 0.5),
+        ];
+        var playtime = Start + GameClock.RealTimePerInGameHour * 1.25;
+
+        var hours = RouteTimeline.HoursUntilNextArrivalAt(
+            steps,
+            SpeedUnitsPerHour,
+            Start,
+            playtime,
+            targetStepIndex: 0
+        );
+
+        Assert.Equal(0.75, hours, precision: 10);
+    }
 }
