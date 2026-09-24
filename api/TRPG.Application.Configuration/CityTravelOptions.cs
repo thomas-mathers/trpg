@@ -4,4 +4,5 @@ public class CityTravelOptions
 {
     public float BuildingDistance { get; init; } = 5;
     public float DistrictDistance { get; init; } = 15;
+    public double PatrolDwellHours { get; init; } = 0.5;
 }

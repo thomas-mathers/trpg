@@ -30,14 +30,48 @@ public class BarracksGuardDutyAssignerTests
                 AssignedCreatureId = guard.Id,
             })
             .ToList();
+        var districts = new[]
+        {
+            Builders.MakeDistrict(Guid.NewGuid(), worldId: _worldId, locationId: _waypointA),
+            Builders.MakeDistrict(
+                Guid.NewGuid(),
+                DistrictType.Residential,
+                worldId: _worldId,
+                locationId: _waypointB
+            ),
+            Builders.MakeDistrict(
+                Guid.NewGuid(),
+                DistrictType.Scientific,
+                worldId: _worldId,
+                locationId: _waypointC
+            ),
+        };
+        var connectors = new[]
+        {
+            Connector(_waypointA, _waypointB),
+            Connector(_waypointB, _waypointA),
+            Connector(_waypointA, _waypointC),
+            Connector(_waypointC, _waypointA),
+        };
 
         var result = BarracksGuardDutyAssigner.Generate(
             new BarracksGuardDutyAssignerInput(
                 _worldId,
+                "Test City",
                 _cityFactionId,
                 _groundFloorLocationId,
                 _gateLocationId,
-                [_waypointA, _waypointB, _waypointC],
+                districts,
+                connectors,
+                connectors
+                    .Select(connector => new TravelConnector
+                    {
+                        WorldId = _worldId,
+                        ConnectorId = connector.Id,
+                        Distance = 15,
+                    })
+                    .ToArray(),
+                PatrolDwellHours: 0.5,
                 beds,
                 guards
             )
@@ -132,4 +166,30 @@ public class BarracksGuardDutyAssignerTests
             .First();
         Assert.NotEqual(guard3FirstStop.LocationId, guard4FirstStop.LocationId);
     }
+
+    [Fact]
+    public void Generate_PatrolRoutesVisitAndLingerInEveryDistrict()
+    {
+        var (_, result) = Generate(7);
+
+        Assert.NotEmpty(result.Routes);
+        foreach (var route in result.Routes)
+        {
+            var steps = result.RouteSteps.Where(step => step.RouteId == route.Id).ToArray();
+            Assert.Equal(RouteTraversal.Cyclic, route.Traversal);
+            Assert.Equal(
+                new HashSet<Guid> { _waypointA, _waypointB, _waypointC },
+                steps.Where(step => step.DwellHours > 0).Select(step => step.LocationId).ToHashSet()
+            );
+        }
+    }
+
+    private LocationConnector Connector(Guid originLocationId, Guid destinationLocationId) =>
+        new()
+        {
+            WorldId = _worldId,
+            OriginLocationId = originLocationId,
+            DestinationLocationId = destinationLocationId,
+            DestinationLabel = "District",
+        };
 }

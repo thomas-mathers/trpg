@@ -38,7 +38,14 @@ public static class CreatureJobScheduling
         var active = FindDueJob(jobs, currentDateTime.DayOfWeek, currentDateTime.Hour);
         if (active != null)
         {
-            return new ScheduledCreatureJob(active, playtime, IsActive: true);
+            var startDateTime = ResolveActiveStart(active, currentDateTime);
+            return new ScheduledCreatureJob(
+                active,
+                playtime
+                    + GameClock.RealTimePerInGameHour
+                        * (startDateTime - currentDateTime).TotalHours,
+                IsActive: true
+            );
         }
 
         return jobs.Select(job => ResolveNextStart(job, currentDateTime))
@@ -54,6 +61,36 @@ public static class CreatureJobScheduling
                 IsActive: false
             ))
             .FirstOrDefault();
+    }
+
+    public static TimeSpan FindMostRecentEndPlaytime(CreatureJob job, TimeSpan playtime)
+    {
+        var currentDateTime = GameClock.GetCurrentInGameDateTime(playtime);
+        for (var dayOffset = 0; dayOffset <= 7; dayOffset++)
+        {
+            var start = currentDateTime.Date.AddDays(-dayOffset).AddHours(job.StartHour);
+            if (job.SpecificDay != null && job.SpecificDay != start.DayOfWeek)
+            {
+                continue;
+            }
+
+            var end = start.AddHours((job.EndHour - job.StartHour + 24) % 24);
+            if (end <= currentDateTime)
+            {
+                return playtime
+                    + GameClock.RealTimePerInGameHour * (end - currentDateTime).TotalHours;
+            }
+        }
+
+        throw new InvalidOperationException("A scheduled job has no prior end time.");
+    }
+
+    private static DateTime ResolveActiveStart(CreatureJob job, DateTime currentDateTime)
+    {
+        var start = currentDateTime.Date.AddHours(job.StartHour);
+        return job.StartHour > job.EndHour && currentDateTime.Hour < job.EndHour
+            ? start.AddDays(-1)
+            : start;
     }
 
     private static NextJobStart? ResolveNextStart(CreatureJob job, DateTime currentDateTime)

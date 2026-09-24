@@ -12,6 +12,8 @@ public class CityGeneratorTests
     private readonly State _state;
     private readonly IReadOnlyList<District> _districts;
     private readonly IReadOnlyDictionary<Guid, Location> _locationsById;
+    private readonly IReadOnlyList<LocationConnector> _districtConnectors;
+    private readonly IReadOnlyList<TravelConnector> _districtTravelConnectors;
     private readonly WorldGeneratorInput _generatorInput = new()
     {
         Description = "test",
@@ -42,6 +44,31 @@ public class CityGeneratorTests
                     id: district.LocationId
                 )
         );
+        _districtConnectors =
+        [
+            new LocationConnector
+            {
+                WorldId = _worldId,
+                OriginLocationId = _districts[0].LocationId,
+                DestinationLocationId = _districts[1].LocationId,
+                DestinationLabel = _districts[1].Name,
+            },
+            new LocationConnector
+            {
+                WorldId = _worldId,
+                OriginLocationId = _districts[1].LocationId,
+                DestinationLocationId = _districts[0].LocationId,
+                DestinationLabel = _districts[0].Name,
+            },
+        ];
+        _districtTravelConnectors = _districtConnectors
+            .Select(connector => new TravelConnector
+            {
+                WorldId = _worldId,
+                ConnectorId = connector.Id,
+                Distance = 15,
+            })
+            .ToArray();
     }
 
     private static CityGenerator MakeCityGenerator()
@@ -75,7 +102,10 @@ public class CityGeneratorTests
             State = _state,
             DominantRace = CreatureType.Human,
             Districts = _districts,
+            DistrictConnectors = _districtConnectors,
+            DistrictTravelConnectors = _districtTravelConnectors,
             LocationsById = _locationsById,
+            PatrolDwellHours = 0.5,
             NamedFactions = namedFactions,
             GeneratorInput = _generatorInput,
         };

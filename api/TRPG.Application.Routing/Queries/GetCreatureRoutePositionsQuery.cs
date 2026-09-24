@@ -8,6 +8,8 @@ namespace TRPG.Application.Routing.Queries;
 
 public record CreatureRoutePosition(
     Guid RouteTravelerId,
+    Guid RouteId,
+    RouteTraversal Traversal,
     string? Purpose,
     RouteTimelinePosition Position
 );
@@ -50,6 +52,11 @@ internal class GetCreatureRoutePositionsQueryHandler(
             .RouteTravelers.AsNoTracking()
             .Where(traveler => travelerIds.AsEnumerable().Contains(traveler.Id))
             .ToDictionaryAsync(traveler => traveler.Id, cancellationToken);
+        var routeIds = travelers.Values.Select(traveler => traveler.RouteId).Distinct().ToArray();
+        var routes = await context
+            .Routes.AsNoTracking()
+            .Where(route => routeIds.AsEnumerable().Contains(route.Id))
+            .ToDictionaryAsync(route => route.Id, cancellationToken);
         var positions = await resolvePositions.Handle(
             new ResolveRouteTravelerPositionsQuery
             {
@@ -66,6 +73,8 @@ internal class GetCreatureRoutePositionsQueryHandler(
                 var traveler = travelers[membership.RouteTravelerId];
                 return new CreatureRoutePosition(
                     traveler.Id,
+                    traveler.RouteId,
+                    routes[traveler.RouteId].Traversal,
                     traveler.Purpose,
                     positions[traveler.Id].Position
                 );

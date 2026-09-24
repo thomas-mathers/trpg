@@ -17,6 +17,10 @@ public class SyncCreatureJobSchedulesCommand
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
     public required TimeSpan Playtime { get; init; }
+    public IReadOnlyDictionary<
+        Guid,
+        TimeSpan
+    > BecameAvailableAtPlaytimeByCreatureId { get; init; } = new Dictionary<Guid, TimeSpan>();
 }
 
 public record SyncCreatureJobSchedulesResult(
@@ -33,12 +37,17 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         GetCreatureRoutePositionsQuery,
         IReadOnlyDictionary<Guid, CreatureRoutePosition>
     > getCreatureRoutePositions,
+    IQueryHandler<
+        GetRouteTravelDurationsQuery,
+        IReadOnlyDictionary<Guid, TimeSpan>
+    > getRouteTravelDurations,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<CompleteCreatureRoutesCommand> completeCreatureRoutes,
     ICommandHandler<
         RouteCreaturesToDestinationsCommand,
         IReadOnlyDictionary<Guid, RouteCreatureResult>
     > routeCreaturesToDestinations,
+    ICommandHandler<StartCreaturesOnRoutesCommand> startCreaturesOnRoutes,
     ICommandHandler<ExecuteCreatureJobCommand> executeCreatureJob,
     ICommandHandler<ClearBedOccupantsCommand> clearBedOccupants,
     ICommandHandler<ClearWorkstationOccupantsCommand> clearWorkstationOccupants
@@ -60,6 +69,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         {
             return EmptyResult();
         }
+
+        ValidateAvailability(command);
 
         var jobsByCreatureId = await getJobsByCreatureIds.Handle(
             new GetCreatureJobsByCreatureIdsQuery { CreatureIds = command.CreatureIds },
@@ -95,7 +106,12 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         var synchronization = ResolveCurrentPositions(
             creaturesById,
             routePositions,
+            jobsByCreatureId,
             command.Playtime
+        );
+        synchronization = ApplyAvailability(
+            synchronization,
+            command.BecameAvailableAtPlaytimeByCreatureId
         );
         await PersistTargets(synchronization.Targets, cancellationToken);
         await completeCreatureRoutes.Handle(
@@ -103,18 +119,19 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             cancellationToken
         );
 
-        var decisions = BuildScheduleDecisions(
+        var decisions = await BuildScheduleDecisions(
             synchronization.ReadyCreatures,
             jobsByCreatureId,
-            command.Playtime
+            command.Playtime,
+            cancellationToken
         );
         await PersistTargets(decisions.IdleTargets, cancellationToken);
-        var startedRoutes = await StartRoutes(decisions.Routes, cancellationToken);
-        var arrivals = ResolveImmediateArrivals(
+        await StartRoutes(decisions.Routes, cancellationToken);
+        var arrivals = await ResolveStartedRoutes(
             decisions.Routes,
-            startedRoutes,
             command.Playtime,
-            creaturesById
+            creaturesById,
+            cancellationToken
         );
         await PersistTargets(arrivals.Targets, cancellationToken);
         await completeCreatureRoutes.Handle(
@@ -133,9 +150,50 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         );
     }
 
+    private static void ValidateAvailability(SyncCreatureJobSchedulesCommand command)
+    {
+        if (
+            command.BecameAvailableAtPlaytimeByCreatureId.Keys.Any(creatureId =>
+                !command.CreatureIds.Contains(creatureId)
+            )
+        )
+        {
+            throw new ArgumentException(
+                "Availability can only be supplied for synchronized creatures.",
+                nameof(command)
+            );
+        }
+    }
+
+    private static PositionSynchronization ApplyAvailability(
+        PositionSynchronization synchronization,
+        IReadOnlyDictionary<Guid, TimeSpan> becameAvailableAtByCreatureId
+    ) =>
+        synchronization with
+        {
+            ReadyCreatures = synchronization
+                .ReadyCreatures.Select(ready =>
+                    becameAvailableAtByCreatureId.TryGetValue(
+                        ready.Creature.Id,
+                        out var becameAvailableAt
+                    )
+                    && (
+                        ready.AvailableAtPlaytime == null
+                        || becameAvailableAt > ready.AvailableAtPlaytime
+                    )
+                        ? ready with
+                        {
+                            AvailableAtPlaytime = becameAvailableAt,
+                        }
+                        : ready
+                )
+                .ToArray(),
+        };
+
     private static PositionSynchronization ResolveCurrentPositions(
         IReadOnlyDictionary<Guid, Creature> creaturesById,
         IReadOnlyDictionary<Guid, CreatureRoutePosition> routePositions,
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
         TimeSpan playtime
     )
     {
@@ -151,7 +209,36 @@ internal class SyncCreatureJobSchedulesCommandHandler(
 
             if (!routePositions.TryGetValue(creature.Id, out var routePosition))
             {
-                ready.Add(new ReadyCreature(creature, creature.LocationId, playtime));
+                ready.Add(
+                    new ReadyCreature(creature, creature.LocationId, AvailableAtPlaytime: null)
+                );
+                continue;
+            }
+
+            var routeJob = jobsByCreatureId[creature.Id]
+                .FirstOrDefault(job => job.RouteId == routePosition.RouteId);
+            if (routePosition.Traversal == RouteTraversal.Cyclic && routeJob != null)
+            {
+                var currentDate = GameClock.GetCurrentInGameDate(playtime);
+                var dueJob = CreatureJobScheduling.FindDueJob(
+                    jobsByCreatureId[creature.Id],
+                    currentDate.Weekday,
+                    currentDate.Hour
+                );
+                if (dueJob?.Id != routeJob.Id)
+                {
+                    ready.Add(
+                        new ReadyCreature(
+                            creature,
+                            creature.LocationId,
+                            CreatureJobScheduling.FindMostRecentEndPlaytime(routeJob, playtime),
+                            HasActiveRoute: true
+                        )
+                    );
+                    continue;
+                }
+
+                AddCyclicRouteTarget(targets, routePosition.Position, creature.Id);
                 continue;
             }
 
@@ -183,37 +270,94 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         return new PositionSynchronization(targets, arrivedIds, ready);
     }
 
-    private static ScheduleDecisions BuildScheduleDecisions(
-        IReadOnlyCollection<ReadyCreature> readyCreatures,
-        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
-        TimeSpan playtime
+    private static void AddCyclicRouteTarget(
+        Dictionary<CreatureTarget, List<Guid>> targets,
+        RouteTimelinePosition position,
+        Guid creatureId
     )
     {
+        switch (position)
+        {
+            case RouteTimelinePosition.Pending pending:
+                AddTarget(targets, pending.LocationId, CreatureState.Idle, creatureId);
+                break;
+            case RouteTimelinePosition.Lingering lingering:
+                AddTarget(targets, lingering.LocationId, CreatureState.Busy, creatureId);
+                break;
+            case RouteTimelinePosition.InTransit inTransit:
+                AddTarget(targets, inTransit.FromLocationId, CreatureState.Walking, creatureId);
+                break;
+            case RouteTimelinePosition.Arrived:
+                throw new InvalidOperationException("A cyclic route cannot arrive.");
+        }
+    }
+
+    private async Task<ScheduleDecisions> BuildScheduleDecisions(
+        IReadOnlyCollection<ReadyCreature> readyCreatures,
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    )
+    {
+        var scheduledCreatures = readyCreatures
+            .Select(ready => ResolveScheduledCreature(ready, jobsByCreatureId, playtime))
+            .Where(entry => entry != null)
+            .Select(entry => entry!)
+            .ToArray();
+        var routesToMeasure = scheduledCreatures
+            .Where(entry =>
+                !entry.Ready.HasActiveRoute
+                && entry.Ready.LocationId != entry.Scheduled.Job.LocationId
+            )
+            .Select(entry => new RouteTravelDurationRequest(
+                entry.Ready.Creature.Id,
+                entry.Ready.LocationId,
+                entry.Scheduled.Job.LocationId,
+                entry.Ready.Creature.MovementSpeed
+            ))
+            .ToArray();
+        var durations =
+            routesToMeasure.Length == 0
+                ? new Dictionary<Guid, TimeSpan>()
+                : await getRouteTravelDurations.Handle(
+                    new GetRouteTravelDurationsQuery
+                    {
+                        WorldId = scheduledCreatures[0].Ready.Creature.WorldId,
+                        Routes = routesToMeasure,
+                    },
+                    cancellationToken
+                );
+
         var idleTargets = new Dictionary<CreatureTarget, List<Guid>>();
         var routes = new List<CreatureRoutePlan>();
         var atDestination = new List<CreatureAtDestination>();
-        foreach (var ready in readyCreatures)
+        foreach (var entry in scheduledCreatures)
         {
-            var scheduled = CreatureJobScheduling.FindCurrentOrNextJob(
-                jobsByCreatureId[ready.Creature.Id],
-                ready.DecisionPlaytime
-            );
-            if (scheduled?.Job.LocationId == ready.LocationId && ready.DecisionPlaytime < playtime)
+            var ready = entry.Ready;
+            var scheduled = entry.Scheduled;
+            if (!ready.HasActiveRoute && ready.LocationId == scheduled.Job.LocationId)
             {
-                scheduled = CreatureJobScheduling.FindCurrentOrNextJob(
-                    jobsByCreatureId[ready.Creature.Id],
-                    playtime
+                AddTarget(idleTargets, ready.LocationId, CreatureState.Idle, ready.Creature.Id);
+                atDestination.Add(
+                    new CreatureAtDestination(
+                        ready.Creature,
+                        ready.LocationId,
+                        ready.AvailableAtPlaytime
+                    )
                 );
-            }
-            if (scheduled == null)
-            {
                 continue;
             }
 
-            if (ready.LocationId == scheduled.Job.LocationId)
+            var plannedDeparture = ready.HasActiveRoute
+                ? ready.AvailableAtPlaytime!.Value
+                : scheduled.StartsAtPlaytime - durations[ready.Creature.Id];
+            var departure =
+                ready.AvailableAtPlaytime is { } available && available > plannedDeparture
+                    ? available
+                    : plannedDeparture;
+            if (departure > playtime)
             {
                 AddTarget(idleTargets, ready.LocationId, CreatureState.Idle, ready.Creature.Id);
-                atDestination.Add(new CreatureAtDestination(ready.Creature, ready.LocationId));
                 continue;
             }
 
@@ -222,12 +366,37 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                     ready.Creature,
                     ready.LocationId,
                     scheduled.Job.LocationId,
-                    ready.DecisionPlaytime,
+                    departure,
                     PurposeFor(scheduled.Job.Action)
                 )
             );
         }
         return new ScheduleDecisions(idleTargets, routes, atDestination);
+    }
+
+    private static ScheduledReadyCreature? ResolveScheduledCreature(
+        ReadyCreature ready,
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
+        TimeSpan playtime
+    )
+    {
+        var decisionPlaytime = ready.AvailableAtPlaytime ?? playtime;
+        var scheduled = CreatureJobScheduling.FindCurrentOrNextJob(
+            jobsByCreatureId[ready.Creature.Id],
+            decisionPlaytime
+        );
+        if (
+            scheduled?.Job.LocationId == ready.LocationId
+            && ready.AvailableAtPlaytime is { } available
+            && available < playtime
+        )
+        {
+            scheduled = CreatureJobScheduling.FindCurrentOrNextJob(
+                jobsByCreatureId[ready.Creature.Id],
+                playtime
+            );
+        }
+        return scheduled == null ? null : new ScheduledReadyCreature(ready, scheduled);
     }
 
     private async Task<IReadOnlyDictionary<Guid, RouteCreatureResult>> StartRoutes(
@@ -256,38 +425,54 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         );
     }
 
-    private static ImmediateArrivals ResolveImmediateArrivals(
+    private async Task<ImmediateArrivals> ResolveStartedRoutes(
         IReadOnlyCollection<CreatureRoutePlan> plans,
-        IReadOnlyDictionary<Guid, RouteCreatureResult> results,
         TimeSpan playtime,
-        IReadOnlyDictionary<Guid, Creature> creaturesById
+        IReadOnlyDictionary<Guid, Creature> creaturesById,
+        CancellationToken cancellationToken
     )
     {
         var targets = new Dictionary<CreatureTarget, List<Guid>>();
         var arrivedIds = new List<Guid>();
         var atDestination = new List<CreatureAtDestination>();
+        var positions = await getCreatureRoutePositions.Handle(
+            new GetCreatureRoutePositionsQuery
+            {
+                CreatureIds = plans.Select(plan => plan.Creature.Id).ToArray(),
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
         foreach (var plan in plans)
         {
-            var result = results[plan.Creature.Id];
-            if (result.ArrivesAtPlaytime <= playtime)
+            var position = positions[plan.Creature.Id].Position;
+            switch (position)
             {
-                AddTarget(
-                    targets,
-                    plan.DestinationLocationId,
-                    CreatureState.Idle,
-                    plan.Creature.Id
-                );
-                arrivedIds.Add(plan.Creature.Id);
-                atDestination.Add(
-                    new CreatureAtDestination(
-                        creaturesById[plan.Creature.Id],
-                        plan.DestinationLocationId
-                    )
-                );
-            }
-            else
-            {
-                AddTarget(targets, plan.OriginLocationId, CreatureState.Walking, plan.Creature.Id);
+                case RouteTimelinePosition.Pending pending:
+                    AddTarget(targets, pending.LocationId, CreatureState.Idle, plan.Creature.Id);
+                    break;
+                case RouteTimelinePosition.Lingering lingering:
+                    AddTarget(targets, lingering.LocationId, CreatureState.Idle, plan.Creature.Id);
+                    break;
+                case RouteTimelinePosition.InTransit inTransit:
+                    AddTarget(
+                        targets,
+                        inTransit.FromLocationId,
+                        CreatureState.Walking,
+                        plan.Creature.Id
+                    );
+                    break;
+                case RouteTimelinePosition.Arrived arrived:
+                    AddTarget(targets, arrived.LocationId, CreatureState.Idle, plan.Creature.Id);
+                    arrivedIds.Add(plan.Creature.Id);
+                    atDestination.Add(
+                        new CreatureAtDestination(
+                            creaturesById[plan.Creature.Id],
+                            arrived.LocationId,
+                            arrived.ArrivedAtPlaytime
+                        )
+                    );
+                    break;
             }
         }
         return new ImmediateArrivals(targets, arrivedIds, atDestination);
@@ -301,6 +486,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     )
     {
         var workingByLocationId = new Dictionary<Guid, List<Guid>>();
+        var patrols = new List<StartCreatureOnRouteRequest>();
         var currentDate = GameClock.GetCurrentInGameDate(playtime);
         foreach (var entry in creatures.DistinctBy(entry => entry.Creature.Id))
         {
@@ -311,6 +497,28 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             );
             if (job == null || job.LocationId != entry.LocationId)
             {
+                continue;
+            }
+
+            if (job.RouteId != null)
+            {
+                var scheduled = CreatureJobScheduling.FindCurrentOrNextJob(
+                    jobsByCreatureId[entry.Creature.Id],
+                    playtime
+                )!;
+                var startedAt =
+                    entry.AvailableAtPlaytime is { } available
+                    && available > scheduled.StartsAtPlaytime
+                        ? available
+                        : scheduled.StartsAtPlaytime;
+                patrols.Add(
+                    new StartCreatureOnRouteRequest(
+                        entry.Creature.Id,
+                        job.RouteId.Value,
+                        startedAt,
+                        "Patrolling the city"
+                    )
+                );
                 continue;
             }
 
@@ -332,12 +540,45 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             }
         }
 
+        await StartPatrols(patrols, playtime, cancellationToken);
+
         return new SyncCreatureJobSchedulesResult(
             workingByLocationId.ToDictionary(
                 entry => entry.Key,
                 entry => (IReadOnlyList<Guid>)entry.Value.ToArray()
             )
         );
+    }
+
+    private async Task StartPatrols(
+        IReadOnlyCollection<StartCreatureOnRouteRequest> patrols,
+        TimeSpan playtime,
+        CancellationToken cancellationToken
+    )
+    {
+        if (patrols.Count == 0)
+        {
+            return;
+        }
+
+        await startCreaturesOnRoutes.Handle(
+            new StartCreaturesOnRoutesCommand { Routes = patrols },
+            cancellationToken
+        );
+        var positions = await getCreatureRoutePositions.Handle(
+            new GetCreatureRoutePositionsQuery
+            {
+                CreatureIds = patrols.Select(patrol => patrol.CreatureId).ToArray(),
+                Playtime = playtime,
+            },
+            cancellationToken
+        );
+        var targets = new Dictionary<CreatureTarget, List<Guid>>();
+        foreach (var (creatureId, position) in positions)
+        {
+            AddCyclicRouteTarget(targets, position.Position, creatureId);
+        }
+        await PersistTargets(targets, cancellationToken);
     }
 
     private async Task PersistTargets(
@@ -387,7 +628,17 @@ internal class SyncCreatureJobSchedulesCommandHandler(
 
     private record CreatureTarget(Guid LocationId, CreatureState State);
 
-    private record ReadyCreature(Creature Creature, Guid LocationId, TimeSpan DecisionPlaytime);
+    private record ReadyCreature(
+        Creature Creature,
+        Guid LocationId,
+        TimeSpan? AvailableAtPlaytime,
+        bool HasActiveRoute = false
+    );
+
+    private record ScheduledReadyCreature(
+        ReadyCreature Ready,
+        CreatureJobScheduling.ScheduledCreatureJob Scheduled
+    );
 
     private record CreatureRoutePlan(
         Creature Creature,
@@ -397,7 +648,11 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         string Purpose
     );
 
-    private record CreatureAtDestination(Creature Creature, Guid LocationId);
+    private record CreatureAtDestination(
+        Creature Creature,
+        Guid LocationId,
+        TimeSpan? AvailableAtPlaytime
+    );
 
     private record PositionSynchronization(
         IReadOnlyDictionary<CreatureTarget, List<Guid>> Targets,

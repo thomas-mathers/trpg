@@ -16,15 +16,18 @@ internal static class TravelGraph
 {
     public static IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> Build(
         WorldGeneratorResult world
+    ) => Build(world.LocationConnectors, world.TravelConnectors);
+
+    public static IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> Build(
+        IReadOnlyCollection<LocationConnector> locationConnectors,
+        IReadOnlyCollection<TravelConnector> travelConnectors
     )
     {
-        var travelConnectorsByConnectorId = world.TravelConnectors.ToDictionary(connector =>
+        var travelConnectorsByConnectorId = travelConnectors.ToDictionary(connector =>
             connector.ConnectorId
         );
-        return world
-            .LocationConnectors.Where(connector =>
-                travelConnectorsByConnectorId.ContainsKey(connector.Id)
-            )
+        return locationConnectors
+            .Where(connector => travelConnectorsByConnectorId.ContainsKey(connector.Id))
             .GroupBy(connector => connector.OriginLocationId)
             .ToDictionary(
                 group => group.Key,

@@ -130,6 +130,266 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         );
     }
 
+    [Fact]
+    public async Task Handle_BackdatesAnUpcomingCommute_ToReachWorkOnTime()
+    {
+        var home = Builders.MakeLocation(_worldId);
+        var workplace = Builders.MakeLocation(_worldId);
+        var creature = Builders.MakeCreature(_worldId, locationId: home.Id);
+        creature.MovementSpeed = 5;
+        var connector = Connector(home.Id, workplace.Id);
+        _context.Locations.AddRange(home, workplace);
+        _context.Creatures.Add(creature);
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(Travel(connector, 5));
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Work,
+                startHour: 10,
+                endHour: 18,
+                locationId: workplace.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [creature.Id],
+                Playtime = GameClock.RealTimePerInGameHour * 1.5,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var travelerId = await verify
+            .RouteTravelerMembers.Where(member => member.CreatureId == creature.Id)
+            .Select(member => member.RouteTravelerId)
+            .SingleAsync(TestContext.Current.CancellationToken);
+        var traveler = await verify.RouteTravelers.SingleAsync(
+            entry => entry.Id == travelerId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(GameClock.RealTimePerInGameHour, traveler.StartedAtPlaytime);
+        var walking = await verify.Creatures.FindAsync(
+            [creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Walking, walking!.State);
+    }
+
+    [Fact]
+    public async Task Handle_MaterializesAWorkerAtWork_WhenFirstSynchronizedAfterArrival()
+    {
+        var home = Builders.MakeLocation(_worldId);
+        var workplace = Builders.MakeLocation(_worldId);
+        var creature = Builders.MakeCreature(_worldId, locationId: home.Id);
+        creature.MovementSpeed = 5;
+        var connector = Connector(home.Id, workplace.Id);
+        _context.Locations.AddRange(home, workplace);
+        _context.Creatures.Add(creature);
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(Travel(connector, 5));
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Work,
+                startHour: 10,
+                endHour: 18,
+                locationId: workplace.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [creature.Id],
+                Playtime = GameClock.RealTimePerInGameHour * 3,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var worker = await verify.Creatures.SingleAsync(
+            entry => entry.Id == creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(workplace.Id, worker.LocationId);
+        Assert.Equal(CreatureState.Busy, worker.State);
+        Assert.DoesNotContain(
+            await verify.RouteTravelerMembers.ToArrayAsync(TestContext.Current.CancellationToken),
+            member => member.CreatureId == creature.Id
+        );
+    }
+
+    [Fact]
+    public async Task Handle_StartsAnActiveRouteBackedJob_AtTheShiftBoundary()
+    {
+        var firstDistrict = Builders.MakeLocation(_worldId);
+        var secondDistrict = Builders.MakeLocation(_worldId);
+        var creature = Builders.MakeCreature(_worldId, locationId: firstDistrict.Id);
+        creature.MovementSpeed = 5;
+        var outbound = Connector(firstDistrict.Id, secondDistrict.Id);
+        var inbound = Connector(secondDistrict.Id, firstDistrict.Id);
+        var route = new Route
+        {
+            WorldId = _worldId,
+            Name = "City patrol",
+            Traversal = RouteTraversal.Cyclic,
+        };
+        _context.Locations.AddRange(firstDistrict, secondDistrict);
+        _context.Creatures.Add(creature);
+        _context.LocationConnectors.AddRange(outbound, inbound);
+        _context.TravelConnectors.AddRange(Travel(outbound, 5), Travel(inbound, 5));
+        _context.Routes.Add(route);
+        _context.RouteSteps.AddRange(
+            PatrolStep(route.Id, 0, firstDistrict.Id, outbound.Id),
+            PatrolStep(route.Id, 1, secondDistrict.Id, inbound.Id)
+        );
+        _context.CreatureJobs.Add(
+            new CreatureJob
+            {
+                WorldId = _worldId,
+                CreatureId = creature.Id,
+                Action = CreatureJobAction.Work,
+                StartHour = 8,
+                EndHour = 18,
+                Priority = 1,
+                LocationId = firstDistrict.Id,
+                RouteId = route.Id,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [creature.Id],
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var membership = await verify.RouteTravelerMembers.SingleAsync(
+            member => member.CreatureId == creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        var traveler = await verify.RouteTravelers.SingleAsync(
+            entry => entry.Id == membership.RouteTravelerId,
+            TestContext.Current.CancellationToken
+        );
+        var guard = await verify.Creatures.SingleAsync(
+            entry => entry.Id == creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(route.Id, traveler.RouteId);
+        Assert.Equal(TimeSpan.Zero, traveler.StartedAtPlaytime);
+        Assert.Equal(CreatureState.Busy, guard.State);
+    }
+
+    [Fact]
+    public async Task Handle_PreemptsAPatrolAtTheShiftEnd_BeforeRoutingToTheNextJob()
+    {
+        var firstDistrict = Builders.MakeLocation(_worldId);
+        var secondDistrict = Builders.MakeLocation(_worldId);
+        var creature = Builders.MakeCreature(_worldId, locationId: firstDistrict.Id);
+        creature.MovementSpeed = 5;
+        var outbound = Connector(firstDistrict.Id, secondDistrict.Id);
+        var inbound = Connector(secondDistrict.Id, firstDistrict.Id);
+        var route = new Route
+        {
+            WorldId = _worldId,
+            Name = "City patrol",
+            Traversal = RouteTraversal.Cyclic,
+        };
+        var traveler = new RouteTraveler
+        {
+            WorldId = _worldId,
+            RouteId = route.Id,
+            StartedAtPlaytime = TimeSpan.Zero,
+            SpeedUnitsPerHour = creature.MovementSpeed,
+            Purpose = "Patrolling the city",
+        };
+        _context.Locations.AddRange(firstDistrict, secondDistrict);
+        _context.Creatures.Add(creature);
+        _context.LocationConnectors.AddRange(outbound, inbound);
+        _context.TravelConnectors.AddRange(Travel(outbound, 5), Travel(inbound, 5));
+        _context.Routes.Add(route);
+        _context.RouteSteps.AddRange(
+            PatrolStep(route.Id, 0, firstDistrict.Id, outbound.Id),
+            PatrolStep(route.Id, 1, secondDistrict.Id, inbound.Id)
+        );
+        _context.RouteTravelers.Add(traveler);
+        _context.RouteTravelerMembers.Add(
+            new RouteTravelerMember
+            {
+                WorldId = _worldId,
+                RouteTravelerId = traveler.Id,
+                CreatureId = creature.Id,
+            }
+        );
+        _context.CreatureJobs.AddRange(
+            new CreatureJob
+            {
+                WorldId = _worldId,
+                CreatureId = creature.Id,
+                Action = CreatureJobAction.Work,
+                StartHour = 8,
+                EndHour = 9,
+                Priority = 1,
+                LocationId = firstDistrict.Id,
+                RouteId = route.Id,
+            },
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 9,
+                endHour: 17,
+                locationId: secondDistrict.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [creature.Id],
+                Playtime = GameClock.RealTimePerInGameHour * 2,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var guard = await verify.Creatures.SingleAsync(
+            entry => entry.Id == creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(secondDistrict.Id, guard.LocationId);
+        Assert.Equal(CreatureState.Sleeping, guard.State);
+        Assert.DoesNotContain(
+            await verify.RouteTravelerMembers.ToArrayAsync(TestContext.Current.CancellationToken),
+            member => member.CreatureId == creature.Id
+        );
+    }
+
     private LocationConnector Connector(Guid originLocationId, Guid destinationLocationId) =>
         new()
         {
@@ -145,5 +405,21 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             WorldId = _worldId,
             ConnectorId = connector.Id,
             Distance = distance,
+        };
+
+    private RouteStep PatrolStep(
+        Guid routeId,
+        int sequenceIndex,
+        Guid locationId,
+        Guid connectorId
+    ) =>
+        new()
+        {
+            WorldId = _worldId,
+            RouteId = routeId,
+            SequenceIndex = sequenceIndex,
+            LocationId = locationId,
+            ConnectorId = connectorId,
+            DwellHours = 0.5,
         };
 }

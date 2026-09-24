@@ -646,6 +646,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.HasIndex(j => j.CreatureId);
             entity.HasIndex(j => j.LocationId);
+            entity.HasIndex(j => j.RouteId);
             entity.HasIndex(j => j.WorldId);
         });
 
