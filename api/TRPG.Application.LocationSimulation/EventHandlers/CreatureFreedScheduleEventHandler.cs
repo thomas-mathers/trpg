@@ -28,6 +28,10 @@ internal sealed class CreatureFreedScheduleEventHandler(
             {
                 CreatureIds = [domainEvent.CreatureId],
                 Playtime = playtime,
+                BecameAvailableAtPlaytimeByCreatureId = new Dictionary<Guid, TimeSpan>
+                {
+                    [domainEvent.CreatureId] = playtime,
+                },
             },
             cancellationToken
         );

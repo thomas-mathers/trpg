@@ -9,7 +9,10 @@ internal class CityGeneratorInput
     public required State State { get; init; }
     public required CreatureType DominantRace { get; init; }
     public required IReadOnlyList<District> Districts { get; init; }
+    public required IReadOnlyList<LocationConnector> DistrictConnectors { get; init; }
+    public required IReadOnlyList<TravelConnector> DistrictTravelConnectors { get; init; }
     public required IReadOnlyDictionary<Guid, Location> LocationsById { get; init; }
+    public required double PatrolDwellHours { get; init; }
     public required IReadOnlyList<Faction> NamedFactions { get; init; }
     public required WorldGeneratorInput GeneratorInput { get; init; }
 }
@@ -31,6 +34,8 @@ internal class CityGeneratorResult
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<DoorConnectorKey> DoorConnectorKeys { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
+    public required IReadOnlyList<Route> Routes { get; init; }
+    public required IReadOnlyList<RouteStep> RouteSteps { get; init; }
 }
 
 public class CityGenerator(
@@ -68,6 +73,8 @@ public class CityGenerator(
         public List<CreatureJob> Jobs { get; } = [];
         public List<DoorConnectorKey> DoorConnectorKeys { get; } = [];
         public List<Relationship> Relationships { get; } = [];
+        public List<Route> Routes { get; } = [];
+        public List<RouteStep> RouteSteps { get; } = [];
         public List<ShopEmploymentSlot> OpenShopSlots { get; } = [];
         public List<StaffDayOff> ShopOwnerAssignments { get; } = [];
         public List<Creature> EligibleForEmployment { get; } = [];
@@ -215,6 +222,8 @@ public class CityGenerator(
             Jobs = workspace.Jobs.ToArray(),
             DoorConnectorKeys = workspace.DoorConnectorKeys.ToArray(),
             Relationships = workspace.Relationships.ToArray(),
+            Routes = workspace.Routes.ToArray(),
+            RouteSteps = workspace.RouteSteps.ToArray(),
         };
     }
 
@@ -468,15 +477,17 @@ public class CityGenerator(
         )
             ? gateDistrict.LocationId
             : groundFloorRoom.LocationId;
-        var patrolWaypoints = ResolvePatrolWaypoints(input, groundFloorRoom.LocationId);
-
         var registration = BarracksGuardDutyAssigner.Generate(
             new BarracksGuardDutyAssignerInput(
                 input.WorldId,
+                input.City.Name,
                 workspace.GuardFaction.Id,
                 groundFloorRoom.LocationId,
                 gateLocationId,
-                patrolWaypoints,
+                input.Districts,
+                input.DistrictConnectors,
+                input.DistrictTravelConnectors,
+                input.PatrolDwellHours,
                 buildingResult.Props.OfType<Bed>().ToList(),
                 guards
             )
@@ -484,6 +495,8 @@ public class CityGenerator(
 
         workspace.FactionMembers.AddRange(registration.FactionMembers);
         workspace.Jobs.AddRange(registration.Jobs);
+        workspace.Routes.AddRange(registration.Routes);
+        workspace.RouteSteps.AddRange(registration.RouteSteps);
         workspace.Creatures.AddRange(guards);
         workspace.Items.AddRange(guardCreatures.SelectMany(g => g.Items));
         workspace.Skills.AddRange(guardCreatures.SelectMany(g => g.Skills));
@@ -503,19 +516,6 @@ public class CityGenerator(
         workspace.LocationConnectors.AddRange(buildingResult.LocationConnectors);
         workspace.DoorConnectors.Add(buildingResult.FrontDoor);
         workspace.DoorConnectors.AddRange(buildingResult.InteriorDoors);
-    }
-
-    private static IReadOnlyList<Guid> ResolvePatrolWaypoints(
-        CityGeneratorInput input,
-        Guid fallbackLocationId
-    )
-    {
-        var waypoints = input
-            .Districts.Where(d => d.DistrictType != DistrictType.CityEntrance)
-            .Select(d => d.LocationId)
-            .ToArray();
-
-        return waypoints.Length > 0 ? waypoints : [fallbackLocationId];
     }
 
     private static void RegisterShopStaffing(

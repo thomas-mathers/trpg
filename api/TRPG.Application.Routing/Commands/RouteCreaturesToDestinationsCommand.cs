@@ -226,13 +226,13 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                 arrived.LocationId,
                 topology
             ),
-            RouteTimelinePosition.Pending pending => BuildValidatedStationaryPlan(
+            RouteTimelinePosition.Pending pending => BuildStationaryPlan(
                 request,
                 creature,
                 pending.LocationId,
                 topology
             ),
-            RouteTimelinePosition.Lingering lingering => BuildValidatedStationaryPlan(
+            RouteTimelinePosition.Lingering lingering => BuildStationaryPlan(
                 request,
                 creature,
                 lingering.LocationId,
@@ -240,22 +240,6 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             ),
             _ => throw new InvalidOperationException("Unknown route position."),
         };
-    }
-
-    private static CreatureRoutePlan BuildValidatedStationaryPlan(
-        CreatureRouteRequest request,
-        Creature creature,
-        Guid routeLocationId,
-        RouteTopology topology
-    )
-    {
-        if (creature.LocationId != routeLocationId)
-        {
-            throw new InvalidOperationException(
-                "A stationary route position must match the creature location."
-            );
-        }
-        return BuildStationaryPlan(request, creature, creature.LocationId, topology);
     }
 
     private static CreatureRoutePlan BuildStationaryPlan(
@@ -291,13 +275,6 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         RouteTopology topology
     )
     {
-        if (creature.LocationId != inTransit.FromLocationId)
-        {
-            throw new InvalidOperationException(
-                "An in-transit route must be anchored to the creature's departure location."
-            );
-        }
-
         var tail = FindPath(topology, inTransit.ToLocationId, request.DestinationLocationId);
         if (inTransit.ToLocationId != request.DestinationLocationId)
         {

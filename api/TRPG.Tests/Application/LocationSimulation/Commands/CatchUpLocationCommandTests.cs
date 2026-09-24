@@ -7,6 +7,7 @@ using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -130,7 +131,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_StartsCreatureWalkingToRoom_WhenSleepJobIsNext()
+    public async Task Handle_MaterializesCreatureSleeping_WhenSleepJobIsAlreadyActive()
     {
         // Arrange
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
@@ -156,7 +157,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(23),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                Playtime = GameClock.RealTimePerInGameHour * 15,
             },
             TestContext.Current.CancellationToken
         );
@@ -167,12 +168,12 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(creature.LocationId, updated!.LocationId);
-        Assert.Equal(CreatureState.Walking, updated.State);
+        Assert.Equal(sleepLocation.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Sleeping, updated.State);
     }
 
     [Fact]
-    public async Task Handle_StartsCreatureWalkingOut_WhenWorkJobActiveElsewhere()
+    public async Task Handle_MaterializesCreatureAtWork_WhenWorkJobIsActiveElsewhere()
     {
         // Arrange
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
@@ -209,7 +210,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                Playtime = GameClock.RealTimePerInGameHour * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -220,8 +221,8 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(sleepLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Walking, updated.State);
+        Assert.Equal(workLocation.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Busy, updated.State);
     }
 
     [Fact]
@@ -256,7 +257,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_StartsCreatureWalkingOutdoors_WhenIdleJobActive()
+    public async Task Handle_MaterializesCreatureOutdoors_WhenIdleJobIsActive()
     {
         // Arrange
         var districtId = Guid.NewGuid();
@@ -295,7 +296,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = idleLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                Playtime = GameClock.RealTimePerInGameHour * 4,
             },
             TestContext.Current.CancellationToken
         );
@@ -306,12 +307,12 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(sleepLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Walking, updated.State);
+        Assert.Equal(idleLocation.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Idle, updated.State);
     }
 
     [Fact]
-    public async Task Handle_StartsCreatureWalkingIntoDistrict_WhenJobIsDueThere()
+    public async Task Handle_MaterializesCreatureInDistrict_WhenJobIsDueThere()
     {
         // Arrange — the creature is currently in a different district entirely (e.g. sleeping
         // in a barracks across town), not merely a different location within the target district
@@ -344,7 +345,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = gateLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                Playtime = GameClock.RealTimePerInGameHour * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -355,8 +356,8 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(currentLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Walking, updated.State);
+        Assert.Equal(gateLocation.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Busy, updated.State);
     }
 
     [Fact]

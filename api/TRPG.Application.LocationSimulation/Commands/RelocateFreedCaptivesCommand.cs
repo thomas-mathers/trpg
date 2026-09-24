@@ -104,6 +104,9 @@ internal class RelocateFreedCaptivesCommandHandler(
             {
                 CreatureIds = strandedCaptiveIds.Except(joblessCaptiveIds).ToArray(),
                 Playtime = command.Playtime,
+                BecameAvailableAtPlaytimeByCreatureId = strandedCaptiveIds
+                    .Except(joblessCaptiveIds)
+                    .ToDictionary(creatureId => creatureId, _ => command.Playtime),
             },
             cancellationToken
         );

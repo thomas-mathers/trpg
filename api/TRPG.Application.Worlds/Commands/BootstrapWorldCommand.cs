@@ -105,6 +105,8 @@ internal class BootstrapWorldCommandHandler(
         context.DoorConnectorKeys.AddRange(world.DoorConnectorKeys);
         context.DoorConnectorLevers.AddRange(world.DoorConnectorLevers);
         context.Relationships.AddRange(world.Relationships);
+        context.Routes.AddRange(world.CityPatrolRoutes);
+        context.RouteSteps.AddRange(world.CityPatrolRouteSteps);
         context.Quests.AddRange(quests.Quests);
         context.QuestObjectives.AddRange(quests.Objectives);
         context.QuestSeedSchedules.AddRange(command.QuestSeedSchedules);

@@ -94,6 +94,31 @@ public class CreatureJobSchedulingTests
     }
 
     [Fact]
+    public void FindCurrentOrNextJob_ReturnsTheActualStartOfAnActiveJob()
+    {
+        var playtime = GameClock.RealTimePerInGameHour * 3;
+        var currentDate = GameClock.GetCurrentInGameDateTime(playtime);
+        var job = Job(currentDate.Hour - 2, currentDate.Hour + 1);
+
+        var scheduled = CreatureJobScheduling.FindCurrentOrNextJob([job], playtime);
+
+        Assert.NotNull(scheduled);
+        Assert.True(scheduled.IsActive);
+        Assert.Equal(playtime - GameClock.RealTimePerInGameHour * 2, scheduled.StartsAtPlaytime);
+    }
+
+    [Fact]
+    public void FindMostRecentEndPlaytime_ReturnsThePreviousOvernightShiftBoundary()
+    {
+        var playtime = GameClock.RealTimePerInGameHour * 23;
+        var job = Job(startHour: 22, endHour: 6);
+
+        var end = CreatureJobScheduling.FindMostRecentEndPlaytime(job, playtime);
+
+        Assert.Equal(GameClock.RealTimePerInGameHour * 22, end);
+    }
+
+    [Fact]
     public void FindCurrentOrNextJob_ReturnsUpcomingJobStart()
     {
         var playtime = TimeSpan.Zero;

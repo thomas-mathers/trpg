@@ -55,6 +55,8 @@ public class WorldGeneratorResult
     public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
     public required IReadOnlyList<CreatureSpawner> CreatureSpawners { get; init; }
+    public IReadOnlyList<Route> CityPatrolRoutes { get; init; } = [];
+    public IReadOnlyList<RouteStep> CityPatrolRouteSteps { get; init; } = [];
 }
 
 // Archetypes always leads with LeaderArchetype, which is also always Humanoid — an antagonist
@@ -160,6 +162,8 @@ public class WorldGenerator(
         var expeditions = new List<DungeonExpeditionResult>();
         var dungeonInhabitants = new List<DungeonInhabitantResult>();
         var dungeonInhabitantLocationIds = new List<Guid>();
+        var cityPatrolRoutes = new List<Route>();
+        var cityPatrolRouteSteps = new List<RouteStep>();
 
         var stateById = geography.States.ToDictionary(s => s.Id);
         var districtsByCityId = geography
@@ -169,9 +173,30 @@ public class WorldGenerator(
             .Cities.GroupBy(c => c.StateId)
             .ToDictionary(g => g.Key, g => g.ToList());
         var locationsById = geography.Locations.ToDictionary(location => location.Id);
+        var districtTravelConnectors = CityTravelConnectorGenerator.Generate(
+            worldId,
+            geography.Districts,
+            [],
+            [],
+            geography.LocationConnectors,
+            cityTravelOptions.Value
+        );
 
         foreach (var city in geography.Cities)
         {
+            var cityDistricts = districtsByCityId[city.Id];
+            var districtLocationIds = cityDistricts
+                .Select(district => district.LocationId)
+                .ToHashSet();
+            var districtConnectors = geography
+                .LocationConnectors.Where(connector =>
+                    districtLocationIds.Contains(connector.OriginLocationId)
+                    && districtLocationIds.Contains(connector.DestinationLocationId)
+                )
+                .ToArray();
+            var districtConnectorIds = districtConnectors
+                .Select(connector => connector.Id)
+                .ToHashSet();
             var cityResult = cityGenerator.Generate(
                 new CityGeneratorInput
                 {
@@ -179,8 +204,15 @@ public class WorldGenerator(
                     City = city,
                     State = stateById[city.StateId],
                     DominantRace = geography.DominantRaceByCountryId[city.CountryId],
-                    Districts = districtsByCityId[city.Id],
+                    Districts = cityDistricts,
+                    DistrictConnectors = districtConnectors,
+                    DistrictTravelConnectors = districtTravelConnectors
+                        .Where(travelConnector =>
+                            districtConnectorIds.Contains(travelConnector.ConnectorId)
+                        )
+                        .ToArray(),
                     LocationsById = locationsById,
+                    PatrolDwellHours = cityTravelOptions.Value.PatrolDwellHours,
                     NamedFactions = namedFactions,
                     GeneratorInput = generatorInput,
                 }
@@ -201,6 +233,8 @@ public class WorldGenerator(
             jobs.AddRange(cityResult.Jobs);
             doorConnectorKeys.AddRange(cityResult.DoorConnectorKeys);
             relationships.AddRange(cityResult.Relationships);
+            cityPatrolRoutes.AddRange(cityResult.Routes);
+            cityPatrolRouteSteps.AddRange(cityResult.RouteSteps);
         }
 
         var factionsById = factions.ToDictionary(faction => faction.Id);
@@ -729,6 +763,8 @@ public class WorldGenerator(
             DoorConnectorKeys = doorConnectorKeys,
             DoorConnectorLevers = doorConnectorLevers,
             Relationships = relationships,
+            CityPatrolRoutes = cityPatrolRoutes,
+            CityPatrolRouteSteps = cityPatrolRouteSteps,
             CreatureSpawners = creatureSpawners,
         };
 

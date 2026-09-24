@@ -4,6 +4,7 @@ using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Props.Commands;
 using TRPG.Application.Props.Queries;
+using TRPG.Application.Routing.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
@@ -26,6 +27,11 @@ internal class CatchUpLocationCommandHandler(
         IReadOnlyList<Guid>
     > getCreatureIdsWithJobInLocation,
     IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>> getCreatureIdsByDistrict,
+    IQueryHandler<GetRouteIdsByLocationIdQuery, IReadOnlyList<Guid>> getRouteIdsByLocationId,
+    IQueryHandler<
+        GetCreatureIdsWithCreatureJobOnRoutesQuery,
+        IReadOnlyList<Guid>
+    > getCreatureIdsWithJobOnRoutes,
     ICommandHandler<
         SyncCreatureJobSchedulesCommand,
         SyncCreatureJobSchedulesResult
@@ -83,6 +89,8 @@ internal class CatchUpLocationCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        await SynchronizeRouteTravelers(command, cancellationToken);
+
         await AdvanceDueJobs(
             await ResolveScheduledCreatureIds(command, location, cancellationToken),
             command.Playtime,
@@ -98,7 +106,6 @@ internal class CatchUpLocationCommandHandler(
         await SynchronizeRestockPolicy(command, cancellationToken);
         await SynchronizeQuestSeedSchedule(command, cancellationToken);
         await SynchronizeWeather(command, location, cancellationToken);
-        await SynchronizeRouteTravelers(command, cancellationToken);
     }
 
     // Creatures whose job targets this location and creatures already standing in its district
@@ -115,6 +122,21 @@ internal class CatchUpLocationCommandHandler(
                 {
                     LocationId = command.LocationId,
                 },
+                cancellationToken
+            )
+        );
+
+        var routeIds = await getRouteIdsByLocationId.Handle(
+            new GetRouteIdsByLocationIdQuery
+            {
+                WorldId = command.WorldId,
+                LocationId = command.LocationId,
+            },
+            cancellationToken
+        );
+        creatureIds.UnionWith(
+            await getCreatureIdsWithJobOnRoutes.Handle(
+                new GetCreatureIdsWithCreatureJobOnRoutesQuery { RouteIds = routeIds },
                 cancellationToken
             )
         );
