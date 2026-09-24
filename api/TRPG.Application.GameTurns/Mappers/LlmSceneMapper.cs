@@ -63,6 +63,7 @@ public static class LlmSceneMapper
             caravan.RouteName,
             caravan.TicketFeeGold,
             caravan.MinutesUntilDeparture,
+            caravan.PassengerServiceAvailable,
             caravan.Destinations.Select(destination => destination.LocationName).ToArray()
         );
 

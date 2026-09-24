@@ -22,6 +22,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private SyncScheduleLockCommandHandler _handler = null!;
+    private UpdateCreaturesCommandHandler _updateCreatures = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -34,6 +35,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
         _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
         _handler = _serviceProvider.GetRequiredService<SyncScheduleLockCommandHandler>();
+        _updateCreatures = _serviceProvider.GetRequiredService<UpdateCreaturesCommandHandler>();
     }
 
     public async ValueTask DisposeAsync()
@@ -237,6 +239,15 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
                 priority: 50,
                 locationId: workLocationId
             )
+        );
+        await _updateCreatures.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [worker.Id],
+                LocationId = workLocationId,
+                State = CreatureState.Busy,
+            },
+            TestContext.Current.CancellationToken
         );
         await _handler.Handle(
             new SyncScheduleLockCommand

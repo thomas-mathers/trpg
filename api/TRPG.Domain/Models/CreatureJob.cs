@@ -7,6 +7,7 @@ public enum CreatureJobAction
     Idle,
     Study,
     Pray,
+    Eat,
 }
 
 public class CreatureJob

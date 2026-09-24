@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Props.Commands;
 using TRPG.Application.Routing.Commands;
 using TRPG.Application.Routing.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -17,6 +18,7 @@ public class SyncCreatureJobSchedulesCommand
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
     public required TimeSpan Playtime { get; init; }
+    public WeatherCondition? Weather { get; init; }
     public IReadOnlyDictionary<
         Guid,
         TimeSpan
@@ -41,6 +43,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         GetRouteTravelDurationsQuery,
         IReadOnlyDictionary<Guid, TimeSpan>
     > getRouteTravelDurations,
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<CompleteCreatureRoutesCommand> completeCreatureRoutes,
     ICommandHandler<
@@ -87,6 +90,17 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             new GetCreaturesByIdsQuery { Ids = scheduledIds },
             cancellationToken
         );
+        var jobLocationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery
+            {
+                Ids = jobsByCreatureId
+                    .Values.SelectMany(creatureJobs => creatureJobs)
+                    .Select(job => job.LocationId)
+                    .Distinct()
+                    .ToArray(),
+            },
+            cancellationToken
+        );
         await clearBedOccupants.Handle(
             new ClearBedOccupantsCommand { CreatureIds = scheduledIds },
             cancellationToken
@@ -128,6 +142,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             synchronization.ReadyCreatures,
             jobsByCreatureId,
             command.Playtime,
+            command.Weather,
+            jobLocationsById,
             cancellationToken
         );
         await PersistTargets(decisions.IdleTargets, cancellationToken);
@@ -301,11 +317,15 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         IReadOnlyCollection<ReadyCreature> readyCreatures,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
         TimeSpan playtime,
+        WeatherCondition? weather,
+        IReadOnlyDictionary<Guid, Location> locationsById,
         CancellationToken cancellationToken
     )
     {
         var scheduledCreatures = readyCreatures
-            .Select(ready => ResolveScheduledCreature(ready, jobsByCreatureId, playtime))
+            .Select(ready =>
+                ResolveScheduledCreature(ready, jobsByCreatureId, playtime, weather, locationsById)
+            )
             .Where(entry => entry != null)
             .Select(entry => entry!)
             .ToArray();
@@ -372,7 +392,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                     ready.LocationId,
                     scheduled.Job.LocationId,
                     departure,
-                    PurposeFor(scheduled.Job.Action)
+                    entry.Purpose
                 )
             );
         }
@@ -382,7 +402,9 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     private static ScheduledReadyCreature? ResolveScheduledCreature(
         ReadyCreature ready,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
-        TimeSpan playtime
+        TimeSpan playtime,
+        WeatherCondition? weather,
+        IReadOnlyDictionary<Guid, Location> locationsById
     )
     {
         var decisionPlaytime = ready.AvailableAtPlaytime ?? playtime;
@@ -401,8 +423,70 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                 playtime
             );
         }
-        return scheduled == null ? null : new ScheduledReadyCreature(ready, scheduled);
+        if (scheduled == null)
+        {
+            return null;
+        }
+
+        return ApplyWeatherSubstitution(
+            ready,
+            scheduled,
+            jobsByCreatureId[ready.Creature.Id],
+            weather,
+            locationsById
+        );
     }
+
+    private static ScheduledReadyCreature ApplyWeatherSubstitution(
+        ReadyCreature ready,
+        CreatureJobScheduling.ScheduledCreatureJob scheduled,
+        IReadOnlyCollection<CreatureJob> jobs,
+        WeatherCondition? weather,
+        IReadOnlyDictionary<Guid, Location> locationsById
+    )
+    {
+        if (ShouldShelter(ready.Creature, scheduled.Job, weather, locationsById))
+        {
+            var sleepJob = jobs.FirstOrDefault(job => job.Action == CreatureJobAction.Sleep);
+            if (sleepJob != null)
+            {
+                scheduled = scheduled with
+                {
+                    Job = CopyWithLocation(scheduled.Job, sleepJob.LocationId),
+                };
+                return new ScheduledReadyCreature(ready, scheduled, "Going home to take shelter");
+            }
+        }
+
+        return new ScheduledReadyCreature(ready, scheduled, PurposeFor(scheduled.Job.Action));
+    }
+
+    private static bool ShouldShelter(
+        Creature creature,
+        CreatureJob job,
+        WeatherCondition? weather,
+        IReadOnlyDictionary<Guid, Location> locationsById
+    ) =>
+        WeatherConditions.PreventsOptionalTravel(weather)
+        && creature.Profession != Profession.Guard
+        && job.Action == CreatureJobAction.Idle
+        && locationsById.TryGetValue(job.LocationId, out var location)
+        && location.Kind != LocationKind.Room;
+
+    private static CreatureJob CopyWithLocation(CreatureJob job, Guid locationId) =>
+        new()
+        {
+            Id = job.Id,
+            Action = job.Action,
+            CreatureId = job.CreatureId,
+            EndHour = job.EndHour,
+            LocationId = locationId,
+            Priority = job.Priority,
+            RouteId = job.RouteId,
+            SpecificDay = job.SpecificDay,
+            StartHour = job.StartHour,
+            WorldId = job.WorldId,
+        };
 
     private async Task<IReadOnlyDictionary<Guid, RouteCreatureResult>> StartRoutes(
         IReadOnlyCollection<CreatureRoutePlan> plans,
@@ -630,6 +714,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             CreatureJobAction.Idle => "Walking to spend free time",
             CreatureJobAction.Study => "Walking to study",
             CreatureJobAction.Pray => "Walking to pray",
+            CreatureJobAction.Eat => "Walking home to eat",
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
         };
 
@@ -647,7 +732,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
 
     private record ScheduledReadyCreature(
         ReadyCreature Ready,
-        CreatureJobScheduling.ScheduledCreatureJob Scheduled
+        CreatureJobScheduling.ScheduledCreatureJob Scheduled,
+        string Purpose
     );
 
     private record CreatureRoutePlan(

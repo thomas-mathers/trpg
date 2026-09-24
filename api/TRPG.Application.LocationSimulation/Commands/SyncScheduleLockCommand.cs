@@ -2,6 +2,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.WorldGeneration;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
@@ -29,6 +30,7 @@ internal class SyncScheduleLockCommandHandler(
         GetCreatureJobsOfWorkersAtLocationsQuery,
         IReadOnlyList<CreatureJob>
     > getJobsOfBuildingWorkers,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
     ICommandHandler<SetFrontDoorLockedCommand, bool?> setFrontDoorLocked
 ) : ICommandHandler<SyncScheduleLockCommand, bool?>
@@ -75,22 +77,17 @@ internal class SyncScheduleLockCommandHandler(
             cancellationToken
         );
 
-        var anyoneWorking = workerJobs
-            .GroupBy(j => j.CreatureId)
-            .Select(creatureJobs =>
-                creatureJobs
-                    .Where(j =>
-                        CreatureJobScheduling.IsActiveAtHour(
-                            j,
-                            command.CurrentDate.Weekday,
-                            command.CurrentDate.Hour
-                        )
-                    )
-                    .OrderByDescending(j => j.Priority)
-                    .ThenBy(j => j.Id)
-                    .FirstOrDefault()
-            )
-            .Any(effectiveJob => effectiveJob is { Action: CreatureJobAction.Work });
+        var workersById = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery
+            {
+                Ids = workerJobs.Select(job => job.CreatureId).Distinct().ToArray(),
+            },
+            cancellationToken
+        );
+        var roomLocationIds = rooms.Select(room => room.LocationId).ToHashSet();
+        var anyoneWorking = workersById.Values.Any(worker =>
+            worker.State == CreatureState.Busy && roomLocationIds.Contains(worker.LocationId)
+        );
 
         return await setFrontDoorLocked.Handle(
             new SetFrontDoorLockedCommand

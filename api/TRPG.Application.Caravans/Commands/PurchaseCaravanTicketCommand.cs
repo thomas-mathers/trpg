@@ -6,6 +6,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Routing.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
@@ -30,6 +31,7 @@ public enum PurchaseCaravanTicketOutcome
     CaravanNotPresent,
     InvalidDestination,
     AlreadyHoldsTicket,
+    TravelSuspended,
 }
 
 public record PurchaseCaravanTicketResult(
@@ -45,6 +47,7 @@ internal class PurchaseCaravanTicketCommandHandler(
         RouteTimelinePosition?
     > resolveRouteTravelerPosition,
     IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
+    IQueryHandler<GetWeatherByLocationIdQuery, WeatherCondition?> getWeatherByLocationId,
     ICommandHandler<RemoveGoldCommand> removeGold
 ) : ICommandHandler<PurchaseCaravanTicketCommand, PurchaseCaravanTicketResult>
 {
@@ -102,6 +105,15 @@ internal class PurchaseCaravanTicketCommandHandler(
         if (hasTicket)
         {
             return new PurchaseCaravanTicketResult(PurchaseCaravanTicketOutcome.AlreadyHoldsTicket);
+        }
+
+        var weather = await getWeatherByLocationId.Handle(
+            new GetWeatherByLocationIdQuery { LocationId = command.PlayerLocationId },
+            cancellationToken
+        );
+        if (WeatherConditions.PreventsOptionalTravel(weather))
+        {
+            return new PurchaseCaravanTicketResult(PurchaseCaravanTicketOutcome.TravelSuspended);
         }
 
         var fee = fare.TicketFeeGold;

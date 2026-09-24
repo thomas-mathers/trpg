@@ -113,6 +113,7 @@ public record SceneCaravanInfo(
     string RouteName,
     int TicketFeeGold,
     int MinutesUntilDeparture,
+    bool PassengerServiceAvailable,
     IReadOnlyCollection<SceneCaravanDestination> Destinations
 );
 

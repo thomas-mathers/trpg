@@ -452,6 +452,7 @@ describe('NearbyPanel', () => {
           routeName: 'The Capital Circuit',
           ticketFeeGold: 10,
           minutesUntilDeparture: 15,
+          passengerServiceAvailable: true,
           destinations: [
             {
               locationId: 'destination-id',

@@ -722,6 +722,16 @@ public class WorldGenerator(
             )
         );
 
+        jobs.AddRange(
+            MealScheduleGenerator.Generate(
+                worldId,
+                creatures,
+                jobs,
+                locationConnectors,
+                travelConnectors
+            )
+        );
+
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
         return new WorldGeneratorResult

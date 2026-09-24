@@ -236,4 +236,47 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
         Assert.Equal(LocationB, result.DestinationLocationId);
         Assert.Equal(1, result.TravelTimeHours);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsTravelSuspended_AndKeepsTicket_DuringStorm()
+    {
+        var stateId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId, stateId: stateId, id: LocationA);
+        var weather = new WeatherState
+        {
+            WorldId = WorldId,
+            StateId = stateId,
+            Condition = WeatherCondition.Storm,
+            NextChangePlaytime = TimeSpan.FromHours(1),
+        };
+        _context.Locations.Add(location);
+        _context.WeatherStates.Add(weather);
+        _context.CaravanTickets.Add(
+            Builders.MakeCaravanTicket(_caravan.Id, _player.Id, LocationA, LocationB)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new BoardCaravanCommand
+            {
+                PlayerId = _player.Id,
+                CaravanId = _caravan.Id,
+                PlayerLocationId = LocationA,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(BoardCaravanOutcome.TravelSuspended, result.Outcome);
+        Assert.True(
+            await _context.CaravanTickets.AnyAsync(
+                ticket => ticket.CreatureId == _player.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        _context.WeatherStates.Remove(weather);
+        _context.Locations.Remove(location);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 }

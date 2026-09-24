@@ -10,6 +10,7 @@ internal static class CreatureJobGenerator
     private static readonly HourWindow DefaultWorkHours = new(8, 20);
     private static readonly HourWindow IdleHours = new(6, 22);
     private const int DayOffPriority = 60;
+    private const int MealPriority = 55;
     private const int UnemployedActivityPriority = 10;
 
     public static CreatureJob GenerateSleep(
@@ -73,6 +74,25 @@ internal static class CreatureJobGenerator
             WorldId = worldId,
         };
     }
+
+    public static CreatureJob GenerateMeal(
+        Guid creatureId,
+        Guid locationId,
+        Guid worldId,
+        HourWindow hours,
+        DayOfWeek? specificDay = null
+    ) =>
+        new()
+        {
+            CreatureId = creatureId,
+            Action = CreatureJobAction.Eat,
+            StartHour = hours.Start,
+            EndHour = hours.End,
+            Priority = MealPriority,
+            LocationId = locationId,
+            SpecificDay = specificDay,
+            WorldId = worldId,
+        };
 
     public static CreatureJob GenerateDayOff(
         Guid creatureId,

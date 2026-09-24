@@ -11,6 +11,7 @@
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
     <ProjectReference Include="..\TRPG.Application.Configuration\TRPG.Application.Configuration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
+    <ProjectReference Include="..\TRPG.Application.LocationSimulation\TRPG.Application.LocationSimulation.csproj" />
     <ProjectReference Include="..\TRPG.Application.Routing\TRPG.Application.Routing.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />

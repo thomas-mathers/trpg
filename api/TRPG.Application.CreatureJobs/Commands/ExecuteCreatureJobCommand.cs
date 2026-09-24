@@ -66,6 +66,7 @@ internal class ExecuteCreatureJobCommandHandler(
             CreatureJobAction.Idle => CreatureState.Idle,
             CreatureJobAction.Study => CreatureState.Studying,
             CreatureJobAction.Pray => CreatureState.Praying,
+            CreatureJobAction.Eat => CreatureState.Eating,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(command),
                 command.CreatureJobAction,

@@ -41,6 +41,7 @@ public record LlmSceneCaravan(
     string RouteName,
     int TicketFeeGold,
     int MinutesUntilDeparture,
+    bool PassengerServiceAvailable,
     IReadOnlyCollection<string> DestinationNames
 );
 

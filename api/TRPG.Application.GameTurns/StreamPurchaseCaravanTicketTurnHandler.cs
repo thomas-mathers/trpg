@@ -73,6 +73,9 @@ internal class StreamPurchaseCaravanTicketTurnHandler(
             PurchaseCaravanTicketOutcome.InvalidDestination => new GameTurnPrompt.Reply(
                 "That isn't a valid destination for this caravan."
             ),
+            PurchaseCaravanTicketOutcome.TravelSuspended => new GameTurnPrompt.Reply(
+                "The caravan has suspended passenger service until the weather improves."
+            ),
             _ => new GameTurnPrompt.Reply("The caravan isn't here anymore."),
         };
     }

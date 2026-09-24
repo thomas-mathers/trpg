@@ -62,6 +62,12 @@ internal class StreamBoardCaravanTurnHandler(
         {
             return new GameTurnPrompt.Reply("The caravan isn't here anymore.");
         }
+        if (result.Outcome == BoardCaravanOutcome.TravelSuspended)
+        {
+            return new GameTurnPrompt.Reply(
+                "The caravan has suspended passenger service until the weather improves. Your ticket remains valid."
+            );
+        }
 
         var arrivalPlaytime = await advanceTime.Handle(
             new AdvanceTimeCommand

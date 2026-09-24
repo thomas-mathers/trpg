@@ -193,7 +193,7 @@ export type CreatureLevelResponse = {
     level: number;
 };
 
-export type CreatureState = 'Idle' | 'Sleeping' | 'Busy' | 'Studying' | 'Praying' | 'Alerted' | 'Dead' | 'Restrained' | 'Walking';
+export type CreatureState = 'Idle' | 'Sitting' | 'Sleeping' | 'Busy' | 'Studying' | 'Praying' | 'Eating' | 'Alerted' | 'Dead' | 'Restrained' | 'Walking';
 
 export type CreatureStatusSnapshot = {
     id: string;
@@ -649,6 +649,7 @@ export type NearbyCaravanSnapshot = {
     routeName: string;
     ticketFeeGold: number;
     minutesUntilDeparture: number;
+    passengerServiceAvailable: boolean;
     destinations: Array<CaravanDestinationSnapshot>;
 };
 
@@ -705,6 +706,8 @@ export type NearbyPropSnapshot = {
     name: string;
     description: string;
     type: string;
+    isOccupied: boolean;
+    isOccupiedByPlayer: boolean;
 };
 
 export type OwnerReferenceRequest = {
