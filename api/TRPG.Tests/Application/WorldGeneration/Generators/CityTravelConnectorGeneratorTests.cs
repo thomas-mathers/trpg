@@ -68,6 +68,38 @@ public class CityTravelConnectorGeneratorTests
         );
     }
 
+    [Fact]
+    public void Generate_AddsZeroDistanceConnectorsBetweenRoomsInTheSameBuilding()
+    {
+        var building = new Building { WorldId = WorldId };
+        var first = new Room
+        {
+            WorldId = WorldId,
+            BuildingId = building.Id,
+            LocationId = Guid.NewGuid(),
+        };
+        var second = new Room
+        {
+            WorldId = WorldId,
+            BuildingId = building.Id,
+            LocationId = Guid.NewGuid(),
+        };
+        var forward = Connector(first.LocationId, second.LocationId);
+        var reverse = Connector(second.LocationId, first.LocationId);
+
+        var travelConnectors = CityTravelConnectorGenerator.Generate(
+            WorldId,
+            [],
+            [building],
+            [first, second],
+            [forward, reverse],
+            Options
+        );
+
+        Assert.Equal(2, travelConnectors.Count);
+        Assert.All(travelConnectors, connector => Assert.Equal(0, connector.Distance));
+    }
+
     private static District District(Guid cityId) =>
         new()
         {

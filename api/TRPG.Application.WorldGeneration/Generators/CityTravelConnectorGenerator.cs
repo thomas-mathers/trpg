@@ -78,6 +78,18 @@ internal static class CityTravelConnectorGenerator
             return new CityTravelDistance(connector.Id, options.BuildingDistance);
         }
 
+        if (
+            roomByLocationId.TryGetValue(connector.OriginLocationId, out var originRoom)
+            && roomByLocationId.TryGetValue(
+                connector.DestinationLocationId,
+                out var destinationRoom
+            )
+            && originRoom.BuildingId == destinationRoom.BuildingId
+        )
+        {
+            return new CityTravelDistance(connector.Id, Distance: 0);
+        }
+
         return null;
     }
 

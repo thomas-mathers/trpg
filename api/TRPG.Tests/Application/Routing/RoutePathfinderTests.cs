@@ -38,6 +38,25 @@ public class RoutePathfinderTests
     }
 
     [Fact]
+    public void FindShortestPath_IncludesMeasuredZeroDistanceConnectors()
+    {
+        var originId = Guid.NewGuid();
+        var middleId = Guid.NewGuid();
+        var destinationId = Guid.NewGuid();
+        var indoor = Connector(originId, middleId);
+        var street = Connector(middleId, destinationId);
+
+        var path = RoutePathfinder.FindShortestPath(
+            [indoor, street],
+            [Travel(indoor, 0), Travel(street, 5)],
+            originId,
+            destinationId
+        );
+
+        Assert.Equal([indoor.Id, street.Id], path.Select(leg => leg.ConnectorId));
+    }
+
+    [Fact]
     public void FindShortestPath_Throws_WhenMultipleMeasuredConnectorsJoinTheSameLocations()
     {
         var originId = Guid.NewGuid();

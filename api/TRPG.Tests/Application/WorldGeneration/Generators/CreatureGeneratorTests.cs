@@ -81,6 +81,25 @@ public class CreatureGeneratorTests
     }
 
     [Fact]
+    public void Generate_CachesDerivedMovementSpeed()
+    {
+        var result = _creatureGenerator.Generate(MakeInput(Profession.Knight, level: 1));
+        var equippedItems = result
+            .Items.Where(item => item.Ownership.EquippedSlot != null)
+            .ToArray();
+        var expected = StatFormulas.CalculateTravelSpeed(
+            result.Creature.BaseAttributes.Dexterity,
+            equippedItems,
+            result.Creature.IsSneaking,
+            new CreatureGeneratorOptions()
+        );
+
+        Assert.True(result.Creature.MovementSpeed > 0);
+        Assert.Equal(expected, result.Creature.BaseAttributes.MovementSpeed);
+        Assert.Equal(expected, result.Creature.MovementSpeed);
+    }
+
+    [Fact]
     public void Generate_AppliesAllocationOnTopOfBaseline_WhenStartingAttributeAllocationProvided()
     {
         // Arrange — default options: BaseAttributes all 5, PointsPerLevel 5, so level 1 grants
