@@ -16,12 +16,14 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _services = null!;
     private RouteCreatureToDestinationCommandHandler _handler = null!;
+    private RouteCreaturesToDestinationsCommandHandler _batchHandler = null!;
 
     public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _services = new ServiceCollection().AddTrpgTestServices(_context).BuildServiceProvider();
         _handler = _services.GetRequiredService<RouteCreatureToDestinationCommandHandler>();
+        _batchHandler = _services.GetRequiredService<RouteCreaturesToDestinationsCommandHandler>();
         return ValueTask.CompletedTask;
     }
 
@@ -165,6 +167,67 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         Assert.Equal(locationY, firstStep.LocationId);
         Assert.Equal(second.Id, firstStep.ConnectorId);
         Assert.Equal(GameClock.RealTimePerInGameHour * 2, replacement.StartedAtPlaytime);
+    }
+
+    [Fact]
+    public async Task Handle_AppliesPreemptionRules_ToEveryCreatureInTheBatch()
+    {
+        var worldId = Guid.NewGuid();
+        var locationX = Guid.NewGuid();
+        var locationY = Guid.NewGuid();
+        var outbound = AddMeasuredConnector(worldId, locationX, locationY, distance: 10);
+        var inbound = AddMeasuredConnector(worldId, locationY, locationX, distance: 10);
+        var creatures = Enumerable
+            .Range(0, 2)
+            .Select(_ => Builders.MakeCreature(worldId, locationId: locationX))
+            .ToArray();
+        foreach (var creature in creatures)
+        {
+            creature.MovementSpeed = 20;
+            AddFiniteTraveler(creature, speedUnitsPerHour: 10, [outbound], locationY);
+        }
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var decisionPlaytime = GameClock.RealTimePerInGameHour * 0.4;
+
+        var results = await _batchHandler.Handle(
+            new RouteCreaturesToDestinationsCommand
+            {
+                Routes = creatures
+                    .Select(creature => new CreatureRouteRequest(
+                        creature.Id,
+                        locationX,
+                        decisionPlaytime,
+                        "Returning to the gate."
+                    ))
+                    .ToArray(),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        _context.ChangeTracker.Clear();
+        var replacementIds = results
+            .Values.Select(result => result.RouteTravelerId!.Value)
+            .ToArray();
+        var replacements = await _context
+            .RouteTravelers.Where(traveler => replacementIds.AsEnumerable().Contains(traveler.Id))
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        var routeId = Assert.Single(replacements.Select(traveler => traveler.RouteId).Distinct());
+        var steps = await _context
+            .RouteSteps.Where(step => step.RouteId == routeId)
+            .OrderBy(step => step.SequenceIndex)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, results.Count);
+        Assert.All(results.Values, result => Assert.False(result.IsAlreadyAtDestination));
+        Assert.All(
+            replacements,
+            traveler =>
+            {
+                Assert.Equal(TimeSpan.Zero, traveler.StartedAtPlaytime);
+                Assert.Equal(10, traveler.SpeedUnitsPerHour);
+            }
+        );
+        Assert.Equal([outbound.Id, inbound.Id, null], steps.Select(step => step.ConnectorId));
     }
 
     private LocationConnector AddMeasuredConnector(

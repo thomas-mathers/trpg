@@ -1,8 +1,6 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.CreatureJobs;
-using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
@@ -21,13 +19,7 @@ public class RelocateFreedCaptivesCommand
     public required TimeSpan Playtime { get; init; }
 }
 
-// A rescued captive already has an ordinary household job schedule (Capture never touches
-// CreatureJob rows, only State/LocationId) — it just never runs while nobody catches up their
-// actual job location, which the player may never revisit. Resolving it here, the moment the
-// player leaves them behind, sends them home immediately instead of leaving them stranded in the
-// cell indefinitely. Scoped to FreeCreatureObjective targets specifically (not every idle creature
-// at the location) so ordinary captors and ambient dungeon monsters, some of which also have no
-// CreatureJob rows, are never mistaken for an abandoned captive.
+// Quest-target filtering keeps unrelated idle dungeon creatures out of captive cleanup.
 internal class RelocateFreedCaptivesCommandHandler(
     IQueryHandler<
         GetCreaturesAtLocationQuery,
@@ -41,7 +33,10 @@ internal class RelocateFreedCaptivesCommandHandler(
         GetCreatureJobsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
     > getJobsByCreatureIds,
-    ICommandHandler<ExecuteCreatureJobCommand> executeJob,
+    ICommandHandler<
+        SyncCreatureJobSchedulesCommand,
+        SyncCreatureJobSchedulesResult
+    > syncCreatureJobSchedules,
     ICommandHandler<DeleteCreaturesCommand> deleteCreatures
 ) : ICommandHandler<RelocateFreedCaptivesCommand>
 {
@@ -104,31 +99,14 @@ internal class RelocateFreedCaptivesCommandHandler(
             );
         }
 
-        var currentDate = GameClock.GetCurrentInGameDate(command.Playtime);
-        foreach (var creatureId in strandedCaptiveIds.Except(joblessCaptiveIds))
-        {
-            var dueJob = CreatureJobScheduling.FindDueJob(
-                jobsByCreatureId[creatureId],
-                currentDate.Weekday,
-                currentDate.Hour
-            );
-            if (dueJob == null)
+        await syncCreatureJobSchedules.Handle(
+            new SyncCreatureJobSchedulesCommand
             {
-                continue;
-            }
-
-            await executeJob.Handle(
-                new ExecuteCreatureJobCommand
-                {
-                    CreatureId = creatureId,
-                    CurrentLocationId = command.LocationId,
-                    CurrentState = CreatureState.Idle,
-                    CreatureJobAction = dueJob.Action,
-                    JobLocationId = dueJob.LocationId,
-                },
-                cancellationToken
-            );
-        }
+                CreatureIds = strandedCaptiveIds.Except(joblessCaptiveIds).ToArray(),
+                Playtime = command.Playtime,
+            },
+            cancellationToken
+        );
 
         transaction.Complete();
     }

@@ -1,4 +1,6 @@
 using TRPG.Application.CreatureJobs;
+using TRPG.Domain;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.CreatureJobs;
@@ -14,13 +16,10 @@ public class CreatureJobSchedulingTests
     [InlineData(7, false)]
     public void IsActiveAtHour_HandlesNormalWindow(int hour, bool expected)
     {
-        // Arrange
         var job = Builders.MakeCreatureJob(_creatureId, startHour: 8, endHour: 20);
 
-        // Act
         var result = CreatureJobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, hour);
 
-        // Assert
         Assert.Equal(expected, result);
     }
 
@@ -33,33 +32,26 @@ public class CreatureJobSchedulingTests
     [InlineData(21, false)]
     public void IsActiveAtHour_HandlesMidnightWraparound(int hour, bool expected)
     {
-        // Arrange
         var job = Builders.MakeCreatureJob(_creatureId, startHour: 22, endHour: 6);
 
-        // Act
         var result = CreatureJobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, hour);
 
-        // Assert
         Assert.Equal(expected, result);
     }
 
     [Fact]
     public void IsActiveAtHour_ReturnsFalse_WhenStartEqualsEnd()
     {
-        // Arrange
         var job = Builders.MakeCreatureJob(_creatureId, startHour: 0, endHour: 0);
 
-        // Act
         var result = CreatureJobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, 0);
 
-        // Assert
         Assert.False(result);
     }
 
     [Fact]
     public void IsActiveAtHour_ReturnsTrue_WhenSpecificDayMatchesCurrentWeekday()
     {
-        // Arrange
         var job = Builders.MakeCreatureJob(
             _creatureId,
             startHour: 8,
@@ -67,17 +59,14 @@ public class CreatureJobSchedulingTests
             specificDay: DayOfWeek.Monday
         );
 
-        // Act
         var result = CreatureJobScheduling.IsActiveAtHour(job, DayOfWeek.Monday, 10);
 
-        // Assert
         Assert.True(result);
     }
 
     [Fact]
     public void IsActiveAtHour_ReturnsFalse_WhenSpecificDayDoesNotMatchCurrentWeekday()
     {
-        // Arrange
         var job = Builders.MakeCreatureJob(
             _creatureId,
             startHour: 8,
@@ -85,10 +74,46 @@ public class CreatureJobSchedulingTests
             specificDay: DayOfWeek.Monday
         );
 
-        // Act
         var result = CreatureJobScheduling.IsActiveAtHour(job, DayOfWeek.Tuesday, 10);
 
-        // Assert
         Assert.False(result);
     }
+
+    [Fact]
+    public void FindCurrentOrNextJob_ReturnsActiveJobImmediately()
+    {
+        var playtime = TimeSpan.Zero;
+        var currentDate = GameClock.GetCurrentInGameDateTime(playtime);
+        var job = Job(currentDate.Hour, currentDate.Hour + 1);
+
+        var scheduled = CreatureJobScheduling.FindCurrentOrNextJob([job], playtime);
+
+        Assert.NotNull(scheduled);
+        Assert.True(scheduled.IsActive);
+        Assert.Equal(playtime, scheduled.StartsAtPlaytime);
+    }
+
+    [Fact]
+    public void FindCurrentOrNextJob_ReturnsUpcomingJobStart()
+    {
+        var playtime = TimeSpan.Zero;
+        var currentDate = GameClock.GetCurrentInGameDateTime(playtime);
+        var job = Job(currentDate.Hour + 2, currentDate.Hour + 3);
+
+        var scheduled = CreatureJobScheduling.FindCurrentOrNextJob([job], playtime);
+
+        Assert.NotNull(scheduled);
+        Assert.False(scheduled.IsActive);
+        Assert.Equal(playtime + GameClock.RealTimePerInGameHour * 2, scheduled.StartsAtPlaytime);
+    }
+
+    private static CreatureJob Job(int startHour, int endHour) =>
+        new()
+        {
+            CreatureId = Guid.NewGuid(),
+            WorldId = Guid.NewGuid(),
+            LocationId = Guid.NewGuid(),
+            StartHour = startHour,
+            EndHour = endHour,
+        };
 }

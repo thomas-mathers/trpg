@@ -1,7 +1,5 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.CreatureJobs;
-using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Props.Commands;
@@ -27,13 +25,11 @@ internal class CatchUpLocationCommandHandler(
         GetCreatureIdsWithCreatureJobInLocationQuery,
         IReadOnlyList<Guid>
     > getCreatureIdsWithJobInLocation,
-    IQueryHandler<
-        GetCreatureJobsByCreatureIdsQuery,
-        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
-    > getJobsByCreatureIds,
     IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>> getCreatureIdsByDistrict,
-    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<ExecuteCreatureJobCommand> executeJob,
+    ICommandHandler<
+        SyncCreatureJobSchedulesCommand,
+        SyncCreatureJobSchedulesResult
+    > syncCreatureJobSchedules,
     IQueryHandler<
         GetWorkstationsByLocationIdQuery,
         IReadOnlyCollection<Workstation>
@@ -89,7 +85,7 @@ internal class CatchUpLocationCommandHandler(
     {
         await AdvanceDueJobs(
             await ResolveScheduledCreatureIds(command, location, cancellationToken),
-            command.CurrentDate,
+            command.Playtime,
             cancellationToken
         );
 
@@ -240,7 +236,7 @@ internal class CatchUpLocationCommandHandler(
 
     private async Task AdvanceDueJobs(
         IReadOnlyCollection<Guid> creatureIds,
-        InGameDate currentDate,
+        TimeSpan playtime,
         CancellationToken cancellationToken
     )
     {
@@ -249,70 +245,15 @@ internal class CatchUpLocationCommandHandler(
             return;
         }
 
-        var jobsByCreatureId = await getJobsByCreatureIds.Handle(
-            new GetCreatureJobsByCreatureIdsQuery { CreatureIds = creatureIds },
+        var result = await syncCreatureJobSchedules.Handle(
+            new SyncCreatureJobSchedulesCommand { CreatureIds = creatureIds, Playtime = playtime },
             cancellationToken
         );
-
-        var dueJobsByCreatureId = creatureIds
-            .Select(creatureId => new
-            {
-                CreatureId = creatureId,
-                DueJob = FindDueJob(jobsByCreatureId, creatureId, currentDate),
-            })
-            .Where(entry => entry.DueJob != null)
-            .ToDictionary(entry => entry.CreatureId, entry => entry.DueJob!);
-
-        if (dueJobsByCreatureId.Count == 0)
-        {
-            return;
-        }
-
-        var creaturesById = await getCreaturesByIds.Handle(
-            new GetCreaturesByIdsQuery { Ids = dueJobsByCreatureId.Keys.ToArray() },
-            cancellationToken
-        );
-
-        var workingCreaturesByLocationId = new Dictionary<Guid, List<Guid>>();
-
-        foreach (var (creatureId, dueJob) in dueJobsByCreatureId)
-        {
-            if (creaturesById.TryGetValue(creatureId, out var creature))
-            {
-                await executeJob.Handle(
-                    new ExecuteCreatureJobCommand
-                    {
-                        CreatureId = creature.Id,
-                        CurrentLocationId = creature.LocationId,
-                        CurrentState = creature.State,
-                        CreatureJobAction = dueJob.Action,
-                        JobLocationId = dueJob.LocationId,
-                    },
-                    cancellationToken
-                );
-            }
-
-            if (dueJob.Action == CreatureJobAction.Work)
-            {
-                workingCreaturesByLocationId.TryAdd(dueJob.LocationId, []);
-                workingCreaturesByLocationId[dueJob.LocationId].Add(creatureId);
-            }
-        }
-
-        foreach (var (locationId, presentCreatureIds) in workingCreaturesByLocationId)
+        foreach (var (locationId, presentCreatureIds) in result.WorkingCreatureIdsByLocationId)
         {
             await AssignWorkstations(locationId, presentCreatureIds, cancellationToken);
         }
     }
-
-    private static CreatureJob? FindDueJob(
-        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
-        Guid creatureId,
-        InGameDate currentDate
-    ) =>
-        jobsByCreatureId.TryGetValue(creatureId, out var jobs)
-            ? CreatureJobScheduling.FindDueJob(jobs, currentDate.Weekday, currentDate.Hour)
-            : null;
 
     private async Task AssignWorkstations(
         Guid locationId,
