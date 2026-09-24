@@ -105,8 +105,15 @@ internal static class DistrictGenerator
             Name = names[Random.Shared.Next(names.Length)],
             WorldId = worldId,
         };
-        return new DistrictGeneratorResult(district, location);
+        var bench = new Seat
+        {
+            LocationId = location.Id,
+            WorldId = worldId,
+            Name = "Bench",
+            Description = "A sturdy public bench where travelers can rest.",
+        };
+        return new DistrictGeneratorResult(district, location, bench);
     }
 }
 
-internal record DistrictGeneratorResult(District District, Location Location);
+internal record DistrictGeneratorResult(District District, Location Location, Seat Bench);

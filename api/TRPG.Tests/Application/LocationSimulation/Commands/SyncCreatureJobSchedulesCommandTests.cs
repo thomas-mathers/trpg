@@ -233,6 +233,67 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_AssignsLimitedSeating_InArrivalOrderForIdleVisitors()
+    {
+        var location = Builders.MakeLocation(_worldId);
+        var firstArrival = Builders.MakeCreature(_worldId, locationId: location.Id);
+        var secondArrival = Builders.MakeCreature(_worldId, locationId: location.Id);
+        var seat = Builders.MakeSeat(_worldId, location.Id);
+        _context.Locations.Add(location);
+        _context.Creatures.AddRange(firstArrival, secondArrival);
+        _context.Props.Add(seat);
+        _context.CreatureJobs.AddRange(
+            Builders.MakeCreatureJob(
+                firstArrival.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 0,
+                endHour: 23,
+                locationId: location.Id,
+                worldId: _worldId
+            ),
+            Builders.MakeCreatureJob(
+                secondArrival.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 0,
+                endHour: 23,
+                locationId: location.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [secondArrival.Id, firstArrival.Id],
+                Playtime = GameClock.RealTimePerInGameHour * 3,
+                BecameAvailableAtPlaytimeByCreatureId = new Dictionary<Guid, TimeSpan>
+                {
+                    [firstArrival.Id] = GameClock.RealTimePerInGameHour,
+                    [secondArrival.Id] = GameClock.RealTimePerInGameHour * 2,
+                },
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var creatures = await verify
+            .Creatures.Where(creature =>
+                creature.Id == firstArrival.Id || creature.Id == secondArrival.Id
+            )
+            .ToDictionaryAsync(creature => creature.Id, TestContext.Current.CancellationToken);
+        var occupiedSeat = await verify
+            .Props.OfType<Seat>()
+            .SingleAsync(prop => prop.Id == seat.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(firstArrival.Id, occupiedSeat.OccupantId);
+        Assert.Equal(CreatureState.Sitting, creatures[firstArrival.Id].State);
+        Assert.Equal(CreatureState.Idle, creatures[secondArrival.Id].State);
+    }
+
+    [Fact]
     public async Task Handle_StartsAnActiveRouteBackedJob_AtTheShiftBoundary()
     {
         var firstDistrict = Builders.MakeLocation(_worldId);

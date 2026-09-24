@@ -19,7 +19,13 @@ public class ExecuteCreatureJobCommand
 internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
-    ICommandHandler<SetBedOccupantCommand> setBedOccupant
+    ICommandHandler<SetBedOccupantCommand> setBedOccupant,
+    IQueryHandler<
+        GetAvailableSeatsByLocationIdQuery,
+        IReadOnlyList<Seat>
+    > getAvailableSeatsByLocationId,
+    ICommandHandler<TryOccupySeatCommand, bool> tryOccupySeat,
+    ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
     // These states temporarily suppress ordinary schedule effects.
@@ -45,6 +51,14 @@ internal class ExecuteCreatureJobCommandHandler(
             return;
         }
 
+        if (
+            command.CreatureJobAction == CreatureJobAction.Idle
+            && command.CurrentState == CreatureState.Sitting
+        )
+        {
+            return;
+        }
+
         var targetState = command.CreatureJobAction switch
         {
             CreatureJobAction.Sleep => CreatureState.Sleeping,
@@ -62,6 +76,7 @@ internal class ExecuteCreatureJobCommandHandler(
         if (
             command.CurrentLocationId == command.JobLocationId
             && command.CurrentState == targetState
+            && command.CreatureJobAction != CreatureJobAction.Idle
         )
         {
             return;
@@ -76,6 +91,20 @@ internal class ExecuteCreatureJobCommandHandler(
             );
         }
 
+        if (command.CurrentState == CreatureState.Sitting)
+        {
+            await vacateCreatureSeat.Handle(
+                new VacateCreatureSeatCommand { CreatureId = command.CreatureId },
+                cancellationToken
+            );
+        }
+
+        if (command.CreatureJobAction == CreatureJobAction.Idle)
+        {
+            var seated = await TryOccupyAvailableSeat(command, cancellationToken);
+            targetState = seated ? CreatureState.Sitting : CreatureState.Idle;
+        }
+
         await updateCreatures.Handle(
             new UpdateCreaturesCommand { CreatureIds = [command.CreatureId], State = targetState },
             cancellationToken
@@ -85,6 +114,30 @@ internal class ExecuteCreatureJobCommandHandler(
         {
             await SetBedOccupant(command.JobLocationId, command.CreatureId, cancellationToken);
         }
+    }
+
+    private async Task<bool> TryOccupyAvailableSeat(
+        ExecuteCreatureJobCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var seats = await getAvailableSeatsByLocationId.Handle(
+            new GetAvailableSeatsByLocationIdQuery { LocationId = command.JobLocationId },
+            cancellationToken
+        );
+        foreach (var seat in seats)
+        {
+            var occupied = await tryOccupySeat.Handle(
+                new TryOccupySeatCommand { SeatId = seat.Id, CreatureId = command.CreatureId },
+                cancellationToken
+            );
+            if (occupied)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task SetBedOccupant(

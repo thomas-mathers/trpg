@@ -9,6 +9,7 @@ internal static class CreatureStateMapper
         state switch
         {
             DataCreatureState.Idle => ContractCreatureState.Idle,
+            DataCreatureState.Sitting => ContractCreatureState.Sitting,
             DataCreatureState.Sleeping => ContractCreatureState.Sleeping,
             DataCreatureState.Busy => ContractCreatureState.Busy,
             DataCreatureState.Studying => ContractCreatureState.Studying,

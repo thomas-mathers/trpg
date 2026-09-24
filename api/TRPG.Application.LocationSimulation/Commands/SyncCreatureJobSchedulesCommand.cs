@@ -50,7 +50,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     ICommandHandler<StartCreaturesOnRoutesCommand> startCreaturesOnRoutes,
     ICommandHandler<ExecuteCreatureJobCommand> executeCreatureJob,
     ICommandHandler<ClearBedOccupantsCommand> clearBedOccupants,
-    ICommandHandler<ClearWorkstationOccupantsCommand> clearWorkstationOccupants
+    ICommandHandler<ClearWorkstationOccupantsCommand> clearWorkstationOccupants,
+    ICommandHandler<ClearSeatOccupantsCommand> clearSeatOccupants
 ) : ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
 {
     private static readonly HashSet<CreatureState> NonSchedulableStates =
@@ -92,6 +93,10 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         );
         await clearWorkstationOccupants.Handle(
             new ClearWorkstationOccupantsCommand { CreatureIds = scheduledIds },
+            cancellationToken
+        );
+        await clearSeatOccupants.Handle(
+            new ClearSeatOccupantsCommand { CreatureIds = scheduledIds },
             cancellationToken
         );
         var routePositions = await getCreatureRoutePositions.Handle(
@@ -488,7 +493,12 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         var workingByLocationId = new Dictionary<Guid, List<Guid>>();
         var patrols = new List<StartCreatureOnRouteRequest>();
         var currentDate = GameClock.GetCurrentInGameDate(playtime);
-        foreach (var entry in creatures.DistinctBy(entry => entry.Creature.Id))
+        foreach (
+            var entry in creatures
+                .DistinctBy(entry => entry.Creature.Id)
+                .OrderBy(entry => entry.AvailableAtPlaytime ?? TimeSpan.MinValue)
+                .ThenBy(entry => entry.Creature.Id)
+        )
         {
             var job = CreatureJobScheduling.FindDueJob(
                 jobsByCreatureId[entry.Creature.Id],

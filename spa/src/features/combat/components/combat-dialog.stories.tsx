@@ -287,6 +287,8 @@ function WorkbenchProviders({
     receiveOpening: noopStream,
     sendChat: noopStream,
     sendWait: noopStream,
+    sendSitDown: noopStream,
+    sendStandUp: noopStream,
     sendSleep: noopStream,
     sendActivateTrigger: noopStream,
     sendAcceptQuest: noopStream,

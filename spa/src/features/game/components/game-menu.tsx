@@ -54,7 +54,10 @@ export function GameMenu({
         <DropdownMenuItem disabled={!scene} onClick={onOpenMapDialog}>
           Map
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={!scene} onClick={onOpenWaitDialog}>
+        <DropdownMenuItem
+          disabled={scene?.playerStatus.state !== 'Sitting'}
+          onClick={onOpenWaitDialog}
+        >
           Wait
         </DropdownMenuItem>
         <DropdownMenuSeparator />

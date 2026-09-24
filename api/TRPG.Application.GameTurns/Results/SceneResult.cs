@@ -47,7 +47,14 @@ public record SceneExitInfo(
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);
 
-public record ScenePropInfo(Guid Id, string Name, string Description, string Type);
+public record ScenePropInfo(
+    Guid Id,
+    string Name,
+    string Description,
+    string Type,
+    bool IsOccupied,
+    bool IsOccupiedByPlayer
+);
 
 public record SceneJourneyInfo(string Purpose, string NextDestination);
 

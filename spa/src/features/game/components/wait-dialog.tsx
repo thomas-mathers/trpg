@@ -46,7 +46,13 @@ export function WaitDialog({ open, onClose }: WaitDialogProps) {
     }
   }, [open, scene]);
 
-  if (!scene) {
+  useEffect(() => {
+    if (open && scene && scene.playerStatus.state !== 'Sitting') {
+      onClose();
+    }
+  }, [onClose, open, scene]);
+
+  if (!scene || scene.playerStatus.state !== 'Sitting') {
     return null;
   }
 

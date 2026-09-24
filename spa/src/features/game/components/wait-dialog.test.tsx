@@ -17,7 +17,7 @@ import { WaitDialog } from './wait-dialog';
 function scene(hour: number): SceneSnapshot {
   return {
     hour,
-    playerStatus: { id: 'player-id', level: 1 },
+    playerStatus: { id: 'player-id', level: 1, state: 'Sitting' },
   } as unknown as SceneSnapshot;
 }
 
@@ -133,5 +133,32 @@ describe('WaitDialog', () => {
     );
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('closes and does not render when the player is not sitting', () => {
+    const onClose = vi.fn();
+    const notSitting = {
+      ...scene(8),
+      playerStatus: { ...scene(8).playerStatus, state: 'Idle' as const },
+    };
+
+    renderWithProviders(
+      <SceneContext.Provider value={notSitting}>
+        <GameHubConnectionContext.Provider
+          value={{
+            connectionStatus: HubConnectionState.Connected,
+            connectionError: false,
+            chatHub: buildChatHub(),
+          }}
+        >
+          <GameChatContext.Provider value={buildGameChat()}>
+            <WaitDialog open onClose={onClose} />
+          </GameChatContext.Provider>
+        </GameHubConnectionContext.Provider>
+      </SceneContext.Provider>,
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

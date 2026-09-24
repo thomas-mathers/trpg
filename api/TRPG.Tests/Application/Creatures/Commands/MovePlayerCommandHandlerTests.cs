@@ -104,6 +104,41 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_StandsPlayerAndVacatesSeat_WhenPlayerMoves()
+    {
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
+        player.State = CreatureState.Sitting;
+        var seat = Builders.MakeSeat(WorldId, oldLocation.Id, player.Id);
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.Add(player);
+        _context.Props.Add(seat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                DestinationLocationId = newLocation.Id,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var updatedPlayer = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == player.Id,
+            TestContext.Current.CancellationToken
+        );
+        var updatedSeat = await verifyContext
+            .Props.OfType<Seat>()
+            .SingleAsync(prop => prop.Id == seat.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(CreatureState.Idle, updatedPlayer.State);
+        Assert.Null(updatedSeat.OccupantId);
+    }
+
+    [Fact]
     public async Task Handle_CreatesAnActiveEncounter_WhenMovingIntoALocationWithAnEngagingGroup()
     {
         // Arrange
