@@ -23,7 +23,8 @@ public class MovePlayerCommand
 internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<StopSittingCommand> stopSitting
 ) : ICommandHandler<MovePlayerCommand>
 {
     public async Task Handle(
@@ -41,6 +42,11 @@ internal class MovePlayerCommandHandler(
                 new GetCreatureByIdQuery { Id = command.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
+
+        await stopSitting.Handle(
+            new StopSittingCommand { CreatureId = command.PlayerId },
+            cancellationToken
+        );
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand

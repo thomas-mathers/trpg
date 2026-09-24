@@ -64,6 +64,7 @@ public enum Profession
 public enum CreatureState
 {
     Idle,
+    Sitting,
     Sleeping,
     Busy,
     Studying,
@@ -247,7 +248,14 @@ public record NearbyBuildingSnapshot(
 );
 
 [TranspilationSource]
-public record NearbyPropSnapshot(Guid Id, string Name, string Description, string Type);
+public record NearbyPropSnapshot(
+    Guid Id,
+    string Name,
+    string Description,
+    string Type,
+    bool IsOccupied,
+    bool IsOccupiedByPlayer
+);
 
 [TranspilationSource]
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]

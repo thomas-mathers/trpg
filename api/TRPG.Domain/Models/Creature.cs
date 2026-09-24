@@ -35,6 +35,7 @@ public static class CreatureTypes
 public enum CreatureState
 {
     Idle,
+    Sitting,
     Sleeping,
     Busy,
     Studying,

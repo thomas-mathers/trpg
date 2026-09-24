@@ -53,6 +53,37 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_OccupiesAvailableSeat_ForIdleJob()
+    {
+        var seat = Builders.MakeSeat(_creature.WorldId, _creature.LocationId);
+        _context.Props.Add(seat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = _creature.LocationId,
+                CurrentState = CreatureState.Idle,
+                CreatureJobAction = CreatureJobAction.Idle,
+                JobLocationId = _creature.LocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var updatedCreature = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        var updatedSeat = await verifyContext
+            .Props.OfType<Seat>()
+            .SingleAsync(prop => prop.Id == seat.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(CreatureState.Sitting, updatedCreature.State);
+        Assert.Equal(_creature.Id, updatedSeat.OccupantId);
+    }
+
+    [Fact]
     public async Task Handle_UpdatesCreatureState_ForStudyJob()
     {
         await AssertStateUpdated(CreatureJobAction.Study, CreatureState.Studying);

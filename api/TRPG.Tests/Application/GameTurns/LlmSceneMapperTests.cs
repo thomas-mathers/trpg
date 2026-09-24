@@ -113,7 +113,16 @@ public sealed class LlmSceneMapperTests
                     IsWayBack: false
                 ),
             ],
-            [new ScenePropInfo(Guid.NewGuid(), "Chair", "A wooden chair.", "Seat")],
+            [
+                new ScenePropInfo(
+                    Guid.NewGuid(),
+                    "Chair",
+                    "A wooden chair.",
+                    "Seat",
+                    IsOccupied: false,
+                    IsOccupiedByPlayer: false
+                ),
+            ],
             [MakeCreature("Cora", gold: 1449, profession: Profession.Guard, level: 49)],
             [new SceneNearbyBuildingInfo(Guid.NewGuid(), "The Trading Post", BuildingType.Inn)],
             WeatherCondition.Storm,

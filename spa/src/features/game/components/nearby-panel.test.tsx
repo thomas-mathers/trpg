@@ -64,6 +64,8 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
     receiveOpening: vi.fn(),
     sendChat: vi.fn(),
     sendWait: vi.fn(),
+    sendSitDown: vi.fn(),
+    sendStandUp: vi.fn(),
     sendSleep: vi.fn(),
     sendActivateTrigger: vi.fn(),
     sendFlee: vi.fn(),
@@ -135,6 +137,53 @@ describe('NearbyPanel', () => {
         workstationId: 'workstation-id',
       }),
     );
+  });
+
+  it('sits in an available nearby seat', async () => {
+    const sceneWithSeat = {
+      ...scene(undefined),
+      nearbyProps: [
+        {
+          id: 'chair-id',
+          name: 'Wooden Chair',
+          description: '',
+          type: 'Seat',
+          isOccupied: false,
+          isOccupiedByPlayer: false,
+        },
+      ],
+    } as SceneSnapshot;
+    const { user, chatHub, gameChat } = renderPanel(sceneWithSeat);
+
+    await user.click(screen.getByRole('button', { name: 'Sit' }));
+
+    expect(chatHub.sendSitDown).toHaveBeenCalledWith('chair-id');
+    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
+      null,
+      vi.mocked(chatHub.sendSitDown).mock.results[0]?.value,
+    );
+  });
+
+  it('gets up from the seat occupied by the player', async () => {
+    const sceneWithSeat = {
+      ...scene(undefined),
+      playerStatus: { ...scene(undefined).playerStatus, state: 'Sitting' },
+      nearbyProps: [
+        {
+          id: 'chair-id',
+          name: 'Wooden Chair',
+          description: '',
+          type: 'Seat',
+          isOccupied: true,
+          isOccupiedByPlayer: true,
+        },
+      ],
+    } as SceneSnapshot;
+    const { user, chatHub } = renderPanel(sceneWithSeat);
+
+    await user.click(screen.getByRole('button', { name: 'Get up' }));
+
+    expect(chatHub.sendStandUp).toHaveBeenCalledOnce();
   });
 
   it('does not show trade when a scene snapshot omits the trade workstation ID', async () => {
@@ -217,7 +266,16 @@ describe('NearbyPanel', () => {
     );
     const sceneWithContainer = {
       ...scene(undefined),
-      nearbyProps: [{ id: 'chest-id', name: 'Wooden Chest', description: '', type: 'Container' }],
+      nearbyProps: [
+        {
+          id: 'chest-id',
+          name: 'Wooden Chest',
+          description: '',
+          type: 'Container',
+          isOccupied: false,
+          isOccupiedByPlayer: false,
+        },
+      ],
     };
     const { user } = renderPanel(sceneWithContainer);
 
@@ -230,7 +288,16 @@ describe('NearbyPanel', () => {
   it('activates a nearby trigger when its Activate button is clicked', async () => {
     const sceneWithTrigger = {
       ...scene(undefined),
-      nearbyProps: [{ id: 'lever-id', name: 'Rusty Lever', description: '', type: 'Trigger' }],
+      nearbyProps: [
+        {
+          id: 'lever-id',
+          name: 'Rusty Lever',
+          description: '',
+          type: 'Trigger',
+          isOccupied: false,
+          isOccupiedByPlayer: false,
+        },
+      ],
     };
     const { user, chatHub, gameChat } = renderPanel(sceneWithTrigger);
     const fakeStream = {};
@@ -254,7 +321,14 @@ describe('NearbyPanel', () => {
     const sceneWithWorkstation = {
       ...scene(undefined),
       nearbyProps: [
-        { id: 'workstation-id', name: 'Trading Counter', description: '', type: 'Trade' },
+        {
+          id: 'workstation-id',
+          name: 'Trading Counter',
+          description: '',
+          type: 'Trade',
+          isOccupied: false,
+          isOccupiedByPlayer: false,
+        },
       ],
     };
     const { user } = renderPanel(sceneWithWorkstation);
@@ -312,7 +386,16 @@ describe('NearbyPanel', () => {
     const sceneWithBed = {
       ...scene(undefined),
       hour: 8,
-      nearbyProps: [{ id: 'bed-id', name: 'Bed', description: '', type: 'Bed' }],
+      nearbyProps: [
+        {
+          id: 'bed-id',
+          name: 'Bed',
+          description: '',
+          type: 'Bed',
+          isOccupied: false,
+          isOccupiedByPlayer: false,
+        },
+      ],
     };
     const { user } = renderPanel(sceneWithBed);
 
@@ -339,6 +422,8 @@ describe('NearbyPanel', () => {
           name: 'Caravan Schedule',
           description: 'A wooden signpost listing caravan arrival times.',
           type: 'Sign',
+          isOccupied: false,
+          isOccupiedByPlayer: false,
         },
       ],
     };

@@ -1,5 +1,7 @@
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -12,7 +14,8 @@ internal class StreamWaitTurnHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime
+    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -37,6 +40,15 @@ internal class StreamWaitTurnHandler(
         if (hours < 0 || minutes < 0 || (hours == 0 && minutes == 0))
         {
             return new GameTurnPrompt.Reply("The wait duration must be positive.");
+        }
+
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = session.PlayerId },
+            cancellationToken
+        );
+        if (player?.State != CreatureState.Sitting)
+        {
+            return new GameTurnPrompt.Reply("You need to sit down before waiting.");
         }
 
         var playtime = await advanceTime.Handle(

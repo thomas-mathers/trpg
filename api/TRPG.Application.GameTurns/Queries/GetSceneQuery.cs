@@ -77,6 +77,10 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetFactionsByIdsQuery, IReadOnlyDictionary<Guid, Faction>> getFactionsByIds,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<
+        GetSeatOccupantsByIdsQuery,
+        IReadOnlyDictionary<Guid, Guid?>
+    > getSeatOccupantsByIds,
+    IQueryHandler<
         GetTradeWorkstationIdsByOccupantIdsQuery,
         IReadOnlyDictionary<Guid, Guid?>
     > getTradeWorkstationIdsByOccupantIds,
@@ -420,7 +424,7 @@ internal class GetSceneQueryHandler(
             player,
             query.CurrentDate.Year,
             factionNames: [],
-            state: null,
+            state: player.State,
             reputation: null,
             totalCharacterXp
         );
@@ -570,9 +574,7 @@ internal class GetSceneQueryHandler(
             roomResult.RoomFloorNumber
         );
         var visibleProps = await ExcludeUndiscoveredTraps(props, player.Id, cancellationToken);
-        var nearbyProps = visibleProps
-            .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
-            .ToArray();
+        var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
         return new SceneLocationData(buildingInfo, roomInfo, null, nearbyProps, []);
     }
@@ -633,9 +635,7 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
         var visibleProps = await ExcludeUndiscoveredTraps(props, player.Id, cancellationToken);
-        var nearbyProps = visibleProps
-            .Select(p => new ScenePropInfo(p.Id, p.Name, p.Description, GetPropType(p)))
-            .ToArray();
+        var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
         return new SceneLocationData(null, null, state?.Description, nearbyProps, nearbyBuildings);
     }
@@ -874,5 +874,33 @@ internal class GetSceneQueryHandler(
             Sign => "Sign",
             _ => prop.GetType().Name,
         };
+    }
+
+    private async Task<IReadOnlyCollection<ScenePropInfo>> BuildNearbyProps(
+        IReadOnlyCollection<Prop> props,
+        Guid playerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var seatIds = props.OfType<Seat>().Select(seat => seat.Id).ToArray();
+        var occupantsBySeatId = await getSeatOccupantsByIds.Handle(
+            new GetSeatOccupantsByIdsQuery { SeatIds = seatIds },
+            cancellationToken
+        );
+
+        return props
+            .Select(prop =>
+            {
+                var occupantId = occupantsBySeatId.GetValueOrDefault(prop.Id);
+                return new ScenePropInfo(
+                    prop.Id,
+                    prop.Name,
+                    prop.Description,
+                    GetPropType(prop),
+                    IsOccupied: occupantId != null,
+                    IsOccupiedByPlayer: occupantId == playerId
+                );
+            })
+            .ToArray();
     }
 }

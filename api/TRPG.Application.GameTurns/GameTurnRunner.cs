@@ -8,6 +8,8 @@ public class GameTurnRunner
     private readonly StreamOpeningTurnHandler _streamOpeningTurn;
     private readonly StreamChatTurnHandler _streamChatTurn;
     private readonly StreamWaitTurnHandler _streamWaitTurn;
+    private readonly StreamSitDownTurnHandler _streamSitDownTurn;
+    private readonly StreamStandUpTurnHandler _streamStandUpTurn;
     private readonly StreamSleepTurnHandler _streamSleepTurn;
     private readonly StreamActivateTriggerTurnHandler _streamActivateTriggerTurn;
     private readonly StreamAcceptQuestTurnHandler _streamAcceptQuestTurn;
@@ -32,6 +34,8 @@ public class GameTurnRunner
         StreamOpeningTurnHandler streamOpeningTurn,
         StreamChatTurnHandler streamChatTurn,
         StreamWaitTurnHandler streamWaitTurn,
+        StreamSitDownTurnHandler streamSitDownTurn,
+        StreamStandUpTurnHandler streamStandUpTurn,
         StreamSleepTurnHandler streamSleepTurn,
         StreamActivateTriggerTurnHandler streamActivateTriggerTurn,
         StreamAcceptQuestTurnHandler streamAcceptQuestTurn,
@@ -56,6 +60,8 @@ public class GameTurnRunner
         _streamOpeningTurn = streamOpeningTurn;
         _streamChatTurn = streamChatTurn;
         _streamWaitTurn = streamWaitTurn;
+        _streamSitDownTurn = streamSitDownTurn;
+        _streamStandUpTurn = streamStandUpTurn;
         _streamSleepTurn = streamSleepTurn;
         _streamActivateTriggerTurn = streamActivateTriggerTurn;
         _streamAcceptQuestTurn = streamAcceptQuestTurn;
@@ -94,6 +100,17 @@ public class GameTurnRunner
         int minutes,
         CancellationToken cancellationToken = default
     ) => _streamWaitTurn.Handle(session, hours, minutes, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamSitDown(
+        GameTurnSession session,
+        Guid seatId,
+        CancellationToken cancellationToken = default
+    ) => _streamSitDownTurn.Handle(session, seatId, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamStandUp(
+        GameTurnSession session,
+        CancellationToken cancellationToken = default
+    ) => _streamStandUpTurn.Handle(session, cancellationToken);
 
     public IAsyncEnumerable<string> StreamSleep(
         GameTurnSession session,

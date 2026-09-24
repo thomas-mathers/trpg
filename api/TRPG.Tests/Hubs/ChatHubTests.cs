@@ -23,6 +23,7 @@ using DataBuildingType = TRPG.Domain.Models.BuildingType;
 using DataCreatureState = TRPG.Domain.Models.CreatureState;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 using DataDistrictType = TRPG.Domain.Models.DistrictType;
+using ResponseCreatureState = TRPG.GameSessions.Responses.CreatureState;
 
 namespace TRPG.Tests.Hubs;
 
@@ -95,6 +96,18 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         return result!.SessionId;
+    }
+
+    private async Task SetPlayerState(DataCreatureState state)
+    {
+        await using var scope = fixture.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        await context
+            .Creatures.Where(creature => creature.Id == _playerId)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(creature => creature.State, state),
+                TestContext.Current.CancellationToken
+            );
     }
 
     private async Task<HubConnection> Connect(Guid sessionId)
@@ -459,6 +472,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     public async Task SendWait_AdvancesTimeAndNarrates()
     {
         // Arrange
+        await SetPlayerState(DataCreatureState.Sitting);
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
@@ -477,6 +491,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     public async Task SendWait_AdvancesTime_WhenOnlyMinutesAreProvided()
     {
         // Arrange
+        await SetPlayerState(DataCreatureState.Sitting);
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
@@ -507,6 +522,64 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.Equal("The wait duration must be positive.", narration);
         var session = await GetGameSession(sessionId);
         Assert.Equal(TimeSpan.Zero, session.Playtime);
+    }
+
+    [Fact]
+    public async Task SendWait_DoesNotAdvanceTime_WhenPlayerIsNotSitting()
+    {
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendWait", 1, 0, TestContext.Current.CancellationToken)
+        );
+
+        Assert.Equal("You need to sit down before waiting.", narration);
+        var session = await GetGameSession(sessionId);
+        Assert.Equal(TimeSpan.Zero, session.Playtime);
+    }
+
+    [Fact]
+    public async Task SendSitDownAndStandUp_PublishSeatAndPlayerState()
+    {
+        var seat = Builders.MakeSeat(_worldId, _locationId);
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            context.Props.Add(seat);
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var sessionId = await StartSession();
+        var snapshots = new List<SceneSnapshot>();
+        var connected = await ConnectAndAwaitInitialSnapshot(sessionId, snapshots);
+        await using var gameHub = connected.Connection;
+
+        var sitReply = await Drain(
+            gameHub.StreamAsync<string>(
+                "SendSitDown",
+                seat.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        Assert.Empty(sitReply);
+        var seated = Assert.Single(snapshots);
+        Assert.Equal(ResponseCreatureState.Sitting, seated.PlayerStatus.State);
+        var seatedProp = Assert.Single(seated.NearbyProps, prop => prop.Id == seat.Id);
+        Assert.True(seatedProp.IsOccupied);
+        Assert.True(seatedProp.IsOccupiedByPlayer);
+
+        snapshots.Clear();
+        var standReply = await Drain(
+            gameHub.StreamAsync<string>("SendStandUp", TestContext.Current.CancellationToken)
+        );
+
+        Assert.Empty(standReply);
+        var standing = Assert.Single(snapshots);
+        Assert.Equal(ResponseCreatureState.Idle, standing.PlayerStatus.State);
+        var standingProp = Assert.Single(standing.NearbyProps, prop => prop.Id == seat.Id);
+        Assert.False(standingProp.IsOccupied);
+        Assert.False(standingProp.IsOccupiedByPlayer);
     }
 
     [Fact]

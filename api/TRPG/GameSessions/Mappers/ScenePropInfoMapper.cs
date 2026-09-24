@@ -6,5 +6,12 @@ namespace TRPG.GameSessions.Mappers;
 internal static class ScenePropInfoMapper
 {
     public static NearbyPropSnapshot ToSnapshot(this ScenePropInfo prop) =>
-        new(prop.Id, prop.Name, prop.Description, prop.Type);
+        new(
+            prop.Id,
+            prop.Name,
+            prop.Description,
+            prop.Type,
+            prop.IsOccupied,
+            prop.IsOccupiedByPlayer
+        );
 }

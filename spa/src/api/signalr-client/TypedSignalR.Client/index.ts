@@ -100,6 +100,14 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("SendWait", hours, minutes);
     }
 
+    public readonly sendSitDown = (seatId: string): IStreamResult<string> => {
+        return this.connection.stream("SendSitDown", seatId);
+    }
+
+    public readonly sendStandUp = (): IStreamResult<string> => {
+        return this.connection.stream("SendStandUp");
+    }
+
     public readonly sendSleep = (hours: number, minutes: number): IStreamResult<string> => {
         return this.connection.stream("SendSleep", hours, minutes);
     }

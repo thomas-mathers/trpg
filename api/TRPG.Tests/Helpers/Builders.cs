@@ -367,6 +367,20 @@ internal static class Builders
             AssignedCreatureId = assignedCreatureId,
         };
 
+    public static Seat MakeSeat(
+        Guid? worldId = null,
+        Guid? locationId = null,
+        Guid? occupantId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            Name = "Chair",
+            Description = "A test chair",
+            LocationId = locationId ?? Guid.NewGuid(),
+            OccupantId = occupantId,
+        };
+
     public static CreatureSpawner MakeCreatureSpawner(
         Guid worldId,
         Guid locationId,
