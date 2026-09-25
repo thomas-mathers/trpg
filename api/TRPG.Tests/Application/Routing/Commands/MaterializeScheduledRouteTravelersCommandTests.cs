@@ -160,6 +160,31 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
         Assert.Equal(scenario.DestinationLocationId, creature.LocationId);
     }
 
+    [Fact]
+    public async Task Handle_MaterializesPendingOccurrence_WhenDepartureIsLaterThisHour()
+    {
+        var currentDateTime = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero);
+        var scenario = await AddScenario(departureHour: currentDateTime.Hour + 0.5);
+
+        var creatureIds = await _handler.Handle(
+            new MaterializeScheduledRouteTravelersCommand
+            {
+                WorldId = scenario.WorldId,
+                LocationId = scenario.OriginLocationId,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        _context.ChangeTracker.Clear();
+        var traveler = await _context.RouteTravelers.SingleAsync(
+            entry => entry.CreatureRouteScheduleId == scenario.ScheduleId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal([scenario.CreatureId], creatureIds);
+        Assert.Equal(GameClock.RealTimePerInGameHour * 0.5, traveler.StartedAtPlaytime);
+    }
+
     private async Task<Scenario> AddScenario(double departureHour = 7, int destinationStartHour = 9)
     {
         var worldId = Guid.NewGuid();
@@ -220,7 +245,15 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
         );
         _context.CreatureRouteSchedules.Add(schedule);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return new Scenario(worldId, creature.Id, middle.Id, destination.Id, route.Id, schedule.Id);
+        return new Scenario(
+            worldId,
+            creature.Id,
+            origin.Id,
+            middle.Id,
+            destination.Id,
+            route.Id,
+            schedule.Id
+        );
     }
 
     private static LocationConnector Connector(
@@ -264,6 +297,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
     private sealed record Scenario(
         Guid WorldId,
         Guid CreatureId,
+        Guid OriginLocationId,
         Guid MiddleLocationId,
         Guid DestinationLocationId,
         Guid RouteId,

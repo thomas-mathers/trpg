@@ -347,7 +347,12 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
         }
         if (startedAt.AddHours(schedule.DurationHours) <= currentDateTime)
         {
-            return null;
+            startedAt = startedAt.AddDays(7);
+            var nextHour = currentDateTime.Date.AddHours(currentDateTime.Hour + 1);
+            if (startedAt >= nextHour)
+            {
+                return null;
+            }
         }
 
         var startedAtPlaytime =

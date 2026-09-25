@@ -12,6 +12,8 @@ public static class CreatureRouteScheduleGenerator
 {
     private const int HoursPerDay = 24;
     private const int HoursPerWeek = 7 * HoursPerDay;
+    private const double LunchJitterHours = 1.0 / 3;
+    private const double EndOfShiftJitterHours = 0.5;
 
     public static CreatureRouteScheduleGeneratorResult Generate(
         Guid worldId,
@@ -84,7 +86,9 @@ public static class CreatureRouteScheduleGenerator
             }
 
             var durationHours = path.Sum(leg => leg.Distance) / creature.MovementSpeed;
-            var departureWeekHour = NormalizeWeekHour(weekHour - durationHours);
+            var departureWeekHour = NormalizeWeekHour(
+                ResolveDepartureWeekHour(creature.Id, origin, destination, weekHour, durationHours)
+            );
             var route = GetOrCreateRoute(path, state);
             state.Schedules.Add(
                 new CreatureRouteSchedule
@@ -101,6 +105,51 @@ public static class CreatureRouteScheduleGenerator
                 }
             );
         }
+    }
+
+    private static double ResolveDepartureWeekHour(
+        Guid creatureId,
+        CreatureJob origin,
+        CreatureJob destination,
+        int transitionWeekHour,
+        double durationHours
+    )
+    {
+        var jitter = StableUnitInterval(creatureId, origin.Id, destination.Id, transitionWeekHour);
+        if (destination.Action == CreatureJobAction.Eat)
+        {
+            return transitionWeekHour - durationHours + (jitter * 2 - 1) * LunchJitterHours;
+        }
+        if (origin.Action == CreatureJobAction.Work)
+        {
+            return transitionWeekHour + jitter * EndOfShiftJitterHours;
+        }
+
+        return transitionWeekHour - durationHours;
+    }
+
+    private static double StableUnitInterval(
+        Guid creatureId,
+        Guid originJobId,
+        Guid destinationJobId,
+        int transitionWeekHour
+    )
+    {
+        const ulong offset = 14695981039346656037;
+        const ulong prime = 1099511628211;
+        var hash = offset;
+        foreach (
+            var value in creatureId
+                .ToByteArray()
+                .Concat(originJobId.ToByteArray())
+                .Concat(destinationJobId.ToByteArray())
+                .Concat(BitConverter.GetBytes(transitionWeekHour))
+        )
+        {
+            hash = (hash ^ value) * prime;
+        }
+
+        return (hash >> 11) * (1.0 / (1UL << 53));
     }
 
     private static CreatureJob? FindDueJob(IReadOnlyCollection<CreatureJob> jobs, double weekHour)
