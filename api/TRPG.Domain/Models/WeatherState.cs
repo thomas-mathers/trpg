@@ -10,6 +10,12 @@ public enum WeatherCondition
     Fog,
 }
 
+public static class WeatherConditions
+{
+    public static bool PreventsOptionalTravel(WeatherCondition? condition) =>
+        condition is WeatherCondition.Storm or WeatherCondition.Snow;
+}
+
 public class WeatherState
 {
     public Guid Id { get; init; } = Guid.NewGuid();

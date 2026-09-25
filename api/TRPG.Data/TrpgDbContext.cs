@@ -85,6 +85,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<FactionStanding> FactionStandings => Set<FactionStanding>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<CreatureJob> CreatureJobs => Set<CreatureJob>();
+    public DbSet<CreatureRouteSchedule> CreatureRouteSchedules => Set<CreatureRouteSchedule>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<LocationConnector> LocationConnectors => Set<LocationConnector>();
     public DbSet<DoorConnector> DoorConnectors => Set<DoorConnector>();
@@ -702,14 +703,39 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.HasIndex(s => s.WorldId);
             entity.HasIndex(s => s.RouteId);
+            entity.HasIndex(s => new
+            {
+                s.WorldId,
+                s.LocationId,
+                s.RouteId,
+            });
             entity.HasIndex(s => new { s.RouteId, s.SequenceIndex }).IsUnique();
             entity.HasIndex(s => s.ConnectorId);
+        });
+
+        modelBuilder.Entity<CreatureRouteSchedule>(entity =>
+        {
+            entity.HasIndex(s => s.WorldId);
+            entity.HasIndex(s => s.CreatureId);
+            entity.HasIndex(s => s.RouteId);
+            entity.HasIndex(s => s.OriginCreatureJobId);
+            entity.HasIndex(s => s.DestinationCreatureJobId);
+            entity
+                .HasIndex(s => new
+                {
+                    s.CreatureId,
+                    s.DestinationCreatureJobId,
+                    s.DepartureDay,
+                    s.DepartureHour,
+                })
+                .IsUnique();
         });
 
         modelBuilder.Entity<RouteTraveler>(entity =>
         {
             entity.HasIndex(t => t.WorldId);
             entity.HasIndex(t => t.RouteId);
+            entity.HasIndex(t => t.CreatureRouteScheduleId);
         });
 
         modelBuilder.Entity<CaravanFare>(entity =>

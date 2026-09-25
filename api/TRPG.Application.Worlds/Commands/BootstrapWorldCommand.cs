@@ -107,6 +107,9 @@ internal class BootstrapWorldCommandHandler(
         context.Relationships.AddRange(world.Relationships);
         context.Routes.AddRange(world.CityPatrolRoutes);
         context.RouteSteps.AddRange(world.CityPatrolRouteSteps);
+        context.Routes.AddRange(world.CreatureScheduleRoutes);
+        context.RouteSteps.AddRange(world.CreatureScheduleRouteSteps);
+        context.CreatureRouteSchedules.AddRange(world.CreatureRouteSchedules);
         context.Quests.AddRange(quests.Quests);
         context.QuestObjectives.AddRange(quests.Objectives);
         context.QuestSeedSchedules.AddRange(command.QuestSeedSchedules);

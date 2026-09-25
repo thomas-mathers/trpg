@@ -13,6 +13,10 @@ public class SyncFrontDoorLockCommand
 
 internal class SyncFrontDoorLockCommandHandler(
     IQueryHandler<GetBuildingByEntranceLocationQuery, Building?> getBuildingByEntranceLocation,
+    IQueryHandler<
+        GetBuildingsByLocationQuery,
+        IReadOnlyCollection<Building>
+    > getBuildingsByLocation,
     ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock
 ) : ICommandHandler<SyncFrontDoorLockCommand>
 {
@@ -21,24 +25,32 @@ internal class SyncFrontDoorLockCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var building = await getBuildingByEntranceLocation.Handle(
+        var entranceBuilding = await getBuildingByEntranceLocation.Handle(
             new GetBuildingByEntranceLocationQuery { LocationId = command.LocationId },
             cancellationToken
         );
-
-        if (building == null)
-        {
-            return;
-        }
-
-        await syncScheduleLock.Handle(
-            new SyncScheduleLockCommand
-            {
-                BuildingId = building.Id,
-                BuildingType = building.BuildingType,
-                CurrentDate = command.CurrentDate,
-            },
+        var exteriorBuildings = await getBuildingsByLocation.Handle(
+            new GetBuildingsByLocationQuery { LocationId = command.LocationId },
             cancellationToken
         );
+        var buildings = exteriorBuildings
+            .Append(entranceBuilding)
+            .Where(building => building != null)
+            .Select(building => building!)
+            .DistinctBy(building => building.Id)
+            .ToArray();
+
+        foreach (var building in buildings)
+        {
+            await syncScheduleLock.Handle(
+                new SyncScheduleLockCommand
+                {
+                    BuildingId = building.Id,
+                    BuildingType = building.BuildingType,
+                    CurrentDate = command.CurrentDate,
+                },
+                cancellationToken
+            );
+        }
     }
 }

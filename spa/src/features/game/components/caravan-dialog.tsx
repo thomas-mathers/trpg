@@ -51,8 +51,9 @@ export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
           <DialogTitle>{caravan.routeName}</DialogTitle>
         </DialogHeader>
         <DialogDescription>
-          Departing in {caravan.minutesUntilDeparture} min. A ticket to any stop costs{' '}
-          {caravan.ticketFeeGold} gold.
+          {caravan.passengerServiceAvailable
+            ? `Departing in ${caravan.minutesUntilDeparture} min. A ticket to any stop costs ${caravan.ticketFeeGold} gold.`
+            : 'Passenger service is suspended until the weather improves.'}
         </DialogDescription>
 
         <div className="divide-border divide-y">
@@ -70,7 +71,7 @@ export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
               <Button
                 size="xs"
                 variant={destination.hasTicket ? 'default' : 'outline'}
-                disabled={isStreaming}
+                disabled={isStreaming || !caravan.passengerServiceAvailable}
                 onClick={() =>
                   destination.hasTicket ? handleBoard(destination) : handlePurchase(destination)
                 }

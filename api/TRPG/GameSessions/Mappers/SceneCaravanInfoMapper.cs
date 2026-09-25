@@ -11,6 +11,7 @@ internal static class SceneCaravanInfoMapper
             caravan.RouteName,
             caravan.TicketFeeGold,
             caravan.MinutesUntilDeparture,
+            caravan.PassengerServiceAvailable,
             caravan.Destinations.Select(destination => destination.ToSnapshot()).ToArray()
         );
 

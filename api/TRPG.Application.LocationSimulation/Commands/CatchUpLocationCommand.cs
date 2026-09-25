@@ -2,8 +2,10 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Props.Commands;
 using TRPG.Application.Props.Queries;
+using TRPG.Application.Routing.Commands;
 using TRPG.Application.Routing.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
@@ -46,7 +48,13 @@ internal class CatchUpLocationCommandHandler(
     ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy,
     ICommandHandler<SyncQuestSeedScheduleCommand> syncQuestSeedSchedule,
     ICommandHandler<SyncWeatherCommand> syncWeather,
+    IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?> getWeatherByStateId,
     ICommandHandler<SyncRouteTravelersCommand> syncRouteTravelers,
+    ICommandHandler<EnsureCreatureRouteSchedulesCommand> ensureCreatureRouteSchedules,
+    ICommandHandler<
+        MaterializeScheduledRouteTravelersCommand,
+        IReadOnlyCollection<Guid>
+    > materializeScheduledRouteTravelers,
     LocationCatchUpCache catchUpCache
 ) : ICommandHandler<CatchUpLocationCommand, bool>
 {
@@ -89,28 +97,40 @@ internal class CatchUpLocationCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        await SynchronizeRouteTravelers(command, cancellationToken);
-
-        await AdvanceDueJobs(
-            await ResolveScheduledCreatureIds(command, location, cancellationToken),
-            command.Playtime,
+        await SynchronizeWeather(command, location, cancellationToken);
+        var weather = await getWeatherByStateId.Handle(
+            new GetWeatherByStateIdQuery { StateId = location.StateId },
             cancellationToken
         );
 
-        if (location.RoomId != null)
-        {
-            await SynchronizeFrontDoorLock(command, cancellationToken);
-        }
+        await ensureCreatureRouteSchedules.Handle(
+            new EnsureCreatureRouteSchedulesCommand { WorldId = command.WorldId },
+            cancellationToken
+        );
+        var scheduledTravelerCreatureIds = await MaterializeScheduledRouteTravelers(
+            command,
+            cancellationToken
+        );
+        await SynchronizeRouteTravelers(command, cancellationToken);
+
+        var scheduledCreatureIds = await ResolveScheduledCreatureIds(
+            command,
+            location,
+            cancellationToken
+        );
+        scheduledCreatureIds.UnionWith(scheduledTravelerCreatureIds);
+        await AdvanceDueJobs(scheduledCreatureIds, command.Playtime, weather, cancellationToken);
+
+        await SynchronizeFrontDoorLock(command, cancellationToken);
 
         await SynchronizeCreatureSpawner(command, cancellationToken);
         await SynchronizeRestockPolicy(command, cancellationToken);
         await SynchronizeQuestSeedSchedule(command, cancellationToken);
-        await SynchronizeWeather(command, location, cancellationToken);
     }
 
     // Creatures whose job targets this location and creatures already standing in its district
     // overlap, so they are unioned to avoid advancing the same creature's schedule twice.
-    private async Task<IReadOnlyCollection<Guid>> ResolveScheduledCreatureIds(
+    private async Task<HashSet<Guid>> ResolveScheduledCreatureIds(
         CatchUpLocationCommand command,
         Location location,
         CancellationToken cancellationToken
@@ -157,6 +177,20 @@ internal class CatchUpLocationCommandHandler(
 
         return creatureIds;
     }
+
+    private async Task<IReadOnlyCollection<Guid>> MaterializeScheduledRouteTravelers(
+        CatchUpLocationCommand command,
+        CancellationToken cancellationToken
+    ) =>
+        await materializeScheduledRouteTravelers.Handle(
+            new MaterializeScheduledRouteTravelersCommand
+            {
+                WorldId = command.WorldId,
+                LocationId = command.LocationId,
+                Playtime = command.Playtime,
+            },
+            cancellationToken
+        );
 
     private async Task SynchronizeFrontDoorLock(
         CatchUpLocationCommand command,
@@ -259,6 +293,7 @@ internal class CatchUpLocationCommandHandler(
     private async Task AdvanceDueJobs(
         IReadOnlyCollection<Guid> creatureIds,
         TimeSpan playtime,
+        WeatherCondition? weather,
         CancellationToken cancellationToken
     )
     {
@@ -268,7 +303,12 @@ internal class CatchUpLocationCommandHandler(
         }
 
         var result = await syncCreatureJobSchedules.Handle(
-            new SyncCreatureJobSchedulesCommand { CreatureIds = creatureIds, Playtime = playtime },
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = creatureIds,
+                Playtime = playtime,
+                Weather = weather,
+            },
             cancellationToken
         );
         foreach (var (locationId, presentCreatureIds) in result.WorkingCreatureIdsByLocationId)

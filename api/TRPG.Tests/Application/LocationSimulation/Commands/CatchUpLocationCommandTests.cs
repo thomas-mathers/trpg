@@ -264,6 +264,15 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid(), districtId: districtId);
         var idleLocation = await SeedLocation(districtId: districtId);
         var creature = await SeedCreature(sleepLocation.Id);
+        _context.WeatherStates.Add(
+            new WeatherState
+            {
+                WorldId = WorldId,
+                StateId = idleLocation.StateId,
+                Condition = WeatherCondition.Clear,
+                NextChangePlaytime = GameClock.RealTimePerInGameHour * 5,
+            }
+        );
         await AddMeasuredConnector(sleepLocation.Id, idleLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(

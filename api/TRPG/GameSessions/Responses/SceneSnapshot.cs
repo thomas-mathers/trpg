@@ -69,6 +69,7 @@ public enum CreatureState
     Busy,
     Studying,
     Praying,
+    Eating,
     Alerted,
     Dead,
     Restrained,
@@ -303,5 +304,6 @@ public record NearbyCaravanSnapshot(
     string RouteName,
     int TicketFeeGold,
     int MinutesUntilDeparture,
+    bool PassengerServiceAvailable,
     IReadOnlyCollection<CaravanDestinationSnapshot> Destinations
 );

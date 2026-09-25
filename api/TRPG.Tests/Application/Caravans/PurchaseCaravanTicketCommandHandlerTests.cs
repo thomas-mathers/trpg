@@ -225,4 +225,49 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
         // Assert
         Assert.Equal(PurchaseCaravanTicketOutcome.AlreadyHoldsTicket, result.Outcome);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsTravelSuspended_WithoutChargingGold_DuringSnow()
+    {
+        var stateId = Guid.NewGuid();
+        var location = Builders.MakeLocation(WorldId, stateId: stateId, id: LocationA);
+        var weather = new WeatherState
+        {
+            WorldId = WorldId,
+            StateId = stateId,
+            Condition = WeatherCondition.Snow,
+            NextChangePlaytime = TimeSpan.FromHours(1),
+        };
+        var gold = Builders.MakeGold(
+            WorldId,
+            quantity: 10,
+            ownerId: _player.Id,
+            ownerType: OwnerType.Creature
+        );
+        _context.Locations.Add(location);
+        _context.WeatherStates.Add(weather);
+        _context.Items.Add(gold);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new PurchaseCaravanTicketCommand
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                CaravanId = _caravan.Id,
+                DestinationLocationId = LocationB,
+                PlayerLocationId = LocationA,
+                Playtime = TimeSpan.Zero,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Equal(PurchaseCaravanTicketOutcome.TravelSuspended, result.Outcome);
+        Assert.Equal(10, gold.Quantity);
+        Assert.Empty(_context.CaravanTickets);
+
+        _context.WeatherStates.Remove(weather);
+        _context.Locations.Remove(location);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 }

@@ -4,6 +4,13 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class DistrictGenerator
 {
+    private static readonly SeatSpec[] PublicSeatSpecs =
+    [
+        new("Bench", "A sturdy public bench where travelers can rest."),
+        new("Stone Bench", "A broad stone bench worn smooth by years of use."),
+        new("Low Wall", "A low masonry wall with a flat top suitable for sitting."),
+    ];
+
     internal static readonly Dictionary<BuildingType, DistrictType> DistrictTypeByBuildingType =
         new()
         {
@@ -105,15 +112,23 @@ internal static class DistrictGenerator
             Name = names[Random.Shared.Next(names.Length)],
             WorldId = worldId,
         };
-        var bench = new Seat
-        {
-            LocationId = location.Id,
-            WorldId = worldId,
-            Name = "Bench",
-            Description = "A sturdy public bench where travelers can rest.",
-        };
-        return new DistrictGeneratorResult(district, location, bench);
+        var seats = PublicSeatSpecs
+            .Select(spec => new Seat
+            {
+                LocationId = location.Id,
+                WorldId = worldId,
+                Name = spec.Name,
+                Description = spec.Description,
+            })
+            .ToArray();
+        return new DistrictGeneratorResult(district, location, seats);
     }
+
+    private sealed record SeatSpec(string Name, string Description);
 }
 
-internal record DistrictGeneratorResult(District District, Location Location, Seat Bench);
+internal record DistrictGeneratorResult(
+    District District,
+    Location Location,
+    IReadOnlyCollection<Seat> Seats
+);

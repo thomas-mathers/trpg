@@ -18,6 +18,7 @@ const caravan: NearbyCaravanSnapshot = {
   routeName: 'The Capital Circuit',
   ticketFeeGold: 10,
   minutesUntilDeparture: 15,
+  passengerServiceAvailable: true,
   destinations: [
     {
       locationId: 'without-ticket-id',
@@ -59,6 +60,7 @@ function renderDialog(
   onClose: () => void,
   chatHubOverrides: Partial<IChatHub> = {},
   gameChatOverrides: Partial<GameChat> = {},
+  selectedCaravan: NearbyCaravanSnapshot = caravan,
 ) {
   const chatHub = buildChatHub(chatHubOverrides);
   const gameChat = buildGameChat(gameChatOverrides);
@@ -71,7 +73,7 @@ function renderDialog(
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
       <GameChatContext.Provider value={gameChat}>
-        <CaravanDialog caravan={caravan} onClose={onClose} />
+        <CaravanDialog caravan={selectedCaravan} onClose={onClose} />
       </GameChatContext.Provider>
     </GameHubConnectionContext.Provider>,
   );
@@ -137,5 +139,16 @@ describe('CaravanDialog', () => {
     expect(screen.getByRole('button', { name: 'Buy ticket' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Board' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'No thanks' })).toBeDisabled();
+  });
+
+  it('disables purchase and boarding while passenger service is suspended', () => {
+    renderDialog(vi.fn(), {}, {}, { ...caravan, passengerServiceAvailable: false });
+
+    expect(
+      screen.getByText('Passenger service is suspended until the weather improves.'),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Buy ticket' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Board' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'No thanks' })).toBeEnabled();
   });
 });

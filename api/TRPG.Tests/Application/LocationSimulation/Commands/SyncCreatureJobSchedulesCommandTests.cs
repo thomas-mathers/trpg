@@ -451,6 +451,123 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         );
     }
 
+    [Fact]
+    public async Task Handle_RoutesOutdoorIdleCreatureHome_DuringSevereWeather()
+    {
+        var districtId = Guid.NewGuid();
+        var outdoors = Builders.MakeLocation(
+            _worldId,
+            districtId: districtId,
+            kind: LocationKind.District
+        );
+        var home = Builders.MakeLocation(_worldId, roomId: Guid.NewGuid());
+        var creature = Builders.MakeCreature(
+            _worldId,
+            profession: Profession.Baker,
+            locationId: outdoors.Id
+        );
+        creature.MovementSpeed = 5;
+        var outbound = Connector(outdoors.Id, home.Id);
+        var inbound = Connector(home.Id, outdoors.Id);
+        _context.Locations.AddRange(outdoors, home);
+        _context.Creatures.Add(creature);
+        _context.LocationConnectors.AddRange(outbound, inbound);
+        _context.TravelConnectors.AddRange(Travel(outbound, 5), Travel(inbound, 5));
+        _context.CreatureJobs.AddRange(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 6,
+                endHour: 22,
+                locationId: outdoors.Id,
+                worldId: _worldId
+            ),
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 22,
+                endHour: 6,
+                locationId: home.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [creature.Id],
+                Playtime = GameClock.RealTimePerInGameHour * 2,
+                Weather = WeatherCondition.Snow,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var sheltered = await verify.Creatures.SingleAsync(
+            entry => entry.Id == creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(home.Id, sheltered.LocationId);
+        Assert.Equal(CreatureState.Idle, sheltered.State);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotShelterGuard_DuringSevereWeather()
+    {
+        var outdoors = Builders.MakeLocation(_worldId, districtId: Guid.NewGuid());
+        var home = Builders.MakeLocation(_worldId, roomId: Guid.NewGuid());
+        var guard = Builders.MakeCreature(
+            _worldId,
+            profession: Profession.Guard,
+            locationId: outdoors.Id
+        );
+        _context.Locations.AddRange(outdoors, home);
+        _context.Creatures.Add(guard);
+        _context.CreatureJobs.AddRange(
+            Builders.MakeCreatureJob(
+                guard.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 6,
+                endHour: 22,
+                locationId: outdoors.Id,
+                worldId: _worldId
+            ),
+            Builders.MakeCreatureJob(
+                guard.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 22,
+                endHour: 6,
+                locationId: home.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [guard.Id],
+                Playtime = GameClock.RealTimePerInGameHour * 2,
+                Weather = WeatherCondition.Snow,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var onDuty = await verify.Creatures.SingleAsync(
+            entry => entry.Id == guard.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(outdoors.Id, onDuty.LocationId);
+    }
+
     private LocationConnector Connector(Guid originLocationId, Guid destinationLocationId) =>
         new()
         {

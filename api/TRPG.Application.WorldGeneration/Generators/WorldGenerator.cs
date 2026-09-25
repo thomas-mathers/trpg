@@ -57,6 +57,9 @@ public class WorldGeneratorResult
     public required IReadOnlyList<CreatureSpawner> CreatureSpawners { get; init; }
     public IReadOnlyList<Route> CityPatrolRoutes { get; init; } = [];
     public IReadOnlyList<RouteStep> CityPatrolRouteSteps { get; init; } = [];
+    public IReadOnlyList<Route> CreatureScheduleRoutes { get; init; } = [];
+    public IReadOnlyList<RouteStep> CreatureScheduleRouteSteps { get; init; } = [];
+    public IReadOnlyList<CreatureRouteSchedule> CreatureRouteSchedules { get; init; } = [];
 }
 
 // Archetypes always leads with LeaderArchetype, which is also always Humanoid — an antagonist
@@ -722,6 +725,24 @@ public class WorldGenerator(
             )
         );
 
+        jobs.AddRange(
+            MealScheduleGenerator.Generate(
+                worldId,
+                creatures,
+                jobs,
+                locationConnectors,
+                travelConnectors
+            )
+        );
+
+        var creatureRouteSchedules = CreatureRouteScheduleGenerator.Generate(
+            worldId,
+            creatures,
+            jobs,
+            locationConnectors,
+            travelConnectors
+        );
+
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
         return new WorldGeneratorResult
@@ -765,6 +786,9 @@ public class WorldGenerator(
             Relationships = relationships,
             CityPatrolRoutes = cityPatrolRoutes,
             CityPatrolRouteSteps = cityPatrolRouteSteps,
+            CreatureScheduleRoutes = creatureRouteSchedules.Routes,
+            CreatureScheduleRouteSteps = creatureRouteSchedules.Steps,
+            CreatureRouteSchedules = creatureRouteSchedules.Schedules,
             CreatureSpawners = creatureSpawners,
         };
 

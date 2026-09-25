@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Routing.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Caravans.Commands;
 
@@ -20,6 +22,7 @@ public enum BoardCaravanOutcome
     Boarded,
     NoTicket,
     CaravanNotPresent,
+    TravelSuspended,
 }
 
 public record BoardCaravanResult(
@@ -34,7 +37,8 @@ internal class BoardCaravanCommandHandler(
     IQueryHandler<
         ResolveRouteTravelerPositionQuery,
         RouteTimelinePosition?
-    > resolveRouteTravelerPosition
+    > resolveRouteTravelerPosition,
+    IQueryHandler<GetWeatherByLocationIdQuery, WeatherCondition?> getWeatherByLocationId
 ) : ICommandHandler<BoardCaravanCommand, BoardCaravanResult>
 {
     public async Task<BoardCaravanResult> Handle(
@@ -71,6 +75,15 @@ internal class BoardCaravanCommandHandler(
         if (positionAtPurchase is not RouteTimelinePosition.Lingering lingeringAtPurchase)
         {
             return new BoardCaravanResult(BoardCaravanOutcome.CaravanNotPresent);
+        }
+
+        var weather = await getWeatherByLocationId.Handle(
+            new GetWeatherByLocationIdQuery { LocationId = command.PlayerLocationId },
+            cancellationToken
+        );
+        if (WeatherConditions.PreventsOptionalTravel(weather))
+        {
+            return new BoardCaravanResult(BoardCaravanOutcome.TravelSuspended);
         }
 
         var traveler = await routingContext

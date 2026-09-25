@@ -152,6 +152,7 @@ internal class GetSceneQueryHandler(
             query.PlayerId,
             player.LocationId,
             query.Playtime,
+            weather,
             cancellationToken
         );
 
@@ -184,6 +185,7 @@ internal class GetSceneQueryHandler(
         Guid playerId,
         Guid playerLocationId,
         TimeSpan playtime,
+        WeatherCondition? weather,
         CancellationToken cancellationToken
     )
     {
@@ -236,6 +238,7 @@ internal class GetSceneQueryHandler(
                     traveler.RouteName,
                     fare.TicketFeeGold,
                     (int)Math.Ceiling(position.HoursUntilDeparture * 60),
+                    !WeatherConditions.PreventsOptionalTravel(weather),
                     destinations
                 )
             );

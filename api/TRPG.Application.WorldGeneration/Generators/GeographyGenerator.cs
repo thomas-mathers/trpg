@@ -332,7 +332,7 @@ public class GeographyGenerator(
                         );
                         districts.Add(districtResult.District);
                         locations.Add(districtResult.Location);
-                        props.Add(districtResult.Bench);
+                        props.AddRange(districtResult.Seats);
                         cityDistricts.Add(districtResult.District);
                     }
 
