@@ -146,7 +146,7 @@ public static class CreatureRouteScheduleGenerator
                 .Concat(BitConverter.GetBytes(transitionWeekHour))
         )
         {
-            hash = (hash ^ value) * prime;
+            hash = unchecked((hash ^ value) * prime);
         }
 
         return (hash >> 11) * (1.0 / (1UL << 53));
