@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -65,6 +66,7 @@ internal static class GameSessionEndpoints
         [FromServices] IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
         [FromServices] ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
         [FromServices] ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
+        [FromServices] IWorldMutationGate mutationGate,
         CancellationToken cancellationToken
     )
     {
@@ -72,6 +74,8 @@ internal static class GameSessionEndpoints
             new GetGameSessionQuery { SessionId = sessionId },
             cancellationToken
         );
+
+        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
 
         // Stamped before the scene is read so a later-numbered snapshot never describes older state.
         var stamp = await stampWorldState.Handle(
