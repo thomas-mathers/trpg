@@ -58,4 +58,38 @@ public class GameClockTests
         // Assert
         Assert.Equal(expected, season);
     }
+
+    [Fact]
+    public void GetCurrentGameInstant_UsesTheFictionalEpochAndExistingScale()
+    {
+        var instant = GameClock.GetCurrentGameInstant(GameClock.RealTimePerInGameHour * 3);
+
+        Assert.Equal(new DateTime(975, 1, 1, 11, 0, 0), instant.Value);
+        Assert.Equal(DateTimeKind.Unspecified, instant.Value.Kind);
+    }
+
+    [Fact]
+    public void GetCurrentSeason_ReturnsSeason_ForGameInstant()
+    {
+        var instant = new GameInstant(new DateTime(975, 9, 1, 0, 0, 0));
+
+        var season = GameClock.GetCurrentSeason(instant);
+
+        Assert.Equal(Season.Autumn, season);
+    }
+
+    [Fact]
+    public void GetCurrentInGameDate_ReturnsCalendarDate_ForGameInstant()
+    {
+        var instant = new GameInstant(new DateTime(975, 1, 2, 13, 0, 0));
+
+        var date = GameClock.GetCurrentInGameDate(instant);
+
+        Assert.Equal(975, date.Year);
+        Assert.Equal("Frostwane", date.MonthName);
+        Assert.Equal(2, date.Day);
+        Assert.Equal("Ashday", date.WeekdayName);
+        Assert.Equal(DayOfWeek.Monday, date.Weekday);
+        Assert.Equal(13, date.Hour);
+    }
 }
