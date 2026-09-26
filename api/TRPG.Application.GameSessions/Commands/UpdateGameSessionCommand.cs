@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 
 namespace TRPG.Application.GameSessions.Commands;
 
 public class UpdateGameSessionCommand
 {
     public required Guid SessionId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class UpdateGameSessionCommandHandler(IGameSessionsDbContext context)
@@ -20,7 +21,7 @@ internal class UpdateGameSessionCommandHandler(IGameSessionsDbContext context)
         await context
             .GameSessions.Where(s => s.Id == command.SessionId)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(s => s.Playtime, command.Playtime),
+                setters => setters.SetProperty(s => s.GameTime, command.GameTime),
                 cancellationToken
             );
 }

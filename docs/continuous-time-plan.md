@@ -233,15 +233,15 @@ Exit condition: `GameInstant` is usable and tested without changing live game be
 
 ### Milestone 02 — Absolute-time model conversion
 
-Status: Not started
+Status: In progress
 
-- [ ] Replace persisted absolute `TimeSpan` fields with `GameInstant`.
-- [ ] Remove `*AtPlaytime`, `*UntilPlaytime`, and `*SyncPlaytime` naming.
-- [ ] Convert related commands, queries, results, events, builders, and tests.
-- [ ] Convert route timelines and scheduling arithmetic.
-- [ ] Remove 12x duration scaling.
-- [ ] Add the destructive database migration.
-- [ ] Verify no absolute fictional timestamp remains represented as `TimeSpan`.
+- [x] Replace persisted absolute `TimeSpan` fields with `GameInstant`.
+- [x] Remove `*AtPlaytime`, `*UntilPlaytime`, and `*SyncPlaytime` naming.
+- [x] Convert related commands, queries, results, events, builders, and tests.
+- [x] Convert route timelines and scheduling arithmetic.
+- [x] Remove 12x duration scaling.
+- [x] Add the destructive database migration.
+- [x] Verify no absolute fictional timestamp remains represented as `TimeSpan`.
 - [ ] Run the backend test suite.
 - [ ] Run CSharpier check.
 - [ ] Create milestone-closing commit.
@@ -429,11 +429,15 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 Current milestone: 02 — Absolute-time model conversion
 
-Current status: Not started
+Current status: In progress
 
 Last completed milestone: 01 — Time foundation
 
-Next action: Inventory every persisted absolute fictional `TimeSpan` and its application contracts, then convert only milestone 02 after confirming the milestone 01 closing commit.
+Next action: Run the complete backend test suite, repair any behavioral regressions, run CSharpier, and close milestone 02 if every check passes.
+
+Milestone 02 progress: Persisted absolute timestamps and their application contracts now use `GameInstant` and `GameTime` naming. Route and schedule arithmetic uses direct fictional durations, the 12x conversion and `RealTimePerInGameHour` bridge are removed, and `ConvertAbsoluteTimeToGameInstant` destructively replaces the old interval columns with `timestamp without time zone` columns. Source and test inventories contain no non-migration `Playtime` names or legacy scaling symbols.
+
+Milestone 02 validation so far: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed with pre-existing warnings. Focused `GameClockTests`, `RouteTimelineTests`, `CreatureJobSchedulingTests`, `RecurringSchedulingTests`, and `GameInstantValueConverterTests` passed through the xUnit executable with Docker access.
 
 Milestone 01 decisions: `GameInstant` is a scalar domain record struct over an unspecified-kind `DateTime`; its constructor rejects local and UTC values. `GameClock` exposes the fictional epoch and bridges legacy banked playtime to `GameInstant` while retaining the existing 12x runtime behavior until milestone 02. EF applies a global `GameInstant` conversion to `timestamp without time zone`.
 

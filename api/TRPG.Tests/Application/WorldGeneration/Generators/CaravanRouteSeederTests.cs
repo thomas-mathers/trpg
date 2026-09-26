@@ -52,7 +52,7 @@ public class CaravanRouteSeederTests
             [-6d, -6d, -3d, -3d, 0d, 0d],
             result
                 .Travelers.Select(traveler =>
-                    traveler.StartedAtPlaytime / GameClock.RealTimePerInGameHour
+                    (traveler.StartedAtGameTime - GameClock.Epoch) / TimeSpan.FromHours(1)
                 )
                 .OrderBy(hours => hours)
         );

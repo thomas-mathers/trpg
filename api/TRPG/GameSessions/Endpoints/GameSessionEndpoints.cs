@@ -50,7 +50,7 @@ internal static class GameSessionEndpoints
             {
                 WorldId = request.WorldId,
                 PlayerId = world.PlayerId.Value,
-                Playtime = world.Playtime,
+                GameTime = world.GameTime,
             },
             cancellationToken
         );
@@ -75,7 +75,7 @@ internal static class GameSessionEndpoints
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                Playtime = session.Playtime,
+                GameTime = session.GameTime,
             },
             cancellationToken
         );

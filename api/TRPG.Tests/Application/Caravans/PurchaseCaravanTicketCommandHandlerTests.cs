@@ -92,7 +92,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
                 CaravanId = _caravan.Id,
                 DestinationLocationId = LocationB,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -141,7 +141,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
                 CaravanId = _caravan.Id,
                 DestinationLocationId = LocationB,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -169,7 +169,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
                 CaravanId = _caravan.Id,
                 DestinationLocationId = LocationB,
                 PlayerLocationId = LocationA,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -190,7 +190,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
                 CaravanId = _caravan.Id,
                 DestinationLocationId = Guid.NewGuid(),
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -217,7 +217,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
                 CaravanId = _caravan.Id,
                 DestinationLocationId = LocationB,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -236,7 +236,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
             WorldId = WorldId,
             StateId = stateId,
             Condition = WeatherCondition.Snow,
-            NextChangePlaytime = TimeSpan.FromHours(1),
+            NextChangeGameTime = GameClock.Epoch + TimeSpan.FromHours(1),
         };
         var gold = Builders.MakeGold(
             WorldId,
@@ -257,7 +257,7 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
                 CaravanId = _caravan.Id,
                 DestinationLocationId = LocationB,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

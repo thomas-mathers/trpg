@@ -5,6 +5,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -17,7 +18,7 @@ public class MovePlayerCommand
     [NotEmptyGuid]
     public required Guid DestinationLocationId { get; init; }
 
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class MovePlayerCommandHandler(
@@ -63,7 +64,7 @@ internal class MovePlayerCommandHandler(
                 WorldId: player.WorldId,
                 FromLocationId: player.LocationId,
                 ToLocationId: command.DestinationLocationId,
-                Playtime: command.Playtime
+                GameTime: command.GameTime
             ),
             cancellationToken
         );

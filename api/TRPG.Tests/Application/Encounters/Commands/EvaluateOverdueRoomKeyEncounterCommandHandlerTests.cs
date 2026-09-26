@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -54,7 +55,7 @@ public sealed class EvaluateOverdueRoomKeyEncounterCommandHandlerTests(DatabaseF
             new EvaluateOverdueRoomKeyEncounterCommand
             {
                 WorldId = WorldId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 FromLocationId = _inn.GuestRoomLocationId,
                 ToLocationId = _outside.Id,
@@ -75,7 +76,7 @@ public sealed class EvaluateOverdueRoomKeyEncounterCommandHandlerTests(DatabaseF
             new EvaluateOverdueRoomKeyEncounterCommand
             {
                 WorldId = WorldId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 FromLocationId = _outside.Id,
                 ToLocationId = _inn.LobbyLocationId,
@@ -96,7 +97,7 @@ public sealed class EvaluateOverdueRoomKeyEncounterCommandHandlerTests(DatabaseF
             new EvaluateOverdueRoomKeyEncounterCommand
             {
                 WorldId = WorldId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 FromLocationId = _inn.GuestRoomLocationId,
                 ToLocationId = _inn.LobbyLocationId,
@@ -158,7 +159,7 @@ public sealed class EvaluateOverdueRoomKeyEncounterCommandHandlerTests(DatabaseF
             guestRoom.Id,
             key.Id,
             playerId,
-            dueAtPlaytime: TimeSpan.Zero
+            dueAtGameTime: GameClock.Epoch
         );
 
         _context.Buildings.Add(building);

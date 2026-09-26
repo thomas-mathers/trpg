@@ -27,7 +27,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
     private readonly GameSession _session = Builders.MakeGameSession(
         WorldId,
         Guid.NewGuid(),
-        playtime: TimeSpan.FromHours(10)
+        gameTime: GameClock.Epoch + TimeSpan.FromHours(10)
     );
     private Creature _player = null!;
     private Creature _guard = null!;
@@ -266,10 +266,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.True(updatedDoor!.IsLocked);
-        Assert.Equal(
-            _session.Playtime + GameClock.RealTimePerInGameHour * 24,
-            updatedDoor.UnlocksAtPlaytime
-        );
+        Assert.Equal(_session.GameTime + TimeSpan.FromHours(1) * 24, updatedDoor.UnlocksAtGameTime);
     }
 
     [Fact]

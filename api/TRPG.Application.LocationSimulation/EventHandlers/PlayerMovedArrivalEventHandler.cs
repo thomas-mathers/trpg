@@ -35,9 +35,9 @@ internal sealed class PlayerMovedArrivalEventHandler(
                 WorldId = domainEvent.WorldId,
                 PlayerId = domainEvent.PlayerId,
                 LocationId = domainEvent.ToLocationId,
-                CurrentDate = GameClock.GetCurrentInGameDate(domainEvent.Playtime),
+                CurrentDate = GameClock.GetCurrentInGameDate(domainEvent.GameTime),
                 PlayerLevel = player.Level,
-                Playtime = domainEvent.Playtime,
+                GameTime = domainEvent.GameTime,
             },
             cancellationToken
         );

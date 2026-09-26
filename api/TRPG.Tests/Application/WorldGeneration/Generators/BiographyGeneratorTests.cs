@@ -1,4 +1,5 @@
 using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 

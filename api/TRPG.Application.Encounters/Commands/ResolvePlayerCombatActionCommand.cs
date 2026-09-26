@@ -5,6 +5,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -27,7 +28,7 @@ internal class ResolvePlayerCombatActionCommandHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
@@ -40,13 +41,13 @@ internal class ResolvePlayerCombatActionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
         await applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand { Playtime = playtime, CreatureIds = [command.PlayerId] },
+            new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [command.PlayerId] },
             cancellationToken
         );
         var combatants = await combatantLoader.Load(command.PlayerId, cancellationToken);

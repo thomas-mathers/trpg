@@ -38,7 +38,7 @@ internal class ResolveMoveDestinationCommandHandler(
         ResolveAccessibleConnectorsCommand,
         IReadOnlyCollection<Guid>
     > resolveAccessibleConnectors,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
     IQueryHandler<GetActivatedTriggerIdsQuery, IReadOnlySet<Guid>> getActivatedTriggerIds,
     IQueryHandler<GetTravelDistanceByConnectorIdQuery, float?> getTravelDistance,
@@ -83,11 +83,11 @@ internal class ResolveMoveDestinationCommandHandler(
         var destinationLocationId = exitMatch.DestinationLocationId!.Value;
         var connectorId = exitMatch.ConnectorId!.Value;
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(gameTime);
 
         await syncFrontDoorLock.Handle(
             new SyncFrontDoorLockCommand
@@ -116,7 +116,7 @@ internal class ResolveMoveDestinationCommandHandler(
             {
                 PlayerKeyItemIds = playerKeyItemIds,
                 ActivatedTriggerIds = activatedTriggerIds,
-                Playtime = playtime,
+                GameTime = gameTime,
                 ConnectorIds = [connectorId],
             },
             cancellationToken

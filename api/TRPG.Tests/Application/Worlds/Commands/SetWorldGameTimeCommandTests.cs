@@ -1,22 +1,23 @@
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db)
+public sealed class SetWorldGameTimeCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
-    private SetWorldPlaytimeCommandHandler _handler = null!;
+    private SetWorldGameTimeCommandHandler _handler = null!;
     private readonly World _world = Builders.MakeWorld();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new SetWorldPlaytimeCommandHandler(_context);
+        _handler = new SetWorldGameTimeCommandHandler(_context);
 
         _context.Worlds.Add(_world);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -28,11 +29,15 @@ public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_PersistsPlaytime()
+    public async Task Handle_PersistsGameTime()
     {
         // Act
         await _handler.Handle(
-            new SetWorldPlaytimeCommand { WorldId = _world.Id, Playtime = TimeSpan.FromHours(5) },
+            new SetWorldGameTimeCommand
+            {
+                WorldId = _world.Id,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(5),
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -42,6 +47,6 @@ public sealed class SetWorldPlaytimeCommandTests(DatabaseFixture db)
             [_world.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.FromHours(5), updated!.Playtime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(5), updated!.GameTime);
     }
 }

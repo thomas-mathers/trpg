@@ -10,6 +10,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -29,7 +30,7 @@ internal class ResolveShakedownEncounterActionCommandHandler(
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<RemoveGoldCommand> removeGold,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<StartFightCommand> startFight,
     EncounterDepartureResolver encounterDepartureResolver,
     EncounterFleeResolver encounterFleeResolver,
@@ -114,14 +115,14 @@ internal class ResolveShakedownEncounterActionCommandHandler(
 
             if (encounter.DepartureDestinationLocationId != null)
             {
-                var playtime = await getPlaytime.Handle(
-                    new GetPlaytimeQuery { SessionId = command.SessionId },
+                var gameTime = await getGameTime.Handle(
+                    new GetGameTimeQuery { SessionId = command.SessionId },
                     cancellationToken
                 );
                 await encounterDepartureResolver.TryResume(
                     encounter,
                     player,
-                    playtime,
+                    gameTime,
                     cancellationToken
                 );
             }
@@ -130,11 +131,11 @@ internal class ResolveShakedownEncounterActionCommandHandler(
 
         if (outcome == ShakedownEncounterResolutionOutcome.Fled)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
+            var gameTime = await getGameTime.Handle(
+                new GetGameTimeQuery { SessionId = command.SessionId },
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
+            await encounterFleeResolver.Resolve(encounter, player, gameTime, cancellationToken);
             return;
         }
 

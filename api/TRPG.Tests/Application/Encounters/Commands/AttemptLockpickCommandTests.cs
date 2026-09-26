@@ -5,6 +5,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -361,7 +362,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
                 isLocked: true,
                 lockLevel: 1,
                 worldId: WorldId,
-                unlocksAtPlaytime: TimeSpan.FromHours(99)
+                unlocksAtGameTime: GameClock.Epoch + TimeSpan.FromHours(99)
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

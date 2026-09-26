@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Domain;
 
 namespace TRPG.Application.GameSessions.Commands;
 
@@ -11,25 +12,25 @@ public class AdvanceTimeCommand
 }
 
 internal class AdvanceTimeCommandHandler(
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<UpdateGameSessionCommand> updateGameSession
-) : ICommandHandler<AdvanceTimeCommand, TimeSpan>
+) : ICommandHandler<AdvanceTimeCommand, GameInstant>
 {
-    public async Task<TimeSpan> Handle(
+    public async Task<GameInstant> Handle(
         AdvanceTimeCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        var currentPlaytime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var currentGameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
-        var playtime = currentPlaytime + command.Delta;
+        var gameTime = currentGameTime + command.Delta;
         await updateGameSession.Handle(
-            new UpdateGameSessionCommand { SessionId = command.SessionId, Playtime = playtime },
+            new UpdateGameSessionCommand { SessionId = command.SessionId, GameTime = gameTime },
             cancellationToken
         );
 
-        return playtime;
+        return gameTime;
     }
 }

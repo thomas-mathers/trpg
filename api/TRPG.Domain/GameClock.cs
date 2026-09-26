@@ -14,12 +14,8 @@ public enum Season
 public static class GameClock
 {
     public const int EpochYear = 975;
-    private const double InGameHoursPerRealHour = 12.0;
     public static GameInstant Epoch { get; } =
         new(new DateTime(EpochYear, 1, 1, 8, 0, 0, DateTimeKind.Unspecified));
-
-    public static TimeSpan RealTimePerInGameHour =>
-        TimeSpan.FromHours(1.0 / InGameHoursPerRealHour);
 
     private static readonly DateTimeFormatInfo CalendarFormat = new()
     {
@@ -51,14 +47,7 @@ public static class GameClock
         ],
     };
 
-    public static DateTime GetCurrentInGameDateTime(TimeSpan bankedPlaytime)
-    {
-        var inGameHoursElapsed = bankedPlaytime.TotalHours * InGameHoursPerRealHour;
-        return (Epoch + TimeSpan.FromHours(inGameHoursElapsed)).Value;
-    }
-
-    public static GameInstant GetCurrentGameInstant(TimeSpan bankedPlaytime) =>
-        new(GetCurrentInGameDateTime(bankedPlaytime));
+    public static DateTime GetCurrentInGameDateTime(GameInstant gameTime) => gameTime.Value;
 
     public static string GetDayName(DayOfWeek day)
     {
@@ -81,14 +70,8 @@ public static class GameClock
         Season.Winter,
     ];
 
-    public static Season GetCurrentSeason(TimeSpan bankedPlaytime) =>
-        GetCurrentSeason(GetCurrentGameInstant(bankedPlaytime));
-
     public static Season GetCurrentSeason(GameInstant instant) =>
         MonthSeasons[instant.Value.Month - 1];
-
-    public static InGameDate GetCurrentInGameDate(TimeSpan bankedPlaytime) =>
-        GetCurrentInGameDate(GetCurrentGameInstant(bankedPlaytime));
 
     public static InGameDate GetCurrentInGameDate(GameInstant instant)
     {

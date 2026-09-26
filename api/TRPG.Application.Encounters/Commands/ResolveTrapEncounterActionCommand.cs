@@ -10,6 +10,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Props.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -26,7 +27,7 @@ public class ResolveTrapEncounterActionCommand : IEncounterResolutionCommand
 internal class ResolveTrapEncounterActionCommandHandler(
     IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<MarkTrapResolvedCommand> markTrapResolved,
     ICommandHandler<MovePlayerCommand> movePlayer,
     SkillCheckService skillCheckService,
@@ -148,8 +149,8 @@ internal class ResolveTrapEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
         await movePlayer.Handle(
@@ -157,7 +158,7 @@ internal class ResolveTrapEncounterActionCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 DestinationLocationId = encounter.TargetLocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

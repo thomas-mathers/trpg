@@ -690,7 +690,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
                 guestRoom.Id,
                 Guid.NewGuid(),
                 _player.Id,
-                dueAtPlaytime: TimeSpan.FromHours(24)
+                dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(24)
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -716,7 +716,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
                 guestRoom.Id,
                 Guid.NewGuid(),
                 _player.Id,
-                dueAtPlaytime: TimeSpan.FromHours(24)
+                dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(24)
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

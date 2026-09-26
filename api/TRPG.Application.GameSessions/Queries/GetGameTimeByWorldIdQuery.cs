@@ -2,33 +2,34 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 
 namespace TRPG.Application.GameSessions.Queries;
 
-public class GetPlaytimeByWorldIdQuery
+public class GetGameTimeByWorldIdQuery
 {
     public required Guid WorldId { get; init; }
 }
 
-internal class GetPlaytimeByWorldIdQueryHandler(IGameSessionsDbContext context)
-    : IQueryHandler<GetPlaytimeByWorldIdQuery, TimeSpan>
+internal class GetGameTimeByWorldIdQueryHandler(IGameSessionsDbContext context)
+    : IQueryHandler<GetGameTimeByWorldIdQuery, GameInstant>
 {
-    public async Task<TimeSpan> Handle(
-        GetPlaytimeByWorldIdQuery query,
+    public async Task<GameInstant> Handle(
+        GetGameTimeByWorldIdQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        var playtime = await context
+        var gameTime = await context
             .GameSessions.AsNoTracking()
             .Where(s => s.WorldId == query.WorldId)
-            .Select(s => (TimeSpan?)s.Playtime)
+            .Select(s => (GameInstant?)s.GameTime)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (playtime == null)
+        if (gameTime == null)
         {
             throw new EntityNotFoundException("Game session", query.WorldId);
         }
 
-        return playtime.Value;
+        return gameTime.Value;
     }
 }

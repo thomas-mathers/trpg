@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -318,7 +319,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
     }
 
     private async Task<InteriorRoute> SeedInteriorLockedConnector(
-        TimeSpan? unlocksAtPlaytime = null
+        GameInstant? unlocksAtGameTime = null
     )
     {
         var building = Builders.MakeBuilding();
@@ -342,7 +343,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         var door = Builders.MakeDoorConnector(
             connector.Id,
             isLocked: true,
-            unlocksAtPlaytime: unlocksAtPlaytime
+            unlocksAtGameTime: unlocksAtGameTime
         );
         var player = Builders.MakeCreature(WorldId, locationId: currentRoom.LocationId);
         _context.Buildings.Add(building);
@@ -427,9 +428,11 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         var session = Builders.MakeGameSession(
             WorldId,
             Guid.NewGuid(),
-            playtime: TimeSpan.FromHours(5)
+            gameTime: GameClock.Epoch + TimeSpan.FromHours(5)
         );
-        var route = await SeedInteriorLockedConnector(unlocksAtPlaytime: TimeSpan.FromHours(10));
+        var route = await SeedInteriorLockedConnector(
+            unlocksAtGameTime: GameClock.Epoch + TimeSpan.FromHours(10)
+        );
         _context.GameSessions.Add(session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -455,9 +458,11 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         var session = Builders.MakeGameSession(
             WorldId,
             Guid.NewGuid(),
-            playtime: TimeSpan.FromHours(10)
+            gameTime: GameClock.Epoch + TimeSpan.FromHours(10)
         );
-        var route = await SeedInteriorLockedConnector(unlocksAtPlaytime: TimeSpan.FromHours(5));
+        var route = await SeedInteriorLockedConnector(
+            unlocksAtGameTime: GameClock.Epoch + TimeSpan.FromHours(5)
+        );
         _context.GameSessions.Add(session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -482,7 +487,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             TestContext.Current.CancellationToken
         );
         Assert.False(updatedDoor!.IsLocked);
-        Assert.Null(updatedDoor.UnlocksAtPlaytime);
+        Assert.Null(updatedDoor.UnlocksAtGameTime);
     }
 
     [Fact]

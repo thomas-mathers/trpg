@@ -128,8 +128,7 @@ internal static class WeatherRoll
         return SampleWeighted(options);
     }
 
-    public static TimeSpan NextChangeOffset() =>
-        Random.Shared.Next(4, 17) * GameClock.RealTimePerInGameHour;
+    public static TimeSpan NextChangeOffset() => Random.Shared.Next(4, 17) * TimeSpan.FromHours(1);
 
     private static WeatherCondition SampleWeighted(
         IReadOnlyCollection<(WeatherCondition Condition, double Weight)> options

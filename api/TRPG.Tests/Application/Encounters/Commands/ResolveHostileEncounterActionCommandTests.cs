@@ -6,6 +6,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -341,7 +342,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
                 connector.Id,
                 isLocked: true,
                 worldId: WorldId,
-                unlocksAtPlaytime: TimeSpan.FromDays(1)
+                unlocksAtGameTime: GameClock.Epoch + TimeSpan.FromDays(1)
             )
         );
         var encounter = await SeedActiveEncounter(destination.Id);
@@ -508,7 +509,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
     [Fact]
     public async Task Handle_RollsBackEntirely_WhenStartingTheFightFails()
     {
-        // Arrange — an unseeded SessionId makes StartFightCommand's internal playtime lookup
+        // Arrange — an unseeded SessionId makes StartFightCommand's internal gameTime lookup
         // throw after the enemy has already been alerted, proving the whole resolution (alerting
         // the enemy, and completing the encounter) is atomic rather than partially applied.
         var encounter = await SeedActiveEncounter();

@@ -17,7 +17,7 @@ public record CreatureRoutePosition(
 public class GetCreatureRoutePositionsQuery
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class GetCreatureRoutePositionsQueryHandler(
@@ -61,7 +61,7 @@ internal class GetCreatureRoutePositionsQueryHandler(
             new ResolveRouteTravelerPositionsQuery
             {
                 RouteTravelerIds = travelerIds,
-                Playtime = query.Playtime,
+                GameTime = query.GameTime,
             },
             cancellationToken
         );

@@ -178,7 +178,7 @@ public static class StatFormulas
 
     public static void ApplyPassiveRegen(
         Creature creature,
-        TimeSpan currentPlaytime,
+        GameInstant currentGameTime,
         CreatureRegenOptions options
     )
     {
@@ -188,8 +188,8 @@ public static class StatFormulas
         }
 
         var elapsedInGameHours =
-            (currentPlaytime - creature.LastRegenPlaytime).TotalHours
-            / GameClock.RealTimePerInGameHour.TotalHours;
+            (currentGameTime - creature.LastRegenGameTime).TotalHours
+            / TimeSpan.FromHours(1).TotalHours;
         if (elapsedInGameHours <= 0)
         {
             return;
@@ -213,7 +213,7 @@ public static class StatFormulas
             options.MpRegenPercentPerHour,
             elapsedInGameHours
         );
-        creature.LastRegenPlaytime = currentPlaytime;
+        creature.LastRegenGameTime = currentGameTime;
     }
 
     private static int Regen(int current, int maximum, float percentPerHour, double elapsedHours) =>

@@ -17,7 +17,7 @@ internal sealed class PlayerMovedAlertedCreatureResetEventHandler(
             {
                 WorldId = domainEvent.WorldId,
                 LocationId = domainEvent.FromLocationId,
-                Playtime = domainEvent.Playtime,
+                GameTime = domainEvent.GameTime,
             },
             cancellationToken
         );

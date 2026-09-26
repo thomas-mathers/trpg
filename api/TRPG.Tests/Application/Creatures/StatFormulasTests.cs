@@ -347,13 +347,13 @@ public class StatFormulasTests
         };
 
         // Act
-        StatFormulas.ApplyPassiveRegen(creature, GameClock.RealTimePerInGameHour, options);
+        StatFormulas.ApplyPassiveRegen(creature, GameClock.Epoch + TimeSpan.FromHours(1), options);
 
         // Assert
         Assert.Equal(7, creature.CurrentHp);
         Assert.Equal(3, creature.CurrentAp);
         Assert.Equal(2, creature.CurrentMp);
-        Assert.Equal(GameClock.RealTimePerInGameHour, creature.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), creature.LastRegenGameTime);
     }
 
     [Fact]
@@ -369,7 +369,11 @@ public class StatFormulasTests
         };
 
         // Act
-        StatFormulas.ApplyPassiveRegen(creature, TimeSpan.FromHours(100 / 12.0), options);
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromHours(100),
+            options
+        );
 
         // Assert
         Assert.Equal(35, creature.CurrentHp);
@@ -391,13 +395,13 @@ public class StatFormulasTests
         // Act
         StatFormulas.ApplyPassiveRegen(
             creature,
-            TimeSpan.FromHours(100 / 12.0),
+            GameClock.Epoch + TimeSpan.FromHours(100),
             new CreatureRegenOptions()
         );
 
         // Assert
         Assert.Equal(0, creature.CurrentHp);
-        Assert.Equal(TimeSpan.Zero, creature.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch, creature.LastRegenGameTime);
     }
 
     [Fact]
@@ -405,14 +409,18 @@ public class StatFormulasTests
     {
         // Arrange
         var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
-        creature.LastRegenPlaytime = TimeSpan.FromHours(1);
+        creature.LastRegenGameTime = GameClock.Epoch + TimeSpan.FromHours(1);
 
         // Act
-        StatFormulas.ApplyPassiveRegen(creature, TimeSpan.FromHours(1), new CreatureRegenOptions());
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromHours(1),
+            new CreatureRegenOptions()
+        );
 
         // Assert
         Assert.Equal(0, creature.CurrentHp);
-        Assert.Equal(TimeSpan.FromHours(1), creature.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), creature.LastRegenGameTime);
     }
 
     [Fact]

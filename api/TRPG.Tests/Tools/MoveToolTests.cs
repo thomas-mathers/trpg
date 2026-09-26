@@ -379,7 +379,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
             {
                 PlayerId = _player.Id,
                 DestinationLocationId = _newLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -433,7 +433,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
             guestRoom.Id,
             key.Id,
             _player.Id,
-            dueAtPlaytime: TimeSpan.Zero
+            dueAtGameTime: GameClock.Epoch
         );
 
         _context.Buildings.Add(inn);
@@ -449,7 +449,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Invoke_AdvancesPlaytime_WhenCrossingATravelConnector()
+    public async Task Invoke_AdvancesGameTime_WhenCrossingATravelConnector()
     {
         // Arrange — default player has Dexterity 8, so speed is 50 + 8 = 58; 116 / 58 = 2 hours
         var connector = await _context.LocationConnectors.SingleAsync(
@@ -471,11 +471,11 @@ public sealed class MoveToolTests(DatabaseFixture db)
             s => s.PlayerId == _player.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(GameClock.RealTimePerInGameHour * 2, session.Playtime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, session.GameTime);
     }
 
     [Fact]
-    public async Task Invoke_DoesNotAdvancePlaytime_WhenTheConnectorHasNoTravelConnector()
+    public async Task Invoke_DoesNotAdvanceGameTime_WhenTheConnectorHasNoTravelConnector()
     {
         // Arrange
         var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
@@ -489,7 +489,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
             s => s.PlayerId == _player.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.Zero, session.Playtime);
+        Assert.Equal(GameClock.Epoch, session.GameTime);
     }
 
     [Fact]

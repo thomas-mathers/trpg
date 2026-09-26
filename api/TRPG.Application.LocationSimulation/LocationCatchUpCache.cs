@@ -24,7 +24,7 @@ internal class LocationCatchUpCache(IMemoryCache cache)
                 true,
                 new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = GameClock.RealTimePerInGameHour,
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
                 }
             );
             return true;

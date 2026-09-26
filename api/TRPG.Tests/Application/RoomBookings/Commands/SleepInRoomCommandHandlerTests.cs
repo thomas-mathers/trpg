@@ -30,7 +30,11 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<SleepInRoomCommandHandler>();
 
-        _session = Builders.MakeGameSession(WorldId, _player.Id, playtime: TimeSpan.FromHours(8));
+        _session = Builders.MakeGameSession(
+            WorldId,
+            _player.Id,
+            gameTime: GameClock.Epoch + TimeSpan.FromHours(8)
+        );
         _bed = Builders.MakeBed(WorldId, locationId: _locationId, assignedCreatureId: _player.Id);
 
         _context.Creatures.Add(_player);
@@ -46,10 +50,10 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_AdvancesPlaytimeRegeneratesAndSetsRestedUntil_WhenDeltaIsAtLeastOneHour()
+    public async Task Handle_AdvancesGameTimeRegeneratesAndSetsRestedUntil_WhenDeltaIsAtLeastOneHour()
     {
         // Arrange
-        var delta = GameClock.RealTimePerInGameHour * 8;
+        var delta = TimeSpan.FromHours(1) * 8;
 
         // Act
         var outcome = await _handler.Handle(
@@ -71,8 +75,8 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             s => s.Id == _session.Id,
             TestContext.Current.CancellationToken
         );
-        var expectedPlaytime = _session.Playtime + delta;
-        Assert.Equal(expectedPlaytime, session.Playtime);
+        var expectedGameTime = _session.GameTime + delta;
+        Assert.Equal(expectedGameTime, session.GameTime);
 
         var updatedPlayer = await verifyContext.Creatures.SingleAsync(
             c => c.Id == _player.Id,
@@ -80,8 +84,8 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
         );
         Assert.True(updatedPlayer.CurrentHp > 0);
         Assert.Equal(
-            expectedPlaytime + GameClock.RealTimePerInGameHour * 24,
-            updatedPlayer.RestedUntilPlaytime
+            expectedGameTime + TimeSpan.FromHours(1) * 24,
+            updatedPlayer.RestedUntilGameTime
         );
     }
 
@@ -95,7 +99,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 SessionId = _session.Id,
                 LocationId = _locationId,
-                Delta = GameClock.RealTimePerInGameHour * 0.5,
+                Delta = TimeSpan.FromHours(1) * 0.5,
             },
             TestContext.Current.CancellationToken
         );
@@ -106,7 +110,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             c => c.Id == _player.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Null(updatedPlayer.RestedUntilPlaytime);
+        Assert.Null(updatedPlayer.RestedUntilGameTime);
     }
 
     [Fact]
@@ -119,7 +123,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 SessionId = _session.Id,
                 LocationId = Guid.NewGuid(),
-                Delta = GameClock.RealTimePerInGameHour * 8,
+                Delta = TimeSpan.FromHours(1) * 8,
             },
             TestContext.Current.CancellationToken
         );
@@ -142,7 +146,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 SessionId = _session.Id,
                 LocationId = _locationId,
-                Delta = GameClock.RealTimePerInGameHour * 8,
+                Delta = TimeSpan.FromHours(1) * 8,
             },
             TestContext.Current.CancellationToken
         );

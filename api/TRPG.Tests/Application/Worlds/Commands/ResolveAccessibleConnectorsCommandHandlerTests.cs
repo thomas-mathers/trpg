@@ -2,6 +2,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
@@ -26,13 +27,13 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
         Guid connectorId,
         IReadOnlySet<Guid>? playerKeyItemIds = null,
         IReadOnlySet<Guid>? activatedTriggerIds = null,
-        TimeSpan? playtime = null
+        GameInstant? gameTime = null
     ) =>
         new()
         {
             PlayerKeyItemIds = playerKeyItemIds ?? new HashSet<Guid>(),
             ActivatedTriggerIds = activatedTriggerIds ?? new HashSet<Guid>(),
-            Playtime = playtime ?? TimeSpan.Zero,
+            GameTime = gameTime ?? GameClock.Epoch,
             ConnectorIds = [connectorId],
         };
 
@@ -125,13 +126,13 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
         {
             ConnectorId = connectorId,
             IsLocked = true,
-            UnlocksAtPlaytime = TimeSpan.FromHours(10),
+            UnlocksAtGameTime = GameClock.Epoch + TimeSpan.FromHours(10),
         };
         _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
 
         // Act
         var accessible = await _handler.Handle(
-            MakeCommand(connectorId, playtime: TimeSpan.FromHours(5)),
+            MakeCommand(connectorId, gameTime: GameClock.Epoch + TimeSpan.FromHours(5)),
             TestContext.Current.CancellationToken
         );
 
@@ -148,20 +149,20 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
         {
             ConnectorId = connectorId,
             IsLocked = true,
-            UnlocksAtPlaytime = TimeSpan.FromHours(5),
+            UnlocksAtGameTime = GameClock.Epoch + TimeSpan.FromHours(5),
         };
         _getDoorConnectors.Doors = new Dictionary<Guid, DoorConnector> { [connectorId] = door };
 
         // Act
         var accessible = await _handler.Handle(
-            MakeCommand(connectorId, playtime: TimeSpan.FromHours(10)),
+            MakeCommand(connectorId, gameTime: GameClock.Epoch + TimeSpan.FromHours(10)),
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal([connectorId], accessible);
         Assert.Equal([door.Id], _setDoorTimedLock.LastCommand?.DoorConnectorIds);
-        Assert.Null(_setDoorTimedLock.LastCommand?.UnlocksAtPlaytime);
+        Assert.Null(_setDoorTimedLock.LastCommand?.UnlocksAtGameTime);
     }
 
     [Fact]
@@ -261,7 +262,7 @@ public sealed class ResolveAccessibleConnectorsCommandHandlerTests
             {
                 PlayerKeyItemIds = new HashSet<Guid>(),
                 ActivatedTriggerIds = new HashSet<Guid>(),
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
                 ConnectorIds = [openConnectorId, lockedConnectorId],
             },
             TestContext.Current.CancellationToken

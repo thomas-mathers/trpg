@@ -84,7 +84,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -113,7 +113,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationC,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -144,7 +144,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = GameClock.RealTimePerInGameHour,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
@@ -179,7 +179,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = GameClock.RealTimePerInGameHour,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
@@ -208,7 +208,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -240,7 +240,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

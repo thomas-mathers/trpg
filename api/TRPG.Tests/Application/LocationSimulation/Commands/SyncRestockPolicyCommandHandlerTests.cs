@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -57,7 +58,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(2),
             },
             TestContext.Current.CancellationToken
         );
@@ -85,7 +86,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(2),
             },
             TestContext.Current.CancellationToken
         );
@@ -125,7 +126,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(2),
             },
             TestContext.Current.CancellationToken
         );
@@ -154,7 +155,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentPlaytime = TimeSpan.FromHours(1),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
@@ -217,7 +218,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = innLocationId,
                 PlayerLevel = 5,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(2),
             },
             TestContext.Current.CancellationToken
         );
@@ -237,13 +238,13 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_AdvancesLastSyncPlaytime_AfterRestocking()
+    public async Task Handle_AdvancesLastSyncGameTime_AfterRestocking()
     {
         // Arrange
         var policy = Builders.MakeRestockPolicy(WorldId, _workstation.Id);
         _context.RestockPolicies.Add(policy);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var currentPlaytime = TimeSpan.FromHours(2);
+        var currentGameTime = GameClock.Epoch + TimeSpan.FromHours(2);
 
         // Act
         await _handler.Handle(
@@ -251,7 +252,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentPlaytime = currentPlaytime,
+                CurrentGameTime = currentGameTime,
             },
             TestContext.Current.CancellationToken
         );
@@ -262,6 +263,6 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             p => p.Id == policy.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(currentPlaytime, updatedPolicy.LastSyncPlaytime);
+        Assert.Equal(currentGameTime, updatedPolicy.LastSyncGameTime);
     }
 }

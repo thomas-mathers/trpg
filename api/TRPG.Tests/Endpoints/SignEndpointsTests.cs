@@ -100,7 +100,7 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
         var session = Builders.MakeGameSession(
             _worldId,
             Guid.NewGuid(),
-            playtime: GameClock.RealTimePerInGameHour * 2
+            gameTime: GameClock.Epoch + TimeSpan.FromHours(1) * 2
         );
 
         await using (var scope = fixture.CreateScope())
@@ -124,7 +124,7 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
             cancellationToken: TestContext.Current.CancellationToken
         );
 
-        // Assert — stop A's window [0, 1) closed 1 hour ago at playtime 2 in-game hours, so the
+        // Assert — stop A's window [0, 1) closed 1 hour ago at gameTime 2 in-game hours, so the
         // live text should report a future arrival rather than the sign's stored placeholder.
         Assert.StartsWith("Caravan schedule:", result!.Text);
         Assert.Contains("The Capital Circuit: next arrival", result.Text);

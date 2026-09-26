@@ -76,12 +76,12 @@ internal class MoveTool(
         EncounterEvaluationResult
     > evaluateMoveInterception,
     ICommandHandler<MovePlayerCommand> movePlayer,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetSceneQuery, SceneResult> getScene,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -133,8 +133,8 @@ internal class MoveTool(
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), turnContext.PlayerId);
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
@@ -143,7 +143,7 @@ internal class MoveTool(
         var interception = await InterceptMove(
             player.LocationId,
             destinationResult.DestinationLocationId!.Value,
-            playtime,
+            gameTime,
             cancellationToken
         );
         if (interception != null)
@@ -151,14 +151,14 @@ internal class MoveTool(
             return interception;
         }
 
-        var arrivalPlaytime = playtime;
+        var arrivalGameTime = gameTime;
         if (destinationResult.TravelTimeHours > 0)
         {
-            arrivalPlaytime = await advanceTime.Handle(
+            arrivalGameTime = await advanceTime.Handle(
                 new AdvanceTimeCommand
                 {
                     SessionId = turnContext.SessionId,
-                    Delta = GameClock.RealTimePerInGameHour * destinationResult.TravelTimeHours,
+                    Delta = TimeSpan.FromHours(1) * destinationResult.TravelTimeHours,
                 },
                 cancellationToken
             );
@@ -169,7 +169,7 @@ internal class MoveTool(
             {
                 PlayerId = turnContext.PlayerId,
                 DestinationLocationId = destinationResult.DestinationLocationId!.Value,
-                Playtime = arrivalPlaytime,
+                GameTime = arrivalGameTime,
             },
             cancellationToken
         );
@@ -195,8 +195,8 @@ internal class MoveTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(arrivalPlaytime),
-                Playtime = arrivalPlaytime,
+                CurrentDate = GameClock.GetCurrentInGameDate(arrivalGameTime),
+                GameTime = arrivalGameTime,
             },
             cancellationToken
         );
@@ -217,7 +217,7 @@ internal class MoveTool(
     private async Task<MoveToolResult?> InterceptMove(
         Guid fromLocationId,
         Guid destinationLocationId,
-        TimeSpan playtime,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
@@ -226,7 +226,7 @@ internal class MoveTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -238,7 +238,7 @@ internal class MoveTool(
                 PlayerId = turnContext.PlayerId,
                 FromLocationId = fromLocationId,
                 ToLocationId = destinationLocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -252,8 +252,8 @@ internal class MoveTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(playtime),
-                Playtime = playtime,
+                CurrentDate = GameClock.GetCurrentInGameDate(gameTime),
+                GameTime = gameTime,
             },
             cancellationToken
         );

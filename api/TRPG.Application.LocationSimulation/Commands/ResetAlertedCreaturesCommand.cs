@@ -12,7 +12,7 @@ public class ResetAlertedCreaturesCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class ResetAlertedCreaturesCommandHandler(
@@ -57,7 +57,7 @@ internal class ResetAlertedCreaturesCommandHandler(
             cancellationToken
         );
 
-        var currentDate = GameClock.GetCurrentInGameDate(command.Playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(command.GameTime);
 
         catchUpCache.Evict(command.WorldId, command.LocationId, currentDate);
     }

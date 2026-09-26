@@ -14,6 +14,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -28,7 +29,7 @@ internal class EndFightCommand
 internal class EndFightCommandHandler(
     IEncountersDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
@@ -59,8 +60,8 @@ internal class EndFightCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
@@ -73,7 +74,7 @@ internal class EndFightCommandHandler(
             new UpdateCreaturesCommand
             {
                 CreatureIds = survivingCreatureIds,
-                LastRegenPlaytime = playtime,
+                LastRegenGameTime = gameTime,
             },
             cancellationToken
         );

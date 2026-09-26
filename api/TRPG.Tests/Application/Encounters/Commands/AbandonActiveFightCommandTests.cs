@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -50,7 +51,7 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = TimeSpan.FromHours(3),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );
@@ -76,7 +77,7 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = TimeSpan.FromHours(3),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );
@@ -91,7 +92,7 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_AdvancesLastRegenPlaytime_ForSurvivingCombatantsOnly()
+    public async Task Handle_AdvancesLastRegenGameTime_ForSurvivingCombatantsOnly()
     {
         // Arrange
         var fight = Builders.MakeFight(WorldId, _player.Id, [_player.Id, _enemy.Id]);
@@ -104,7 +105,7 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = TimeSpan.FromHours(3),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );
@@ -119,7 +120,7 @@ public sealed class AbandonActiveFightCommandTests(DatabaseFixture db)
             [_enemy.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.FromHours(3), player!.LastRegenPlaytime);
-        Assert.Equal(TimeSpan.Zero, enemy!.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), player!.LastRegenGameTime);
+        Assert.Equal(GameClock.Epoch, enemy!.LastRegenGameTime);
     }
 }

@@ -24,7 +24,7 @@ public class GetNpcConversationBriefingQuery
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
-    public TimeSpan Playtime { get; init; }
+    public GameInstant GameTime { get; init; }
 }
 
 public record NpcConversationIdentity(string Name, string Race, Gender Gender, int Age);
@@ -238,7 +238,7 @@ internal class GetNpcConversationBriefingQueryHandler(
             new GetRouteTravelerJourneysByCreatureIdsQuery
             {
                 CreatureIds = [query.NpcId],
-                Playtime = query.Playtime,
+                GameTime = query.GameTime,
             },
             cancellationToken
         );

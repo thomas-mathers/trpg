@@ -14,7 +14,7 @@ internal class StreamWaitTurnHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
 )
 {
@@ -51,17 +51,17 @@ internal class StreamWaitTurnHandler(
             return new GameTurnPrompt.Reply("You need to sit down before waiting.");
         }
 
-        var playtime = await advanceTime.Handle(
+        var gameTime = await advanceTime.Handle(
             new AdvanceTimeCommand
             {
                 SessionId = session.SessionId,
-                Delta = GameClock.RealTimePerInGameHour * (hours + minutes / 60.0),
+                Delta = TimeSpan.FromHours(1) * (hours + minutes / 60.0),
             },
             cancellationToken
         );
 
         await applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand { Playtime = playtime, CreatureIds = [session.PlayerId] },
+            new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [session.PlayerId] },
             cancellationToken
         );
 

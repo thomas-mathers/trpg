@@ -7,6 +7,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -15,7 +16,7 @@ public class ResolveExitConnectorCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class ResolveExitConnectorCommandHandler(
@@ -72,7 +73,7 @@ internal class ResolveExitConnectorCommandHandler(
             {
                 PlayerKeyItemIds = playerKeyItemIds,
                 ActivatedTriggerIds = activatedTriggerIds,
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
                 ConnectorIds = connectors.Select(connector => connector.Id).ToArray(),
             },
             cancellationToken

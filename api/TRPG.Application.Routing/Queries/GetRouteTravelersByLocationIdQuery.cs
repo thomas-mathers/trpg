@@ -11,7 +11,7 @@ public record RouteTravelerSummary(
     Guid RouteId,
     string RouteName,
     RouteTraversal Traversal,
-    TimeSpan StartedAtPlaytime,
+    GameInstant StartedAtGameTime,
     double SpeedUnitsPerHour,
     IReadOnlyList<RouteTimelineStep> Steps
 );
@@ -100,7 +100,7 @@ internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext conte
                     traveler.RouteId,
                     route.Name,
                     route.Traversal,
-                    traveler.StartedAtPlaytime,
+                    traveler.StartedAtGameTime,
                     traveler.SpeedUnitsPerHour,
                     stepsByRouteId[traveler.RouteId]
                 );

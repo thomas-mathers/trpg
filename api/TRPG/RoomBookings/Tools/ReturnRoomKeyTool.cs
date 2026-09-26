@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 
@@ -19,7 +20,7 @@ internal class ReturnRoomKeyTool(
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     ICommandHandler<ReturnRoomKeyCommand, ReturnRoomKeyResult> returnRoomKey,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<ReturnRoomKeyTool> logger
 ) : IGameTool
 {
@@ -60,8 +61,8 @@ internal class ReturnRoomKeyTool(
             );
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
@@ -70,7 +71,7 @@ internal class ReturnRoomKeyTool(
             {
                 PlayerId = turnContext.PlayerId,
                 WorldId = turnContext.WorldId,
-                Playtime = playtime,
+                GameTime = gameTime,
                 LocationId = player.LocationId,
             },
             cancellationToken

@@ -13,7 +13,7 @@ public class RefreshSceneCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 public record RefreshSceneResult(SceneResult Scene, bool Refreshed);
@@ -34,9 +34,9 @@ internal class RefreshSceneCommandHandler(
             cancellationToken
         );
 
-        var playtime = command.Playtime;
+        var gameTime = command.GameTime;
 
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(gameTime);
 
         var refreshed = await catchUpLocation.Handle(
             new CatchUpLocationCommand
@@ -46,7 +46,7 @@ internal class RefreshSceneCommandHandler(
                 LocationId = player!.LocationId,
                 CurrentDate = currentDate,
                 PlayerLevel = player.Level,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -57,7 +57,7 @@ internal class RefreshSceneCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 CurrentDate = currentDate,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

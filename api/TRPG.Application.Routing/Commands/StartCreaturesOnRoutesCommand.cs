@@ -5,6 +5,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Routing.Commands;
@@ -12,7 +13,7 @@ namespace TRPG.Application.Routing.Commands;
 public record StartCreatureOnRouteRequest(
     Guid CreatureId,
     Guid RouteId,
-    TimeSpan StartedAtPlaytime,
+    GameInstant StartedAtGameTime,
     string Purpose
 );
 
@@ -90,7 +91,7 @@ internal class StartCreaturesOnRoutesCommandHandler(
             {
                 WorldId = creature.WorldId,
                 RouteId = request.RouteId,
-                StartedAtPlaytime = request.StartedAtPlaytime,
+                StartedAtGameTime = request.StartedAtGameTime,
                 SpeedUnitsPerHour = creature.MovementSpeed,
                 Purpose = request.Purpose,
             };

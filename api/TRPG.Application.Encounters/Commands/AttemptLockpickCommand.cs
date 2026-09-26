@@ -140,7 +140,7 @@ internal class AttemptLockpickCommandHandler(
         );
         // An escape is answered for when the player walks past a jailer, which the arrival
         // evaluator handles: the room through the door has not been simulated yet.
-        var escaped = opened && door.UnlocksAtPlaytime != null;
+        var escaped = opened && door.UnlocksAtGameTime != null;
 
         Encounter? encounter = null;
         if (escaped)
@@ -245,7 +245,7 @@ internal class AttemptLockpickCommandHandler(
         );
 
         // A timed lock is only ever set when a sentence starts, so picking one is an escape.
-        if (door.UnlocksAtPlaytime != null)
+        if (door.UnlocksAtGameTime != null)
         {
             // Anchored at the jail, not the cell, so stepping into the guard station does not
             // settle the escape before anyone there has had the chance to notice it.

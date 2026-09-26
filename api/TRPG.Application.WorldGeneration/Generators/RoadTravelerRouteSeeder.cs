@@ -203,11 +203,9 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
         {
             WorldId = input.World.World.Id,
             RouteId = route.Id,
-            StartedAtPlaytime =
-                -GameClock.RealTimePerInGameHour
-                * durationHours
-                * input.SequenceIndex
-                / input.TravelerCount,
+            StartedAtGameTime =
+                GameClock.Epoch
+                - TimeSpan.FromHours(1) * durationHours * input.SequenceIndex / input.TravelerCount,
             SpeedUnitsPerHour = input.Options.SpeedUnitsPerHour,
             Purpose = BuildPurpose(input),
         };

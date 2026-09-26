@@ -22,5 +22,5 @@ public class WeatherState
     public Guid WorldId { get; init; }
     public Guid StateId { get; init; }
     public WeatherCondition Condition { get; set; }
-    public TimeSpan NextChangePlaytime { get; set; }
+    public GameInstant NextChangeGameTime { get; set; }
 }

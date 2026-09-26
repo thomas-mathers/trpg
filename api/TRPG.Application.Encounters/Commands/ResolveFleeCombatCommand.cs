@@ -10,6 +10,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -33,7 +34,7 @@ internal class ResolveFleeCombatCommandHandler(
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector
 ) : ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?>
 {
@@ -70,8 +71,8 @@ internal class ResolveFleeCombatCommandHandler(
             return new FleeCombatResult(combatResult, null, null);
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
@@ -80,7 +81,7 @@ internal class ResolveFleeCombatCommandHandler(
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

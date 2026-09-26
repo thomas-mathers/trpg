@@ -90,7 +90,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 CaravanId = _caravan.Id,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -113,8 +113,8 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
     [Fact]
     public async Task Handle_ReturnsTravelTime_ThatLandsTheCaravanAtTheDestinationOnArrival()
     {
-        // Arrange — regression test: the returned travel time must advance playtime by enough
-        // that the caravan's own independent, playtime-driven schedule has it lingering at the
+        // Arrange — regression test: the returned travel time must advance gameTime by enough
+        // that the caravan's own independent, gameTime-driven schedule has it lingering at the
         // destination the instant the player is teleported there, not still mid-journey.
         _context.CaravanTickets.Add(
             Builders.MakeCaravanTicket(_caravan.Id, _player.Id, LocationA, LocationB)
@@ -131,18 +131,19 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 CaravanId = _caravan.Id,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var arrivalPlaytime = GameClock.RealTimePerInGameHour * result.TravelTimeHours!.Value;
+        var arrivalGameTime =
+            GameClock.Epoch + TimeSpan.FromHours(1) * result.TravelTimeHours!.Value;
         var position = await resolvePosition.Handle(
             new ResolveRouteTravelerPositionQuery
             {
                 RouteTravelerId = _caravan.Id,
-                Playtime = arrivalPlaytime,
+                GameTime = arrivalGameTime,
             },
             TestContext.Current.CancellationToken
         );
@@ -160,7 +161,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 CaravanId = _caravan.Id,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -185,7 +186,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 CaravanId = _caravan.Id,
                 PlayerLocationId = LocationB,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -205,7 +206,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
     public async Task Handle_StillBoards_WhenTimeHasPassedSincePurchase_ButThePlayerNeverLeft()
     {
         // Arrange — simulates ordinary narration-time overhead (every narrated turn advances
-        // playtime a little) accruing between buying the ticket and clicking Board; the caravan's
+        // gameTime a little) accruing between buying the ticket and clicking Board; the caravan's
         // own live position would already look departed, but the player never left the stop.
         _context.CaravanTickets.Add(
             Builders.MakeCaravanTicket(
@@ -213,7 +214,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
                 _player.Id,
                 LocationA,
                 LocationB,
-                purchasedAtPlaytime: TimeSpan.Zero
+                purchasedAtGameTime: GameClock.Epoch
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -225,7 +226,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 CaravanId = _caravan.Id,
                 PlayerLocationId = LocationA,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -247,7 +248,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
             WorldId = WorldId,
             StateId = stateId,
             Condition = WeatherCondition.Storm,
-            NextChangePlaytime = TimeSpan.FromHours(1),
+            NextChangeGameTime = GameClock.Epoch + TimeSpan.FromHours(1),
         };
         _context.Locations.Add(location);
         _context.WeatherStates.Add(weather);
@@ -262,7 +263,7 @@ public sealed class BoardCaravanCommandHandlerTests(DatabaseFixture db)
                 PlayerId = _player.Id,
                 CaravanId = _caravan.Id,
                 PlayerLocationId = LocationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

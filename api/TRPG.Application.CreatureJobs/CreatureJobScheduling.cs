@@ -5,7 +5,11 @@ namespace TRPG.Application.CreatureJobs;
 
 public static class CreatureJobScheduling
 {
-    public record ScheduledCreatureJob(CreatureJob Job, TimeSpan StartsAtPlaytime, bool IsActive);
+    public record ScheduledCreatureJob(
+        CreatureJob Job,
+        GameInstant StartsAtGameTime,
+        bool IsActive
+    );
 
     public static bool IsActiveAtHour(CreatureJob creatureJob, DayOfWeek weekday, int hour)
     {
@@ -31,19 +35,17 @@ public static class CreatureJobScheduling
 
     public static ScheduledCreatureJob? FindCurrentOrNextJob(
         IReadOnlyCollection<CreatureJob> jobs,
-        TimeSpan playtime
+        GameInstant gameTime
     )
     {
-        var currentDateTime = GameClock.GetCurrentInGameDateTime(playtime);
+        var currentDateTime = GameClock.GetCurrentInGameDateTime(gameTime);
         var active = FindDueJob(jobs, currentDateTime.DayOfWeek, currentDateTime.Hour);
         if (active != null)
         {
             var startDateTime = ResolveActiveStart(active, currentDateTime);
             return new ScheduledCreatureJob(
                 active,
-                playtime
-                    + GameClock.RealTimePerInGameHour
-                        * (startDateTime - currentDateTime).TotalHours,
+                gameTime + TimeSpan.FromHours(1) * (startDateTime - currentDateTime).TotalHours,
                 IsActive: true
             );
         }
@@ -55,17 +57,17 @@ public static class CreatureJobScheduling
             .ThenBy(entry => entry!.Value.Job.Id)
             .Select(entry => new ScheduledCreatureJob(
                 entry!.Value.Job,
-                playtime
-                    + GameClock.RealTimePerInGameHour
+                gameTime
+                    + TimeSpan.FromHours(1)
                         * (entry.Value.StartDateTime - currentDateTime).TotalHours,
                 IsActive: false
             ))
             .FirstOrDefault();
     }
 
-    public static TimeSpan FindMostRecentEndPlaytime(CreatureJob job, TimeSpan playtime)
+    public static GameInstant FindMostRecentEndGameTime(CreatureJob job, GameInstant gameTime)
     {
-        var currentDateTime = GameClock.GetCurrentInGameDateTime(playtime);
+        var currentDateTime = GameClock.GetCurrentInGameDateTime(gameTime);
         for (var dayOffset = 0; dayOffset <= 7; dayOffset++)
         {
             var start = currentDateTime.Date.AddDays(-dayOffset).AddHours(job.StartHour);
@@ -77,8 +79,7 @@ public static class CreatureJobScheduling
             var end = start.AddHours((job.EndHour - job.StartHour + 24) % 24);
             if (end <= currentDateTime)
             {
-                return playtime
-                    + GameClock.RealTimePerInGameHour * (end - currentDateTime).TotalHours;
+                return gameTime + TimeSpan.FromHours(1) * (end - currentDateTime).TotalHours;
             }
         }
 

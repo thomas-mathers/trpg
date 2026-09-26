@@ -15,7 +15,7 @@ internal class EndGameSessionCommand
 }
 
 internal class EndGameSessionCommandHandler(
-    ICommandHandler<SetWorldPlaytimeCommand> setWorldPlaytime,
+    ICommandHandler<SetWorldGameTimeCommand> setWorldGameTime,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
     ICommandHandler<AbandonActiveFightCommand> abandonActiveFight,
@@ -32,11 +32,11 @@ internal class EndGameSessionCommandHandler(
             cancellationToken
         );
 
-        await setWorldPlaytime.Handle(
-            new SetWorldPlaytimeCommand
+        await setWorldGameTime.Handle(
+            new SetWorldGameTimeCommand
             {
                 WorldId = snapshot.WorldId,
-                Playtime = snapshot.Playtime,
+                GameTime = snapshot.GameTime,
             },
             cancellationToken
         );
@@ -46,7 +46,7 @@ internal class EndGameSessionCommandHandler(
             {
                 WorldId = snapshot.WorldId,
                 PlayerId = snapshot.PlayerId,
-                Playtime = snapshot.Playtime,
+                GameTime = snapshot.GameTime,
             },
             cancellationToken
         );

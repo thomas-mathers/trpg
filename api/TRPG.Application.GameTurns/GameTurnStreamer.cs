@@ -16,6 +16,7 @@ using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -37,13 +38,13 @@ internal class GameTurnStreamer(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
     IQueryHandler<
         GetLoreAnchorAutomatonByWorldQuery,
         LoreAnchorAutomaton
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IGameClientEventAckGate eventAckGate,
@@ -156,8 +157,8 @@ internal class GameTurnStreamer(
         CancellationToken cancellationToken
     )
     {
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 
@@ -166,7 +167,7 @@ internal class GameTurnStreamer(
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -206,15 +207,15 @@ internal class GameTurnStreamer(
         turnContext.PlayerId = session.PlayerId;
         turnContext.PlayerMoved = false;
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
         await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
-                Playtime = playtime,
+                GameTime = gameTime,
                 CreatureIds = [turnContext.PlayerId],
             },
             cancellationToken

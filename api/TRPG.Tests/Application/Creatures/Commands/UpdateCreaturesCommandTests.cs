@@ -1,5 +1,6 @@
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -114,14 +115,14 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_UpdatesLastRegenPlaytime_WhenSet()
+    public async Task Handle_UpdatesLastRegenGameTime_WhenSet()
     {
         // Act
         await _handler.Handle(
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                LastRegenPlaytime = TimeSpan.FromHours(3),
+                LastRegenGameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );
@@ -132,14 +133,14 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.FromHours(3), updated!.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), updated!.LastRegenGameTime);
     }
 
     [Fact]
-    public async Task Handle_LeavesLastRegenPlaytimeUnchanged_WhenNotSet()
+    public async Task Handle_LeavesLastRegenGameTimeUnchanged_WhenNotSet()
     {
         // Arrange
-        var originalLastRegenPlaytime = _creature.LastRegenPlaytime;
+        var originalLastRegenGameTime = _creature.LastRegenGameTime;
 
         // Act
         await _handler.Handle(
@@ -153,7 +154,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(originalLastRegenPlaytime, updated!.LastRegenPlaytime);
+        Assert.Equal(originalLastRegenGameTime, updated!.LastRegenGameTime);
     }
 
     [Fact]
@@ -198,7 +199,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         );
         Assert.Equal(_creature.LocationId, updated!.LocationId);
         Assert.Equal(_creature.State, updated.State);
-        Assert.Equal(_creature.LastRegenPlaytime, updated.LastRegenPlaytime);
+        Assert.Equal(_creature.LastRegenGameTime, updated.LastRegenGameTime);
         Assert.Equal(_creature.Name, updated.Name);
     }
 

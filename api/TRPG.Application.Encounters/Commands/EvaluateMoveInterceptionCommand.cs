@@ -2,6 +2,7 @@ using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 
 namespace TRPG.Application.Encounters.Commands;
 
@@ -11,7 +12,7 @@ public class EvaluateMoveInterceptionCommand
     public required Guid PlayerId { get; init; }
     public required Guid FromLocationId { get; init; }
     public required Guid ToLocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class EvaluateMoveInterceptionCommandHandler(
@@ -62,7 +63,7 @@ internal class EvaluateMoveInterceptionCommandHandler(
                 PlayerId = command.PlayerId,
                 FromLocationId = command.FromLocationId,
                 ToLocationId = command.ToLocationId,
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

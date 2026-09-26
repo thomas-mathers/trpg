@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -13,7 +14,7 @@ public class AbandonActiveFightCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class AbandonActiveFightCommandHandler(
@@ -56,7 +57,7 @@ internal class AbandonActiveFightCommandHandler(
             new UpdateCreaturesCommand
             {
                 CreatureIds = survivingCreatureIds,
-                LastRegenPlaytime = command.Playtime,
+                LastRegenGameTime = command.GameTime,
             },
             cancellationToken
         );

@@ -48,7 +48,7 @@ internal class StreamSleepTurnHandler(
                 PlayerId = session.PlayerId,
                 SessionId = session.SessionId,
                 LocationId = player!.LocationId,
-                Delta = GameClock.RealTimePerInGameHour * (hours + minutes / 60.0),
+                Delta = TimeSpan.FromHours(1) * (hours + minutes / 60.0),
             },
             cancellationToken
         );

@@ -8,6 +8,7 @@ using TRPG.Application.Props.Queries;
 using TRPG.Application.Routing.Commands;
 using TRPG.Application.Routing.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.LocationSimulation.Commands;
@@ -19,7 +20,7 @@ public class CatchUpLocationCommand
     public required Guid LocationId { get; init; }
     public required InGameDate CurrentDate { get; init; }
     public required int PlayerLevel { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class CatchUpLocationCommandHandler(
@@ -119,7 +120,7 @@ internal class CatchUpLocationCommandHandler(
             cancellationToken
         );
         scheduledCreatureIds.UnionWith(scheduledTravelerCreatureIds);
-        await AdvanceDueJobs(scheduledCreatureIds, command.Playtime, weather, cancellationToken);
+        await AdvanceDueJobs(scheduledCreatureIds, command.GameTime, weather, cancellationToken);
 
         await SynchronizeFrontDoorLock(command, cancellationToken);
 
@@ -187,7 +188,7 @@ internal class CatchUpLocationCommandHandler(
             {
                 WorldId = command.WorldId,
                 LocationId = command.LocationId,
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -217,7 +218,7 @@ internal class CatchUpLocationCommandHandler(
             {
                 LocationId = command.LocationId,
                 PlayerLevel = command.PlayerLevel,
-                CurrentPlaytime = command.Playtime,
+                CurrentGameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -233,7 +234,7 @@ internal class CatchUpLocationCommandHandler(
             {
                 LocationId = command.LocationId,
                 PlayerLevel = command.PlayerLevel,
-                CurrentPlaytime = command.Playtime,
+                CurrentGameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -251,7 +252,7 @@ internal class CatchUpLocationCommandHandler(
                 PlayerId = command.PlayerId,
                 LocationId = command.LocationId,
                 PlayerLevel = command.PlayerLevel,
-                CurrentPlaytime = command.Playtime,
+                CurrentGameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -268,7 +269,7 @@ internal class CatchUpLocationCommandHandler(
             {
                 WorldId = command.WorldId,
                 StateId = location.StateId,
-                CurrentPlaytime = command.Playtime,
+                CurrentGameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -284,7 +285,7 @@ internal class CatchUpLocationCommandHandler(
             {
                 WorldId = command.WorldId,
                 LocationId = command.LocationId,
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -292,7 +293,7 @@ internal class CatchUpLocationCommandHandler(
 
     private async Task AdvanceDueJobs(
         IReadOnlyCollection<Guid> creatureIds,
-        TimeSpan playtime,
+        GameInstant gameTime,
         WeatherCondition? weather,
         CancellationToken cancellationToken
     )
@@ -306,7 +307,7 @@ internal class CatchUpLocationCommandHandler(
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = creatureIds,
-                Playtime = playtime,
+                GameTime = gameTime,
                 Weather = weather,
             },
             cancellationToken

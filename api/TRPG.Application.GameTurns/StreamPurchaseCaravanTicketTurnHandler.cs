@@ -4,6 +4,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -11,7 +12,7 @@ namespace TRPG.Application.GameTurns;
 internal class StreamPurchaseCaravanTicketTurnHandler(
     GameTurnStreamer streamer,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<PurchaseCaravanTicketCommand, PurchaseCaravanTicketResult> purchaseCaravanTicket
 )
 {
@@ -39,8 +40,8 @@ internal class StreamPurchaseCaravanTicketTurnHandler(
                 new GetCreatureByIdQuery { Id = session.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), session.PlayerId);
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 
@@ -52,7 +53,7 @@ internal class StreamPurchaseCaravanTicketTurnHandler(
                 CaravanId = caravanId,
                 DestinationLocationId = destinationLocationId,
                 PlayerLocationId = player.LocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

@@ -4,13 +4,14 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 
 public class ApplyPassiveRegenCommand
 {
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
 }
 
@@ -35,7 +36,7 @@ internal class ApplyPassiveRegenCommandHandler(
 
         foreach (var creature in creatures)
         {
-            StatFormulas.ApplyPassiveRegen(creature, command.Playtime, optionsSnapshot.Value);
+            StatFormulas.ApplyPassiveRegen(creature, command.GameTime, optionsSnapshot.Value);
         }
 
         await context.SaveChangesAsync(cancellationToken);

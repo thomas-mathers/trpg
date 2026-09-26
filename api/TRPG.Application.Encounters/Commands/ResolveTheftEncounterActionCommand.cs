@@ -8,6 +8,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -29,7 +30,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
     > transferInventoryItems,
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     EncounterFleeResolver encounterFleeResolver
 )
     : EncounterResolutionCommandHandlerBase<
@@ -126,14 +127,14 @@ internal class ResolveTheftEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
         var leftTheScene = await encounterFleeResolver.Resolve(
             encounter,
             player,
-            playtime,
+            gameTime,
             cancellationToken
         );
 

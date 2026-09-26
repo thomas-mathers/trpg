@@ -48,7 +48,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
     [Fact]
     public async Task Handle_EvictsCatchUpCacheAndClearsAlert_ForAlertedCreaturesAtTheLocation()
     {
-        // Arrange — the session's fresh Playtime maps to in-game hour 8
+        // Arrange — the session's fresh GameTime maps to in-game hour 8
         var alertedMonster = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
@@ -58,7 +58,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        var currentDate = GameClock.GetCurrentInGameDate(_session.Playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(_session.GameTime);
         catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
 
         // Act
@@ -67,7 +67,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 LocationId = _location.Id,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
             },
             TestContext.Current.CancellationToken
         );
@@ -96,7 +96,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        var currentDate = GameClock.GetCurrentInGameDate(_session.Playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(_session.GameTime);
         catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
 
         // Act
@@ -105,7 +105,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 LocationId = _location.Id,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
             },
             TestContext.Current.CancellationToken
         );

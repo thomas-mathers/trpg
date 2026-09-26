@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -74,7 +75,11 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             ownerType: OwnerType.Creature
         );
         var doorConnectorKey = Builders.MakeDoorConnectorKey(_key.Id, door.Id, WorldId);
-        _session = Builders.MakeGameSession(WorldId, _player.Id, playtime: TimeSpan.FromHours(10));
+        _session = Builders.MakeGameSession(
+            WorldId,
+            _player.Id,
+            gameTime: GameClock.Epoch + TimeSpan.FromHours(10)
+        );
         _bed = Builders.MakeBed(
             WorldId,
             locationId: _guestRoomLocationId,
@@ -108,7 +113,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             _guestRoomId,
             _key.Id,
             _player.Id,
-            dueAtPlaytime: TimeSpan.FromHours(20)
+            dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(20)
         );
         _context.RoomBookings.Add(booking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -118,7 +123,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -158,7 +163,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -178,7 +183,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             _guestRoomId,
             _key.Id,
             _player.Id,
-            dueAtPlaytime: TimeSpan.FromHours(5)
+            dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(5)
         );
         _context.RoomBookings.Add(booking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -188,7 +193,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },

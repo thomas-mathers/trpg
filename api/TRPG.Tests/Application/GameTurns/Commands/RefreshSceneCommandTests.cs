@@ -55,7 +55,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
             },
             TestContext.Current.CancellationToken
         );
@@ -73,7 +73,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
             },
             TestContext.Current.CancellationToken
         );
@@ -91,7 +91,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
             },
             TestContext.Current.CancellationToken
         );
@@ -102,7 +102,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = _session.Playtime,
+                GameTime = _session.GameTime,
             },
             TestContext.Current.CancellationToken
         );

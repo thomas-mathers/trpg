@@ -121,7 +121,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = missingLocationId,
                 CurrentDate = currentDate,
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -157,7 +157,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(23),
                 PlayerLevel = 1,
-                Playtime = GameClock.RealTimePerInGameHour * 15,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 15,
             },
             TestContext.Current.CancellationToken
         );
@@ -210,7 +210,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = sleepLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
                 PlayerLevel = 1,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -242,7 +242,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = emptyLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -270,7 +270,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 WorldId = WorldId,
                 StateId = idleLocation.StateId,
                 Condition = WeatherCondition.Clear,
-                NextChangePlaytime = GameClock.RealTimePerInGameHour * 5,
+                NextChangeGameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 5,
             }
         );
         await AddMeasuredConnector(sleepLocation.Id, idleLocation.Id);
@@ -305,7 +305,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = idleLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
-                Playtime = GameClock.RealTimePerInGameHour * 4,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 4,
             },
             TestContext.Current.CancellationToken
         );
@@ -354,7 +354,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = gateLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(10),
                 PlayerLevel = 1,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -426,7 +426,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -492,7 +492,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = shopLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -536,7 +536,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = wildernessLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -579,7 +579,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = doorLocation.Id,
                 CurrentDate = Builders.MakeInGameDate(23),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -609,7 +609,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 LocationId = location.Id,
                 CurrentDate = Builders.MakeInGameDate(12),
                 PlayerLevel = 1,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

@@ -4,6 +4,7 @@ using TRPG.Application.Combat.Results;
 using TRPG.Application.Crimes.Events;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -42,7 +43,11 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<EndFightCommandHandler>();
 
-        _session = Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1));
+        _session = Builders.MakeGameSession(
+            WorldId,
+            _player.Id,
+            GameClock.Epoch + TimeSpan.FromHours(1)
+        );
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -370,10 +375,10 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_AdvancesLastRegenPlaytime_ForSurvivingCombatants()
+    public async Task Handle_AdvancesLastRegenGameTime_ForSurvivingCombatants()
     {
         // Arrange — the player survives, the enemy doesn't
-        _session.Playtime = TimeSpan.FromHours(3);
+        _session.GameTime = GameClock.Epoch + TimeSpan.FromHours(3);
         await SeedFight();
         var state = Builders.MakeCombatState(
             CombatOutcome.Victory,
@@ -405,7 +410,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
             [_enemy.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.FromHours(3), player!.LastRegenPlaytime);
-        Assert.Equal(TimeSpan.Zero, enemy!.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), player!.LastRegenGameTime);
+        Assert.Equal(GameClock.Epoch, enemy!.LastRegenGameTime);
     }
 }

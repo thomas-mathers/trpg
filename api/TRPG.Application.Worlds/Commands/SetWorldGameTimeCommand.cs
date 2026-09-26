@@ -1,27 +1,28 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 
 namespace TRPG.Application.Worlds.Commands;
 
-public class SetWorldPlaytimeCommand
+public class SetWorldGameTimeCommand
 {
     public required Guid WorldId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
-internal class SetWorldPlaytimeCommandHandler(IWorldsDbContext context)
-    : ICommandHandler<SetWorldPlaytimeCommand>
+internal class SetWorldGameTimeCommandHandler(IWorldsDbContext context)
+    : ICommandHandler<SetWorldGameTimeCommand>
 {
     public async Task Handle(
-        SetWorldPlaytimeCommand command,
+        SetWorldGameTimeCommand command,
         CancellationToken cancellationToken = default
     )
     {
         await context
             .Worlds.Where(w => w.Id == command.WorldId)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(w => w.Playtime, command.Playtime),
+                setters => setters.SetProperty(w => w.GameTime, command.GameTime),
                 cancellationToken
             );
     }

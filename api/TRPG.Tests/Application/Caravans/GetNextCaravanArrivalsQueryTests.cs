@@ -80,7 +80,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -104,7 +104,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -131,7 +131,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -178,7 +178,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

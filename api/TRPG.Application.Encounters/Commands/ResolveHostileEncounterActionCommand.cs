@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -26,7 +27,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<StartFightCommand> startFight,
     EncounterFleeResolver encounterFleeResolver,
     IOptionsSnapshot<FleeOptions> fleeOptions
@@ -89,11 +90,11 @@ internal class ResolveHostileEncounterActionCommandHandler(
     {
         if (outcome == HostileEncounterResolutionOutcome.Fled)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
+            var gameTime = await getGameTime.Handle(
+                new GetGameTimeQuery { SessionId = command.SessionId },
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
+            await encounterFleeResolver.Resolve(encounter, player, gameTime, cancellationToken);
             return;
         }
 

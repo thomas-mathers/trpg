@@ -105,8 +105,8 @@ public static class CaravanRouteSeeder
             {
                 WorldId = world.World.Id,
                 RouteId = route.Id,
-                StartedAtPlaytime =
-                    -GameClock.RealTimePerInGameHour * durationHours * index / instanceCount,
+                StartedAtGameTime =
+                    GameClock.Epoch - TimeSpan.FromHours(1) * durationHours * index / instanceCount,
                 SpeedUnitsPerHour = options.SpeedUnitsPerHour,
                 Purpose = name,
             })

@@ -8,6 +8,7 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -21,7 +22,7 @@ internal class StreamRespawnTurnHandler(
     ICommandHandler<MovePlayerCommand> movePlayer,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -46,8 +47,8 @@ internal class StreamRespawnTurnHandler(
 
         PlayerRespawnFact fact;
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 
@@ -86,7 +87,7 @@ internal class StreamRespawnTurnHandler(
                 {
                     PlayerId = session.PlayerId,
                     DestinationLocationId = fact.SanctuaryLocationId,
-                    Playtime = playtime,
+                    GameTime = gameTime,
                 },
                 cancellationToken
             );

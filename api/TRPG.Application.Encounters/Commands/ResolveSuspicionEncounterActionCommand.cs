@@ -10,6 +10,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -33,7 +34,7 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
     IOptionsSnapshot<FleeOptions> fleeOptions,
     IOptionsMonitor<SuspicionOptions> suspicionOptions,
     EncounterFleeResolver encounterFleeResolver,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime
 )
     : EncounterResolutionCommandHandlerBase<
         SuspicionEncounter,
@@ -115,11 +116,11 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
 
         if (!isCaught)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
+            var gameTime = await getGameTime.Handle(
+                new GetGameTimeQuery { SessionId = command.SessionId },
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
+            await encounterFleeResolver.Resolve(encounter, player, gameTime, cancellationToken);
 
             return new SuspicionEncounterResolutionFact(
                 command.EncounterId,

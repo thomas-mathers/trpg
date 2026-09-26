@@ -6,6 +6,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.LocationSimulation.Commands;
@@ -14,7 +15,7 @@ public class SyncCreatureSpawnerCommand
 {
     public required Guid LocationId { get; init; }
     public required int PlayerLevel { get; init; }
-    public required TimeSpan CurrentPlaytime { get; init; }
+    public required GameInstant CurrentGameTime { get; init; }
 }
 
 internal class SyncCreatureSpawnerCommandHandler(
@@ -44,8 +45,8 @@ internal class SyncCreatureSpawnerCommandHandler(
 
         var hasTriggered = RecurringScheduling.HasTriggered(
             spawner.Schedule,
-            spawner.LastSyncPlaytime,
-            command.CurrentPlaytime
+            spawner.LastSyncGameTime,
+            command.CurrentGameTime
         );
         if (!hasTriggered)
         {
@@ -92,7 +93,7 @@ internal class SyncCreatureSpawnerCommandHandler(
             cancellationToken
         );
 
-        spawner.LastSyncPlaytime = command.CurrentPlaytime;
+        spawner.LastSyncGameTime = command.CurrentGameTime;
         await context.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();

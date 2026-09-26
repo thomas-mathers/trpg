@@ -36,7 +36,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetGuardsAtLocationQuery, IReadOnlyList<Creature>> getGuardsAtLocation,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     ICommandHandler<SetLockpickingCrimeOutcomeCommand> setLockpickingCrimeOutcome,
     ICommandHandler<SettleOutstandingCrimesCommand> settleOutstandingCrimes,
@@ -141,11 +141,11 @@ internal class ResolveGuardEncounterActionCommandHandler(
             throw new InvalidOperationException($"City {location.CityId} has no jail.");
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
-        var unlocksAt = playtime + GameClock.RealTimePerInGameHour * encounter.JailHours;
+        var unlocksAt = gameTime + TimeSpan.FromHours(1) * encounter.JailHours;
 
         // Must settle before the move: leaving is what resolves the crime and applies the penalty.
         await SettleTriggeringCrime(
@@ -159,7 +159,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 DestinationLocationId = jail.CellsLocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -168,7 +168,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             new SetDoorTimedLockCommand
             {
                 DoorConnectorIds = [jail.ExitDoorConnectorId],
-                UnlocksAtPlaytime = unlocksAt,
+                UnlocksAtGameTime = unlocksAt,
             },
             cancellationToken
         );

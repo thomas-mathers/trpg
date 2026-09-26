@@ -7,6 +7,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Tests.Helpers;
 using NpcConversationSessionState = TRPG.Domain.Models.NpcConversationSessionState;
 
@@ -20,8 +21,8 @@ public sealed class GameSessionTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private CreateGameSessionCommandHandler _createGameSession = null!;
     private GetGameSessionQueryHandler _getGameSession = null!;
-    private GetPlaytimeQueryHandler _getPlaytime = null!;
-    private GetPlaytimeByWorldIdQueryHandler _getPlaytimeByWorldId = null!;
+    private GetGameTimeQueryHandler _getGameTime = null!;
+    private GetGameTimeByWorldIdQueryHandler _getGameTimeByWorldId = null!;
     private AdvanceTimeCommandHandler _advanceTime = null!;
     private UpdateGameSessionCommandHandler _updateGameSession = null!;
     private GetChatMessagesQueryHandler _getChatMessages = null!;
@@ -40,9 +41,9 @@ public sealed class GameSessionTests(DatabaseFixture db)
             .BuildServiceProvider();
         _createGameSession = _serviceProvider.GetRequiredService<CreateGameSessionCommandHandler>();
         _getGameSession = _serviceProvider.GetRequiredService<GetGameSessionQueryHandler>();
-        _getPlaytime = _serviceProvider.GetRequiredService<GetPlaytimeQueryHandler>();
-        _getPlaytimeByWorldId =
-            _serviceProvider.GetRequiredService<GetPlaytimeByWorldIdQueryHandler>();
+        _getGameTime = _serviceProvider.GetRequiredService<GetGameTimeQueryHandler>();
+        _getGameTimeByWorldId =
+            _serviceProvider.GetRequiredService<GetGameTimeByWorldIdQueryHandler>();
         _updateGameSession = _serviceProvider.GetRequiredService<UpdateGameSessionCommandHandler>();
         _advanceTime = _serviceProvider.GetRequiredService<AdvanceTimeCommandHandler>();
         _getChatMessages = _serviceProvider.GetRequiredService<GetChatMessagesQueryHandler>();
@@ -80,7 +81,7 @@ public sealed class GameSessionTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = PlayerId,
-                Playtime = TimeSpan.FromHours(3),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );
@@ -94,7 +95,7 @@ public sealed class GameSessionTests(DatabaseFixture db)
         // Assert
         Assert.Equal(WorldId, snapshot.WorldId);
         Assert.Equal(PlayerId, snapshot.PlayerId);
-        Assert.Equal(TimeSpan.FromHours(3), snapshot.Playtime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), snapshot.GameTime);
 
         var messages = await _getChatMessages.Handle(
             new GetChatMessagesQuery { SessionId = sessionId },
@@ -113,7 +114,7 @@ public sealed class GameSessionTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = PlayerId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -123,7 +124,7 @@ public sealed class GameSessionTests(DatabaseFixture db)
             new UpdateGameSessionCommand
             {
                 SessionId = sessionId,
-                Playtime = TimeSpan.FromHours(1),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
@@ -133,23 +134,23 @@ public sealed class GameSessionTests(DatabaseFixture db)
             new GetGameSessionQuery { SessionId = sessionId },
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.FromHours(1), updated.Playtime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), updated.GameTime);
     }
 
     [Fact]
-    public async Task GetPlaytime_Throws_WhenSessionDoesNotExist()
+    public async Task GetGameTime_Throws_WhenSessionDoesNotExist()
     {
         // Act & Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(() =>
-            _getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = Guid.NewGuid() },
+            _getGameTime.Handle(
+                new GetGameTimeQuery { SessionId = Guid.NewGuid() },
                 TestContext.Current.CancellationToken
             )
         );
     }
 
     [Fact]
-    public async Task GetPlaytime_ReturnsTheCurrentValue()
+    public async Task GetGameTime_ReturnsTheCurrentValue()
     {
         // Arrange
         var sessionId = await _createGameSession.Handle(
@@ -157,35 +158,35 @@ public sealed class GameSessionTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = PlayerId,
-                Playtime = TimeSpan.FromHours(5),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(5),
             },
             TestContext.Current.CancellationToken
         );
 
         // Act
-        var playtime = await _getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = sessionId },
+        var gameTime = await _getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = sessionId },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(TimeSpan.FromHours(5), playtime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(5), gameTime);
     }
 
     [Fact]
-    public async Task GetPlaytimeByWorldId_Throws_WhenNoSessionExistsForTheWorld()
+    public async Task GetGameTimeByWorldId_Throws_WhenNoSessionExistsForTheWorld()
     {
         // Act & Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(() =>
-            _getPlaytimeByWorldId.Handle(
-                new GetPlaytimeByWorldIdQuery { WorldId = Guid.NewGuid() },
+            _getGameTimeByWorldId.Handle(
+                new GetGameTimeByWorldIdQuery { WorldId = Guid.NewGuid() },
                 TestContext.Current.CancellationToken
             )
         );
     }
 
     [Fact]
-    public async Task GetPlaytimeByWorldId_ReturnsTheCurrentValue()
+    public async Task GetGameTimeByWorldId_ReturnsTheCurrentValue()
     {
         // Arrange
         var worldId = Guid.NewGuid();
@@ -194,19 +195,19 @@ public sealed class GameSessionTests(DatabaseFixture db)
             {
                 WorldId = worldId,
                 PlayerId = PlayerId,
-                Playtime = TimeSpan.FromHours(5),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(5),
             },
             TestContext.Current.CancellationToken
         );
 
         // Act
-        var playtime = await _getPlaytimeByWorldId.Handle(
-            new GetPlaytimeByWorldIdQuery { WorldId = worldId },
+        var gameTime = await _getGameTimeByWorldId.Handle(
+            new GetGameTimeByWorldIdQuery { WorldId = worldId },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal(TimeSpan.FromHours(5), playtime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(5), gameTime);
     }
 
     [Fact]
@@ -218,22 +219,22 @@ public sealed class GameSessionTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = PlayerId,
-                Playtime = TimeSpan.FromHours(1),
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
 
         // Act
-        var playtime = await _advanceTime.Handle(
+        var gameTime = await _advanceTime.Handle(
             new AdvanceTimeCommand { SessionId = sessionId, Delta = TimeSpan.FromMinutes(30) },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        var expected = TimeSpan.FromHours(1.5);
-        Assert.Equal(expected, playtime);
-        var persisted = await _getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = sessionId },
+        var expected = GameClock.Epoch + TimeSpan.FromHours(1.5);
+        Assert.Equal(expected, gameTime);
+        var persisted = await _getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = sessionId },
             TestContext.Current.CancellationToken
         );
         Assert.Equal(expected, persisted);
@@ -248,7 +249,7 @@ public sealed class GameSessionTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = PlayerId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -306,7 +307,7 @@ public sealed class GameSessionTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = PlayerId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

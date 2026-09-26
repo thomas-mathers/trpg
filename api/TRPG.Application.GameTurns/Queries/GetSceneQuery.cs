@@ -23,7 +23,7 @@ public class GetSceneQuery
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required InGameDate CurrentDate { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal record SceneLocationData(
@@ -151,7 +151,7 @@ internal class GetSceneQueryHandler(
             query.WorldId,
             query.PlayerId,
             player.LocationId,
-            query.Playtime,
+            query.GameTime,
             weather,
             cancellationToken
         );
@@ -184,7 +184,7 @@ internal class GetSceneQueryHandler(
         Guid worldId,
         Guid playerId,
         Guid playerLocationId,
-        TimeSpan playtime,
+        GameInstant gameTime,
         WeatherCondition? weather,
         CancellationToken cancellationToken
     )
@@ -193,7 +193,7 @@ internal class GetSceneQueryHandler(
             worldId,
             playerId,
             playerLocationId,
-            playtime,
+            gameTime,
             cancellationToken
         );
         if (lingeringCaravans.Count == 0)
@@ -257,7 +257,7 @@ internal class GetSceneQueryHandler(
         Guid worldId,
         Guid playerId,
         Guid playerLocationId,
-        TimeSpan playtime,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
@@ -291,7 +291,7 @@ internal class GetSceneQueryHandler(
                 new ResolveRouteTravelerPositionQuery
                 {
                     RouteTravelerId = traveler.RouteTravelerId,
-                    Playtime = playtime,
+                    GameTime = gameTime,
                 },
                 cancellationToken
             );
@@ -305,7 +305,7 @@ internal class GetSceneQueryHandler(
             }
 
             // A ticketed player standing right here shouldn't see the caravan vanish just because
-            // ordinary narration-time overhead (every narrated turn advances playtime a little)
+            // ordinary narration-time overhead (every narrated turn advances gameTime a little)
             // nudged its live position past the strict window — BoardCaravanCommand honors the
             // same ticket regardless of this drift, so the scene has to agree.
             var ticket = await getCaravanTicket.Handle(
@@ -708,7 +708,7 @@ internal class GetSceneQueryHandler(
             new GetRouteTravelerJourneysByCreatureIdsQuery
             {
                 CreatureIds = nearbyCreatureIds,
-                Playtime = query.Playtime,
+                GameTime = query.GameTime,
             },
             cancellationToken
         );

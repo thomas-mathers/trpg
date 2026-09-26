@@ -10,6 +10,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.NpcConversations.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 
@@ -25,7 +26,7 @@ internal class StartConversationTool(
         NpcConversationBriefing
     > getNpcConversationBriefing,
     ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult> openNpcConversation,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<StartConversationTool> logger
 ) : IGameTool
 {
@@ -97,8 +98,8 @@ internal class StartConversationTool(
             );
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
         var result = await getNpcConversationBriefing.Handle(
@@ -108,7 +109,7 @@ internal class StartConversationTool(
                 PlayerId = player.Id,
                 WorldId = turnContext.WorldId,
                 LocationId = player.LocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

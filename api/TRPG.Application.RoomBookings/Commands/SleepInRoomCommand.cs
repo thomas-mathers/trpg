@@ -24,7 +24,7 @@ public enum SleepOutcome
 
 internal class SleepInRoomCommandHandler(
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
     ICommandHandler<
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
@@ -46,23 +46,23 @@ internal class SleepInRoomCommandHandler(
             return SleepOutcome.NotYourRoom;
         }
 
-        var playtime = await advanceTime.Handle(
+        var gameTime = await advanceTime.Handle(
             new AdvanceTimeCommand { SessionId = command.SessionId, Delta = command.Delta },
             cancellationToken
         );
 
         await applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand { Playtime = playtime, CreatureIds = [command.PlayerId] },
+            new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [command.PlayerId] },
             cancellationToken
         );
 
-        if (command.Delta >= GameClock.RealTimePerInGameHour)
+        if (command.Delta >= TimeSpan.FromHours(1))
         {
             await setCreatureRestedUntil.Handle(
                 new SetCreatureRestedUntilCommand
                 {
                     CreatureId = command.PlayerId,
-                    RestedUntilPlaytime = playtime + GameClock.RealTimePerInGameHour * 24,
+                    RestedUntilGameTime = gameTime + TimeSpan.FromHours(1) * 24,
                 },
                 cancellationToken
             );
