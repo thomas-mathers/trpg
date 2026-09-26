@@ -66,14 +66,16 @@ internal class ResumeReleasedRouteTravelersCommandHandler(
             .ToArrayAsync(cancellationToken);
         foreach (var traveler in travelers)
         {
-            var resumedStart =
-                traveler.StartedAtGameTime + (command.GameTime - traveler.PausedAtGameTime!.Value);
+            var pausedFor = command.GameTime - traveler.PausedAtGameTime!.Value;
+            var resumedStart = traveler.StartedAtGameTime + pausedFor;
+            var pausedDuration = traveler.PausedDuration + pausedFor;
             await context
                 .RouteTravelers.Where(candidate => candidate.Id == traveler.Id)
                 .ExecuteUpdateAsync(
                     setters =>
                         setters
                             .SetProperty(candidate => candidate.StartedAtGameTime, resumedStart)
+                            .SetProperty(candidate => candidate.PausedDuration, pausedDuration)
                             .SetProperty(
                                 candidate => candidate.PausedAtGameTime,
                                 (GameInstant?)null

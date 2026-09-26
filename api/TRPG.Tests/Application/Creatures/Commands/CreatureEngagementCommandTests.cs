@@ -120,6 +120,7 @@ public sealed class CreatureEngagementCommandTests(DatabaseFixture db)
             _traveler.StartedAtGameTime + (releasedAt - pausedAt),
             resumed.StartedAtGameTime
         );
+        Assert.Equal(releasedAt - pausedAt, resumed.PausedDuration);
     }
 
     [Fact]
