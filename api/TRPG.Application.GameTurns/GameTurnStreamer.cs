@@ -243,10 +243,17 @@ internal class GameTurnStreamer(
 
         if (turnContext.PlayerMoved)
         {
+            var gameTime = await getGameTime.Handle(
+                new GetGameTimeQuery { SessionId = turnContext.SessionId },
+                cancellationToken
+            );
             await closeLingeringConversations.Handle(
                 new CloseLingeringNpcConversationsCommand
                 {
                     SessionId = turnContext.SessionId,
+                    WorldId = turnContext.WorldId,
+                    PlayerId = turnContext.PlayerId,
+                    GameTime = gameTime,
                     CurrentTurnStart = currentTurnStart,
                 },
                 cancellationToken
