@@ -31,6 +31,7 @@ internal class StartFightCommandHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
+    EncounterEngagementManager engagementManager,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<StartFightCommand>
 {
@@ -72,6 +73,7 @@ internal class StartFightCommandHandler(
         context.Encounters.Add(fight);
 
         await context.SaveChangesAsync(cancellationToken);
+        await engagementManager.Engage(fight, command.GameTime, cancellationToken);
 
         gameEvents.Enqueue(
             new CombatStartedEvent(

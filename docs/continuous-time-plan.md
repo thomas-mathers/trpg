@@ -288,7 +288,7 @@ Exit condition: ordinary operations use one instant and explicit skips correctly
 
 ### Milestone 05 — Engagement and route suspension
 
-Status: In progress
+Status: Complete
 
 - [x] Add `Creature.IsEngaged`.
 - [x] Rename `Busy` to `Working` across server, wire contracts, SPA, and tests.
@@ -299,16 +299,16 @@ Status: In progress
 - [x] Resume only after every member is released.
 - [x] Shift the route timeline by the paused duration.
 - [x] Reconcile released job-backed creatures at the release instant.
-- [ ] Integrate conversations.
-- [ ] Integrate trade and NPC quest interactions.
-- [ ] Integrate caravans.
-- [ ] Integrate encounters and fights.
-- [ ] Add disconnect and startup cleanup.
-- [ ] Preserve unresolved encounter engagement.
-- [ ] Add engagement, grouped-route, and routine-resumption tests.
-- [ ] Run backend and relevant SPA tests.
-- [ ] Run formatting and type checking.
-- [ ] Create milestone-closing commit.
+- [x] Integrate conversations.
+- [x] Integrate trade and NPC quest interactions.
+- [x] Integrate caravans.
+- [x] Integrate encounters and fights.
+- [x] Add disconnect and startup cleanup.
+- [x] Preserve unresolved encounter engagement.
+- [x] Add engagement, grouped-route, and routine-resumption tests.
+- [x] Run backend and relevant SPA tests.
+- [x] Run formatting and type checking.
+- [x] Create milestone-closing commit.
 
 Exit condition: active interactions pin their subjects and release them into the correct current routine without route jumps.
 
@@ -427,17 +427,19 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 05 — Engagement and route suspension
+Current milestone: 06 — Simulation lanes
 
-Current status: In progress
+Current status: Not started
 
-Last completed milestone: 04 — Operation timestamps and explicit skips
+Last completed milestone: 05 — Engagement and route suspension
 
-Next action: Integrate engagement with conversations, trade and quest panels, caravans, encounters, fights, disconnect grace cleanup, and startup recovery; then complete the milestone's focused and closing validation.
+Next action: Extract the frequent traveler/caravan pass and split slow-lane reconciliation by subsystem without beginning background processing.
 
-Milestone 05 progress: `Creature.IsEngaged` and `RouteTraveler.PausedAtGameTime` are persisted by the `AddCreatureEngagement` migration. Shared engage/release commands publish application events. Engaging any route member pauses the group at the first engagement instant; position projection remains frozen there; releasing the final member shifts the route start by the full paused duration before current-job reconciliation. Route and job synchronization skip engaged creatures. `CreatureState.Busy` is now `Working` in domain, host wire types, generated SignalR TypeScript, and tests.
+Milestone 05 progress: `Creature.IsEngaged` and `RouteTraveler.PausedAtGameTime` are persisted by the `AddCreatureEngagement` migration. Shared engage/release commands publish application events. Engaging any route member pauses the group at the first engagement instant; position projection remains frozen there; releasing the final member shifts the route start by the full paused duration before current-job reconciliation. Route and job synchronization skip engaged creatures. Conversations engage and release both participants. Validated server begin/end operations cover trade and NPC quest panels, while caravan operations engage the player and every route-group member. Encounters engage their deterministic participant set when published, fights preserve engagement across encounter transitions, and resolution releases only participants not retained by another active encounter. Session-end and startup cleanup release abandoned interactions while preserving unresolved encounter participants. `CreatureState.Busy` is now `Working` in domain, host wire types, generated SignalR TypeScript, and tests.
 
-Milestone 05 validation so far: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed with pre-existing warnings. Focused engagement, route synchronization, job scheduling, and job execution suites passed through the xUnit executable with Docker access. The initial sandboxed test invocation could not access the Docker named pipe and was rerun successfully with the required access.
+Milestone 05 decisions: Engagement remains one persisted exclusivity flag rather than an ownership model. Route pause state belongs to the traveler group, and the route timeline moves forward only when the final engaged member is released. Trade and NPC quest panels use shared validated creature-interaction endpoints; the SPA invokes them in milestone 10 as already planned. Caravan interaction has group-specific endpoints because presence depends on the route projection. Session end no longer abandons active fights because unresolved encounter engagement must survive disconnects; the later milestone 09 reconnect work will republish those encounters. Startup recovery is best-effort so unavailable persistence or logging cannot prevent host startup or generated-client production.
+
+Milestone 05 validation: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed with pre-existing warnings. Focused creature engagement, caravan interaction, encounter publication and cleanup, fight completion, session end, conversation, route synchronization, job scheduling, and job execution suites passed through the xUnit executable with Docker access. The first complete backend run exposed a missing test registration for the end-conversation tool; after adding the production-equivalent registration and repairing the delegate invocation, `dotnet api/TRPG.Tests/bin/Debug/net10.0/TRPG.Tests.dll -reporter quiet` passed. `pnpm generate-client` regenerated the HTTP and SignalR clients; its first OpenAPI-host attempt exposed startup recovery's logging-sink failure path, which was made non-fatal before the successful rerun. `pnpm run fmt:check`, `pnpm run typecheck`, and `pnpm test` passed all 173 SPA tests. `dotnet csharpier check .` passed. The final source inventory contains no non-migration `Busy` references.
 
 Milestone 04 progress: Explicit advances are world-scoped and return the resulting instant. Wait and sleep reject non-positive durations and durations over 24 hours, apply regeneration, and reconcile the active location at the returned instant. Walking captures time when the `move` tool is invoked and uses that instant for destination validation and departure interception before advancing to arrival; caravan boarding likewise validates at one captured instant and advances without a duration cap. Encounter actions and combat now capture one instant at their turn boundary and pass it through nested flee, relocation, fight-start, combat-round, and fight-end work. Location catch-up already implements bounded large jumps by resolving weather, restocking, spawning, quest seeding, jobs, and routes once at the supplied current instant rather than replaying missed intervals.
 

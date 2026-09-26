@@ -406,4 +406,37 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), player!.LastRegenGameTime);
         Assert.Equal(GameClock.Epoch, enemy!.LastRegenGameTime);
     }
+
+    [Fact]
+    public async Task Handle_ReleasesCombatants_WhenFightEndsWithoutAFollowUpEncounter()
+    {
+        _player.IsEngaged = true;
+        _enemy.IsEngaged = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Fled,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 20, isAlive: true),
+            ]
+        );
+
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                State = state,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(2),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var combatants = await verifyContext
+            .Creatures.Where(creature => creature.Id == _player.Id || creature.Id == _enemy.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(combatants, creature => Assert.False(creature.IsEngaged));
+    }
 }

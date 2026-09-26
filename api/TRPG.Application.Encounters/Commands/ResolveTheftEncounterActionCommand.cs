@@ -25,6 +25,7 @@ public class ResolveTheftEncounterActionCommand : IEncounterResolutionCommand
 
 internal class ResolveTheftEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     ICommandHandler<
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
@@ -37,7 +38,7 @@ internal class ResolveTheftEncounterActionCommandHandler(
         TheftEncounter,
         ResolveTheftEncounterActionCommand,
         TheftEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<TheftEncounterResolutionFact> Resolve(
         ResolveTheftEncounterActionCommand command,

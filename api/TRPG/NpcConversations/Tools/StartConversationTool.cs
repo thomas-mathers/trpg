@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
@@ -26,6 +27,7 @@ internal class StartConversationTool(
         NpcConversationBriefing
     > getNpcConversationBriefing,
     ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult> openNpcConversation,
+    ICommandHandler<EngageCreaturesCommand> engageCreatures,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<StartConversationTool> logger
 ) : IGameTool
@@ -79,7 +81,15 @@ internal class StartConversationTool(
                 $"No one named '{npcName}' found nearby. Call look to see who's around."
             );
         }
+        if (player.IsEngaged || npc.IsEngaged)
+        {
+            return new ToolError("One of the conversation participants is already engaged.");
+        }
 
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
         var outcome = await openNpcConversation.Handle(
             new OpenNpcConversationCommand
             {
@@ -98,8 +108,13 @@ internal class StartConversationTool(
             );
         }
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+        await engageCreatures.Handle(
+            new EngageCreaturesCommand
+            {
+                WorldId = turnContext.WorldId,
+                CreatureIds = [turnContext.PlayerId, npc.Id],
+                GameTime = gameTime,
+            },
             cancellationToken
         );
         var result = await getNpcConversationBriefing.Handle(

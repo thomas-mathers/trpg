@@ -64,6 +64,7 @@ internal class PublishSessionStateCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 Encounter = encounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );

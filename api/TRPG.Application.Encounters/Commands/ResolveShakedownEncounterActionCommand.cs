@@ -27,6 +27,7 @@ public class ResolveShakedownEncounterActionCommand : IEncounterResolutionComman
 
 internal class ResolveShakedownEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
@@ -41,7 +42,7 @@ internal class ResolveShakedownEncounterActionCommandHandler(
         ShakedownEncounter,
         ResolveShakedownEncounterActionCommand,
         ShakedownEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<ShakedownEncounterResolutionFact> Resolve(
         ResolveShakedownEncounterActionCommand command,

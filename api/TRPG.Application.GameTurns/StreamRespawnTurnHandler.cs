@@ -105,6 +105,7 @@ internal class StreamRespawnTurnHandler(
             {
                 PlayerId = session.PlayerId,
                 Encounter = startedEncounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );

@@ -79,6 +79,7 @@ internal class StreamFleeTurnHandler(
                 {
                     PlayerId = session.PlayerId,
                     Encounter = startedEncounter,
+                    GameTime = gameTime,
                 },
                 cancellationToken
             );

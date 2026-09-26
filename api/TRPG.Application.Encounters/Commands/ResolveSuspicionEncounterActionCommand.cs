@@ -27,6 +27,7 @@ public class ResolveSuspicionEncounterActionCommand : IEncounterResolutionComman
 
 internal class ResolveSuspicionEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
@@ -40,7 +41,7 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
         SuspicionEncounter,
         ResolveSuspicionEncounterActionCommand,
         SuspicionEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<SuspicionEncounterResolutionFact> Resolve(
         ResolveSuspicionEncounterActionCommand command,
@@ -182,6 +183,7 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 Encounter = guardEncounter,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

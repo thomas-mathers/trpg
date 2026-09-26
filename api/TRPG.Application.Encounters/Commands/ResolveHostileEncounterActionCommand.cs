@@ -25,6 +25,7 @@ public class ResolveHostileEncounterActionCommand : IEncounterResolutionCommand
 
 internal class ResolveHostileEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
@@ -36,7 +37,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
         HostileEncounter,
         ResolveHostileEncounterActionCommand,
         HostileEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<HostileEncounterResolutionFact> Resolve(
         ResolveHostileEncounterActionCommand command,

@@ -18,7 +18,7 @@ internal class EndGameSessionCommandHandler(
     IWorldClock worldClock,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
-    ICommandHandler<AbandonActiveFightCommand> abandonActiveFight,
+    ICommandHandler<ClearNonEncounterEngagementsCommand> clearNonEncounterEngagements,
     ICommandHandler<InvalidateWorldLoreAnchorsCommand> invalidateWorldLoreAnchors
 ) : ICommandHandler<EndGameSessionCommand>
 {
@@ -34,11 +34,10 @@ internal class EndGameSessionCommandHandler(
 
         var gameTime = await worldClock.GetCurrent(snapshot.WorldId, cancellationToken);
 
-        await abandonActiveFight.Handle(
-            new AbandonActiveFightCommand
+        await clearNonEncounterEngagements.Handle(
+            new ClearNonEncounterEngagementsCommand
             {
                 WorldId = snapshot.WorldId,
-                PlayerId = snapshot.PlayerId,
                 GameTime = gameTime,
             },
             cancellationToken

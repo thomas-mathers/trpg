@@ -48,6 +48,7 @@ internal class EndFightCommandHandler(
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IGameClientEventSink gameEvents,
+    EncounterEngagementManager engagementManager,
     LocationCityResolver locationCity
 ) : ICommandHandler<EndFightCommand>
 {
@@ -106,7 +107,14 @@ internal class EndFightCommandHandler(
             fight.Outcome = state.Outcome;
             await context.SaveChangesAsync(cancellationToken);
 
-            await ConfrontViolentCrime(fight, command.WorldId, state, cancellationToken);
+            await ConfrontViolentCrime(
+                fight,
+                command.WorldId,
+                state,
+                command.GameTime,
+                cancellationToken
+            );
+            await engagementManager.ReconcileResolved(fight, command.GameTime, cancellationToken);
         }
 
         transaction.Complete();
@@ -202,6 +210,7 @@ internal class EndFightCommandHandler(
         FightEncounter fight,
         Guid worldId,
         CombatState state,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
@@ -274,7 +283,12 @@ internal class EndFightCommandHandler(
         );
 
         await publishEncounterStarted.Handle(
-            new PublishEncounterStartedCommand { PlayerId = player.Id, Encounter = encounter },
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = player.Id,
+                Encounter = encounter,
+                GameTime = gameTime,
+            },
             cancellationToken
         );
     }

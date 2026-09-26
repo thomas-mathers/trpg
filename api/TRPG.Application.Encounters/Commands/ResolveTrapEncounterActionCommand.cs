@@ -27,6 +27,7 @@ public class ResolveTrapEncounterActionCommand : IEncounterResolutionCommand
 
 internal class ResolveTrapEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<MarkTrapResolvedCommand> markTrapResolved,
     ICommandHandler<MovePlayerCommand> movePlayer,
@@ -39,7 +40,7 @@ internal class ResolveTrapEncounterActionCommandHandler(
         TrapEncounter,
         ResolveTrapEncounterActionCommand,
         TrapEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<TrapEncounterResolutionFact> Resolve(
         ResolveTrapEncounterActionCommand command,

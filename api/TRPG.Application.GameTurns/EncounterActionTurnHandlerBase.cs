@@ -81,6 +81,7 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
             {
                 PlayerId = session.PlayerId,
                 Encounter = startedEncounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );

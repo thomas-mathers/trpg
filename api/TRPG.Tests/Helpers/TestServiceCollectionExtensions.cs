@@ -39,6 +39,7 @@ internal static class TestServiceCollectionExtensions
         return services
             .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
+            .AddGameTool<EndConversationTool>()
             .AddTransient<EndGameSessionCommandHandler>()
             .AddScoped<TestGameClientEventSink>()
             .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<TestGameClientEventSink>())

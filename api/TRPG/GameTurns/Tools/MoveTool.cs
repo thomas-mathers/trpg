@@ -186,6 +186,7 @@ internal class MoveTool(
             {
                 PlayerId = turnContext.PlayerId,
                 Encounter = startedEncounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -263,6 +264,7 @@ internal class MoveTool(
             {
                 PlayerId = turnContext.PlayerId,
                 Encounter = interception.Encounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );

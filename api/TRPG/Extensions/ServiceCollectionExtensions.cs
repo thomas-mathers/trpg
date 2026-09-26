@@ -62,6 +62,7 @@ internal static class ServiceCollectionExtensions
             .AddTrpgOptions(configuration)
             .AddTrpgSessionState()
             .AddHostedService<WorldClockCheckpointService>()
+            .AddHostedService<EngagementStartupRecovery>()
             .AddTrpgJobs(configuration)
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<InventoryTool>()

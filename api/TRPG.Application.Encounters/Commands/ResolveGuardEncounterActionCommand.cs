@@ -29,6 +29,7 @@ public class ResolveGuardEncounterActionCommand : IEncounterResolutionCommand
 
 internal class ResolveGuardEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
@@ -47,7 +48,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
         GuardEncounter,
         ResolveGuardEncounterActionCommand,
         GuardEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<GuardEncounterResolutionFact> Resolve(
         ResolveGuardEncounterActionCommand command,

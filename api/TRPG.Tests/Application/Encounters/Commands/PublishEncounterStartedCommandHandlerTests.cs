@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -224,5 +226,36 @@ public sealed class PublishEncounterStartedCommandHandlerTests(DatabaseFixture d
 
         // Assert
         Assert.Empty(_eventSink.EnqueuedEvents);
+    }
+
+    [Fact]
+    public async Task Handle_EngagesEncounterParticipants_WhenEncounterStarts()
+    {
+        var guard = Builders.MakeCreature(WorldId, locationId: _player.LocationId);
+        _context.Creatures.Add(guard);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var encounter = Builders.MakeGuardEncounter(
+            WorldId,
+            _player.Id,
+            _player.LocationId,
+            guard.Id,
+            fineAmount: 100
+        );
+
+        await _handler.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = _player.Id,
+                Encounter = encounter,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(2),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        _context.ChangeTracker.Clear();
+        var participants = await _context
+            .Creatures.Where(creature => creature.Id == _player.Id || creature.Id == guard.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(participants, creature => Assert.True(creature.IsEngaged));
     }
 }

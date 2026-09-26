@@ -85,6 +85,7 @@ internal class ReturnRoomKeyTool(
                 {
                     PlayerId = turnContext.PlayerId,
                     Encounter = returnResult.Encounter,
+                    GameTime = gameTime,
                 },
                 cancellationToken
             );

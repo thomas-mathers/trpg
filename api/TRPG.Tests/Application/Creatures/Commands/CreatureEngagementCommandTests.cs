@@ -139,4 +139,55 @@ public sealed class CreatureEngagementCommandTests(DatabaseFixture db)
 
         Assert.Equal("A creature is already engaged.", exception.Message);
     }
+
+    [Fact]
+    public async Task CreatureInteraction_EngagesAndReleasesBothCreatures_WhenTheyShareALocation()
+    {
+        var locationId = Guid.NewGuid();
+        var player = Builders.MakeCreature(_worldId, locationId: locationId);
+        var npc = Builders.MakeCreature(_worldId, locationId: locationId);
+        _context.Creatures.AddRange(player, npc);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var begin = _serviceProvider.GetRequiredService<
+            ICommandHandler<BeginCreatureInteractionCommand>
+        >();
+        var end = _serviceProvider.GetRequiredService<
+            ICommandHandler<EndCreatureInteractionCommand>
+        >();
+        var startedAt = GameClock.Epoch + TimeSpan.FromHours(2);
+        await begin.Handle(
+            new BeginCreatureInteractionCommand
+            {
+                WorldId = _worldId,
+                PlayerId = player.Id,
+                CreatureId = npc.Id,
+                GameTime = startedAt,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        _context.ChangeTracker.Clear();
+        var engaged = await _context
+            .Creatures.Where(creature => creature.Id == player.Id || creature.Id == npc.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(engaged, creature => Assert.True(creature.IsEngaged));
+
+        await end.Handle(
+            new EndCreatureInteractionCommand
+            {
+                WorldId = _worldId,
+                PlayerId = player.Id,
+                CreatureId = npc.Id,
+                GameTime = startedAt + TimeSpan.FromHours(1),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        _context.ChangeTracker.Clear();
+        var released = await _context
+            .Creatures.Where(creature => creature.Id == player.Id || creature.Id == npc.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(released, creature => Assert.False(creature.IsEngaged));
+    }
 }
