@@ -245,7 +245,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
             {
                 CreatureIds = [worker.Id],
                 LocationId = workLocationId,
-                State = CreatureState.Busy,
+                State = CreatureState.Working,
             },
             TestContext.Current.CancellationToken
         );

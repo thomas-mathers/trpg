@@ -154,7 +154,8 @@ internal class SyncRouteTravelersCommandHandler(
     )
     {
         if (
-            creature.State == CreatureState.Dead
+            creature.IsEngaged
+            || creature.State == CreatureState.Dead
             || (creature.LocationId == target.LocationId && creature.State == target.State)
         )
         {

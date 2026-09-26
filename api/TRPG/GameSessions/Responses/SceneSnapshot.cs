@@ -66,7 +66,7 @@ public enum CreatureState
     Idle,
     Sitting,
     Sleeping,
-    Busy,
+    Working,
     Studying,
     Praying,
     Eating,

@@ -121,7 +121,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(workplace.Id, working.LocationId);
-        Assert.Equal(CreatureState.Busy, working.State);
+        Assert.Equal(CreatureState.Working, working.State);
         Assert.DoesNotContain(
             await verifyWorking.RouteTravelerMembers.ToArrayAsync(
                 TestContext.Current.CancellationToken
@@ -225,7 +225,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(workplace.Id, worker.LocationId);
-        Assert.Equal(CreatureState.Busy, worker.State);
+        Assert.Equal(CreatureState.Working, worker.State);
         Assert.DoesNotContain(
             await verify.RouteTravelerMembers.ToArrayAsync(TestContext.Current.CancellationToken),
             member => member.CreatureId == creature.Id
@@ -359,7 +359,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         );
         Assert.Equal(route.Id, traveler.RouteId);
         Assert.Equal(GameClock.Epoch, traveler.StartedAtGameTime);
-        Assert.Equal(CreatureState.Busy, guard.State);
+        Assert.Equal(CreatureState.Working, guard.State);
     }
 
     [Fact]

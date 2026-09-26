@@ -37,7 +37,7 @@ public enum CreatureState
     Idle,
     Sitting,
     Sleeping,
-    Busy,
+    Working,
     Studying,
     Praying,
     Eating,
@@ -124,6 +124,7 @@ public class Creature
     public GameInstant? RestedUntilGameTime { get; set; }
     public Guid? SpawnerId { get; set; }
     public CreatureState State { get; set; }
+    public bool IsEngaged { get; set; }
     public bool IsSneaking { get; set; }
     public Guid WorldId { get; init; }
 

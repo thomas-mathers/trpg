@@ -90,6 +90,20 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             new GetCreaturesByIdsQuery { Ids = scheduledIds },
             cancellationToken
         );
+        scheduledIds = creaturesById
+            .Values.Where(creature => !creature.IsEngaged)
+            .Select(creature => creature.Id)
+            .ToArray();
+        if (scheduledIds.Length == 0)
+        {
+            return EmptyResult();
+        }
+        jobsByCreatureId = jobsByCreatureId
+            .Where(entry => scheduledIds.Contains(entry.Key))
+            .ToDictionary(entry => entry.Key, entry => entry.Value);
+        creaturesById = creaturesById
+            .Where(entry => scheduledIds.Contains(entry.Key))
+            .ToDictionary(entry => entry.Key, entry => entry.Value);
         var jobLocationsById = await getLocationsByIds.Handle(
             new GetLocationsByIdsQuery
             {
@@ -303,7 +317,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                 AddTarget(targets, pending.LocationId, CreatureState.Idle, creatureId);
                 break;
             case RouteTimelinePosition.Lingering lingering:
-                AddTarget(targets, lingering.LocationId, CreatureState.Busy, creatureId);
+                AddTarget(targets, lingering.LocationId, CreatureState.Working, creatureId);
                 break;
             case RouteTimelinePosition.InTransit inTransit:
                 AddTarget(targets, inTransit.FromLocationId, CreatureState.Walking, creatureId);

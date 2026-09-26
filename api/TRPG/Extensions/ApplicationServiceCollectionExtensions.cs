@@ -20,6 +20,7 @@ using TRPG.Application.NpcConversations.Extensions;
 using TRPG.Application.Props.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
+using TRPG.Application.Routing.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Application.Worlds.Extensions;
 using TRPG.Commands;
@@ -72,6 +73,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddCrimesServices()
             .AddKnowledgeServices()
             .AddEncountersServices()
+            .AddRoutingServices()
             .AddLocationSimulationServices()
             .AddQuestServices()
             .AddReputationsServices()

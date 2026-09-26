@@ -79,7 +79,7 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
                     traveler,
                     routesById[traveler.RouteId],
                     timelineStepsByRouteId[traveler.RouteId],
-                    query.GameTime
+                    traveler.PausedAtGameTime ?? query.GameTime
                 )
         );
     }

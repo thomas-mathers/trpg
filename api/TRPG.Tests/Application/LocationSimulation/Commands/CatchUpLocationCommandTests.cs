@@ -222,7 +222,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(workLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Busy, updated.State);
+        Assert.Equal(CreatureState.Working, updated.State);
     }
 
     [Fact]
@@ -366,7 +366,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(gateLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Busy, updated.State);
+        Assert.Equal(CreatureState.Working, updated.State);
     }
 
     [Fact]

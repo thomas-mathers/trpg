@@ -288,17 +288,17 @@ Exit condition: ordinary operations use one instant and explicit skips correctly
 
 ### Milestone 05 — Engagement and route suspension
 
-Status: Not started
+Status: In progress
 
-- [ ] Add `Creature.IsEngaged`.
-- [ ] Rename `Busy` to `Working` across server, wire contracts, SPA, and tests.
-- [ ] Add shared engage and release commands.
-- [ ] Add engagement and release application events.
-- [ ] Add `RouteTraveler.PausedAtGameTime`.
-- [ ] Pause a group when its first member becomes engaged.
-- [ ] Resume only after every member is released.
-- [ ] Shift the route timeline by the paused duration.
-- [ ] Reconcile released job-backed creatures at the release instant.
+- [x] Add `Creature.IsEngaged`.
+- [x] Rename `Busy` to `Working` across server, wire contracts, SPA, and tests.
+- [x] Add shared engage and release commands.
+- [x] Add engagement and release application events.
+- [x] Add `RouteTraveler.PausedAtGameTime`.
+- [x] Pause a group when its first member becomes engaged.
+- [x] Resume only after every member is released.
+- [x] Shift the route timeline by the paused duration.
+- [x] Reconcile released job-backed creatures at the release instant.
 - [ ] Integrate conversations.
 - [ ] Integrate trade and NPC quest interactions.
 - [ ] Integrate caravans.
@@ -427,13 +427,17 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 04 — Operation timestamps and explicit skips
+Current milestone: 05 — Engagement and route suspension
 
-Current status: Complete
+Current status: In progress
 
 Last completed milestone: 04 — Operation timestamps and explicit skips
 
-Next action: Begin milestone 05 by adding `Creature.IsEngaged` and the shared engage/release workflow without starting simulation-lane or background-service work.
+Next action: Integrate engagement with conversations, trade and quest panels, caravans, encounters, fights, disconnect grace cleanup, and startup recovery; then complete the milestone's focused and closing validation.
+
+Milestone 05 progress: `Creature.IsEngaged` and `RouteTraveler.PausedAtGameTime` are persisted by the `AddCreatureEngagement` migration. Shared engage/release commands publish application events. Engaging any route member pauses the group at the first engagement instant; position projection remains frozen there; releasing the final member shifts the route start by the full paused duration before current-job reconciliation. Route and job synchronization skip engaged creatures. `CreatureState.Busy` is now `Working` in domain, host wire types, generated SignalR TypeScript, and tests.
+
+Milestone 05 validation so far: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed with pre-existing warnings. Focused engagement, route synchronization, job scheduling, and job execution suites passed through the xUnit executable with Docker access. The initial sandboxed test invocation could not access the Docker named pipe and was rerun successfully with the required access.
 
 Milestone 04 progress: Explicit advances are world-scoped and return the resulting instant. Wait and sleep reject non-positive durations and durations over 24 hours, apply regeneration, and reconcile the active location at the returned instant. Walking captures time when the `move` tool is invoked and uses that instant for destination validation and departure interception before advancing to arrival; caravan boarding likewise validates at one captured instant and advances without a duration cap. Encounter actions and combat now capture one instant at their turn boundary and pass it through nested flee, relocation, fight-start, combat-round, and fight-end work. Location catch-up already implements bounded large jumps by resolving weather, restocking, spawning, quest seeding, jobs, and routes once at the supplied current instant rather than replaying missed intervals.
 

@@ -101,7 +101,11 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     {
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                State = CreatureState.Working,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -144,7 +148,11 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                State = CreatureState.Working,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -226,7 +234,11 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     {
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                State = CreatureState.Working,
+            },
             TestContext.Current.CancellationToken
         );
 
