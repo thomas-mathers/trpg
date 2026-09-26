@@ -146,7 +146,10 @@ public sealed class EvaluateAmbientEncounterCommandTests(DatabaseFixture db)
         await using var verifyContext = db.CreateContext();
         Assert.Equal(
             1,
-            await verifyContext.Encounters.CountAsync(TestContext.Current.CancellationToken)
+            await verifyContext.Encounters.CountAsync(
+                encounter => encounter.WorldId == _worldId,
+                TestContext.Current.CancellationToken
+            )
         );
     }
 

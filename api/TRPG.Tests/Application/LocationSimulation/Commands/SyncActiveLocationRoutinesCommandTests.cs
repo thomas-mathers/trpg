@@ -105,6 +105,7 @@ public sealed class SyncActiveLocationRoutinesCommandTests(DatabaseFixture db)
         Assert.False(
             await verifyContext
                 .Encounters.OfType<FightEncounter>()
+                .Where(encounter => encounter.WorldId == _worldId)
                 .AnyAsync(TestContext.Current.CancellationToken)
         );
         Assert.Equal(
@@ -164,7 +165,9 @@ public sealed class SyncActiveLocationRoutinesCommandTests(DatabaseFixture db)
         // Assert
         await using var verifyContext = db.CreateContext();
         Assert.False(
-            await verifyContext.Encounters.AnyAsync(TestContext.Current.CancellationToken)
+            await verifyContext
+                .Encounters.Where(encounter => encounter.WorldId == _worldId)
+                .AnyAsync(TestContext.Current.CancellationToken)
         );
     }
 
