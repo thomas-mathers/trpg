@@ -167,6 +167,27 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_ExcludesNearbyCreatures_WhoAreWalkingInTransit()
+    {
+        // Arrange
+        _nearbyCreature.State = CreatureState.Walking;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(result.NearbyCreatures);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsCurrentDate_FromQuery()
     {
         // Arrange

@@ -115,7 +115,9 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
         var player = creaturesHere.Single(c => c.Id == query.PlayerId);
-        var nearby = creaturesHere.Where(c => c.Id != query.PlayerId).ToArray();
+        var nearby = creaturesHere
+            .Where(c => c.Id != query.PlayerId && c.State != CreatureState.Walking)
+            .ToArray();
 
         var state = await getStateById.Handle(
             new GetStateByIdQuery { Id = player.StateId },

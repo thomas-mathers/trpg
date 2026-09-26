@@ -16,11 +16,11 @@ public class RefreshSceneCommand
     public required GameInstant GameTime { get; init; }
 }
 
-public record RefreshSceneResult(SceneResult Scene, bool Refreshed);
+public record RefreshSceneResult(SceneResult Scene);
 
 internal class RefreshSceneCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    ICommandHandler<CatchUpLocationCommand, bool> catchUpLocation,
+    ICommandHandler<CatchUpLocationCommand> catchUpLocation,
     IQueryHandler<GetSceneQuery, SceneResult> getScene
 ) : ICommandHandler<RefreshSceneCommand, RefreshSceneResult>
 {
@@ -38,13 +38,12 @@ internal class RefreshSceneCommandHandler(
 
         var currentDate = GameClock.GetCurrentInGameDate(gameTime);
 
-        var refreshed = await catchUpLocation.Handle(
+        await catchUpLocation.Handle(
             new CatchUpLocationCommand
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 LocationId = player!.LocationId,
-                CurrentDate = currentDate,
                 PlayerLevel = player.Level,
                 GameTime = gameTime,
             },
@@ -62,6 +61,6 @@ internal class RefreshSceneCommandHandler(
             cancellationToken
         );
 
-        return new RefreshSceneResult(scene, refreshed);
+        return new RefreshSceneResult(scene);
     }
 }
