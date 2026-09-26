@@ -75,6 +75,50 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
+    private Task SyncAtStop() =>
+        _handler.Handle(
+            new SyncRouteTravelersCommand
+            {
+                WorldId = _worldId,
+                LocationId = _locationA,
+                GameTime = GameClock.Epoch,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+    private async Task SetGuardOneAt(Guid locationId, CreatureState state)
+    {
+        await _context
+            .Creatures.Where(creature => creature.Id == _guard1.Id)
+            .ExecuteUpdateAsync(
+                setters =>
+                    setters
+                        .SetProperty(c => c.LocationId, locationId)
+                        .SetProperty(c => c.State, state),
+                TestContext.Current.CancellationToken
+            );
+        _context.ChangeTracker.Clear();
+    }
+
+    private async Task<CreatureState> ReadGuardOneState()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext
+            .Creatures.Where(creature => creature.Id == _guard1.Id)
+            .Select(creature => creature.State)
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<long> ReadGuardOneRowVersion()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext
+            .Database.SqlQuery<long>(
+                $"SELECT xmin::text::bigint AS \"Value\" FROM creatures WHERE id = {_guard1.Id}"
+            )
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
     [Fact]
     public async Task Handle_RelocatesEveryPatrolMember_WhenTheirTravelerIsLingeringHere()
     {
@@ -102,6 +146,53 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
                 Assert.Equal(CreatureState.Idle, guard.State);
             }
         );
+    }
+
+    [Fact]
+    public async Task Handle_LeavesTheState_WhenAGuardIsAlreadyLingeringAtItsStop()
+    {
+        // Arrange
+        await SetGuardOneAt(_locationA, CreatureState.Working);
+
+        // Act
+        await SyncAtStop();
+
+        // Assert
+        Assert.Equal(CreatureState.Working, await ReadGuardOneState());
+    }
+
+    [Fact]
+    public async Task Handle_AppliesTheTravelersArrivalState_WhenAGuardArrivesAtAStop()
+    {
+        // Arrange
+        await _context
+            .RouteTravelers.Where(traveler => traveler.Id == _traveler.Id)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(t => t.ArrivalState, CreatureState.Working),
+                TestContext.Current.CancellationToken
+            );
+        await SetGuardOneAt(_locationA, CreatureState.Walking);
+
+        // Act
+        await SyncAtStop();
+
+        // Assert
+        Assert.Equal(CreatureState.Working, await ReadGuardOneState());
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotWriteTheGuardAgain_WhenItAlreadyArrivedAtItsStop()
+    {
+        // Arrange
+        await SetGuardOneAt(_locationA, CreatureState.Walking);
+        await SyncAtStop();
+        var versionBefore = await ReadGuardOneRowVersion();
+
+        // Act
+        await SyncAtStop();
+
+        // Assert
+        Assert.Equal(versionBefore, await ReadGuardOneRowVersion());
     }
 
     [Fact]

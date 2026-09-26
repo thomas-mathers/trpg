@@ -279,12 +279,6 @@ internal class SyncCreatureJobSchedulesCommandHandler(
 
             switch (routePosition.Position)
             {
-                case RouteTimelinePosition.Pending pending:
-                    AddTarget(targets, pending.LocationId, CreatureState.Idle, creature.Id);
-                    break;
-                case RouteTimelinePosition.Lingering lingering:
-                    AddTarget(targets, lingering.LocationId, CreatureState.Idle, creature.Id);
-                    break;
                 case RouteTimelinePosition.InTransit inTransit:
                     AddTarget(
                         targets,
@@ -294,7 +288,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                     );
                     break;
                 case RouteTimelinePosition.Arrived arrived:
-                    AddTarget(targets, arrived.LocationId, CreatureState.Idle, creature.Id);
+                    AddTarget(targets, arrived.LocationId, null, creature.Id);
                     arrivedIds.Add(creature.Id);
                     ready.Add(
                         new ReadyCreature(creature, arrived.LocationId, arrived.ArrivedAtGameTime)
@@ -313,9 +307,6 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     {
         switch (position)
         {
-            case RouteTimelinePosition.Pending pending:
-                AddTarget(targets, pending.LocationId, CreatureState.Idle, creatureId);
-                break;
             case RouteTimelinePosition.Lingering lingering:
                 AddTarget(targets, lingering.LocationId, CreatureState.Working, creatureId);
                 break;
@@ -406,7 +397,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                     ready.LocationId,
                     scheduled.Job.LocationId,
                     departure,
-                    entry.Purpose
+                    entry.Purpose,
+                    scheduled.Job.DefaultState
                 )
             );
         }
@@ -520,7 +512,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                         plan.Creature.Id,
                         plan.DestinationLocationId,
                         plan.StartedAtGameTime,
-                        plan.Purpose
+                        plan.Purpose,
+                        plan.ArrivalState
                     ))
                     .ToArray(),
             },
@@ -625,7 +618,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                         entry.Creature.Id,
                         job.RouteId.Value,
                         startedAt,
-                        "Patrolling the city"
+                        "Patrolling the city",
+                        CreatureState.Working
                     )
                 );
                 continue;
@@ -712,7 +706,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     private static void AddTarget(
         Dictionary<CreatureTarget, List<Guid>> targets,
         Guid locationId,
-        CreatureState state,
+        CreatureState? state,
         Guid creatureId
     )
     {
@@ -736,7 +730,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     private static SyncCreatureJobSchedulesResult EmptyResult() =>
         new(new Dictionary<Guid, IReadOnlyList<Guid>>());
 
-    private record CreatureTarget(Guid LocationId, CreatureState State);
+    private record CreatureTarget(Guid LocationId, CreatureState? State);
 
     private record ReadyCreature(
         Creature Creature,
@@ -756,7 +750,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         Guid OriginLocationId,
         Guid DestinationLocationId,
         GameInstant StartedAtGameTime,
-        string Purpose
+        string Purpose,
+        CreatureState ArrivalState
     );
 
     private record CreatureAtDestination(

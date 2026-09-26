@@ -118,6 +118,10 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             new GetCreaturesByIdsQuery { Ids = relevantCreatureIds },
             cancellationToken
         );
+        var jobsByCreatureId = await getCreatureJobsByCreatureIds.Handle(
+            new GetCreatureJobsByCreatureIdsQuery { CreatureIds = relevantCreatureIds },
+            cancellationToken
+        );
 
         var materializedCreatureIds = new List<Guid>();
         foreach (var occurrence in occurrences)
@@ -141,13 +145,33 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
                 continue;
             }
 
-            AddTraveler(worldId, occurrence, creature);
+            AddTraveler(
+                worldId,
+                occurrence,
+                creature,
+                ResolveArrivalState(occurrence.Schedule, jobsByCreatureId)
+            );
             materializedCreatureIds.Add(creatureId);
         }
         return materializedCreatureIds.Distinct().ToArray();
     }
 
-    private void AddTraveler(Guid worldId, ScheduledOccurrence occurrence, Creature creature)
+    private static CreatureState ResolveArrivalState(
+        CreatureRouteSchedule schedule,
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId
+    ) =>
+        jobsByCreatureId
+            .GetValueOrDefault(schedule.CreatureId)
+            ?.FirstOrDefault(job => job.Id == schedule.DestinationCreatureJobId)
+            ?.DefaultState
+        ?? CreatureState.Idle;
+
+    private void AddTraveler(
+        Guid worldId,
+        ScheduledOccurrence occurrence,
+        Creature creature,
+        CreatureState arrivalState
+    )
     {
         var traveler = new RouteTraveler
         {
@@ -157,6 +181,7 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             SpeedUnitsPerHour = creature.MovementSpeed,
             Purpose = occurrence.Schedule.Purpose,
             CreatureRouteScheduleId = occurrence.Schedule.Id,
+            ArrivalState = arrivalState,
         };
         context.RouteTravelers.Add(traveler);
         context.RouteTravelerMembers.Add(

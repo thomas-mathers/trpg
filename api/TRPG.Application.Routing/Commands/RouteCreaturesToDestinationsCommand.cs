@@ -16,7 +16,8 @@ public record CreatureRouteRequest(
     Guid CreatureId,
     Guid DestinationLocationId,
     GameInstant GameTime,
-    string Purpose
+    string Purpose,
+    CreatureState ArrivalState = CreatureState.Idle
 );
 
 public class RouteCreaturesToDestinationsCommand
@@ -411,6 +412,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             StartedAtGameTime = plan.StartedAtGameTime,
             SpeedUnitsPerHour = plan.SpeedUnitsPerHour,
             Purpose = plan.Request.Purpose,
+            ArrivalState = plan.Request.ArrivalState,
         };
         context.RouteTravelers.Add(traveler);
         context.RouteTravelerMembers.Add(
