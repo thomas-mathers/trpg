@@ -431,14 +431,14 @@ internal sealed class PendingSessionEndRegistry(
                 throw new InvalidOperationException("A session cannot change worlds.");
             }
 
+            await ResumeWorld(sessionId, activity, cancellationToken);
+
             if (activity.PendingEnd != null)
             {
                 await activity.PendingEnd.CancelAsync();
             }
             activity.PendingEnd = null;
             activity.ConnectionCount++;
-
-            await worldClock.ResumeWorld(worldId, cancellationToken);
         }
         finally
         {
@@ -486,12 +486,43 @@ internal sealed class PendingSessionEndRegistry(
             {
                 await activity.PendingEnd.CancelAsync();
             }
-            await EndSession(sessionId, cancellationToken);
-            await PauseWorldIfInactive(activity.WorldId, cancellationToken);
+            try
+            {
+                await EndSession(sessionId, cancellationToken);
+            }
+            catch (EntityNotFoundException)
+            {
+                // Already ended some other way; the world still needs its pause.
+            }
+            finally
+            {
+                await PauseWorldIfInactive(activity.WorldId, CancellationToken.None);
+            }
         }
         finally
         {
             _lifecycleGate.Release();
+        }
+    }
+
+    private async Task ResumeWorld(
+        Guid sessionId,
+        SessionActivity activity,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await worldClock.ResumeWorld(activity.WorldId, cancellationToken);
+        }
+        catch
+        {
+            if (activity.ConnectionCount == 0 && activity.PendingEnd == null)
+            {
+                _sessions.TryRemove(sessionId, out _);
+            }
+
+            throw;
         }
     }
 
@@ -521,8 +552,14 @@ internal sealed class PendingSessionEndRegistry(
                     return;
                 }
 
-                await EndSession(sessionId, cancellation.Token);
-                await PauseWorldIfInactive(activity.WorldId, cancellation.Token);
+                try
+                {
+                    await EndSession(sessionId, cancellation.Token);
+                }
+                finally
+                {
+                    await PauseWorldIfInactive(activity.WorldId, CancellationToken.None);
+                }
             }
             finally
             {

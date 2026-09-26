@@ -98,6 +98,40 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
         Assert.True(await SessionExists());
     }
 
+    [Fact]
+    public async Task End_PausesWorld_WhenSessionWasAlreadyDeleted()
+    {
+        // Arrange
+        await _registry.Connect(_session.Id, _world.Id, TestContext.Current.CancellationToken);
+        await _context
+            .GameSessions.Where(session => session.Id == _session.Id)
+            .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _registry.End(_session.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(1, _worldClock.PauseCount);
+    }
+
+    [Fact]
+    public async Task Disconnect_PausesWorld_AfterFailedConnectFollowedBySuccessfulConnect()
+    {
+        // Arrange
+        _worldClock.FailNextResume = true;
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _registry.Connect(_session.Id, _world.Id, TestContext.Current.CancellationToken)
+        );
+        await _registry.Connect(_session.Id, _world.Id, TestContext.Current.CancellationToken);
+
+        // Act
+        await _registry.Disconnect(_session.Id);
+
+        // Assert
+        await WaitForWorldPause();
+        Assert.False(await SessionExists());
+    }
+
     // The world is paused after the session row is deleted, so waiting on the pause covers both.
     private async Task WaitForWorldPause()
     {
@@ -123,6 +157,7 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
         private int _resumeCount;
         private int _pauseCount;
 
+        public bool FailNextResume { get; set; }
         public int ResumeCount => Volatile.Read(ref _resumeCount);
         public int PauseCount => Volatile.Read(ref _pauseCount);
 
@@ -136,6 +171,12 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
             CancellationToken cancellationToken = default
         )
         {
+            if (FailNextResume)
+            {
+                FailNextResume = false;
+                throw new InvalidOperationException("Resume failed.");
+            }
+
             Interlocked.Increment(ref _resumeCount);
             return Task.FromResult(GameClock.Epoch);
         }
