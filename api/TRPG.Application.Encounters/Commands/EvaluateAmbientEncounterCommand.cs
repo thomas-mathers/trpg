@@ -44,6 +44,12 @@ internal class EvaluateAmbientEncounterCommandHandler(
             return;
         }
 
+        // Ending the dialog or conversation that engages the player would release them mid-encounter.
+        if (player.IsEngaged)
+        {
+            return;
+        }
+
         // An unresolved encounter or fight already owns the player's attention.
         var activeEncounter = await getActiveEncounter.Handle(
             new GetActiveEncounterQuery { PlayerId = command.PlayerId },

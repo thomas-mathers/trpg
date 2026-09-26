@@ -154,6 +154,27 @@ public sealed class EvaluateAmbientEncounterCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_DoesNothing_WhenPlayerIsEngagedByAnInteraction()
+    {
+        // Arrange
+        var group = await SeedSpawnedGroup();
+        _player.IsEngaged = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(MakeCommand(group.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(_events.EnqueuedEvents);
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext
+                .Encounters.Where(encounter => encounter.WorldId == _worldId)
+                .AnyAsync(TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
     public async Task Handle_DoesNothing_WhenPlayerIsDead()
     {
         // Arrange
