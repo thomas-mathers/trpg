@@ -833,11 +833,6 @@ export type SceneSnapshot = {
     districtName: null | string;
     buildingName: null | string;
     roomName: null | string;
-    year: number;
-    monthName: string;
-    day: number;
-    weekdayName: string;
-    hour: number;
     playerStatus: CreatureStatusSnapshot;
     nearbyCreatures: Array<CreatureStatusSnapshot>;
     nearbyBuildings: Array<NearbyBuildingSnapshot>;

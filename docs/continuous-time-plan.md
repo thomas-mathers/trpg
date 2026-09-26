@@ -409,31 +409,37 @@ Exit condition: the complete continuous-time loop is observable and controllable
 
 ### Milestone 11 — Balance, hardening, and documentation
 
-Status: Not started
+Status: Complete
 
-- [ ] Review route distance and movement speed.
-- [ ] Review caravan travel and dwell times.
-- [ ] Review jobs, patrols, shops, weather, restocking, spawning, quest seeding, bookings, jail, rested effects, doors, corpse cleanup, and alerted resets.
-- [ ] Remove temporary compatibility code.
-- [ ] Review background queries and write volume.
-- [ ] Run the complete backend test suite.
-- [ ] Run CSharpier check.
-- [ ] Run SPA formatting, type checking, and tests.
-- [ ] Update `AGENTS.md` request-flow descriptions.
-- [ ] Confirm every earlier milestone has a closing commit.
-- [ ] Create milestone-closing commit.
+- [x] Review route distance and movement speed.
+- [x] Review caravan travel and dwell times.
+- [x] Review jobs, patrols, shops, weather, restocking, spawning, quest seeding, bookings, jail, rested effects, doors, corpse cleanup, and alerted resets.
+- [x] Remove temporary compatibility code.
+- [x] Review background queries and write volume.
+- [x] Run the complete backend test suite.
+- [x] Run CSharpier check.
+- [x] Run SPA formatting, type checking, and tests.
+- [x] Update `AGENTS.md` request-flow descriptions.
+- [x] Confirm every earlier milestone has a closing commit.
+- [x] Create milestone-closing commit.
 
 Exit condition: durations are intentionally balanced, all verification passes, and repository documentation matches the shipped architecture.
 
 ## Continuation notes
 
-Current milestone: 11 - Balance, hardening, and documentation
+Current milestone: none. All eleven milestones are complete.
 
-Current status: Not started
+Current status: Complete
 
-Last completed milestone: 10 - SPA continuous-time experience
+Last completed milestone: 11 - Balance, hardening, and documentation
 
-Next action: Start milestone 11. Review route distance, movement speed, caravan travel and dwell times, and the job, patrol, shop, weather, restocking, spawning, quest seeding, booking, jail, rested-effect, door, corpse cleanup, and alerted-reset durations now that time is 1:1 with real time. Remove temporary compatibility code, review background query and write volume (the routine lane runs on every scene refresh and both background passes, and `EnsureDungeonPremiseCommand` and `EnsureBookPageCommand` can call the LLM inside a world lease), run the complete backend suite, CSharpier, and the SPA checks, and update the `AGENTS.md` request-flow descriptions (the continuous world simulation, scene refresh, and interaction flows). Confirm every earlier milestone has its closing commit.
+Next action: None. The continuous-time project is finished. Deferred items (a separate `CreaturePosture` axis, hidden-tab handling, deterministic arrival and departure notifications, narration-time ambient deferral, new metrics, existing-world conversion, and developer clock controls) remain out of scope. Follow-ups worth a future decision: generate a dungeon premise outside the world lease if first-entry latency ever matters, and consider skew-proofing the client clock by anchoring to receipt time.
+
+Milestone 11 progress: `SceneSnapshot` no longer carries `Year`, `MonthName`, `Day`, `WeekdayName`, or `Hour`, because the SPA derives the whole date and time from the clock anchor (the HTTP and SignalR generated clients were regenerated; the generator's whitespace-only hunks were discarded). The LLM `look` payload and `SceneResult.CurrentDate` keep their date because the model reads it. `AGENTS.md` gained three request-flow entries (world clock, explicit time skips, creature engagement) that match the shipped code, and the continuous-world, scene-refresh, and quest-seeding flows were already current. `ContinuousWorldWriteVolumeTests` records the SQL each background pass issues through an EF command interceptor, and `ContinuousTimeBalanceTests` pins the reviewed travel, dwell, and regeneration defaults.
+
+Milestone 11 decisions: No balance value changed. Every duration is expressed in game time and was already independent of the removed 12x conversion, so 1:1 time only changes how long real players wait for NPC-driven change, and explicit skips (wait, sleep, walking, caravan travel) jump the world instantly. Walking pace is 50 units per hour, so a building hop (5 units) takes 6 minutes and a district hop (15 units) takes 18 minutes; a caravan travels at 150 units per hour and lingers 20 minutes at each stop, which is long enough to be seen and boarded but short enough to be a real schedule; road travelers linger an hour and patrols dwell 30 minutes. Jobs, shops, and door locks resolve on hourly boundaries, weather changes every 4 to 16 game hours, restocking runs daily at 06:00 and wilderness spawning daily at midnight, so those systems change visibly over a session only through a time skip, which is the intended way to pass world time. Room bookings and the rested effect last 24 game hours and jail terms use game hours, all of which a player passes by waiting or sleeping. Query and write volume: an idle frequent pass issues about 25 statements and exactly one write (the clock checkpoint), and an idle routine pass issues about 24 statements and no writes, because every subsystem is idempotent at an instant and due-gated by its own schedule; vitals and scene versions are stamped only when something changed. The player-scene read (`GetSceneQuery`) runs on both passes and dominates the read volume, which is acceptable for a single-player world and was not cached. `EnsureDungeonPremiseCommand` can still call the LLM inside the world lease when a player first enters a dungeon whose premise was not prefetched (it runs from the arrival event inside the gated `move` tool); the only work it delays is that same world's background passes, whose overlap guard skips instead of queueing, so it was accepted rather than redesigned. `EnsureBookPageCommand` was reviewed and is not under a lease at all (the book endpoints do not take the gate), which corrects the milestone 07 note. No temporary compatibility code remained besides the unused snapshot date fields.
+
+Milestone 11 validation: `dotnet csharpier check .` passed. `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed. The complete backend suite passed through the xUnit executable with Docker access (`dotnet api/TRPG.Tests/bin/Debug/net10.0/TRPG.Tests.dll`, 2816 tests, 0 failures), including the new `ContinuousWorldWriteVolumeTests` (idle frequent pass writes only the clock checkpoint, idle routine pass writes nothing) and `ContinuousTimeBalanceTests` (walking, caravan, and regeneration defaults). `pnpm generate-client` regenerated the clients, and `pnpm run fmt:check`, `pnpm run typecheck`, and `pnpm test` passed all 221 SPA tests. All ten earlier milestones have their closing commits (`git log --grep='Milestone-Status: Complete'` lists milestones 01 through 10).
 
 Milestone 10 progress: `features/game/game-clock.ts` is the pure clock: `gameDateTimeAt(anchor, now)` adds the anchored game milliseconds and the real time elapsed since the anchor to the fictional epoch and reads year, month name, day, weekday name, hour, minute, and second from a UTC `Date`, so date and year rollover fall out of the calendar arithmetic. Its month and weekday name tables mirror `TRPG.Domain.GameClock`, and the epoch is `0975-01-01 08:00`. `useGameClock` (status bar) re-renders once per second and re-anchors as soon as a newer `SceneSnapshot` arrives; `useGameTimeReader` returns a stable function that reads the current time at call time without re-rendering. The status bar now shows `Weekday, Month day - HH:mm:ss`. The wait and sleep dialogs compute their duration with `durationUntilNextTime` from the derived current minute and second (rounded up to whole minutes, a target at or before now means the next day, at most 24 hours), and their default target no longer resets when an ambient snapshot arrives. `use-interaction-lifecycle.ts` adds `useCreatureInteraction` and `useCaravanInteraction`, which call the generated begin and end endpoints. The trade dialog engages the shopkeeper while open (it gained a `workerId` prop), the quest dialog engages the quest giver (`QuestDialogState` gained `giverId`), the deliver-item dialog engages the recipient, and the caravan dialog engages the caravan group while it is shown. The generated HTTP and SignalR clients needed no contract change, and `pnpm generate-client` produced only whitespace hunks, which were discarded. The version guard for snapshots and vitals in `SceneProvider` was already complete and was not rebuilt.
 

@@ -385,7 +385,6 @@ describe('NearbyPanel', () => {
   it('opens the sleep dialog from a nearby bed', async () => {
     const sceneWithBed = {
       ...scene(undefined),
-      hour: 8,
       nearbyProps: [
         {
           id: 'bed-id',

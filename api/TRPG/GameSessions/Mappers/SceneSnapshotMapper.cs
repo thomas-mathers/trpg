@@ -15,11 +15,6 @@ internal static class SceneSnapshotMapper
             DistrictName: scene.District?.Name,
             BuildingName: scene.Building?.Name,
             RoomName: scene.Room?.Name,
-            Year: scene.CurrentDate.Year,
-            MonthName: scene.CurrentDate.MonthName,
-            Day: scene.CurrentDate.Day,
-            WeekdayName: scene.CurrentDate.WeekdayName,
-            Hour: scene.CurrentDate.Hour,
             PlayerStatus: scene.Player.ToStatusSnapshot(),
             NearbyCreatures: scene
                 .NearbyCreatures.Select(creature => creature.ToStatusSnapshot())

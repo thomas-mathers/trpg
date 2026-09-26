@@ -45,16 +45,6 @@ export type SceneSnapshot = {
     buildingName?: string;
     /** Transpiled from string? */
     roomName?: string;
-    /** Transpiled from int */
-    year: number;
-    /** Transpiled from string */
-    monthName: string;
-    /** Transpiled from int */
-    day: number;
-    /** Transpiled from string */
-    weekdayName: string;
-    /** Transpiled from int */
-    hour: number;
     /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */
     playerStatus: CreatureStatusSnapshot;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureStatusSnapshot> */
