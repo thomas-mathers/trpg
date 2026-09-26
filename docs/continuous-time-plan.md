@@ -269,7 +269,7 @@ Exit condition: connected worlds advance 1:1 and paused worlds do not advance.
 
 ### Milestone 04 — Operation timestamps and explicit skips
 
-Status: In progress
+Status: Complete
 
 - [x] Capture one instant per deterministic operation.
 - [x] Pass instants explicitly through nested application work.
@@ -279,10 +279,10 @@ Status: In progress
 - [x] Convert walking and caravan travel.
 - [x] Reconcile the world at the resulting instant.
 - [x] Add bounded large-jump behavior.
-- [ ] Add consistency and time-skip tests.
-- [ ] Run affected backend tests.
-- [ ] Run CSharpier check.
-- [ ] Create milestone-closing commit.
+- [x] Add consistency and time-skip tests.
+- [x] Run affected backend tests.
+- [x] Run CSharpier check.
+- [x] Create milestone-closing commit.
 
 Exit condition: ordinary operations use one instant and explicit skips correctly produce a later instant.
 
@@ -429,15 +429,17 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 Current milestone: 04 — Operation timestamps and explicit skips
 
-Current status: In progress
+Current status: Complete
 
-Last completed milestone: 03 — World-owned continuous clock
+Last completed milestone: 04 — Operation timestamps and explicit skips
 
-Next action: Complete focused timestamp and time-skip validation, repair any failures, run the full backend suite and CSharpier check, then create the milestone 04 closing commit.
+Next action: Begin milestone 05 by adding `Creature.IsEngaged` and the shared engage/release workflow without starting simulation-lane or background-service work.
 
 Milestone 04 progress: Explicit advances are world-scoped and return the resulting instant. Wait and sleep reject non-positive durations and durations over 24 hours, apply regeneration, and reconcile the active location at the returned instant. Walking captures time when the `move` tool is invoked and uses that instant for destination validation and departure interception before advancing to arrival; caravan boarding likewise validates at one captured instant and advances without a duration cap. Encounter actions and combat now capture one instant at their turn boundary and pass it through nested flee, relocation, fight-start, combat-round, and fight-end work. Location catch-up already implements bounded large jumps by resolving weather, restocking, spawning, quest seeding, jobs, and routes once at the supplied current instant rather than replaying missed intervals.
 
-Milestone 04 validation in progress: the backend test project builds with pre-existing warnings. The first focused integration run could not access Docker inside the sandbox; the elevated rerun exposed one stale-binary assertion because tests had not been rebuilt after their final edits. Rebuild and focused rerun are the next action.
+Milestone 04 decisions: Time advancement is keyed directly by world rather than resolving a session inside the command. Wait and sleep cap each operation at 24 hours, while walking and caravan travel retain their calculated unbounded duration. Wait and sleep reconcile the occupied location after the skip; movement reconciles the destination through the existing arrival event. Large jumps reuse the existing direct catch-up behavior, which gives weather one current transition, fills stock and spawns toward their targets once, gives quest seeding one opportunity, and resolves jobs and routes at the resulting instant without replaying elapsed intervals. LLM tools capture time inside each invocation, and encounter/combat turn handlers pass one captured instant through all nested deterministic work.
+
+Milestone 04 validation: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed with pre-existing warnings. Focused wait, sleep, movement, timed-door, combat lifecycle, flee, guard, hostile encounter, and fight-completion suites passed through the xUnit executable with Docker access. The first full-suite run found three tests that depended on removed nested clock reads; they were updated to supply or assert the explicit operation instant, and the complete backend suite then passed with `dotnet api/TRPG.Tests/bin/Debug/net10.0/TRPG.Tests.dll -reporter quiet`. `dotnet csharpier check .` passed. The final status and diff inspection contained only intended milestone files; design-questionnaire artifacts remained excluded.
 
 Milestone 03 decisions: `IWorldClock` is a shared application contract implemented by Worlds as a singleton with per-world serialized state. An active anchor pairs a fictional `GameInstant` with `TimeProvider.GetUtcNow()` and derives time 1:1; persisted world time remains authoritative while paused. Explicit advances persist immediately and re-anchor active worlds without stopping them. SignalR tracks connections per session and activity across every session in a world: the first connection resumes the world, reconnecting cancels pending end work, and only the last disconnected session pauses after the 30-second grace. Startup creates no active anchors, while host shutdown checkpoints active worlds. `GameSession` no longer owns time, narrated messages no longer advance it, and the migration drops `game_sessions.game_time`.
 

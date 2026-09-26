@@ -66,6 +66,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
             PlayerId = _player.Id,
             Action = action,
             EncounterId = encounterId,
+            GameTime = GameClock.Epoch + TimeSpan.FromHours(10),
         };
 
     private async Task<JailFixture> SeedJail()

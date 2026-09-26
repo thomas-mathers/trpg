@@ -388,6 +388,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = WorldId,
                 State = state,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );

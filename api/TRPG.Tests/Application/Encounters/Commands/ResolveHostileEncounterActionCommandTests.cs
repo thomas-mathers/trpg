@@ -507,11 +507,8 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
     }
 
     [Fact]
-    public async Task Handle_RollsBackEntirely_WhenStartingTheFightFails()
+    public async Task Handle_StartsTheFight_WhenTheSessionDoesNotExist()
     {
-        // Arrange — an unseeded SessionId makes StartFightCommand's internal gameTime lookup
-        // throw after the enemy has already been alerted, proving the whole resolution (alerting
-        // the enemy, and completing the encounter) is atomic rather than partially applied.
         var encounter = await SeedActiveEncounter();
         var command = new ResolveHostileEncounterActionCommand
         {
@@ -520,25 +517,23 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
             PlayerId = _player.Id,
             Action = new AttackEncounterAction(),
             EncounterId = encounter.Id,
+            GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
         };
 
-        // Act & Assert
-        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
-            _handler.Handle(command, TestContext.Current.CancellationToken)
-        );
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
 
         await using var verifyContext = db.CreateContext();
         var persistedEncounter = await verifyContext.Encounters.SingleAsync(
             e => e.Id == encounter.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(EncounterState.Active, persistedEncounter.State);
+        Assert.Equal(EncounterState.Completed, persistedEncounter.State);
         var enemy = await verifyContext.Creatures.FindAsync(
             [_enemy.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.NotEqual(CreatureState.Alerted, enemy!.State);
-        Assert.False(
+        Assert.Equal(CreatureState.Alerted, enemy!.State);
+        Assert.True(
             await verifyContext
                 .Encounters.OfType<FightEncounter>()
                 .AnyAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken)
