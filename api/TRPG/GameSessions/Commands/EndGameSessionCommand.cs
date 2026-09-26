@@ -1,5 +1,6 @@
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Commands;
@@ -16,6 +17,7 @@ internal class EndGameSessionCommand
 
 internal class EndGameSessionCommandHandler(
     IWorldClock worldClock,
+    IWorldMutationGate mutationGate,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
     ICommandHandler<ClearNonEncounterEngagementsCommand> clearNonEncounterEngagements,
@@ -31,6 +33,8 @@ internal class EndGameSessionCommandHandler(
             new GetGameSessionQuery { SessionId = command.SessionId },
             cancellationToken
         );
+
+        await using var lease = await mutationGate.Acquire(snapshot.WorldId, cancellationToken);
 
         var gameTime = await worldClock.GetCurrent(snapshot.WorldId, cancellationToken);
 

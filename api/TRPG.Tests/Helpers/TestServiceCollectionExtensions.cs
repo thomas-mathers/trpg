@@ -58,6 +58,15 @@ internal static class TestServiceCollectionExtensions
             // after AddTrpgTestServices(...), which wins over this default.
             .AddSingleton<IQuestChainGenerationScheduler, RecordingQuestChainGenerationScheduler>();
     }
+
+    // Background workflows create their own scopes, and disposing a scope would dispose the shared test context.
+    public static IServiceCollection WithScopedDbContexts(
+        this IServiceCollection services,
+        string connectionString
+    ) =>
+        services
+            .RemoveAll<TrpgDbContext>()
+            .AddDbContext<TrpgDbContext>(options => options.UseNpgsql(connectionString));
 }
 
 internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock
@@ -133,6 +142,8 @@ internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock
         Guid worldId,
         CancellationToken cancellationToken = default
     ) => GetCurrent(worldId, cancellationToken);
+
+    public IReadOnlyCollection<Guid> GetActiveWorldIds() => [];
 
     public Task CheckpointActiveWorlds(CancellationToken cancellationToken = default) =>
         Task.CompletedTask;

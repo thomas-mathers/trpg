@@ -160,6 +160,8 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
             CancellationToken cancellationToken = default
         ) => Task.FromResult(GameClock.Epoch);
 
+        public IReadOnlyCollection<Guid> GetActiveWorldIds() => [];
+
         public Task CheckpointActiveWorlds(CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
     }

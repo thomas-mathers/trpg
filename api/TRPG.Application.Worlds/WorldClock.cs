@@ -141,14 +141,12 @@ internal sealed class WorldClock(
         }
     }
 
+    public IReadOnlyCollection<Guid> GetActiveWorldIds() =>
+        _states.Where(pair => pair.Value.Anchor != null).Select(pair => pair.Key).ToArray();
+
     public async Task CheckpointActiveWorlds(CancellationToken cancellationToken = default)
     {
-        var activeWorldIds = _states
-            .Where(pair => pair.Value.Anchor != null)
-            .Select(pair => pair.Key)
-            .ToArray();
-
-        foreach (var worldId in activeWorldIds)
+        foreach (var worldId in GetActiveWorldIds())
         {
             await Checkpoint(worldId, cancellationToken);
         }

@@ -7,6 +7,7 @@ using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
@@ -744,10 +745,12 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid worldId,
         [FromServices] IWorldClock worldClock,
+        [FromServices] IWorldMutationGate mutationGate,
         [FromServices] ICommandHandler<BeginCreatureInteractionCommand> beginInteraction,
         CancellationToken cancellationToken
     )
     {
+        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
         await beginInteraction.Handle(
             new BeginCreatureInteractionCommand
@@ -767,10 +770,12 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid worldId,
         [FromServices] IWorldClock worldClock,
+        [FromServices] IWorldMutationGate mutationGate,
         [FromServices] ICommandHandler<EndCreatureInteractionCommand> endInteraction,
         CancellationToken cancellationToken
     )
     {
+        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
         await endInteraction.Handle(
             new EndCreatureInteractionCommand

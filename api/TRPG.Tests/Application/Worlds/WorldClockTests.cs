@@ -67,6 +67,33 @@ public sealed class WorldClockTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task GetActiveWorldIds_ContainsWorld_WhenWorldIsResumed()
+    {
+        // Arrange
+        await _clock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+
+        // Act
+        var activeWorldIds = _clock.GetActiveWorldIds();
+
+        // Assert
+        Assert.Equal([_world.Id], activeWorldIds);
+    }
+
+    [Fact]
+    public async Task GetActiveWorldIds_OmitsWorld_WhenWorldIsPaused()
+    {
+        // Arrange
+        await _clock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        await _clock.PauseWorld(_world.Id, TestContext.Current.CancellationToken);
+
+        // Act
+        var activeWorldIds = _clock.GetActiveWorldIds();
+
+        // Assert
+        Assert.Empty(activeWorldIds);
+    }
+
+    [Fact]
     public async Task ResumeWorld_DoesNotResetAnActiveAnchor()
     {
         await _clock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
@@ -138,14 +165,5 @@ public sealed class WorldClockTests(DatabaseFixture db)
             .Worlds.Where(world => world.Id == _world.Id)
             .Select(world => world.GameTime)
             .SingleAsync(TestContext.Current.CancellationToken);
-    }
-
-    private sealed class ManualTimeProvider(DateTimeOffset utcNow) : TimeProvider
-    {
-        private DateTimeOffset _utcNow = utcNow;
-
-        public override DateTimeOffset GetUtcNow() => _utcNow;
-
-        public void Advance(TimeSpan duration) => _utcNow += duration;
     }
 }

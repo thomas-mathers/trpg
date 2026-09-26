@@ -332,19 +332,19 @@ Exit condition: active locations can be safely reconciled repeatedly and travele
 
 ### Milestone 07 — Background service
 
-Status: Not started
+Status: Complete
 
-- [ ] Add a thin ASP.NET `BackgroundService` timer wrapper.
-- [ ] Extract a timer-independent continuous-world processor.
-- [ ] Add five-second and 30-second cadences.
-- [ ] Add per-world mutation serialization.
-- [ ] Add per-world overlap skipping.
-- [ ] Log failures and retry on the next cadence.
-- [ ] Ensure failures never disconnect clients.
-- [ ] Add deterministic processor and overlap tests.
-- [ ] Run hosted-service and simulation tests.
-- [ ] Run CSharpier check.
-- [ ] Create milestone-closing commit.
+- [x] Add a thin ASP.NET `BackgroundService` timer wrapper.
+- [x] Extract a timer-independent continuous-world processor.
+- [x] Add five-second and 30-second cadences.
+- [x] Add per-world mutation serialization.
+- [x] Add per-world overlap skipping.
+- [x] Log failures and retry on the next cadence.
+- [x] Ensure failures never disconnect clients.
+- [x] Add deterministic processor and overlap tests.
+- [x] Run hosted-service and simulation tests.
+- [x] Run CSharpier check.
+- [x] Create milestone-closing commit.
 
 Exit condition: active-world simulation runs continuously without TickerQ or overlapping stale passes.
 
@@ -427,13 +427,19 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 07 — Background service
+Current milestone: 08 — Passive regeneration
 
 Current status: Not started
 
-Last completed milestone: 06 — Simulation lanes
+Last completed milestone: 07 — Background service
 
-Next action: Add the thin ASP.NET `BackgroundService` timer wrapper and a timer-independent continuous-world processor that calls `SyncActiveLocationTravelersCommand` on the 5-second cadence and `SyncActiveLocationRoutinesCommand` on the 30-second cadence, with per-world mutation serialization and overlap skipping. Do not add regeneration or ambient encounter work.
+Next action: Replace the hourly regeneration settings with five-second tick settings (HP 5%, AP 10%, MP 5%), preserve fractional elapsed tick time, and add the regeneration step to `ContinuousWorldProcessor`'s five-second traveler pass (rename the lane if regeneration makes "Travelers" misleading). Do not add ambient encounter or scene-version work.
+
+Milestone 07 progress: `ContinuousWorldService` (host `TRPG/Worlds/`, a `BackgroundService`) runs two independent `PeriodicTimer` loops on the injected `TimeProvider`: a 5-second traveler loop and a 30-second routine loop. Both delegate to `ContinuousWorldProcessor`, which has no timer. For every world in the new `IWorldClock.GetActiveWorldIds()`, the traveler pass first checkpoints the world clock, then (per world, concurrently across worlds) skips the world when the previous pass for the same world and lane is still running, acquires the world's `IWorldMutationGate` lease, captures the `GameInstant` inside it, resolves the watched location through the new `GetActiveLocationPlayersQuery` (world player via `GetWorldPlayerIdQuery`, location and level via `GetCreaturePresenceQuery`), and calls `SyncActiveLocationTravelersCommand` or `SyncActiveLocationRoutinesCommand` in its own DI scope. Failures are caught per world and per pass, logged, and retried on the next tick; nothing touches SignalR, so a failure cannot disconnect a client. The service is registered after `WorldClockCheckpointService` and `EngagementStartupRecovery`, so it stops first and starts after startup recovery.
+
+Milestone 07 decisions: `IWorldMutationGate` (Common contract, Worlds implementation, singleton) is a non-reentrant per-world semaphore that returns a disposable lease; nested acquisition on the same world deadlocks, so it is only taken at outermost boundaries. Gameplay takes it at `GameTurnStreamer` turn resolution (scene diff plus `resolveTurn`) and turn start (regeneration), around every game tool invocation (`AddGameTool` wraps each `AIFunction` in `WorldMutationGatedFunction`, keyed by `GameTurnContext.WorldId`), in the four creature/caravan interaction endpoints, and in session end. It is never held across narration streaming, acknowledgement waits, or `FinishTurn` (whose conversation summaries call the LLM). Known deviation: `EnsureDungeonPremiseCommand` (dungeon arrival) and `EnsureBookPageCommand` (reading) can call the LLM inside a gated tool invocation or endpoint; the background lanes for that one world simply wait meanwhile, and milestone 11 should decide whether to move that generation outside the lease. Cadences are constants on the service rather than options because nothing tunes them yet. The world is the player's own: the watched location comes from `World.PlayerId`, not from session rows, because a stale session row must not make a paused world look occupied. The routine and traveler passes still run inside scene refresh for player actions, so a background pass and a player action can both reconcile the same instant; each subsystem is idempotent at an instant (milestone 06), so this is safe. Ambient results are not published to clients yet; milestone 09 wires scene semantic comparison and versioned snapshots.
+
+Milestone 07 validation: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed. New suites `ContinuousWorldProcessorTests` (active/paused world, clock checkpoint, waiting for the lease, overlap skipping, next-pass execution, logged failures), `ContinuousWorldServiceTests` (5-second and 30-second cadence and retry after failure on a manual timer-capable `TimeProvider`), `WorldMutationGateTests`, `WorldMutationGatedFunctionTests`, `GetActiveLocationPlayersQueryHandlerTests`, and the new `WorldClockTests.GetActiveWorldIds_*` cases passed through the xUnit executable with Docker access. The complete backend suite passed twice with `dotnet api/TRPG.Tests/bin/Debug/net10.0/TRPG.Tests.dll` (2762 tests, 0 failures, no flaky failures on either run, including the two tests that flaked in milestone 06). `dotnet csharpier check .` passed. No HTTP or SignalR wire contract changed, so the generated SPA clients and SPA checks were not affected and were not run. The pre-closing status and diff inspection contained only intended milestone files; design-questionnaire artifacts remained excluded.
 
 Milestone 06 progress: `CatchUpLocationCommand` is now a thin composition of two lanes. `SyncLocationTravelersCommand` (fast lane) ensures the recurring route projection exists, materializes scheduled journeys through the location, and relocates every route-backed traveler to its projected leg origin or stop. `SyncLocationRoutinesCommand` (slow lane) runs weather, `SyncLocationJobsCommand` (job resolution, workstation occupancy), front-door locks, spawning, restocking, and quest seeding in that order. `SyncActiveLocationTravelersCommand` and `SyncActiveLocationRoutinesCommand` take a world's watching players and process each unique location once, on behalf of the highest-level player. `LocationCatchUpCache` and its once-per-in-game-hour gate are removed; `ResetAlertedCreaturesCommand` no longer evicts anything, `RefreshSceneResult.Refreshed` is gone, and `CatchUpLocationCommand` no longer carries a redundant `CurrentDate`. `GetSceneQuery` no longer lists creatures in the `Walking` state, so a traveler in transit is invisible at its persisted leg origin and appears only once the fast lane persists its arrival. `SceneSemanticComparer.HasPlayerVisibleChange` compares two scenes ignoring the clock, vital meters, and caravan departure countdowns, ordering, and duplicates.
 

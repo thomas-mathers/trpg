@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -28,6 +29,8 @@ internal abstract record GameTurnPrompt
     public sealed record None : GameTurnPrompt;
 }
 
+internal sealed record ResolvedTurn(SceneResult Before, GameTurnPrompt Prompt);
+
 internal class GameTurnStreamer(
     LlmConversationClient llmConversationClient,
     ICommandHandler<CloseLingeringNpcConversationsCommand> closeLingeringConversations,
@@ -45,6 +48,7 @@ internal class GameTurnStreamer(
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IGameClientEventAckGate eventAckGate,
+    IWorldMutationGate mutationGate,
     ILogger<GameTurnStreamer> logger
 )
 {
@@ -54,10 +58,9 @@ internal class GameTurnStreamer(
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
-        // Captured before resolveTurn runs so the diff below also catches direct-command mutations, not just tool calls.
-        var before = await GetScene(session, cancellationToken);
-
-        var prompt = await resolveTurn(cancellationToken);
+        var resolved = await ResolveTurn(session, resolveTurn, cancellationToken);
+        var before = resolved.Before;
+        var prompt = resolved.Prompt;
 
         if (prompt is GameTurnPrompt.Reply reply)
         {
@@ -139,6 +142,22 @@ internal class GameTurnStreamer(
         }
     }
 
+    private async Task<ResolvedTurn> ResolveTurn(
+        GameTurnSession session,
+        Func<CancellationToken, Task<GameTurnPrompt>> resolveTurn,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
+
+        // Captured before resolveTurn runs so the diff also catches direct-command mutations, not just tool calls.
+        var before = await GetScene(session, cancellationToken);
+
+        var prompt = await resolveTurn(cancellationToken);
+
+        return new ResolvedTurn(before, prompt);
+    }
+
     private async Task<SceneResult> GetScene(
         GameTurnSession session,
         CancellationToken cancellationToken
@@ -193,6 +212,8 @@ internal class GameTurnStreamer(
         turnContext.WorldId = session.WorldId;
         turnContext.PlayerId = session.PlayerId;
         turnContext.PlayerMoved = false;
+
+        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
 
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = turnContext.SessionId },

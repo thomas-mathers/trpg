@@ -13,5 +13,6 @@ public interface IWorldClock
         CancellationToken cancellationToken = default
     );
     Task<GameInstant> Checkpoint(Guid worldId, CancellationToken cancellationToken = default);
+    IReadOnlyCollection<Guid> GetActiveWorldIds();
     Task CheckpointActiveWorlds(CancellationToken cancellationToken = default);
 }
