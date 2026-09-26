@@ -39,6 +39,14 @@ function VitalsConsumer() {
   );
 }
 
+function StateAndVitalsConsumer() {
+  const scene = useScene();
+
+  return (
+    <output>{scene ? `${scene.stateName}|hp:${scene.playerStatus.currentHp}` : 'no-scene'}</output>
+  );
+}
+
 function makeVitals(overrides: Partial<PlayerVitalsUpdated>): PlayerVitalsUpdated {
   return {
     playerId: 'player-id',
@@ -185,6 +193,7 @@ describe('SceneProvider', () => {
   describe('player vitals updates', () => {
     const vitalsSnapshot = {
       playerStatus: { id: 'player-id', currentHp: 1, maximumHp: 40 },
+      version: 0,
     } as SceneSnapshot;
 
     it('applies a vitals update to the player status of the current scene', async () => {
@@ -246,6 +255,25 @@ describe('SceneProvider', () => {
       } as SceneSnapshot);
 
       expect(await byText('hp:3/40').find()).toBeVisible();
+    });
+
+    it('shows a late snapshot but keeps the newer vitals that arrived before it', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <StateAndVitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, stateName: 'Before', version: 1 });
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 25, version: 6 }));
+      expect(await byText('Before|hp:25').find()).toBeVisible();
+
+      gameEventBus.emit('SceneSnapshot', {
+        playerStatus: { id: 'player-id', currentHp: 3, maximumHp: 40 },
+        stateName: 'After',
+        version: 5,
+      } as SceneSnapshot);
+
+      expect(await byText('After|hp:25').find()).toBeVisible();
     });
 
     it('ignores a vitals update for a different creature', async () => {
