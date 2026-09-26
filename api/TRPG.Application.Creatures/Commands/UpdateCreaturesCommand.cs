@@ -34,14 +34,32 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
             return;
         }
 
+        var locationId = command.LocationId ?? Guid.Empty;
+        var state = command.State ?? default;
+        var lastRegenGameTime = command.LastRegenGameTime ?? default;
+        var hasLocation = command.LocationId != null;
+        var hasState = command.State != null;
+        var hasLastRegenGameTime = command.LastRegenGameTime != null;
+        var hasName = command.Name != null;
+
+        // Rows that already hold the requested values are left alone, so repeating an update is not a write.
         await context
             .Creatures.Where(c => command.CreatureIds.Contains(c.Id))
+            .Where(c =>
+                (hasLocation && c.LocationId != locationId)
+                || (hasState && c.State != state)
+                || (hasLastRegenGameTime && c.LastRegenGameTime != lastRegenGameTime)
+                || (hasName && c.Name != command.Name)
+            )
             .ExecuteUpdateAsync(
                 s =>
                 {
                     if (command.LocationId != null)
                     {
-                        s.SetProperty(c => c.PreviousLocationId, c => c.LocationId);
+                        s.SetProperty(
+                            c => c.PreviousLocationId,
+                            c => c.LocationId != locationId ? c.LocationId : c.PreviousLocationId
+                        );
                         s.SetProperty(c => c.LocationId, command.LocationId.Value);
                     }
                     if (command.State != null)
