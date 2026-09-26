@@ -9,5 +9,5 @@ public record PlayerVitalsUpdated(
     int MaximumAp,
     int CurrentMp,
     int MaximumMp,
-    long GameTimeMilliseconds
+    long Version
 );

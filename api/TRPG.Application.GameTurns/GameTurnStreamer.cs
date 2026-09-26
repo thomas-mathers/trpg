@@ -15,6 +15,7 @@ using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -45,7 +46,8 @@ internal class GameTurnStreamer(
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
-    IGameClientEventSink gameEvents,
+    ScenePublisher scenePublisher,
+    ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     IGameClientEventDispatcher eventDispatcher,
     IGameClientEventAckGate eventAckGate,
     IWorldMutationGate mutationGate,
@@ -185,11 +187,16 @@ internal class GameTurnStreamer(
         CancellationToken cancellationToken
     )
     {
+        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
+        var stamp = await stampWorldState.Handle(
+            new StampWorldStateCommand { WorldId = session.WorldId },
+            cancellationToken
+        );
         var after = await GetScene(session, cancellationToken);
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            gameEvents.Enqueue(new SceneUpdatedEvent(after));
+            scenePublisher.Publish(session.PlayerId, after, stamp);
         }
 
         return after;

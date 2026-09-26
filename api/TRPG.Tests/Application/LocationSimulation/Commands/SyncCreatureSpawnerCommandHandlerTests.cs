@@ -146,6 +146,57 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_ReportsTheSpawnedEncounterGroup_WhenCreaturesSpawn()
+    {
+        // Arrange
+        var spawner = Builders.MakeCreatureSpawner(_worldId, _location.Id, maxPopulation: 2);
+        _context.CreatureSpawners.Add(spawner);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new SyncCreatureSpawnerCommand
+            {
+                LocationId = _location.Id,
+                PlayerLevel = 1,
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var persistedGroupId = await verifyContext
+            .EncounterGroups.Where(group => group.LocationId == _location.Id)
+            .Select(group => group.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(persistedGroupId, Assert.Single(result.SpawnedEncounterGroupIds));
+    }
+
+    [Fact]
+    public async Task Handle_ReportsNoGroups_WhenScheduleHasNotYetTriggered()
+    {
+        // Arrange
+        var spawner = Builders.MakeCreatureSpawner(_worldId, _location.Id, maxPopulation: 2);
+        _context.CreatureSpawners.Add(spawner);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new SyncCreatureSpawnerCommand
+            {
+                LocationId = _location.Id,
+                PlayerLevel = 1,
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(12),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(result.SpawnedEncounterGroupIds);
+    }
+
+    [Fact]
     public async Task Handle_DoesNotSpawn_WhenScheduleHasNotYetTriggered()
     {
         // Arrange

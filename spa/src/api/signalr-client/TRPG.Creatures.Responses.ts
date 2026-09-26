@@ -26,7 +26,7 @@ export type PlayerVitalsUpdated = {
     /** Transpiled from int */
     maximumMp: number;
     /** Transpiled from long */
-    gameTimeMilliseconds: number;
+    version: number;
 }
 
 /** Transpiled from TRPG.Creatures.Responses.SkillLevelUp */

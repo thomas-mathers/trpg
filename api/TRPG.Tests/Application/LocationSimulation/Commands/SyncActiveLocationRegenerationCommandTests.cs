@@ -34,6 +34,7 @@ public sealed class SyncActiveLocationRegenerationCommandTests(DatabaseFixture d
             _serviceProvider.GetRequiredService<SyncActiveLocationRegenerationCommandHandler>();
 
         _player = Builders.MakeCreature(_worldId, locationId: _locationId, currentHp: 1);
+        _context.Worlds.Add(Builders.MakeWorld(_worldId));
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -73,7 +74,7 @@ public sealed class SyncActiveLocationRegenerationCommandTests(DatabaseFixture d
         );
         var vitalsChanged = Assert.IsType<PlayerVitalsChangedEvent>(published);
         Assert.Equal(_player.Id, vitalsChanged.Vitals.CreatureId);
-        Assert.Equal(OneTickIn, vitalsChanged.GameTime);
+        Assert.Equal(1, vitalsChanged.Version);
         Assert.Equal(await ReadCurrentHp(_player.Id), vitalsChanged.Vitals.CurrentHp);
         Assert.True(vitalsChanged.Vitals.CurrentHp > 1);
     }

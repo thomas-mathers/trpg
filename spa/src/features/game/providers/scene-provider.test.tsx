@@ -48,7 +48,7 @@ function makeVitals(overrides: Partial<PlayerVitalsUpdated>): PlayerVitalsUpdate
     maximumAp: 10,
     currentMp: 2,
     maximumMp: 8,
-    gameTimeMilliseconds: 5000,
+    version: 5,
     ...overrides,
   };
 }
@@ -67,6 +67,52 @@ describe('SceneProvider', () => {
     gameEventBus.emit('SceneSnapshot', snapshot);
 
     expect(await ui.loadedState.find()).toBeVisible();
+  });
+
+  it('ignores a snapshot that is older than the one already shown', async () => {
+    render(
+      <SceneProvider sessionId="session-id">
+        <VitalsConsumer />
+      </SceneProvider>,
+    );
+    gameEventBus.emit('SceneSnapshot', {
+      playerStatus: { id: 'player-id', currentHp: 9, maximumHp: 40 },
+      version: 4,
+    } as SceneSnapshot);
+    expect(await byText('hp:9/40').find()).toBeVisible();
+
+    gameEventBus.emit('SceneSnapshot', {
+      playerStatus: { id: 'player-id', currentHp: 2, maximumHp: 40 },
+      version: 3,
+    } as SceneSnapshot);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(byText('hp:9/40').get()).toBeVisible();
+  });
+
+  it('accepts snapshots from the start of a new session even after a higher version was seen', async () => {
+    const { rerender } = render(
+      <SceneProvider sessionId="session-id">
+        <VitalsConsumer />
+      </SceneProvider>,
+    );
+    gameEventBus.emit('SceneSnapshot', {
+      playerStatus: { id: 'player-id', currentHp: 9, maximumHp: 40 },
+      version: 50,
+    } as SceneSnapshot);
+    expect(await byText('hp:9/40').find()).toBeVisible();
+
+    rerender(
+      <SceneProvider sessionId="other-session-id">
+        <VitalsConsumer />
+      </SceneProvider>,
+    );
+    gameEventBus.emit('SceneSnapshot', {
+      playerStatus: { id: 'player-id', currentHp: 4, maximumHp: 40 },
+      version: 1,
+    } as SceneSnapshot);
+
+    expect(await byText('hp:4/40').find()).toBeVisible();
   });
 
   it('warms the premise of every nearby dungeon in one batch, but not an ordinary building', async () => {
@@ -154,26 +200,52 @@ describe('SceneProvider', () => {
       expect(await byText('hp:12/40').find()).toBeVisible();
     });
 
-    it('ignores a vitals update that is older than one already applied', async () => {
+    it('ignores a vitals update whose version is not newer than one already applied', async () => {
       render(
         <SceneProvider sessionId="session-id">
           <VitalsConsumer />
         </SceneProvider>,
       );
       gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
-      gameEventBus.emit(
-        'PlayerVitalsUpdated',
-        makeVitals({ currentHp: 20, gameTimeMilliseconds: 10_000 }),
-      );
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 20, version: 10 }));
       expect(await byText('hp:20/40').find()).toBeVisible();
 
-      gameEventBus.emit(
-        'PlayerVitalsUpdated',
-        makeVitals({ currentHp: 15, gameTimeMilliseconds: 5000 }),
-      );
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 15, version: 5 }));
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(byText('hp:20/40').get()).toBeVisible();
+    });
+
+    it('ignores a vitals update older than the snapshot that already carries newer vitals', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <VitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, version: 8 });
+
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 30, version: 7 }));
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(byText('hp:1/40').get()).toBeVisible();
+    });
+
+    it('applies a snapshot that is newer than the vitals already applied', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <VitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, version: 1 });
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12, version: 2 }));
+      expect(await byText('hp:12/40').find()).toBeVisible();
+
+      gameEventBus.emit('SceneSnapshot', {
+        playerStatus: { id: 'player-id', currentHp: 3, maximumHp: 40 },
+        version: 3,
+      } as SceneSnapshot);
+
+      expect(await byText('hp:3/40').find()).toBeVisible();
     });
 
     it('ignores a vitals update for a different creature', async () => {

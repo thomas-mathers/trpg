@@ -186,7 +186,10 @@ public record SceneSnapshot(
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
     IReadOnlyCollection<NearbyExitSnapshot> Exits,
-    IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans
+    IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans,
+    long Version,
+    long GameTimeMilliseconds,
+    long AnchoredAtUnixMilliseconds
 );
 
 [TranspilationSource]

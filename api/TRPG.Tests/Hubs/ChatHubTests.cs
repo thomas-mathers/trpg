@@ -385,6 +385,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_playerId, snapshot.PlayerStatus.Id);
+        Assert.True(snapshot.Version > 0);
+        Assert.True(snapshot.AnchoredAtUnixMilliseconds > 0);
     }
 
     [Fact]
@@ -445,6 +447,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         Assert.Equal(_playerId, firstSnapshot.PlayerStatus.Id);
         Assert.Equal(_playerId, secondSnapshot.PlayerStatus.Id);
+        Assert.True(secondSnapshot.Version > firstSnapshot.Version);
     }
 
     [Fact]
@@ -597,6 +600,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var standingProp = Assert.Single(standing.NearbyProps, prop => prop.Id == seat.Id);
         Assert.False(standingProp.IsOccupied);
         Assert.False(standingProp.IsOccupiedByPlayer);
+        Assert.True(standing.Version > seated.Version);
     }
 
     [Fact]

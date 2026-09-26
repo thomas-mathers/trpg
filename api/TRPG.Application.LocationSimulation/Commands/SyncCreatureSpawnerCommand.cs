@@ -18,6 +18,11 @@ public class SyncCreatureSpawnerCommand
     public required GameInstant CurrentGameTime { get; init; }
 }
 
+public record SyncCreatureSpawnerResult(IReadOnlyCollection<Guid> SpawnedEncounterGroupIds)
+{
+    public static readonly SyncCreatureSpawnerResult None = new([]);
+}
+
 internal class SyncCreatureSpawnerCommandHandler(
     ILocationSimulationDbContext context,
     CreatureGenerator creatureGenerator,
@@ -27,9 +32,9 @@ internal class SyncCreatureSpawnerCommandHandler(
     > getFactionsByCreatureType,
     ICommandHandler<AddCreatureSpawnResultCommand> addCreatureSpawnResult,
     IQueryHandler<GetLivingCreatureCountBySpawnerIdQuery, int> getLivingCreatureCountBySpawnerId
-) : ICommandHandler<SyncCreatureSpawnerCommand>
+) : ICommandHandler<SyncCreatureSpawnerCommand, SyncCreatureSpawnerResult>
 {
-    public async Task Handle(
+    public async Task<SyncCreatureSpawnerResult> Handle(
         SyncCreatureSpawnerCommand command,
         CancellationToken cancellationToken = default
     )
@@ -40,7 +45,7 @@ internal class SyncCreatureSpawnerCommandHandler(
         );
         if (spawner == null)
         {
-            return;
+            return SyncCreatureSpawnerResult.None;
         }
 
         var hasTriggered = RecurringScheduling.HasTriggered(
@@ -50,7 +55,7 @@ internal class SyncCreatureSpawnerCommandHandler(
         );
         if (!hasTriggered)
         {
-            return;
+            return SyncCreatureSpawnerResult.None;
         }
 
         var currentPopulation = await getLivingCreatureCountBySpawnerId.Handle(
@@ -97,5 +102,9 @@ internal class SyncCreatureSpawnerCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
+
+        return new SyncCreatureSpawnerResult(
+            fillResult.EncounterGroups.Select(group => group.Id).ToArray()
+        );
     }
 }

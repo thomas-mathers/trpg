@@ -9,6 +9,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Narration.Results;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -63,11 +64,18 @@ internal static class GameSessionEndpoints
         [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
         [FromServices] IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
         [FromServices] ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
+        [FromServices] ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
         CancellationToken cancellationToken
     )
     {
         var session = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId },
+            cancellationToken
+        );
+
+        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
+        var stamp = await stampWorldState.Handle(
+            new StampWorldStateCommand { WorldId = session.WorldId },
             cancellationToken
         );
 
@@ -86,7 +94,7 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        return TypedResults.Ok(refreshed.Scene.ToSnapshot());
+        return TypedResults.Ok(refreshed.Scene.ToSnapshot(stamp));
     }
 
     private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(

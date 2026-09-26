@@ -7,6 +7,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -20,8 +21,9 @@ public class PublishSessionStateCommand
 }
 
 internal class PublishSessionStateCommandHandler(
-    IGameClientEventSink gameEvents,
+    ScenePublisher scenePublisher,
     IGameClientEventDispatcher eventDispatcher,
+    ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
@@ -34,6 +36,12 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
+        var stamp = await stampWorldState.Handle(
+            new StampWorldStateCommand { WorldId = command.WorldId },
+            cancellationToken
+        );
+
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
@@ -48,7 +56,7 @@ internal class PublishSessionStateCommandHandler(
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(scene));
+        scenePublisher.Publish(command.PlayerId, scene, stamp);
 
         await publishCombatState.Handle(
             new PublishCombatStateCommand { PlayerId = command.PlayerId },

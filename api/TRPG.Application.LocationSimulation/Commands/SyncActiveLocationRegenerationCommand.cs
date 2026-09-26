@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 
 namespace TRPG.Application.LocationSimulation.Commands;
@@ -25,6 +26,7 @@ internal class SyncActiveLocationRegenerationCommandHandler(
         RegenerateCreaturesAtLocationCommand,
         IReadOnlyCollection<CreatureVitals>
     > regenerateCreatures,
+    ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<SyncActiveLocationRegenerationCommand>
 {
@@ -52,14 +54,15 @@ internal class SyncActiveLocationRegenerationCommandHandler(
                 cancellationToken
             );
 
-            PublishPlayerVitals(command, locationId, changedVitals);
+            await PublishPlayerVitals(command, locationId, changedVitals, cancellationToken);
         }
     }
 
-    private void PublishPlayerVitals(
+    private async Task PublishPlayerVitals(
         SyncActiveLocationRegenerationCommand command,
         Guid locationId,
-        IReadOnlyCollection<CreatureVitals> changedVitals
+        IReadOnlyCollection<CreatureVitals> changedVitals,
+        CancellationToken cancellationToken
     )
     {
         var playerIds = command
@@ -67,9 +70,22 @@ internal class SyncActiveLocationRegenerationCommandHandler(
             .Select(player => player.PlayerId)
             .ToHashSet();
 
-        foreach (var vitals in changedVitals.Where(vitals => playerIds.Contains(vitals.CreatureId)))
+        var playerVitals = changedVitals
+            .Where(vitals => playerIds.Contains(vitals.CreatureId))
+            .ToArray();
+        if (playerVitals.Length == 0)
         {
-            gameEvents.Enqueue(new PlayerVitalsChangedEvent(vitals, command.GameTime));
+            return;
+        }
+
+        // Stamped after the regeneration so the version orders these vitals against any snapshot.
+        var stamp = await stampWorldState.Handle(
+            new StampWorldStateCommand { WorldId = command.WorldId },
+            cancellationToken
+        );
+        foreach (var vitals in playerVitals)
+        {
+            gameEvents.Enqueue(new PlayerVitalsChangedEvent(vitals, stamp.Version));
         }
     }
 }

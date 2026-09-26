@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { prefetchDungeonPremises, type BuildingType } from '@/api/client';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -28,9 +28,27 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
   const [scene, setScene] = useState<SceneSnapshot>();
   const playerId = scene?.playerStatus.id;
   const prefetchedBuildingIds = useRef(new Set<string>());
-  const latestVitalsTime = useRef(-Infinity);
+  const latestVersion = useRef(-Infinity);
 
-  useEffect(() => gameEventBus.on('SceneSnapshot', setScene), []);
+  // Snapshots and vitals share the server's world state version, so whichever is newer wins and a
+  // late arrival of the other can never roll the scene back.
+  const acceptVersion = useCallback((version: number) => {
+    if (version <= latestVersion.current) return false;
+    latestVersion.current = version;
+    return true;
+  }, []);
+
+  useEffect(() => {
+    latestVersion.current = -Infinity;
+  }, [sessionId]);
+
+  useEffect(
+    () =>
+      gameEventBus.on('SceneSnapshot', (snapshot) => {
+        if (acceptVersion(snapshot.version)) setScene(snapshot);
+      }),
+    [acceptVersion],
+  );
 
   useEffect(() => {
     const buildingIds = (scene?.nearbyBuildings ?? [])
@@ -50,9 +68,7 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
   useEffect(
     () =>
       gameEventBus.on('PlayerVitalsUpdated', (vitals) => {
-        // Vitals are stamped with the game time they describe, so a late one cannot overwrite a newer one.
-        if (vitals.gameTimeMilliseconds <= latestVitalsTime.current) return;
-        latestVitalsTime.current = vitals.gameTimeMilliseconds;
+        if (!acceptVersion(vitals.version)) return;
 
         setScene((current) =>
           current?.playerStatus.id === vitals.playerId
@@ -71,7 +87,7 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
             : current,
         );
       }),
-    [],
+    [acceptVersion],
   );
 
   useEffect(

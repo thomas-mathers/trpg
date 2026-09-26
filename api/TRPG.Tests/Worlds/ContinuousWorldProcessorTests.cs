@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Events;
+using TRPG.Application.GameTurns.Events;
 using TRPG.Application.Worlds;
 using TRPG.Data;
 using TRPG.Domain;
@@ -46,11 +47,15 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         _processor = new ContinuousWorldProcessor(scopeFactory, _worldClock, _gate, _logger);
 
         _world = Builders.MakeWorld();
-        var location = Builders.MakeLocation(_world.Id, kind: LocationKind.Wilderness);
+        var country = Builders.MakeCountry(_world.Id);
+        var state = Builders.MakeState(country.Id);
+        var location = Builders.MakeLocation(_world.Id, state.Id, kind: LocationKind.Wilderness);
         _player = Builders.MakeCreature(_world.Id, locationId: location.Id, currentHp: 1);
         _sleeper = Builders.MakeCreature(_world.Id, locationId: location.Id);
         _world.PlayerId = _player.Id;
         _context.Worlds.Add(_world);
+        _context.Countries.Add(country);
+        _context.States.Add(state);
         _context.Locations.Add(location);
         _context.Creatures.AddRange(_player, _sleeper);
         _context.CreatureJobs.Add(
@@ -121,10 +126,8 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
 
         // Assert
-        var flushed = Assert.Single(_flushedEvents);
-        var vitalsChanged = Assert.IsType<PlayerVitalsChangedEvent>(flushed);
+        var vitalsChanged = Assert.Single(_flushedEvents.OfType<PlayerVitalsChangedEvent>());
         Assert.Equal(_player.Id, vitalsChanged.Vitals.CreatureId);
-        Assert.Equal(GameClock.Epoch + TimeSpan.FromSeconds(10), vitalsChanged.GameTime);
         Assert.Equal(await ReadPlayerHp(), vitalsChanged.Vitals.CurrentHp);
         Assert.True(vitalsChanged.Vitals.CurrentHp > 1);
     }
@@ -152,7 +155,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(1, await ReadPlayerHp());
-        Assert.Empty(_flushedEvents);
+        Assert.Empty(_flushedEvents.OfType<PlayerVitalsChangedEvent>());
     }
 
     [Fact]
@@ -169,7 +172,59 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(1, await ReadPlayerHp());
-        Assert.Empty(_flushedEvents);
+        Assert.Empty(_flushedEvents.OfType<PlayerVitalsChangedEvent>());
+    }
+
+    [Fact]
+    public async Task ProcessRoutines_PublishesVersionedScene_WhenNoSceneWasPublishedYet()
+    {
+        // Arrange
+        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+
+        // Act
+        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(_logger.Errors.Count == 0, string.Join(Environment.NewLine, _logger.Errors));
+        var sceneUpdated = Assert.Single(_flushedEvents.OfType<SceneUpdatedEvent>());
+        Assert.Equal(_player.Id, sceneUpdated.Scene.Player.Id);
+        Assert.Equal(1, sceneUpdated.Stamp.Version);
+    }
+
+    [Fact]
+    public async Task ProcessRoutines_PublishesNothing_WhenSceneHasNoPlayerVisibleChange()
+    {
+        // Arrange
+        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        _flushedEvents.Clear();
+        _timeProvider.Advance(TimeSpan.FromSeconds(30));
+
+        // Act
+        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(_flushedEvents.OfType<SceneUpdatedEvent>());
+    }
+
+    [Fact]
+    public async Task ProcessRoutines_PublishesScene_WhenACreatureArrivesAtTheLocation()
+    {
+        // Arrange
+        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        _flushedEvents.Clear();
+        _context.Creatures.Add(Builders.MakeCreature(_world.Id, locationId: _player.LocationId));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _timeProvider.Advance(TimeSpan.FromSeconds(30));
+
+        // Act
+        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+
+        // Assert
+        var sceneUpdated = Assert.Single(_flushedEvents.OfType<SceneUpdatedEvent>());
+        Assert.Equal(2, sceneUpdated.Stamp.Version);
+        Assert.Equal(2, sceneUpdated.Scene.NearbyCreatures.Count);
     }
 
     [Fact]
@@ -344,7 +399,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
 
             lock (_errors)
             {
-                _errors.Add(formatter(state, exception));
+                _errors.Add($"{formatter(state, exception)} {exception}");
             }
         }
     }

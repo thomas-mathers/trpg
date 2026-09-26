@@ -8,4 +8,5 @@ public class World
     public string Name { get; init; } = "";
     public Guid? PlayerId { get; set; }
     public GameInstant GameTime { get; set; } = GameClock.Epoch;
+    public long StateVersion { get; set; }
 }

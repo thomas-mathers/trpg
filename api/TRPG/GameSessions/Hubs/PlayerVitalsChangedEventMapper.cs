@@ -1,6 +1,5 @@
 using TRPG.Application.Creatures.Events;
 using TRPG.Creatures.Responses;
-using TRPG.Domain;
 
 namespace TRPG.GameSessions.Hubs;
 
@@ -17,7 +16,7 @@ internal sealed class PlayerVitalsChangedEventMapper
                 MaximumAp: gameEvent.Vitals.MaximumAp,
                 CurrentMp: gameEvent.Vitals.CurrentMp,
                 MaximumMp: gameEvent.Vitals.MaximumMp,
-                GameTimeMilliseconds: (long)(gameEvent.GameTime - GameClock.Epoch).TotalMilliseconds
+                Version: gameEvent.Version
             ),
             static (client, arguments) => client.PlayerVitalsUpdated(arguments)
         );

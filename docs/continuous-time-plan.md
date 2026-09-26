@@ -370,22 +370,22 @@ Exit condition: active-world regeneration is visible every five seconds and cann
 
 ### Milestone 09 — Ambient encounters and versioned state
 
-Status: Not started
+Status: Complete
 
-- [ ] Add a persisted monotonically increasing world state version.
-- [ ] Include the version and clock anchor in full scene snapshots.
-- [ ] Reject stale snapshots and vitals updates on the client.
-- [ ] Send full ambient scenes only after semantic change.
-- [ ] Make spawner synchronization report newly created groups.
-- [ ] Evaluate newly spawned hostile groups in occupied locations.
-- [ ] Publish ambient encounters without resolving attacks or damage.
-- [ ] Keep non-spawn encounter categories player-action-driven.
-- [ ] Preserve and republish encounters across reconnects.
-- [ ] Remove session-end fight abandonment.
-- [ ] Add semantic comparison, ordering, spawn, safety, and reconnect tests.
-- [ ] Run backend and relevant SPA tests.
-- [ ] Run formatting and type checking.
-- [ ] Create milestone-closing commit.
+- [x] Add a persisted monotonically increasing world state version.
+- [x] Include the version and clock anchor in full scene snapshots.
+- [x] Reject stale snapshots and vitals updates on the client.
+- [x] Send full ambient scenes only after semantic change.
+- [x] Make spawner synchronization report newly created groups.
+- [x] Evaluate newly spawned hostile groups in occupied locations.
+- [x] Publish ambient encounters without resolving attacks or damage.
+- [x] Keep non-spawn encounter categories player-action-driven.
+- [x] Preserve and republish encounters across reconnects.
+- [x] Remove session-end fight abandonment.
+- [x] Add semantic comparison, ordering, spawn, safety, and reconnect tests.
+- [x] Run backend and relevant SPA tests.
+- [x] Run formatting and type checking.
+- [x] Create milestone-closing commit.
 
 Exit condition: ambient scene and encounter state reaches the client safely and monotonically without automatic harm.
 
@@ -427,13 +427,19 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 09 - Ambient encounters and versioned state
+Current milestone: 10 - SPA continuous-time experience
 
 Current status: Not started
 
-Last completed milestone: 08 - Passive regeneration
+Last completed milestone: 09 - Ambient encounters and versioned state
 
-Next action: Start milestone 09. Add the persisted per-world state version, include it and the clock anchor in full scene snapshots, and make the client reject stale snapshots and stale `PlayerVitalsUpdated` payloads by version (replacing the game-time stamp the client compares today). Then wire `SceneSemanticComparer` into the frequent and routine passes so ambient scenes publish only after a player-visible change, and continue with the spawn-report, ambient hostile encounter, reconnect republish, and session-end fight abandonment items. Do not add SPA clock display or interaction begin/end calls; those belong to milestone 10.
+Next action: Start milestone 10. Regenerate the HTTP and SignalR clients if any contract changes, derive the visible clock in the SPA from the `SceneSnapshot` anchor (`gameTimeMilliseconds` elapsed since `GameClock.Epoch` at `anchoredAtUnixMilliseconds` real time) and tick it once per second, render the custom calendar date and `HH:mm:ss` with rollover, switch wait and sleep calculations to the derived minute, call the validated begin/end interaction endpoints from the trade, NPC quest, and caravan panels, and add the client clock, interaction, and vitals tests. The version guard for snapshots and vitals already exists in `SceneProvider`; do not rebuild it. Do not start milestone 11 balance or documentation work.
+
+Milestone 09 progress: `World.StateVersion` (bigint, `AddWorldStateVersion` migration, default 0) is a persisted monotonically increasing per-world counter. Worlds' `StampWorldStateCommand` advances it with a compare-and-swap `ExecuteUpdateAsync` loop (no two callers can receive the same version) and returns a `WorldStateStamp(Version, GameTime, CapturedAt)` whose game time and real UTC time come from `IWorldClock.GetCurrent` and `TimeProvider`. `SceneUpdatedEvent` now carries the stamp, and `SceneSnapshot` gained `Version`, `GameTimeMilliseconds`, and `AnchoredAtUnixMilliseconds` (the HTTP refresh endpoint stamps too). `PlayerVitalsChangedEvent` carries a `Version` instead of a game time, and `PlayerVitalsUpdated.GameTimeMilliseconds` became `Version`. GameTurns' `ScenePublisher` is the single place a scene event is enqueued and it records the scene in the singleton `PublishedSceneRegistry`; `PublishSessionStateCommand` and `GameTurnStreamer` stamp before reading the scene. `PublishAmbientSceneCommand` reads the scene at the pass instant, compares it with the last published scene through `SceneSemanticComparer`, and stamps and publishes only on a player-visible change (or when no scene was published yet). `ContinuousWorldProcessor` runs it after the traveler and regeneration work of the frequent pass and after the routine sync of the routine pass, flushing the dispatcher inside the lease without an acknowledgement wait, and the routine pass now flushes the encounter events its sync queued before the scene. `SyncCreatureSpawnerCommand` returns `SyncCreatureSpawnerResult` (new encounter group ids), `SyncLocationRoutinesCommand` returns `SyncLocationRoutinesResult`, and `SyncActiveLocationRoutinesCommand` hands those ids to the new Encounters `EvaluateAmbientEncounterCommand`, which skips a dead player or a player with an unresolved encounter or fight, evaluates only the just-spawned groups through `EvaluateEncounterGroupCommand` (new optional `GroupIds` filter), and publishes the started encounter through `PublishEncounterStartedCommand`. `SceneProvider` in the SPA shares one latest-version ref between snapshots and vitals, drops anything not newer, and resets it when the session id changes. `AbandonActiveFightCommand` had no production caller after milestone 05 and was deleted with its tests; `EndGameSessionCommandTests` already proves a session end preserves an active fight and its engagement, and the existing reconnect tests prove encounter republishing.
+
+Milestone 09 decisions: The stamp is taken before the scene is read wherever gameplay reads it without the world lease (connect, turn diff, HTTP refresh), so a later-numbered snapshot never describes older state; ambient work already holds the lease, so it reads first and stamps only when it will publish, which avoids a database write every five seconds for an unchanged scene. Vitals are stamped after the regeneration mutation for the same reason. Turn diffs now burn one version per diff even when nothing is published; gaps are harmless because the client only needs order. The last published scene lives in memory, so after a restart the first ambient pass republishes once, which the client accepts by version. Ambient encounter evaluation deliberately calls only `EvaluateEncounterGroupCommand`, never the guard, suspicion, trap, trespassing, jailbreak, or room-key evaluators, and an already-engaged player (for example mid-conversation) still receives the encounter; the engagement manager engages only creatures not already engaged and releases the player when the encounter resolves. A group that spawns while the player already has an unresolved encounter or fight is not re-evaluated later until the player arrives again. The clock anchor is a plain millisecond pair rather than a date string so the SPA does no parsing; it is only meaningful while the world is active, which is the only time a snapshot is pushed. `SceneSemanticComparer` still ignores the clock, vital meters, and departure countdowns, so those must reach the client through the derived clock (milestone 10), vitals updates, and the next real snapshot.
+
+Milestone 09 validation: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed. The complete backend suite passed through the xUnit executable with Docker access (`dotnet api/TRPG.Tests/bin/Debug/net10.0/TRPG.Tests.dll`, 2808 tests, 0 failures), including the new `StampWorldStateCommandTests` (increment, persistence, clock anchor, concurrent uniqueness, unknown world), `PublishAmbientSceneCommandTests`, `EvaluateAmbientEncounterCommandTests`, the spawner-result and `GroupIds` cases, `SyncActiveLocationRoutinesCommandTests` ambient encounter cases (presented without a fight or damage, none when the spawner has not triggered, existing groups not re-evaluated), processor scene publish, suppression, and republish cases, and version assertions in the hub connect, reconnect, sit/stand, and HTTP scene tests. `dotnet csharpier check .` passed. `pnpm generate-client` regenerated the clients (two whitespace-only generator hunks in `TRPG.GameSessions.Responses.ts` were discarded), and `pnpm run fmt:check`, `pnpm run typecheck`, and `pnpm test` passed all 180 SPA tests, including the new stale-snapshot, stale-vitals, newer-snapshot, and session-reset cases in `scene-provider.test.tsx`. The pre-closing status and diff inspection contained only intended milestone files; design-questionnaire artifacts remained excluded.
 
 Milestone 08 progress: `CreatureRegenOptions` now holds `TickInterval` (5 seconds) and `Hp/Ap/MpRegenPercentPerTick` (5%, 10%, 5%); `appsettings.json` matches. `StatFormulas.ApplyPassiveRegen` counts complete ticks since `LastRegenGameTime`, regenerates `maximum * percent * ticks` (clamped to the missing amount, minimum one point when the rate is positive so small maximums never stall), and advances the anchor by whole ticks only, so a partial tick stays banked. A non-positive tick interval throws. The new `RegenerateCreaturesAtLocationCommand` (Creatures) loads only living creatures at one location that are below at least one maximum, skips an excluded id set, applies the formula, persists, and returns `CreatureVitals` for creatures whose vitals changed. The new `GetActiveFightCombatantIdsByWorldQuery` (Encounters) supplies the excluded set, and `SyncActiveLocationRegenerationCommand` (LocationSimulation) combines them per watched location and enqueues `PlayerVitalsChangedEvent` for each changed watching player. `ContinuousWorldProcessor`'s five-second pass, renamed from the traveler lane to `ContinuousWorldLane.Frequent` (`ProcessFrequent`, `ContinuousWorldService.FrequentCadence`), runs traveler sync and then regeneration in a fresh DI scope, flushing the client-event dispatcher inside the world lease without waiting for an acknowledgement. The host maps the event to the new `IGameClient.PlayerVitalsUpdated(PlayerVitalsUpdated)` call.
 

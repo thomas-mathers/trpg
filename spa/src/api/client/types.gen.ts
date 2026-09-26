@@ -844,6 +844,9 @@ export type SceneSnapshot = {
     nearbyProps: Array<NearbyPropSnapshot>;
     exits: Array<NearbyExitSnapshot>;
     nearbyCaravans: Array<NearbyCaravanSnapshot>;
+    version: number;
+    gameTimeMilliseconds: number;
+    anchoredAtUnixMilliseconds: number;
 };
 
 export type SessionCreatedResponse = {

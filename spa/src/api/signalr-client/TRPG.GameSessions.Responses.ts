@@ -67,6 +67,12 @@ export type SceneSnapshot = {
     exits: NearbyExitSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyCaravanSnapshot> */
     nearbyCaravans: NearbyCaravanSnapshot[];
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from long */
+    gameTimeMilliseconds: number;
+    /** Transpiled from long */
+    anchoredAtUnixMilliseconds: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */

@@ -14,7 +14,7 @@ public class CatchUpLocationCommand
 
 internal class CatchUpLocationCommandHandler(
     ICommandHandler<SyncLocationTravelersCommand> syncLocationTravelers,
-    ICommandHandler<SyncLocationRoutinesCommand> syncLocationRoutines
+    ICommandHandler<SyncLocationRoutinesCommand, SyncLocationRoutinesResult> syncLocationRoutines
 ) : ICommandHandler<CatchUpLocationCommand>
 {
     public async Task Handle(

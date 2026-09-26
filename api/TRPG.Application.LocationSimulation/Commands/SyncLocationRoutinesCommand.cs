@@ -15,17 +15,22 @@ public class SyncLocationRoutinesCommand
     public required GameInstant GameTime { get; init; }
 }
 
+public record SyncLocationRoutinesResult(IReadOnlyCollection<Guid> SpawnedEncounterGroupIds)
+{
+    public static readonly SyncLocationRoutinesResult None = new([]);
+}
+
 internal class SyncLocationRoutinesCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<SyncWeatherCommand> syncWeather,
     ICommandHandler<SyncLocationJobsCommand> syncLocationJobs,
     ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock,
-    ICommandHandler<SyncCreatureSpawnerCommand> syncCreatureSpawner,
+    ICommandHandler<SyncCreatureSpawnerCommand, SyncCreatureSpawnerResult> syncCreatureSpawner,
     ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy,
     ICommandHandler<SyncQuestSeedScheduleCommand> syncQuestSeedSchedule
-) : ICommandHandler<SyncLocationRoutinesCommand>
+) : ICommandHandler<SyncLocationRoutinesCommand, SyncLocationRoutinesResult>
 {
-    public async Task Handle(
+    public async Task<SyncLocationRoutinesResult> Handle(
         SyncLocationRoutinesCommand command,
         CancellationToken cancellationToken = default
     )
@@ -36,7 +41,7 @@ internal class SyncLocationRoutinesCommandHandler(
         );
         if (location == null)
         {
-            return;
+            return SyncLocationRoutinesResult.None;
         }
 
         // Weather precedes jobs because a creature's routine can be overridden by it.
@@ -69,7 +74,7 @@ internal class SyncLocationRoutinesCommandHandler(
             cancellationToken
         );
 
-        await syncCreatureSpawner.Handle(
+        var spawnResult = await syncCreatureSpawner.Handle(
             new SyncCreatureSpawnerCommand
             {
                 LocationId = command.LocationId,
@@ -100,5 +105,7 @@ internal class SyncLocationRoutinesCommandHandler(
             },
             cancellationToken
         );
+
+        return new SyncLocationRoutinesResult(spawnResult.SpawnedEncounterGroupIds);
     }
 }

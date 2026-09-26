@@ -235,6 +235,7 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         );
         Assert.NotNull(scene);
         Assert.Equal(_player.Name, scene.PlayerStatus.Name);
+        Assert.True(scene.Version > 0);
     }
 
     [Fact]

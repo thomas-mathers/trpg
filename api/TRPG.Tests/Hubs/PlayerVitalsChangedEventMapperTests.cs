@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.SignalR.Client;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Creatures.Results;
 using TRPG.Creatures.Responses;
-using TRPG.Domain;
 using TRPG.GameSessions.Hubs;
 using TRPG.Tests.Helpers;
 
@@ -11,7 +10,7 @@ namespace TRPG.Tests.Hubs;
 public sealed class PlayerVitalsChangedEventMapperTests
 {
     [Fact]
-    public async Task Map_CallsPlayerVitalsUpdated_WithVitalsAndElapsedGameMilliseconds()
+    public async Task Map_CallsPlayerVitalsUpdated_WithVitalsAndStateVersion()
     {
         // Arrange
         var playerId = Guid.NewGuid();
@@ -25,7 +24,7 @@ public sealed class PlayerVitalsChangedEventMapperTests
                 CurrentMp: 5,
                 MaximumMp: 8
             ),
-            GameClock.Epoch + TimeSpan.FromSeconds(90)
+            Version: 42
         );
         PlayerVitalsUpdated? received = null;
         var client = new TestGameClient
@@ -47,7 +46,7 @@ public sealed class PlayerVitalsChangedEventMapperTests
                 MaximumAp: 10,
                 CurrentMp: 5,
                 MaximumMp: 8,
-                GameTimeMilliseconds: 90_000
+                Version: 42
             ),
             received
         );

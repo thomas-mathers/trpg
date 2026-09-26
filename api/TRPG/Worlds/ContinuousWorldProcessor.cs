@@ -6,6 +6,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.LocationSimulation;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.LocationSimulation.Queries;
@@ -141,6 +142,7 @@ internal sealed class ContinuousWorldProcessor(
                     cancellationToken
                 );
             await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
+            await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
             return;
         }
 
@@ -155,6 +157,44 @@ internal sealed class ContinuousWorldProcessor(
                 },
                 cancellationToken
             );
+
+        // Spawn-driven encounters are queued by the routine sync; clients must see them before the scene.
+        await services
+            .GetRequiredService<IGameClientEventDispatcher>()
+            .FlushAsync(worldId, cancellationToken);
+        await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
+    }
+
+    private async Task PublishAmbientScenes(
+        Guid worldId,
+        IReadOnlyCollection<ActiveLocationPlayer> players,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var services = scope.ServiceProvider;
+        var publishAmbientScene = services.GetRequiredService<
+            ICommandHandler<PublishAmbientSceneCommand>
+        >();
+
+        foreach (var player in players)
+        {
+            await publishAmbientScene.Handle(
+                new PublishAmbientSceneCommand
+                {
+                    WorldId = worldId,
+                    PlayerId = player.PlayerId,
+                    GameTime = gameTime,
+                },
+                cancellationToken
+            );
+        }
+
+        // Flushing inside the lease keeps the snapshot ordered with the mutations it describes.
+        await services
+            .GetRequiredService<IGameClientEventDispatcher>()
+            .FlushAsync(worldId, cancellationToken);
     }
 
     private async Task RegenerateCreatures(
