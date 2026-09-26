@@ -79,9 +79,10 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
         await _registry.Connect(_session.Id, _world.Id, TestContext.Current.CancellationToken);
 
         await _registry.Disconnect(_session.Id);
-        await WaitForSessionEnd();
+        await WaitForWorldPause();
 
         Assert.Equal(1, _worldClock.PauseCount);
+        Assert.False(await SessionExists());
     }
 
     [Fact]
@@ -97,12 +98,13 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
         Assert.True(await SessionExists());
     }
 
-    private async Task WaitForSessionEnd()
+    // The world is paused after the session row is deleted, so waiting on the pause covers both.
+    private async Task WaitForWorldPause()
     {
         var timeoutAt = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
-        while (await SessionExists())
+        while (_worldClock.PauseCount == 0)
         {
-            Assert.True(DateTimeOffset.UtcNow < timeoutAt, "Session did not end after grace.");
+            Assert.True(DateTimeOffset.UtcNow < timeoutAt, "World was not paused after grace.");
             await Task.Delay(TimeSpan.FromMilliseconds(20), TestContext.Current.CancellationToken);
         }
     }
@@ -118,8 +120,11 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
 
     private sealed class RecordingWorldClock : IWorldClock
     {
-        public int ResumeCount { get; private set; }
-        public int PauseCount { get; private set; }
+        private int _resumeCount;
+        private int _pauseCount;
+
+        public int ResumeCount => Volatile.Read(ref _resumeCount);
+        public int PauseCount => Volatile.Read(ref _pauseCount);
 
         public Task<GameInstant> GetCurrent(
             Guid worldId,
@@ -131,7 +136,7 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
             CancellationToken cancellationToken = default
         )
         {
-            ResumeCount++;
+            Interlocked.Increment(ref _resumeCount);
             return Task.FromResult(GameClock.Epoch);
         }
 
@@ -140,7 +145,7 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
             CancellationToken cancellationToken = default
         )
         {
-            PauseCount++;
+            Interlocked.Increment(ref _pauseCount);
             return Task.FromResult(GameClock.Epoch);
         }
 

@@ -264,7 +264,12 @@ public sealed class PurchaseCaravanTicketCommandHandlerTests(DatabaseFixture db)
 
         Assert.Equal(PurchaseCaravanTicketOutcome.TravelSuspended, result.Outcome);
         Assert.Equal(10, gold.Quantity);
-        Assert.Empty(_context.CaravanTickets);
+        Assert.False(
+            await _context.CaravanTickets.AnyAsync(
+                ticket => ticket.CreatureId == _player.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
 
         _context.WeatherStates.Remove(weather);
         _context.Locations.Remove(location);
