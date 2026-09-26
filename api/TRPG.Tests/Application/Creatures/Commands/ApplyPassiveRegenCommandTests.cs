@@ -17,9 +17,9 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
 {
     private static readonly CreatureRegenOptions RegenOptions = new()
     {
-        HpRegenPercentPerHour = 0.2f,
-        ApRegenPercentPerHour = 0.25f,
-        MpRegenPercentPerHour = 0.25f,
+        HpRegenPercentPerTick = 0.2f,
+        ApRegenPercentPerTick = 0.25f,
+        MpRegenPercentPerTick = 0.25f,
     };
 
     private TrpgDbContext _context = null!;
@@ -60,7 +60,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
     public async Task Handle_ReturnsDetachedCreatures_ReflectingRegeneratedValues()
     {
         // Arrange
-        SetGameTime(GameClock.Epoch + TimeSpan.FromHours(1));
+        SetGameTime(GameClock.Epoch + TimeSpan.FromSeconds(5));
 
         // Act
         var result = await _handler.Handle(
@@ -110,7 +110,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
 
         SetGameTime(GameClock.Epoch + TimeSpan.FromHours(1));
 
-        var fullHpRegenOptions = new CreatureRegenOptions { HpRegenPercentPerHour = 1.0f };
+        var fullHpRegenOptions = new CreatureRegenOptions { HpRegenPercentPerTick = 1.0f };
         await using var fullRegenServiceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsSnapshot<CreatureRegenOptions>>(

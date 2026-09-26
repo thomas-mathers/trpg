@@ -60,10 +60,10 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Service_RunsTravelerPassEveryFiveSeconds_WithoutRunningRoutinePass()
+    public async Task Service_RunsFrequentPassEveryFiveSeconds_WithoutRunningRoutinePass()
     {
         // Act
-        _timeProvider.Advance(ContinuousWorldService.TravelerCadence);
+        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
 
         // Assert
         await WaitFor(() => _worldClock.CheckpointCount == 1);
@@ -78,7 +78,7 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         // Act
         for (var pass = 1; pass <= 6; pass++)
         {
-            _timeProvider.Advance(ContinuousWorldService.TravelerCadence);
+            _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
             var expectedPasses = pass;
             await WaitFor(() => _worldClock.CheckpointCount == expectedPasses);
         }
@@ -96,9 +96,9 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         _worldClock.FailCheckpoints = true;
 
         // Act
-        _timeProvider.Advance(ContinuousWorldService.TravelerCadence);
+        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
         await WaitFor(() => _worldClock.CheckpointCount == 1);
-        _timeProvider.Advance(ContinuousWorldService.TravelerCadence);
+        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
 
         // Assert
         await WaitFor(() => _worldClock.CheckpointCount == 2);

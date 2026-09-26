@@ -350,21 +350,21 @@ Exit condition: active-world simulation runs continuously without TickerQ or ove
 
 ### Milestone 08 — Passive regeneration
 
-Status: Not started
+Status: Complete
 
-- [ ] Replace hourly regeneration settings with five-second tick settings.
-- [ ] Implement HP 5%, AP 10%, and MP 5% defaults.
-- [ ] Preserve fractional elapsed tick time.
-- [ ] Query only relevant non-full creatures.
-- [ ] Catch up exactly before stat-sensitive operations.
-- [ ] Apply regeneration over explicit time skips.
-- [ ] Suppress background regeneration for active fight participants.
-- [ ] Reset combatant anchors when combat ends or is fled.
-- [ ] Add targeted versioned player-vitals SignalR updates.
-- [ ] Add formula, command, background, combat, and transport tests.
-- [ ] Run backend and relevant SPA tests.
-- [ ] Run formatting and type checking.
-- [ ] Create milestone-closing commit.
+- [x] Replace hourly regeneration settings with five-second tick settings.
+- [x] Implement HP 5%, AP 10%, and MP 5% defaults.
+- [x] Preserve fractional elapsed tick time.
+- [x] Query only relevant non-full creatures.
+- [x] Catch up exactly before stat-sensitive operations.
+- [x] Apply regeneration over explicit time skips.
+- [x] Suppress background regeneration for active fight participants.
+- [x] Reset combatant anchors when combat ends or is fled.
+- [x] Add targeted versioned player-vitals SignalR updates.
+- [x] Add formula, command, background, combat, and transport tests.
+- [x] Run backend and relevant SPA tests.
+- [x] Run formatting and type checking.
+- [x] Create milestone-closing commit.
 
 Exit condition: active-world regeneration is visible every five seconds and cannot be exploited by idling in combat.
 
@@ -427,13 +427,19 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 08 — Passive regeneration
+Current milestone: 09 - Ambient encounters and versioned state
 
 Current status: Not started
 
-Last completed milestone: 07 — Background service
+Last completed milestone: 08 - Passive regeneration
 
-Next action: Replace the hourly regeneration settings with five-second tick settings (HP 5%, AP 10%, MP 5%), preserve fractional elapsed tick time, and add the regeneration step to `ContinuousWorldProcessor`'s five-second traveler pass (rename the lane if regeneration makes "Travelers" misleading). Do not add ambient encounter or scene-version work.
+Next action: Start milestone 09. Add the persisted per-world state version, include it and the clock anchor in full scene snapshots, and make the client reject stale snapshots and stale `PlayerVitalsUpdated` payloads by version (replacing the game-time stamp the client compares today). Then wire `SceneSemanticComparer` into the frequent and routine passes so ambient scenes publish only after a player-visible change, and continue with the spawn-report, ambient hostile encounter, reconnect republish, and session-end fight abandonment items. Do not add SPA clock display or interaction begin/end calls; those belong to milestone 10.
+
+Milestone 08 progress: `CreatureRegenOptions` now holds `TickInterval` (5 seconds) and `Hp/Ap/MpRegenPercentPerTick` (5%, 10%, 5%); `appsettings.json` matches. `StatFormulas.ApplyPassiveRegen` counts complete ticks since `LastRegenGameTime`, regenerates `maximum * percent * ticks` (clamped to the missing amount, minimum one point when the rate is positive so small maximums never stall), and advances the anchor by whole ticks only, so a partial tick stays banked. A non-positive tick interval throws. The new `RegenerateCreaturesAtLocationCommand` (Creatures) loads only living creatures at one location that are below at least one maximum, skips an excluded id set, applies the formula, persists, and returns `CreatureVitals` for creatures whose vitals changed. The new `GetActiveFightCombatantIdsByWorldQuery` (Encounters) supplies the excluded set, and `SyncActiveLocationRegenerationCommand` (LocationSimulation) combines them per watched location and enqueues `PlayerVitalsChangedEvent` for each changed watching player. `ContinuousWorldProcessor`'s five-second pass, renamed from the traveler lane to `ContinuousWorldLane.Frequent` (`ProcessFrequent`, `ContinuousWorldService.FrequentCadence`), runs traveler sync and then regeneration in a fresh DI scope, flushing the client-event dispatcher inside the world lease without waiting for an acknowledgement. The host maps the event to the new `IGameClient.PlayerVitalsUpdated(PlayerVitalsUpdated)` call.
+
+Milestone 08 decisions: The ordering stamp on a vitals update is `GameTimeMilliseconds`, the elapsed fictional milliseconds since `GameClock.Epoch` at the regeneration instant. Scene snapshots carry no sub-hour clock yet, so the persisted world state version required to order vitals against snapshots is left to milestone 09; until then the SPA only ignores a vitals update that is not newer than the last one it applied and ignores payloads for other creatures. Background regeneration covers every living below-maximum creature at the watched location, not just the player, so nearby vitals in the next scene snapshot are current; creatures elsewhere catch up exactly when a stat-sensitive operation touches them (`StartFightCommand`, wait, sleep, turn start, walking, and caravan boarding all call `ApplyPassiveRegenCommand` at their captured instant). Fight participants are excluded from background regeneration by active `FightEncounter` membership, and the per-round `ApplyPassiveRegenCommand` call in `ResolvePlayerCombatActionCommandHandler` was removed because it would have banked real idle time during a fight. Combat exit already resets survivors' `LastRegenGameTime` in `EndFightCommand` (which also handles fled outcomes), so combat time is not banked. Walking (`MoveTool`) and caravan boarding (`StreamBoardCaravanTurnHandler`) now apply regeneration at the arrival instant, which milestone 04 left to the next background pass. The existing hourly-to-tick change needed no migration because no schema changed. The SPA applies the payload in `SceneProvider` as a minimal consumer so regeneration is visible now; milestone 10 still owns the derived clock, interaction calls, and versioned client guards.
+
+Milestone 08 validation: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed. The complete backend suite passed through the xUnit executable with Docker access (`dotnet api/TRPG.Tests/bin/Debug/net10.0/TRPG.Tests.dll`, 2788 tests, 0 failures), including the new formula, `RegenerateCreaturesAtLocationCommandTests`, `GetActiveFightCombatantIdsByWorldQueryTests`, `SyncActiveLocationRegenerationCommandTests`, processor regeneration and fight-suppression cases, `PlayerVitalsChangedEventMapperTests`, the walking regeneration case in `MoveToolTests`, and the mid-fight anchor case in `PlayerCombatLifecycleTests`. `dotnet csharpier check .` passed. `pnpm generate-client` regenerated the SignalR client (a whitespace-only change to `TRPG.GameSessions.Responses.ts` was discarded), and `pnpm run fmt:check`, `pnpm run typecheck`, and `pnpm test` passed all 176 SPA tests. Known gap: caravan boarding has no existing handler-level test seam, so its regeneration call mirrors the tested `MoveTool` change but has no dedicated test.
 
 Milestone 07 progress: `ContinuousWorldService` (host `TRPG/Worlds/`, a `BackgroundService`) runs two independent `PeriodicTimer` loops on the injected `TimeProvider`: a 5-second traveler loop and a 30-second routine loop. Both delegate to `ContinuousWorldProcessor`, which has no timer. For every world in the new `IWorldClock.GetActiveWorldIds()`, the traveler pass first checkpoints the world clock, then (per world, concurrently across worlds) skips the world when the previous pass for the same world and lane is still running, acquires the world's `IWorldMutationGate` lease, captures the `GameInstant` inside it, resolves the watched location through the new `GetActiveLocationPlayersQuery` (world player via `GetWorldPlayerIdQuery`, location and level via `GetCreaturePresenceQuery`), and calls `SyncActiveLocationTravelersCommand` or `SyncActiveLocationRoutinesCommand` in its own DI scope. Failures are caught per world and per pass, logged, and retried on the next tick; nothing touches SignalR, so a failure cannot disconnect a client. The service is registered after `WorldClockCheckpointService` and `EngagementStartupRecovery`, so it stops first and starts after startup recovery.
 

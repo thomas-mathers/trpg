@@ -4,16 +4,18 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.LocationSimulation;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.LocationSimulation.Queries;
+using TRPG.Domain;
 
 namespace TRPG.Worlds;
 
 internal enum ContinuousWorldLane
 {
-    Travelers,
+    Frequent,
     Routines,
 }
 
@@ -26,14 +28,14 @@ internal sealed class ContinuousWorldProcessor(
 {
     private readonly ConcurrentDictionary<WorldLane, byte> _runningPasses = new();
 
-    public async Task ProcessTravelers(CancellationToken cancellationToken = default)
+    public async Task ProcessFrequent(CancellationToken cancellationToken = default)
     {
         foreach (var worldId in worldClock.GetActiveWorldIds())
         {
             await CheckpointClock(worldId, cancellationToken);
         }
 
-        await ProcessActiveWorlds(ContinuousWorldLane.Travelers, cancellationToken);
+        await ProcessActiveWorlds(ContinuousWorldLane.Frequent, cancellationToken);
     }
 
     public Task ProcessRoutines(CancellationToken cancellationToken = default) =>
@@ -125,7 +127,7 @@ internal sealed class ContinuousWorldProcessor(
             return;
         }
 
-        if (lane == ContinuousWorldLane.Travelers)
+        if (lane == ContinuousWorldLane.Frequent)
         {
             await services
                 .GetRequiredService<ICommandHandler<SyncActiveLocationTravelersCommand>>()
@@ -138,6 +140,7 @@ internal sealed class ContinuousWorldProcessor(
                     },
                     cancellationToken
                 );
+            await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
             return;
         }
 
@@ -152,6 +155,34 @@ internal sealed class ContinuousWorldProcessor(
                 },
                 cancellationToken
             );
+    }
+
+    private async Task RegenerateCreatures(
+        Guid worldId,
+        IReadOnlyCollection<ActiveLocationPlayer> players,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var services = scope.ServiceProvider;
+
+        await services
+            .GetRequiredService<ICommandHandler<SyncActiveLocationRegenerationCommand>>()
+            .Handle(
+                new SyncActiveLocationRegenerationCommand
+                {
+                    WorldId = worldId,
+                    Players = players,
+                    GameTime = gameTime,
+                },
+                cancellationToken
+            );
+
+        // Flushing inside the lease keeps vitals ordered with the mutations they describe.
+        await services
+            .GetRequiredService<IGameClientEventDispatcher>()
+            .FlushAsync(worldId, cancellationToken);
     }
 
     private readonly record struct WorldLane(Guid WorldId, ContinuousWorldLane Lane);

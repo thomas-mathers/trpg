@@ -9,12 +9,12 @@ internal sealed class ContinuousWorldService(
     ILogger<ContinuousWorldService> logger
 ) : BackgroundService
 {
-    public static readonly TimeSpan TravelerCadence = TimeSpan.FromSeconds(5);
+    public static readonly TimeSpan FrequentCadence = TimeSpan.FromSeconds(5);
     public static readonly TimeSpan RoutineCadence = TimeSpan.FromSeconds(30);
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
         Task.WhenAll(
-            RunEvery(TravelerCadence, processor.ProcessTravelers, stoppingToken),
+            RunEvery(FrequentCadence, processor.ProcessFrequent, stoppingToken),
             RunEvery(RoutineCadence, processor.ProcessRoutines, stoppingToken)
         );
 

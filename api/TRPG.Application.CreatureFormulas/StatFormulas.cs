@@ -187,10 +187,14 @@ public static class StatFormulas
             return;
         }
 
-        var elapsedInGameHours =
-            (currentGameTime - creature.LastRegenGameTime).TotalHours
-            / TimeSpan.FromHours(1).TotalHours;
-        if (elapsedInGameHours <= 0)
+        if (options.TickInterval <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException("The regeneration tick interval must be positive.");
+        }
+
+        var completeTicks = (long)
+            Math.Floor((currentGameTime - creature.LastRegenGameTime) / options.TickInterval);
+        if (completeTicks <= 0)
         {
             return;
         }
@@ -198,26 +202,41 @@ public static class StatFormulas
         creature.CurrentHp = Regen(
             creature.CurrentHp,
             creature.MaximumHp,
-            options.HpRegenPercentPerHour,
-            elapsedInGameHours
+            options.HpRegenPercentPerTick,
+            completeTicks
         );
         creature.CurrentAp = Regen(
             creature.CurrentAp,
             creature.MaximumAp,
-            options.ApRegenPercentPerHour,
-            elapsedInGameHours
+            options.ApRegenPercentPerTick,
+            completeTicks
         );
         creature.CurrentMp = Regen(
             creature.CurrentMp,
             creature.MaximumMp,
-            options.MpRegenPercentPerHour,
-            elapsedInGameHours
+            options.MpRegenPercentPerTick,
+            completeTicks
         );
-        creature.LastRegenGameTime = currentGameTime;
+
+        // Advancing by whole ticks keeps the partial tick banked toward the next one.
+        creature.LastRegenGameTime += options.TickInterval * completeTicks;
     }
 
-    private static int Regen(int current, int maximum, float percentPerHour, double elapsedHours) =>
-        Math.Min(maximum, current + (int)Math.Round(maximum * percentPerHour * elapsedHours));
+    private static int Regen(int current, int maximum, float percentPerTick, long ticks)
+    {
+        var missing = maximum - current;
+        if (missing <= 0)
+        {
+            return current;
+        }
+
+        var amount = Math.Round(
+            maximum * (double)percentPerTick * ticks,
+            MidpointRounding.AwayFromZero
+        );
+        var minimumAmount = percentPerTick > 0 ? 1 : 0;
+        return current + (int)Math.Min(missing, Math.Max(amount, minimumAmount));
+    }
 
     public static float CalculateTravelSpeed(
         int dexterity,

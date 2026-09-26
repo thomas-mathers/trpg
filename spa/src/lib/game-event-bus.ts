@@ -1,5 +1,9 @@
 import type { CombatStarted, CombatUpdated } from '@/api/signalr-client/TRPG.Combat.Responses';
-import type { CharacterLevelUp, SkillLevelUp } from '@/api/signalr-client/TRPG.Creatures.Responses';
+import type {
+  CharacterLevelUp,
+  PlayerVitalsUpdated,
+  SkillLevelUp,
+} from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
   GuardEncounterResolutionFact,
   GuardEncounterState,
@@ -45,6 +49,7 @@ interface GameEventMap {
   TheftEncounterResolved: TheftEncounterResolutionFact;
   TrapEncounterStarted: TrapEncounterState;
   TrapEncounterResolved: TrapEncounterResolutionFact;
+  PlayerVitalsUpdated: PlayerVitalsUpdated;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
   QuestObjectiveCompleted: QuestObjectiveCompleted;

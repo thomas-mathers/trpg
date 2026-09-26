@@ -4,6 +4,7 @@ import { byText } from 'testing-library-selector';
 import { describe, expect, it } from 'vitest';
 
 import { handlePrefetchDungeonPremises } from '@/api/client/msw.gen';
+import type { PlayerVitalsUpdated } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { usePlayerId, useScene, useSessionId } from '@/features/game/contexts/scene-context';
 import { gameEventBus } from '@/lib/game-event-bus';
@@ -26,6 +27,30 @@ function Consumer() {
       {sessionId}|{playerId ?? 'no-player'}|{scene ? 'scene-loaded' : 'no-scene'}
     </output>
   );
+}
+
+function VitalsConsumer() {
+  const scene = useScene();
+
+  return (
+    <output>
+      {scene ? `hp:${scene.playerStatus.currentHp}/${scene.playerStatus.maximumHp}` : 'no-scene'}
+    </output>
+  );
+}
+
+function makeVitals(overrides: Partial<PlayerVitalsUpdated>): PlayerVitalsUpdated {
+  return {
+    playerId: 'player-id',
+    currentHp: 10,
+    maximumHp: 40,
+    currentAp: 4,
+    maximumAp: 10,
+    currentMp: 2,
+    maximumMp: 8,
+    gameTimeMilliseconds: 5000,
+    ...overrides,
+  };
 }
 
 describe('SceneProvider', () => {
@@ -109,5 +134,60 @@ describe('SceneProvider', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(prefetchedBatches).toEqual([['crypt-id']]);
+  });
+
+  describe('player vitals updates', () => {
+    const vitalsSnapshot = {
+      playerStatus: { id: 'player-id', currentHp: 1, maximumHp: 40 },
+    } as SceneSnapshot;
+
+    it('applies a vitals update to the player status of the current scene', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <VitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
+
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12 }));
+
+      expect(await byText('hp:12/40').find()).toBeVisible();
+    });
+
+    it('ignores a vitals update that is older than one already applied', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <VitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
+      gameEventBus.emit(
+        'PlayerVitalsUpdated',
+        makeVitals({ currentHp: 20, gameTimeMilliseconds: 10_000 }),
+      );
+      expect(await byText('hp:20/40').find()).toBeVisible();
+
+      gameEventBus.emit(
+        'PlayerVitalsUpdated',
+        makeVitals({ currentHp: 15, gameTimeMilliseconds: 5000 }),
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(byText('hp:20/40').get()).toBeVisible();
+    });
+
+    it('ignores a vitals update for a different creature', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <VitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
+
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ playerId: 'someone-else' }));
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(byText('hp:1/40').get()).toBeVisible();
+    });
   });
 });

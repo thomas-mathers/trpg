@@ -18,6 +18,10 @@ internal class StreamBoardCaravanTurnHandler(
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<BoardCaravanCommand, BoardCaravanResult> boardCaravan,
     ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
     ICommandHandler<MovePlayerCommand> movePlayer
 )
 {
@@ -74,6 +78,15 @@ internal class StreamBoardCaravanTurnHandler(
             {
                 WorldId = session.WorldId,
                 Delta = TimeSpan.FromHours(1) * result.TravelTimeHours!.Value,
+            },
+            cancellationToken
+        );
+
+        await applyPassiveRegen.Handle(
+            new ApplyPassiveRegenCommand
+            {
+                GameTime = arrivalGameTime,
+                CreatureIds = [session.PlayerId],
             },
             cancellationToken
         );

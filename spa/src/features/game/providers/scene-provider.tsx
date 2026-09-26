@@ -28,6 +28,7 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
   const [scene, setScene] = useState<SceneSnapshot>();
   const playerId = scene?.playerStatus.id;
   const prefetchedBuildingIds = useRef(new Set<string>());
+  const latestVitalsTime = useRef(-Infinity);
 
   useEffect(() => gameEventBus.on('SceneSnapshot', setScene), []);
 
@@ -45,6 +46,33 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
     // same way if it is still missing.
     void prefetchDungeonPremises({ body: { buildingIds } }).catch(() => {});
   }, [scene?.nearbyBuildings]);
+
+  useEffect(
+    () =>
+      gameEventBus.on('PlayerVitalsUpdated', (vitals) => {
+        // Vitals are stamped with the game time they describe, so a late one cannot overwrite a newer one.
+        if (vitals.gameTimeMilliseconds <= latestVitalsTime.current) return;
+        latestVitalsTime.current = vitals.gameTimeMilliseconds;
+
+        setScene((current) =>
+          current?.playerStatus.id === vitals.playerId
+            ? {
+                ...current,
+                playerStatus: {
+                  ...current.playerStatus,
+                  currentHp: vitals.currentHp,
+                  maximumHp: vitals.maximumHp,
+                  currentAp: vitals.currentAp,
+                  maximumAp: vitals.maximumAp,
+                  currentMp: vitals.currentMp,
+                  maximumMp: vitals.maximumMp,
+                },
+              }
+            : current,
+        );
+      }),
+    [],
+  );
 
   useEffect(
     () =>

@@ -477,6 +477,34 @@ public sealed class MoveToolTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Invoke_RegeneratesThePlayerOverTheTravelTime_WhenCrossingATravelConnector()
+    {
+        // Arrange
+        var connector = await _context.LocationConnectors.SingleAsync(
+            c => c.OriginLocationId == _oldLocation.Id,
+            TestContext.Current.CancellationToken
+        );
+        _context.TravelConnectors.Add(
+            Builders.MakeTravelConnector(connector.Id, distance: 116, worldId: WorldId)
+        );
+        _player.CurrentHp = 1;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(player.MaximumHp, player.CurrentHp);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, player.LastRegenGameTime);
+    }
+
+    [Fact]
     public async Task Invoke_DoesNotAdvanceGameTime_WhenTheConnectorHasNoTravelConnector()
     {
         // Arrange

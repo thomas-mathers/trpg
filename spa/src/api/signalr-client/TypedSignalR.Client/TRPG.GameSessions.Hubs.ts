@@ -6,7 +6,7 @@ import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
-import type { SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
+import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
 export type IChatHub = {
@@ -290,6 +290,11 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     theftEncounterResolved(fact: TheftEncounterResolutionFact): Promise<void>;
+    /**
+    * @param vitals Transpiled from TRPG.Creatures.Responses.PlayerVitalsUpdated
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    playerVitalsUpdated(vitals: PlayerVitalsUpdated): Promise<void>;
     /**
     * @param skillLevelUp Transpiled from TRPG.Creatures.Responses.SkillLevelUp
     * @returns Transpiled from System.Threading.Tasks.Task

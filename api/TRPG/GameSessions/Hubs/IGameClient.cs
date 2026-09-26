@@ -25,6 +25,7 @@ public interface IGameClient
     Task TrapEncounterResolved(TrapEncounterResolutionFact fact);
     Task TheftEncounterStarted(TheftEncounterState encounter);
     Task TheftEncounterResolved(TheftEncounterResolutionFact fact);
+    Task PlayerVitalsUpdated(PlayerVitalsUpdated vitals);
     Task SkillLevelUp(SkillLevelUp skillLevelUp);
     Task CharacterLevelUp(CharacterLevelUp characterLevelUp);
     Task QuestObjectiveCompleted(QuestObjectiveCompleted objective);

@@ -9,6 +9,7 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -206,5 +207,58 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
 
         // Assert — the enemy finally struck back
         Assert.True(secondRound.CombatResult.Player.CurrentHp < playerAfterFirstRound.CurrentHp);
+    }
+
+    [Fact]
+    public async Task ResolvePlayerCombatAction_LeavesRegenerationAnchor_WhenGameTimePassesMidFight()
+    {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var location = Builders.MakeLocation(worldId);
+        var player = Builders.MakeCreature(worldId, locationId: location.Id);
+        var enemy = Builders.MakeCreature(
+            worldId,
+            creatureType: CreatureType.Beast,
+            locationId: location.Id
+        );
+        var session = Builders.MakeGameSession(worldId, player.Id);
+        _context.Locations.Add(location);
+        _context.Creatures.AddRange(player, enemy);
+        _context.GameSessions.Add(session);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _startFight.Handle(
+            new StartFightCommand
+            {
+                SessionId = session.Id,
+                WorldId = worldId,
+                PlayerId = player.Id,
+                EnemyCreatureIds = [enemy.Id],
+                HasSurpriseRound = false,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _serviceProvider
+            .GetRequiredService<ResolvePlayerCombatActionCommandHandler>()
+            .Handle(
+                new ResolvePlayerCombatActionCommand
+                {
+                    SessionId = session.Id,
+                    WorldId = worldId,
+                    PlayerId = player.Id,
+                    Action = new UseAbilityAction(enemy.Id, "Strike"),
+                    GameTime = GameClock.Epoch + TimeSpan.FromHours(1),
+                },
+                TestContext.Current.CancellationToken
+            );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var persisted = await verifyContext.Creatures.FindAsync(
+            [player.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(GameClock.Epoch, persisted!.LastRegenGameTime);
     }
 }

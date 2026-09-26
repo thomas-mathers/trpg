@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
+using TRPG.Application.Common.Events;
+using TRPG.Application.Creatures.Events;
 using TRPG.Application.Worlds;
 using TRPG.Data;
 using TRPG.Domain;
@@ -20,6 +22,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     );
     private readonly WorldMutationGate _gate = new();
     private readonly RecordingLogger _logger = new();
+    private readonly List<GameClientEvent> _flushedEvents = [];
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -27,6 +30,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     private ContinuousWorldProcessor _processor = null!;
     private World _world = null!;
     private Creature _sleeper = null!;
+    private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -34,6 +38,8 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .WithScopedDbContexts(db.ConnectionString)
+            .AddSingleton(_flushedEvents)
+            .AddScoped<IGameClientEventDispatcher, RecordingGameClientEventDispatcher>()
             .BuildServiceProvider();
         var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
         _worldClock = new WorldClock(scopeFactory, _timeProvider);
@@ -41,12 +47,12 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
 
         _world = Builders.MakeWorld();
         var location = Builders.MakeLocation(_world.Id, kind: LocationKind.Wilderness);
-        var player = Builders.MakeCreature(_world.Id, locationId: location.Id);
+        _player = Builders.MakeCreature(_world.Id, locationId: location.Id, currentHp: 1);
         _sleeper = Builders.MakeCreature(_world.Id, locationId: location.Id);
-        _world.PlayerId = player.Id;
+        _world.PlayerId = _player.Id;
         _context.Worlds.Add(_world);
         _context.Locations.Add(location);
-        _context.Creatures.AddRange(player, _sleeper);
+        _context.Creatures.AddRange(_player, _sleeper);
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 _sleeper.Id,
@@ -91,17 +97,79 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessTravelers_CheckpointsClock_WhenWorldIsActive()
+    public async Task ProcessFrequent_CheckpointsClock_WhenWorldIsActive()
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
         _timeProvider.Advance(TimeSpan.FromMinutes(10));
 
         // Act
-        await _processor.ProcessTravelers(TestContext.Current.CancellationToken);
+        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(GameClock.Epoch + TimeSpan.FromMinutes(10), await ReadPersistedGameTime());
+    }
+
+    [Fact]
+    public async Task ProcessFrequent_RegeneratesPlayerAndFlushesVitals_WhenWorldIsActive()
+    {
+        // Arrange
+        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        _timeProvider.Advance(TimeSpan.FromSeconds(10));
+
+        // Act
+        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
+
+        // Assert
+        var flushed = Assert.Single(_flushedEvents);
+        var vitalsChanged = Assert.IsType<PlayerVitalsChangedEvent>(flushed);
+        Assert.Equal(_player.Id, vitalsChanged.Vitals.CreatureId);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromSeconds(10), vitalsChanged.GameTime);
+        Assert.Equal(await ReadPlayerHp(), vitalsChanged.Vitals.CurrentHp);
+        Assert.True(vitalsChanged.Vitals.CurrentHp > 1);
+    }
+
+    [Fact]
+    public async Task ProcessFrequent_LeavesPlayerUntouched_WhenWorldIsPaused()
+    {
+        // Act
+        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(1, await ReadPlayerHp());
+        Assert.Empty(_flushedEvents);
+    }
+
+    [Fact]
+    public async Task ProcessRoutines_DoesNotRegenerate_WhenWorldIsActive()
+    {
+        // Arrange
+        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        _timeProvider.Advance(TimeSpan.FromSeconds(10));
+
+        // Act
+        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(1, await ReadPlayerHp());
+        Assert.Empty(_flushedEvents);
+    }
+
+    [Fact]
+    public async Task ProcessFrequent_DoesNotRegeneratePlayer_WhenPlayerIsInAnActiveFight()
+    {
+        // Arrange
+        _context.Encounters.Add(Builders.MakeFight(_world.Id, _player.Id, [_player.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        _timeProvider.Advance(TimeSpan.FromMinutes(5));
+
+        // Act
+        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(1, await ReadPlayerHp());
+        Assert.Empty(_flushedEvents);
     }
 
     [Fact]
@@ -183,7 +251,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessTravelers_LogsFailureWithoutThrowing_WhenClockCheckpointFails()
+    public async Task ProcessFrequent_LogsFailureWithoutThrowing_WhenClockCheckpointFails()
     {
         // Arrange
         var processor = new ContinuousWorldProcessor(
@@ -194,7 +262,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         );
 
         // Act
-        await processor.ProcessTravelers(TestContext.Current.CancellationToken);
+        await processor.ProcessFrequent(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotEmpty(_logger.Errors);
@@ -209,6 +277,15 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
+    private async Task<int> ReadPlayerHp()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext
+            .Creatures.Where(creature => creature.Id == _player.Id)
+            .Select(creature => creature.CurrentHp)
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
     private async Task<GameInstant> ReadPersistedGameTime()
     {
         await using var verifyContext = db.CreateContext();
@@ -216,6 +293,20 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
             .Worlds.Where(world => world.Id == _world.Id)
             .Select(world => world.GameTime)
             .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    private sealed class RecordingGameClientEventDispatcher(
+        TestGameClientEventSink sink,
+        List<GameClientEvent> flushedEvents
+    ) : IGameClientEventDispatcher
+    {
+        public Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default)
+        {
+            flushedEvents.AddRange(sink.EnqueuedEvents);
+            var flushedAny = sink.EnqueuedEvents.Count > 0;
+            sink.EnqueuedEvents.Clear();
+            return Task.FromResult(flushedAny);
+        }
     }
 
     private sealed class RecordingLogger : ILogger<ContinuousWorldProcessor>

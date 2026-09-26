@@ -77,6 +77,10 @@ internal class MoveTool(
     > evaluateMoveInterception,
     ICommandHandler<MovePlayerCommand> movePlayer,
     ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetSceneQuery, SceneResult> getScene,
@@ -159,6 +163,14 @@ internal class MoveTool(
                 {
                     WorldId = turnContext.WorldId,
                     Delta = TimeSpan.FromHours(1) * destinationResult.TravelTimeHours,
+                },
+                cancellationToken
+            );
+            await applyPassiveRegen.Handle(
+                new ApplyPassiveRegenCommand
+                {
+                    GameTime = arrivalGameTime,
+                    CreatureIds = [turnContext.PlayerId],
                 },
                 cancellationToken
             );
