@@ -999,13 +999,15 @@ internal static class Builders
             State = state,
         };
 
-    public static World MakeWorld()
+    public static World MakeWorld(Guid? id = null, GameInstant? gameTime = null)
     {
         return new World
         {
+            Id = id ?? Guid.NewGuid(),
             Name = $"World-{Guid.NewGuid():N}",
             Description = "A test world",
             Boundary = new Rectangle(0, 0, 10000, 10000),
+            GameTime = gameTime ?? GameClock.Epoch,
         };
     }
 
@@ -1289,18 +1291,9 @@ internal static class Builders
             Text = "I cannot get back to the entrance. I will wait here for help.",
         };
 
-    public static GameSession MakeGameSession(
-        Guid worldId,
-        Guid playerId,
-        GameInstant? gameTime = null
-    )
+    public static GameSession MakeGameSession(Guid worldId, Guid playerId)
     {
-        return new GameSession
-        {
-            WorldId = worldId,
-            PlayerId = playerId,
-            GameTime = gameTime ?? GameClock.Epoch,
-        };
+        return new GameSession { WorldId = worldId, PlayerId = playerId };
     }
 
     public static Reputation MakeReputation(

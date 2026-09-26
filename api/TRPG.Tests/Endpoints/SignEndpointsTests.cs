@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Data;
 using TRPG.Domain;
@@ -97,15 +98,21 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
             Name = "Caravan Schedule",
             Description = "A wooden signpost listing caravan arrival times.",
         };
-        var session = Builders.MakeGameSession(
-            _worldId,
-            Guid.NewGuid(),
-            gameTime: GameClock.Epoch + TimeSpan.FromHours(1) * 2
-        );
+        var session = Builders.MakeGameSession(_worldId, Guid.NewGuid());
 
         await using (var scope = fixture.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            await context
+                .Worlds.Where(world => world.Id == _worldId)
+                .ExecuteUpdateAsync(
+                    setters =>
+                        setters.SetProperty(
+                            world => world.GameTime,
+                            GameClock.Epoch + TimeSpan.FromHours(2)
+                        ),
+                    TestContext.Current.CancellationToken
+                );
             context.Routes.Add(route);
             context.RouteSteps.AddRange(stopA, stopB);
             context.TravelConnectors.AddRange(connectorA, connectorB);

@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Combat;
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
@@ -89,7 +90,6 @@ internal sealed class ChatHub(
     GameClientEventDispatcher eventDispatcher,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-    ICommandHandler<EndGameSessionCommand> endGameSession,
     PendingSessionEndRegistry pendingSessionEnds,
     PendingEventAckRegistry pendingEventAcks
 ) : Hub<IGameClient>, IChatHub
@@ -99,11 +99,10 @@ internal sealed class ChatHub(
     public override async Task OnConnectedAsync()
     {
         var sessionId = GetSessionIdFromQuery();
-        pendingSessionEnds.Cancel(sessionId);
-
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId }
         );
+        await pendingSessionEnds.Connect(snapshot.Id, snapshot.WorldId, Context.ConnectionAborted);
         var session = new GameTurnSession(snapshot.Id, snapshot.WorldId, snapshot.PlayerId);
         Context.Items[SessionKey] = session;
 
@@ -129,7 +128,7 @@ internal sealed class ChatHub(
     {
         if (Context.Items[SessionKey] is GameTurnSession session)
         {
-            pendingSessionEnds.Schedule(session.SessionId);
+            await pendingSessionEnds.Disconnect(session.SessionId);
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -137,18 +136,7 @@ internal sealed class ChatHub(
 
     public async Task EndSession()
     {
-        pendingSessionEnds.Cancel(Session.SessionId);
-
-        try
-        {
-            await endGameSession.Handle(
-                new EndGameSessionCommand { SessionId = Session.SessionId }
-            );
-        }
-        catch (EntityNotFoundException)
-        {
-            // Already ended some other way; nothing left to clean up.
-        }
+        await pendingSessionEnds.End(Session.SessionId);
     }
 
     public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken) =>
@@ -419,44 +407,127 @@ internal sealed class ChatHub(
 
 internal sealed class PendingSessionEndRegistry(
     IServiceScopeFactory serviceScopeFactory,
+    IWorldClock worldClock,
+    TimeProvider timeProvider,
     IOptionsMonitor<GameSessionOptions> options,
     ILogger<PendingSessionEndRegistry> logger
-)
+) : IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _pendingEnds = new();
+    private readonly ConcurrentDictionary<Guid, SessionActivity> _sessions = new();
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
 
-    public void Schedule(Guid sessionId)
+    public async Task Connect(
+        Guid sessionId,
+        Guid worldId,
+        CancellationToken cancellationToken = default
+    )
     {
-        Cancel(sessionId);
-
-        var cts = new CancellationTokenSource();
-        _pendingEnds[sessionId] = cts;
-        _ = RunAfterDelay(sessionId, options.CurrentValue.SessionEndGracePeriod, cts);
-    }
-
-    public void Cancel(Guid sessionId)
-    {
-        if (_pendingEnds.TryRemove(sessionId, out var cts))
+        await _lifecycleGate.WaitAsync(cancellationToken);
+        try
         {
-            cts.Cancel();
-            cts.Dispose();
+            var activity = _sessions.GetOrAdd(sessionId, _ => new SessionActivity(worldId));
+            if (activity.WorldId != worldId)
+            {
+                throw new InvalidOperationException("A session cannot change worlds.");
+            }
+
+            if (activity.PendingEnd != null)
+            {
+                await activity.PendingEnd.CancelAsync();
+            }
+            activity.PendingEnd = null;
+            activity.ConnectionCount++;
+
+            await worldClock.ResumeWorld(worldId, cancellationToken);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
         }
     }
 
-    private async Task RunAfterDelay(Guid sessionId, TimeSpan delay, CancellationTokenSource cts)
+    public async Task Disconnect(Guid sessionId)
+    {
+        await _lifecycleGate.WaitAsync();
+        try
+        {
+            if (!_sessions.TryGetValue(sessionId, out var activity))
+            {
+                return;
+            }
+
+            activity.ConnectionCount--;
+            if (activity.ConnectionCount > 0 || activity.PendingEnd != null)
+            {
+                return;
+            }
+
+            var cancellation = new CancellationTokenSource();
+            activity.PendingEnd = cancellation;
+            _ = RunAfterDelay(sessionId, activity, cancellation);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
+    public async Task End(Guid sessionId, CancellationToken cancellationToken = default)
+    {
+        await _lifecycleGate.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_sessions.TryRemove(sessionId, out var activity))
+            {
+                return;
+            }
+
+            if (activity.PendingEnd != null)
+            {
+                await activity.PendingEnd.CancelAsync();
+            }
+            await EndSession(sessionId, cancellationToken);
+            await PauseWorldIfInactive(activity.WorldId, cancellationToken);
+        }
+        finally
+        {
+            _lifecycleGate.Release();
+        }
+    }
+
+    private async Task RunAfterDelay(
+        Guid sessionId,
+        SessionActivity activity,
+        CancellationTokenSource cancellation
+    )
     {
         try
         {
-            await Task.Delay(delay, cts.Token);
-
-            await using var scope = serviceScopeFactory.CreateAsyncScope();
-            var endGameSession = scope.ServiceProvider.GetRequiredService<
-                ICommandHandler<EndGameSessionCommand>
-            >();
-            await endGameSession.Handle(
-                new EndGameSessionCommand { SessionId = sessionId },
-                cts.Token
+            await Task.Delay(
+                options.CurrentValue.SessionEndGracePeriod,
+                timeProvider,
+                cancellation.Token
             );
+
+            await _lifecycleGate.WaitAsync(cancellation.Token);
+            try
+            {
+                if (
+                    activity.ConnectionCount != 0
+                    || activity.PendingEnd != cancellation
+                    || !_sessions.TryRemove(sessionId, out _)
+                )
+                {
+                    return;
+                }
+
+                await EndSession(sessionId, cancellation.Token);
+                await PauseWorldIfInactive(activity.WorldId, cancellation.Token);
+            }
+            finally
+            {
+                _lifecycleGate.Release();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -472,12 +543,52 @@ internal sealed class PendingSessionEndRegistry(
         }
         finally
         {
-            if (_pendingEnds.TryGetValue(sessionId, out var current) && current == cts)
+            if (activity.PendingEnd == cancellation)
             {
-                _pendingEnds.TryRemove(sessionId, out _);
+                activity.PendingEnd = null;
             }
 
-            cts.Dispose();
+            cancellation.Dispose();
         }
+    }
+
+    private async Task EndSession(Guid sessionId, CancellationToken cancellationToken)
+    {
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var endGameSession = scope.ServiceProvider.GetRequiredService<
+            ICommandHandler<EndGameSessionCommand>
+        >();
+        await endGameSession.Handle(
+            new EndGameSessionCommand { SessionId = sessionId },
+            cancellationToken
+        );
+    }
+
+    private async Task PauseWorldIfInactive(Guid worldId, CancellationToken cancellationToken)
+    {
+        if (_sessions.Values.All(activity => activity.WorldId != worldId))
+        {
+            await worldClock.PauseWorld(worldId, cancellationToken);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var activity in _sessions.Values)
+        {
+            if (activity.PendingEnd != null)
+            {
+                await activity.PendingEnd.CancelAsync();
+            }
+        }
+
+        _lifecycleGate.Dispose();
+    }
+
+    private sealed class SessionActivity(Guid worldId)
+    {
+        public Guid WorldId { get; } = worldId;
+        public int ConnectionCount { get; set; }
+        public CancellationTokenSource? PendingEnd { get; set; }
     }
 }

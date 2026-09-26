@@ -10,6 +10,7 @@ using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Narration.Queries;
 using TRPG.Application.Narration.Results;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Mappers;
 using TRPG.GameSessions.Requests;
@@ -50,7 +51,6 @@ internal static class GameSessionEndpoints
             {
                 WorldId = request.WorldId,
                 PlayerId = world.PlayerId.Value,
-                GameTime = world.GameTime,
             },
             cancellationToken
         );
@@ -61,6 +61,7 @@ internal static class GameSessionEndpoints
     private static async Task<Results<NotFound, Ok<SceneSnapshot>>> GetScene(
         Guid sessionId,
         [FromServices] IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
+        [FromServices] IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
         [FromServices] ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
         CancellationToken cancellationToken
     )
@@ -70,12 +71,17 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = sessionId },
+            cancellationToken
+        );
+
         var refreshed = await refreshScene.Handle(
             new RefreshSceneCommand
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                GameTime = session.GameTime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

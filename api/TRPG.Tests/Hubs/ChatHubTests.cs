@@ -484,8 +484,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        var session = await GetGameSession(sessionId);
-        Assert.True(session.GameTime > GameClock.Epoch);
+        var world = await GetWorld();
+        Assert.True(world.GameTime > GameClock.Epoch);
     }
 
     [Fact]
@@ -503,8 +503,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        var session = await GetGameSession(sessionId);
-        Assert.True(session.GameTime > GameClock.Epoch);
+        var world = await GetWorld();
+        Assert.True(world.GameTime > GameClock.Epoch);
     }
 
     [Fact]
@@ -521,8 +521,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal("The wait duration must be positive.", narration);
-        var session = await GetGameSession(sessionId);
-        Assert.Equal(GameClock.Epoch, session.GameTime);
+        var world = await GetWorld();
+        Assert.Equal(GameClock.Epoch, world.GameTime);
     }
 
     [Fact]
@@ -536,8 +536,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
 
         Assert.Equal("You need to sit down before waiting.", narration);
-        var session = await GetGameSession(sessionId);
-        Assert.Equal(GameClock.Epoch, session.GameTime);
+        var world = await GetWorld();
+        Assert.Equal(GameClock.Epoch, world.GameTime);
     }
 
     [Fact]
@@ -605,8 +605,8 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Assert
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        var session = await GetGameSession(sessionId);
-        Assert.True(session.GameTime > GameClock.Epoch);
+        var world = await GetWorld();
+        Assert.True(world.GameTime > GameClock.Epoch);
     }
 
     [Fact]
@@ -1320,7 +1320,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task EndSession_KeepsGameTimeAtZero_WhenNoMessagesWereSent()
+    public async Task EndSession_CheckpointsElapsedConnectedTime_WhenNoMessagesWereSent()
     {
         // Arrange
         var sessionId = await StartSession();
@@ -1329,13 +1329,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act
         await gameHub.InvokeAsync("EndSession", TestContext.Current.CancellationToken);
 
-        // Assert — in-game time only advances from messages/waits, never from real time alone
+        // Assert
         var world = await GetWorld();
-        Assert.Equal(GameClock.Epoch, world.GameTime);
+        Assert.True(world.GameTime > GameClock.Epoch);
     }
 
     [Fact]
-    public async Task EndSession_SavesAdvancedGameTime_AfterChatting()
+    public async Task EndSession_DoesNotAddFixedGameTime_ForChatMessages()
     {
         // Arrange
         var sessionId = await StartSession();
@@ -1354,6 +1354,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Assert
         var world = await GetWorld();
         Assert.True(world.GameTime > GameClock.Epoch);
+        Assert.True(world.GameTime < GameClock.Epoch + TimeSpan.FromMinutes(1));
     }
 
     [Fact]

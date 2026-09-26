@@ -33,6 +33,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
     );
 
     private GameSession _session = null!;
+    private World _world = null!;
     private Guid _sessionId;
 
     public async ValueTask InitializeAsync()
@@ -43,11 +44,9 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<EndFightCommandHandler>();
 
-        _session = Builders.MakeGameSession(
-            WorldId,
-            _player.Id,
-            GameClock.Epoch + TimeSpan.FromHours(1)
-        );
+        _session = Builders.MakeGameSession(WorldId, _player.Id);
+        _world = Builders.MakeWorld(WorldId, GameClock.Epoch + TimeSpan.FromHours(1));
+        _context.Worlds.Add(_world);
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -378,7 +377,8 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
     public async Task Handle_AdvancesLastRegenGameTime_ForSurvivingCombatants()
     {
         // Arrange — the player survives, the enemy doesn't
-        _session.GameTime = GameClock.Epoch + TimeSpan.FromHours(3);
+        _world.GameTime = GameClock.Epoch + TimeSpan.FromHours(3);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await SeedFight();
         var state = Builders.MakeCombatState(
             CombatOutcome.Victory,

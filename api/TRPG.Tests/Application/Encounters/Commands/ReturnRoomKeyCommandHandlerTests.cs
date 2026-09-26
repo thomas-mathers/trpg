@@ -13,6 +13,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
+    private static readonly GameInstant GameTime = GameClock.Epoch + TimeSpan.FromHours(10);
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -75,11 +76,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             ownerType: OwnerType.Creature
         );
         var doorConnectorKey = Builders.MakeDoorConnectorKey(_key.Id, door.Id, WorldId);
-        _session = Builders.MakeGameSession(
-            WorldId,
-            _player.Id,
-            gameTime: GameClock.Epoch + TimeSpan.FromHours(10)
-        );
+        _session = Builders.MakeGameSession(WorldId, _player.Id);
         _bed = Builders.MakeBed(
             WorldId,
             locationId: _guestRoomLocationId,
@@ -123,7 +120,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                GameTime = _session.GameTime,
+                GameTime = GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -163,7 +160,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                GameTime = _session.GameTime,
+                GameTime = GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -193,7 +190,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                GameTime = _session.GameTime,
+                GameTime = GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },

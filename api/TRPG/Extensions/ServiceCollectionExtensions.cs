@@ -33,6 +33,7 @@ using TRPG.NpcConversations.Tools;
 using TRPG.Quests.Jobs;
 using TRPG.RoomBookings.Tools;
 using TRPG.Tools;
+using TRPG.Worlds;
 using TRPG.Worlds.Jobs;
 using TRPG.Worlds.Tools;
 using ZLogger;
@@ -60,6 +61,7 @@ internal static class ServiceCollectionExtensions
             .AddLlmChatClients()
             .AddTrpgOptions(configuration)
             .AddTrpgSessionState()
+            .AddHostedService<WorldClockCheckpointService>()
             .AddTrpgJobs(configuration)
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<InventoryTool>()
@@ -420,7 +422,6 @@ internal static class ServiceCollectionExtensions
             .Configure<CityTravelOptions>(configuration.GetSection("CityTravel"))
             .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"))
             .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
-            .Configure<GameClockOptions>(configuration.GetSection("GameClock"))
             .Configure<GameSessionOptions>(configuration.GetSection("GameSession"))
             .Configure<GameClientEventAckOptions>(configuration.GetSection("GameClientEventAck"))
             .Configure<ReputationOptions>(configuration.GetSection("Reputation"))

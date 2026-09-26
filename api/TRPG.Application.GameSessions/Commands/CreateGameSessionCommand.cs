@@ -1,7 +1,6 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Data.ModuleContexts;
-using TRPG.Domain;
 using GameSession = TRPG.Domain.Models.GameSession;
 
 namespace TRPG.Application.GameSessions.Commands;
@@ -10,7 +9,6 @@ public class CreateGameSessionCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required GameInstant GameTime { get; init; }
 }
 
 internal class CreateGameSessionCommandHandler(
@@ -46,12 +44,7 @@ internal class CreateGameSessionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var row = new GameSession
-        {
-            WorldId = command.WorldId,
-            PlayerId = command.PlayerId,
-            GameTime = command.GameTime,
-        };
+        var row = new GameSession { WorldId = command.WorldId, PlayerId = command.PlayerId };
         context.GameSessions.Add(row);
 
         await gameSessionCreated.Publish(

@@ -67,8 +67,10 @@ public sealed class MoveToolTests(DatabaseFixture db)
             destinationLabel: "Elsewhere"
         );
         var session = Builders.MakeGameSession(WorldId, _player.Id);
+        var world = Builders.MakeWorld(WorldId);
         var state = Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: _stateId);
 
+        _context.Worlds.Add(world);
         _context.States.Add(state);
         _context.Locations.AddRange(_oldLocation, _newLocation);
         _context.Creatures.AddRange(_player, _guard);
@@ -467,11 +469,11 @@ public sealed class MoveToolTests(DatabaseFixture db)
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.PlayerId == _player.Id,
+        var world = await verifyContext.Worlds.SingleAsync(
+            world => world.Id == WorldId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, session.GameTime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, world.GameTime);
     }
 
     [Fact]
@@ -485,11 +487,11 @@ public sealed class MoveToolTests(DatabaseFixture db)
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.PlayerId == _player.Id,
+        var world = await verifyContext.Worlds.SingleAsync(
+            world => world.Id == WorldId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(GameClock.Epoch, session.GameTime);
+        Assert.Equal(GameClock.Epoch, world.GameTime);
     }
 
     [Fact]

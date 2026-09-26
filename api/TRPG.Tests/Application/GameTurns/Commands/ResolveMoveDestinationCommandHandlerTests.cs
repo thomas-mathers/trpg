@@ -34,6 +34,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
         _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
         _outdoorLocation = Builders.MakeLocation(WorldId, _stateId);
         var state = Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: _stateId);
+        _context.Worlds.Add(Builders.MakeWorld(WorldId));
         _context.GameSessions.Add(_session);
         _context.Locations.Add(_outdoorLocation);
         _context.States.Add(state);
@@ -425,11 +426,17 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
     public async Task Handle_ReturnsLocked_WhenTheTimedUnlockHasNotElapsedYet()
     {
         // Arrange
-        var session = Builders.MakeGameSession(
-            WorldId,
-            Guid.NewGuid(),
-            gameTime: GameClock.Epoch + TimeSpan.FromHours(5)
-        );
+        var session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
+        await _context
+            .Worlds.Where(world => world.Id == WorldId)
+            .ExecuteUpdateAsync(
+                setters =>
+                    setters.SetProperty(
+                        world => world.GameTime,
+                        GameClock.Epoch + TimeSpan.FromHours(5)
+                    ),
+                TestContext.Current.CancellationToken
+            );
         var route = await SeedInteriorLockedConnector(
             unlocksAtGameTime: GameClock.Epoch + TimeSpan.FromHours(10)
         );
@@ -455,11 +462,17 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
     public async Task Handle_ResolvesTheExit_AndPersistsTheUnlock_WhenTheTimedUnlockHasElapsed()
     {
         // Arrange
-        var session = Builders.MakeGameSession(
-            WorldId,
-            Guid.NewGuid(),
-            gameTime: GameClock.Epoch + TimeSpan.FromHours(10)
-        );
+        var session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
+        await _context
+            .Worlds.Where(world => world.Id == WorldId)
+            .ExecuteUpdateAsync(
+                setters =>
+                    setters.SetProperty(
+                        world => world.GameTime,
+                        GameClock.Epoch + TimeSpan.FromHours(10)
+                    ),
+                TestContext.Current.CancellationToken
+            );
         var route = await SeedInteriorLockedConnector(
             unlocksAtGameTime: GameClock.Epoch + TimeSpan.FromHours(5)
         );

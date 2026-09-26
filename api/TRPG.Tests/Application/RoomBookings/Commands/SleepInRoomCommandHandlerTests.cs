@@ -30,13 +30,11 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<SleepInRoomCommandHandler>();
 
-        _session = Builders.MakeGameSession(
-            WorldId,
-            _player.Id,
-            gameTime: GameClock.Epoch + TimeSpan.FromHours(8)
-        );
+        _session = Builders.MakeGameSession(WorldId, _player.Id);
+        var world = Builders.MakeWorld(WorldId, GameClock.Epoch + TimeSpan.FromHours(8));
         _bed = Builders.MakeBed(WorldId, locationId: _locationId, assignedCreatureId: _player.Id);
 
+        _context.Worlds.Add(world);
         _context.Creatures.Add(_player);
         _context.GameSessions.Add(_session);
         _context.Props.Add(_bed);
@@ -71,12 +69,12 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
         Assert.Equal(SleepOutcome.Slept, outcome);
 
         await using var verifyContext = db.CreateContext();
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.Id == _session.Id,
+        var world = await verifyContext.Worlds.SingleAsync(
+            world => world.Id == WorldId,
             TestContext.Current.CancellationToken
         );
-        var expectedGameTime = _session.GameTime + delta;
-        Assert.Equal(expectedGameTime, session.GameTime);
+        var expectedGameTime = GameClock.Epoch + TimeSpan.FromHours(8) + delta;
+        Assert.Equal(expectedGameTime, world.GameTime);
 
         var updatedPlayer = await verifyContext.Creatures.SingleAsync(
             c => c.Id == _player.Id,

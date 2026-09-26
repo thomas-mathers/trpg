@@ -2,11 +2,9 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -38,7 +36,6 @@ internal class GameTurnStreamer(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
     IQueryHandler<
         GetLoreAnchorAutomatonByWorldQuery,
         LoreAnchorAutomaton
@@ -48,7 +45,6 @@ internal class GameTurnStreamer(
     IGameClientEventSink gameEvents,
     IGameClientEventDispatcher eventDispatcher,
     IGameClientEventAckGate eventAckGate,
-    IOptionsSnapshot<GameClockOptions> gameClockOptions,
     ILogger<GameTurnStreamer> logger
 )
 {
@@ -80,15 +76,6 @@ internal class GameTurnStreamer(
         if (prompt is GameTurnPrompt.Narrate narrate)
         {
             await BeginTurn(session, cancellationToken);
-
-            await advanceTime.Handle(
-                new AdvanceTimeCommand
-                {
-                    SessionId = session.SessionId,
-                    Delta = gameClockOptions.Value.RealTimePerMessage,
-                },
-                cancellationToken
-            );
 
             var streamedReply = await llmConversationClient.StreamReply(
                 narrate.Text,

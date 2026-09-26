@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -55,7 +56,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                GameTime = _session.GameTime,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -73,7 +74,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                GameTime = _session.GameTime,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -91,7 +92,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                GameTime = _session.GameTime,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -102,7 +103,7 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                GameTime = _session.GameTime,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

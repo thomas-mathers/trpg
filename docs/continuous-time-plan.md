@@ -250,16 +250,16 @@ Exit condition: absolute fictional time uses `GameInstant` throughout the model 
 
 ### Milestone 03 — World-owned continuous clock
 
-Status: Not started
+Status: In progress
 
-- [ ] Add `IWorldClock` with current, resume, pause, advance, and checkpoint operations.
-- [ ] Add active-world in-memory anchors.
-- [ ] Inject `TimeProvider`.
+- [x] Add `IWorldClock` with current, resume, pause, advance, and checkpoint operations.
+- [x] Add active-world in-memory anchors.
+- [x] Inject `TimeProvider`.
 - [ ] Integrate SignalR connection and 30-second grace lifecycle.
 - [ ] Support multiple connections without resetting the anchor.
-- [ ] Remove time ownership from `GameSession`.
-- [ ] Remove per-message advancement.
-- [ ] Checkpoint on shutdown and treat worlds as paused on startup.
+- [x] Remove time ownership from `GameSession`.
+- [x] Remove per-message advancement.
+- [x] Checkpoint on shutdown and treat worlds as paused on startup.
 - [ ] Add fake-time lifecycle tests.
 - [ ] Run relevant hub/session tests.
 - [ ] Run CSharpier check.
@@ -429,11 +429,15 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 Current milestone: 03 — World-owned continuous clock
 
-Current status: Not started
+Current status: In progress
 
 Last completed milestone: 02 — Absolute-time model conversion
 
-Next action: Trace the existing session and SignalR clock lifecycle, then introduce the world-owned clock without beginning operation timestamp conversion.
+Next action: Add and run SignalR lifecycle coverage for disconnect grace, reconnects, and multiple connections; then run the required closing validation and complete milestone 03.
+
+Milestone 03 progress: `IWorldClock` now derives active world time 1:1 from a `GameInstant`/UTC `DateTimeOffset` anchor supplied by `TimeProvider`. World time remains persisted while paused, explicit skips persist immediately without stopping an active anchor, and shutdown checkpoints every active world. `GameSession` no longer stores game time, narrated messages no longer add a configured duration, and the generated migration drops `game_sessions.game_time`. SignalR connection counting and grace-based pause/end behavior are implemented but still require focused lifecycle validation before being marked complete.
+
+Milestone 03 validation so far: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed with pre-existing warnings. Focused `WorldClockTests` and `GameSessionTests` passed through the xUnit executable with Docker access.
 
 Milestone 02 decisions: Persisted absolute timestamps and their application contracts use epoch-anchored `GameInstant` values and `GameTime` naming. Route, regeneration, and schedule arithmetic now use direct fictional durations; the 12x conversion and `RealTimePerInGameHour` bridge are removed. `ConvertAbsoluteTimeToGameInstant` intentionally drops the old interval columns and adds `timestamp without time zone` replacements because existing-world compatibility is deferred. Required operation contracts receive explicit instants, while domain timestamps that previously relied on `TimeSpan.Zero` default to `GameClock.Epoch`.
 

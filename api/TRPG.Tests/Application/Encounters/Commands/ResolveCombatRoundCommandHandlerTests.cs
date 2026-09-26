@@ -38,11 +38,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ResolveCombatRoundCommandHandler>();
 
-        var session = Builders.MakeGameSession(
-            _worldId,
-            _player.Id,
-            GameClock.Epoch + TimeSpan.FromHours(1)
-        );
+        var session = Builders.MakeGameSession(_worldId, _player.Id);
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

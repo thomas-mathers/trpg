@@ -1,10 +1,10 @@
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Commands;
-using TRPG.Application.Worlds.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.GameSessions.Commands;
@@ -15,7 +15,7 @@ internal class EndGameSessionCommand
 }
 
 internal class EndGameSessionCommandHandler(
-    ICommandHandler<SetWorldGameTimeCommand> setWorldGameTime,
+    IWorldClock worldClock,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
     ICommandHandler<AbandonActiveFightCommand> abandonActiveFight,
@@ -32,21 +32,14 @@ internal class EndGameSessionCommandHandler(
             cancellationToken
         );
 
-        await setWorldGameTime.Handle(
-            new SetWorldGameTimeCommand
-            {
-                WorldId = snapshot.WorldId,
-                GameTime = snapshot.GameTime,
-            },
-            cancellationToken
-        );
+        var gameTime = await worldClock.GetCurrent(snapshot.WorldId, cancellationToken);
 
         await abandonActiveFight.Handle(
             new AbandonActiveFightCommand
             {
                 WorldId = snapshot.WorldId,
                 PlayerId = snapshot.PlayerId,
-                GameTime = snapshot.GameTime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

@@ -58,7 +58,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        var currentDate = GameClock.GetCurrentInGameDate(_session.GameTime);
+        var currentDate = GameClock.GetCurrentInGameDate(GameClock.Epoch);
         catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
 
         // Act
@@ -67,7 +67,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 LocationId = _location.Id,
-                GameTime = _session.GameTime,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -96,7 +96,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        var currentDate = GameClock.GetCurrentInGameDate(_session.GameTime);
+        var currentDate = GameClock.GetCurrentInGameDate(GameClock.Epoch);
         catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
 
         // Act
@@ -105,7 +105,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 LocationId = _location.Id,
-                GameTime = _session.GameTime,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

@@ -13,6 +13,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
+    private static readonly GameInstant GameTime = GameClock.Epoch + TimeSpan.FromHours(10);
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -71,11 +72,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
         _bed = Builders.MakeBed(WorldId, locationId: guestRoom.LocationId);
 
         _player = Builders.MakeCreature(worldId: WorldId, locationId: _lobbyLocationId);
-        _session = Builders.MakeGameSession(
-            WorldId,
-            _player.Id,
-            gameTime: GameClock.Epoch + TimeSpan.FromHours(10)
-        );
+        _session = Builders.MakeGameSession(WorldId, _player.Id);
 
         _context.Buildings.Add(building);
         _context.Rooms.AddRange(lobby, guestRoom);
@@ -114,7 +111,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = _player.Id,
                 WorldId = WorldId,
-                GameTime = _session.GameTime,
+                GameTime = GameTime,
                 LocationId = _lobbyLocationId,
             },
             TestContext.Current.CancellationToken
@@ -146,7 +143,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_spareKey.Id, booking.KeyItemId);
-        Assert.Equal(_session.GameTime + TimeSpan.FromHours(1) * 24, booking.DueAtGameTime);
+        Assert.Equal(GameTime + TimeSpan.FromHours(1) * 24, booking.DueAtGameTime);
 
         var updatedBed = await verifyContext
             .Props.OfType<Bed>()
@@ -173,7 +170,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = _player.Id,
                 WorldId = WorldId,
-                GameTime = _session.GameTime,
+                GameTime = GameTime,
                 LocationId = _lobbyLocationId,
             },
             TestContext.Current.CancellationToken
@@ -197,7 +194,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = _player.Id,
                 WorldId = WorldId,
-                GameTime = _session.GameTime,
+                GameTime = GameTime,
                 LocationId = _lobbyLocationId,
             },
             TestContext.Current.CancellationToken
@@ -228,7 +225,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
                 {
                     PlayerId = _player.Id,
                     WorldId = WorldId,
-                    GameTime = _session.GameTime,
+                    GameTime = GameTime,
                     LocationId = _lobbyLocationId,
                 },
                 TestContext.Current.CancellationToken
@@ -280,7 +277,7 @@ public sealed class BookRoomCommandHandlerTests(DatabaseFixture db)
                 {
                     PlayerId = _player.Id,
                     WorldId = WorldId,
-                    GameTime = _session.GameTime,
+                    GameTime = GameTime,
                     LocationId = _lobbyLocationId,
                 },
                 TestContext.Current.CancellationToken
