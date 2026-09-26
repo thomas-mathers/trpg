@@ -59,7 +59,7 @@ internal class GetNextCaravanArrivalsQueryHandler(
                     traveler.Steps,
                     traveler.SpeedUnitsPerHour,
                     traveler.StartedAtGameTime,
-                    query.GameTime,
+                    traveler.PausedAtGameTime ?? query.GameTime,
                     stopIndex
                 );
                 return (traveler.RouteName, HoursUntilArrival: hoursUntilArrival);

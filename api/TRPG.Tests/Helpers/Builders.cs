@@ -1486,13 +1486,15 @@ internal static class Builders
         Guid? worldId = null,
         double phaseOffsetHours = 0,
         string? purpose = null,
-        double speedUnitsPerHour = 5
+        double speedUnitsPerHour = 5,
+        GameInstant? pausedAtGameTime = null
     ) =>
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
             RouteId = routeId,
             StartedAtGameTime = GameClock.Epoch - TimeSpan.FromHours(1) * phaseOffsetHours,
+            PausedAtGameTime = pausedAtGameTime,
             SpeedUnitsPerHour = speedUnitsPerHour,
             Purpose = purpose,
         };
