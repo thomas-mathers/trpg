@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { prefetchDungeonPremises, type BuildingType } from '@/api/client';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -28,8 +28,27 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
   const [scene, setScene] = useState<SceneSnapshot>();
   const playerId = scene?.playerStatus.id;
   const prefetchedBuildingIds = useRef(new Set<string>());
+  const latestVersion = useRef(-Infinity);
 
-  useEffect(() => gameEventBus.on('SceneSnapshot', setScene), []);
+  // Snapshots and vitals share the server's world state version, so whichever is newer wins and a
+  // late arrival of the other can never roll the scene back.
+  const acceptVersion = useCallback((version: number) => {
+    if (version <= latestVersion.current) return false;
+    latestVersion.current = version;
+    return true;
+  }, []);
+
+  useEffect(() => {
+    latestVersion.current = -Infinity;
+  }, [sessionId]);
+
+  useEffect(
+    () =>
+      gameEventBus.on('SceneSnapshot', (snapshot) => {
+        if (acceptVersion(snapshot.version)) setScene(snapshot);
+      }),
+    [acceptVersion],
+  );
 
   useEffect(() => {
     const buildingIds = (scene?.nearbyBuildings ?? [])
@@ -45,6 +64,31 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
     // same way if it is still missing.
     void prefetchDungeonPremises({ body: { buildingIds } }).catch(() => {});
   }, [scene?.nearbyBuildings]);
+
+  useEffect(
+    () =>
+      gameEventBus.on('PlayerVitalsUpdated', (vitals) => {
+        if (!acceptVersion(vitals.version)) return;
+
+        setScene((current) =>
+          current?.playerStatus.id === vitals.playerId
+            ? {
+                ...current,
+                playerStatus: {
+                  ...current.playerStatus,
+                  currentHp: vitals.currentHp,
+                  maximumHp: vitals.maximumHp,
+                  currentAp: vitals.currentAp,
+                  maximumAp: vitals.maximumAp,
+                  currentMp: vitals.currentMp,
+                  maximumMp: vitals.maximumMp,
+                },
+              }
+            : current,
+        );
+      }),
+    [acceptVersion],
+  );
 
   useEffect(
     () =>

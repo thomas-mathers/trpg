@@ -65,7 +65,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             {
                 CreatureId = creature.Id,
                 DestinationLocationId = intermediate.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
                 Purpose = "Following an instruction",
             },
             TestContext.Current.CancellationToken
@@ -74,12 +74,12 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         var synchronize = _services.GetRequiredService<
             ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
         >();
-        var betweenLegs = GameClock.RealTimePerInGameHour * 1.5;
+        var betweenLegs = GameClock.Epoch + TimeSpan.FromHours(1.5);
         await synchronize.Handle(
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [creature.Id],
-                Playtime = betweenLegs,
+                GameTime = betweenLegs,
             },
             TestContext.Current.CancellationToken
         );
@@ -102,15 +102,15 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
                 TestContext.Current.CancellationToken
             );
             Assert.Equal("Walking to work", traveler.Purpose);
-            Assert.Equal(GameClock.RealTimePerInGameHour, traveler.StartedAtPlaytime);
+            Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), traveler.StartedAtGameTime);
         }
 
-        var afterWorkArrival = GameClock.RealTimePerInGameHour * 2.5;
+        var afterWorkArrival = GameClock.Epoch + TimeSpan.FromHours(2.5);
         await synchronize.Handle(
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [creature.Id],
-                Playtime = afterWorkArrival,
+                GameTime = afterWorkArrival,
             },
             TestContext.Current.CancellationToken
         );
@@ -121,7 +121,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(workplace.Id, working.LocationId);
-        Assert.Equal(CreatureState.Busy, working.State);
+        Assert.Equal(CreatureState.Working, working.State);
         Assert.DoesNotContain(
             await verifyWorking.RouteTravelerMembers.ToArrayAsync(
                 TestContext.Current.CancellationToken
@@ -161,7 +161,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [creature.Id],
-                Playtime = GameClock.RealTimePerInGameHour * 1.5,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 1.5,
             },
             TestContext.Current.CancellationToken
         );
@@ -175,7 +175,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             entry => entry.Id == travelerId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(GameClock.RealTimePerInGameHour, traveler.StartedAtPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), traveler.StartedAtGameTime);
         var walking = await verify.Creatures.FindAsync(
             [creature.Id],
             TestContext.Current.CancellationToken
@@ -214,7 +214,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [creature.Id],
-                Playtime = GameClock.RealTimePerInGameHour * 3,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 3,
             },
             TestContext.Current.CancellationToken
         );
@@ -225,7 +225,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(workplace.Id, worker.LocationId);
-        Assert.Equal(CreatureState.Busy, worker.State);
+        Assert.Equal(CreatureState.Working, worker.State);
         Assert.DoesNotContain(
             await verify.RouteTravelerMembers.ToArrayAsync(TestContext.Current.CancellationToken),
             member => member.CreatureId == creature.Id
@@ -269,11 +269,11 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [secondArrival.Id, firstArrival.Id],
-                Playtime = GameClock.RealTimePerInGameHour * 3,
-                BecameAvailableAtPlaytimeByCreatureId = new Dictionary<Guid, TimeSpan>
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 3,
+                BecameAvailableAtGameTimeByCreatureId = new Dictionary<Guid, GameInstant>
                 {
-                    [firstArrival.Id] = GameClock.RealTimePerInGameHour,
-                    [secondArrival.Id] = GameClock.RealTimePerInGameHour * 2,
+                    [firstArrival.Id] = GameClock.Epoch + TimeSpan.FromHours(1),
+                    [secondArrival.Id] = GameClock.Epoch + TimeSpan.FromHours(2),
                 },
             },
             TestContext.Current.CancellationToken
@@ -339,7 +339,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [creature.Id],
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -358,8 +358,8 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(route.Id, traveler.RouteId);
-        Assert.Equal(TimeSpan.Zero, traveler.StartedAtPlaytime);
-        Assert.Equal(CreatureState.Busy, guard.State);
+        Assert.Equal(GameClock.Epoch, traveler.StartedAtGameTime);
+        Assert.Equal(CreatureState.Working, guard.State);
     }
 
     [Fact]
@@ -381,7 +381,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         {
             WorldId = _worldId,
             RouteId = route.Id,
-            StartedAtPlaytime = TimeSpan.Zero,
+            StartedAtGameTime = GameClock.Epoch,
             SpeedUnitsPerHour = creature.MovementSpeed,
             Purpose = "Patrolling the city",
         };
@@ -433,7 +433,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [creature.Id],
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -500,7 +500,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [creature.Id],
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
                 Weather = WeatherCondition.Snow,
             },
             TestContext.Current.CancellationToken
@@ -554,7 +554,7 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = [guard.Id],
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
                 Weather = WeatherCondition.Snow,
             },
             TestContext.Current.CancellationToken

@@ -13,6 +13,7 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -32,6 +33,7 @@ public class AttemptLockpickCommand
     public required Guid WorldId { get; init; }
     public required Guid ConnectorId { get; init; }
     public required Guid DestinationLocationId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class AttemptLockpickCommandHandler(
@@ -140,7 +142,7 @@ internal class AttemptLockpickCommandHandler(
         );
         // An escape is answered for when the player walks past a jailer, which the arrival
         // evaluator handles: the room through the door has not been simulated yet.
-        var escaped = opened && door.UnlocksAtPlaytime != null;
+        var escaped = opened && door.UnlocksAtGameTime != null;
 
         Encounter? encounter = null;
         if (escaped)
@@ -174,7 +176,12 @@ internal class AttemptLockpickCommandHandler(
         }
 
         await publishEncounterStarted.Handle(
-            new PublishEncounterStartedCommand { PlayerId = player.Id, Encounter = encounter },
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = player.Id,
+                Encounter = encounter,
+                GameTime = command.GameTime,
+            },
             cancellationToken
         );
 
@@ -245,7 +252,7 @@ internal class AttemptLockpickCommandHandler(
         );
 
         // A timed lock is only ever set when a sentence starts, so picking one is an escape.
-        if (door.UnlocksAtPlaytime != null)
+        if (door.UnlocksAtGameTime != null)
         {
             // Anchored at the jail, not the cell, so stepping into the guard station does not
             // settle the escape before anyone there has had the chance to notice it.

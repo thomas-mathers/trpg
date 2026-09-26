@@ -84,7 +84,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -113,7 +113,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationC,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -144,7 +144,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = GameClock.RealTimePerInGameHour,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
@@ -179,7 +179,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = GameClock.RealTimePerInGameHour,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
@@ -208,7 +208,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -228,6 +228,36 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_SkipsEngagedGuards()
+    {
+        _guard1.IsEngaged = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var engagedGuardOriginalLocationId = _guard1.LocationId;
+
+        await _handler.Handle(
+            new SyncRouteTravelersCommand
+            {
+                WorldId = _worldId,
+                LocationId = _locationA,
+                GameTime = GameClock.Epoch,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var engagedGuard = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _guard1.Id,
+            TestContext.Current.CancellationToken
+        );
+        var availableGuard = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _guard2.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(engagedGuardOriginalLocationId, engagedGuard.LocationId);
+        Assert.Equal(_locationA, availableGuard.LocationId);
+    }
+
+    [Fact]
     public async Task Handle_LeavesPreviousLocationUntouched_WhenAGuardIsAlreadyAtTheLocation()
     {
         // Arrange — already standing at stop A, so the sync should not touch this creature at all.
@@ -240,7 +270,7 @@ public sealed class SyncRouteTravelersCommandHandlerTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

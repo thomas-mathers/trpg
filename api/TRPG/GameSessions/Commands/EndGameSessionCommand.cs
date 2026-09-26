@@ -1,10 +1,11 @@
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Commands;
-using TRPG.Application.Worlds.Commands;
 using TRPG.Domain.Models;
 
 namespace TRPG.GameSessions.Commands;
@@ -15,10 +16,11 @@ internal class EndGameSessionCommand
 }
 
 internal class EndGameSessionCommandHandler(
-    ICommandHandler<SetWorldPlaytimeCommand> setWorldPlaytime,
+    IWorldClock worldClock,
+    IWorldMutationGate mutationGate,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
-    ICommandHandler<AbandonActiveFightCommand> abandonActiveFight,
+    ICommandHandler<ClearNonEncounterEngagementsCommand> clearNonEncounterEngagements,
     ICommandHandler<InvalidateWorldLoreAnchorsCommand> invalidateWorldLoreAnchors
 ) : ICommandHandler<EndGameSessionCommand>
 {
@@ -32,21 +34,15 @@ internal class EndGameSessionCommandHandler(
             cancellationToken
         );
 
-        await setWorldPlaytime.Handle(
-            new SetWorldPlaytimeCommand
-            {
-                WorldId = snapshot.WorldId,
-                Playtime = snapshot.Playtime,
-            },
-            cancellationToken
-        );
+        await using var lease = await mutationGate.Acquire(snapshot.WorldId, cancellationToken);
 
-        await abandonActiveFight.Handle(
-            new AbandonActiveFightCommand
+        var gameTime = await worldClock.GetCurrent(snapshot.WorldId, cancellationToken);
+
+        await clearNonEncounterEngagements.Handle(
+            new ClearNonEncounterEngagementsCommand
             {
                 WorldId = snapshot.WorldId,
-                PlayerId = snapshot.PlayerId,
-                Playtime = snapshot.Playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

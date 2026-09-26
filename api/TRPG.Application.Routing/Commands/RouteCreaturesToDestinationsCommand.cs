@@ -15,7 +15,7 @@ namespace TRPG.Application.Routing.Commands;
 public record CreatureRouteRequest(
     Guid CreatureId,
     Guid DestinationLocationId,
-    TimeSpan Playtime,
+    GameInstant GameTime,
     string Purpose
 );
 
@@ -27,7 +27,7 @@ public class RouteCreaturesToDestinationsCommand
 public record RouteCreatureResult(
     Guid? RouteTravelerId,
     bool IsAlreadyAtDestination,
-    TimeSpan ArrivesAtPlaytime
+    GameInstant ArrivesAtGameTime
 );
 
 internal class RouteCreaturesToDestinationsCommandHandler(
@@ -209,7 +209,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             activeRoute.Traveler,
             activeRoute.Route,
             activeRoute.Steps,
-            request.Playtime
+            request.GameTime
         );
         return resolved.Position switch
         {
@@ -260,7 +260,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             request,
             creature,
             path,
-            request.Playtime,
+            request.GameTime,
             creature.MovementSpeed,
             originLocationId,
             IsAlreadyAtDestination: false
@@ -294,7 +294,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             request,
             creature,
             path,
-            request.Playtime - GameClock.RealTimePerInGameHour * elapsedHours,
+            request.GameTime - TimeSpan.FromHours(1) * elapsedHours,
             activeRoute.Traveler.SpeedUnitsPerHour,
             inTransit.FromLocationId,
             IsAlreadyAtDestination: false
@@ -355,7 +355,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                 results[plan.Creature.Id] = new RouteCreatureResult(
                     null,
                     IsAlreadyAtDestination: true,
-                    plan.Request.Playtime
+                    plan.Request.GameTime
                 );
                 continue;
             }
@@ -368,7 +368,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             results[plan.Creature.Id] = new RouteCreatureResult(
                 traveler.Id,
                 IsAlreadyAtDestination: false,
-                plan.StartedAtPlaytime + GameClock.RealTimePerInGameHour * travelHours
+                plan.StartedAtGameTime + TimeSpan.FromHours(1) * travelHours
             );
         }
         return results;
@@ -408,7 +408,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         {
             WorldId = worldId,
             RouteId = routeId,
-            StartedAtPlaytime = plan.StartedAtPlaytime,
+            StartedAtGameTime = plan.StartedAtGameTime,
             SpeedUnitsPerHour = plan.SpeedUnitsPerHour,
             Purpose = plan.Request.Purpose,
         };
@@ -549,7 +549,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         CreatureRouteRequest Request,
         Creature Creature,
         IReadOnlyList<RoutePathLeg> Path,
-        TimeSpan StartedAtPlaytime,
+        GameInstant StartedAtGameTime,
         double SpeedUnitsPerHour,
         Guid AnchorLocationId,
         bool IsAlreadyAtDestination
@@ -564,7 +564,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                 request,
                 creature,
                 [],
-                request.Playtime,
+                request.GameTime,
                 creature.MovementSpeed,
                 locationId,
                 IsAlreadyAtDestination: true

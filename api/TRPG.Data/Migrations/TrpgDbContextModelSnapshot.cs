@@ -253,9 +253,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("origin_stop_location_id");
 
-                    b.Property<TimeSpan>("PurchasedAtPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("purchased_at_playtime");
+                    b.Property<DateTime>("PurchasedAtGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("purchased_at_game_time");
 
                     b.Property<Guid>("RouteTravelerId")
                         .HasColumnType("uuid")
@@ -504,13 +504,17 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("intelligence");
 
+                    b.Property<bool>("IsEngaged")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_engaged");
+
                     b.Property<bool>("IsSneaking")
                         .HasColumnType("boolean")
                         .HasColumnName("is_sneaking");
 
-                    b.Property<TimeSpan>("LastRegenPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("last_regen_playtime");
+                    b.Property<DateTime>("LastRegenGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_regen_game_time");
 
                     b.Property<int>("Level")
                         .HasColumnType("integer")
@@ -581,9 +585,9 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("profession");
 
-                    b.Property<TimeSpan?>("RestedUntilPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("rested_until_playtime");
+                    b.Property<DateTime?>("RestedUntilGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("rested_until_game_time");
 
                     b.Property<Guid?>("SpawnerId")
                         .HasColumnType("uuid")
@@ -983,9 +987,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("faction_id");
 
-                    b.Property<TimeSpan>("LastSyncPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("last_sync_playtime");
+                    b.Property<DateTime>("LastSyncGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_sync_game_time");
 
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uuid")
@@ -1231,9 +1235,9 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("lock_level");
 
-                    b.Property<TimeSpan?>("UnlocksAtPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("unlocks_at_playtime");
+                    b.Property<DateTime?>("UnlocksAtGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("unlocks_at_game_time");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -1808,10 +1812,6 @@ namespace TRPG.Migrations
                     b.Property<Guid>("PlayerId")
                         .HasColumnType("uuid")
                         .HasColumnName("player_id");
-
-                    b.Property<TimeSpan>("Playtime")
-                        .HasColumnType("interval")
-                        .HasColumnName("playtime");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -2405,9 +2405,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<TimeSpan>("LastSyncPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("last_sync_playtime");
+                    b.Property<DateTime>("LastSyncGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_sync_game_time");
 
                     b.Property<Guid>("LocationId")
                         .HasColumnType("uuid")
@@ -2578,9 +2578,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<TimeSpan>("LastSyncPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("last_sync_playtime");
+                    b.Property<DateTime>("LastSyncGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_sync_game_time");
 
                     b.Property<string>("Schedule")
                         .IsRequired()
@@ -2672,9 +2672,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<TimeSpan>("DueAtPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("due_at_playtime");
+                    b.Property<DateTime>("DueAtGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("due_at_game_time");
 
                     b.Property<Guid>("KeyItemId")
                         .HasColumnType("uuid")
@@ -2801,6 +2801,10 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("creature_route_schedule_id");
 
+                    b.Property<DateTime?>("PausedAtGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("paused_at_game_time");
+
                     b.Property<string>("Purpose")
                         .HasColumnType("text")
                         .HasColumnName("purpose");
@@ -2813,9 +2817,9 @@ namespace TRPG.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("speed_units_per_hour");
 
-                    b.Property<TimeSpan>("StartedAtPlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("started_at_playtime");
+                    b.Property<DateTime>("StartedAtGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("started_at_game_time");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -2965,9 +2969,9 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("condition");
 
-                    b.Property<TimeSpan>("NextChangePlaytime")
-                        .HasColumnType("interval")
-                        .HasColumnName("next_change_playtime");
+                    b.Property<DateTime>("NextChangeGameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("next_change_game_time");
 
                     b.Property<Guid>("StateId")
                         .HasColumnType("uuid")
@@ -3002,6 +3006,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<DateTime>("GameTime")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("game_time");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -3011,9 +3019,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("player_id");
 
-                    b.Property<TimeSpan>("Playtime")
-                        .HasColumnType("interval")
-                        .HasColumnName("playtime");
+                    b.Property<long>("StateVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("state_version");
 
                     b.HasKey("Id")
                         .HasName("pk_worlds");

@@ -2,11 +2,10 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
@@ -16,6 +15,8 @@ using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -29,6 +30,8 @@ internal abstract record GameTurnPrompt
     public sealed record None : GameTurnPrompt;
 }
 
+internal sealed record ResolvedTurn(SceneResult Before, GameTurnPrompt Prompt);
+
 internal class GameTurnStreamer(
     LlmConversationClient llmConversationClient,
     ICommandHandler<CloseLingeringNpcConversationsCommand> closeLingeringConversations,
@@ -37,17 +40,17 @@ internal class GameTurnStreamer(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
     IQueryHandler<
         GetLoreAnchorAutomatonByWorldQuery,
         LoreAnchorAutomaton
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
-    IGameClientEventSink gameEvents,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
+    ScenePublisher scenePublisher,
+    ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     IGameClientEventDispatcher eventDispatcher,
     IGameClientEventAckGate eventAckGate,
-    IOptionsSnapshot<GameClockOptions> gameClockOptions,
+    IWorldMutationGate mutationGate,
     ILogger<GameTurnStreamer> logger
 )
 {
@@ -57,10 +60,9 @@ internal class GameTurnStreamer(
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
-        // Captured before resolveTurn runs so the diff below also catches direct-command mutations, not just tool calls.
-        var before = await GetScene(session, cancellationToken);
-
-        var prompt = await resolveTurn(cancellationToken);
+        var resolved = await ResolveTurn(session, resolveTurn, cancellationToken);
+        var before = resolved.Before;
+        var prompt = resolved.Prompt;
 
         if (prompt is GameTurnPrompt.Reply reply)
         {
@@ -79,15 +81,6 @@ internal class GameTurnStreamer(
         if (prompt is GameTurnPrompt.Narrate narrate)
         {
             await BeginTurn(session, cancellationToken);
-
-            await advanceTime.Handle(
-                new AdvanceTimeCommand
-                {
-                    SessionId = session.SessionId,
-                    Delta = gameClockOptions.Value.RealTimePerMessage,
-                },
-                cancellationToken
-            );
 
             var streamedReply = await llmConversationClient.StreamReply(
                 narrate.Text,
@@ -151,13 +144,29 @@ internal class GameTurnStreamer(
         }
     }
 
+    private async Task<ResolvedTurn> ResolveTurn(
+        GameTurnSession session,
+        Func<CancellationToken, Task<GameTurnPrompt>> resolveTurn,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
+
+        // Captured before resolveTurn runs so the diff also catches direct-command mutations, not just tool calls.
+        var before = await GetScene(session, cancellationToken);
+
+        var prompt = await resolveTurn(cancellationToken);
+
+        return new ResolvedTurn(before, prompt);
+    }
+
     private async Task<SceneResult> GetScene(
         GameTurnSession session,
         CancellationToken cancellationToken
     )
     {
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 
@@ -166,7 +175,7 @@ internal class GameTurnStreamer(
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -178,11 +187,16 @@ internal class GameTurnStreamer(
         CancellationToken cancellationToken
     )
     {
+        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
+        var stamp = await stampWorldState.Handle(
+            new StampWorldStateCommand { WorldId = session.WorldId },
+            cancellationToken
+        );
         var after = await GetScene(session, cancellationToken);
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            gameEvents.Enqueue(new SceneUpdatedEvent(after));
+            scenePublisher.Publish(session.PlayerId, after, stamp);
         }
 
         return after;
@@ -206,15 +220,17 @@ internal class GameTurnStreamer(
         turnContext.PlayerId = session.PlayerId;
         turnContext.PlayerMoved = false;
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
+
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
         await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
-                Playtime = playtime,
+                GameTime = gameTime,
                 CreatureIds = [turnContext.PlayerId],
             },
             cancellationToken

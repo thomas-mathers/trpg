@@ -10,13 +10,13 @@ namespace TRPG.Application.Caravans.Queries;
 public record NextCaravanArrival(string RouteName, double HoursUntilArrival);
 
 // Powers a caravan schedule sign's live "next arrival" text — unlike the seeder, which only ever
-// runs once at world creation, this is recomputed from the current playtime on every read, so it
+// runs once at world creation, this is recomputed from the current gameTime on every read, so it
 // never goes stale the way a value baked in at creation time would.
 public class GetNextCaravanArrivalsQuery
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class GetNextCaravanArrivalsQueryHandler(
@@ -58,8 +58,8 @@ internal class GetNextCaravanArrivalsQueryHandler(
                 var hoursUntilArrival = RouteTimeline.HoursUntilNextArrivalAt(
                     traveler.Steps,
                     traveler.SpeedUnitsPerHour,
-                    traveler.StartedAtPlaytime,
-                    query.Playtime,
+                    traveler.StartedAtGameTime,
+                    query.GameTime,
                     stopIndex
                 );
                 return (traveler.RouteName, HoursUntilArrival: hoursUntilArrival);

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -12,10 +13,12 @@ public interface IEncounterResolutionCommand
     Guid WorldId { get; }
     Guid PlayerId { get; }
     Guid EncounterId { get; }
+    GameInstant GameTime { get; }
 }
 
 internal abstract class EncounterResolutionCommandHandlerBase<TEncounter, TCommand, TResolution>(
-    IEncountersDbContext context
+    IEncountersDbContext context,
+    EncounterEngagementManager engagementManager
 ) : ICommandHandler<TCommand, TResolution>
     where TEncounter : Encounter
     where TCommand : IEncounterResolutionCommand
@@ -35,6 +38,7 @@ internal abstract class EncounterResolutionCommandHandlerBase<TEncounter, TComma
         await CompleteEncounter(command.EncounterId, cancellationToken);
 
         var resolution = await Resolve(command, encounter, cancellationToken);
+        await engagementManager.ReconcileResolved(encounter, command.GameTime, cancellationToken);
 
         transaction.Complete();
 

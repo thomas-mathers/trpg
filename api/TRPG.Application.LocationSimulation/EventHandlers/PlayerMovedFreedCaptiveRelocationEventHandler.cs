@@ -18,7 +18,7 @@ internal sealed class PlayerMovedFreedCaptiveRelocationEventHandler(
                 WorldId = domainEvent.WorldId,
                 PlayerId = domainEvent.PlayerId,
                 LocationId = domainEvent.FromLocationId,
-                Playtime = domainEvent.Playtime,
+                GameTime = domainEvent.GameTime,
             },
             cancellationToken
         );

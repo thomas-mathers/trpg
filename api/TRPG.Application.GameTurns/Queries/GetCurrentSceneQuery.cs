@@ -8,7 +8,7 @@ public class GetCurrentSceneQuery
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class GetCurrentSceneQueryHandler(IQueryHandler<GetSceneQuery, SceneResult> getScene)
@@ -19,7 +19,7 @@ internal class GetCurrentSceneQueryHandler(IQueryHandler<GetSceneQuery, SceneRes
         CancellationToken cancellationToken = default
     )
     {
-        var currentDate = GameClock.GetCurrentInGameDate(query.Playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(query.GameTime);
 
         return await getScene.Handle(
             new GetSceneQuery
@@ -27,7 +27,7 @@ internal class GetCurrentSceneQueryHandler(IQueryHandler<GetSceneQuery, SceneRes
                 WorldId = query.WorldId,
                 PlayerId = query.PlayerId,
                 CurrentDate = currentDate,
-                Playtime = query.Playtime,
+                GameTime = query.GameTime,
             },
             cancellationToken
         );

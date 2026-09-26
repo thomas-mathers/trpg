@@ -24,10 +24,12 @@ public class ResolveGuardEncounterActionCommand : IEncounterResolutionCommand
     public required Guid PlayerId { get; init; }
     public required GuardEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveGuardEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
@@ -36,7 +38,6 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetGuardsAtLocationQuery, IReadOnlyList<Creature>> getGuardsAtLocation,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     ICommandHandler<SetLockpickingCrimeOutcomeCommand> setLockpickingCrimeOutcome,
     ICommandHandler<SettleOutstandingCrimesCommand> settleOutstandingCrimes,
@@ -47,7 +48,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
         GuardEncounter,
         ResolveGuardEncounterActionCommand,
         GuardEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<GuardEncounterResolutionFact> Resolve(
         ResolveGuardEncounterActionCommand command,
@@ -141,11 +142,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             throw new InvalidOperationException($"City {location.CityId} has no jail.");
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-        var unlocksAt = playtime + GameClock.RealTimePerInGameHour * encounter.JailHours;
+        var unlocksAt = command.GameTime + TimeSpan.FromHours(1) * encounter.JailHours;
 
         // Must settle before the move: leaving is what resolves the crime and applies the penalty.
         await SettleTriggeringCrime(
@@ -159,7 +156,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 DestinationLocationId = jail.CellsLocationId,
-                Playtime = playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -168,7 +165,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             new SetDoorTimedLockCommand
             {
                 DoorConnectorIds = [jail.ExitDoorConnectorId],
-                UnlocksAtPlaytime = unlocksAt,
+                UnlocksAtGameTime = unlocksAt,
             },
             cancellationToken
         );
@@ -244,6 +241,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = guardIds,
                 HasSurpriseRound = false,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

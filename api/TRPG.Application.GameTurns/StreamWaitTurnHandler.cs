@@ -3,6 +3,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Commands;
+using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -14,8 +15,9 @@ internal class StreamWaitTurnHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
+    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -37,9 +39,14 @@ internal class StreamWaitTurnHandler(
         CancellationToken cancellationToken
     )
     {
-        if (hours < 0 || minutes < 0 || (hours == 0 && minutes == 0))
+        var delta = TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(minutes);
+        if (delta <= TimeSpan.Zero)
         {
             return new GameTurnPrompt.Reply("The wait duration must be positive.");
+        }
+        if (delta > TimeSpan.FromHours(24))
+        {
+            return new GameTurnPrompt.Reply("You can wait for at most 24 hours at a time.");
         }
 
         var player = await getCreatureById.Handle(
@@ -51,17 +58,23 @@ internal class StreamWaitTurnHandler(
             return new GameTurnPrompt.Reply("You need to sit down before waiting.");
         }
 
-        var playtime = await advanceTime.Handle(
-            new AdvanceTimeCommand
-            {
-                SessionId = session.SessionId,
-                Delta = GameClock.RealTimePerInGameHour * (hours + minutes / 60.0),
-            },
+        var gameTime = await advanceTime.Handle(
+            new AdvanceTimeCommand { WorldId = session.WorldId, Delta = delta },
             cancellationToken
         );
 
         await applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand { Playtime = playtime, CreatureIds = [session.PlayerId] },
+            new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [session.PlayerId] },
+            cancellationToken
+        );
+
+        await refreshScene.Handle(
+            new RefreshSceneCommand
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                GameTime = gameTime,
+            },
             cancellationToken
         );
 

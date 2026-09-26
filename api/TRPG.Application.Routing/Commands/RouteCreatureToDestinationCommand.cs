@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Commands;
+using TRPG.Domain;
 
 namespace TRPG.Application.Routing.Commands;
 
@@ -6,7 +7,7 @@ public class RouteCreatureToDestinationCommand
 {
     public required Guid CreatureId { get; init; }
     public required Guid DestinationLocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required string Purpose { get; init; }
 }
 
@@ -32,7 +33,7 @@ internal class RouteCreatureToDestinationCommandHandler(
                     new CreatureRouteRequest(
                         command.CreatureId,
                         command.DestinationLocationId,
-                        command.Playtime,
+                        command.GameTime,
                         command.Purpose
                     ),
                 ],

@@ -3,8 +3,13 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Commands;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.NpcConversations.Commands;
+using TRPG.Application.NpcConversations.Queries;
+using TRPG.Domain;
 using TRPG.Tools;
 
 namespace TRPG.NpcConversations.Tools;
@@ -12,6 +17,9 @@ namespace TRPG.NpcConversations.Tools;
 internal class EndConversationTool(
     GameTurnContext turnContext,
     ICommandHandler<CloseNpcConversationCommand, CloseNpcConversationResult> closeNpcConversation,
+    ICommandHandler<ReleaseCreaturesCommand> releaseCreatures,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
+    IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     ILogger<EndConversationTool> logger
 ) : IGameTool
 {
@@ -54,6 +62,14 @@ internal class EndConversationTool(
         logger.LogInformation("[end_conversation] npcName={NpcName}", npcName);
         var stopwatch = Stopwatch.StartNew();
 
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+        var openConversations = await getOpenNpcConversations.Handle(
+            new GetOpenNpcConversationsQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
         var outcome = await closeNpcConversation.Handle(
             new CloseNpcConversationCommand
             {
@@ -76,6 +92,16 @@ internal class EndConversationTool(
                 $"No open conversation with '{npcName}'. Call start_conversation first."
             );
         }
+
+        await releaseCreatures.Handle(
+            new ReleaseCreaturesCommand
+            {
+                WorldId = turnContext.WorldId,
+                CreatureIds = [turnContext.PlayerId, openConversations[npcName]],
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
 
         var result = new { Saved = true };
         logger.LogInformation(

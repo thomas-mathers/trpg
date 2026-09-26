@@ -2,9 +2,10 @@ import { HubConnectionState } from '@microsoft/signalr';
 import type { ReactNode } from 'react';
 import { GiHeartBeats, GiWingfoot, GiWaterDrop } from 'react-icons/gi';
 
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useScene } from '@/features/game/contexts/scene-context';
+import { formatGameClockTime, formatGameDate } from '@/features/game/game-clock';
+import { useGameClock } from '@/features/game/hooks/use-game-clock';
 import { formatLocation } from '@/features/game/scene-format';
 
 interface StatusBarProps {
@@ -29,6 +30,7 @@ const connectionStatusStyles: Record<HubConnectionState, { className: string; la
 
 export function StatusBar({ isInCombat = false, connectionStatus, controls }: StatusBarProps) {
   const scene = useScene();
+  const gameTime = useGameClock();
 
   return (
     <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 text-sm lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4">
@@ -55,7 +57,11 @@ export function StatusBar({ isInCombat = false, connectionStatus, controls }: St
         {scene && !isInCombat && (
           <>
             <span className="min-w-0 truncate">{formatLocation(scene)}</span>
-            <span className="shrink-0">{formatTime(scene)}</span>
+            {gameTime && (
+              <span className="shrink-0 tabular-nums">
+                {formatGameDate(gameTime)} - {formatGameClockTime(gameTime)}
+              </span>
+            )}
           </>
         )}
       </div>
@@ -136,8 +142,4 @@ function ExperienceProgress({
       </span>
     </div>
   );
-}
-
-function formatTime(scene: SceneSnapshot): string {
-  return `${scene.weekdayName}, ${scene.monthName} ${scene.day} - ${scene.hour}:00`;
 }

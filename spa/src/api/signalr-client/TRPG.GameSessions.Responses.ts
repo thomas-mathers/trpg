@@ -17,7 +17,7 @@ export type Gender = "Male" | "Female";
 export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Mercenary" | "Alchemist" | "Blacksmith" | "Scholar" | "Merchant" | "Politician" | "StableMaster" | "Bartender" | "Guard" | "Baker" | "Innkeeper" | "Tailor" | "Carpenter" | "Jeweler" | "Homemaker" | "Unemployed";
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
-export type CreatureState = "Idle" | "Sitting" | "Sleeping" | "Busy" | "Studying" | "Praying" | "Eating" | "Alerted" | "Dead" | "Restrained" | "Walking";
+export type CreatureState = "Idle" | "Sitting" | "Sleeping" | "Working" | "Studying" | "Praying" | "Eating" | "Alerted" | "Dead" | "Restrained" | "Walking";
 
 /** Transpiled from TRPG.GameSessions.Responses.RoomRole */
 export type RoomRole = "Entrance" | "BossChamber" | "Passage" | "GuardPost" | "Storeroom" | "TreasureRoom" | "Shrine" | "Study" | "CellBlock" | "CollapsedGallery" | "FloodedSump";
@@ -45,16 +45,6 @@ export type SceneSnapshot = {
     buildingName?: string;
     /** Transpiled from string? */
     roomName?: string;
-    /** Transpiled from int */
-    year: number;
-    /** Transpiled from string */
-    monthName: string;
-    /** Transpiled from int */
-    day: number;
-    /** Transpiled from string */
-    weekdayName: string;
-    /** Transpiled from int */
-    hour: number;
     /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */
     playerStatus: CreatureStatusSnapshot;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureStatusSnapshot> */
@@ -67,6 +57,12 @@ export type SceneSnapshot = {
     exits: NearbyExitSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyCaravanSnapshot> */
     nearbyCaravans: NearbyCaravanSnapshot[];
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from long */
+    gameTimeMilliseconds: number;
+    /** Transpiled from long */
+    anchoredAtUnixMilliseconds: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */

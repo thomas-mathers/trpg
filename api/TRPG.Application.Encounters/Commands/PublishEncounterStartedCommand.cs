@@ -4,6 +4,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -12,11 +13,13 @@ public class PublishEncounterStartedCommand
 {
     public required Guid PlayerId { get; init; }
     public required Encounter? Encounter { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class PublishEncounterStartedCommandHandler(
     IGameClientEventSink gameEvents,
-    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity
+    IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
+    EncounterEngagementManager engagementManager
 ) : ICommandHandler<PublishEncounterStartedCommand>
 {
     public async Task Handle(
@@ -24,6 +27,11 @@ internal class PublishEncounterStartedCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
+        if (command.Encounter != null)
+        {
+            await engagementManager.Engage(command.Encounter, command.GameTime, cancellationToken);
+        }
+
         switch (command.Encounter)
         {
             case HostileEncounter hostileEncounter:

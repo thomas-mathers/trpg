@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -116,7 +117,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 LocationId = _cellLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -150,7 +151,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 LocationId = _cellLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -202,7 +203,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 LocationId = _cellLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -235,7 +236,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
                 WorldId = WorldId,
                 PlayerId = _player.Id,
                 LocationId = _cellLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

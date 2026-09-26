@@ -9,6 +9,26 @@ export type CharacterLevelUp = {
     level: number;
 }
 
+/** Transpiled from TRPG.Creatures.Responses.PlayerVitalsUpdated */
+export type PlayerVitalsUpdated = {
+    /** Transpiled from System.Guid */
+    playerId: string;
+    /** Transpiled from int */
+    currentHp: number;
+    /** Transpiled from int */
+    maximumHp: number;
+    /** Transpiled from int */
+    currentAp: number;
+    /** Transpiled from int */
+    maximumAp: number;
+    /** Transpiled from int */
+    currentMp: number;
+    /** Transpiled from int */
+    maximumMp: number;
+    /** Transpiled from long */
+    version: number;
+}
+
 /** Transpiled from TRPG.Creatures.Responses.SkillLevelUp */
 export type SkillLevelUp = {
     /** Transpiled from TRPG.Abilities.Responses.Skill */

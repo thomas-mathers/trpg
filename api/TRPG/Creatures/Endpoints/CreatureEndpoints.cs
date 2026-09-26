@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using TRPG.Abilities.Mappers;
 using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
@@ -67,6 +69,16 @@ internal static class CreatureEndpoints
             .WithName("GetNearbyCorpses");
         app.MapGet("/players/{playerId:guid}/world-map", GetWorldMap).WithName("GetWorldMap");
         app.MapGet("/players/{playerId:guid}/local-map", GetLocalMap).WithName("GetLocalMap");
+        app.MapPut(
+                "/players/{playerId:guid}/interactions/{creatureId:guid}",
+                BeginCreatureInteraction
+            )
+            .WithName("BeginCreatureInteraction");
+        app.MapDelete(
+                "/players/{playerId:guid}/interactions/{creatureId:guid}",
+                EndCreatureInteraction
+            )
+            .WithName("EndCreatureInteraction");
     }
 
     private static async Task<Ok<AbilitySummary[]>> GetAbilities(
@@ -726,5 +738,55 @@ internal static class CreatureEndpoints
         {
             throw new EntityNotFoundException(nameof(Creature), creatureId);
         }
+    }
+
+    private static async Task<NoContent> BeginCreatureInteraction(
+        Guid playerId,
+        Guid creatureId,
+        Guid worldId,
+        [FromServices] IWorldClock worldClock,
+        [FromServices] IWorldMutationGate mutationGate,
+        [FromServices] ICommandHandler<BeginCreatureInteractionCommand> beginInteraction,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
+        var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
+        await beginInteraction.Handle(
+            new BeginCreatureInteractionCommand
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                CreatureId = creatureId,
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
+        return TypedResults.NoContent();
+    }
+
+    private static async Task<NoContent> EndCreatureInteraction(
+        Guid playerId,
+        Guid creatureId,
+        Guid worldId,
+        [FromServices] IWorldClock worldClock,
+        [FromServices] IWorldMutationGate mutationGate,
+        [FromServices] ICommandHandler<EndCreatureInteractionCommand> endInteraction,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
+        var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
+        await endInteraction.Handle(
+            new EndCreatureInteractionCommand
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                CreatureId = creatureId,
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
+        return TypedResults.NoContent();
     }
 }

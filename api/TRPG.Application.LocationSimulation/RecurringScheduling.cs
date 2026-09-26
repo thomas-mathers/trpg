@@ -9,8 +9,8 @@ public static class RecurringScheduling
     // are a display concern, so weekday and month fields mean what they normally mean.
     public static bool HasTriggered(
         string schedule,
-        TimeSpan lastSyncPlaytime,
-        TimeSpan currentPlaytime
+        GameInstant lastSyncGameTime,
+        GameInstant currentGameTime
     )
     {
         var parsed = CrontabSchedule.TryParse(schedule);
@@ -19,8 +19,8 @@ public static class RecurringScheduling
             return false;
         }
 
-        var before = GameClock.GetCurrentInGameDateTime(lastSyncPlaytime);
-        var after = GameClock.GetCurrentInGameDateTime(currentPlaytime);
+        var before = GameClock.GetCurrentInGameDateTime(lastSyncGameTime);
+        var after = GameClock.GetCurrentInGameDateTime(currentGameTime);
 
         return parsed.GetNextOccurrence(before) <= after;
     }

@@ -10,7 +10,10 @@ public static class LocationSimulationServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection
-            .AddSingleton<LocationCatchUpCache>()
+            .AddTransient<CreaturesReleasedEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreaturesReleasedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreaturesReleasedEventHandler>()
+            )
             .AddTransient<CreatureFreedScheduleEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureFreedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureFreedScheduleEventHandler>()

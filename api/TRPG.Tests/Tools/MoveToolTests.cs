@@ -20,7 +20,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private static readonly Guid WorldId = Guid.NewGuid();
+    private Guid WorldId { get; } = Guid.NewGuid();
 
     private readonly Guid _stateId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
@@ -67,8 +67,10 @@ public sealed class MoveToolTests(DatabaseFixture db)
             destinationLabel: "Elsewhere"
         );
         var session = Builders.MakeGameSession(WorldId, _player.Id);
+        var world = Builders.MakeWorld(WorldId);
         var state = Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: _stateId);
 
+        _context.Worlds.Add(world);
         _context.States.Add(state);
         _context.Locations.AddRange(_oldLocation, _newLocation);
         _context.Creatures.AddRange(_player, _guard);
@@ -379,7 +381,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
             {
                 PlayerId = _player.Id,
                 DestinationLocationId = _newLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -433,7 +435,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
             guestRoom.Id,
             key.Id,
             _player.Id,
-            dueAtPlaytime: TimeSpan.Zero
+            dueAtGameTime: GameClock.Epoch
         );
 
         _context.Buildings.Add(inn);
@@ -449,7 +451,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Invoke_AdvancesPlaytime_WhenCrossingATravelConnector()
+    public async Task Invoke_AdvancesGameTime_WhenCrossingATravelConnector()
     {
         // Arrange — default player has Dexterity 8, so speed is 50 + 8 = 58; 116 / 58 = 2 hours
         var connector = await _context.LocationConnectors.SingleAsync(
@@ -467,15 +469,43 @@ public sealed class MoveToolTests(DatabaseFixture db)
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.PlayerId == _player.Id,
+        var world = await verifyContext.Worlds.SingleAsync(
+            world => world.Id == WorldId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(GameClock.RealTimePerInGameHour * 2, session.Playtime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, world.GameTime);
     }
 
     [Fact]
-    public async Task Invoke_DoesNotAdvancePlaytime_WhenTheConnectorHasNoTravelConnector()
+    public async Task Invoke_RegeneratesThePlayerOverTheTravelTime_WhenCrossingATravelConnector()
+    {
+        // Arrange
+        var connector = await _context.LocationConnectors.SingleAsync(
+            c => c.OriginLocationId == _oldLocation.Id,
+            TestContext.Current.CancellationToken
+        );
+        _context.TravelConnectors.Add(
+            Builders.MakeTravelConnector(connector.Id, distance: 116, worldId: WorldId)
+        );
+        _player.CurrentHp = 1;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(player.MaximumHp, player.CurrentHp);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, player.LastRegenGameTime);
+    }
+
+    [Fact]
+    public async Task Invoke_DoesNotAdvanceGameTime_WhenTheConnectorHasNoTravelConnector()
     {
         // Arrange
         var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
@@ -485,11 +515,11 @@ public sealed class MoveToolTests(DatabaseFixture db)
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var session = await verifyContext.GameSessions.SingleAsync(
-            s => s.PlayerId == _player.Id,
+        var world = await verifyContext.Worlds.SingleAsync(
+            world => world.Id == WorldId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.Zero, session.Playtime);
+        Assert.Equal(GameClock.Epoch, world.GameTime);
     }
 
     [Fact]

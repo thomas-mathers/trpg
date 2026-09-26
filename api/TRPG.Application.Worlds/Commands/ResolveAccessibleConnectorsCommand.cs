@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -9,7 +10,7 @@ public class ResolveAccessibleConnectorsCommand
 {
     public required IReadOnlySet<Guid> PlayerKeyItemIds { get; init; }
     public required IReadOnlySet<Guid> ActivatedTriggerIds { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required IReadOnlyCollection<Guid> ConnectorIds { get; init; }
 }
 
@@ -46,7 +47,7 @@ internal class ResolveAccessibleConnectorsCommandHandler(
         }
 
         var elapsedDoorIds = await ClearElapsedTimedLocks(
-            command.Playtime,
+            command.GameTime,
             lockedDoors,
             cancellationToken
         );
@@ -90,7 +91,7 @@ internal class ResolveAccessibleConnectorsCommandHandler(
             // A lock with no key or lever ever configured would otherwise soft-lock the building
             // forever, so it's not enforced.
             if (
-                door.UnlocksAtPlaytime != null
+                door.UnlocksAtGameTime != null
                 || validKeyItemIds.Count > 0
                 || requiredLeverIds.Count > 0
             )
@@ -103,19 +104,19 @@ internal class ResolveAccessibleConnectorsCommandHandler(
     }
 
     private async Task<HashSet<Guid>> ClearElapsedTimedLocks(
-        TimeSpan playtime,
+        GameInstant gameTime,
         IReadOnlyCollection<DoorConnector> lockedDoors,
         CancellationToken cancellationToken
     )
     {
-        var doorsWithSchedule = lockedDoors.Where(door => door.UnlocksAtPlaytime != null).ToArray();
+        var doorsWithSchedule = lockedDoors.Where(door => door.UnlocksAtGameTime != null).ToArray();
         if (doorsWithSchedule.Length == 0)
         {
             return [];
         }
 
         var elapsedDoorIds = doorsWithSchedule
-            .Where(door => playtime >= door.UnlocksAtPlaytime!.Value)
+            .Where(door => gameTime >= door.UnlocksAtGameTime!.Value)
             .Select(door => door.Id)
             .ToArray();
 
@@ -125,7 +126,7 @@ internal class ResolveAccessibleConnectorsCommandHandler(
                 new SetDoorTimedLockCommand
                 {
                     DoorConnectorIds = elapsedDoorIds,
-                    UnlocksAtPlaytime = null,
+                    UnlocksAtGameTime = null,
                 },
                 cancellationToken
             );

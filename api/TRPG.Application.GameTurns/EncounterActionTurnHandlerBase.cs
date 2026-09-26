@@ -5,6 +5,7 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -14,7 +15,7 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IGameClientEventSink gameEvents
 )
     where TEncounter : Encounter
@@ -29,6 +30,7 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
         GameTurnSession session,
         TEncounter encounter,
         TAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     );
 
@@ -52,7 +54,18 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
             return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
         }
 
-        var resolution = await Resolve(session, typedEncounter, action, cancellationToken);
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
+        var resolution = await Resolve(
+            session,
+            typedEncounter,
+            action,
+            gameTime,
+            cancellationToken
+        );
 
         gameEvents.Enqueue(BuildResolvedEvent(resolution));
 
@@ -68,12 +81,8 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
             {
                 PlayerId = session.PlayerId,
                 Encounter = startedEncounter,
+                GameTime = gameTime,
             },
-            cancellationToken
-        );
-
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 
@@ -82,7 +91,7 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
             {
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

@@ -10,7 +10,7 @@ public class SyncWeatherCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid StateId { get; init; }
-    public required TimeSpan CurrentPlaytime { get; init; }
+    public required GameInstant CurrentGameTime { get; init; }
 }
 
 internal class SyncWeatherCommandHandler(ILocationSimulationDbContext context)
@@ -21,7 +21,7 @@ internal class SyncWeatherCommandHandler(ILocationSimulationDbContext context)
         CancellationToken cancellationToken = default
     )
     {
-        var season = GameClock.GetCurrentSeason(command.CurrentPlaytime);
+        var season = GameClock.GetCurrentSeason(command.CurrentGameTime);
 
         var weatherState = await context.WeatherStates.FirstOrDefaultAsync(
             w => w.StateId == command.StateId,
@@ -36,20 +36,20 @@ internal class SyncWeatherCommandHandler(ILocationSimulationDbContext context)
                     WorldId = command.WorldId,
                     StateId = command.StateId,
                     Condition = WeatherRoll.InitialCondition(season),
-                    NextChangePlaytime = command.CurrentPlaytime + WeatherRoll.NextChangeOffset(),
+                    NextChangeGameTime = command.CurrentGameTime + WeatherRoll.NextChangeOffset(),
                 }
             );
             await context.SaveChangesAsync(cancellationToken);
             return;
         }
 
-        if (command.CurrentPlaytime < weatherState.NextChangePlaytime)
+        if (command.CurrentGameTime < weatherState.NextChangeGameTime)
         {
             return;
         }
 
         weatherState.Condition = WeatherRoll.NextCondition(weatherState.Condition, season);
-        weatherState.NextChangePlaytime = command.CurrentPlaytime + WeatherRoll.NextChangeOffset();
+        weatherState.NextChangeGameTime = command.CurrentGameTime + WeatherRoll.NextChangeOffset();
         await context.SaveChangesAsync(cancellationToken);
     }
 }

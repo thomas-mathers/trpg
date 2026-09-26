@@ -334,26 +334,104 @@ public class StatFormulasTests
             }
         );
 
+    private static readonly CreatureRegenOptions TickOptions = new()
+    {
+        TickInterval = TimeSpan.FromSeconds(5),
+        HpRegenPercentPerTick = 0.2f,
+        ApRegenPercentPerTick = 0.25f,
+        MpRegenPercentPerTick = 0.25f,
+    };
+
     [Fact]
-    public void ApplyPassiveRegen_RegeneratesHpApMp_ProportionalToElapsedInGameHours()
+    public void ApplyPassiveRegen_RegeneratesHpApMp_ProportionalToCompleteTicks()
     {
         // Arrange
         var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
-        var options = new CreatureRegenOptions
-        {
-            HpRegenPercentPerHour = 0.2f,
-            ApRegenPercentPerHour = 0.25f,
-            MpRegenPercentPerHour = 0.25f,
-        };
 
         // Act
-        StatFormulas.ApplyPassiveRegen(creature, GameClock.RealTimePerInGameHour, options);
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromSeconds(5),
+            TickOptions
+        );
 
         // Assert
         Assert.Equal(7, creature.CurrentHp);
         Assert.Equal(3, creature.CurrentAp);
         Assert.Equal(2, creature.CurrentMp);
-        Assert.Equal(GameClock.RealTimePerInGameHour, creature.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromSeconds(5), creature.LastRegenGameTime);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_UsesDefaultRates_WhenOptionsAreUnset()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 100, maximumAp: 100, maximumMp: 100);
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromSeconds(5),
+            new CreatureRegenOptions()
+        );
+
+        // Assert
+        Assert.Equal(5, creature.CurrentHp);
+        Assert.Equal(10, creature.CurrentAp);
+        Assert.Equal(5, creature.CurrentMp);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_PreservesPartialTick_WhenElapsedTimeIsNotWholeTicks()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 100, maximumAp: 100, maximumMp: 100);
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromSeconds(12),
+            TickOptions
+        );
+
+        // Assert
+        Assert.Equal(40, creature.CurrentHp);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromSeconds(10), creature.LastRegenGameTime);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_DoesNothing_WhenLessThanOneTickHasElapsed()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 100, maximumAp: 100, maximumMp: 100);
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromSeconds(4),
+            TickOptions
+        );
+
+        // Assert
+        Assert.Equal(0, creature.CurrentHp);
+        Assert.Equal(GameClock.Epoch, creature.LastRegenGameTime);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_RegeneratesAtLeastOnePoint_WhenTickAmountRoundsToZero()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 4, maximumAp: 4, maximumMp: 4);
+
+        // Act
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromSeconds(5),
+            new CreatureRegenOptions()
+        );
+
+        // Assert
+        Assert.Equal(1, creature.CurrentHp);
     }
 
     [Fact]
@@ -361,15 +439,13 @@ public class StatFormulasTests
     {
         // Arrange
         var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
-        var options = new CreatureRegenOptions
-        {
-            HpRegenPercentPerHour = 0.2f,
-            ApRegenPercentPerHour = 0.25f,
-            MpRegenPercentPerHour = 0.25f,
-        };
 
         // Act
-        StatFormulas.ApplyPassiveRegen(creature, TimeSpan.FromHours(100 / 12.0), options);
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromHours(100),
+            TickOptions
+        );
 
         // Assert
         Assert.Equal(35, creature.CurrentHp);
@@ -391,13 +467,13 @@ public class StatFormulasTests
         // Act
         StatFormulas.ApplyPassiveRegen(
             creature,
-            TimeSpan.FromHours(100 / 12.0),
+            GameClock.Epoch + TimeSpan.FromHours(100),
             new CreatureRegenOptions()
         );
 
         // Assert
         Assert.Equal(0, creature.CurrentHp);
-        Assert.Equal(TimeSpan.Zero, creature.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch, creature.LastRegenGameTime);
     }
 
     [Fact]
@@ -405,14 +481,35 @@ public class StatFormulasTests
     {
         // Arrange
         var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
-        creature.LastRegenPlaytime = TimeSpan.FromHours(1);
+        creature.LastRegenGameTime = GameClock.Epoch + TimeSpan.FromHours(1);
 
         // Act
-        StatFormulas.ApplyPassiveRegen(creature, TimeSpan.FromHours(1), new CreatureRegenOptions());
+        StatFormulas.ApplyPassiveRegen(
+            creature,
+            GameClock.Epoch + TimeSpan.FromHours(1),
+            new CreatureRegenOptions()
+        );
 
         // Assert
         Assert.Equal(0, creature.CurrentHp);
-        Assert.Equal(TimeSpan.FromHours(1), creature.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), creature.LastRegenGameTime);
+    }
+
+    [Fact]
+    public void ApplyPassiveRegen_Throws_WhenTickIntervalIsNotPositive()
+    {
+        // Arrange
+        var creature = MakeCreatureWithMaximums(maximumHp: 35, maximumAp: 12, maximumMp: 8);
+        var options = new CreatureRegenOptions { TickInterval = TimeSpan.Zero };
+
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() =>
+            StatFormulas.ApplyPassiveRegen(
+                creature,
+                GameClock.Epoch + TimeSpan.FromHours(1),
+                options
+            )
+        );
     }
 
     [Fact]

@@ -11,6 +11,7 @@ public static class EncountersServiceCollectionExtensions
             .AddTransient<EncounterEvaluationService>()
             .AddTransient<EncounterDepartureResolver>()
             .AddTransient<EncounterFleeResolver>()
+            .AddTransient<EncounterEngagementManager>()
             .AddTransient<TheftSourceResolver>()
             .AddTransient<LocationCityResolver>()
             .AddTransient<WrongedFactionResolver>()

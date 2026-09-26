@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Data;
@@ -140,6 +141,10 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Properties<Enum>().HaveConversion<string>();
+        configurationBuilder
+            .Properties<GameInstant>()
+            .HaveConversion<GameInstantValueConverter>()
+            .HaveColumnType("timestamp without time zone");
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

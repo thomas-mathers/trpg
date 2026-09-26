@@ -193,7 +193,7 @@ export type CreatureLevelResponse = {
     level: number;
 };
 
-export type CreatureState = 'Idle' | 'Sitting' | 'Sleeping' | 'Busy' | 'Studying' | 'Praying' | 'Eating' | 'Alerted' | 'Dead' | 'Restrained' | 'Walking';
+export type CreatureState = 'Idle' | 'Sitting' | 'Sleeping' | 'Working' | 'Studying' | 'Praying' | 'Eating' | 'Alerted' | 'Dead' | 'Restrained' | 'Walking';
 
 export type CreatureStatusSnapshot = {
     id: string;
@@ -833,17 +833,15 @@ export type SceneSnapshot = {
     districtName: null | string;
     buildingName: null | string;
     roomName: null | string;
-    year: number;
-    monthName: string;
-    day: number;
-    weekdayName: string;
-    hour: number;
     playerStatus: CreatureStatusSnapshot;
     nearbyCreatures: Array<CreatureStatusSnapshot>;
     nearbyBuildings: Array<NearbyBuildingSnapshot>;
     nearbyProps: Array<NearbyPropSnapshot>;
     exits: Array<NearbyExitSnapshot>;
     nearbyCaravans: Array<NearbyCaravanSnapshot>;
+    version: number;
+    gameTimeMilliseconds: number;
+    anchoredAtUnixMilliseconds: number;
 };
 
 export type SessionCreatedResponse = {
@@ -923,28 +921,6 @@ export type WorldSummary = {
     name: string;
     hasPlayer: boolean;
 };
-
-export type DevGenerateQuestChainData = {
-    body?: never;
-    path?: never;
-    query: {
-        worldId: string;
-        locationId: string;
-        playerId: string;
-        playerLevel: number;
-        giverFactionId?: string;
-    };
-    url: '/dev/quest-chains/generate';
-};
-
-export type DevGenerateQuestChainResponses = {
-    /**
-     * OK
-     */
-    200: boolean;
-};
-
-export type DevGenerateQuestChainResponse = DevGenerateQuestChainResponses[keyof DevGenerateQuestChainResponses];
 
 export type ListWorldsData = {
     body?: never;
@@ -1360,6 +1336,90 @@ export type GetLocalMapResponses = {
 };
 
 export type GetLocalMapResponse = GetLocalMapResponses[keyof GetLocalMapResponses];
+
+export type EndCreatureInteractionData = {
+    body?: never;
+    path: {
+        playerId: string;
+        creatureId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/interactions/{creatureId}';
+};
+
+export type EndCreatureInteractionResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type EndCreatureInteractionResponse = EndCreatureInteractionResponses[keyof EndCreatureInteractionResponses];
+
+export type BeginCreatureInteractionData = {
+    body?: never;
+    path: {
+        playerId: string;
+        creatureId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/interactions/{creatureId}';
+};
+
+export type BeginCreatureInteractionResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BeginCreatureInteractionResponse = BeginCreatureInteractionResponses[keyof BeginCreatureInteractionResponses];
+
+export type EndCaravanInteractionData = {
+    body?: never;
+    path: {
+        playerId: string;
+        caravanId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/caravans/{caravanId}/interaction';
+};
+
+export type EndCaravanInteractionResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type EndCaravanInteractionResponse = EndCaravanInteractionResponses[keyof EndCaravanInteractionResponses];
+
+export type BeginCaravanInteractionData = {
+    body?: never;
+    path: {
+        playerId: string;
+        caravanId: string;
+    };
+    query: {
+        worldId: string;
+    };
+    url: '/players/{playerId}/caravans/{caravanId}/interaction';
+};
+
+export type BeginCaravanInteractionResponses = {
+    /**
+     * No Content
+     */
+    204: void;
+};
+
+export type BeginCaravanInteractionResponse = BeginCaravanInteractionResponses[keyof BeginCaravanInteractionResponses];
 
 export type GetPlayerFightData = {
     body?: never;

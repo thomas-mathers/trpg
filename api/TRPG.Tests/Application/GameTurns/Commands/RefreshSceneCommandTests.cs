@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -55,59 +56,12 @@ public sealed class RefreshSceneCommandTests(DatabaseFixture db)
             {
                 WorldId = WorldId,
                 PlayerId = _player.Id,
-                Playtime = _session.Playtime,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal(_player.Id, result.Scene.Player.Id);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsRefreshedTrue_OnTheFirstCallForALocation()
-    {
-        // Act
-        var result = await _handler.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                Playtime = _session.Playtime,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.True(result.Refreshed);
-    }
-
-    [Fact]
-    public async Task Handle_ReturnsRefreshedFalse_OnASecondCallWithinTheSameHour()
-    {
-        // Arrange
-        await _handler.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                Playtime = _session.Playtime,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Act
-        var result = await _handler.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = WorldId,
-                PlayerId = _player.Id,
-                Playtime = _session.Playtime,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.False(result.Refreshed);
     }
 }

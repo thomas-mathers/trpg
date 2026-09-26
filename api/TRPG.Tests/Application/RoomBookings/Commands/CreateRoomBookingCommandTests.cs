@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -43,7 +44,7 @@ public sealed class CreateRoomBookingCommandTests(DatabaseFixture db)
             RoomId = Guid.NewGuid(),
             KeyItemId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
-            DueAtPlaytime = TimeSpan.FromHours(24),
+            DueAtGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
         };
 
         // Act
@@ -61,6 +62,6 @@ public sealed class CreateRoomBookingCommandTests(DatabaseFixture db)
         Assert.Equal(booking.RoomId, persisted.RoomId);
         Assert.Equal(booking.KeyItemId, persisted.KeyItemId);
         Assert.Equal(booking.PlayerId, persisted.PlayerId);
-        Assert.Equal(booking.DueAtPlaytime, persisted.DueAtPlaytime);
+        Assert.Equal(booking.DueAtGameTime, persisted.DueAtGameTime);
     }
 }

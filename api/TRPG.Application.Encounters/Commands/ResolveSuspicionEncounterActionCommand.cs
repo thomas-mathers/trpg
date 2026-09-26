@@ -10,6 +10,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Reputations.Commands;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -21,10 +22,12 @@ public class ResolveSuspicionEncounterActionCommand : IEncounterResolutionComman
     public required Guid PlayerId { get; init; }
     public required SuspicionEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveSuspicionEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetReputationScoreQuery, int> getReputationScore,
@@ -32,14 +35,13 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsSnapshot<FleeOptions> fleeOptions,
     IOptionsMonitor<SuspicionOptions> suspicionOptions,
-    EncounterFleeResolver encounterFleeResolver,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    EncounterFleeResolver encounterFleeResolver
 )
     : EncounterResolutionCommandHandlerBase<
         SuspicionEncounter,
         ResolveSuspicionEncounterActionCommand,
         SuspicionEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<SuspicionEncounterResolutionFact> Resolve(
         ResolveSuspicionEncounterActionCommand command,
@@ -115,11 +117,12 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
 
         if (!isCaught)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
+            await encounterFleeResolver.Resolve(
+                encounter,
+                player,
+                command.GameTime,
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
 
             return new SuspicionEncounterResolutionFact(
                 command.EncounterId,
@@ -180,6 +183,7 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 Encounter = guardEncounter,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

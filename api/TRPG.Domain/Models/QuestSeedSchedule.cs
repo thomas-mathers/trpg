@@ -9,5 +9,5 @@ public class QuestSeedSchedule
     // A cron expression over in-game time, same idiom as CreatureSpawner — this location gets a
     // chance to seed a rescue quest each time the schedule comes due, not on every single visit.
     public string Schedule { get; init; } = "0 0 * * *";
-    public TimeSpan LastSyncPlaytime { get; set; }
+    public GameInstant LastSyncGameTime { get; set; } = GameClock.Epoch;
 }

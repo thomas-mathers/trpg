@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -10,7 +11,7 @@ public class UpdateCreaturesCommand
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
     public Guid? LocationId { get; init; }
     public CreatureState? State { get; init; }
-    public TimeSpan? LastRegenPlaytime { get; init; }
+    public GameInstant? LastRegenGameTime { get; init; }
     public string? Name { get; init; }
 }
 
@@ -25,7 +26,7 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
         var hasFieldToUpdate =
             command.LocationId != null
             || command.State != null
-            || command.LastRegenPlaytime != null
+            || command.LastRegenGameTime != null
             || command.Name != null;
 
         if (command.CreatureIds.Count == 0 || !hasFieldToUpdate)
@@ -47,9 +48,9 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
                     {
                         s.SetProperty(c => c.State, command.State.Value);
                     }
-                    if (command.LastRegenPlaytime != null)
+                    if (command.LastRegenGameTime != null)
                     {
-                        s.SetProperty(c => c.LastRegenPlaytime, command.LastRegenPlaytime.Value);
+                        s.SetProperty(c => c.LastRegenGameTime, command.LastRegenGameTime.Value);
                     }
                     if (command.Name != null)
                     {

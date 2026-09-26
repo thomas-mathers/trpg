@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -71,7 +72,7 @@ public class TradeStockGenerator(ItemGenerator itemGenerator)
                     WorldId = worldId,
                     WorkstationId = workstation.Id,
                     Schedule = DefaultRestockSchedule,
-                    LastSyncPlaytime = TimeSpan.Zero,
+                    LastSyncGameTime = GameClock.Epoch,
                 }
             );
         }

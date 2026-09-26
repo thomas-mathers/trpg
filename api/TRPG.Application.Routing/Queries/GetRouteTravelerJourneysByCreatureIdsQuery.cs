@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Routing.Queries;
@@ -11,7 +12,7 @@ public record RouteTravelerJourney(string Purpose, string NextDestination);
 public class GetRouteTravelerJourneysByCreatureIdsQuery
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class GetRouteTravelerJourneysByCreatureIdsQueryHandler(
@@ -50,7 +51,7 @@ internal class GetRouteTravelerJourneysByCreatureIdsQueryHandler(
             new ResolveRouteTravelerPositionsQuery
             {
                 RouteTravelerIds = travelerIds,
-                Playtime = query.Playtime,
+                GameTime = query.GameTime,
             },
             cancellationToken
         );

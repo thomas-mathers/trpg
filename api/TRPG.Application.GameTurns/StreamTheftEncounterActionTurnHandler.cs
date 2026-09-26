@@ -8,6 +8,7 @@ using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -21,19 +22,20 @@ internal class StreamTheftEncounterActionTurnHandler(
     > resolveTheftEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IGameClientEventSink gameEvents
 )
     : EncounterActionTurnHandlerBase<
         TheftEncounter,
         TheftEncounterAction,
         TheftEncounterResolutionFact
-    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getPlaytime, gameEvents)
+    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getGameTime, gameEvents)
 {
     protected override async Task<TheftEncounterResolutionFact> Resolve(
         GameTurnSession session,
         TheftEncounter encounter,
         TheftEncounterAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     ) =>
         await resolveTheftEncounterAction.Handle(
@@ -44,6 +46,7 @@ internal class StreamTheftEncounterActionTurnHandler(
                 SessionId = session.SessionId,
                 Action = action,
                 EncounterId = encounter.Id,
+                GameTime = gameTime,
             },
             cancellationToken
         );

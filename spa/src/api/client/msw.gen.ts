@@ -2,39 +2,12 @@
 
 import { http, type HttpHandler, HttpResponse, type HttpResponseResolver, type RequestHandlerOptions as RequestHandlerOptions2 } from 'msw';
 
-import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DevGenerateQuestChainResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetDeliverItemDialogResponses, GetJobResponses, GetLocalMapResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestDialogResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetSignTextResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
+import type { AcceptQuestResponses, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponses, BeginCaravanInteractionResponses, BeginCreatureInteractionResponses, ClientOptions, CompleteQuestResponses, CompleteTradeData, CompleteTradeResponses, CreateSessionData, CreateSessionResponses, CreateWorldData, CreateWorldResponses, DropInventoryItemData, DropInventoryItemResponses, DropWorldResponses, EndCaravanInteractionResponses, EndCreatureInteractionResponses, EquipCreatureItemData, EquipCreatureItemResponses, GetAbilitiesBySkillResponses, GetContainerInventoryResponses, GetCreatureAbilitiesResponses, GetCreatureAttributePointsResponses, GetCreatureAttributesResponses, GetCreatureBaseAttributesResponses, GetCreatureBasicAttackDamageResponses, GetCreatureConsumablesResponses, GetCreatureGenerationOptionsResponses, GetCreatureInventoryResponses, GetCreatureLevelResponses, GetCreatureSkillsResponses, GetDeliverItemDialogResponses, GetJobResponses, GetLocalMapResponses, GetNearbyCorpsesResponses, GetPlayerFightAbilitiesResponses, GetPlayerFightResponses, GetQuestDialogResponses, GetQuestJournalResponses, GetSessionItemResponses, GetSessionLoreAnchorResponses, GetSessionSceneResponses, GetSignTextResponses, GetTheftDetectionChanceData, GetTheftDetectionChanceResponses, GetTradeResponses, GetWorkstationInventoryResponses, GetWorldMapResponses, ListSessionLoreAnchorsResponses, ListWorldsResponses, PrefetchBookPageResponses, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponses, PreviewCreatureBasicAttackDamageResponses, PreviewCreatureEquipmentResponses, ProposeTradeData, ProposeTradeResponses, ReadBookPageResponses, SetCreatureSneakingData, SetCreatureSneakingResponses, SetQuestTrackingData, SetQuestTrackingResponses, TransferInventoryData, TransferInventoryResponses, UnequipCreatureItemResponses } from './types.gen';
 
 export type RequestHandlerOptions = RequestHandlerOptions2 & {
     baseUrl?: ClientOptions['baseUrl'];
     responseFallback?: 'error' | 'passthrough';
 };
-
-export type HandleDevGenerateQuestChainResponse = {
-    body: DevGenerateQuestChainResponses[200];
-    status?: 200;
-};
-
-/**
- * Handler for the `POST /dev/quest-chains/generate` operation.
- */
-export function handleDevGenerateQuestChain(response?: HandleDevGenerateQuestChainResponse | HttpResponseResolver<never, never>, options?: RequestHandlerOptions): HttpHandler {
-    return http.post<never, never>(`${options?.baseUrl ?? '*'}/dev/quest-chains/generate`, info => {
-        if (typeof response === 'function') {
-            return response(info);
-        }
-        const body = response?.body;
-        if (body !== undefined) {
-            return HttpResponse.json(body, { status: response?.status ?? 200 });
-        }
-        if (options?.responseFallback === 'passthrough') {
-            return;
-        }
-        return new Response('Not Implemented', {
-            status: 501,
-            statusText: 'Not Implemented'
-        });
-    }, options);
-}
 
 export type HandleListWorldsResponse = {
     body: ListWorldsResponses[200];
@@ -728,6 +701,138 @@ export function handleGetLocalMap(response?: HandleGetLocalMapResponse | HttpRes
         const body = response?.body;
         if (body !== undefined) {
             return HttpResponse.json(body, { status: response?.status ?? 200 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleEndCreatureInteractionResponse = {
+    body: EndCreatureInteractionResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `DELETE /players/{playerId}/interactions/{creatureId}` operation.
+ */
+export function handleEndCreatureInteraction(response?: HandleEndCreatureInteractionResponse | HttpResponseResolver<{
+    playerId: string;
+    creatureId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.delete<{
+        playerId: string;
+        creatureId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/interactions/:creatureId`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleBeginCreatureInteractionResponse = {
+    body: BeginCreatureInteractionResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `PUT /players/{playerId}/interactions/{creatureId}` operation.
+ */
+export function handleBeginCreatureInteraction(response?: HandleBeginCreatureInteractionResponse | HttpResponseResolver<{
+    playerId: string;
+    creatureId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.put<{
+        playerId: string;
+        creatureId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/interactions/:creatureId`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleEndCaravanInteractionResponse = {
+    body: EndCaravanInteractionResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `DELETE /players/{playerId}/caravans/{caravanId}/interaction` operation.
+ */
+export function handleEndCaravanInteraction(response?: HandleEndCaravanInteractionResponse | HttpResponseResolver<{
+    playerId: string;
+    caravanId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.delete<{
+        playerId: string;
+        caravanId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/caravans/:caravanId/interaction`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
+        }
+        if (options?.responseFallback === 'passthrough') {
+            return;
+        }
+        return new Response('Not Implemented', {
+            status: 501,
+            statusText: 'Not Implemented'
+        });
+    }, options);
+}
+
+export type HandleBeginCaravanInteractionResponse = {
+    body: BeginCaravanInteractionResponses[204];
+    status?: 204;
+};
+
+/**
+ * Handler for the `PUT /players/{playerId}/caravans/{caravanId}/interaction` operation.
+ */
+export function handleBeginCaravanInteraction(response?: HandleBeginCaravanInteractionResponse | HttpResponseResolver<{
+    playerId: string;
+    caravanId: string;
+}, never>, options?: RequestHandlerOptions): HttpHandler {
+    return http.put<{
+        playerId: string;
+        caravanId: string;
+    }, never>(`${options?.baseUrl ?? '*'}/players/:playerId/caravans/:caravanId/interaction`, info => {
+        if (typeof response === 'function') {
+            return response(info);
+        }
+        const body = response?.body;
+        if (body !== undefined) {
+            return new HttpResponse(body, { status: response?.status ?? 204 });
         }
         if (options?.responseFallback === 'passthrough') {
             return;
@@ -1570,10 +1675,6 @@ export function handleGetSignText(response?: HandleGetSignTextResponse | HttpRes
 
 export type MswHandlerFactories = {
     /**
-     * Handler for the `POST /dev/quest-chains/generate` operation.
-     */
-    devGenerateQuestChain: typeof handleDevGenerateQuestChain;
-    /**
      * Handler for the `GET /worlds` operation.
      */
     listWorlds: typeof handleListWorlds;
@@ -1665,6 +1766,22 @@ export type MswHandlerFactories = {
      * Handler for the `GET /players/{playerId}/local-map` operation.
      */
     getLocalMap: typeof handleGetLocalMap;
+    /**
+     * Handler for the `DELETE /players/{playerId}/interactions/{creatureId}` operation.
+     */
+    endCreatureInteraction: typeof handleEndCreatureInteraction;
+    /**
+     * Handler for the `PUT /players/{playerId}/interactions/{creatureId}` operation.
+     */
+    beginCreatureInteraction: typeof handleBeginCreatureInteraction;
+    /**
+     * Handler for the `DELETE /players/{playerId}/caravans/{caravanId}/interaction` operation.
+     */
+    endCaravanInteraction: typeof handleEndCaravanInteraction;
+    /**
+     * Handler for the `PUT /players/{playerId}/caravans/{caravanId}/interaction` operation.
+     */
+    beginCaravanInteraction: typeof handleBeginCaravanInteraction;
     /**
      * Handler for the `GET /players/{playerId}/fight` operation.
      */
@@ -1786,7 +1903,6 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         return (response, options) => handler(response, { ...config, ...options });
     }
     const pick: CreateMswHandlersResult['pick'] = {
-        devGenerateQuestChain: wrap(handleDevGenerateQuestChain),
         listWorlds: wrap(handleListWorlds),
         createWorld: wrap(handleCreateWorld),
         dropWorld: wrap(handleDropWorld),
@@ -1810,6 +1926,10 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         getNearbyCorpses: wrap(handleGetNearbyCorpses),
         getWorldMap: wrap(handleGetWorldMap),
         getLocalMap: wrap(handleGetLocalMap),
+        endCreatureInteraction: wrap(handleEndCreatureInteraction),
+        beginCreatureInteraction: wrap(handleBeginCreatureInteraction),
+        endCaravanInteraction: wrap(handleEndCaravanInteraction),
+        beginCaravanInteraction: wrap(handleBeginCaravanInteraction),
         getPlayerFight: wrap(handleGetPlayerFight),
         getPlayerFightAbilities: wrap(handleGetPlayerFightAbilities),
         getCreatureGenerationOptions: wrap(handleGetCreatureGenerationOptions),
@@ -1849,6 +1969,8 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
         return [
             invoke(pick.readBookPage, overrides.readBookPage),
             invoke(pick.previewCreatureBasicAttackDamage, overrides.previewCreatureBasicAttackDamage),
+            invoke(pick.endCaravanInteraction, overrides.endCaravanInteraction),
+            invoke(pick.beginCaravanInteraction, overrides.beginCaravanInteraction),
             invoke(pick.dropInventoryItem, overrides.dropInventoryItem),
             invoke(pick.proposeTrade, overrides.proposeTrade),
             invoke(pick.completeTrade, overrides.completeTrade),
@@ -1859,10 +1981,11 @@ export function createMswHandlers(config: RequestHandlerOptions = {}): CreateMsw
             invoke(pick.previewCreatureEquipment, overrides.previewCreatureEquipment),
             invoke(pick.getPlayerFightAbilities, overrides.getPlayerFightAbilities),
             invoke(pick.unequipCreatureItem, overrides.unequipCreatureItem),
+            invoke(pick.endCreatureInteraction, overrides.endCreatureInteraction),
+            invoke(pick.beginCreatureInteraction, overrides.beginCreatureInteraction),
             invoke(pick.getSessionLoreAnchor, overrides.getSessionLoreAnchor),
             invoke(pick.getTrade, overrides.getTrade),
             invoke(pick.getSessionItem, overrides.getSessionItem),
-            invoke(pick.devGenerateQuestChain, overrides.devGenerateQuestChain),
             invoke(pick.prefetchDungeonPremises, overrides.prefetchDungeonPremises),
             invoke(pick.getCreatureAbilities, overrides.getCreatureAbilities),
             invoke(pick.getCreatureInventory, overrides.getCreatureInventory),

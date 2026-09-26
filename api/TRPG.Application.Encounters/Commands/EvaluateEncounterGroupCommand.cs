@@ -17,6 +17,7 @@ public class EvaluateEncounterGroupCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public IReadOnlyCollection<Guid>? GroupIds { get; init; }
 }
 
 internal class EvaluateEncounterGroupCommandHandler(
@@ -47,10 +48,15 @@ internal class EvaluateEncounterGroupCommandHandler(
             cancellationToken
         );
 
-        var groups = await context
+        var groupQuery = context
             .EncounterGroups.AsNoTracking()
-            .Where(g => g.WorldId == command.WorldId && g.LocationId == player!.LocationId)
-            .ToArrayAsync(cancellationToken);
+            .Where(g => g.WorldId == command.WorldId && g.LocationId == player!.LocationId);
+        if (command.GroupIds != null)
+        {
+            groupQuery = groupQuery.Where(g => command.GroupIds.AsEnumerable().Contains(g.Id));
+        }
+
+        var groups = await groupQuery.ToArrayAsync(cancellationToken);
         if (groups.Length == 0)
         {
             return null;

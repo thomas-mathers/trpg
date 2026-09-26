@@ -11,7 +11,7 @@ internal static class CreatureStateMapper
             DataCreatureState.Idle => ContractCreatureState.Idle,
             DataCreatureState.Sitting => ContractCreatureState.Sitting,
             DataCreatureState.Sleeping => ContractCreatureState.Sleeping,
-            DataCreatureState.Busy => ContractCreatureState.Busy,
+            DataCreatureState.Working => ContractCreatureState.Working,
             DataCreatureState.Studying => ContractCreatureState.Studying,
             DataCreatureState.Praying => ContractCreatureState.Praying,
             DataCreatureState.Eating => ContractCreatureState.Eating,

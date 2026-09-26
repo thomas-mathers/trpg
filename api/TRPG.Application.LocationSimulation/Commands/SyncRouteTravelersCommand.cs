@@ -12,7 +12,7 @@ public class SyncRouteTravelersCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class SyncRouteTravelersCommandHandler(
@@ -91,7 +91,7 @@ internal class SyncRouteTravelersCommandHandler(
             new ResolveRouteTravelerPositionsQuery
             {
                 RouteTravelerIds = travelers.Keys.ToArray(),
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -154,7 +154,8 @@ internal class SyncRouteTravelersCommandHandler(
     )
     {
         if (
-            creature.State == CreatureState.Dead
+            creature.IsEngaged
+            || creature.State == CreatureState.Dead
             || (creature.LocationId == target.LocationId && creature.State == target.State)
         )
         {

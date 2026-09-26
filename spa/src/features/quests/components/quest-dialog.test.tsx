@@ -1,5 +1,5 @@
 import { HubConnectionState } from '@microsoft/signalr';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
@@ -8,11 +8,13 @@ import {
   GameHubConnectionContext,
   type GameHubConnection,
 } from '@/features/game/hooks/use-game-hub-connection';
+import { recordInteractions } from '@/test/interaction-handlers';
 import { renderWithProviders } from '@/test/test-utils';
 
 import { QuestDialog, type QuestDialogState } from './quest-dialog';
 
 const offerQuest: QuestDialogState = {
+  giverId: 'giver-id',
   worldId: 'world-id',
   questId: 'quest-id',
   name: 'A Dangerous Delivery',
@@ -74,8 +76,13 @@ function renderDialog(
   onClose: () => void,
   chatHubOverrides: Partial<IChatHub> = {},
 ) {
+  const interactions = recordInteractions();
   const chatHub = buildChatHub(chatHubOverrides);
-  const gameChat = buildGameChat();
+  const gameChat = buildGameChat({
+    submitNarratedTurn: vi.fn(() => {
+      interactions.calls.push('turn');
+    }),
+  });
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
     connectionError: false,
@@ -90,7 +97,7 @@ function renderDialog(
     </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat };
+  return { ...result, chatHub, gameChat, interactions };
 }
 
 describe('QuestDialog', () => {
@@ -101,6 +108,7 @@ describe('QuestDialog', () => {
     const { user, chatHub, gameChat } = renderDialog(offerQuest, onClose, { sendAcceptQuest });
 
     await user.click(screen.getByRole('button', { name: 'Accept quest' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
 
     expect(chatHub.sendAcceptQuest).toHaveBeenCalledWith('quest-id');
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
@@ -119,6 +127,7 @@ describe('QuestDialog', () => {
     const { user, chatHub, gameChat } = renderDialog(offerQuest, onClose, { sendDeclineQuest });
 
     await user.click(screen.getByRole('button', { name: 'Not now' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
 
     expect(chatHub.sendDeclineQuest).toHaveBeenCalledWith('quest-id');
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
@@ -135,6 +144,7 @@ describe('QuestDialog', () => {
     const { user, chatHub, gameChat } = renderDialog(turnInQuest, onClose, { sendCompleteQuest });
 
     await user.click(screen.getByRole('button', { name: 'Complete quest' }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
 
     expect(chatHub.sendCompleteQuest).toHaveBeenCalledWith('quest-id');
     expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
@@ -144,6 +154,34 @@ describe('QuestDialog', () => {
       expect.any(Function),
     );
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('engages the giver while open and releases them before the accept turn starts', async () => {
+    const { user, interactions } = renderDialog(offerQuest, vi.fn(), {
+      sendAcceptQuest: vi.fn(),
+    });
+    await waitFor(() => expect(interactions.calls).toEqual(['begin:creature:giver-id']));
+
+    await user.click(screen.getByRole('button', { name: 'Accept quest' }));
+
+    await waitFor(() =>
+      expect(interactions.calls).toEqual([
+        'begin:creature:giver-id',
+        'end:creature:giver-id',
+        'turn',
+      ]),
+    );
+  });
+
+  it('releases the giver when the dialog unmounts without acting', async () => {
+    const { interactions, unmount } = renderDialog(turnInQuest, vi.fn());
+    await waitFor(() => expect(interactions.calls).toEqual(['begin:creature:giver-id']));
+
+    unmount();
+
+    await waitFor(() =>
+      expect(interactions.calls).toEqual(['begin:creature:giver-id', 'end:creature:giver-id']),
+    );
   });
 
   it('shows each item name when an objective has more than one item', () => {

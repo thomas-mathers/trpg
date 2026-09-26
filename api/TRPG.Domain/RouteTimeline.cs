@@ -23,7 +23,7 @@ public abstract record RouteTimelinePosition
         double HoursUntilArrival
     ) : RouteTimelinePosition;
 
-    public sealed record Arrived(Guid LocationId, int StepIndex, TimeSpan ArrivedAtPlaytime)
+    public sealed record Arrived(Guid LocationId, int StepIndex, GameInstant ArrivedAtGameTime)
         : RouteTimelinePosition;
 }
 
@@ -46,21 +46,21 @@ public static class RouteTimeline
         IReadOnlyList<RouteTimelineStep> steps,
         RouteTraversal traversal,
         double speedUnitsPerHour,
-        TimeSpan startedAtPlaytime,
-        TimeSpan playtime
+        GameInstant startedAtGameTime,
+        GameInstant gameTime
     )
     {
         Validate(steps, traversal, speedUnitsPerHour);
 
-        if (playtime < startedAtPlaytime)
+        if (gameTime < startedAtGameTime)
         {
             return new RouteTimelinePosition.Pending(
                 steps[0].LocationId,
-                (startedAtPlaytime - playtime) / GameClock.RealTimePerInGameHour
+                (startedAtGameTime - gameTime) / TimeSpan.FromHours(1)
             );
         }
 
-        var elapsedHours = (playtime - startedAtPlaytime) / GameClock.RealTimePerInGameHour;
+        var elapsedHours = (gameTime - startedAtGameTime) / TimeSpan.FromHours(1);
         var durationHours = TotalDurationHours(steps, traversal, speedUnitsPerHour);
         if (traversal == RouteTraversal.Cyclic)
         {
@@ -76,7 +76,7 @@ public static class RouteTimeline
                 return new RouteTimelinePosition.Arrived(
                     step.LocationId,
                     index,
-                    startedAtPlaytime + GameClock.RealTimePerInGameHour * consumedHours
+                    startedAtGameTime + TimeSpan.FromHours(1) * consumedHours
                 );
             }
 
@@ -140,8 +140,8 @@ public static class RouteTimeline
     public static double HoursUntilNextArrivalAt(
         IReadOnlyList<RouteTimelineStep> steps,
         double speedUnitsPerHour,
-        TimeSpan startedAtPlaytime,
-        TimeSpan playtime,
+        GameInstant startedAtGameTime,
+        GameInstant gameTime,
         int targetStepIndex
     )
     {
@@ -151,18 +151,17 @@ public static class RouteTimeline
         var targetOffsetHours = steps
             .Take(targetStepIndex)
             .Sum(step => step.DwellHours + TravelHours(step, speedUnitsPerHour));
-        if (playtime < startedAtPlaytime)
+        if (gameTime < startedAtGameTime)
         {
-            return (startedAtPlaytime - playtime) / GameClock.RealTimePerInGameHour
-                + targetOffsetHours;
+            return (startedAtGameTime - gameTime) / TimeSpan.FromHours(1) + targetOffsetHours;
         }
 
         var position = Resolve(
             steps,
             RouteTraversal.Cyclic,
             speedUnitsPerHour,
-            startedAtPlaytime,
-            playtime
+            startedAtGameTime,
+            gameTime
         );
         if (
             position is RouteTimelinePosition.Lingering lingering
@@ -177,7 +176,7 @@ public static class RouteTimeline
             RouteTraversal.Cyclic,
             speedUnitsPerHour
         );
-        var elapsedHours = (playtime - startedAtPlaytime) / GameClock.RealTimePerInGameHour;
+        var elapsedHours = (gameTime - startedAtGameTime) / TimeSpan.FromHours(1);
         var cyclePositionHours = elapsedHours % totalDurationHours;
         return (targetOffsetHours - cyclePositionHours + totalDurationHours) % totalDurationHours;
     }

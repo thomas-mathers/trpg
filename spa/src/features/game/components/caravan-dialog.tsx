@@ -8,8 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useScene } from '@/features/game/contexts/scene-context';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useCaravanInteraction } from '@/features/game/hooks/use-interaction-lifecycle';
 
 interface CaravanDialogProps {
   caravan: NearbyCaravanSnapshot | null;
@@ -19,6 +21,12 @@ interface CaravanDialogProps {
 export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
   const chatHub = useChatHub();
   const { submitNarratedTurn, isStreaming } = useGameChat();
+  const scene = useScene();
+  useCaravanInteraction({
+    playerId: scene?.playerStatus.id ?? '',
+    worldId: scene?.worldId ?? '',
+    caravanId: scene && caravan ? caravan.caravanId : undefined,
+  });
 
   if (!caravan) {
     return null;

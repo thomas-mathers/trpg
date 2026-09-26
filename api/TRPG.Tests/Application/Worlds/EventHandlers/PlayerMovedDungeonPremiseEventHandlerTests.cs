@@ -4,6 +4,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.EventHandlers;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -51,7 +52,7 @@ public sealed class PlayerMovedDungeonPremiseEventHandlerTests(DatabaseFixture d
                 WorldId,
                 Guid.NewGuid(),
                 room.LocationId,
-                TimeSpan.Zero
+                GameClock.Epoch
             ),
             TestContext.Current.CancellationToken
         );
@@ -75,7 +76,7 @@ public sealed class PlayerMovedDungeonPremiseEventHandlerTests(DatabaseFixture d
                 WorldId,
                 Guid.NewGuid(),
                 Guid.NewGuid(),
-                TimeSpan.Zero
+                GameClock.Epoch
             ),
             TestContext.Current.CancellationToken
         );

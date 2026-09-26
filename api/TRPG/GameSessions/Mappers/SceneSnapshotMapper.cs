@@ -1,11 +1,13 @@
 using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Domain;
 using TRPG.GameSessions.Responses;
 
 namespace TRPG.GameSessions.Mappers;
 
 internal static class SceneSnapshotMapper
 {
-    public static SceneSnapshot ToSnapshot(this SceneResult scene) =>
+    public static SceneSnapshot ToSnapshot(this SceneResult scene, WorldStateStamp stamp) =>
         new(
             WorldId: scene.WorldId,
             StateName: scene.State?.Name ?? "",
@@ -13,11 +15,6 @@ internal static class SceneSnapshotMapper
             DistrictName: scene.District?.Name,
             BuildingName: scene.Building?.Name,
             RoomName: scene.Room?.Name,
-            Year: scene.CurrentDate.Year,
-            MonthName: scene.CurrentDate.MonthName,
-            Day: scene.CurrentDate.Day,
-            WeekdayName: scene.CurrentDate.WeekdayName,
-            Hour: scene.CurrentDate.Hour,
             PlayerStatus: scene.Player.ToStatusSnapshot(),
             NearbyCreatures: scene
                 .NearbyCreatures.Select(creature => creature.ToStatusSnapshot())
@@ -27,6 +24,9 @@ internal static class SceneSnapshotMapper
                 .ToArray(),
             NearbyProps: scene.NearbyProps.Select(prop => prop.ToSnapshot()).ToArray(),
             Exits: scene.Exits.Select(exit => exit.ToSnapshot()).ToArray(),
-            NearbyCaravans: scene.NearbyCaravans.Select(caravan => caravan.ToSnapshot()).ToArray()
+            NearbyCaravans: scene.NearbyCaravans.Select(caravan => caravan.ToSnapshot()).ToArray(),
+            Version: stamp.Version,
+            GameTimeMilliseconds: (long)(stamp.GameTime - GameClock.Epoch).TotalMilliseconds,
+            AnchoredAtUnixMilliseconds: stamp.CapturedAt.ToUnixTimeMilliseconds()
         );
 }

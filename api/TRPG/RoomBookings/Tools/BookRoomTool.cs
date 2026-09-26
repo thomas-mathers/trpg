@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.RoomBookings.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 
@@ -18,7 +19,7 @@ internal class BookRoomTool(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     ICommandHandler<BookRoomCommand, BookRoomResult> bookRoom,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<BookRoomTool> logger
 ) : IGameTool
 {
@@ -59,8 +60,8 @@ internal class BookRoomTool(
             );
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
@@ -69,7 +70,7 @@ internal class BookRoomTool(
             {
                 PlayerId = turnContext.PlayerId,
                 WorldId = turnContext.WorldId,
-                Playtime = playtime,
+                GameTime = gameTime,
                 LocationId = player.LocationId,
             },
             cancellationToken

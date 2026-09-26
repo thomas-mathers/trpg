@@ -9,7 +9,6 @@ public class CreateGameSessionCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required TimeSpan Playtime { get; init; }
 }
 
 internal class CreateGameSessionCommandHandler(
@@ -45,12 +44,7 @@ internal class CreateGameSessionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var row = new GameSession
-        {
-            WorldId = command.WorldId,
-            PlayerId = command.PlayerId,
-            Playtime = command.Playtime,
-        };
+        var row = new GameSession { WorldId = command.WorldId, PlayerId = command.PlayerId };
         context.GameSessions.Add(row);
 
         await gameSessionCreated.Publish(

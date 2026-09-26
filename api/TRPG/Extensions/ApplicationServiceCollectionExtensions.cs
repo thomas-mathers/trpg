@@ -4,6 +4,7 @@ using TRPG.Application.Books.Extensions;
 using TRPG.Application.Chat.Extensions;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
@@ -20,6 +21,7 @@ using TRPG.Application.NpcConversations.Extensions;
 using TRPG.Application.Props.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
+using TRPG.Application.Routing.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Application.Worlds.Extensions;
 using TRPG.Commands;
@@ -72,6 +74,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddCrimesServices()
             .AddKnowledgeServices()
             .AddEncountersServices()
+            .AddRoutingServices()
             .AddLocationSimulationServices()
             .AddQuestServices()
             .AddReputationsServices()
@@ -96,7 +99,7 @@ public static class ApplicationServiceCollectionExtensions
         where T : class, IGameTool =>
         serviceCollection
             .AddScoped<T>()
-            .AddScoped<AIFunction>(sp =>
+            .AddScoped<AIFunction>(sp => new WorldMutationGatedFunction(
                 AIFunctionFactory.Create(
                     sp.GetRequiredService<T>().Invoke,
                     new AIFunctionFactoryOptions
@@ -107,6 +110,8 @@ public static class ApplicationServiceCollectionExtensions
                             .TrpgJsonOptions
                             .Default,
                     }
-                )
-            );
+                ),
+                sp.GetRequiredService<GameTurnContext>(),
+                sp.GetRequiredService<IWorldMutationGate>()
+            ));
 }

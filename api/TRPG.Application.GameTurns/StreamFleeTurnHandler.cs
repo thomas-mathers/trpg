@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -15,7 +16,7 @@ internal class StreamFleeTurnHandler(
     ICommandHandler<MovePlayerCommand> movePlayer,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -28,12 +29,18 @@ internal class StreamFleeTurnHandler(
         CancellationToken cancellationToken
     )
     {
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
         var result = await resolveFleeCombat.Handle(
             new ResolveFleeCombatCommand
             {
                 SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -52,17 +59,12 @@ internal class StreamFleeTurnHandler(
 
         if (didMove)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = session.SessionId },
-                cancellationToken
-            );
-
             await movePlayer.Handle(
                 new MovePlayerCommand
                 {
                     PlayerId = session.PlayerId,
                     DestinationLocationId = result.DestinationLocationId!.Value,
-                    Playtime = playtime,
+                    GameTime = gameTime,
                 },
                 cancellationToken
             );
@@ -77,6 +79,7 @@ internal class StreamFleeTurnHandler(
                 {
                     PlayerId = session.PlayerId,
                     Encounter = startedEncounter,
+                    GameTime = gameTime,
                 },
                 cancellationToken
             );

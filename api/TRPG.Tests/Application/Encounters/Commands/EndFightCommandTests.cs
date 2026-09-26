@@ -4,6 +4,7 @@ using TRPG.Application.Combat.Results;
 using TRPG.Application.Crimes.Events;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -13,25 +14,15 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private static readonly Guid WorldId = Guid.NewGuid();
-
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private EndFightCommandHandler _handler = null!;
-    private readonly Creature _player = Builders.MakeCreature(
-        WorldId,
-        currentHp: 50,
-        currentAp: 10,
-        currentMp: 5
-    );
-    private readonly Creature _enemy = Builders.MakeCreature(
-        WorldId,
-        currentHp: 30,
-        currentAp: 8,
-        currentMp: 4
-    );
+    private Guid WorldId { get; set; }
+    private Creature _player = null!;
+    private Creature _enemy = null!;
 
     private GameSession _session = null!;
+    private World _world = null!;
     private Guid _sessionId;
 
     public async ValueTask InitializeAsync()
@@ -42,7 +33,12 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<EndFightCommandHandler>();
 
-        _session = Builders.MakeGameSession(WorldId, _player.Id, TimeSpan.FromHours(1));
+        WorldId = Guid.NewGuid();
+        _player = Builders.MakeCreature(WorldId, currentHp: 50, currentAp: 10, currentMp: 5);
+        _enemy = Builders.MakeCreature(WorldId, currentHp: 30, currentAp: 8, currentMp: 4);
+        _session = Builders.MakeGameSession(WorldId, _player.Id);
+        _world = Builders.MakeWorld(WorldId, GameClock.Epoch + TimeSpan.FromHours(1));
+        _context.Worlds.Add(_world);
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -370,10 +366,11 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_AdvancesLastRegenPlaytime_ForSurvivingCombatants()
+    public async Task Handle_AdvancesLastRegenGameTime_ForSurvivingCombatants()
     {
         // Arrange — the player survives, the enemy doesn't
-        _session.Playtime = TimeSpan.FromHours(3);
+        _world.GameTime = GameClock.Epoch + TimeSpan.FromHours(3);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         await SeedFight();
         var state = Builders.MakeCombatState(
             CombatOutcome.Victory,
@@ -391,6 +388,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
                 SessionId = _sessionId,
                 WorldId = WorldId,
                 State = state,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );
@@ -405,7 +403,40 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
             [_enemy.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.FromHours(3), player!.LastRegenPlaytime);
-        Assert.Equal(TimeSpan.Zero, enemy!.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), player!.LastRegenGameTime);
+        Assert.Equal(GameClock.Epoch, enemy!.LastRegenGameTime);
+    }
+
+    [Fact]
+    public async Task Handle_ReleasesCombatants_WhenFightEndsWithoutAFollowUpEncounter()
+    {
+        _player.IsEngaged = true;
+        _enemy.IsEngaged = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight();
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Fled,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 20, isAlive: true),
+            ]
+        );
+
+        await _handler.Handle(
+            new EndFightCommand
+            {
+                SessionId = _sessionId,
+                WorldId = WorldId,
+                State = state,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(2),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var combatants = await verifyContext
+            .Creatures.Where(creature => creature.Id == _player.Id || creature.Id == _enemy.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(combatants, creature => Assert.False(creature.IsEngaged));
     }
 }

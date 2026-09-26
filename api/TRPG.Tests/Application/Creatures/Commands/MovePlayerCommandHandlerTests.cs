@@ -83,7 +83,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = player.Id,
                 DestinationLocationId = newLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -121,7 +121,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = player.Id,
                 DestinationLocationId = newLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -167,7 +167,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = player.Id,
                 DestinationLocationId = newLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -221,7 +221,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = player.Id,
                 DestinationLocationId = newLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -265,7 +265,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = player.Id,
                 DestinationLocationId = newLocation.Id,
-                Playtime = GameClock.RealTimePerInGameHour * 48,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 48,
             },
             TestContext.Current.CancellationToken
         );
@@ -333,7 +333,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
             {
                 PlayerId = player.Id,
                 DestinationLocationId = newLocation.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

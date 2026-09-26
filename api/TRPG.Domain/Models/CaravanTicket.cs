@@ -8,5 +8,5 @@ public class CaravanTicket
     public required Guid CreatureId { get; init; }
     public required Guid OriginStopLocationId { get; init; }
     public required Guid DestinationLocationId { get; init; }
-    public required TimeSpan PurchasedAtPlaytime { get; init; }
+    public required GameInstant PurchasedAtGameTime { get; init; }
 }

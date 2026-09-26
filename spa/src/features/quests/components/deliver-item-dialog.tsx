@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useCreatureInteraction } from '@/features/game/hooks/use-interaction-lifecycle';
 import { ITEM_TYPE_LABEL } from '@/features/inventory/display-names';
 import { RARITY_COLOR, TYPE_ICON } from '@/features/inventory/item-visuals';
 
@@ -31,6 +32,11 @@ export function DeliverItemDialog({ playerId, deliverable, onClose }: DeliverIte
   const queryClient = useQueryClient();
   const chatHub = useChatHub();
   const { submitNarratedTurn, isStreaming } = useGameChat();
+  const { release } = useCreatureInteraction({
+    playerId,
+    worldId: deliverable?.worldId ?? '',
+    creatureId: deliverable?.recipientId,
+  });
 
   if (!deliverable) {
     return null;
@@ -44,7 +50,8 @@ export function DeliverItemDialog({ playerId, deliverable, onClose }: DeliverIte
       }),
     });
 
-  const handleGive = () => {
+  const handleGive = async () => {
+    await release();
     submitNarratedTurn(
       `Give the ${deliverable.item.name}`,
       chatHub.sendDeliverItem(deliverable.recipientId),
@@ -72,7 +79,7 @@ export function DeliverItemDialog({ playerId, deliverable, onClose }: DeliverIte
           <Button variant="outline" onClick={onClose} disabled={isStreaming}>
             Not now
           </Button>
-          <Button onClick={handleGive} disabled={isStreaming}>
+          <Button onClick={() => void handleGive()} disabled={isStreaming}>
             Give
           </Button>
         </DialogFooter>

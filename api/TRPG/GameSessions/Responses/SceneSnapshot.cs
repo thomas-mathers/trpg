@@ -66,7 +66,7 @@ public enum CreatureState
     Idle,
     Sitting,
     Sleeping,
-    Busy,
+    Working,
     Studying,
     Praying,
     Eating,
@@ -176,17 +176,15 @@ public record SceneSnapshot(
     string? DistrictName,
     string? BuildingName,
     string? RoomName,
-    int Year,
-    string MonthName,
-    int Day,
-    string WeekdayName,
-    int Hour,
     CreatureStatusSnapshot PlayerStatus,
     IReadOnlyCollection<CreatureStatusSnapshot> NearbyCreatures,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
     IReadOnlyCollection<NearbyExitSnapshot> Exits,
-    IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans
+    IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans,
+    long Version,
+    long GameTimeMilliseconds,
+    long AnchoredAtUnixMilliseconds
 );
 
 [TranspilationSource]

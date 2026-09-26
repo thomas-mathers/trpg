@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -8,7 +9,7 @@ namespace TRPG.Application.Encounters.Commands;
 public class EvaluateOverdueRoomKeyEncounterCommand
 {
     public required Guid WorldId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid FromLocationId { get; init; }
     public required Guid ToLocationId { get; init; }
@@ -37,7 +38,7 @@ internal class EvaluateOverdueRoomKeyEncounterCommandHandler(
             new ConfrontOverdueRoomKeyCommand
             {
                 WorldId = command.WorldId,
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
                 PlayerId = command.PlayerId,
                 LocationId = command.FromLocationId,
                 DepartureDestinationLocationId = command.ToLocationId,

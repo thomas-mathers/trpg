@@ -11,7 +11,7 @@ public record ResolvedRouteTravelerPosition(RouteTimelinePosition Position, Guid
 public class ResolveRouteTravelerPositionsQuery
 {
     public required IReadOnlyCollection<Guid> RouteTravelerIds { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext context)
@@ -79,7 +79,7 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
                     traveler,
                     routesById[traveler.RouteId],
                     timelineStepsByRouteId[traveler.RouteId],
-                    query.Playtime
+                    traveler.PausedAtGameTime ?? query.GameTime
                 )
         );
     }
@@ -88,15 +88,15 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
         RouteTraveler traveler,
         Route route,
         IReadOnlyList<RouteTimelineStep> steps,
-        TimeSpan playtime
+        GameInstant gameTime
     )
     {
         var position = RouteTimeline.Resolve(
             steps,
             route.Traversal,
             traveler.SpeedUnitsPerHour,
-            traveler.StartedAtPlaytime,
-            playtime
+            traveler.StartedAtGameTime,
+            gameTime
         );
         var nextLocationId = position switch
         {

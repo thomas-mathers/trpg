@@ -5,14 +5,13 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.LocationSimulation.Commands;
-using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.LocationSimulation.EventHandlers;
 
 internal sealed class PlayerMovedArrivalEventHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    ICommandHandler<CatchUpLocationCommand, bool> catchUpLocation,
+    ICommandHandler<CatchUpLocationCommand> catchUpLocation,
     ICommandHandler<EvaluateEncountersCommand, EncounterEvaluationResult> evaluateEncounters
 ) : IDomainEventConsumer<PlayerMovedEvent>
 {
@@ -35,9 +34,8 @@ internal sealed class PlayerMovedArrivalEventHandler(
                 WorldId = domainEvent.WorldId,
                 PlayerId = domainEvent.PlayerId,
                 LocationId = domainEvent.ToLocationId,
-                CurrentDate = GameClock.GetCurrentInGameDate(domainEvent.Playtime),
                 PlayerLevel = player.Level,
-                Playtime = domainEvent.Playtime,
+                GameTime = domainEvent.GameTime,
             },
             cancellationToken
         );

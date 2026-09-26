@@ -10,7 +10,7 @@ public class RouteTimelineTests
     private static readonly Guid LocationC = Guid.NewGuid();
     private static readonly Guid ConnectorA = Guid.NewGuid();
     private static readonly Guid ConnectorB = Guid.NewGuid();
-    private static readonly TimeSpan Start = TimeSpan.FromHours(10);
+    private static readonly GameInstant Start = GameClock.Epoch + TimeSpan.FromHours(10);
     private const double SpeedUnitsPerHour = 10;
 
     private static readonly RouteTimelineStep[] FiniteSteps =
@@ -21,14 +21,14 @@ public class RouteTimelineTests
     ];
 
     [Fact]
-    public void Resolve_ReturnsPending_WhenPlaytimePrecedesStart()
+    public void Resolve_ReturnsPending_WhenGameTimePrecedesStart()
     {
         var position = RouteTimeline.Resolve(
             FiniteSteps,
             RouteTraversal.Finite,
             SpeedUnitsPerHour,
             Start,
-            Start - GameClock.RealTimePerInGameHour * 0.5
+            Start - TimeSpan.FromHours(1) * 0.5
         );
 
         var pending = Assert.IsType<RouteTimelinePosition.Pending>(position);
@@ -55,14 +55,14 @@ public class RouteTimelineTests
     [Fact]
     public void Resolve_ReturnsInTransit_WithoutRoundingToAnHour()
     {
-        var playtime = Start + GameClock.RealTimePerInGameHour * 0.5;
+        var gameTime = Start + TimeSpan.FromHours(0.5);
 
         var position = RouteTimeline.Resolve(
             FiniteSteps,
             RouteTraversal.Finite,
             SpeedUnitsPerHour,
             Start,
-            playtime
+            gameTime
         );
 
         var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position);
@@ -75,20 +75,20 @@ public class RouteTimelineTests
     [Fact]
     public void Resolve_ReturnsArrived_AtFiniteTerminal()
     {
-        var expectedArrival = Start + GameClock.RealTimePerInGameHour * 1.75;
+        var expectedArrival = Start + TimeSpan.FromHours(1) * 1.75;
 
         var position = RouteTimeline.Resolve(
             FiniteSteps,
             RouteTraversal.Finite,
             SpeedUnitsPerHour,
             Start,
-            expectedArrival + GameClock.RealTimePerInGameHour
+            expectedArrival + TimeSpan.FromHours(1)
         );
 
         var arrived = Assert.IsType<RouteTimelinePosition.Arrived>(position);
         Assert.Equal(LocationC, arrived.LocationId);
         Assert.Equal(2, arrived.StepIndex);
-        Assert.Equal(expectedArrival, arrived.ArrivedAtPlaytime);
+        Assert.Equal(expectedArrival, arrived.ArrivedAtGameTime);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public class RouteTimelineTests
             RouteTraversal.Cyclic,
             SpeedUnitsPerHour,
             Start,
-            Start + GameClock.RealTimePerInGameHour * cycleHours
+            Start + TimeSpan.FromHours(1) * cycleHours
         );
 
         var lingering = Assert.IsType<RouteTimelinePosition.Lingering>(position);
@@ -158,13 +158,13 @@ public class RouteTimelineTests
             new(LocationA, ConnectorA, Distance: 5, DwellHours: 0.5),
             new(LocationB, ConnectorB, Distance: 5, DwellHours: 0.5),
         ];
-        var playtime = Start + GameClock.RealTimePerInGameHour * 1.25;
+        var gameTime = Start + TimeSpan.FromHours(1.25);
 
         var hours = RouteTimeline.HoursUntilNextArrivalAt(
             steps,
             SpeedUnitsPerHour,
             Start,
-            playtime,
+            gameTime,
             targetStepIndex: 0
         );
 
