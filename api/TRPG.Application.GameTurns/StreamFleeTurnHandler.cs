@@ -29,12 +29,18 @@ internal class StreamFleeTurnHandler(
         CancellationToken cancellationToken
     )
     {
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
         var result = await resolveFleeCombat.Handle(
             new ResolveFleeCombatCommand
             {
                 SessionId = session.SessionId,
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -53,11 +59,6 @@ internal class StreamFleeTurnHandler(
 
         if (didMove)
         {
-            var gameTime = await getGameTime.Handle(
-                new GetGameTimeQuery { SessionId = session.SessionId },
-                cancellationToken
-            );
-
             await movePlayer.Handle(
                 new MovePlayerCommand
                 {

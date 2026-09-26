@@ -59,7 +59,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             new SleepInRoomCommand
             {
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                WorldId = WorldId,
                 LocationId = _locationId,
                 Delta = delta,
             },
@@ -67,7 +67,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Equal(SleepOutcome.Slept, outcome);
+        Assert.Equal(SleepOutcome.Slept, outcome.Outcome);
 
         await using var verifyContext = db.CreateContext();
         var world = await verifyContext.Worlds.SingleAsync(
@@ -96,7 +96,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             new SleepInRoomCommand
             {
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                WorldId = WorldId,
                 LocationId = _locationId,
                 Delta = TimeSpan.FromHours(1) * 0.5,
             },
@@ -120,7 +120,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             new SleepInRoomCommand
             {
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                WorldId = WorldId,
                 LocationId = Guid.NewGuid(),
                 Delta = TimeSpan.FromHours(1) * 8,
             },
@@ -128,7 +128,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Equal(SleepOutcome.NotYourRoom, outcome);
+        Assert.Equal(SleepOutcome.NotYourRoom, outcome.Outcome);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             new SleepInRoomCommand
             {
                 PlayerId = _player.Id,
-                SessionId = _session.Id,
+                WorldId = WorldId,
                 LocationId = _locationId,
                 Delta = TimeSpan.FromHours(1) * 8,
             },
@@ -151,6 +151,24 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Equal(SleepOutcome.NotYourRoom, outcome);
+        Assert.Equal(SleepOutcome.NotYourRoom, outcome.Outcome);
+    }
+
+    [Fact]
+    public async Task Handle_Throws_WhenDeltaExceedsTwentyFourHours()
+    {
+        var action = () =>
+            _handler.Handle(
+                new SleepInRoomCommand
+                {
+                    PlayerId = _player.Id,
+                    WorldId = WorldId,
+                    LocationId = _locationId,
+                    Delta = TimeSpan.FromHours(24) + TimeSpan.FromMinutes(1),
+                },
+                TestContext.Current.CancellationToken
+            );
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(action);
     }
 }

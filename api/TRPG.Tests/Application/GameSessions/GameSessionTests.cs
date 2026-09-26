@@ -182,7 +182,7 @@ public sealed class GameSessionTests(DatabaseFixture db)
 
         // Act
         var gameTime = await _advanceTime.Handle(
-            new AdvanceTimeCommand { SessionId = sessionId, Delta = TimeSpan.FromMinutes(30) },
+            new AdvanceTimeCommand { WorldId = world.Id, Delta = TimeSpan.FromMinutes(30) },
             TestContext.Current.CancellationToken
         );
 

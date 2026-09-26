@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -10,7 +11,8 @@ namespace TRPG.Application.GameTurns;
 internal class StreamSleepTurnHandler(
     GameTurnStreamer streamer,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    ICommandHandler<SleepInRoomCommand, SleepOutcome> sleepInRoom
+    ICommandHandler<SleepInRoomCommand, SleepInRoomResult> sleepInRoom,
+    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -32,9 +34,14 @@ internal class StreamSleepTurnHandler(
         CancellationToken cancellationToken
     )
     {
-        if (hours < 0 || minutes < 0 || (hours == 0 && minutes == 0))
+        var delta = TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(minutes);
+        if (delta <= TimeSpan.Zero)
         {
             return new GameTurnPrompt.Reply("The sleep duration must be positive.");
+        }
+        if (delta > TimeSpan.FromHours(24))
+        {
+            return new GameTurnPrompt.Reply("You can sleep for at most 24 hours at a time.");
         }
 
         var player = await getCreatureById.Handle(
@@ -46,14 +53,27 @@ internal class StreamSleepTurnHandler(
             new SleepInRoomCommand
             {
                 PlayerId = session.PlayerId,
-                SessionId = session.SessionId,
+                WorldId = session.WorldId,
                 LocationId = player!.LocationId,
-                Delta = TimeSpan.FromHours(1) * (hours + minutes / 60.0),
+                Delta = delta,
             },
             cancellationToken
         );
 
-        return outcome switch
+        if (outcome.GameTime is { } gameTime)
+        {
+            await refreshScene.Handle(
+                new RefreshSceneCommand
+                {
+                    WorldId = session.WorldId,
+                    PlayerId = session.PlayerId,
+                    GameTime = gameTime,
+                },
+                cancellationToken
+            );
+        }
+
+        return outcome.Outcome switch
         {
             SleepOutcome.NotYourRoom => new GameTurnPrompt.Reply(
                 "There's no bed here that's rented to the player."

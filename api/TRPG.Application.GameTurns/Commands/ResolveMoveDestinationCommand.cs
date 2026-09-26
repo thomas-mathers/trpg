@@ -4,7 +4,6 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.LocationSimulation.Commands;
@@ -19,8 +18,8 @@ namespace TRPG.Application.GameTurns.Commands;
 public class ResolveMoveDestinationCommand
 {
     public required Guid PlayerId { get; init; }
-    public required Guid SessionId { get; init; }
     public required string DestinationName { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 public record ResolveMoveDestinationResult(
@@ -38,7 +37,6 @@ internal class ResolveMoveDestinationCommandHandler(
         ResolveAccessibleConnectorsCommand,
         IReadOnlyCollection<Guid>
     > resolveAccessibleConnectors,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<GetKeyItemIdsByOwnerQuery, IReadOnlySet<Guid>> getKeyItemIdsByOwner,
     IQueryHandler<GetActivatedTriggerIdsQuery, IReadOnlySet<Guid>> getActivatedTriggerIds,
     IQueryHandler<GetTravelDistanceByConnectorIdQuery, float?> getTravelDistance,
@@ -83,11 +81,7 @@ internal class ResolveMoveDestinationCommandHandler(
         var destinationLocationId = exitMatch.DestinationLocationId!.Value;
         var connectorId = exitMatch.ConnectorId!.Value;
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-        var currentDate = GameClock.GetCurrentInGameDate(gameTime);
+        var currentDate = GameClock.GetCurrentInGameDate(command.GameTime);
 
         await syncFrontDoorLock.Handle(
             new SyncFrontDoorLockCommand
@@ -116,7 +110,7 @@ internal class ResolveMoveDestinationCommandHandler(
             {
                 PlayerKeyItemIds = playerKeyItemIds,
                 ActivatedTriggerIds = activatedTriggerIds,
-                GameTime = gameTime,
+                GameTime = command.GameTime,
                 ConnectorIds = [connectorId],
             },
             cancellationToken

@@ -269,16 +269,16 @@ Exit condition: connected worlds advance 1:1 and paused worlds do not advance.
 
 ### Milestone 04 — Operation timestamps and explicit skips
 
-Status: Not started
+Status: In progress
 
-- [ ] Capture one instant per deterministic operation.
-- [ ] Pass instants explicitly through nested application work.
-- [ ] Capture LLM tool time at tool invocation, not narration-stream start.
-- [ ] Convert waiting and sleeping.
-- [ ] Enforce the 24-hour wait/sleep maximum.
-- [ ] Convert walking and caravan travel.
-- [ ] Reconcile the world at the resulting instant.
-- [ ] Add bounded large-jump behavior.
+- [x] Capture one instant per deterministic operation.
+- [x] Pass instants explicitly through nested application work.
+- [x] Capture LLM tool time at tool invocation, not narration-stream start.
+- [x] Convert waiting and sleeping.
+- [x] Enforce the 24-hour wait/sleep maximum.
+- [x] Convert walking and caravan travel.
+- [x] Reconcile the world at the resulting instant.
+- [x] Add bounded large-jump behavior.
 - [ ] Add consistency and time-skip tests.
 - [ ] Run affected backend tests.
 - [ ] Run CSharpier check.
@@ -427,13 +427,17 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 03 — World-owned continuous clock
+Current milestone: 04 — Operation timestamps and explicit skips
 
-Current status: Complete
+Current status: In progress
 
 Last completed milestone: 03 — World-owned continuous clock
 
-Next action: Begin milestone 04 by tracing deterministic operations that read or advance time, then capture and thread one `GameInstant` through each operation without starting engagement or background-simulation work.
+Next action: Complete focused timestamp and time-skip validation, repair any failures, run the full backend suite and CSharpier check, then create the milestone 04 closing commit.
+
+Milestone 04 progress: Explicit advances are world-scoped and return the resulting instant. Wait and sleep reject non-positive durations and durations over 24 hours, apply regeneration, and reconcile the active location at the returned instant. Walking captures time when the `move` tool is invoked and uses that instant for destination validation and departure interception before advancing to arrival; caravan boarding likewise validates at one captured instant and advances without a duration cap. Encounter actions and combat now capture one instant at their turn boundary and pass it through nested flee, relocation, fight-start, combat-round, and fight-end work. Location catch-up already implements bounded large jumps by resolving weather, restocking, spawning, quest seeding, jobs, and routes once at the supplied current instant rather than replaying missed intervals.
+
+Milestone 04 validation in progress: the backend test project builds with pre-existing warnings. The first focused integration run could not access Docker inside the sandbox; the elevated rerun exposed one stale-binary assertion because tests had not been rebuilt after their final edits. Rebuild and focused rerun are the next action.
 
 Milestone 03 decisions: `IWorldClock` is a shared application contract implemented by Worlds as a singleton with per-world serialized state. An active anchor pairs a fictional `GameInstant` with `TimeProvider.GetUtcNow()` and derives time 1:1; persisted world time remains authoritative while paused. Explicit advances persist immediately and re-anchor active worlds without stopping them. SignalR tracks connections per session and activity across every session in a world: the first connection resumes the world, reconnecting cancels pending end work, and only the last disconnected session pauses after the 30-second grace. Startup creates no active anchors, while host shutdown checkpoints active worlds. `GameSession` no longer owns time, narrated messages no longer advance it, and the migration drops `game_sessions.game_time`.
 

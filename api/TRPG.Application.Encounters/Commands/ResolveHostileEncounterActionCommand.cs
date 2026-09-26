@@ -20,6 +20,7 @@ public class ResolveHostileEncounterActionCommand : IEncounterResolutionCommand
     public required Guid PlayerId { get; init; }
     public required HostileEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveHostileEncounterActionCommandHandler(
@@ -27,7 +28,6 @@ internal class ResolveHostileEncounterActionCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<StartFightCommand> startFight,
     EncounterFleeResolver encounterFleeResolver,
     IOptionsSnapshot<FleeOptions> fleeOptions
@@ -90,11 +90,12 @@ internal class ResolveHostileEncounterActionCommandHandler(
     {
         if (outcome == HostileEncounterResolutionOutcome.Fled)
         {
-            var gameTime = await getGameTime.Handle(
-                new GetGameTimeQuery { SessionId = command.SessionId },
+            await encounterFleeResolver.Resolve(
+                encounter,
+                player,
+                command.GameTime,
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, gameTime, cancellationToken);
             return;
         }
 
@@ -128,6 +129,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
                 HasSurpriseRound = false,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

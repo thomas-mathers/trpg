@@ -22,6 +22,7 @@ public class ResolveSuspicionEncounterActionCommand : IEncounterResolutionComman
     public required Guid PlayerId { get; init; }
     public required SuspicionEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveSuspicionEncounterActionCommandHandler(
@@ -33,8 +34,7 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IOptionsSnapshot<FleeOptions> fleeOptions,
     IOptionsMonitor<SuspicionOptions> suspicionOptions,
-    EncounterFleeResolver encounterFleeResolver,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime
+    EncounterFleeResolver encounterFleeResolver
 )
     : EncounterResolutionCommandHandlerBase<
         SuspicionEncounter,
@@ -116,11 +116,12 @@ internal class ResolveSuspicionEncounterActionCommandHandler(
 
         if (!isCaught)
         {
-            var gameTime = await getGameTime.Handle(
-                new GetGameTimeQuery { SessionId = command.SessionId },
+            await encounterFleeResolver.Resolve(
+                encounter,
+                player,
+                command.GameTime,
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, gameTime, cancellationToken);
 
             return new SuspicionEncounterResolutionFact(
                 command.EncounterId,

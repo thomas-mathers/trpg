@@ -35,6 +35,7 @@ internal class StreamHostileEncounterActionTurnHandler(
         GameTurnSession session,
         HostileEncounter encounter,
         HostileEncounterAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     ) =>
         await resolveHostileEncounterAction.Handle(
@@ -45,6 +46,7 @@ internal class StreamHostileEncounterActionTurnHandler(
                 PlayerId = session.PlayerId,
                 Action = action,
                 EncounterId = encounter.Id,
+                GameTime = gameTime,
             },
             cancellationToken
         );

@@ -111,12 +111,17 @@ internal class MoveTool(
             return EntryOutcome.EncounterActive.ToToolError(destinationName);
         }
 
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+
         var destinationResult = await resolveMoveDestination.Handle(
             new ResolveMoveDestinationCommand
             {
                 PlayerId = turnContext.PlayerId,
-                SessionId = turnContext.SessionId,
                 DestinationName = destinationName,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -132,11 +137,6 @@ internal class MoveTool(
                 new GetCreatureByIdQuery { Id = turnContext.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), turnContext.PlayerId);
-
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
 
         // Only a walk the player chose can be intercepted; being relocated by an encounter is not,
         // so this runs here rather than inside the move itself.
@@ -157,7 +157,7 @@ internal class MoveTool(
             arrivalGameTime = await advanceTime.Handle(
                 new AdvanceTimeCommand
                 {
-                    SessionId = turnContext.SessionId,
+                    WorldId = turnContext.WorldId,
                     Delta = TimeSpan.FromHours(1) * destinationResult.TravelTimeHours,
                 },
                 cancellationToken

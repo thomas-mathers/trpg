@@ -24,6 +24,7 @@ public class ResolveGuardEncounterActionCommand : IEncounterResolutionCommand
     public required Guid PlayerId { get; init; }
     public required GuardEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveGuardEncounterActionCommandHandler(
@@ -36,7 +37,6 @@ internal class ResolveGuardEncounterActionCommandHandler(
     IQueryHandler<GetGuardsAtLocationQuery, IReadOnlyList<Creature>> getGuardsAtLocation,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetJailForCityQuery, JailInfo?> getJailForCity,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<SetDoorTimedLockCommand> setDoorTimedLock,
     ICommandHandler<SetLockpickingCrimeOutcomeCommand> setLockpickingCrimeOutcome,
     ICommandHandler<SettleOutstandingCrimesCommand> settleOutstandingCrimes,
@@ -141,11 +141,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             throw new InvalidOperationException($"City {location.CityId} has no jail.");
         }
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-        var unlocksAt = gameTime + TimeSpan.FromHours(1) * encounter.JailHours;
+        var unlocksAt = command.GameTime + TimeSpan.FromHours(1) * encounter.JailHours;
 
         // Must settle before the move: leaving is what resolves the crime and applies the penalty.
         await SettleTriggeringCrime(
@@ -159,7 +155,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 DestinationLocationId = jail.CellsLocationId,
-                GameTime = gameTime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -244,6 +240,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = guardIds,
                 HasSurpriseRound = false,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

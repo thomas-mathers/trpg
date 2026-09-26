@@ -541,6 +541,22 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendWait_DoesNotAdvanceTime_WhenDurationExceedsTwentyFourHours()
+    {
+        await SetPlayerState(DataCreatureState.Sitting);
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendWait", 24, 1, TestContext.Current.CancellationToken)
+        );
+
+        Assert.Equal("You can wait for at most 24 hours at a time.", narration);
+        var world = await GetWorld();
+        Assert.Equal(GameClock.Epoch, world.GameTime);
+    }
+
+    [Fact]
     public async Task SendSitDownAndStandUp_PublishSeatAndPlayerState()
     {
         var seat = Builders.MakeSeat(_worldId, _locationId);
@@ -607,6 +623,21 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
         var world = await GetWorld();
         Assert.True(world.GameTime > GameClock.Epoch);
+    }
+
+    [Fact]
+    public async Task SendSleep_DoesNotAdvanceTime_WhenDurationExceedsTwentyFourHours()
+    {
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        var narration = await Drain(
+            gameHub.StreamAsync<string>("SendSleep", 25, 0, TestContext.Current.CancellationToken)
+        );
+
+        Assert.Equal("You can sleep for at most 24 hours at a time.", narration);
+        var world = await GetWorld();
+        Assert.Equal(GameClock.Epoch, world.GameTime);
     }
 
     [Fact]

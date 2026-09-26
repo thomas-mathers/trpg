@@ -20,6 +20,7 @@ public class ResolveFleeCombatCommand
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 public record FleeCombatResult(
@@ -34,7 +35,6 @@ internal class ResolveFleeCombatCommandHandler(
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector
 ) : ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?>
 {
@@ -62,6 +62,7 @@ internal class ResolveFleeCombatCommandHandler(
                 LocationId = fight!.LocationId,
                 Combatants = combatants,
                 State = state,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -71,17 +72,12 @@ internal class ResolveFleeCombatCommandHandler(
             return new FleeCombatResult(combatResult, null, null);
         }
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var destinationLocationId = await resolveExitConnector.Handle(
             new ResolveExitConnectorCommand
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                GameTime = gameTime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

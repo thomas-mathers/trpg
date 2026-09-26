@@ -30,6 +30,7 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
         GameTurnSession session,
         TEncounter encounter,
         TAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     );
 
@@ -53,7 +54,18 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
             return new GameTurnPrompt.Reply("There's no encounter to resolve right now.");
         }
 
-        var resolution = await Resolve(session, typedEncounter, action, cancellationToken);
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
+        var resolution = await Resolve(
+            session,
+            typedEncounter,
+            action,
+            gameTime,
+            cancellationToken
+        );
 
         gameEvents.Enqueue(BuildResolvedEvent(resolution));
 
@@ -70,11 +82,6 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
                 PlayerId = session.PlayerId,
                 Encounter = startedEncounter,
             },
-            cancellationToken
-        );
-
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 

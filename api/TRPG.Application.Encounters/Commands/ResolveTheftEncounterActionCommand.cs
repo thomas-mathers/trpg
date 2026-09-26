@@ -20,6 +20,7 @@ public class ResolveTheftEncounterActionCommand : IEncounterResolutionCommand
     public required Guid PlayerId { get; init; }
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveTheftEncounterActionCommandHandler(
@@ -30,7 +31,6 @@ internal class ResolveTheftEncounterActionCommandHandler(
     > transferInventoryItems,
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     EncounterFleeResolver encounterFleeResolver
 )
     : EncounterResolutionCommandHandlerBase<
@@ -127,14 +127,10 @@ internal class ResolveTheftEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
         var leftTheScene = await encounterFleeResolver.Resolve(
             encounter,
             player,
-            gameTime,
+            command.GameTime,
             cancellationToken
         );
 

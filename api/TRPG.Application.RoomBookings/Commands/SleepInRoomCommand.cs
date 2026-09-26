@@ -11,7 +11,7 @@ namespace TRPG.Application.RoomBookings.Commands;
 public class SleepInRoomCommand
 {
     public required Guid PlayerId { get; init; }
-    public required Guid SessionId { get; init; }
+    public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
     public required TimeSpan Delta { get; init; }
 }
@@ -22,6 +22,8 @@ public enum SleepOutcome
     NotYourRoom,
 }
 
+public record SleepInRoomResult(SleepOutcome Outcome, GameInstant? GameTime = null);
+
 internal class SleepInRoomCommandHandler(
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
     ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
@@ -30,9 +32,9 @@ internal class SleepInRoomCommandHandler(
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
     ICommandHandler<SetCreatureRestedUntilCommand> setCreatureRestedUntil
-) : ICommandHandler<SleepInRoomCommand, SleepOutcome>
+) : ICommandHandler<SleepInRoomCommand, SleepInRoomResult>
 {
-    public async Task<SleepOutcome> Handle(
+    public async Task<SleepInRoomResult> Handle(
         SleepInRoomCommand command,
         CancellationToken cancellationToken = default
     )
@@ -43,11 +45,20 @@ internal class SleepInRoomCommandHandler(
         );
         if (bed?.AssignedCreatureId != command.PlayerId)
         {
-            return SleepOutcome.NotYourRoom;
+            return new SleepInRoomResult(SleepOutcome.NotYourRoom);
+        }
+
+        if (command.Delta <= TimeSpan.Zero || command.Delta > TimeSpan.FromHours(24))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(command),
+                command.Delta,
+                "Sleep duration must be positive and no more than 24 hours."
+            );
         }
 
         var gameTime = await advanceTime.Handle(
-            new AdvanceTimeCommand { SessionId = command.SessionId, Delta = command.Delta },
+            new AdvanceTimeCommand { WorldId = command.WorldId, Delta = command.Delta },
             cancellationToken
         );
 
@@ -68,6 +79,6 @@ internal class SleepInRoomCommandHandler(
             );
         }
 
-        return SleepOutcome.Slept;
+        return new SleepInRoomResult(SleepOutcome.Slept, gameTime);
     }
 }

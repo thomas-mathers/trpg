@@ -164,7 +164,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "The Rusty Anchor",
             },
             TestContext.Current.CancellationToken
@@ -196,7 +196,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "The Distant Lighthouse",
             },
             TestContext.Current.CancellationToken
@@ -217,7 +217,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "The Locked Vault",
             },
             TestContext.Current.CancellationToken
@@ -242,7 +242,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "The Guarded Vault",
             },
             TestContext.Current.CancellationToken
@@ -266,7 +266,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "Nowhere",
             },
             TestContext.Current.CancellationToken
@@ -287,7 +287,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = route.DestinationRoom.Name,
             },
             TestContext.Current.CancellationToken
@@ -309,7 +309,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "Nowhere",
             },
             TestContext.Current.CancellationToken
@@ -381,7 +381,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = route.NextRoom.Name,
             },
             TestContext.Current.CancellationToken
@@ -411,7 +411,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = route.NextRoom.Name,
             },
             TestContext.Current.CancellationToken
@@ -448,7 +448,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = session.Id,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(5),
                 DestinationName = route.NextRoom.Name,
             },
             TestContext.Current.CancellationToken
@@ -484,7 +484,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = session.Id,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(10),
                 DestinationName = route.NextRoom.Name,
             },
             TestContext.Current.CancellationToken
@@ -561,7 +561,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "City Center",
             },
             TestContext.Current.CancellationToken
@@ -636,7 +636,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "Faraway City",
             },
             TestContext.Current.CancellationToken
@@ -656,7 +656,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "Faraway City",
             },
             TestContext.Current.CancellationToken
@@ -676,7 +676,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "Faraway City",
             },
             TestContext.Current.CancellationToken
@@ -697,7 +697,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "Faraway City",
             },
             TestContext.Current.CancellationToken
@@ -718,7 +718,7 @@ public sealed class ResolveMoveDestinationCommandHandlerTests(DatabaseFixture db
             new ResolveMoveDestinationCommand
             {
                 PlayerId = route.Player.Id,
-                SessionId = _session.Id,
+                GameTime = GameClock.Epoch,
                 DestinationName = "The Rusty Anchor",
             },
             TestContext.Current.CancellationToken

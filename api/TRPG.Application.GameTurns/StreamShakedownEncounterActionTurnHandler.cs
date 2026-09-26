@@ -35,6 +35,7 @@ internal class StreamShakedownEncounterActionTurnHandler(
         GameTurnSession session,
         ShakedownEncounter encounter,
         ShakedownEncounterAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     ) =>
         await resolveShakedownEncounterAction.Handle(
@@ -45,6 +46,7 @@ internal class StreamShakedownEncounterActionTurnHandler(
                 PlayerId = session.PlayerId,
                 Action = action,
                 EncounterId = encounter.Id,
+                GameTime = gameTime,
             },
             cancellationToken
         );

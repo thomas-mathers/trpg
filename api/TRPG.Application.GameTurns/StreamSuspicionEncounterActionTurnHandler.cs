@@ -35,6 +35,7 @@ internal class StreamSuspicionEncounterActionTurnHandler(
         GameTurnSession session,
         SuspicionEncounter encounter,
         SuspicionEncounterAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     ) =>
         await resolveSuspicionEncounterAction.Handle(
@@ -45,6 +46,7 @@ internal class StreamSuspicionEncounterActionTurnHandler(
                 PlayerId = session.PlayerId,
                 Action = action,
                 EncounterId = encounter.Id,
+                GameTime = gameTime,
             },
             cancellationToken
         );

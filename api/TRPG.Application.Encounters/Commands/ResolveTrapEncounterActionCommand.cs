@@ -22,12 +22,12 @@ public class ResolveTrapEncounterActionCommand : IEncounterResolutionCommand
     public required Guid SessionId { get; init; }
     public required TrapEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveTrapEncounterActionCommandHandler(
     IEncountersDbContext context,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<MarkTrapResolvedCommand> markTrapResolved,
     ICommandHandler<MovePlayerCommand> movePlayer,
     SkillCheckService skillCheckService,
@@ -149,16 +149,12 @@ internal class ResolveTrapEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
         await movePlayer.Handle(
             new MovePlayerCommand
             {
                 PlayerId = command.PlayerId,
                 DestinationLocationId = encounter.TargetLocationId,
-                GameTime = gameTime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

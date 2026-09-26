@@ -34,6 +34,11 @@ internal class StreamCombatActionTurnHandler(
         CancellationToken cancellationToken
     )
     {
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
         var result = await resolveCombatAction.Handle(
             new ResolvePlayerCombatActionCommand
             {
@@ -41,12 +46,8 @@ internal class StreamCombatActionTurnHandler(
                 WorldId = session.WorldId,
                 PlayerId = session.PlayerId,
                 Action = action,
+                GameTime = gameTime,
             },
-            cancellationToken
-        );
-
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 

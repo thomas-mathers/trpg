@@ -20,6 +20,7 @@ public class StartFightCommand
     public required Guid PlayerId { get; init; }
     public required IReadOnlyCollection<Guid> EnemyCreatureIds { get; init; }
     public required bool HasSurpriseRound { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class StartFightCommandHandler(
@@ -30,7 +31,6 @@ internal class StartFightCommandHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<StartFightCommand>
 {
@@ -44,15 +44,10 @@ internal class StartFightCommandHandler(
             cancellationToken
         );
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var regeneratedCreatures = await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
-                GameTime = gameTime,
+                GameTime = command.GameTime,
                 CreatureIds = [command.PlayerId, .. command.EnemyCreatureIds],
             },
             cancellationToken

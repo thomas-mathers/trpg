@@ -16,6 +16,7 @@ public class ResolvePlayerCombatActionCommand
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required PlayerCombatAction Action { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 public record PlayerCombatActionResult(
@@ -28,7 +29,6 @@ internal class ResolvePlayerCombatActionCommandHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
@@ -41,13 +41,12 @@ internal class ResolvePlayerCombatActionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         await applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [command.PlayerId] },
+            new ApplyPassiveRegenCommand
+            {
+                GameTime = command.GameTime,
+                CreatureIds = [command.PlayerId],
+            },
             cancellationToken
         );
         var combatants = await combatantLoader.Load(command.PlayerId, cancellationToken);
@@ -77,6 +76,7 @@ internal class ResolvePlayerCombatActionCommandHandler(
                 LocationId = fight!.LocationId,
                 Combatants = combatants,
                 State = state,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

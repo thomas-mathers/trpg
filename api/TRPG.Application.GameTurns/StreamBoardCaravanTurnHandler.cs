@@ -72,7 +72,7 @@ internal class StreamBoardCaravanTurnHandler(
         var arrivalGameTime = await advanceTime.Handle(
             new AdvanceTimeCommand
             {
-                SessionId = session.SessionId,
+                WorldId = session.WorldId,
                 Delta = TimeSpan.FromHours(1) * result.TravelTimeHours!.Value,
             },
             cancellationToken

@@ -24,12 +24,12 @@ internal class EndFightCommand
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required CombatState State { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class EndFightCommandHandler(
     IEncountersDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
@@ -60,11 +60,6 @@ internal class EndFightCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var survivingCreatureIds = state
             .Combatants.Where(c => c.IsAlive)
             .Select(c => c.Id)
@@ -74,7 +69,7 @@ internal class EndFightCommandHandler(
             new UpdateCreaturesCommand
             {
                 CreatureIds = survivingCreatureIds,
-                LastRegenGameTime = gameTime,
+                LastRegenGameTime = command.GameTime,
             },
             cancellationToken
         );

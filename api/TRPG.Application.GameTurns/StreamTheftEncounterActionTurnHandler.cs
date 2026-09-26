@@ -35,6 +35,7 @@ internal class StreamTheftEncounterActionTurnHandler(
         GameTurnSession session,
         TheftEncounter encounter,
         TheftEncounterAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     ) =>
         await resolveTheftEncounterAction.Handle(
@@ -45,6 +46,7 @@ internal class StreamTheftEncounterActionTurnHandler(
                 SessionId = session.SessionId,
                 Action = action,
                 EncounterId = encounter.Id,
+                GameTime = gameTime,
             },
             cancellationToken
         );
