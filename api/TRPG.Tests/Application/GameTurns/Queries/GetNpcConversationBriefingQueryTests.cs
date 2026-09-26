@@ -43,6 +43,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
             PlayerId = _player.Id,
             WorldId = WorldId,
             LocationId = _player.LocationId,
+            GameTime = GameClock.Epoch,
         };
 
     [Fact]

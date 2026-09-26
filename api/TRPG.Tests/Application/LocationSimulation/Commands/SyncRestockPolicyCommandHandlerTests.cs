@@ -86,7 +86,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
             },
             TestContext.Current.CancellationToken
         );
@@ -126,7 +126,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
             },
             TestContext.Current.CancellationToken
         );
@@ -155,7 +155,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _locationId,
                 PlayerLevel = 5,
-                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(1),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -218,7 +218,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = innLocationId,
                 PlayerLevel = 5,
-                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
             },
             TestContext.Current.CancellationToken
         );
@@ -244,7 +244,7 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
         var policy = Builders.MakeRestockPolicy(WorldId, _workstation.Id);
         _context.RestockPolicies.Add(policy);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var currentGameTime = GameClock.Epoch + TimeSpan.FromHours(2);
+        var currentGameTime = GameClock.Epoch + TimeSpan.FromHours(24);
 
         // Act
         await _handler.Handle(

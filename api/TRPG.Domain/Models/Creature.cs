@@ -114,7 +114,7 @@ public class Creature
     public int CurrentMp { get; set; }
     public Gender Gender { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
-    public GameInstant LastRegenGameTime { get; set; }
+    public GameInstant LastRegenGameTime { get; set; } = GameClock.Epoch;
     public int Level { get; set; }
     public Guid LocationId { get; set; }
     public string Name { get; init; } = "";

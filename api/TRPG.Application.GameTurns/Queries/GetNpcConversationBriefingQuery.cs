@@ -24,7 +24,7 @@ public class GetNpcConversationBriefingQuery
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
-    public GameInstant GameTime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 public record NpcConversationIdentity(string Name, string Race, Gender Gender, int Age);
