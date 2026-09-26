@@ -391,19 +391,19 @@ Exit condition: ambient scene and encounter state reaches the client safely and 
 
 ### Milestone 10 — SPA continuous-time experience
 
-Status: Not started
+Status: Complete
 
-- [ ] Regenerate HTTP and SignalR clients.
-- [ ] Add client-derived clock state from server anchors.
-- [ ] Display custom calendar date and `HH:mm:ss`.
-- [ ] Handle date rollover.
-- [ ] Update wait and sleep calculations to use derived time.
-- [ ] Integrate validated begin/end interaction calls in panels.
-- [ ] Apply targeted vitals updates.
-- [ ] Add client clock, version, interaction, and vitals tests.
-- [ ] Run SPA formatting, type checking, and tests.
-- [ ] Run affected backend transport tests.
-- [ ] Create milestone-closing commit.
+- [x] Regenerate HTTP and SignalR clients.
+- [x] Add client-derived clock state from server anchors.
+- [x] Display custom calendar date and `HH:mm:ss`.
+- [x] Handle date rollover.
+- [x] Update wait and sleep calculations to use derived time.
+- [x] Integrate validated begin/end interaction calls in panels.
+- [x] Apply targeted vitals updates.
+- [x] Add client clock, version, interaction, and vitals tests.
+- [x] Run SPA formatting, type checking, and tests.
+- [x] Run affected backend transport tests.
+- [x] Create milestone-closing commit.
 
 Exit condition: the complete continuous-time loop is observable and controllable from the SPA.
 
@@ -427,13 +427,19 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 10 - SPA continuous-time experience
+Current milestone: 11 - Balance, hardening, and documentation
 
 Current status: Not started
 
-Last completed milestone: 09 - Ambient encounters and versioned state
+Last completed milestone: 10 - SPA continuous-time experience
 
-Next action: Start milestone 10. Regenerate the HTTP and SignalR clients if any contract changes, derive the visible clock in the SPA from the `SceneSnapshot` anchor (`gameTimeMilliseconds` elapsed since `GameClock.Epoch` at `anchoredAtUnixMilliseconds` real time) and tick it once per second, render the custom calendar date and `HH:mm:ss` with rollover, switch wait and sleep calculations to the derived minute, call the validated begin/end interaction endpoints from the trade, NPC quest, and caravan panels, and add the client clock, interaction, and vitals tests. The version guard for snapshots and vitals already exists in `SceneProvider`; do not rebuild it. Do not start milestone 11 balance or documentation work.
+Next action: Start milestone 11. Review route distance, movement speed, caravan travel and dwell times, and the job, patrol, shop, weather, restocking, spawning, quest seeding, booking, jail, rested-effect, door, corpse cleanup, and alerted-reset durations now that time is 1:1 with real time. Remove temporary compatibility code, review background query and write volume (the routine lane runs on every scene refresh and both background passes, and `EnsureDungeonPremiseCommand` and `EnsureBookPageCommand` can call the LLM inside a world lease), run the complete backend suite, CSharpier, and the SPA checks, and update the `AGENTS.md` request-flow descriptions (the continuous world simulation, scene refresh, and interaction flows). Confirm every earlier milestone has its closing commit.
+
+Milestone 10 progress: `features/game/game-clock.ts` is the pure clock: `gameDateTimeAt(anchor, now)` adds the anchored game milliseconds and the real time elapsed since the anchor to the fictional epoch and reads year, month name, day, weekday name, hour, minute, and second from a UTC `Date`, so date and year rollover fall out of the calendar arithmetic. Its month and weekday name tables mirror `TRPG.Domain.GameClock`, and the epoch is `0975-01-01 08:00`. `useGameClock` (status bar) re-renders once per second and re-anchors as soon as a newer `SceneSnapshot` arrives; `useGameTimeReader` returns a stable function that reads the current time at call time without re-rendering. The status bar now shows `Weekday, Month day - HH:mm:ss`. The wait and sleep dialogs compute their duration with `durationUntilNextTime` from the derived current minute and second (rounded up to whole minutes, a target at or before now means the next day, at most 24 hours), and their default target no longer resets when an ambient snapshot arrives. `use-interaction-lifecycle.ts` adds `useCreatureInteraction` and `useCaravanInteraction`, which call the generated begin and end endpoints. The trade dialog engages the shopkeeper while open (it gained a `workerId` prop), the quest dialog engages the quest giver (`QuestDialogState` gained `giverId`), the deliver-item dialog engages the recipient, and the caravan dialog engages the caravan group while it is shown. The generated HTTP and SignalR clients needed no contract change, and `pnpm generate-client` produced only whitespace hunks, which were discarded. The version guard for snapshots and vitals in `SceneProvider` was already complete and was not rebuilt.
+
+Milestone 10 decisions: The clock uses the server's real-time anchor literally, so a client whose system clock is wrong shows the game time off by the same amount and wait and sleep targets would be off by that amount; elapsed time is clamped at zero so a slightly slow client clock never runs the display backwards. A more skew-proof design would anchor to the client's receipt time and accept network latency instead; it was not chosen because the milestone 09 anchor was defined for exactly this derivation. Begin and end calls are queued so a release never overtakes a begin and a reselection never begins before the previous release finished. A refused begin (the common case is a creature already engaged by an open conversation) leaves the panel usable and skips the release, because ending an interaction the panel never started would also release the conversation's engagement; the trade-off is that a panel opened on an already engaged creature does not add its own pin. The quest and deliver-item dialogs await the release before starting their narrated turn so a tool such as `start_conversation` cannot see the giver still engaged; the caravan dialog keeps the caravan engaged while a purchase or board turn runs and releases it as the dialog closes. Conversation panels, encounters, and fights already engage on the server and were not touched. `SceneSnapshot` still carries `Year`, `MonthName`, `Day`, `WeekdayName`, and `Hour`, but no SPA code reads them any more; removing them from the wire contract is left to milestone 11 as compatibility cleanup.
+
+Milestone 10 validation: `pnpm generate-client` ran cleanly (whitespace-only generator hunks discarded). `pnpm run fmt:check`, `pnpm run typecheck`, and `pnpm test` passed all 221 SPA tests, including the new `game-clock.test.ts` (epoch, ticking, midnight, month, and year rollover, client clock behind the server, wait durations), `use-game-clock.test.tsx`, `status-bar.test.tsx`, `use-interaction-lifecycle.test.tsx` (ordering, refused begin, reselection, immediate release), `deliver-item-dialog.test.tsx`, and the new interaction cases in the trade, quest, and caravan dialog tests plus minute-precision cases in the wait and sleep dialog tests. `pnpm run lint` reports one pre-existing warning in `use-combat.tsx`. No backend code changed; the affected backend transport suites (`CaravanInteractionCommandTests`, `CreatureEngagementCommandTests`, `ChatHubTests`, `GameSessionEndpointsTests`, 48 tests) passed through the xUnit executable with Docker access, and `dotnet csharpier check .` passed. Not covered by an automated test: React StrictMode double-invocation of the interaction effect (the test environment did not double-invoke effects), which the queued design handles by construction.
 
 Milestone 09 progress: `World.StateVersion` (bigint, `AddWorldStateVersion` migration, default 0) is a persisted monotonically increasing per-world counter. Worlds' `StampWorldStateCommand` advances it with a compare-and-swap `ExecuteUpdateAsync` loop (no two callers can receive the same version) and returns a `WorldStateStamp(Version, GameTime, CapturedAt)` whose game time and real UTC time come from `IWorldClock.GetCurrent` and `TimeProvider`. `SceneUpdatedEvent` now carries the stamp, and `SceneSnapshot` gained `Version`, `GameTimeMilliseconds`, and `AnchoredAtUnixMilliseconds` (the HTTP refresh endpoint stamps too). `PlayerVitalsChangedEvent` carries a `Version` instead of a game time, and `PlayerVitalsUpdated.GameTimeMilliseconds` became `Version`. GameTurns' `ScenePublisher` is the single place a scene event is enqueued and it records the scene in the singleton `PublishedSceneRegistry`; `PublishSessionStateCommand` and `GameTurnStreamer` stamp before reading the scene. `PublishAmbientSceneCommand` reads the scene at the pass instant, compares it with the last published scene through `SceneSemanticComparer`, and stamps and publishes only on a player-visible change (or when no scene was published yet). `ContinuousWorldProcessor` runs it after the traveler and regeneration work of the frequent pass and after the routine sync of the routine pass, flushing the dispatcher inside the lease without an acknowledgement wait, and the routine pass now flushes the encounter events its sync queued before the scene. `SyncCreatureSpawnerCommand` returns `SyncCreatureSpawnerResult` (new encounter group ids), `SyncLocationRoutinesCommand` returns `SyncLocationRoutinesResult`, and `SyncActiveLocationRoutinesCommand` hands those ids to the new Encounters `EvaluateAmbientEncounterCommand`, which skips a dead player or a player with an unresolved encounter or fight, evaluates only the just-spawned groups through `EvaluateEncounterGroupCommand` (new optional `GroupIds` filter), and publishes the started encounter through `PublishEncounterStartedCommand`. `SceneProvider` in the SPA shares one latest-version ref between snapshots and vitals, drops anything not newer, and resets it when the session id changes. `AbandonActiveFightCommand` had no production caller after milestone 05 and was deleted with its tests; `EndGameSessionCommandTests` already proves a session end preserves an active fight and its engagement, and the existing reconnect tests prove encounter republishing.
 

@@ -1,14 +1,17 @@
 import { HubConnectionState } from '@microsoft/signalr';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { NearbyCaravanSnapshot } from '@/api/client';
+import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
+import { SceneContext } from '@/features/game/contexts/scene-context';
 import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
 } from '@/features/game/hooks/use-game-hub-connection';
+import { recordInteractions } from '@/test/interaction-handlers';
 import { renderWithProviders } from '@/test/test-utils';
 
 import { CaravanDialog } from './caravan-dialog';
@@ -34,6 +37,8 @@ const caravan: NearbyCaravanSnapshot = {
     },
   ],
 };
+
+const scene = { worldId: 'world-id', playerStatus: { id: 'player-id' } } as SceneSnapshot;
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
@@ -61,7 +66,9 @@ function renderDialog(
   chatHubOverrides: Partial<IChatHub> = {},
   gameChatOverrides: Partial<GameChat> = {},
   selectedCaravan: NearbyCaravanSnapshot = caravan,
+  interactionOptions?: { refuseBegin: boolean },
 ) {
+  const interactions = recordInteractions(interactionOptions);
   const chatHub = buildChatHub(chatHubOverrides);
   const gameChat = buildGameChat(gameChatOverrides);
   const hubConnection: GameHubConnection = {
@@ -71,17 +78,43 @@ function renderDialog(
   };
 
   const result = renderWithProviders(
-    <GameHubConnectionContext.Provider value={hubConnection}>
-      <GameChatContext.Provider value={gameChat}>
-        <CaravanDialog caravan={selectedCaravan} onClose={onClose} />
-      </GameChatContext.Provider>
-    </GameHubConnectionContext.Provider>,
+    <SceneContext.Provider value={scene}>
+      <GameHubConnectionContext.Provider value={hubConnection}>
+        <GameChatContext.Provider value={gameChat}>
+          <CaravanDialog caravan={selectedCaravan} onClose={onClose} />
+        </GameChatContext.Provider>
+      </GameHubConnectionContext.Provider>
+    </SceneContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat };
+  return { ...result, chatHub, gameChat, interactions };
 }
 
 describe('CaravanDialog', () => {
+  it('engages the caravan while open and releases it when closed', async () => {
+    const { interactions, unmount } = renderDialog(vi.fn());
+
+    await waitFor(() => expect(interactions.calls).toEqual(['begin:caravan:caravan-id']));
+    unmount();
+
+    await waitFor(() =>
+      expect(interactions.calls).toEqual(['begin:caravan:caravan-id', 'end:caravan:caravan-id']),
+    );
+  });
+
+  it('stays usable and never releases when the caravan cannot be engaged', async () => {
+    const { interactions, unmount } = renderDialog(vi.fn(), {}, {}, caravan, {
+      refuseBegin: true,
+    });
+
+    await waitFor(() => expect(interactions.calls).toEqual(['begin:caravan:caravan-id']));
+    expect(screen.getByRole('button', { name: 'Buy ticket' })).toBeEnabled();
+    unmount();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(interactions.calls).toEqual(['begin:caravan:caravan-id']);
+  });
+
   it('starts a narrated purchase turn and leaves the dialog open', async () => {
     const onClose = vi.fn();
     const fakeStream = {} as ReturnType<IChatHub['sendPurchaseCaravanTicket']>;

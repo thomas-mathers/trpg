@@ -188,6 +188,7 @@ export function NearbyPanel({
   } | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [tradeWorker, setTradeWorker] = useState<{
+    id: string;
     name: string;
     workstationId: string;
   } | null>(null);
@@ -203,7 +204,7 @@ export function NearbyPanel({
       query: { worldId: scene.worldId, giverId, questId },
     });
     if (response.data) {
-      onQuestDialogRequested({ ...response.data, worldId: scene.worldId });
+      onQuestDialogRequested({ ...response.data, giverId, worldId: scene.worldId });
     }
   };
 
@@ -269,6 +270,7 @@ export function NearbyPanel({
               onTrade={() => {
                 if (creature.tradeWorkstationId) {
                   setTradeWorker({
+                    id: creature.id,
                     name: creature.name,
                     workstationId: creature.tradeWorkstationId,
                   });
@@ -521,6 +523,7 @@ export function NearbyPanel({
           playerId={scene.playerStatus.id}
           worldId={scene.worldId}
           workstationId={tradeWorker.workstationId}
+          workerId={tradeWorker.id}
           workerName={tradeWorker.name}
           shopName={scene.buildingName ?? 'Shop'}
           open={isTradeOpen}

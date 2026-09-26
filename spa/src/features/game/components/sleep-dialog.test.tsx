@@ -14,9 +14,13 @@ import { renderWithProviders } from '@/test/test-utils';
 
 import { SleepDialog } from './sleep-dialog';
 
-function scene(hour: number): SceneSnapshot {
+const MILLISECONDS_PER_MINUTE = 60 * 1000;
+const EPOCH_HOUR = 8;
+
+function scene(hour: number, minute = 0): SceneSnapshot {
   return {
-    hour,
+    gameTimeMilliseconds: ((hour - EPOCH_HOUR) * 60 + minute) * MILLISECONDS_PER_MINUTE,
+    anchoredAtUnixMilliseconds: Date.now(),
     playerStatus: { id: 'player-id', level: 1 },
   } as unknown as SceneSnapshot;
 }
@@ -48,9 +52,10 @@ function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
 
 function renderDialog({
   hour = 8,
+  minute = 0,
   open = true,
   onClose = vi.fn(),
-}: { hour?: number; open?: boolean; onClose?: () => void } = {}) {
+}: { hour?: number; minute?: number; open?: boolean; onClose?: () => void } = {}) {
   const gameChat = buildGameChat();
   const chatHub = buildChatHub();
   const hubConnection: GameHubConnection = {
@@ -60,7 +65,7 @@ function renderDialog({
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={scene(hour)}>
+    <SceneContext.Provider value={scene(hour, minute)}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <GameChatContext.Provider value={gameChat}>
           <SleepDialog open={open} onClose={onClose} />
@@ -95,6 +100,18 @@ describe('SleepDialog', () => {
       vi.mocked(chatHub.sendSleep).mock.results[0]?.value,
     );
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('measures the wait from the current minute rather than the start of the hour', async () => {
+    const { user, chatHub } = renderDialog({ hour: 8, minute: 45 });
+
+    await user.clear(screen.getByLabelText('Sleep until'));
+    await user.type(screen.getByLabelText('Sleep until'), '14');
+    await user.clear(screen.getByLabelText('Minute'));
+    await user.type(screen.getByLabelText('Minute'), '30');
+    await user.click(screen.getByRole('button', { name: 'Sleep' }));
+
+    expect(chatHub.sendSleep).toHaveBeenCalledWith(5, 45);
   });
 
   it('wraps to the next day when the picked time is earlier than the current hour', async () => {

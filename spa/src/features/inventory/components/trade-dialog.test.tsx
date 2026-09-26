@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { ItemDetail, ItemDetailGoldDetail, TradeRequest, TradeSnapshot } from '@/api/client';
 import { handleCompleteTrade, handleGetTrade, handleProposeTrade } from '@/api/client/msw.gen';
+import { recordInteractions } from '@/test/interaction-handlers';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
@@ -57,21 +58,49 @@ function tradeSnapshot(
   };
 }
 
-function renderDialog(onClose = vi.fn()) {
-  return renderWithProviders(
+function renderDialog(onClose = vi.fn(), interactionOptions?: { refuseBegin: boolean }) {
+  const interactions = recordInteractions(interactionOptions);
+  const result = renderWithProviders(
     <TradeDialog
       playerId="player-id"
       worldId="world-id"
       workstationId="workstation-id"
+      workerId="tessa-id"
       workerName="Tessa"
       shopName="The General Store"
       open
       onClose={onClose}
     />,
   );
+
+  return { ...result, interactions };
 }
 
 describe('TradeDialog', () => {
+  it('engages the shopkeeper while open and releases them when closed', async () => {
+    server.use(handleGetTrade({ body: tradeSnapshot() }));
+    const { interactions, unmount } = renderDialog();
+
+    await waitFor(() => expect(interactions.calls).toEqual(['begin:creature:tessa-id']));
+    unmount();
+
+    await waitFor(() =>
+      expect(interactions.calls).toEqual(['begin:creature:tessa-id', 'end:creature:tessa-id']),
+    );
+  });
+
+  it('stays usable and never releases when the shopkeeper cannot be engaged', async () => {
+    server.use(handleGetTrade({ body: tradeSnapshot() }));
+    const { interactions, unmount } = renderDialog(vi.fn(), { refuseBegin: true });
+
+    expect(await screen.findByRole('dialog')).toBeVisible();
+    await waitFor(() => expect(interactions.calls).toEqual(['begin:creature:tessa-id']));
+    unmount();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(interactions.calls).toEqual(['begin:creature:tessa-id']);
+  });
+
   it('disables proposing when both offers are empty', async () => {
     server.use(handleGetTrade({ body: tradeSnapshot() }));
 
