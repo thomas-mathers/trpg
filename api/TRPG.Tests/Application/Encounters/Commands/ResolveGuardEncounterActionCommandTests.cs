@@ -18,13 +18,13 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private static readonly Guid WorldId = Guid.NewGuid();
-
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ResolveGuardEncounterActionCommandHandler _handler = null!;
-    private readonly Faction _cityFaction = Builders.MakeFaction(WorldId, isCityFaction: true);
-    private readonly GameSession _session = Builders.MakeGameSession(WorldId, Guid.NewGuid());
+    private Guid _worldId;
+    private Guid WorldId => _worldId;
+    private Faction _cityFaction = null!;
+    private GameSession _session = null!;
     private Creature _player = null!;
     private Creature _guard = null!;
 
@@ -37,11 +37,14 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ResolveGuardEncounterActionCommandHandler>();
 
-        _player = Builders.MakeCreature(WorldId);
-        _guard = Builders.MakeCreature(WorldId, profession: Profession.Guard);
+        _worldId = Guid.NewGuid();
+        _cityFaction = Builders.MakeFaction(_worldId, isCityFaction: true);
+        _session = Builders.MakeGameSession(_worldId, Guid.NewGuid());
+        _player = Builders.MakeCreature(_worldId);
+        _guard = Builders.MakeCreature(_worldId, profession: Profession.Guard);
         _context.Creatures.AddRange(_player, _guard);
         _context.Factions.Add(_cityFaction);
-        _context.Worlds.Add(Builders.MakeWorld(WorldId, GameClock.Epoch + TimeSpan.FromHours(10)));
+        _context.Worlds.Add(Builders.MakeWorld(_worldId, GameClock.Epoch + TimeSpan.FromHours(10)));
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -59,7 +62,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
         new()
         {
             SessionId = _session.Id,
-            WorldId = WorldId,
+            WorldId = _worldId,
             PlayerId = _player.Id,
             Action = action,
             EncounterId = encounterId,

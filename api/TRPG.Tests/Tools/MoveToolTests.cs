@@ -20,7 +20,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private static readonly Guid WorldId = Guid.NewGuid();
+    private Guid WorldId { get; } = Guid.NewGuid();
 
     private readonly Guid _stateId = Guid.NewGuid();
     private TrpgDbContext _context = null!;

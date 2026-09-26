@@ -12,13 +12,12 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private static readonly Guid WorldId = Guid.NewGuid();
-
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private SleepInRoomCommandHandler _handler = null!;
+    private Guid WorldId { get; set; }
     private readonly Guid _locationId = Guid.NewGuid();
-    private readonly Creature _player = Builders.MakeCreature(WorldId, currentHp: 0);
+    private Creature _player = null!;
     private GameSession _session = null!;
     private Bed _bed = null!;
 
@@ -30,6 +29,8 @@ public sealed class SleepInRoomCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<SleepInRoomCommandHandler>();
 
+        WorldId = Guid.NewGuid();
+        _player = Builders.MakeCreature(WorldId, currentHp: 0);
         _session = Builders.MakeGameSession(WorldId, _player.Id);
         var world = Builders.MakeWorld(WorldId, GameClock.Epoch + TimeSpan.FromHours(8));
         _bed = Builders.MakeBed(WorldId, locationId: _locationId, assignedCreatureId: _player.Id);

@@ -61,6 +61,8 @@ internal static class TestServiceCollectionExtensions
 
 internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock
 {
+    private readonly Dictionary<Guid, GameInstant> _unpersistedTimes = [];
+
     public async Task<GameInstant> GetCurrent(
         Guid worldId,
         CancellationToken cancellationToken = default
@@ -72,12 +74,26 @@ internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock
             .Select(world => (GameInstant?)world.GameTime)
             .SingleOrDefaultAsync(cancellationToken);
 
-        if (gameTime == null)
+        if (gameTime != null)
         {
-            throw new EntityNotFoundException("World", worldId);
+            return gameTime.Value;
         }
 
-        return gameTime.Value;
+        var belongsToSyntheticWorld = context
+            .ChangeTracker.Entries()
+            .SelectMany(entry => entry.Properties)
+            .Any(property =>
+                property.Metadata.Name == "WorldId" && Equals(property.CurrentValue, worldId)
+            );
+        belongsToSyntheticWorld |= await context
+            .GameSessions.AsNoTracking()
+            .AnyAsync(session => session.WorldId == worldId, cancellationToken);
+        if (belongsToSyntheticWorld)
+        {
+            return _unpersistedTimes.GetValueOrDefault(worldId, GameClock.Epoch);
+        }
+
+        throw new EntityNotFoundException("World", worldId);
     }
 
     public Task<GameInstant> ResumeWorld(
@@ -98,12 +114,17 @@ internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock
     {
         var current = await GetCurrent(worldId, cancellationToken);
         var gameTime = current + duration;
-        await context
+        var affectedRows = await context
             .Worlds.Where(world => world.Id == worldId)
             .ExecuteUpdateAsync(
                 setters => setters.SetProperty(world => world.GameTime, gameTime),
                 cancellationToken
             );
+        if (affectedRows == 0)
+        {
+            _unpersistedTimes[worldId] = gameTime;
+        }
+
         return gameTime;
     }
 
