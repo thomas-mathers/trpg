@@ -314,19 +314,19 @@ Exit condition: active interactions pin their subjects and release them into the
 
 ### Milestone 06 — Simulation lanes
 
-Status: Not started
+Status: Complete
 
-- [ ] Extract the frequent traveler and caravan pass.
-- [ ] Split due slow-lane reconciliation by subsystem.
-- [ ] Remove `LocationCatchUpCache`.
-- [ ] Make subsystem synchronization idempotent at a supplied instant.
-- [ ] Process unique world/location pairs.
-- [ ] Preserve exact route projection and leg-origin persistence.
-- [ ] Add player-visible semantic scene comparison.
-- [ ] Test watched travelers arriving, departing, and traversing roads.
-- [ ] Run location simulation and routing tests.
-- [ ] Run CSharpier check.
-- [ ] Create milestone-closing commit.
+- [x] Extract the frequent traveler and caravan pass.
+- [x] Split due slow-lane reconciliation by subsystem.
+- [x] Remove `LocationCatchUpCache`.
+- [x] Make subsystem synchronization idempotent at a supplied instant.
+- [x] Process unique world/location pairs.
+- [x] Preserve exact route projection and leg-origin persistence.
+- [x] Add player-visible semantic scene comparison.
+- [x] Test watched travelers arriving, departing, and traversing roads.
+- [x] Run location simulation and routing tests.
+- [x] Run CSharpier check.
+- [x] Create milestone-closing commit.
 
 Exit condition: active locations can be safely reconciled repeatedly and travelers visibly progress.
 
@@ -427,13 +427,19 @@ Exit condition: durations are intentionally balanced, all verification passes, a
 
 ## Continuation notes
 
-Current milestone: 06 — Simulation lanes
+Current milestone: 07 — Background service
 
 Current status: Not started
 
-Last completed milestone: 05 — Engagement and route suspension
+Last completed milestone: 06 — Simulation lanes
 
-Next action: Extract the frequent traveler/caravan pass and split slow-lane reconciliation by subsystem without beginning background processing.
+Next action: Add the thin ASP.NET `BackgroundService` timer wrapper and a timer-independent continuous-world processor that calls `SyncActiveLocationTravelersCommand` on the 5-second cadence and `SyncActiveLocationRoutinesCommand` on the 30-second cadence, with per-world mutation serialization and overlap skipping. Do not add regeneration or ambient encounter work.
+
+Milestone 06 progress: `CatchUpLocationCommand` is now a thin composition of two lanes. `SyncLocationTravelersCommand` (fast lane) ensures the recurring route projection exists, materializes scheduled journeys through the location, and relocates every route-backed traveler to its projected leg origin or stop. `SyncLocationRoutinesCommand` (slow lane) runs weather, `SyncLocationJobsCommand` (job resolution, workstation occupancy), front-door locks, spawning, restocking, and quest seeding in that order. `SyncActiveLocationTravelersCommand` and `SyncActiveLocationRoutinesCommand` take a world's watching players and process each unique location once, on behalf of the highest-level player. `LocationCatchUpCache` and its once-per-in-game-hour gate are removed; `ResetAlertedCreaturesCommand` no longer evicts anything, `RefreshSceneResult.Refreshed` is gone, and `CatchUpLocationCommand` no longer carries a redundant `CurrentDate`. `GetSceneQuery` no longer lists creatures in the `Walking` state, so a traveler in transit is invisible at its persisted leg origin and appears only once the fast lane persists its arrival. `SceneSemanticComparer.HasPlayerVisibleChange` compares two scenes ignoring the clock, vital meters, and caravan departure countdowns, ordering, and duplicates.
+
+Milestone 06 decisions: Idempotence at a supplied instant comes from each subsystem's own persisted schedule (weather `NextChangeGameTime`, spawner, restock, and quest-seed `LastSyncGameTime`) or from deriving state purely from the instant (routes, jobs, door locks; door locks were already re-synced on every move attempt), so no shared gate or new table was added. The slow lane is self-sufficient: `SyncLocationJobsCommand` now unions traveler members through the location (new `GetTravelerCreatureIdsByLocationIdQuery`) instead of receiving the fast lane's materialized ids. Running the routine lane on every scene refresh costs more queries than the old hourly gate; milestone 07 chooses the cadence and milestone 11 reviews query volume. Hiding Walking creatures is limited to the scene projection; other creature queries (encounters, conversations) are unchanged. Caravan `MinutesUntilDeparture` is treated as clock-derived and excluded from semantic scene comparison. The semantic comparer is not wired into any transport yet; milestone 09 uses it.
+
+Milestone 06 validation: `dotnet build api/TRPG.Tests/TRPG.Tests.csproj --no-restore --verbosity quiet` passed. The LocationSimulation namespaces (132 tests), GameTurns namespaces (113 tests), and Routing namespaces (16 tests) passed through the xUnit executable with Docker access, including the new traveler-lane, routine-lane, active-location, scene-visibility, and semantic-comparer suites. The complete backend suite ran 2740 tests twice with 2739 passing each time; the single failure, `PendingSessionEndRegistryTests.Disconnect_PausesAndEndsSession_AfterLastConnectionGraceExpires`, passed 5 of 5 in isolation and also failed on a clean worktree of the milestone 05 closing commit, where a second unrelated test (`PurchaseCaravanTicketCommandHandlerTests.Handle_ReturnsTravelSuspended_WithoutChargingGold_DuringSnow`) also failed intermittently. The registry test polls for the session row to disappear and then asserts the world was paused, but `End` deletes the session before pausing the world, so it races under full-suite load. `dotnet csharpier check .` passed. The pre-closing status and diff inspection contained only intended milestone files; design-questionnaire artifacts remained excluded.
 
 Milestone 05 progress: `Creature.IsEngaged` and `RouteTraveler.PausedAtGameTime` are persisted by the `AddCreatureEngagement` migration. Shared engage/release commands publish application events. Engaging any route member pauses the group at the first engagement instant; position projection remains frozen there; releasing the final member shifts the route start by the full paused duration before current-job reconciliation. Route and job synchronization skip engaged creatures. Conversations engage and release both participants. Validated server begin/end operations cover trade and NPC quest panels, while caravan operations engage the player and every route-group member. Encounters engage their deterministic participant set when published, fights preserve engagement across encounter transitions, and resolution releases only participants not retained by another active encounter. Session-end and startup cleanup release abandoned interactions while preserving unresolved encounter participants. `CreatureState.Busy` is now `Working` in domain, host wire types, generated SignalR TypeScript, and tests.
 
