@@ -5,7 +5,7 @@ namespace TRPG.Tests.Application.LocationSimulation;
 
 public class RecurringSchedulingTests
 {
-    private static readonly TimeSpan OneInGameDay = GameClock.RealTimePerInGameHour * 24;
+    private static readonly TimeSpan OneInGameDay = TimeSpan.FromHours(1) * 24;
 
     [Fact]
     public void HasTriggered_ReturnsFalse_WhenNoTimeHasPassed()
@@ -13,8 +13,8 @@ public class RecurringSchedulingTests
         // Act
         var result = RecurringScheduling.HasTriggered(
             "0 0 * * *",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: TimeSpan.Zero
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch
         );
 
         // Assert
@@ -27,8 +27,8 @@ public class RecurringSchedulingTests
         // Act
         var result = RecurringScheduling.HasTriggered(
             "0 0 * * *",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch + OneInGameDay
         );
 
         // Assert
@@ -41,8 +41,8 @@ public class RecurringSchedulingTests
         // Act
         var result = RecurringScheduling.HasTriggered(
             "0 0 */2 * *",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch + OneInGameDay
         );
 
         // Assert — somewhere cleared out stays cleared until its day comes round.
@@ -55,8 +55,8 @@ public class RecurringSchedulingTests
         // Act
         var result = RecurringScheduling.HasTriggered(
             "0 0 */2 * *",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay * 2
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch + OneInGameDay * 2
         );
 
         // Assert
@@ -69,8 +69,8 @@ public class RecurringSchedulingTests
         // Act — a cadence the old trigger-hour and weekday pair could not express at all.
         var result = RecurringScheduling.HasTriggered(
             "0 */6 * * *",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: GameClock.RealTimePerInGameHour * 7
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch + TimeSpan.FromHours(1) * 7
         );
 
         // Assert
@@ -81,14 +81,14 @@ public class RecurringSchedulingTests
     public void HasTriggered_ReturnsFalse_ForAWeeklySchedule_WhenOnlyADayHasPassed()
     {
         // Arrange — pin the weekday to two days after the epoch's, so one day never reaches it.
-        var epochWeekday = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero).DayOfWeek;
+        var epochWeekday = GameClock.GetCurrentInGameDateTime(GameClock.Epoch).DayOfWeek;
         var target = (int)(DayOfWeek)(((int)epochWeekday + 2) % 7);
 
         // Act
         var result = RecurringScheduling.HasTriggered(
             $"0 0 * * {target}",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch + OneInGameDay
         );
 
         // Assert
@@ -99,14 +99,14 @@ public class RecurringSchedulingTests
     public void HasTriggered_ReturnsTrue_ForAWeeklySchedule_OnceTheWeekdayComesRound()
     {
         // Arrange
-        var epochWeekday = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero).DayOfWeek;
+        var epochWeekday = GameClock.GetCurrentInGameDateTime(GameClock.Epoch).DayOfWeek;
         var target = (int)(DayOfWeek)(((int)epochWeekday + 2) % 7);
 
         // Act
         var result = RecurringScheduling.HasTriggered(
             $"0 0 * * {target}",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay * 3
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch + OneInGameDay * 3
         );
 
         // Assert
@@ -119,8 +119,8 @@ public class RecurringSchedulingTests
         // Act
         var result = RecurringScheduling.HasTriggered(
             "not a schedule",
-            lastSyncPlaytime: TimeSpan.Zero,
-            currentPlaytime: OneInGameDay * 30
+            lastSyncGameTime: GameClock.Epoch,
+            currentGameTime: GameClock.Epoch + OneInGameDay * 30
         );
 
         // Assert — a broken schedule must not fire constantly; see the validation gap it leaves.

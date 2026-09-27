@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Serialization;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -235,6 +236,31 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         );
         Assert.NotNull(scene);
         Assert.Equal(_player.Name, scene.PlayerStatus.Name);
+        Assert.True(scene.Version > 0);
+    }
+
+    [Fact]
+    public async Task GetScene_WaitsForTheWorldMutationLease_WhenAnotherOperationHoldsIt()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        await using var scope = fixture.CreateScope();
+        var mutationGate = scope.ServiceProvider.GetRequiredService<IWorldMutationGate>();
+        var lease = await mutationGate.Acquire(_worldId, TestContext.Current.CancellationToken);
+
+        // Act
+        var pendingResponse = _client.GetAsync(
+            "GetSessionScene",
+            new { sessionId = sessionId },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await Task.Delay(200, TestContext.Current.CancellationToken);
+        Assert.False(pendingResponse.IsCompleted);
+        await lease.DisposeAsync();
+        var response = await pendingResponse;
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]

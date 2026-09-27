@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 
 namespace TRPG.Application.LocationSimulation.Commands;
 
@@ -10,7 +11,7 @@ public class SyncQuestSeedScheduleCommand
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
     public required int PlayerLevel { get; init; }
-    public required TimeSpan CurrentPlaytime { get; init; }
+    public required GameInstant CurrentGameTime { get; init; }
 }
 
 internal class SyncQuestSeedScheduleCommandHandler(
@@ -42,8 +43,8 @@ internal class SyncQuestSeedScheduleCommandHandler(
 
         var hasTriggered = RecurringScheduling.HasTriggered(
             schedule.Schedule,
-            schedule.LastSyncPlaytime,
-            command.CurrentPlaytime
+            schedule.LastSyncGameTime,
+            command.CurrentGameTime
         );
         if (!hasTriggered)
         {
@@ -52,7 +53,7 @@ internal class SyncQuestSeedScheduleCommandHandler(
 
         // Advances the schedule whether or not the roll succeeds, or the next check would fire
         // on every catch-up until it finally hits instead of waiting for the next scheduled window.
-        schedule.LastSyncPlaytime = command.CurrentPlaytime;
+        schedule.LastSyncGameTime = command.CurrentGameTime;
         await context.SaveChangesAsync(cancellationToken);
 
         if (Random.Shared.NextDouble() >= SeedChance)

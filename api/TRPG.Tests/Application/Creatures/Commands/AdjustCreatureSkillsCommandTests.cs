@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -225,7 +226,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
             c => c.Id == _creature.Id,
             TestContext.Current.CancellationToken
         );
-        trackedCreature.RestedUntilPlaytime = TimeSpan.FromHours(24);
+        trackedCreature.RestedUntilGameTime = GameClock.Epoch + TimeSpan.FromHours(24);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act

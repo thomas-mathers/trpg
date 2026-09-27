@@ -8,6 +8,7 @@ using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -21,19 +22,20 @@ internal class StreamShakedownEncounterActionTurnHandler(
     > resolveShakedownEncounterAction,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IGameClientEventSink gameEvents
 )
     : EncounterActionTurnHandlerBase<
         ShakedownEncounter,
         ShakedownEncounterAction,
         ShakedownEncounterResolutionFact
-    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getPlaytime, gameEvents)
+    >(streamer, getActiveEncounter, refreshScene, publishEncounterStarted, getGameTime, gameEvents)
 {
     protected override async Task<ShakedownEncounterResolutionFact> Resolve(
         GameTurnSession session,
         ShakedownEncounter encounter,
         ShakedownEncounterAction action,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     ) =>
         await resolveShakedownEncounterAction.Handle(
@@ -44,6 +46,7 @@ internal class StreamShakedownEncounterActionTurnHandler(
                 PlayerId = session.PlayerId,
                 Action = action,
                 EncounterId = encounter.Id,
+                GameTime = gameTime,
             },
             cancellationToken
         );

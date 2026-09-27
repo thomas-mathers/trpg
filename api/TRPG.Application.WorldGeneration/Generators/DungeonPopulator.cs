@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -88,7 +89,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             ArchetypeCreatureTypes = archetypeCreatureTypes.ToList(),
             MaxPopulation = 1,
             Schedule = $"0 {Random.Shared.Next(24)} */{RespawnIntervalDays} * *",
-            LastSyncPlaytime = TimeSpan.Zero,
+            LastSyncGameTime = GameClock.Epoch,
         };
 
         var fillResult = CreatureSpawnFiller.Fill(
@@ -131,7 +132,7 @@ public class DungeonPopulator(CreatureGenerator creatureGenerator)
             ArchetypeCreatureTypes = archetypeCreatureTypes.ToList(),
             MaxPopulation = maxPopulation,
             Schedule = $"0 {Random.Shared.Next(24)} */{RespawnIntervalDays} * *",
-            LastSyncPlaytime = TimeSpan.Zero,
+            LastSyncGameTime = GameClock.Epoch,
         };
 
         var fillResult = CreatureSpawnFiller.Fill(

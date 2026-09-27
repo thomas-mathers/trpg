@@ -8,6 +8,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.GameTurns.Mappers;
+using TRPG.Domain;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
 
@@ -16,7 +17,7 @@ namespace TRPG.GameTurns.Tools;
 internal class LookTool(
     GameTurnContext turnContext,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<LookTool> logger
 ) : IGameTool
 {
@@ -31,8 +32,8 @@ internal class LookTool(
         logger.LogInformation("[look] tool invoked");
         var stopwatch = Stopwatch.StartNew();
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
@@ -41,7 +42,7 @@ internal class LookTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

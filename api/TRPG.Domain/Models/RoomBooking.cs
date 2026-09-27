@@ -7,5 +7,5 @@ public class RoomBooking
     public Guid RoomId { get; init; }
     public Guid KeyItemId { get; init; }
     public Guid PlayerId { get; init; }
-    public TimeSpan DueAtPlaytime { get; init; }
+    public GameInstant DueAtGameTime { get; init; }
 }

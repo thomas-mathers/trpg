@@ -86,7 +86,7 @@ internal class SyncScheduleLockCommandHandler(
         );
         var roomLocationIds = rooms.Select(room => room.LocationId).ToHashSet();
         var anyoneWorking = workersById.Values.Any(worker =>
-            worker.State == CreatureState.Busy && roomLocationIds.Contains(worker.LocationId)
+            worker.State == CreatureState.Working && roomLocationIds.Contains(worker.LocationId)
         );
 
         return await setFrontDoorLocked.Handle(

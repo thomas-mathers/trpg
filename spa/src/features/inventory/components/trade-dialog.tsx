@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Empty, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { useCreatureInteraction } from '@/features/game/hooks/use-interaction-lifecycle';
 import { ItemName } from '@/features/inventory/components/item-name';
 import { ItemTable } from '@/features/inventory/components/item-table';
 import { GoldIcon, WeightIcon } from '@/features/inventory/components/item-unit-icon';
@@ -32,6 +33,7 @@ export interface TradeDialogProps {
   playerId: string;
   worldId: string;
   workstationId: string;
+  workerId: string;
   workerName: string;
   shopName: string;
   onClose: () => void;
@@ -56,12 +58,14 @@ export function TradeDialog({
   playerId,
   worldId,
   workstationId,
+  workerId,
   workerName,
   shopName,
   open,
   onClose,
 }: TradeDialogProps) {
   const queryClient = useQueryClient();
+  useCreatureInteraction({ playerId, worldId, creatureId: open ? workerId : undefined });
   const trade = useQuery({
     ...getTradeOptions({ path: { playerId, workstationId } }),
     enabled: open,

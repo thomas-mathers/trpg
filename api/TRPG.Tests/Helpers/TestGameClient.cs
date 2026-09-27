@@ -26,6 +26,7 @@ internal sealed class TestGameClient : IGameClient
     public Action<TrapEncounterResolutionFact>? OnTrapEncounterResolved { get; set; }
     public Action<TheftEncounterState>? OnTheftEncounterStarted { get; set; }
     public Action<TheftEncounterResolutionFact>? OnTheftEncounterResolved { get; set; }
+    public Action<PlayerVitalsUpdated>? OnPlayerVitalsUpdated { get; set; }
     public Action<SkillLevelUp>? OnSkillLevelUp { get; set; }
     public Action<CharacterLevelUp>? OnCharacterLevelUp { get; set; }
     public Action<QuestObjectiveCompleted>? OnQuestObjectiveCompleted { get; set; }
@@ -120,6 +121,12 @@ internal sealed class TestGameClient : IGameClient
     public Task TheftEncounterResolved(TheftEncounterResolutionFact fact)
     {
         OnTheftEncounterResolved?.Invoke(fact);
+        return Task.CompletedTask;
+    }
+
+    public Task PlayerVitalsUpdated(PlayerVitalsUpdated vitals)
+    {
+        OnPlayerVitalsUpdated?.Invoke(vitals);
         return Task.CompletedTask;
     }
 

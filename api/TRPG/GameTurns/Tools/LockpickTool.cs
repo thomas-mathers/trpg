@@ -5,8 +5,10 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
@@ -25,6 +27,7 @@ internal class LockpickTool(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
     ICommandHandler<AttemptLockpickCommand, AttemptLockpickResult> attemptLockpick,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<LockpickTool> logger
 ) : IGameTool
 {
@@ -77,6 +80,10 @@ internal class LockpickTool(
             return new ToolError($"There's no door to '{destinationName}' here.");
         }
 
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
         var result = await attemptLockpick.Handle(
             new AttemptLockpickCommand
             {
@@ -84,6 +91,7 @@ internal class LockpickTool(
                 WorldId = turnContext.WorldId,
                 ConnectorId = exitMatch.ConnectorId!.Value,
                 DestinationLocationId = exitMatch.DestinationLocationId!.Value,
+                GameTime = gameTime,
             },
             cancellationToken
         );

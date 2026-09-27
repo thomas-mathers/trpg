@@ -22,4 +22,16 @@ public class CreatureJob
     public DayOfWeek? SpecificDay { get; init; }
     public int StartHour { get; init; }
     public Guid WorldId { get; init; }
+
+    public CreatureState DefaultState =>
+        Action switch
+        {
+            CreatureJobAction.Sleep => CreatureState.Sleeping,
+            CreatureJobAction.Work => CreatureState.Working,
+            CreatureJobAction.Idle => CreatureState.Idle,
+            CreatureJobAction.Study => CreatureState.Studying,
+            CreatureJobAction.Pray => CreatureState.Praying,
+            CreatureJobAction.Eat => CreatureState.Eating,
+            _ => throw new InvalidOperationException("Unknown creature job action."),
+        };
 }

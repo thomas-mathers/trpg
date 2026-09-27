@@ -18,7 +18,7 @@ public class BookRoomCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required Guid LocationId { get; init; }
 }
 
@@ -152,7 +152,7 @@ internal class BookRoomCommandHandler(
                     RoomId = spareKeyDoor.RoomId,
                     KeyItemId = spareKeyItemId,
                     PlayerId = command.PlayerId,
-                    DueAtPlaytime = command.Playtime + GameClock.RealTimePerInGameHour * 24,
+                    DueAtGameTime = command.GameTime + TimeSpan.FromHours(1) * 24,
                 },
             },
             cancellationToken

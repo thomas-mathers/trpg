@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.RoomBookings.Queries;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -53,7 +54,7 @@ public sealed class GetRoomBookingsForPlayerInBuildingQueryTests(DatabaseFixture
             RoomId = _room.Id,
             KeyItemId = Guid.NewGuid(),
             PlayerId = _playerId,
-            DueAtPlaytime = TimeSpan.FromHours(24),
+            DueAtGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
         };
         var otherBuildingBooking = new RoomBooking
         {
@@ -61,7 +62,7 @@ public sealed class GetRoomBookingsForPlayerInBuildingQueryTests(DatabaseFixture
             RoomId = _otherBuildingRoom.Id,
             KeyItemId = Guid.NewGuid(),
             PlayerId = _playerId,
-            DueAtPlaytime = TimeSpan.FromHours(24),
+            DueAtGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
         };
         var otherPlayerBooking = new RoomBooking
         {
@@ -69,7 +70,7 @@ public sealed class GetRoomBookingsForPlayerInBuildingQueryTests(DatabaseFixture
             RoomId = _room.Id,
             KeyItemId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
-            DueAtPlaytime = TimeSpan.FromHours(24),
+            DueAtGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
         };
         _context.RoomBookings.AddRange(matchingBooking, otherBuildingBooking, otherPlayerBooking);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

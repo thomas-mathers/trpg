@@ -11,15 +11,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useScene } from '@/features/game/contexts/scene-context';
+import { durationUntilNextTime } from '@/features/game/game-clock';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
+import { useGameTimeReader } from '@/features/game/hooks/use-game-clock';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 
 export interface WaitDialogProps {
   open: boolean;
   onClose: () => void;
 }
-
-const MINUTES_PER_DAY = 24 * 60;
 
 function formatCurrentHour(hour: number): string {
   return `${hour.toString().padStart(2, '0')}:00`;
@@ -38,13 +38,15 @@ export function WaitDialog({ open, onClose }: WaitDialogProps) {
   const scene = useScene();
   const chatHub = useChatHub();
   const { submitNarratedTurn } = useGameChat();
+  const readGameTime = useGameTimeReader();
   const [targetTime, setTargetTime] = useState('08:00');
 
   useEffect(() => {
-    if (open && scene) {
-      setTargetTime(formatCurrentHour(scene.hour));
+    const gameTime = readGameTime();
+    if (open && gameTime) {
+      setTargetTime(formatCurrentHour(gameTime.hour));
     }
-  }, [open, scene]);
+  }, [open, readGameTime]);
 
   useEffect(() => {
     if (open && scene && scene.playerStatus.state !== 'Sitting') {
@@ -77,14 +79,12 @@ export function WaitDialog({ open, onClose }: WaitDialogProps) {
   };
 
   const handleConfirm = () => {
-    const { hour: targetHour, minute: targetMinute } = parseTime(targetTime);
-    let deltaMinutes = targetHour * 60 + targetMinute - scene.hour * 60;
-    if (deltaMinutes <= 0) {
-      // Picking a time at or before the current hour means "wait until that time tomorrow".
-      deltaMinutes += MINUTES_PER_DAY;
+    const gameTime = readGameTime();
+    if (!gameTime) {
+      return;
     }
-    const hours = Math.floor(deltaMinutes / 60);
-    const minutes = deltaMinutes % 60;
+    const { hour: targetHour, minute: targetMinute } = parseTime(targetTime);
+    const { hours, minutes } = durationUntilNextTime(gameTime, targetHour, targetMinute);
 
     submitNarratedTurn(`Wait until ${targetTime}`, chatHub.sendWait(hours, minutes));
     onClose();

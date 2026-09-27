@@ -16,7 +16,7 @@ public class RelocateFreedCaptivesCommand
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 // Quest-target filtering keeps unrelated idle dungeon creatures out of captive cleanup.
@@ -103,10 +103,10 @@ internal class RelocateFreedCaptivesCommandHandler(
             new SyncCreatureJobSchedulesCommand
             {
                 CreatureIds = strandedCaptiveIds.Except(joblessCaptiveIds).ToArray(),
-                Playtime = command.Playtime,
-                BecameAvailableAtPlaytimeByCreatureId = strandedCaptiveIds
+                GameTime = command.GameTime,
+                BecameAvailableAtGameTimeByCreatureId = strandedCaptiveIds
                     .Except(joblessCaptiveIds)
-                    .ToDictionary(creatureId => creatureId, _ => command.Playtime),
+                    .ToDictionary(creatureId => creatureId, _ => command.GameTime),
             },
             cancellationToken
         );

@@ -1,4 +1,5 @@
 using TRPG.Application.Configuration;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -105,9 +106,10 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
             {
                 WorldId = world.World.Id,
                 RouteId = route.Id,
-                StartedAtPlaytime = TimeSpan.Zero,
+                StartedAtGameTime = GameClock.Epoch,
                 SpeedUnitsPerHour = options.SpeedUnitsPerHour,
                 Purpose = $"Patrolling the roads of {country.Name}.",
+                ArrivalState = CreatureState.Working,
             };
             var guardGroup = creatureGroupGenerator.Generate(
                 new CreatureGroupGeneratorInput(

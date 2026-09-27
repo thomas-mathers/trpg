@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -63,7 +64,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         );
         _context.Creatures.AddRange(_player, _captive);
         _context.Props.Add(_cell);
-        // Playtime defaults to TimeSpan.Zero, which GameClock resolves to hour 8 at the world
+        // GameTime defaults to GameClock.Epoch, which GameClock resolves to hour 8 at the world
         // epoch — matching MakeCreatureJob's default 8-17 Idle window below.
         _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _player.Id));
         _context.CreatureJobs.Add(

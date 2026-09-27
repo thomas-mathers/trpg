@@ -10,6 +10,7 @@ using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.LocationSimulation.Commands;
@@ -18,7 +19,7 @@ public class SyncRestockPolicyCommand
 {
     public required Guid LocationId { get; init; }
     public required int PlayerLevel { get; init; }
-    public required TimeSpan CurrentPlaytime { get; init; }
+    public required GameInstant CurrentGameTime { get; init; }
 }
 
 internal class SyncRestockPolicyCommandHandler(
@@ -77,8 +78,8 @@ internal class SyncRestockPolicyCommandHandler(
         var duePolicies = policies.Where(policy =>
             RecurringScheduling.HasTriggered(
                 policy.Schedule,
-                policy.LastSyncPlaytime,
-                command.CurrentPlaytime
+                policy.LastSyncGameTime,
+                command.CurrentGameTime
             )
         );
 
@@ -168,7 +169,7 @@ internal class SyncRestockPolicyCommandHandler(
             );
         }
 
-        policy.LastSyncPlaytime = command.CurrentPlaytime;
+        policy.LastSyncGameTime = command.CurrentGameTime;
 
         await context.SaveChangesAsync(cancellationToken);
 

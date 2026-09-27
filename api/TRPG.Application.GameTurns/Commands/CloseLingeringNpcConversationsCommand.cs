@@ -3,14 +3,19 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Chat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.NpcConversations.Commands;
 using TRPG.Application.NpcConversations.Queries;
+using TRPG.Domain;
 
 namespace TRPG.Application.GameTurns.Commands;
 
 public class CloseLingeringNpcConversationsCommand
 {
     public required Guid SessionId { get; init; }
+    public required Guid WorldId { get; init; }
+    public required Guid PlayerId { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required int CurrentTurnStart { get; init; }
 }
 
@@ -18,6 +23,7 @@ internal class CloseLingeringNpcConversationsCommandHandler(
     LlmConversationClient llmConversationClient,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     ICommandHandler<ClearOpenNpcConversationsCommand> clearOpenNpcConversations,
+    ICommandHandler<ReleaseCreaturesCommand> releaseCreatures,
     ICommandHandler<ClearChatMessagesCommand> clearChatMessages,
     ILogger<CloseLingeringNpcConversationsCommandHandler> logger
 ) : ICommandHandler<CloseLingeringNpcConversationsCommand>
@@ -52,6 +58,8 @@ internal class CloseLingeringNpcConversationsCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
+        await ReleaseUnendedConversations(command, stillOpenConversations, cancellationToken);
+
         await clearOpenNpcConversations.Handle(
             new ClearOpenNpcConversationsCommand { SessionId = command.SessionId },
             cancellationToken
@@ -67,6 +75,28 @@ internal class CloseLingeringNpcConversationsCommandHandler(
         );
 
         transaction.Complete();
+    }
+
+    private async Task ReleaseUnendedConversations(
+        CloseLingeringNpcConversationsCommand command,
+        Dictionary<string, Guid> stillOpenConversations,
+        CancellationToken cancellationToken
+    )
+    {
+        if (stillOpenConversations.Count == 0)
+        {
+            return;
+        }
+
+        await releaseCreatures.Handle(
+            new ReleaseCreaturesCommand
+            {
+                WorldId = command.WorldId,
+                CreatureIds = [command.PlayerId, .. stillOpenConversations.Values],
+                GameTime = command.GameTime,
+            },
+            cancellationToken
+        );
     }
 
     private async Task ForceEndConversation(string npcName, CancellationToken cancellationToken)

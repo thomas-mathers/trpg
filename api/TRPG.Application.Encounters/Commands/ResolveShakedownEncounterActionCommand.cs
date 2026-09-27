@@ -10,6 +10,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -21,15 +22,16 @@ public class ResolveShakedownEncounterActionCommand : IEncounterResolutionComman
     public required Guid PlayerId { get; init; }
     public required ShakedownEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveShakedownEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<RemoveGoldCommand> removeGold,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<StartFightCommand> startFight,
     EncounterDepartureResolver encounterDepartureResolver,
     EncounterFleeResolver encounterFleeResolver,
@@ -40,7 +42,7 @@ internal class ResolveShakedownEncounterActionCommandHandler(
         ShakedownEncounter,
         ResolveShakedownEncounterActionCommand,
         ShakedownEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<ShakedownEncounterResolutionFact> Resolve(
         ResolveShakedownEncounterActionCommand command,
@@ -114,14 +116,10 @@ internal class ResolveShakedownEncounterActionCommandHandler(
 
             if (encounter.DepartureDestinationLocationId != null)
             {
-                var playtime = await getPlaytime.Handle(
-                    new GetPlaytimeQuery { SessionId = command.SessionId },
-                    cancellationToken
-                );
                 await encounterDepartureResolver.TryResume(
                     encounter,
                     player,
-                    playtime,
+                    command.GameTime,
                     cancellationToken
                 );
             }
@@ -130,11 +128,12 @@ internal class ResolveShakedownEncounterActionCommandHandler(
 
         if (outcome == ShakedownEncounterResolutionOutcome.Fled)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
+            await encounterFleeResolver.Resolve(
+                encounter,
+                player,
+                command.GameTime,
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
             return;
         }
 
@@ -169,6 +168,7 @@ internal class ResolveShakedownEncounterActionCommandHandler(
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
                 HasSurpriseRound = false,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

@@ -29,7 +29,7 @@ internal static class SignEndpoints
         Guid signId,
         Guid worldId,
         [FromServices] IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
-        [FromServices] IQueryHandler<GetPlaytimeByWorldIdQuery, TimeSpan> getPlaytimeByWorldId,
+        [FromServices] IQueryHandler<GetGameTimeByWorldIdQuery, GameInstant> getGameTimeByWorldId,
         [FromServices]
             IQueryHandler<
             GetNextCaravanArrivalsQuery,
@@ -52,8 +52,8 @@ internal static class SignEndpoints
             return TypedResults.Ok(new SignTextResponse(sign.Description));
         }
 
-        var playtime = await getPlaytimeByWorldId.Handle(
-            new GetPlaytimeByWorldIdQuery { WorldId = worldId },
+        var gameTime = await getGameTimeByWorldId.Handle(
+            new GetGameTimeByWorldIdQuery { WorldId = worldId },
             cancellationToken
         );
         var arrivals = await getNextCaravanArrivals.Handle(
@@ -61,20 +61,20 @@ internal static class SignEndpoints
             {
                 WorldId = worldId,
                 LocationId = sign.LocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
 
         var lines = arrivals
             .OrderBy(arrival => arrival.RouteName)
-            .Select(arrival => FormatArrival(arrival, playtime));
+            .Select(arrival => FormatArrival(arrival, gameTime));
         return TypedResults.Ok(
             new SignTextResponse("Caravan schedule:\n" + string.Join("\n", lines))
         );
     }
 
-    private static string FormatArrival(NextCaravanArrival arrival, TimeSpan currentPlaytime)
+    private static string FormatArrival(NextCaravanArrival arrival, GameInstant currentGameTime)
     {
         var routeLabel = arrival.RouteName.Replace(
             "The Capital Circuit — ",
@@ -86,10 +86,20 @@ internal static class SignEndpoints
             return $"{routeLabel}: here now";
         }
 
-        var arrivalPlaytime =
-            currentPlaytime + GameClock.RealTimePerInGameHour * arrival.HoursUntilArrival;
-        var arrivalDate = GameClock.GetCurrentInGameDate(arrivalPlaytime);
+        var arrivalGameTime = RoundUpToMinute(
+            currentGameTime + TimeSpan.FromHours(1) * arrival.HoursUntilArrival
+        );
+        var arrivalDate = GameClock.GetCurrentInGameDate(arrivalGameTime);
 
-        return $"{routeLabel}: next arrival {arrivalDate.WeekdayName}, {arrivalDate.MonthName} {arrivalDate.Day} - {arrivalDate.Hour}:00";
+        return $"{routeLabel}: next arrival {arrivalDate.WeekdayName}, {arrivalDate.MonthName} {arrivalDate.Day} - {arrivalDate.Hour:00}:{arrivalGameTime.Value.Minute:00}";
+    }
+
+    // Waiting until the printed minute must land on or after the arrival, never just before it.
+    private static GameInstant RoundUpToMinute(GameInstant instant)
+    {
+        var remainder = instant.Value.Ticks % TimeSpan.TicksPerMinute;
+        return remainder == 0
+            ? instant
+            : instant + TimeSpan.FromTicks(TimeSpan.TicksPerMinute - remainder);
     }
 }

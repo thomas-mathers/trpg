@@ -13,14 +13,14 @@ public class RefreshSceneCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
-public record RefreshSceneResult(SceneResult Scene, bool Refreshed);
+public record RefreshSceneResult(SceneResult Scene);
 
 internal class RefreshSceneCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    ICommandHandler<CatchUpLocationCommand, bool> catchUpLocation,
+    ICommandHandler<CatchUpLocationCommand> catchUpLocation,
     IQueryHandler<GetSceneQuery, SceneResult> getScene
 ) : ICommandHandler<RefreshSceneCommand, RefreshSceneResult>
 {
@@ -34,19 +34,18 @@ internal class RefreshSceneCommandHandler(
             cancellationToken
         );
 
-        var playtime = command.Playtime;
+        var gameTime = command.GameTime;
 
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(gameTime);
 
-        var refreshed = await catchUpLocation.Handle(
+        await catchUpLocation.Handle(
             new CatchUpLocationCommand
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 LocationId = player!.LocationId,
-                CurrentDate = currentDate,
                 PlayerLevel = player.Level,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -57,11 +56,11 @@ internal class RefreshSceneCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 CurrentDate = currentDate,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
 
-        return new RefreshSceneResult(scene, refreshed);
+        return new RefreshSceneResult(scene);
     }
 }

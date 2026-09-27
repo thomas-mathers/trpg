@@ -46,7 +46,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             {
                 WorldId = scenario.WorldId,
                 LocationId = scenario.MiddleLocationId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -62,7 +62,8 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
         );
         Assert.Equal([scenario.CreatureId], creatureIds);
         Assert.Equal(scenario.ScheduleId, traveler.CreatureRouteScheduleId);
-        Assert.Equal(-GameClock.RealTimePerInGameHour, traveler.StartedAtPlaytime);
+        Assert.Equal(GameClock.Epoch - TimeSpan.FromHours(1), traveler.StartedAtGameTime);
+        Assert.Equal(CreatureState.Working, traveler.ArrivalState);
         Assert.Equal(scenario.CreatureId, member.CreatureId);
     }
 
@@ -75,7 +76,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             WorldId = scenario.WorldId,
             RouteId = scenario.RouteId,
             CreatureRouteScheduleId = scenario.ScheduleId,
-            StartedAtPlaytime = -GameClock.RealTimePerInGameHour * 169,
+            StartedAtGameTime = GameClock.Epoch - TimeSpan.FromHours(1) * 169,
             SpeedUnitsPerHour = 5,
             Purpose = "Walking to work",
         };
@@ -95,7 +96,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             {
                 WorldId = scenario.WorldId,
                 LocationId = scenario.MiddleLocationId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -106,7 +107,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             TestContext.Current.CancellationToken
         );
         Assert.NotEqual(staleTraveler.Id, traveler.Id);
-        Assert.Equal(-GameClock.RealTimePerInGameHour, traveler.StartedAtPlaytime);
+        Assert.Equal(GameClock.Epoch - TimeSpan.FromHours(1), traveler.StartedAtGameTime);
     }
 
     [Fact]
@@ -118,7 +119,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             WorldId = scenario.WorldId,
             RouteId = scenario.RouteId,
             CreatureRouteScheduleId = scenario.ScheduleId,
-            StartedAtPlaytime = -GameClock.RealTimePerInGameHour * 171,
+            StartedAtGameTime = GameClock.Epoch - TimeSpan.FromHours(1) * 171,
             SpeedUnitsPerHour = 5,
             Purpose = "Walking to work",
         };
@@ -138,7 +139,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             {
                 WorldId = scenario.WorldId,
                 LocationId = scenario.MiddleLocationId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -163,7 +164,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
     [Fact]
     public async Task Handle_MaterializesPendingOccurrence_WhenDepartureIsLaterThisHour()
     {
-        var currentDateTime = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero);
+        var currentDateTime = GameClock.GetCurrentInGameDateTime(GameClock.Epoch);
         var scenario = await AddScenario(departureHour: currentDateTime.Hour + 0.5);
 
         var creatureIds = await _handler.Handle(
@@ -171,7 +172,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             {
                 WorldId = scenario.WorldId,
                 LocationId = scenario.OriginLocationId,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -182,7 +183,101 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             TestContext.Current.CancellationToken
         );
         Assert.Equal([scenario.CreatureId], creatureIds);
-        Assert.Equal(GameClock.RealTimePerInGameHour * 0.5, traveler.StartedAtPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 0.5, traveler.StartedAtGameTime);
+    }
+
+    [Fact]
+    public async Task Handle_KeepsResumedTraveler_WhenItsTimelineWasShiftedByAPause()
+    {
+        // Arrange
+        var scenario = await AddScenario();
+        var pausedDuration = TimeSpan.FromMinutes(30);
+        var traveler = await SeedTraveler(
+            scenario,
+            startedAtGameTime: GameClock.Epoch - TimeSpan.FromHours(1) + pausedDuration,
+            pausedDuration: pausedDuration
+        );
+
+        // Act
+        var creatureIds = await _handler.Handle(
+            new MaterializeScheduledRouteTravelersCommand
+            {
+                WorldId = scenario.WorldId,
+                LocationId = scenario.OriginLocationId,
+                GameTime = GameClock.Epoch,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var travelers = await verifyContext
+            .RouteTravelers.Where(entry => entry.CreatureRouteScheduleId == scenario.ScheduleId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal([scenario.CreatureId], creatureIds);
+        Assert.Equal(traveler.Id, Assert.Single(travelers).Id);
+    }
+
+    [Fact]
+    public async Task Handle_KeepsPausedTraveler_WhenThePlannedJourneyWouldHaveEnded()
+    {
+        // Arrange
+        var scenario = await AddScenario();
+        var traveler = await SeedTraveler(
+            scenario,
+            startedAtGameTime: GameClock.Epoch - TimeSpan.FromHours(1),
+            pausedAtGameTime: GameClock.Epoch
+        );
+
+        // Act
+        var creatureIds = await _handler.Handle(
+            new MaterializeScheduledRouteTravelersCommand
+            {
+                WorldId = scenario.WorldId,
+                LocationId = scenario.MiddleLocationId,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var travelers = await verifyContext
+            .RouteTravelers.Where(entry => entry.CreatureRouteScheduleId == scenario.ScheduleId)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal([scenario.CreatureId], creatureIds);
+        Assert.Equal(traveler.Id, Assert.Single(travelers).Id);
+    }
+
+    private async Task<RouteTraveler> SeedTraveler(
+        Scenario scenario,
+        GameInstant startedAtGameTime,
+        GameInstant? pausedAtGameTime = null,
+        TimeSpan pausedDuration = default
+    )
+    {
+        var traveler = new RouteTraveler
+        {
+            WorldId = scenario.WorldId,
+            RouteId = scenario.RouteId,
+            CreatureRouteScheduleId = scenario.ScheduleId,
+            StartedAtGameTime = startedAtGameTime,
+            PausedAtGameTime = pausedAtGameTime,
+            PausedDuration = pausedDuration,
+            SpeedUnitsPerHour = 5,
+            Purpose = "Walking to work",
+        };
+        _context.RouteTravelers.Add(traveler);
+        _context.RouteTravelerMembers.Add(
+            new RouteTravelerMember
+            {
+                WorldId = scenario.WorldId,
+                RouteTravelerId = traveler.Id,
+                CreatureId = scenario.CreatureId,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return traveler;
     }
 
     private async Task<Scenario> AddScenario(double departureHour = 7, int destinationStartHour = 9)
@@ -224,7 +319,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             RouteId = route.Id,
             OriginCreatureJobId = originJob.Id,
             DestinationCreatureJobId = destinationJob.Id,
-            DepartureDay = GameClock.GetCurrentInGameDateTime(TimeSpan.Zero).DayOfWeek,
+            DepartureDay = GameClock.GetCurrentInGameDateTime(GameClock.Epoch).DayOfWeek,
             DepartureHour = departureHour,
             DurationHours = 2,
             Purpose = "Walking to work",

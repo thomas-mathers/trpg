@@ -37,7 +37,7 @@ public enum CreatureState
     Idle,
     Sitting,
     Sleeping,
-    Busy,
+    Working,
     Studying,
     Praying,
     Eating,
@@ -114,16 +114,17 @@ public class Creature
     public int CurrentMp { get; set; }
     public Gender Gender { get; init; }
     public Guid Id { get; init; } = Guid.NewGuid();
-    public TimeSpan LastRegenPlaytime { get; set; }
+    public GameInstant LastRegenGameTime { get; set; } = GameClock.Epoch;
     public int Level { get; set; }
     public Guid LocationId { get; set; }
     public string Name { get; init; } = "";
     public Profession? Profession { get; set; }
     public Guid? PlayerCorpseOwnerId { get; init; }
     public Guid? PreviousLocationId { get; set; }
-    public TimeSpan? RestedUntilPlaytime { get; set; }
+    public GameInstant? RestedUntilGameTime { get; set; }
     public Guid? SpawnerId { get; set; }
     public CreatureState State { get; set; }
+    public bool IsEngaged { get; set; }
     public bool IsSneaking { get; set; }
     public Guid WorldId { get; init; }
 

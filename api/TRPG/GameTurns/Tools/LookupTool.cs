@@ -18,7 +18,7 @@ internal class LookupTool(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     IQueryHandler<GetCreatureKnowledgeQuery, IReadOnlyList<LookupMatch>> getCreatureKnowledge,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<LookupTool> logger
 ) : IGameTool
 {
@@ -67,11 +67,11 @@ internal class LookupTool(
             );
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
-        var currentYear = GameClock.GetCurrentInGameDate(playtime).Year;
+        var currentYear = GameClock.GetCurrentInGameDate(gameTime).Year;
         var query = new GetCreatureKnowledgeQuery
         {
             WorldId = turnContext.WorldId,

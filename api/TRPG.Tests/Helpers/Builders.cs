@@ -85,7 +85,7 @@ internal static class Builders
         bool isLocked = false,
         int lockLevel = 0,
         Guid? worldId = null,
-        TimeSpan? unlocksAtPlaytime = null,
+        GameInstant? unlocksAtGameTime = null,
         Guid? id = null
     ) =>
         new()
@@ -94,7 +94,7 @@ internal static class Builders
             ConnectorId = connectorId,
             IsLocked = isLocked,
             LockLevel = lockLevel,
-            UnlocksAtPlaytime = unlocksAtPlaytime,
+            UnlocksAtGameTime = unlocksAtGameTime,
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
@@ -234,7 +234,8 @@ internal static class Builders
         int naturalWeaponMaxDamage = 3,
         Guid? playerCorpseOwnerId = null,
         Guid? spawnerId = null,
-        bool isSneaking = false
+        bool isSneaking = false,
+        bool isEngaged = false
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -254,6 +255,7 @@ internal static class Builders
             PlayerCorpseOwnerId = playerCorpseOwnerId,
             SpawnerId = spawnerId,
             IsSneaking = isSneaking,
+            IsEngaged = isEngaged,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,
@@ -387,7 +389,7 @@ internal static class Builders
         IReadOnlyList<CreatureType>? archetypeCreatureTypes = null,
         int maxPopulation = 3,
         string schedule = "0 0 * * *",
-        TimeSpan? lastSyncPlaytime = null
+        GameInstant? lastSyncGameTime = null
     ) =>
         new()
         {
@@ -396,21 +398,21 @@ internal static class Builders
             ArchetypeCreatureTypes = (archetypeCreatureTypes ?? [CreatureType.Beast]).ToList(),
             MaxPopulation = maxPopulation,
             Schedule = schedule,
-            LastSyncPlaytime = lastSyncPlaytime ?? TimeSpan.Zero,
+            LastSyncGameTime = lastSyncGameTime ?? GameClock.Epoch,
         };
 
     public static RestockPolicy MakeRestockPolicy(
         Guid worldId,
         Guid workstationId,
         string schedule = "0 0 * * *",
-        TimeSpan? lastSyncPlaytime = null
+        GameInstant? lastSyncGameTime = null
     ) =>
         new()
         {
             WorldId = worldId,
             WorkstationId = workstationId,
             Schedule = schedule,
-            LastSyncPlaytime = lastSyncPlaytime ?? TimeSpan.Zero,
+            LastSyncGameTime = lastSyncGameTime ?? GameClock.Epoch,
         };
 
     public static Attributes MakeAttributes()
@@ -555,7 +557,7 @@ internal static class Builders
         Guid roomId,
         Guid keyItemId,
         Guid playerId,
-        TimeSpan dueAtPlaytime
+        GameInstant dueAtGameTime
     ) =>
         new()
         {
@@ -563,7 +565,7 @@ internal static class Builders
             RoomId = roomId,
             KeyItemId = keyItemId,
             PlayerId = playerId,
-            DueAtPlaytime = dueAtPlaytime,
+            DueAtGameTime = dueAtGameTime,
         };
 
     public static Weapon MakeWeapon(
@@ -999,13 +1001,15 @@ internal static class Builders
             State = state,
         };
 
-    public static World MakeWorld()
+    public static World MakeWorld(Guid? id = null, GameInstant? gameTime = null)
     {
         return new World
         {
+            Id = id ?? Guid.NewGuid(),
             Name = $"World-{Guid.NewGuid():N}",
             Description = "A test world",
             Boundary = new Rectangle(0, 0, 10000, 10000),
+            GameTime = gameTime ?? GameClock.Epoch,
         };
     }
 
@@ -1289,18 +1293,9 @@ internal static class Builders
             Text = "I cannot get back to the entrance. I will wait here for help.",
         };
 
-    public static GameSession MakeGameSession(
-        Guid worldId,
-        Guid playerId,
-        TimeSpan playtime = default
-    )
+    public static GameSession MakeGameSession(Guid worldId, Guid playerId)
     {
-        return new GameSession
-        {
-            WorldId = worldId,
-            PlayerId = playerId,
-            Playtime = playtime,
-        };
+        return new GameSession { WorldId = worldId, PlayerId = playerId };
     }
 
     public static Reputation MakeReputation(
@@ -1491,13 +1486,15 @@ internal static class Builders
         Guid? worldId = null,
         double phaseOffsetHours = 0,
         string? purpose = null,
-        double speedUnitsPerHour = 5
+        double speedUnitsPerHour = 5,
+        GameInstant? pausedAtGameTime = null
     ) =>
         new()
         {
             WorldId = worldId ?? Guid.NewGuid(),
             RouteId = routeId,
-            StartedAtPlaytime = -GameClock.RealTimePerInGameHour * phaseOffsetHours,
+            StartedAtGameTime = GameClock.Epoch - TimeSpan.FromHours(1) * phaseOffsetHours,
+            PausedAtGameTime = pausedAtGameTime,
             SpeedUnitsPerHour = speedUnitsPerHour,
             Purpose = purpose,
         };
@@ -1532,7 +1529,7 @@ internal static class Builders
         Guid originStopLocationId,
         Guid destinationLocationId,
         Guid? worldId = null,
-        TimeSpan purchasedAtPlaytime = default
+        GameInstant? purchasedAtGameTime = null
     ) =>
         new()
         {
@@ -1541,6 +1538,6 @@ internal static class Builders
             CreatureId = creatureId,
             OriginStopLocationId = originStopLocationId,
             DestinationLocationId = destinationLocationId,
-            PurchasedAtPlaytime = purchasedAtPlaytime,
+            PurchasedAtGameTime = purchasedAtGameTime ?? GameClock.Epoch,
         };
 }

@@ -50,7 +50,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
             {
                 CreatureId = creature.Id,
                 DestinationLocationId = destinationId,
-                Playtime = GameClock.RealTimePerInGameHour * 3,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 3,
                 Purpose = "Going to work.",
             },
             TestContext.Current.CancellationToken
@@ -72,7 +72,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
 
         Assert.Equal(worldId, traveler.WorldId);
         Assert.Equal(7, traveler.SpeedUnitsPerHour);
-        Assert.Equal(GameClock.RealTimePerInGameHour * 3, traveler.StartedAtPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 3, traveler.StartedAtGameTime);
         Assert.Equal("Going to work.", traveler.Purpose);
         Assert.Equal([connector.Id, null], steps.Select(step => step.ConnectorId));
         Assert.Equal([originId, destinationId], steps.Select(step => step.LocationId));
@@ -91,14 +91,14 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         creature.MovementSpeed = 20;
         var traveler = AddFiniteTraveler(creature, speedUnitsPerHour: 10, [outbound], locationY);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var decisionPlaytime = GameClock.RealTimePerInGameHour * 0.4;
+        var decisionGameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 0.4;
 
         var result = await _handler.Handle(
             new RouteCreatureToDestinationCommand
             {
                 CreatureId = creature.Id,
                 DestinationLocationId = locationX,
-                Playtime = decisionPlaytime,
+                GameTime = decisionGameTime,
                 Purpose = "Returning to the gate.",
             },
             TestContext.Current.CancellationToken
@@ -113,9 +113,9 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
             .RouteSteps.Where(step => step.RouteId == replacement.RouteId)
             .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-        var position = await Resolve(replacement.Id, decisionPlaytime);
+        var position = await Resolve(replacement.Id, decisionGameTime);
 
-        Assert.Equal(traveler.StartedAtPlaytime, replacement.StartedAtPlaytime);
+        Assert.Equal(traveler.StartedAtGameTime, replacement.StartedAtGameTime);
         Assert.Equal(10, replacement.SpeedUnitsPerHour);
         Assert.Equal([outbound.Id, inbound.Id, null], steps.Select(step => step.ConnectorId));
         var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position.Position);
@@ -142,7 +142,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
             {
                 CreatureId = creature.Id,
                 DestinationLocationId = locationZ,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
                 Purpose = "Continuing to the market.",
             },
             TestContext.Current.CancellationToken
@@ -166,7 +166,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         Assert.Equal(CreatureState.Walking, updatedCreature.State);
         Assert.Equal(locationY, firstStep.LocationId);
         Assert.Equal(second.Id, firstStep.ConnectorId);
-        Assert.Equal(GameClock.RealTimePerInGameHour * 2, replacement.StartedAtPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, replacement.StartedAtGameTime);
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
             AddFiniteTraveler(creature, speedUnitsPerHour: 10, [outbound], locationY);
         }
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var decisionPlaytime = GameClock.RealTimePerInGameHour * 0.4;
+        var decisionGameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 0.4;
 
         var results = await _batchHandler.Handle(
             new RouteCreaturesToDestinationsCommand
@@ -196,7 +196,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
                     .Select(creature => new CreatureRouteRequest(
                         creature.Id,
                         locationX,
-                        decisionPlaytime,
+                        decisionGameTime,
                         "Returning to the gate."
                     ))
                     .ToArray(),
@@ -223,7 +223,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
             replacements,
             traveler =>
             {
-                Assert.Equal(TimeSpan.Zero, traveler.StartedAtPlaytime);
+                Assert.Equal(GameClock.Epoch, traveler.StartedAtGameTime);
                 Assert.Equal(10, traveler.SpeedUnitsPerHour);
             }
         );
@@ -266,7 +266,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         {
             WorldId = creature.WorldId,
             RouteId = route.Id,
-            StartedAtPlaytime = TimeSpan.Zero,
+            StartedAtGameTime = GameClock.Epoch,
             SpeedUnitsPerHour = speedUnitsPerHour,
             Purpose = "Original destination.",
         };
@@ -304,14 +304,14 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         return traveler;
     }
 
-    private async Task<ResolvedRouteTravelerPosition> Resolve(Guid travelerId, TimeSpan playtime)
+    private async Task<ResolvedRouteTravelerPosition> Resolve(Guid travelerId, GameInstant gameTime)
     {
         var handler = _services.GetRequiredService<ResolveRouteTravelerPositionsQueryHandler>();
         var positions = await handler.Handle(
             new ResolveRouteTravelerPositionsQuery
             {
                 RouteTravelerIds = [travelerId],
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             TestContext.Current.CancellationToken
         );

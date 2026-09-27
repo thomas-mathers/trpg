@@ -7,7 +7,9 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tools;
 
@@ -25,6 +27,7 @@ internal class StartFightTool(
     ICommandHandler<StartFightCommand> startFight,
     ICommandHandler<RecordAssaultCommand> recordAssault,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<StartFightTool> logger
 ) : IGameTool
 {
@@ -85,6 +88,10 @@ internal class StartFightTool(
         }
 
         var hasSurpriseRound = player.IsSneaking || target.State == CreatureState.Sleeping;
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
 
         var enemyCreatureIds = await getEncounterGroupCreatureIds.Handle(
             new GetEncounterGroupCreatureIdsQuery
@@ -123,6 +130,7 @@ internal class StartFightTool(
                 PlayerId = turnContext.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
                 HasSurpriseRound = hasSurpriseRound,
+                GameTime = gameTime,
             },
             cancellationToken
         );

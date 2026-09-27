@@ -1,3 +1,5 @@
+using TRPG.Domain;
+
 namespace TRPG.Application.Common.Events;
 
 public sealed record PlayerMovedEvent(
@@ -5,5 +7,5 @@ public sealed record PlayerMovedEvent(
     Guid WorldId,
     Guid FromLocationId,
     Guid ToLocationId,
-    TimeSpan Playtime
+    GameInstant GameTime
 ) : DomainEvent;

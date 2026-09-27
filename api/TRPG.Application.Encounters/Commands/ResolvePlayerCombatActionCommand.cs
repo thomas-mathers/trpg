@@ -2,9 +2,9 @@ using TRPG.Application.Combat;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -15,6 +15,7 @@ public class ResolvePlayerCombatActionCommand
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required PlayerCombatAction Action { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 public record PlayerCombatActionResult(
@@ -23,11 +24,6 @@ public record PlayerCombatActionResult(
 );
 
 internal class ResolvePlayerCombatActionCommandHandler(
-    ICommandHandler<
-        ApplyPassiveRegenCommand,
-        IReadOnlyDictionary<Guid, Creature>
-    > applyPassiveRegen,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     ActiveFightCombatantLoader combatantLoader,
     CombatEngine combatEngine,
@@ -40,15 +36,6 @@ internal class ResolvePlayerCombatActionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
-        await applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand { Playtime = playtime, CreatureIds = [command.PlayerId] },
-            cancellationToken
-        );
         var combatants = await combatantLoader.Load(command.PlayerId, cancellationToken);
         if (combatants.Count == 0)
             throw new InvalidOperationException("There's no fight to act in right now.");
@@ -76,6 +63,7 @@ internal class ResolvePlayerCombatActionCommandHandler(
                 LocationId = fight!.LocationId,
                 Combatants = combatants,
                 State = state,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

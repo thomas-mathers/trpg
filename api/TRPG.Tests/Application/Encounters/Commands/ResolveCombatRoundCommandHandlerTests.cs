@@ -6,6 +6,7 @@ using TRPG.Application.Combat.Results;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Events;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -37,7 +38,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ResolveCombatRoundCommandHandler>();
 
-        var session = Builders.MakeGameSession(_worldId, _player.Id, TimeSpan.FromHours(1));
+        var session = Builders.MakeGameSession(_worldId, _player.Id);
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

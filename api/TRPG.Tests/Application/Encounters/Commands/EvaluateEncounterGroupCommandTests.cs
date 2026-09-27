@@ -103,6 +103,50 @@ public sealed class EvaluateEncounterGroupCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_OnlyConsidersTheRequestedGroups_WhenGroupIdsAreProvided()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId, aggression: 100);
+        var ignoredMonster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 1
+        );
+        var requestedMonster = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 1
+        );
+        var ignoredGroup = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        var requestedGroup = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.AddRange(ignoredMonster, requestedMonster);
+        _context.EncounterGroups.AddRange(ignoredGroup, requestedGroup);
+        _context.EncounterGroupMembers.AddRange(
+            Builders.MakeEncounterGroupMember(WorldId, ignoredGroup.Id, ignoredMonster.Id),
+            Builders.MakeEncounterGroupMember(WorldId, requestedGroup.Id, requestedMonster.Id)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateEncounterGroupCommand
+            {
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                GroupIds = [requestedGroup.Id],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var hostileEncounter = Assert.IsType<HostileEncounter>(result);
+        Assert.Equal(requestedMonster.Name, Assert.Single(hostileEncounter.Members).Name);
+    }
+
+    [Fact]
     public async Task Handle_CreatesAndReturnsAShakedownEncounter_WhenFactionApproachIsShakedown()
     {
         // Arrange

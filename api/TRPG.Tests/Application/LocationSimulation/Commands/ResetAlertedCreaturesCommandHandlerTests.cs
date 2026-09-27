@@ -46,9 +46,9 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_EvictsCatchUpCacheAndClearsAlert_ForAlertedCreaturesAtTheLocation()
+    public async Task Handle_ClearsAlert_ForAlertedCreaturesAtTheLocation()
     {
-        // Arrange — the session's fresh Playtime maps to in-game hour 8
+        // Arrange
         var alertedMonster = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
@@ -57,24 +57,13 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         _context.Creatures.Add(alertedMonster);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        var currentDate = GameClock.GetCurrentInGameDate(_session.Playtime);
-        catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
-
         // Act
         await _handler.Handle(
-            new ResetAlertedCreaturesCommand
-            {
-                WorldId = WorldId,
-                LocationId = _location.Id,
-                Playtime = _session.Playtime,
-            },
+            new ResetAlertedCreaturesCommand { WorldId = WorldId, LocationId = _location.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.True(catchUpCache.TryClaim(WorldId, _location.Id, currentDate));
-
         await using var verifyContext = db.CreateContext();
         var updatedMonster = await verifyContext.Creatures.FindAsync(
             [alertedMonster.Id],
@@ -84,7 +73,7 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_DoesNothing_WhenNoCreaturesAreAlerted()
+    public async Task Handle_LeavesCreaturesIdle_WhenNoCreaturesAreAlerted()
     {
         // Arrange
         var idleMonster = Builders.MakeCreature(
@@ -95,22 +84,18 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
         _context.Creatures.Add(idleMonster);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var catchUpCache = _serviceProvider.GetRequiredService<LocationCatchUpCache>();
-        var currentDate = GameClock.GetCurrentInGameDate(_session.Playtime);
-        catchUpCache.TryClaim(WorldId, _location.Id, currentDate);
-
         // Act
         await _handler.Handle(
-            new ResetAlertedCreaturesCommand
-            {
-                WorldId = WorldId,
-                LocationId = _location.Id,
-                Playtime = _session.Playtime,
-            },
+            new ResetAlertedCreaturesCommand { WorldId = WorldId, LocationId = _location.Id },
             TestContext.Current.CancellationToken
         );
 
-        // Assert - nothing to reset, so the cache entry is left untouched
-        Assert.False(catchUpCache.TryClaim(WorldId, _location.Id, currentDate));
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var unchangedMonster = await verifyContext.Creatures.FindAsync(
+            [idleMonster.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureState.Idle, unchangedMonster!.State);
     }
 }

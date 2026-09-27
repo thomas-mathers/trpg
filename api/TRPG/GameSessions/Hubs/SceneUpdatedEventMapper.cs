@@ -8,7 +8,7 @@ internal sealed class SceneUpdatedEventMapper : GameClientEventMapper<SceneUpdat
 {
     protected override IGameClientCall Map(SceneUpdatedEvent gameEvent) =>
         new GameClientCall<SceneSnapshot>(
-            gameEvent.Scene.ToSnapshot(),
+            gameEvent.Scene.ToSnapshot(gameEvent.Stamp),
             static (client, arguments) => client.SceneSnapshot(arguments)
         );
 }

@@ -43,6 +43,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
             PlayerId = _player.Id,
             WorldId = WorldId,
             LocationId = _player.LocationId,
+            GameTime = GameClock.Epoch,
         };
 
     [Fact]
@@ -690,7 +691,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
                 guestRoom.Id,
                 Guid.NewGuid(),
                 _player.Id,
-                dueAtPlaytime: TimeSpan.FromHours(24)
+                dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(24)
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -716,7 +717,7 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
                 guestRoom.Id,
                 Guid.NewGuid(),
                 _player.Id,
-                dueAtPlaytime: TimeSpan.FromHours(24)
+                dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(24)
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

@@ -4,6 +4,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Quests.EventHandlers;
 using TRPG.Application.Quests.Events;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -362,7 +363,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
                             WorldId,
                             Guid.NewGuid(),
                             locationId,
-                            TimeSpan.Zero
+                            GameClock.Epoch
                         ),
                         cancellationToken
                     ),

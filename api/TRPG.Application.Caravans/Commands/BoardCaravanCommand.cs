@@ -14,7 +14,7 @@ public class BoardCaravanCommand
     public required Guid PlayerId { get; init; }
     public required Guid CaravanId { get; init; }
     public required Guid PlayerLocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 public enum BoardCaravanOutcome
@@ -57,7 +57,7 @@ internal class BoardCaravanCommandHandler(
 
         // Once ticketed, the caravan holds for the player as long as they haven't left the stop —
         // re-deriving live position here would let ordinary narration-time overhead (every
-        // narrated turn, including the purchase itself, advances playtime a little) make an
+        // narrated turn, including the purchase itself, advances gameTime a little) make an
         // already-valid ticket look like the caravan already departed.
         if (ticket.OriginStopLocationId != command.PlayerLocationId)
         {
@@ -68,7 +68,7 @@ internal class BoardCaravanCommandHandler(
             new ResolveRouteTravelerPositionQuery
             {
                 RouteTravelerId = command.CaravanId,
-                Playtime = ticket.PurchasedAtPlaytime,
+                GameTime = ticket.PurchasedAtGameTime,
             },
             cancellationToken
         );
@@ -135,7 +135,7 @@ internal class BoardCaravanCommandHandler(
             lingeringAtPurchase.HoursUntilDeparture
             + RouteTimeline.HoursBetween(steps, traveler.SpeedUnitsPerHour, fromIndex, toIndex);
         var elapsedHoursSincePurchase =
-            (command.Playtime - ticket.PurchasedAtPlaytime) / GameClock.RealTimePerInGameHour;
+            (command.GameTime - ticket.PurchasedAtGameTime) / TimeSpan.FromHours(1);
         var travelTimeHours = Math.Max(0, idealTripHours - elapsedHoursSincePurchase);
 
         var destinationLocationId = ticket.DestinationLocationId;

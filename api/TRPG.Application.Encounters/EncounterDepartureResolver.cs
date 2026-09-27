@@ -6,6 +6,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters;
@@ -27,7 +28,7 @@ internal class EncounterDepartureResolver(
     public async Task<bool> TryResume(
         Encounter encounter,
         Creature player,
-        TimeSpan playtime,
+        GameInstant gameTime,
         CancellationToken cancellationToken = default
     )
     {
@@ -70,7 +71,7 @@ internal class EncounterDepartureResolver(
                 ConnectorIds = connectorIds,
                 PlayerKeyItemIds = keys,
                 ActivatedTriggerIds = activatedTriggerIds,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -84,7 +85,7 @@ internal class EncounterDepartureResolver(
             {
                 PlayerId = player.Id,
                 DestinationLocationId = destinationLocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

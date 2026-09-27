@@ -21,7 +21,7 @@ public class PurchaseCaravanTicketCommand
     public required Guid CaravanId { get; init; }
     public required Guid DestinationLocationId { get; init; }
     public required Guid PlayerLocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 public enum PurchaseCaravanTicketOutcome
@@ -84,7 +84,7 @@ internal class PurchaseCaravanTicketCommandHandler(
             new ResolveRouteTravelerPositionQuery
             {
                 RouteTravelerId = command.CaravanId,
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -153,7 +153,7 @@ internal class PurchaseCaravanTicketCommandHandler(
                 CreatureId = command.PlayerId,
                 OriginStopLocationId = command.PlayerLocationId,
                 DestinationLocationId = command.DestinationLocationId,
-                PurchasedAtPlaytime = command.Playtime,
+                PurchasedAtGameTime = command.GameTime,
             }
         );
         await caravansContext.SaveChangesAsync(cancellationToken);

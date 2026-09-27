@@ -14,6 +14,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -23,12 +24,12 @@ internal class EndFightCommand
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required CombatState State { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class EndFightCommandHandler(
     IEncountersDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
@@ -47,6 +48,7 @@ internal class EndFightCommandHandler(
     ICommandHandler<CreateGuardEncounterCommand, GuardEncounter> createGuardEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IGameClientEventSink gameEvents,
+    EncounterEngagementManager engagementManager,
     LocationCityResolver locationCity
 ) : ICommandHandler<EndFightCommand>
 {
@@ -59,11 +61,6 @@ internal class EndFightCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var survivingCreatureIds = state
             .Combatants.Where(c => c.IsAlive)
             .Select(c => c.Id)
@@ -73,7 +70,7 @@ internal class EndFightCommandHandler(
             new UpdateCreaturesCommand
             {
                 CreatureIds = survivingCreatureIds,
-                LastRegenPlaytime = playtime,
+                LastRegenGameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -110,7 +107,14 @@ internal class EndFightCommandHandler(
             fight.Outcome = state.Outcome;
             await context.SaveChangesAsync(cancellationToken);
 
-            await ConfrontViolentCrime(fight, command.WorldId, state, cancellationToken);
+            await ConfrontViolentCrime(
+                fight,
+                command.WorldId,
+                state,
+                command.GameTime,
+                cancellationToken
+            );
+            await engagementManager.ReconcileResolved(fight, command.GameTime, cancellationToken);
         }
 
         transaction.Complete();
@@ -206,6 +210,7 @@ internal class EndFightCommandHandler(
         FightEncounter fight,
         Guid worldId,
         CombatState state,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
@@ -278,7 +283,12 @@ internal class EndFightCommandHandler(
         );
 
         await publishEncounterStarted.Handle(
-            new PublishEncounterStartedCommand { PlayerId = player.Id, Encounter = encounter },
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = player.Id,
+                Encounter = encounter,
+                GameTime = gameTime,
+            },
             cancellationToken
         );
     }

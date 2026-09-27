@@ -2,7 +2,8 @@ namespace TRPG.Application.Configuration;
 
 public class CreatureRegenOptions
 {
-    public float HpRegenPercentPerHour { get; init; } = 0.05f;
-    public float ApRegenPercentPerHour { get; init; } = 0.10f;
-    public float MpRegenPercentPerHour { get; init; } = 0.05f;
+    public TimeSpan TickInterval { get; init; } = TimeSpan.FromSeconds(5);
+    public float HpRegenPercentPerTick { get; init; } = 0.05f;
+    public float ApRegenPercentPerTick { get; init; } = 0.10f;
+    public float MpRegenPercentPerTick { get; init; } = 0.05f;
 }

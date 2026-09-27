@@ -2,6 +2,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters;
@@ -15,7 +16,7 @@ internal class EncounterFleeResolver(
     public async Task<bool> Resolve(
         Encounter encounter,
         Creature player,
-        TimeSpan playtime,
+        GameInstant gameTime,
         CancellationToken cancellationToken = default
     )
     {
@@ -30,7 +31,7 @@ internal class EncounterFleeResolver(
             await encounterDepartureResolver.TryResume(
                 encounter,
                 player,
-                playtime,
+                gameTime,
                 cancellationToken
             )
         )
@@ -43,19 +44,19 @@ internal class EncounterFleeResolver(
             {
                 WorldId = encounter.WorldId,
                 PlayerId = player.Id,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
         if (exitLocationId != null)
         {
-            await MoveTo(player.Id, exitLocationId.Value, playtime, cancellationToken);
+            await MoveTo(player.Id, exitLocationId.Value, gameTime, cancellationToken);
             return true;
         }
 
         if (player.PreviousLocationId is { } originLocationId)
         {
-            await MoveTo(player.Id, originLocationId, playtime, cancellationToken);
+            await MoveTo(player.Id, originLocationId, gameTime, cancellationToken);
             return true;
         }
 
@@ -65,7 +66,7 @@ internal class EncounterFleeResolver(
     private Task MoveTo(
         Guid playerId,
         Guid destinationLocationId,
-        TimeSpan playtime,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     ) =>
         movePlayer.Handle(
@@ -73,7 +74,7 @@ internal class EncounterFleeResolver(
             {
                 PlayerId = playerId,
                 DestinationLocationId = destinationLocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );

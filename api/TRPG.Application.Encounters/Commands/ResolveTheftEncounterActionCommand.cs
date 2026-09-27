@@ -8,6 +8,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -19,24 +20,25 @@ public class ResolveTheftEncounterActionCommand : IEncounterResolutionCommand
     public required Guid PlayerId { get; init; }
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveTheftEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     ICommandHandler<
         TransferInventoryItemsCommand,
         IReadOnlyCollection<InventoryItemTransferResult>
     > transferInventoryItems,
     ICommandHandler<SetTheftCrimeOutcomeCommand> setTheftCrimeOutcome,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     EncounterFleeResolver encounterFleeResolver
 )
     : EncounterResolutionCommandHandlerBase<
         TheftEncounter,
         ResolveTheftEncounterActionCommand,
         TheftEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<TheftEncounterResolutionFact> Resolve(
         ResolveTheftEncounterActionCommand command,
@@ -126,14 +128,10 @@ internal class ResolveTheftEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
         var leftTheScene = await encounterFleeResolver.Resolve(
             encounter,
             player,
-            playtime,
+            command.GameTime,
             cancellationToken
         );
 

@@ -43,7 +43,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
     [Fact]
     public async Task Handle_UpdatesCreatureState_ForWorkJob()
     {
-        await AssertStateUpdated(CreatureJobAction.Work, CreatureState.Busy);
+        await AssertStateUpdated(CreatureJobAction.Work, CreatureState.Working);
     }
 
     [Fact]

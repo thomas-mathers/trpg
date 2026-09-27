@@ -79,7 +79,7 @@ internal class GetRouteTravelDurationsQueryHandler(IRoutingDbContext context)
 
         var hours =
             path.Sum(leg => distanceByConnectorId[leg.ConnectorId]) / request.SpeedUnitsPerHour;
-        return GameClock.RealTimePerInGameHour * hours;
+        return TimeSpan.FromHours(1) * hours;
     }
 
     private static void Validate(IReadOnlyCollection<RouteTravelDurationRequest> requests)

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { prefetchDungeonPremises, type BuildingType } from '@/api/client';
+import type { PlayerVitalsUpdated } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import {
   PlayerIdContext,
@@ -24,12 +25,52 @@ interface SceneProviderProps {
   children: ReactNode;
 }
 
+function withVitals(scene: SceneSnapshot, vitals: PlayerVitalsUpdated): SceneSnapshot {
+  return {
+    ...scene,
+    playerStatus: {
+      ...scene.playerStatus,
+      currentHp: vitals.currentHp,
+      maximumHp: vitals.maximumHp,
+      currentAp: vitals.currentAp,
+      maximumAp: vitals.maximumAp,
+      currentMp: vitals.currentMp,
+      maximumMp: vitals.maximumMp,
+    },
+  };
+}
+
 export function SceneProvider({ sessionId, children }: SceneProviderProps) {
   const [scene, setScene] = useState<SceneSnapshot>();
   const playerId = scene?.playerStatus.id;
   const prefetchedBuildingIds = useRef(new Set<string>());
+  const latestSnapshotVersion = useRef(-Infinity);
+  const latestVitals = useRef<PlayerVitalsUpdated | undefined>(undefined);
 
-  useEffect(() => gameEventBus.on('SceneSnapshot', setScene), []);
+  useEffect(() => {
+    latestSnapshotVersion.current = -Infinity;
+    latestVitals.current = undefined;
+  }, [sessionId]);
+
+  // A snapshot is only rolled back by a newer snapshot, but vitals stamped after it may reach the
+  // client first, so a snapshot that arrives late keeps the newer vitals instead of being dropped.
+  useEffect(
+    () =>
+      gameEventBus.on('SceneSnapshot', (snapshot) => {
+        if (snapshot.version <= latestSnapshotVersion.current) return;
+        latestSnapshotVersion.current = snapshot.version;
+
+        const newerVitals = latestVitals.current;
+        const keepsVitals =
+          newerVitals !== undefined &&
+          newerVitals.version > snapshot.version &&
+          newerVitals.playerId === snapshot.playerStatus.id;
+        if (!keepsVitals) latestVitals.current = undefined;
+
+        setScene(keepsVitals ? withVitals(snapshot, newerVitals) : snapshot);
+      }),
+    [],
+  );
 
   useEffect(() => {
     const buildingIds = (scene?.nearbyBuildings ?? [])
@@ -45,6 +86,20 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
     // same way if it is still missing.
     void prefetchDungeonPremises({ body: { buildingIds } }).catch(() => {});
   }, [scene?.nearbyBuildings]);
+
+  useEffect(
+    () =>
+      gameEventBus.on('PlayerVitalsUpdated', (vitals) => {
+        const staleAgainstVitals = vitals.version <= (latestVitals.current?.version ?? -Infinity);
+        if (staleAgainstVitals || vitals.version <= latestSnapshotVersion.current) return;
+        latestVitals.current = vitals;
+
+        setScene((current) =>
+          current?.playerStatus.id === vitals.playerId ? withVitals(current, vitals) : current,
+        );
+      }),
+    [],
+  );
 
   useEffect(
     () =>

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -35,17 +36,17 @@ public sealed class SetCreatureRestedUntilCommandHandlerTests(DatabaseFixture db
     }
 
     [Fact]
-    public async Task Handle_SetsTheRestedUntilPlaytime()
+    public async Task Handle_SetsTheRestedUntilGameTime()
     {
         // Arrange
-        var restedUntil = TimeSpan.FromHours(24);
+        var restedUntil = GameClock.Epoch + TimeSpan.FromHours(24);
 
         // Act
         await _handler.Handle(
             new SetCreatureRestedUntilCommand
             {
                 CreatureId = _creature.Id,
-                RestedUntilPlaytime = restedUntil,
+                RestedUntilGameTime = restedUntil,
             },
             TestContext.Current.CancellationToken
         );
@@ -56,6 +57,6 @@ public sealed class SetCreatureRestedUntilCommandHandlerTests(DatabaseFixture db
             c => c.Id == _creature.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(restedUntil, updatedCreature.RestedUntilPlaytime);
+        Assert.Equal(restedUntil, updatedCreature.RestedUntilGameTime);
     }
 }

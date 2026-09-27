@@ -64,10 +64,11 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_MarksActiveFightFled_WhenOneExistsForTheSessionsPlayer()
+    public async Task Handle_PreservesActiveFightAndItsEngagement_WhenSessionEnds()
     {
         // Arrange
         var fight = Builders.MakeFight(_world.Id, _player.Id, [_player.Id]);
+        _player.IsEngaged = true;
         _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -82,7 +83,12 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db)
         var updatedFight = await verifyContext
             .Encounters.OfType<FightEncounter>()
             .SingleAsync(f => f.Id == fight.Id, TestContext.Current.CancellationToken);
-        Assert.NotNull(updatedFight.CompletedAt);
-        Assert.Equal(CombatOutcome.Fled, updatedFight.Outcome);
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Null(updatedFight.CompletedAt);
+        Assert.Equal(CombatOutcome.Ongoing, updatedFight.Outcome);
+        Assert.True(player.IsEngaged);
     }
 }

@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Events;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -19,6 +20,7 @@ public class StartFightCommand
     public required Guid PlayerId { get; init; }
     public required IReadOnlyCollection<Guid> EnemyCreatureIds { get; init; }
     public required bool HasSurpriseRound { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class StartFightCommandHandler(
@@ -29,7 +31,7 @@ internal class StartFightCommandHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    EncounterEngagementManager engagementManager,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<StartFightCommand>
 {
@@ -43,15 +45,10 @@ internal class StartFightCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var regeneratedCreatures = await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
             {
-                Playtime = playtime,
+                GameTime = command.GameTime,
                 CreatureIds = [command.PlayerId, .. command.EnemyCreatureIds],
             },
             cancellationToken
@@ -76,6 +73,7 @@ internal class StartFightCommandHandler(
         context.Encounters.Add(fight);
 
         await context.SaveChangesAsync(cancellationToken);
+        await engagementManager.Engage(fight, command.GameTime, cancellationToken);
 
         gameEvents.Enqueue(
             new CombatStartedEvent(

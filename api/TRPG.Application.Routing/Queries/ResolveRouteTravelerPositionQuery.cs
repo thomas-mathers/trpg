@@ -6,7 +6,7 @@ namespace TRPG.Application.Routing.Queries;
 public class ResolveRouteTravelerPositionQuery
 {
     public required Guid RouteTravelerId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class ResolveRouteTravelerPositionQueryHandler(
@@ -25,7 +25,7 @@ internal class ResolveRouteTravelerPositionQueryHandler(
             new ResolveRouteTravelerPositionsQuery
             {
                 RouteTravelerIds = [query.RouteTravelerId],
-                Playtime = query.Playtime,
+                GameTime = query.GameTime,
             },
             cancellationToken
         );

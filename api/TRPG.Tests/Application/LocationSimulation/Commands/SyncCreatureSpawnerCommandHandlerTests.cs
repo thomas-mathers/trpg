@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -45,7 +46,7 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _location.Id,
                 PlayerLevel = 1,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
             },
             TestContext.Current.CancellationToken
         );
@@ -73,7 +74,7 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _location.Id,
                 PlayerLevel = 1,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
             },
             TestContext.Current.CancellationToken
         );
@@ -98,7 +99,7 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _location.Id,
                 PlayerLevel = 1,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
             },
             TestContext.Current.CancellationToken
         );
@@ -116,13 +117,13 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_AdvancesLastSyncPlaytime_AfterSpawning()
+    public async Task Handle_AdvancesLastSyncGameTime_AfterSpawning()
     {
         // Arrange
         var spawner = Builders.MakeCreatureSpawner(_worldId, _location.Id, maxPopulation: 1);
         _context.CreatureSpawners.Add(spawner);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var currentPlaytime = TimeSpan.FromHours(2);
+        var currentGameTime = GameClock.Epoch + TimeSpan.FromHours(24);
 
         // Act
         await _handler.Handle(
@@ -130,7 +131,7 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _location.Id,
                 PlayerLevel = 1,
-                CurrentPlaytime = currentPlaytime,
+                CurrentGameTime = currentGameTime,
             },
             TestContext.Current.CancellationToken
         );
@@ -141,7 +142,58 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
             s => s.Id == spawner.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(currentPlaytime, updatedSpawner.LastSyncPlaytime);
+        Assert.Equal(currentGameTime, updatedSpawner.LastSyncGameTime);
+    }
+
+    [Fact]
+    public async Task Handle_ReportsTheSpawnedEncounterGroup_WhenCreaturesSpawn()
+    {
+        // Arrange
+        var spawner = Builders.MakeCreatureSpawner(_worldId, _location.Id, maxPopulation: 2);
+        _context.CreatureSpawners.Add(spawner);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new SyncCreatureSpawnerCommand
+            {
+                LocationId = _location.Id,
+                PlayerLevel = 1,
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var persistedGroupId = await verifyContext
+            .EncounterGroups.Where(group => group.LocationId == _location.Id)
+            .Select(group => group.Id)
+            .SingleAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(persistedGroupId, Assert.Single(result.SpawnedEncounterGroupIds));
+    }
+
+    [Fact]
+    public async Task Handle_ReportsNoGroups_WhenScheduleHasNotYetTriggered()
+    {
+        // Arrange
+        var spawner = Builders.MakeCreatureSpawner(_worldId, _location.Id, maxPopulation: 2);
+        _context.CreatureSpawners.Add(spawner);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new SyncCreatureSpawnerCommand
+            {
+                LocationId = _location.Id,
+                PlayerLevel = 1,
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(12),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(result.SpawnedEncounterGroupIds);
     }
 
     [Fact]
@@ -158,7 +210,7 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _location.Id,
                 PlayerLevel = 1,
-                CurrentPlaytime = TimeSpan.FromHours(1),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(12),
             },
             TestContext.Current.CancellationToken
         );
@@ -189,7 +241,7 @@ public sealed class SyncCreatureSpawnerCommandHandlerTests(DatabaseFixture db)
             {
                 LocationId = _location.Id,
                 PlayerLevel = 1,
-                CurrentPlaytime = TimeSpan.FromHours(2),
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
             },
             TestContext.Current.CancellationToken
         );

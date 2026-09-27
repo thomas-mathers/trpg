@@ -14,9 +14,10 @@ import {
 import { NarrationText } from '@/features/game/components/narration-text';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useCreatureInteraction } from '@/features/game/hooks/use-interaction-lifecycle';
 import { parseNarrationMarkup } from '@/features/game/narration-markup';
 
-export type QuestDialogState = QuestDialogResponse & { worldId: string };
+export type QuestDialogState = QuestDialogResponse & { giverId: string; worldId: string };
 
 interface QuestDialogProps {
   playerId: string;
@@ -28,6 +29,11 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
   const queryClient = useQueryClient();
   const chatHub = useChatHub();
   const { submitNarratedTurn, isStreaming } = useGameChat();
+  const { release } = useCreatureInteraction({
+    playerId,
+    worldId: quest?.worldId ?? '',
+    creatureId: quest?.giverId,
+  });
 
   if (!quest) {
     return null;
@@ -43,7 +49,8 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
       }),
     });
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
+    await release();
     submitNarratedTurn(
       `Accept “${quest.name}”`,
       chatHub.sendAcceptQuest(quest.questId),
@@ -53,12 +60,14 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
     onClose();
   };
 
-  const handleDecline = () => {
+  const handleDecline = async () => {
+    await release();
     submitNarratedTurn(`Decline “${quest.name}”`, chatHub.sendDeclineQuest(quest.questId));
     onClose();
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
+    await release();
     submitNarratedTurn(
       `Complete “${quest.name}”`,
       chatHub.sendCompleteQuest(quest.questId),
@@ -111,10 +120,17 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={isOffer ? handleDecline : onClose} disabled={isBusy}>
+          <Button
+            variant="outline"
+            onClick={isOffer ? () => void handleDecline() : onClose}
+            disabled={isBusy}
+          >
             Not now
           </Button>
-          <Button onClick={isOffer ? handleAccept : handleComplete} disabled={isBusy}>
+          <Button
+            onClick={() => void (isOffer ? handleAccept() : handleComplete())}
+            disabled={isBusy}
+          >
             {isOffer ? 'Accept quest' : 'Complete quest'}
           </Button>
         </DialogFooter>

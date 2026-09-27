@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -74,6 +76,93 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_KeepsThePreviousLocation_WhenTheLocationIsAlreadyTheRequestedOne()
+    {
+        // Arrange
+        var previousLocationId = Guid.NewGuid();
+        await _context
+            .Creatures.Where(creature => creature.Id == _creature.Id)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(c => c.PreviousLocationId, previousLocationId),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                LocationId = _creature.LocationId,
+                State = CreatureState.Working,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [_creature.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(previousLocationId, updated!.PreviousLocationId);
+        Assert.Equal(CreatureState.Working, updated.State);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotWriteTheRow_WhenItAlreadyHoldsTheRequestedValues()
+    {
+        // Arrange
+        var command = new UpdateCreaturesCommand
+        {
+            CreatureIds = [_creature.Id],
+            LocationId = _creature.LocationId,
+            State = CreatureState.Working,
+        };
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+        var versionBefore = await ReadRowVersion();
+
+        // Act
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(versionBefore, await ReadRowVersion());
+    }
+
+    [Fact]
+    public async Task Handle_WritesTheRow_WhenAnyRequestedValueDiffers()
+    {
+        // Arrange
+        await _handler.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                State = CreatureState.Working,
+            },
+            TestContext.Current.CancellationToken
+        );
+        var versionBefore = await ReadRowVersion();
+
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Idle },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.NotEqual(versionBefore, await ReadRowVersion());
+    }
+
+    private async Task<long> ReadRowVersion()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext
+            .Database.SqlQuery<long>(
+                $"SELECT xmin::text::bigint AS \"Value\" FROM creatures WHERE id = {_creature.Id}"
+            )
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
     public async Task Handle_UpdatesState_WhenSet()
     {
         // Act
@@ -100,7 +189,11 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     {
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                State = CreatureState.Working,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -114,14 +207,14 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_UpdatesLastRegenPlaytime_WhenSet()
+    public async Task Handle_UpdatesLastRegenGameTime_WhenSet()
     {
         // Act
         await _handler.Handle(
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                LastRegenPlaytime = TimeSpan.FromHours(3),
+                LastRegenGameTime = GameClock.Epoch + TimeSpan.FromHours(3),
             },
             TestContext.Current.CancellationToken
         );
@@ -132,18 +225,22 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(TimeSpan.FromHours(3), updated!.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), updated!.LastRegenGameTime);
     }
 
     [Fact]
-    public async Task Handle_LeavesLastRegenPlaytimeUnchanged_WhenNotSet()
+    public async Task Handle_LeavesLastRegenGameTimeUnchanged_WhenNotSet()
     {
         // Arrange
-        var originalLastRegenPlaytime = _creature.LastRegenPlaytime;
+        var originalLastRegenGameTime = _creature.LastRegenGameTime;
 
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                State = CreatureState.Working,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -153,7 +250,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(originalLastRegenPlaytime, updated!.LastRegenPlaytime);
+        Assert.Equal(originalLastRegenGameTime, updated!.LastRegenGameTime);
     }
 
     [Fact]
@@ -198,7 +295,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         );
         Assert.Equal(_creature.LocationId, updated!.LocationId);
         Assert.Equal(_creature.State, updated.State);
-        Assert.Equal(_creature.LastRegenPlaytime, updated.LastRegenPlaytime);
+        Assert.Equal(_creature.LastRegenGameTime, updated.LastRegenGameTime);
         Assert.Equal(_creature.Name, updated.Name);
     }
 
@@ -225,7 +322,11 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     {
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Busy },
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [_creature.Id],
+                State = CreatureState.Working,
+            },
             TestContext.Current.CancellationToken
         );
 

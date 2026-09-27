@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using static TRPG.Application.WorldGeneration.Generators.ItemModifierHelpers;
 
@@ -1196,7 +1197,7 @@ public class CreatureGenerator(
                 generatorInput.MaxBirthYear ?? 975
             ),
             BaseAttributes = attributes,
-            LastRegenPlaytime = TimeSpan.Zero,
+            LastRegenGameTime = GameClock.Epoch,
             Level = level,
             State = CreatureState.Idle,
             NaturalWeaponMinDamage = Roll(

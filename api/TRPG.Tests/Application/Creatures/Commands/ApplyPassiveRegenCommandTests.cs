@@ -17,14 +17,14 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
 {
     private static readonly CreatureRegenOptions RegenOptions = new()
     {
-        HpRegenPercentPerHour = 0.2f,
-        ApRegenPercentPerHour = 0.25f,
-        MpRegenPercentPerHour = 0.25f,
+        HpRegenPercentPerTick = 0.2f,
+        ApRegenPercentPerTick = 0.25f,
+        MpRegenPercentPerTick = 0.25f,
     };
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private TimeSpan _playtime;
+    private GameInstant _gameTime;
     private ApplyPassiveRegenCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature(
         currentHp: 0,
@@ -54,17 +54,17 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
-    private void SetPlaytime(TimeSpan playtime) => _playtime = playtime;
+    private void SetGameTime(GameInstant gameTime) => _gameTime = gameTime;
 
     [Fact]
     public async Task Handle_ReturnsDetachedCreatures_ReflectingRegeneratedValues()
     {
         // Arrange
-        SetPlaytime(GameClock.RealTimePerInGameHour);
+        SetGameTime(GameClock.Epoch + TimeSpan.FromSeconds(5));
 
         // Act
         var result = await _handler.Handle(
-            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { GameTime = _gameTime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 
@@ -108,9 +108,9 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
                 TestContext.Current.CancellationToken
             );
 
-        SetPlaytime(GameClock.RealTimePerInGameHour);
+        SetGameTime(GameClock.Epoch + TimeSpan.FromHours(1));
 
-        var fullHpRegenOptions = new CreatureRegenOptions { HpRegenPercentPerHour = 1.0f };
+        var fullHpRegenOptions = new CreatureRegenOptions { HpRegenPercentPerTick = 1.0f };
         await using var fullRegenServiceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptionsSnapshot<CreatureRegenOptions>>(
@@ -122,7 +122,7 @@ public sealed class ApplyPassiveRegenCommandTests(DatabaseFixture db)
 
         // Act
         await handler.Handle(
-            new ApplyPassiveRegenCommand { Playtime = _playtime, CreatureIds = [_creature.Id] },
+            new ApplyPassiveRegenCommand { GameTime = _gameTime, CreatureIds = [_creature.Id] },
             TestContext.Current.CancellationToken
         );
 

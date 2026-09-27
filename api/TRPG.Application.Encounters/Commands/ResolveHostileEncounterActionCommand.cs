@@ -8,6 +8,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -19,14 +20,15 @@ public class ResolveHostileEncounterActionCommand : IEncounterResolutionCommand
     public required Guid PlayerId { get; init; }
     public required HostileEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveHostileEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<StartFightCommand> startFight,
     EncounterFleeResolver encounterFleeResolver,
     IOptionsSnapshot<FleeOptions> fleeOptions
@@ -35,7 +37,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
         HostileEncounter,
         ResolveHostileEncounterActionCommand,
         HostileEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<HostileEncounterResolutionFact> Resolve(
         ResolveHostileEncounterActionCommand command,
@@ -89,11 +91,12 @@ internal class ResolveHostileEncounterActionCommandHandler(
     {
         if (outcome == HostileEncounterResolutionOutcome.Fled)
         {
-            var playtime = await getPlaytime.Handle(
-                new GetPlaytimeQuery { SessionId = command.SessionId },
+            await encounterFleeResolver.Resolve(
+                encounter,
+                player,
+                command.GameTime,
                 cancellationToken
             );
-            await encounterFleeResolver.Resolve(encounter, player, playtime, cancellationToken);
             return;
         }
 
@@ -127,6 +130,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
                 HasSurpriseRound = false,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

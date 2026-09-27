@@ -8,6 +8,8 @@ public static class GameTurnsServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection
+            .AddSingleton<PublishedSceneRegistry>()
+            .AddTransient<ScenePublisher>()
             .AddTransient<LlmConversationClient>()
             .AddTransient<GameTurnStreamer>()
             .AddTransient<StreamOpeningTurnHandler>()

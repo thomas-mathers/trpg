@@ -1,5 +1,6 @@
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -37,7 +38,7 @@ public sealed class SetDoorTimedLockCommandTests(DatabaseFixture db)
             new SetDoorTimedLockCommand
             {
                 DoorConnectorIds = [door.Id],
-                UnlocksAtPlaytime = TimeSpan.FromHours(10),
+                UnlocksAtGameTime = GameClock.Epoch + TimeSpan.FromHours(10),
             },
             TestContext.Current.CancellationToken
         );
@@ -49,7 +50,7 @@ public sealed class SetDoorTimedLockCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.True(updated!.IsLocked);
-        Assert.Equal(TimeSpan.FromHours(10), updated.UnlocksAtPlaytime);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(10), updated.UnlocksAtGameTime);
     }
 
     [Fact]
@@ -59,14 +60,14 @@ public sealed class SetDoorTimedLockCommandTests(DatabaseFixture db)
         var door = Builders.MakeDoorConnector(
             Guid.NewGuid(),
             isLocked: true,
-            unlocksAtPlaytime: TimeSpan.FromHours(10)
+            unlocksAtGameTime: GameClock.Epoch + TimeSpan.FromHours(10)
         );
         _context.DoorConnectors.Add(door);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         await _handler.Handle(
-            new SetDoorTimedLockCommand { DoorConnectorIds = [door.Id], UnlocksAtPlaytime = null },
+            new SetDoorTimedLockCommand { DoorConnectorIds = [door.Id], UnlocksAtGameTime = null },
             TestContext.Current.CancellationToken
         );
 
@@ -77,6 +78,6 @@ public sealed class SetDoorTimedLockCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.False(updated!.IsLocked);
-        Assert.Null(updated.UnlocksAtPlaytime);
+        Assert.Null(updated.UnlocksAtGameTime);
     }
 }

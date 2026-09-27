@@ -15,9 +15,13 @@ internal class StreamBoardCaravanTurnHandler(
     GameTurnStreamer streamer,
     GameTurnContext turnContext,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<BoardCaravanCommand, BoardCaravanResult> boardCaravan,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
     ICommandHandler<MovePlayerCommand> movePlayer
 )
 {
@@ -38,8 +42,8 @@ internal class StreamBoardCaravanTurnHandler(
                 new GetCreatureByIdQuery { Id = session.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), session.PlayerId);
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = session.SessionId },
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
         );
 
@@ -49,7 +53,7 @@ internal class StreamBoardCaravanTurnHandler(
                 PlayerId = session.PlayerId,
                 CaravanId = caravanId,
                 PlayerLocationId = player.LocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -69,11 +73,20 @@ internal class StreamBoardCaravanTurnHandler(
             );
         }
 
-        var arrivalPlaytime = await advanceTime.Handle(
+        var arrivalGameTime = await advanceTime.Handle(
             new AdvanceTimeCommand
             {
-                SessionId = session.SessionId,
-                Delta = GameClock.RealTimePerInGameHour * result.TravelTimeHours!.Value,
+                WorldId = session.WorldId,
+                Delta = TimeSpan.FromHours(1) * result.TravelTimeHours!.Value,
+            },
+            cancellationToken
+        );
+
+        await applyPassiveRegen.Handle(
+            new ApplyPassiveRegenCommand
+            {
+                GameTime = arrivalGameTime,
+                CreatureIds = [session.PlayerId],
             },
             cancellationToken
         );
@@ -83,7 +96,7 @@ internal class StreamBoardCaravanTurnHandler(
             {
                 PlayerId = session.PlayerId,
                 DestinationLocationId = result.DestinationLocationId!.Value,
-                Playtime = arrivalPlaytime,
+                GameTime = arrivalGameTime,
             },
             cancellationToken
         );

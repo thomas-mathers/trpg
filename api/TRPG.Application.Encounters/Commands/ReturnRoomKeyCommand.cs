@@ -7,6 +7,7 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.RoomBookings.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -14,7 +15,7 @@ namespace TRPG.Application.Encounters.Commands;
 public class ReturnRoomKeyCommand
 {
     public required Guid WorldId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
 }
@@ -68,7 +69,7 @@ internal class ReturnRoomKeyCommandHandler(
             new ConfrontOverdueRoomKeyCommand
             {
                 WorldId = command.WorldId,
-                Playtime = command.Playtime,
+                GameTime = command.GameTime,
                 PlayerId = command.PlayerId,
                 LocationId = command.LocationId,
                 BuildingId = building.Id,

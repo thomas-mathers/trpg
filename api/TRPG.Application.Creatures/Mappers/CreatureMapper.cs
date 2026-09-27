@@ -5,6 +5,17 @@ namespace TRPG.Application.Creatures.Mappers;
 
 internal static class CreatureMapper
 {
+    public static CreatureVitals ToVitals(this Creature creature) =>
+        new(
+            creature.Id,
+            creature.CurrentHp,
+            creature.MaximumHp,
+            creature.CurrentAp,
+            creature.MaximumAp,
+            creature.CurrentMp,
+            creature.MaximumMp
+        );
+
     public static CreatureResult ToResult(
         this Creature creature,
         int gold,

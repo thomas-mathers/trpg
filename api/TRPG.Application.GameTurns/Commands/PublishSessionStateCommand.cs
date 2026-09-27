@@ -7,6 +7,8 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns.Events;
 using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;
@@ -19,10 +21,11 @@ public class PublishSessionStateCommand
 }
 
 internal class PublishSessionStateCommandHandler(
-    IGameClientEventSink gameEvents,
+    ScenePublisher scenePublisher,
     IGameClientEventDispatcher eventDispatcher,
+    ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted
@@ -33,8 +36,14 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
+        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
+        var stamp = await stampWorldState.Handle(
+            new StampWorldStateCommand { WorldId = command.WorldId },
+            cancellationToken
+        );
+
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
@@ -43,11 +52,11 @@ internal class PublishSessionStateCommandHandler(
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
-        gameEvents.Enqueue(new SceneUpdatedEvent(scene));
+        scenePublisher.Publish(command.PlayerId, scene, stamp);
 
         await publishCombatState.Handle(
             new PublishCombatStateCommand { PlayerId = command.PlayerId },
@@ -63,6 +72,7 @@ internal class PublishSessionStateCommandHandler(
             {
                 PlayerId = command.PlayerId,
                 Encounter = encounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );

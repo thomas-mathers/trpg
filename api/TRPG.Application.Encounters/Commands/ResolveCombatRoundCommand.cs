@@ -9,6 +9,7 @@ using TRPG.Application.Encounters.Events;
 using TRPG.Application.Encounters.Mappers;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -21,6 +22,7 @@ internal class ResolveCombatRoundCommand
     public required Guid LocationId { get; init; }
     public required IReadOnlyList<Combatant> Combatants { get; init; }
     public required CombatState State { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveCombatRoundCommandHandler(
@@ -65,6 +67,7 @@ internal class ResolveCombatRoundCommandHandler(
                     SessionId = command.SessionId,
                     WorldId = command.WorldId,
                     State = state,
+                    GameTime = command.GameTime,
                 },
                 cancellationToken
             );

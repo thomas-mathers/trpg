@@ -11,9 +11,11 @@ public record RouteTravelerSummary(
     Guid RouteId,
     string RouteName,
     RouteTraversal Traversal,
-    TimeSpan StartedAtPlaytime,
+    GameInstant StartedAtGameTime,
+    GameInstant? PausedAtGameTime,
     double SpeedUnitsPerHour,
-    IReadOnlyList<RouteTimelineStep> Steps
+    IReadOnlyList<RouteTimelineStep> Steps,
+    CreatureState ArrivalState
 );
 
 public class GetRouteTravelersByLocationIdQuery
@@ -100,9 +102,11 @@ internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext conte
                     traveler.RouteId,
                     route.Name,
                     route.Traversal,
-                    traveler.StartedAtPlaytime,
+                    traveler.StartedAtGameTime,
+                    traveler.PausedAtGameTime,
                     traveler.SpeedUnitsPerHour,
-                    stepsByRouteId[traveler.RouteId]
+                    stepsByRouteId[traveler.RouteId],
+                    traveler.ArrivalState
                 );
             })
             .ToArray();

@@ -10,6 +10,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Props.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -21,12 +22,13 @@ public class ResolveTrapEncounterActionCommand : IEncounterResolutionCommand
     public required Guid SessionId { get; init; }
     public required TrapEncounterAction Action { get; init; }
     public required Guid EncounterId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 internal class ResolveTrapEncounterActionCommandHandler(
     IEncountersDbContext context,
+    EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<MarkTrapResolvedCommand> markTrapResolved,
     ICommandHandler<MovePlayerCommand> movePlayer,
     SkillCheckService skillCheckService,
@@ -38,7 +40,7 @@ internal class ResolveTrapEncounterActionCommandHandler(
         TrapEncounter,
         ResolveTrapEncounterActionCommand,
         TrapEncounterResolutionFact
-    >(context)
+    >(context, engagementManager)
 {
     protected override async Task<TrapEncounterResolutionFact> Resolve(
         ResolveTrapEncounterActionCommand command,
@@ -148,16 +150,12 @@ internal class ResolveTrapEncounterActionCommandHandler(
             cancellationToken
         );
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
         await movePlayer.Handle(
             new MovePlayerCommand
             {
                 PlayerId = command.PlayerId,
                 DestinationLocationId = encounter.TargetLocationId,
-                Playtime = playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

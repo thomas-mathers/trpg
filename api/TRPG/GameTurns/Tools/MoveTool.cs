@@ -61,7 +61,8 @@ internal record MoveToolResult(
     MoveToolShakedownEncounter? ShakedownEncounter,
     MoveToolGuardEncounter? GuardEncounter,
     MoveToolOverdueKeyEncounter? OverdueRoomKeyEncounter,
-    MoveToolSuspicionEncounter? SuspicionEncounter
+    MoveToolSuspicionEncounter? SuspicionEncounter,
+    string? TravelTime = null
 );
 
 internal class MoveTool(
@@ -76,12 +77,16 @@ internal class MoveTool(
         EncounterEvaluationResult
     > evaluateMoveInterception,
     ICommandHandler<MovePlayerCommand> movePlayer,
-    ICommandHandler<AdvanceTimeCommand, TimeSpan> advanceTime,
+    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
+    ICommandHandler<
+        ApplyPassiveRegenCommand,
+        IReadOnlyDictionary<Guid, Creature>
+    > applyPassiveRegen,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetSceneQuery, SceneResult> getScene,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -89,7 +94,7 @@ internal class MoveTool(
 
     [DisplayName("move")]
     [Description(
-        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it. When the result carries a guardEncounter, the named guard is stopping the player over the offences in RecentOffenses: any entry with AgainstTheGuard true was committed against that guard personally, so have them speak as the wronged party for those and as an officer of the city for the rest."
+        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it. When the result carries a guardEncounter, the named guard is stopping the player over the offences in RecentOffenses: any entry with AgainstTheGuard true was committed against that guard personally, so have them speak as the wronged party for those and as an officer of the city for the rest. When the result carries a travelTime, that is exactly how long the trip took: narrate that duration and never work it out from the change in the date or hour, because time also passes while the player is idle."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -111,12 +116,17 @@ internal class MoveTool(
             return EntryOutcome.EncounterActive.ToToolError(destinationName);
         }
 
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+
         var destinationResult = await resolveMoveDestination.Handle(
             new ResolveMoveDestinationCommand
             {
                 PlayerId = turnContext.PlayerId,
-                SessionId = turnContext.SessionId,
                 DestinationName = destinationName,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -133,17 +143,12 @@ internal class MoveTool(
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), turnContext.PlayerId);
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
-
         // Only a walk the player chose can be intercepted; being relocated by an encounter is not,
         // so this runs here rather than inside the move itself.
         var interception = await InterceptMove(
             player.LocationId,
             destinationResult.DestinationLocationId!.Value,
-            playtime,
+            gameTime,
             cancellationToken
         );
         if (interception != null)
@@ -151,14 +156,22 @@ internal class MoveTool(
             return interception;
         }
 
-        var arrivalPlaytime = playtime;
+        var arrivalGameTime = gameTime;
         if (destinationResult.TravelTimeHours > 0)
         {
-            arrivalPlaytime = await advanceTime.Handle(
+            arrivalGameTime = await advanceTime.Handle(
                 new AdvanceTimeCommand
                 {
-                    SessionId = turnContext.SessionId,
-                    Delta = GameClock.RealTimePerInGameHour * destinationResult.TravelTimeHours,
+                    WorldId = turnContext.WorldId,
+                    Delta = TimeSpan.FromHours(1) * destinationResult.TravelTimeHours,
+                },
+                cancellationToken
+            );
+            await applyPassiveRegen.Handle(
+                new ApplyPassiveRegenCommand
+                {
+                    GameTime = arrivalGameTime,
+                    CreatureIds = [turnContext.PlayerId],
                 },
                 cancellationToken
             );
@@ -169,7 +182,7 @@ internal class MoveTool(
             {
                 PlayerId = turnContext.PlayerId,
                 DestinationLocationId = destinationResult.DestinationLocationId!.Value,
-                Playtime = arrivalPlaytime,
+                GameTime = arrivalGameTime,
             },
             cancellationToken
         );
@@ -186,6 +199,7 @@ internal class MoveTool(
             {
                 PlayerId = turnContext.PlayerId,
                 Encounter = startedEncounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -195,13 +209,17 @@ internal class MoveTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(arrivalPlaytime),
-                Playtime = arrivalPlaytime,
+                CurrentDate = GameClock.GetCurrentInGameDate(arrivalGameTime),
+                GameTime = arrivalGameTime,
             },
             cancellationToken
         );
 
-        var result = BuildResult(scene, startedEncounter);
+        var result = BuildResult(
+            scene,
+            startedEncounter,
+            FormatTravelTime(destinationResult.TravelTimeHours)
+        );
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
@@ -217,7 +235,7 @@ internal class MoveTool(
     private async Task<MoveToolResult?> InterceptMove(
         Guid fromLocationId,
         Guid destinationLocationId,
-        TimeSpan playtime,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
@@ -226,7 +244,7 @@ internal class MoveTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -238,7 +256,7 @@ internal class MoveTool(
                 PlayerId = turnContext.PlayerId,
                 FromLocationId = fromLocationId,
                 ToLocationId = destinationLocationId,
-                Playtime = playtime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -252,8 +270,8 @@ internal class MoveTool(
             {
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(playtime),
-                Playtime = playtime,
+                CurrentDate = GameClock.GetCurrentInGameDate(gameTime),
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -263,6 +281,7 @@ internal class MoveTool(
             {
                 PlayerId = turnContext.PlayerId,
                 Encounter = interception.Encounter,
+                GameTime = gameTime,
             },
             cancellationToken
         );
@@ -270,13 +289,39 @@ internal class MoveTool(
         return BuildResult(scene, interception.Encounter);
     }
 
-    private static MoveToolResult BuildResult(SceneResult scene, Encounter? encounter) =>
+    private static MoveToolResult BuildResult(
+        SceneResult scene,
+        Encounter? encounter,
+        string? travelTime = null
+    ) =>
         new(
             scene.ToLlmScene(),
             (encounter as HostileEncounter)?.ToMoveToolSummary(),
             (encounter as ShakedownEncounter)?.ToMoveToolSummary(),
             (encounter as GuardEncounter)?.ToMoveToolSummary(),
             (encounter as TheftEncounter)?.ToMoveToolSummary(),
-            (encounter as SuspicionEncounter)?.ToMoveToolSummary()
+            (encounter as SuspicionEncounter)?.ToMoveToolSummary(),
+            travelTime
         );
+
+    private static string? FormatTravelTime(double travelTimeHours)
+    {
+        if (travelTimeHours <= 0)
+        {
+            return null;
+        }
+
+        var totalMinutes = Math.Max(1, (int)Math.Round(travelTimeHours * 60));
+        var parts = new List<string>();
+        if (totalMinutes / 60 > 0)
+        {
+            parts.Add($"{totalMinutes / 60} {(totalMinutes / 60 == 1 ? "hour" : "hours")}");
+        }
+        if (totalMinutes % 60 > 0)
+        {
+            parts.Add($"{totalMinutes % 60} {(totalMinutes % 60 == 1 ? "minute" : "minutes")}");
+        }
+
+        return string.Join(" and ", parts);
+    }
 }

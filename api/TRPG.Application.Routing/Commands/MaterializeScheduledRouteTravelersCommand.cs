@@ -16,7 +16,7 @@ public class MaterializeScheduledRouteTravelersCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid LocationId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class MaterializeScheduledRouteTravelersCommandHandler(
@@ -41,17 +41,26 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
         }
 
         var schedules = await LoadCreatureSchedules(locationSchedules, cancellationToken);
-        var occurrences = await ResolveOccurrences(command, schedules, cancellationToken);
+        var loadedTravelers = await LoadExisting(
+            schedules.Select(schedule => schedule.Id).ToArray(),
+            cancellationToken
+        );
+        var occurrences = await ResolveOccurrences(
+            command,
+            schedules,
+            loadedTravelers,
+            cancellationToken
+        );
         using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
         var existing = await ReconcileStaleTravelers(
-            schedules,
+            loadedTravelers,
             occurrences,
-            command.Playtime,
+            command.GameTime,
             cancellationToken
         );
         var locationScheduleIds = locationSchedules.Select(schedule => schedule.Id).ToHashSet();
         var relevantOccurrences = occurrences
-            .Values.Where(occurrence =>
+            .Where(occurrence =>
                 locationScheduleIds.Contains(occurrence.Schedule.Id)
                 && IsAtLocation(occurrence.Position, command.LocationId)
             )
@@ -68,23 +77,25 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
     }
 
     private async Task<IReadOnlyList<ExistingScheduledTraveler>> ReconcileStaleTravelers(
-        IReadOnlyCollection<CreatureRouteSchedule> candidates,
-        IReadOnlyDictionary<Guid, ScheduledOccurrence> occurrences,
-        TimeSpan playtime,
+        IReadOnlyList<ExistingScheduledTraveler> loadedTravelers,
+        IReadOnlyCollection<ScheduledOccurrence> occurrences,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
-        var existing = await LoadExisting(
-            candidates.Select(schedule => schedule.Id).ToArray(),
-            cancellationToken
-        );
-        var staleCreatureIds = existing
-            .Where(entry => IsStale(entry.Traveler, occurrences))
+        var liveTravelerIds = occurrences
+            .Where(occurrence => occurrence.Traveler != null)
+            .Select(occurrence => occurrence.Traveler!.Id)
+            .ToHashSet();
+        var staleCreatureIds = loadedTravelers
+            .Where(entry => !liveTravelerIds.Contains(entry.Traveler.Id))
             .Select(entry => entry.CreatureId)
             .ToArray();
         await CreatureRouteCleaner.Remove(context, staleCreatureIds, cancellationToken);
-        await RelocateCreaturesWithStaleSchedules(staleCreatureIds, playtime, cancellationToken);
-        return existing;
+        await RelocateCreaturesWithStaleSchedules(staleCreatureIds, gameTime, cancellationToken);
+        return loadedTravelers
+            .Where(entry => liveTravelerIds.Contains(entry.Traveler.Id))
+            .ToArray();
     }
 
     private async Task<IReadOnlyCollection<Guid>> MaterializeOccurrences(
@@ -107,14 +118,22 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             new GetCreaturesByIdsQuery { Ids = relevantCreatureIds },
             cancellationToken
         );
+        var jobsByCreatureId = await getCreatureJobsByCreatureIds.Handle(
+            new GetCreatureJobsByCreatureIdsQuery { CreatureIds = relevantCreatureIds },
+            cancellationToken
+        );
 
         var materializedCreatureIds = new List<Guid>();
         foreach (var occurrence in occurrences)
         {
             var creatureId = occurrence.Schedule.CreatureId;
-            if (Matches(existing, occurrence))
+            if (occurrence.Traveler != null)
             {
                 materializedCreatureIds.Add(creatureId);
+                continue;
+            }
+            if (HasLiveTraveler(existing, occurrence.Schedule))
+            {
                 continue;
             }
             if (
@@ -126,22 +145,43 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
                 continue;
             }
 
-            AddTraveler(worldId, occurrence, creature);
+            AddTraveler(
+                worldId,
+                occurrence,
+                creature,
+                ResolveArrivalState(occurrence.Schedule, jobsByCreatureId)
+            );
             materializedCreatureIds.Add(creatureId);
         }
         return materializedCreatureIds.Distinct().ToArray();
     }
 
-    private void AddTraveler(Guid worldId, ScheduledOccurrence occurrence, Creature creature)
+    private static CreatureState ResolveArrivalState(
+        CreatureRouteSchedule schedule,
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId
+    ) =>
+        jobsByCreatureId
+            .GetValueOrDefault(schedule.CreatureId)
+            ?.FirstOrDefault(job => job.Id == schedule.DestinationCreatureJobId)
+            ?.DefaultState
+        ?? CreatureState.Idle;
+
+    private void AddTraveler(
+        Guid worldId,
+        ScheduledOccurrence occurrence,
+        Creature creature,
+        CreatureState arrivalState
+    )
     {
         var traveler = new RouteTraveler
         {
             WorldId = worldId,
             RouteId = occurrence.Schedule.RouteId,
-            StartedAtPlaytime = occurrence.StartedAtPlaytime,
+            StartedAtGameTime = occurrence.StartedAtGameTime,
             SpeedUnitsPerHour = creature.MovementSpeed,
             Purpose = occurrence.Schedule.Purpose,
             CreatureRouteScheduleId = occurrence.Schedule.Id,
+            ArrivalState = arrivalState,
         };
         context.RouteTravelers.Add(traveler);
         context.RouteTravelerMembers.Add(
@@ -154,26 +194,18 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
         );
     }
 
-    private static bool IsStale(
-        RouteTraveler traveler,
-        IReadOnlyDictionary<Guid, ScheduledOccurrence> occurrences
-    ) =>
-        !occurrences.TryGetValue(traveler.CreatureRouteScheduleId!.Value, out var occurrence)
-        || traveler.StartedAtPlaytime != occurrence.StartedAtPlaytime;
-
-    private static bool Matches(
+    private static bool HasLiveTraveler(
         IReadOnlyCollection<ExistingScheduledTraveler> existing,
-        ScheduledOccurrence occurrence
+        CreatureRouteSchedule schedule
     ) =>
         existing.Any(entry =>
-            entry.CreatureId == occurrence.Schedule.CreatureId
-            && entry.Traveler.CreatureRouteScheduleId == occurrence.Schedule.Id
-            && entry.Traveler.StartedAtPlaytime == occurrence.StartedAtPlaytime
+            entry.CreatureId == schedule.CreatureId
+            && entry.Traveler.CreatureRouteScheduleId == schedule.Id
         );
 
     private async Task RelocateCreaturesWithStaleSchedules(
         IReadOnlyCollection<Guid> creatureIds,
-        TimeSpan playtime,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
@@ -190,7 +222,7 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             new GetCreatureJobsByCreatureIdsQuery { CreatureIds = creatureIds },
             cancellationToken
         );
-        var currentDate = GameClock.GetCurrentInGameDate(playtime);
+        var currentDate = GameClock.GetCurrentInGameDate(gameTime);
         var relocations = creatures
             .Values.Where(CanFollowSchedule)
             .Select(creature =>
@@ -247,18 +279,31 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             .ToArrayAsync(cancellationToken);
     }
 
-    private async Task<IReadOnlyDictionary<Guid, ScheduledOccurrence>> ResolveOccurrences(
+    private async Task<IReadOnlyList<ScheduledOccurrence>> ResolveOccurrences(
         MaterializeScheduledRouteTravelersCommand command,
         IReadOnlyCollection<CreatureRouteSchedule> schedules,
+        IReadOnlyList<ExistingScheduledTraveler> existing,
         CancellationToken cancellationToken
     )
     {
-        var currentDateTime = GameClock.GetCurrentInGameDateTime(command.Playtime);
-        var active = schedules
-            .Select(schedule => ResolveOccurrence(schedule, currentDateTime, command.Playtime))
+        var upcoming = schedules
+            .Select(schedule => ResolveOccurrence(schedule, command.GameTime, TimeSpan.Zero))
             .Where(occurrence => occurrence != null)
-            .Select(occurrence => occurrence!)
-            .ToArray();
+            .Select(occurrence => occurrence!);
+        var scheduleById = schedules.ToDictionary(schedule => schedule.Id);
+        var inProgress = existing
+            .Select(entry => entry.Traveler)
+            .DistinctBy(traveler => traveler.Id)
+            .Select(traveler =>
+                ResolveTravelerOccurrence(
+                    scheduleById[traveler.CreatureRouteScheduleId!.Value],
+                    traveler,
+                    command.GameTime
+                )
+            )
+            .Where(occurrence => occurrence != null)
+            .Select(occurrence => occurrence!);
+        var active = upcoming.Concat(inProgress).ToArray();
         var routeIds = active
             .Select(occurrence => occurrence.Schedule.RouteId)
             .Distinct()
@@ -297,9 +342,8 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
                             .ToArray()
             );
 
-        return active.ToDictionary(
-            occurrence => occurrence.Schedule.Id,
-            occurrence =>
+        return active
+            .Select(occurrence =>
                 occurrence with
                 {
                     Position = RouteTimeline.Resolve(
@@ -309,11 +353,12 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
                             ? 1
                             : stepsByRouteId[occurrence.Schedule.RouteId].Sum(step => step.Distance)
                                 / occurrence.Schedule.DurationHours,
-                        occurrence.StartedAtPlaytime,
-                        command.Playtime
+                        occurrence.StartedAtGameTime,
+                        occurrence.ResolvedAtGameTime
                     ),
                 }
-        );
+            )
+            .ToArray();
     }
 
     private async Task<IReadOnlyList<ExistingScheduledTraveler>> LoadExisting(
@@ -330,12 +375,43 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             select new ExistingScheduledTraveler(member.CreatureId, traveler)
         ).ToArrayAsync(cancellationToken);
 
-    private static ScheduledOccurrence? ResolveOccurrence(
+    private static ScheduledOccurrence? ResolveTravelerOccurrence(
         CreatureRouteSchedule schedule,
-        DateTime currentDateTime,
-        TimeSpan playtime
+        RouteTraveler traveler,
+        GameInstant gameTime
     )
     {
+        var ongoingPause = traveler.PausedAtGameTime is { } pausedAt
+            ? gameTime - pausedAt
+            : TimeSpan.Zero;
+        var occurrence = ResolveOccurrence(
+            schedule,
+            gameTime,
+            traveler.PausedDuration + ongoingPause
+        );
+        if (occurrence == null)
+        {
+            return null;
+        }
+
+        var startedAtGameTime = occurrence.StartedAtGameTime - ongoingPause;
+        return startedAtGameTime == traveler.StartedAtGameTime
+            ? occurrence with
+            {
+                StartedAtGameTime = startedAtGameTime,
+                ResolvedAtGameTime = traveler.PausedAtGameTime ?? gameTime,
+                Traveler = traveler,
+            }
+            : null;
+    }
+
+    private static ScheduledOccurrence? ResolveOccurrence(
+        CreatureRouteSchedule schedule,
+        GameInstant gameTime,
+        TimeSpan delay
+    )
+    {
+        var currentDateTime = GameClock.GetCurrentInGameDateTime(gameTime - delay);
         var daysSinceDeparture =
             ((int)currentDateTime.DayOfWeek - (int)schedule.DepartureDay + 7) % 7;
         var startedAt = currentDateTime
@@ -355,9 +431,9 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             }
         }
 
-        var startedAtPlaytime =
-            playtime + GameClock.RealTimePerInGameHour * (startedAt - currentDateTime).TotalHours;
-        return new ScheduledOccurrence(schedule, startedAtPlaytime, Position: null!);
+        var startedAtGameTime =
+            gameTime + TimeSpan.FromHours(1) * (startedAt - currentDateTime).TotalHours;
+        return new ScheduledOccurrence(schedule, startedAtGameTime, gameTime, Position: null!);
     }
 
     private static bool IsAtLocation(RouteTimelinePosition position, Guid locationId) =>
@@ -378,8 +454,10 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
 
     private record ScheduledOccurrence(
         CreatureRouteSchedule Schedule,
-        TimeSpan StartedAtPlaytime,
-        RouteTimelinePosition Position
+        GameInstant StartedAtGameTime,
+        GameInstant ResolvedAtGameTime,
+        RouteTimelinePosition Position,
+        RouteTraveler? Traveler = null
     );
 
     private record ExistingScheduledTraveler(Guid CreatureId, RouteTraveler Traveler);

@@ -2,6 +2,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.WorldGeneration;
 using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -77,7 +78,7 @@ public class CreatureGeneratorTests
         Assert.Equal(result.Creature.MaximumHp, result.Creature.CurrentHp);
         Assert.Equal(result.Creature.MaximumAp, result.Creature.CurrentAp);
         Assert.Equal(result.Creature.MaximumMp, result.Creature.CurrentMp);
-        Assert.Equal(TimeSpan.Zero, result.Creature.LastRegenPlaytime);
+        Assert.Equal(GameClock.Epoch, result.Creature.LastRegenGameTime);
     }
 
     [Fact]

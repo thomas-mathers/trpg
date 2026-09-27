@@ -6,6 +6,6 @@ public class DoorConnector
     public Guid Id { get; init; } = Guid.NewGuid();
     public bool IsLocked { get; set; }
     public int LockLevel { get; set; }
-    public TimeSpan? UnlocksAtPlaytime { get; set; }
+    public GameInstant? UnlocksAtGameTime { get; set; }
     public Guid WorldId { get; init; }
 }

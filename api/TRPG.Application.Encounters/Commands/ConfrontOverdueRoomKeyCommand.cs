@@ -11,6 +11,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.RoomBookings.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -18,7 +19,7 @@ namespace TRPG.Application.Encounters.Commands;
 public class ConfrontOverdueRoomKeyCommand
 {
     public required Guid WorldId { get; init; }
-    public required TimeSpan Playtime { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
     public Guid? DepartureDestinationLocationId { get; init; }
@@ -162,7 +163,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
         );
         var overdueBookings = bookings
             .Where(booking =>
-                booking.WorldId == command.WorldId && booking.DueAtPlaytime <= command.Playtime
+                booking.WorldId == command.WorldId && booking.DueAtGameTime <= command.GameTime
             )
             .ToList();
 

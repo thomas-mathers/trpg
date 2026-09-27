@@ -41,8 +41,8 @@ public sealed class WeatherRollTests
             offsets,
             offset =>
             {
-                Assert.True(offset >= 4 * GameClock.RealTimePerInGameHour);
-                Assert.True(offset <= 16 * GameClock.RealTimePerInGameHour);
+                Assert.True(offset >= 4 * TimeSpan.FromHours(1));
+                Assert.True(offset <= 16 * TimeSpan.FromHours(1));
             }
         );
     }

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TickerQ.DependencyInjection;
 using TRPG.Abilities.Endpoints;
 using TRPG.Books.Endpoints;
+using TRPG.Caravans.Endpoints;
 using TRPG.CreatureGeneration.Endpoints;
 using TRPG.Creatures.Endpoints;
 using TRPG.Data;
@@ -63,6 +64,7 @@ internal static class WebApplicationExtensions
         app.MapWorldEndpoints();
         app.MapAbilityEndpoints();
         app.MapCreatureEndpoints();
+        app.MapCaravanEndpoints();
         app.MapPlayerEndpoints();
         app.MapCreatureGenerationEndpoints();
         app.MapGameSessionEndpoints();

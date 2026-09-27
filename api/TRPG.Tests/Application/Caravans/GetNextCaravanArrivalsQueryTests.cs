@@ -80,7 +80,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -104,13 +104,42 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert — stop A's window [0, 1) closed 1 hour ago; the next occurrence is a full 6-hour
         // cycle later, minus the 2 hours already elapsed.
+        var arrival = Assert.Single(arrivals);
+        Assert.Equal(4, arrival.HoursUntilArrival);
+    }
+
+    [Fact]
+    public async Task Handle_FreezesTheCountdown_WhenTheCaravanIsPaused()
+    {
+        // Arrange
+        _context.RouteTravelers.Add(
+            Builders.MakeCaravan(
+                _route.Id,
+                _worldId,
+                pausedAtGameTime: GameClock.Epoch + TimeSpan.FromHours(1) * 2
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var arrivals = await _handler.Handle(
+            new GetNextCaravanArrivalsQuery
+            {
+                WorldId = _worldId,
+                LocationId = _locationA,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 5,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — paused two hours in, the next arrival stays four hours away however long it is held.
         var arrival = Assert.Single(arrivals);
         Assert.Equal(4, arrival.HoursUntilArrival);
     }
@@ -131,7 +160,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -178,7 +207,7 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 LocationId = _locationA,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

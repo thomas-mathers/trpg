@@ -63,7 +63,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -82,7 +82,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -109,7 +109,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -129,7 +129,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -156,7 +156,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -164,6 +164,28 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
 
         // Assert
         Assert.Empty(result.NearbyCreatures);
+    }
+
+    [Fact]
+    public async Task Handle_IncludesNearbyCreatures_WhoAreWalkingInTransit()
+    {
+        // Arrange
+        _nearbyCreature.State = CreatureState.Walking;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var creature = Assert.Single(result.NearbyCreatures);
+        Assert.Equal(_nearbyCreature.Id, creature.Id);
     }
 
     [Fact]
@@ -176,7 +198,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = currentDate,
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -233,7 +255,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -276,7 +298,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -322,7 +344,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -352,7 +374,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -381,7 +403,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -417,7 +439,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -451,7 +473,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -484,7 +506,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -514,7 +536,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -537,7 +559,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
                 WorldId = WorldId,
                 StateId = _state.Id,
                 Condition = WeatherCondition.Storm,
-                NextChangePlaytime = TimeSpan.FromHours(10),
+                NextChangeGameTime = GameClock.Epoch + TimeSpan.FromHours(10),
             }
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -547,7 +569,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -567,7 +589,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
                 WorldId = WorldId,
                 StateId = _state.Id,
                 Condition = WeatherCondition.Storm,
-                NextChangePlaytime = TimeSpan.FromHours(10),
+                NextChangeGameTime = GameClock.Epoch + TimeSpan.FromHours(10),
             }
         );
         var roomId = Guid.NewGuid();
@@ -590,7 +612,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -635,7 +657,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -657,7 +679,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = TimeSpan.Zero,
+            GameTime = GameClock.Epoch,
         };
 
         // Act
@@ -683,7 +705,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = GameClock.RealTimePerInGameHour * 2,
+            GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
         };
 
         // Act
@@ -706,7 +728,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
                 _player.Id,
                 _player.LocationId,
                 destinationLocationId,
-                purchasedAtPlaytime: TimeSpan.Zero
+                purchasedAtGameTime: GameClock.Epoch
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -715,7 +737,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             WorldId = WorldId,
             PlayerId = _player.Id,
             CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
-            Playtime = GameClock.RealTimePerInGameHour * 2,
+            GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
         };
 
         // Act

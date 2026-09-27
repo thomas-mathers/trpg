@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -40,7 +41,7 @@ public sealed class DeleteRoomBookingsCommandTests(DatabaseFixture db)
             RoomId = Guid.NewGuid(),
             KeyItemId = Guid.NewGuid(),
             PlayerId = Guid.NewGuid(),
-            DueAtPlaytime = TimeSpan.FromHours(24),
+            DueAtGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
         };
 
     [Fact]
@@ -93,7 +94,7 @@ public sealed class DeleteRoomBookingsCommandTests(DatabaseFixture db)
             RoomId = room.Id,
             KeyItemId = Guid.NewGuid(),
             PlayerId = playerId,
-            DueAtPlaytime = TimeSpan.FromHours(24),
+            DueAtGameTime = GameClock.Epoch + TimeSpan.FromHours(24),
         };
         _context.Buildings.Add(building);
         _context.Rooms.Add(room);

@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -47,7 +48,7 @@ public class WildernessPopulator(CreatureGenerator creatureGenerator)
             ArchetypeCreatureTypes = ArchetypeCreatureTypes.ToList(),
             MaxPopulation = maxPopulation,
             Schedule = DailySchedule,
-            LastSyncPlaytime = TimeSpan.Zero,
+            LastSyncGameTime = GameClock.Epoch,
         };
 
         var fillResult = CreatureSpawnFiller.Fill(

@@ -22,7 +22,7 @@ public sealed class LlmSceneMapperTests
         Assert.Equal("Cora", creature.Name);
         Assert.Equal(Profession.Guard, creature.Profession);
         Assert.Equal(49, creature.Level);
-        Assert.Equal(CreatureState.Busy, creature.State);
+        Assert.Equal(CreatureState.Working, creature.State);
         Assert.Equal(-50, creature.Reputation);
         Assert.Equal(700, creature.CurrentHp);
         Assert.True(creature.CanTrade);
@@ -144,7 +144,7 @@ public sealed class LlmSceneMapperTests
             level,
             Age: 68,
             FactionNames: [],
-            State: CreatureState.Busy,
+            State: CreatureState.Working,
             IsSneaking: false,
             Reputation: -50,
             Gold: gold,

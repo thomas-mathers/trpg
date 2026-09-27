@@ -10,6 +10,7 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -19,6 +20,7 @@ public class ResolveFleeCombatCommand
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
 public record FleeCombatResult(
@@ -33,7 +35,6 @@ internal class ResolveFleeCombatCommandHandler(
     ICommandHandler<ResolveCombatRoundCommand, CombatResult> resolveCombatRound,
     IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
-    IQueryHandler<GetPlaytimeQuery, TimeSpan> getPlaytime,
     ICommandHandler<ResolveExitConnectorCommand, Guid?> resolveExitConnector
 ) : ICommandHandler<ResolveFleeCombatCommand, FleeCombatResult?>
 {
@@ -61,6 +62,7 @@ internal class ResolveFleeCombatCommandHandler(
                 LocationId = fight!.LocationId,
                 Combatants = combatants,
                 State = state,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );
@@ -70,17 +72,12 @@ internal class ResolveFleeCombatCommandHandler(
             return new FleeCombatResult(combatResult, null, null);
         }
 
-        var playtime = await getPlaytime.Handle(
-            new GetPlaytimeQuery { SessionId = command.SessionId },
-            cancellationToken
-        );
-
         var destinationLocationId = await resolveExitConnector.Handle(
             new ResolveExitConnectorCommand
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                Playtime = playtime,
+                GameTime = command.GameTime,
             },
             cancellationToken
         );

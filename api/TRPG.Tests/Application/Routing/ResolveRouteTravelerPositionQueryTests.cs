@@ -57,14 +57,14 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ReturnsLingeringAtTheFirstStop_AtPlaytimeZero()
+    public async Task Handle_ReturnsLingeringAtTheFirstStop_AtGameTimeZero()
     {
         // Act
         var position = await _handler.Handle(
             new ResolveRouteTravelerPositionQuery
             {
                 RouteTravelerId = _traveler.Id,
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );
@@ -82,7 +82,7 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
             new ResolveRouteTravelerPositionQuery
             {
                 RouteTravelerId = _traveler.Id,
-                Playtime = GameClock.RealTimePerInGameHour * 2,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 2,
             },
             TestContext.Current.CancellationToken
         );
@@ -132,7 +132,7 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
             new ResolveRouteTravelerPositionQuery
             {
                 RouteTravelerId = traveler.Id,
-                Playtime = GameClock.RealTimePerInGameHour * 1,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 1,
             },
             TestContext.Current.CancellationToken
         );
@@ -156,7 +156,7 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
             new ResolveRouteTravelerPositionsQuery
             {
                 RouteTravelerIds = [_traveler.Id, secondTraveler.Id],
-                Playtime = TimeSpan.Zero,
+                GameTime = GameClock.Epoch,
             },
             TestContext.Current.CancellationToken
         );

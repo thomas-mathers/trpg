@@ -62,7 +62,7 @@ internal class ExecuteCreatureJobCommandHandler(
         var targetState = command.CreatureJobAction switch
         {
             CreatureJobAction.Sleep => CreatureState.Sleeping,
-            CreatureJobAction.Work => CreatureState.Busy,
+            CreatureJobAction.Work => CreatureState.Working,
             CreatureJobAction.Idle => CreatureState.Idle,
             CreatureJobAction.Study => CreatureState.Studying,
             CreatureJobAction.Pray => CreatureState.Praying,
