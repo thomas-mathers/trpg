@@ -251,18 +251,23 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
     private async Task<IReadOnlyList<CreatureRouteSchedule>> LoadLocationSchedules(
         MaterializeScheduledRouteTravelersCommand command,
         CancellationToken cancellationToken
-    ) =>
-        await context
+    )
+    {
+        var routeIds = await context
+            .RouteSteps.AsNoTracking()
+            .Where(step => step.WorldId == command.WorldId && step.LocationId == command.LocationId)
+            .Select(step => step.RouteId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        return await context
             .CreatureRouteSchedules.AsNoTracking()
             .Where(schedule =>
                 schedule.WorldId == command.WorldId
-                && context.RouteSteps.Any(step =>
-                    step.WorldId == command.WorldId
-                    && step.RouteId == schedule.RouteId
-                    && step.LocationId == command.LocationId
-                )
+                && routeIds.AsEnumerable().Contains(schedule.RouteId)
             )
             .ToArrayAsync(cancellationToken);
+    }
 
     private async Task<IReadOnlyList<CreatureRouteSchedule>> LoadCreatureSchedules(
         IReadOnlyCollection<CreatureRouteSchedule> locationSchedules,
