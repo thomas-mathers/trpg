@@ -172,9 +172,9 @@ public class QuestChainContentGenerator(
             - GiveItems: TargetEntityId and RecipientEntityId are creatures and NewItemName is required.
             - GiveItemKind: ItemNameForKind and creature RecipientEntityId are required.
             - DeliverItem: TargetEntityId and RecipientEntityId are creatures and NewItemName is required.
-            - InteractWithProp: TargetEntityId is a Dungeon or Building and NewPropName is required
+            - InteractWithProp: TargetEntityId is a Dungeon and NewPropName is required
               — mints a new named interactable (a valve, shrine, mechanism, lever, whatever fits the
-              beat) at that location for the player to activate. Use this when the story's
+              beat) inside a room of that dungeon for the player to activate. Use this when the story's
               resolution is a place or object changing state directly, not just something nearby
               being killed.
 

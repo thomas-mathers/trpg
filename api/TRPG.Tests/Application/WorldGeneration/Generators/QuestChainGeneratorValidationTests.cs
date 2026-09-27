@@ -636,7 +636,7 @@ public class QuestChainGeneratorValidationTests
     public void Validate_ReturnsError_WhenInteractWithPropTargetsACreature()
     {
         // Arrange: the target identifies where the minted prop is placed, so it must be a
-        // Dungeon or Building, not a Creature.
+        // Dungeon, not a Creature.
         var objective = MakeObjective(
             objectiveType: nameof(GeneratedObjectiveType.InteractWithProp),
             targetEntityId: CreatureEntityId,
@@ -652,7 +652,7 @@ public class QuestChainGeneratorValidationTests
     }
 
     [Fact]
-    public void Validate_ReturnsNull_WhenInteractWithPropTargetsABuildingWithANewPropName()
+    public void Validate_ReturnsError_WhenInteractWithPropTargetsAnOrdinaryBuilding()
     {
         // Arrange
         var objective = MakeObjective(
@@ -666,7 +666,7 @@ public class QuestChainGeneratorValidationTests
         var error = QuestChainGenerator.Validate(schema, EntityTypesById);
 
         // Assert
-        Assert.Null(error);
+        Assert.NotNull(error);
     }
 
     [Fact]

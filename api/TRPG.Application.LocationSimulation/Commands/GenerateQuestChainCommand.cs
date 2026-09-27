@@ -48,6 +48,7 @@ internal class GenerateQuestChainCommandHandler(
     QuestChainFactDisclosureRepairer factDisclosureRepairer,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
+    IQueryHandler<GetRoomsByBuildingIdsQuery, IReadOnlyCollection<Room>> getRoomsByBuildingIds,
     ICommandHandler<AddFactsCommand> addFacts,
     ICommandHandler<AddQuestCommand> addQuest,
     ICommandHandler<AddItemsCommand> addItems,
@@ -216,7 +217,10 @@ internal class GenerateQuestChainCommandHandler(
             new GetBuildingsByWorldIdQuery { WorldId = worldId },
             cancellationToken
         );
-        var buildingsById = buildings.ToDictionary(building => building.Id);
+        var lookups = new ObjectiveLookups(
+            buildings.ToDictionary(building => building.Id),
+            await GetRoomsByPropTargetBuildingId(nodes, cancellationToken)
+        );
 
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
@@ -296,7 +300,7 @@ internal class GenerateQuestChainCommandHandler(
                             objective,
                             questIdByNodeId,
                             factIdByKey,
-                            buildingsById,
+                            lookups,
                             newItems,
                             newTriggers
                         )
@@ -391,7 +395,7 @@ internal class GenerateQuestChainCommandHandler(
         QuestChainGeneratedObjective objective,
         IReadOnlyDictionary<string, Guid> questIdByNodeId,
         IReadOnlyDictionary<string, Guid> factIdByKey,
-        IReadOnlyDictionary<Guid, Building> buildingsById,
+        ObjectiveLookups lookups,
         List<Item> newItems,
         List<Trigger> newTriggers
     ) =>
@@ -429,7 +433,9 @@ internal class GenerateQuestChainCommandHandler(
                 Name = objective.Name,
                 Description = objective.Description,
                 BuildingId = objective.TargetEntityId!.Value,
-                LocationId = buildingsById[objective.TargetEntityId!.Value].ExteriorLocationId,
+                LocationId = lookups
+                    .BuildingsById[objective.TargetEntityId!.Value]
+                    .ExteriorLocationId,
                 RequiredAmount = objective.RequiredAmount,
             },
             GeneratedObjectiveType.ExploreLocation => new ExploreLocationObjective
@@ -438,7 +444,9 @@ internal class GenerateQuestChainCommandHandler(
                 QuestId = questId,
                 Name = objective.Name,
                 Description = objective.Description,
-                LocationId = buildingsById[objective.TargetEntityId!.Value].ExteriorLocationId,
+                LocationId = lookups
+                    .BuildingsById[objective.TargetEntityId!.Value]
+                    .ExteriorLocationId,
             },
             GeneratedObjectiveType.LearnFactFromCreature => new LearnFactFromCreatureObjective
             {
@@ -511,15 +519,13 @@ internal class GenerateQuestChainCommandHandler(
                 ItemId = MintItem(worldId, objective, newItems).Id,
                 RecipientId = objective.RecipientEntityId!.Value,
             },
-            GeneratedObjectiveType.InteractWithProp => new InteractWithPropObjective
-            {
-                WorldId = worldId,
-                QuestId = questId,
-                Name = objective.Name,
-                Description = objective.Description,
-                TriggerId = MintTrigger(worldId, objective, buildingsById, newTriggers).Id,
-                LocationId = buildingsById[objective.TargetEntityId!.Value].ExteriorLocationId,
-            },
+            GeneratedObjectiveType.InteractWithProp => MapInteractWithPropObjective(
+                worldId,
+                questId,
+                objective,
+                lookups,
+                newTriggers
+            ),
             _ => throw new ArgumentOutOfRangeException(nameof(objective)),
         };
 
@@ -545,21 +551,66 @@ internal class GenerateQuestChainCommandHandler(
         return item;
     }
 
-    private static Trigger MintTrigger(
+    private static InteractWithPropObjective MapInteractWithPropObjective(
         Guid worldId,
+        Guid questId,
         QuestChainGeneratedObjective objective,
-        IReadOnlyDictionary<Guid, Building> buildingsById,
+        ObjectiveLookups lookups,
         List<Trigger> newTriggers
     )
     {
+        var rooms = lookups.RoomsByBuildingId[objective.TargetEntityId!.Value];
+        var room = rooms[Random.Shared.Next(rooms.Count)];
         var trigger = new Trigger
         {
             WorldId = worldId,
             Name = objective.NewPropName!,
             Description = objective.Description,
-            LocationId = buildingsById[objective.TargetEntityId!.Value].ExteriorLocationId,
+            LocationId = room.LocationId,
         };
         newTriggers.Add(trigger);
-        return trigger;
+
+        return new InteractWithPropObjective
+        {
+            WorldId = worldId,
+            QuestId = questId,
+            Name = objective.Name,
+            Description = objective.Description,
+            TriggerId = trigger.Id,
+            LocationId = room.LocationId,
+        };
     }
+
+    private async Task<
+        IReadOnlyDictionary<Guid, IReadOnlyList<Room>>
+    > GetRoomsByPropTargetBuildingId(
+        IReadOnlyList<QuestChainGeneratedNode> nodes,
+        CancellationToken cancellationToken
+    )
+    {
+        var buildingIds = nodes
+            .SelectMany(node => node.Objectives)
+            .Where(objective => objective.ObjectiveType == GeneratedObjectiveType.InteractWithProp)
+            .Select(objective => objective.TargetEntityId!.Value)
+            .Distinct()
+            .ToArray();
+        if (buildingIds.Length == 0)
+        {
+            return new Dictionary<Guid, IReadOnlyList<Room>>();
+        }
+
+        var rooms = await getRoomsByBuildingIds.Handle(
+            new GetRoomsByBuildingIdsQuery { BuildingIds = buildingIds },
+            cancellationToken
+        );
+
+        return rooms
+            .GroupBy(room => room.BuildingId)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<Room>)group.ToArray());
+    }
+
+    private record ObjectiveLookups(
+        IReadOnlyDictionary<Guid, Building> BuildingsById,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Room>> RoomsByBuildingId
+    );
 }

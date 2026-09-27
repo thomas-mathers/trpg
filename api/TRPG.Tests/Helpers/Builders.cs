@@ -733,6 +733,36 @@ internal static class Builders
             RequiredAmount = requiredAmount,
         };
 
+    public static InteractWithPropObjective MakeInteractWithPropObjective(
+        Guid questId,
+        Guid triggerId,
+        Guid? worldId = null,
+        Guid? locationId = null
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            QuestId = questId,
+            Name = $"Objective-{Guid.NewGuid():N}",
+            Description = "A test objective",
+            TriggerId = triggerId,
+            LocationId = locationId,
+        };
+
+    public static CreatureQuest MakeCreatureQuest(
+        Guid creatureId,
+        Guid questId,
+        QuestStatus status = QuestStatus.Accepted,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            CreatureId = creatureId,
+            QuestId = questId,
+            Status = status,
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
     public static FreeCreatureObjective MakeFreeCreatureObjective(
         Guid questId,
         Guid creatureId,

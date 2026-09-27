@@ -2,6 +2,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
+using TRPG.Application.Quests.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Creatures.Queries;
@@ -42,6 +43,7 @@ public record LocalMapMarker(
 
 internal class GetLocalMapMarkersQueryHandler(
     IQueryHandler<GetInteractablePropsByLocationIdsQuery, IReadOnlyList<InteractableProp>> getProps,
+    IQueryHandler<GetHiddenQuestTriggerIdsQuery, IReadOnlySet<Guid>> getHiddenQuestTriggerIds,
     IQueryHandler<GetCorpsesByOwnerQuery, IReadOnlyCollection<Creature>> getCorpses,
     IQueryHandler<GetItemCountsByOwnersQuery, IReadOnlyDictionary<Guid, int>> getItemCounts
 ) : IQueryHandler<GetLocalMapMarkersQuery, IReadOnlyList<LocalMapMarker>>
@@ -51,10 +53,23 @@ internal class GetLocalMapMarkersQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var props = await getProps.Handle(
+        var allProps = await getProps.Handle(
             new GetInteractablePropsByLocationIdsQuery { LocationIds = query.ExploredLocationIds },
             cancellationToken
         );
+        var hiddenTriggerIds = await getHiddenQuestTriggerIds.Handle(
+            new GetHiddenQuestTriggerIdsQuery
+            {
+                WorldId = query.WorldId,
+                PlayerId = query.PlayerId,
+                TriggerIds = allProps
+                    .Where(prop => prop.IsActivated.HasValue)
+                    .Select(prop => prop.Id)
+                    .ToArray(),
+            },
+            cancellationToken
+        );
+        var props = allProps.Where(prop => !hiddenTriggerIds.Contains(prop.Id)).ToArray();
 
         var counts = await getItemCounts.Handle(
             new GetItemCountsByOwnersQuery

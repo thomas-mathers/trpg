@@ -80,6 +80,14 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
         return request.Id;
     }
 
+    private async Task<Room> SeedDungeonRoom()
+    {
+        var room = Builders.MakeRoom(_dungeon.Id, worldId: _worldId);
+        _context.Rooms.Add(room);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return room;
+    }
+
     [Fact]
     public async Task Handle_PersistsTheWholeChainWithPrerequisiteWiring_WhenGenerationSucceeds()
     {
@@ -253,11 +261,13 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
     }
 
     [Fact]
-    public async Task Handle_MintsANewTriggerAtTheTargetLocation_WhenObjectiveIsInteractWithProp()
+    public async Task Handle_MintsANewTriggerInADungeonRoom_WhenObjectiveIsInteractWithProp()
     {
         // Arrange — a second trivial node satisfies the node-budget-2 skeleton; only the first
         // node's InteractWithProp objective is asserted on below.
         var requestId = await SeedPendingRequest();
+        var firstRoom = await SeedDungeonRoom();
+        var secondRoom = await SeedDungeonRoom();
         _chatClient.QuestChainContentSchemaOverride = new QuestChainContentSchema
         {
             Nodes =
@@ -331,13 +341,13 @@ public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixtu
                 prop => prop.WorldId == _worldId && prop.Name == "Cracked Well Valve",
                 TestContext.Current.CancellationToken
             );
-        Assert.Equal(_dungeonExteriorLocation.Id, trigger.LocationId);
+        Assert.Contains(trigger.LocationId, new[] { firstRoom.LocationId, secondRoom.LocationId });
         Assert.False(trigger.IsActivated);
         var interactObjective = await _context
             .QuestObjectives.OfType<InteractWithPropObjective>()
             .SingleAsync(TestContext.Current.CancellationToken);
         Assert.Equal(trigger.Id, interactObjective.TriggerId);
-        Assert.Equal(_dungeonExteriorLocation.Id, interactObjective.LocationId);
+        Assert.Equal(trigger.LocationId, interactObjective.LocationId);
     }
 
     [Fact]
