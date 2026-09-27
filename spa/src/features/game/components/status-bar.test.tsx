@@ -10,12 +10,14 @@ import { StatusBar } from './status-bar';
 
 const ANCHORED_AT = Date.UTC(2030, 0, 1);
 const HOUR = 60 * 60 * 1000;
+const TIME_SCALE = 6;
 
 function scene(gameTimeMilliseconds: number): SceneSnapshot {
   return {
     stateName: 'Aldmark',
     gameTimeMilliseconds,
     anchoredAtUnixMilliseconds: ANCHORED_AT,
+    timeScale: TIME_SCALE,
     playerStatus: {
       id: 'player-id',
       name: 'Aria',
@@ -50,32 +52,32 @@ describe('StatusBar clock', () => {
     vi.useRealTimers();
   });
 
-  it('shows the custom calendar date and the time with seconds', () => {
+  it('shows the custom calendar date and the time in hours and minutes', () => {
     renderStatusBar(scene(0));
 
-    expect(screen.getByText('Emberday, Frostwane 1 - 08:00:00')).toBeVisible();
+    expect(screen.getByText('Emberday, Frostwane 1 - 08:00')).toBeVisible();
   });
 
-  it('ticks the visible time once per second', () => {
+  it('advances the visible minute as game time passes', () => {
     renderStatusBar(scene(0));
 
     act(() => {
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(60_000 / TIME_SCALE);
     });
 
-    expect(screen.getByText('Emberday, Frostwane 1 - 08:00:03')).toBeVisible();
+    expect(screen.getByText('Emberday, Frostwane 1 - 08:01')).toBeVisible();
   });
 
   it('rolls the date over at midnight', () => {
     renderStatusBar(scene(16 * HOUR - 1000));
 
-    expect(screen.getByText('Emberday, Frostwane 1 - 23:59:59')).toBeVisible();
+    expect(screen.getByText('Emberday, Frostwane 1 - 23:59')).toBeVisible();
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(screen.getByText('Ashday, Frostwane 2 - 00:00:00')).toBeVisible();
+    expect(screen.getByText('Ashday, Frostwane 2 - 00:00')).toBeVisible();
   });
 
   it('shows no time before the first scene', () => {

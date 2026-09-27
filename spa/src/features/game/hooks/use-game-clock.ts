@@ -16,6 +16,7 @@ function useClockAnchor(): GameClockAnchor | undefined {
   return {
     gameTimeMilliseconds: scene.gameTimeMilliseconds,
     anchoredAtUnixMilliseconds: scene.anchoredAtUnixMilliseconds,
+    timeScale: scene.timeScale,
   };
 }
 
@@ -24,6 +25,7 @@ export function useGameClock(): GameDateTime | undefined {
   const anchor = useClockAnchor();
   const gameTimeMilliseconds = anchor?.gameTimeMilliseconds;
   const anchoredAtUnixMilliseconds = anchor?.anchoredAtUnixMilliseconds;
+  const timeScale = anchor?.timeScale;
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -33,13 +35,17 @@ export function useGameClock(): GameDateTime | undefined {
 
   useEffect(() => {
     setNow(Date.now());
-  }, [gameTimeMilliseconds, anchoredAtUnixMilliseconds]);
+  }, [gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale]);
 
-  if (gameTimeMilliseconds === undefined || anchoredAtUnixMilliseconds === undefined) {
+  if (
+    gameTimeMilliseconds === undefined ||
+    anchoredAtUnixMilliseconds === undefined ||
+    timeScale === undefined
+  ) {
     return undefined;
   }
 
-  return gameDateTimeAt({ gameTimeMilliseconds, anchoredAtUnixMilliseconds }, now);
+  return gameDateTimeAt({ gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale }, now);
 }
 
 // For one-off calculations at a moment of interaction; never re-renders and never reads a stale hour.

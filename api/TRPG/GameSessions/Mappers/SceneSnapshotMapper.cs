@@ -27,6 +27,7 @@ internal static class SceneSnapshotMapper
             NearbyCaravans: scene.NearbyCaravans.Select(caravan => caravan.ToSnapshot()).ToArray(),
             Version: stamp.Version,
             GameTimeMilliseconds: (long)(stamp.GameTime - GameClock.Epoch).TotalMilliseconds,
-            AnchoredAtUnixMilliseconds: stamp.CapturedAt.ToUnixTimeMilliseconds()
+            AnchoredAtUnixMilliseconds: stamp.CapturedAt.ToUnixTimeMilliseconds(),
+            TimeScale: stamp.TimeScale
         );
 }

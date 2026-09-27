@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Configuration;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 
@@ -10,10 +12,12 @@ namespace TRPG.Application.Worlds;
 
 internal sealed class WorldClock(
     IServiceScopeFactory serviceScopeFactory,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    IOptions<WorldClockOptions>? options = null
 ) : IWorldClock
 {
     private readonly ConcurrentDictionary<Guid, WorldClockState> _states = new();
+    private readonly double _timeScale = ValidateTimeScale(options?.Value.TimeScale ?? 1);
 
     public async Task<GameInstant> GetCurrent(
         Guid worldId,
@@ -159,8 +163,14 @@ internal sealed class WorldClock(
 
     private GameInstant GetCurrent(WorldClockAnchor anchor) => GetCurrent(anchor, GetUtcNow());
 
-    private static GameInstant GetCurrent(WorldClockAnchor anchor, DateTimeOffset now) =>
-        anchor.GameTime + (now - anchor.RealTime);
+    private GameInstant GetCurrent(WorldClockAnchor anchor, DateTimeOffset now) =>
+        anchor.GameTime + (now - anchor.RealTime) * _timeScale;
+
+    private static double ValidateTimeScale(double timeScale)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(timeScale);
+        return timeScale;
+    }
 
     private async Task<GameInstant> ReadPersisted(Guid worldId, CancellationToken cancellationToken)
     {

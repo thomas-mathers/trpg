@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Configuration;
 using TRPG.Application.Worlds;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data;
@@ -47,12 +49,13 @@ public sealed class StampWorldStateCommandTests(DatabaseFixture db)
         }
     }
 
-    private StampWorldStateCommandHandler CreateHandler()
+    private StampWorldStateCommandHandler CreateHandler(double timeScale = 1)
     {
         var context = db.CreateContext();
         var serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(context)
             .AddSingleton<TimeProvider>(_timeProvider)
+            .AddSingleton(Options.Create(new WorldClockOptions { TimeScale = timeScale }))
             .BuildServiceProvider();
         _contexts.Add(context);
         _serviceProviders.Add(serviceProvider);
@@ -110,6 +113,22 @@ public sealed class StampWorldStateCommandTests(DatabaseFixture db)
         // Assert
         Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(2), stamp.GameTime);
         Assert.Equal(_timeProvider.GetUtcNow(), stamp.CapturedAt);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheConfiguredTimeScale_WhenStamping()
+    {
+        // Arrange
+        var handler = CreateHandler(timeScale: 6);
+
+        // Act
+        var stamp = await handler.Handle(
+            new StampWorldStateCommand { WorldId = _world.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(6, stamp.TimeScale);
     }
 
     [Fact]

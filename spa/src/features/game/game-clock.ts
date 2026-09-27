@@ -32,6 +32,7 @@ const SECONDS_PER_DAY = 24 * 60 * 60;
 export interface GameClockAnchor {
   gameTimeMilliseconds: number;
   anchoredAtUnixMilliseconds: number;
+  timeScale: number;
 }
 
 export interface GameDateTime {
@@ -50,12 +51,14 @@ export interface WaitDuration {
 }
 
 export function gameDateTimeAt(
-  { gameTimeMilliseconds, anchoredAtUnixMilliseconds }: GameClockAnchor,
+  { gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale }: GameClockAnchor,
   nowUnixMilliseconds: number,
 ): GameDateTime {
   // A client clock slightly behind the server's must not run the game clock backwards.
   const elapsedMilliseconds = Math.max(0, nowUnixMilliseconds - anchoredAtUnixMilliseconds);
-  const instant = new Date(EPOCH_MILLISECONDS + Number(gameTimeMilliseconds) + elapsedMilliseconds);
+  const instant = new Date(
+    EPOCH_MILLISECONDS + Number(gameTimeMilliseconds) + elapsedMilliseconds * timeScale,
+  );
 
   return {
     year: instant.getUTCFullYear(),
@@ -72,8 +75,8 @@ export function formatGameDate({ weekdayName, monthName, day }: GameDateTime): s
   return `${weekdayName}, ${monthName} ${day}`;
 }
 
-export function formatGameClockTime({ hour, minute, second }: GameDateTime): string {
-  return [hour, minute, second].map((part) => part.toString().padStart(2, '0')).join(':');
+export function formatGameClockTime({ hour, minute }: GameDateTime): string {
+  return [hour, minute].map((part) => part.toString().padStart(2, '0')).join(':');
 }
 
 // Rounds up to whole minutes because the hub takes hours and minutes, so the wait never ends

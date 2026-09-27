@@ -12,7 +12,7 @@ const ANCHORED_AT = Date.UTC(2030, 0, 1);
 const HOUR = 60 * 60 * 1000;
 
 function scene(gameTimeMilliseconds: number, anchoredAtUnixMilliseconds: number): SceneSnapshot {
-  return { gameTimeMilliseconds, anchoredAtUnixMilliseconds } as SceneSnapshot;
+  return { gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale: 1 } as SceneSnapshot;
 }
 
 function sceneWrapper(current: SceneSnapshot | undefined) {
@@ -42,19 +42,19 @@ describe('useGameClock', () => {
       wrapper: sceneWrapper(scene(2 * HOUR, ANCHORED_AT)),
     });
 
-    expect(formatGameClockTime(result.current!)).toBe('10:00:00');
+    expect(formatGameClockTime(result.current!)).toBe('10:00');
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(formatGameClockTime(result.current!)).toBe('10:00:01');
+    expect(result.current!.second).toBe(1);
 
     act(() => {
       vi.advanceTimersByTime(59_000);
     });
 
-    expect(formatGameClockTime(result.current!)).toBe('10:01:00');
+    expect(formatGameClockTime(result.current!)).toBe('10:01');
   });
 
   it('re-anchors to a newer scene immediately', () => {
@@ -69,7 +69,7 @@ describe('useGameClock', () => {
     current = scene(HOUR, ANCHORED_AT + 30_000);
     rerender();
 
-    expect(formatGameClockTime(result.current!)).toBe('09:00:00');
+    expect(formatGameClockTime(result.current!)).toBe('09:00');
   });
 });
 
@@ -89,7 +89,8 @@ describe('useGameTimeReader', () => {
     });
     vi.setSystemTime(ANCHORED_AT + 125_000);
 
-    expect(formatGameClockTime(result.current()!)).toBe('08:02:05');
+    expect(formatGameClockTime(result.current()!)).toBe('08:02');
+    expect(result.current()!.second).toBe(5);
   });
 
   it('keeps one stable reader while newer scenes arrive', () => {
@@ -103,7 +104,7 @@ describe('useGameTimeReader', () => {
     rerender();
 
     expect(result.current).toBe(firstReader);
-    expect(formatGameClockTime(result.current()!)).toBe('09:00:00');
+    expect(formatGameClockTime(result.current()!)).toBe('09:00');
   });
 
   it('has no time without a scene', () => {

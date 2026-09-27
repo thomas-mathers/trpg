@@ -842,6 +842,7 @@ export type SceneSnapshot = {
     version: number;
     gameTimeMilliseconds: number;
     anchoredAtUnixMilliseconds: number;
+    timeScale: number;
 };
 
 export type SessionCreatedResponse = {

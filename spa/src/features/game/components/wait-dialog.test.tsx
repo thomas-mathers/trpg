@@ -21,6 +21,7 @@ function scene(hour: number, minute = 0): SceneSnapshot {
   return {
     gameTimeMilliseconds: ((hour - EPOCH_HOUR) * 60 + minute) * MILLISECONDS_PER_MINUTE,
     anchoredAtUnixMilliseconds: Date.now(),
+    timeScale: 1,
     playerStatus: { id: 'player-id', level: 1, state: 'Sitting' },
   } as unknown as SceneSnapshot;
 }

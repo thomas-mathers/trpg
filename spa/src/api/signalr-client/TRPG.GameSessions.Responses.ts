@@ -63,6 +63,8 @@ export type SceneSnapshot = {
     gameTimeMilliseconds: number;
     /** Transpiled from long */
     anchoredAtUnixMilliseconds: number;
+    /** Transpiled from double */
+    timeScale: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */

@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using TRPG.Application.Configuration;
 using TRPG.Application.Worlds;
 using TRPG.Data;
 using TRPG.Data.ModuleContexts;
@@ -39,6 +41,13 @@ public sealed class WorldClockTests(DatabaseFixture db)
         );
     }
 
+    private WorldClock CreateClock(double timeScale) =>
+        new(
+            _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+            _timeProvider,
+            Options.Create(new WorldClockOptions { TimeScale = timeScale })
+        );
+
     public async ValueTask DisposeAsync()
     {
         await _serviceProvider.DisposeAsync();
@@ -64,6 +73,45 @@ public sealed class WorldClockTests(DatabaseFixture db)
         var gameTime = await _clock.GetCurrent(_world.Id, TestContext.Current.CancellationToken);
 
         Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3.5), gameTime);
+    }
+
+    [Fact]
+    public async Task GetCurrent_AdvancesAtTheConfiguredScale_WhenWorldIsActive()
+    {
+        // Arrange
+        var clock = CreateClock(timeScale: 6);
+        await clock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        _timeProvider.Advance(TimeSpan.FromMinutes(10));
+
+        // Act
+        var gameTime = await clock.GetCurrent(_world.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), gameTime);
+    }
+
+    [Fact]
+    public async Task Checkpoint_PersistsScaledGameTime_WhenWorldIsActive()
+    {
+        // Arrange
+        var clock = CreateClock(timeScale: 6);
+        await clock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        _timeProvider.Advance(TimeSpan.FromMinutes(10));
+
+        // Act
+        var checkpointed = await clock.Checkpoint(_world.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), checkpointed);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Constructor_Throws_WhenTheTimeScaleIsNotPositive(double timeScale)
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => CreateClock(timeScale));
     }
 
     [Fact]

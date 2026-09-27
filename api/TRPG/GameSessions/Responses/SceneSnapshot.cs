@@ -184,7 +184,8 @@ public record SceneSnapshot(
     IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans,
     long Version,
     long GameTimeMilliseconds,
-    long AnchoredAtUnixMilliseconds
+    long AnchoredAtUnixMilliseconds,
+    double TimeScale
 );
 
 [TranspilationSource]

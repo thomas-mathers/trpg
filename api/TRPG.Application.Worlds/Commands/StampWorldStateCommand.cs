@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Configuration;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 
@@ -12,12 +14,18 @@ public class StampWorldStateCommand
     public required Guid WorldId { get; init; }
 }
 
-public record WorldStateStamp(long Version, GameInstant GameTime, DateTimeOffset CapturedAt);
+public record WorldStateStamp(
+    long Version,
+    GameInstant GameTime,
+    DateTimeOffset CapturedAt,
+    double TimeScale
+);
 
 internal class StampWorldStateCommandHandler(
     IWorldsDbContext context,
     IWorldClock worldClock,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    IOptions<WorldClockOptions> clockOptions
 ) : ICommandHandler<StampWorldStateCommand, WorldStateStamp>
 {
     public async Task<WorldStateStamp> Handle(
@@ -30,7 +38,7 @@ internal class StampWorldStateCommandHandler(
         var gameTime = await worldClock.GetCurrent(command.WorldId, cancellationToken);
         var capturedAt = timeProvider.GetUtcNow().ToUniversalTime();
 
-        return new WorldStateStamp(version, gameTime, capturedAt);
+        return new WorldStateStamp(version, gameTime, capturedAt, clockOptions.Value.TimeScale);
     }
 
     // Compare-and-swap keeps concurrent stampers from ever receiving the same version.
