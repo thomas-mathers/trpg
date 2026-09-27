@@ -8,7 +8,7 @@ public sealed class ContinuousTimeBalanceTests
         TimeSpan.FromHours(distance / CreatureGeneratorOptions.WalkingSpeedUnitsPerHour);
 
     [Fact]
-    public void BuildingDistance_TakesSixMinutesToWalk_WhenAtWalkingPace()
+    public void BuildingDistance_TakesTwoPointFourMinutesToWalk_WhenAtWalkingPace()
     {
         // Arrange
         var options = new CityTravelOptions();
@@ -17,11 +17,11 @@ public sealed class ContinuousTimeBalanceTests
         var duration = WalkingTime(options.BuildingDistance);
 
         // Assert
-        Assert.Equal(6, duration.TotalMinutes, precision: 3);
+        Assert.Equal(2.4, duration.TotalMinutes, precision: 3);
     }
 
     [Fact]
-    public void DistrictDistance_TakesEighteenMinutesToWalk_WhenAtWalkingPace()
+    public void DistrictDistance_TakesSixMinutesToWalk_WhenAtWalkingPace()
     {
         // Arrange
         var options = new CityTravelOptions();
@@ -30,7 +30,7 @@ public sealed class ContinuousTimeBalanceTests
         var duration = WalkingTime(options.DistrictDistance);
 
         // Assert
-        Assert.Equal(18, duration.TotalMinutes, precision: 3);
+        Assert.Equal(6, duration.TotalMinutes, precision: 3);
     }
 
     [Fact]
