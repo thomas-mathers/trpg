@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.WorldGeneration.Generators;
@@ -146,6 +147,9 @@ internal class BootstrapWorldCommandHandler(
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        // Bulk-loaded tables have no planner statistics until autovacuum runs, which leaves the first scene queries on bad plans
+        await context.Database.ExecuteSqlRawAsync("ANALYZE", cancellationToken);
 
         logger.LogDebug("Bootstrap saved {WorldId}", world.World.Id);
 
