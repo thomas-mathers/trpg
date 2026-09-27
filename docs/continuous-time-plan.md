@@ -18,7 +18,7 @@ Replace action-banked playtime with a world-owned clock that progresses at exact
 - Grace expiry checkpoints and pauses the world.
 - Server downtime and fully disconnected time do not advance the world.
 - Server shutdown checkpoints active worlds. Startup treats all worlds as paused.
-- There are no developer pause or acceleration controls in the initial implementation.
+- There are no developer pause controls. Acceleration is one startup setting, `WorldClock:TimeScale` (default 1), which the server applies to elapsed real time and sends to the SPA in every scene snapshot; it scales only the world clock, so the background cadences and the disconnect grace period stay in real time, and per-tick regeneration follows game time.
 - Use injected `TimeProvider` for all real-time clock behavior.
 
 ### Time types
@@ -71,7 +71,7 @@ Replace action-banked playtime with a world-owned clock that progresses at exact
 - `Creature.LocationId` stores the last reached location: the origin of the current leg while in transit.
 - A traveler on A to B remains persisted at A until arriving at B.
 - Route projection, not `LocationId` alone, determines visible presence.
-- A traveler in transit is not visibly present at the leg origin.
+- A traveler in transit is visible at the leg origin as walking until it reaches the next stop: on X to Y to Z it shows at X during X to Y, then at Y during Y to Z.
 - Road scenes may project travelers on the matching connector.
 - Arrival persists the destination as the creature's new `LocationId`.
 - Engaging any member pauses the entire route-traveler group.
@@ -132,7 +132,7 @@ Replace action-banked playtime with a world-owned clock that progresses at exact
 - Narration-time ambient update deferral and coalescing.
 - New metrics, counters, histograms, or dashboards beyond ordinary structured logging.
 - Existing-world conversion or backward compatibility.
-- Developer clock pause, acceleration, or arbitrary time-setting controls.
+- Developer clock pause or arbitrary time-setting controls (acceleration shipped later as the `WorldClock:TimeScale` setting).
 
 ## Commit protocol
 
@@ -433,7 +433,7 @@ Current status: Complete
 
 Last completed milestone: 11 - Balance, hardening, and documentation
 
-Next action: None. The continuous-time project is finished. Deferred items (a separate `CreaturePosture` axis, hidden-tab handling, deterministic arrival and departure notifications, narration-time ambient deferral, new metrics, existing-world conversion, and developer clock controls) remain out of scope. Follow-ups worth a future decision: generate a dungeon premise outside the world lease if first-entry latency ever matters, and consider skew-proofing the client clock by anchoring to receipt time.
+Next action: None. The continuous-time project is finished. Deferred items (a separate `CreaturePosture` axis, hidden-tab handling, deterministic arrival and departure notifications, narration-time ambient deferral, new metrics, existing-world conversion, and developer clock controls) remain out of scope. Known follow-up PRs, deliberately not in this branch: (1) the first `look` in a freshly generated world can take about 90 seconds because a correlated `EXISTS` query against the newly bulk-loaded `creature_route_schedules` and `route_steps` plans badly before Postgres has statistics, so run `ANALYZE` after the bootstrap save and/or rewrite `LoadLocationSchedules` as two steps; (2) an NPC's days off are stored with English weekday names (`SpecificDay.ToString()`) while scenes use the game's names (Emberday is Sunday), so store them with `GameClock.GetDayName`. (3) a player can stay in a shop after it closes and nothing happens, because the front-door lock only stops entering; a trespass encounter for a player still inside some time after closing is the intended fix. Follow-ups worth a future decision: generate a dungeon premise outside the world lease if first-entry latency ever matters, and consider skew-proofing the client clock by anchoring to receipt time.
 
 Milestone 11 progress: `SceneSnapshot` no longer carries `Year`, `MonthName`, `Day`, `WeekdayName`, or `Hour`, because the SPA derives the whole date and time from the clock anchor (the HTTP and SignalR generated clients were regenerated; the generator's whitespace-only hunks were discarded). The LLM `look` payload and `SceneResult.CurrentDate` keep their date because the model reads it. `AGENTS.md` gained three request-flow entries (world clock, explicit time skips, creature engagement) that match the shipped code, and the continuous-world, scene-refresh, and quest-seeding flows were already current. `ContinuousWorldWriteVolumeTests` records the SQL each background pass issues through an EF command interceptor, and `ContinuousTimeBalanceTests` pins the reviewed travel, dwell, and regeneration defaults.
 
