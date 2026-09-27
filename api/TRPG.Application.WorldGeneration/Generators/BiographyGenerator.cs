@@ -375,21 +375,8 @@ internal static class BiographyGenerator
         }
 
         var dayWord = daysOff.Length == 1 ? "day off is" : "days off are";
-        return $"Their {dayWord} {JoinPhrases(daysOff.Select(GetDayName).ToArray())}.";
+        return $"Their {dayWord} {JoinPhrases(daysOff.Select(GameClock.GetDayName).ToArray())}.";
     }
-
-    private static readonly string[] DayNames =
-    [
-        "Emberday",
-        "Ashday",
-        "Ironday",
-        "Ravenday",
-        "Stormday",
-        "Hollowday",
-        "Duskday",
-    ];
-
-    private static string GetDayName(DayOfWeek day) => DayNames[(int)day];
 
     private static string? BuildFamilySentence(
         IReadOnlyList<string>? parentNames,
