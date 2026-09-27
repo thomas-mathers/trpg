@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -140,7 +141,7 @@ internal static class CreatureProfileGenerator
 
         var daysOff =
             jobs?.Where(job => job.SpecificDay != null)
-                .Select(job => job.SpecificDay!.Value.ToString())
+                .Select(job => GameClock.GetDayName(job.SpecificDay!.Value))
                 .Distinct()
                 .ToArray()
             ?? [];
