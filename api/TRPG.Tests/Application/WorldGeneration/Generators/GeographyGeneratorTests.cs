@@ -136,6 +136,40 @@ public class GeographyGeneratorTests
         );
     }
 
+    [Fact]
+    public async Task Generate_GivesEveryStateInACountryADistinctName_WhenManyWildernessStatesExist()
+    {
+        // Arrange
+        var generator = new GeographyGenerator(
+            new FakeChatClient(),
+            NullLogger<GeographyGenerator>.Instance
+        );
+        var input = new GeographyGeneratorInput
+        {
+            Description = "A test world.",
+            MinCityStates = 1,
+            MaxCityStates = 1,
+            MinRuralStates = 60,
+            MaxRuralStates = 60,
+        };
+
+        // Act
+        var result = await generator.Generate(input, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.All(
+            result.States.GroupBy(state => state.CountryId),
+            countryStates =>
+                Assert.Equal(
+                    countryStates.Count(),
+                    countryStates
+                        .Select(state => state.Name)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Count()
+                )
+        );
+    }
+
     // Independently re-derives the expected centroid via the standard shoelace-formula
     // computation, rather than calling the generator's own private helper, so this actually
     // verifies the contract rather than restating it.
