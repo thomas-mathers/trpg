@@ -268,6 +268,7 @@ public class GeographyGenerator(
             var dominantRace = countries.DominantRaceByCountryId[country.Id];
             var cityStates = countryStates.Where(s => s.HasCity).ToList();
             var nonCityStates = countryStates.Where(s => !s.HasCity).ToList();
+            var countryStateNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             if (cityStates.Count > 0)
             {
@@ -320,6 +321,7 @@ public class GeographyGenerator(
                     states.Add(state);
                     cities.Add(city);
                     stateById[mapState.Id] = state;
+                    countryStateNames.Add(state.Name);
 
                     var cityDistricts = new List<District>();
                     foreach (var districtType in districtTypes)
@@ -353,12 +355,18 @@ public class GeographyGenerator(
             for (var j = 0; j < nonCityStates.Count; j++)
             {
                 var mapState = nonCityStates[j];
+                var excludedNames = GetConnectedStateNames(
+                    mapState.Id,
+                    context.Map.Roads,
+                    stateById
+                );
+                excludedNames.UnionWith(countryStateNames);
                 var state = new State
                 {
                     CountryId = country.Id,
                     Name = SettlementNameGenerator.GenerateWildernessName(
                         dominantRace,
-                        GetConnectedStateNames(mapState.Id, context.Map.Roads, stateById)
+                        excludedNames
                     ),
                     Description = "An untamed wilderness region.",
                     Width = CityTileSize,
@@ -372,6 +380,7 @@ public class GeographyGenerator(
                 };
                 states.Add(state);
                 stateById[mapState.Id] = state;
+                countryStateNames.Add(state.Name);
             }
         }
 
