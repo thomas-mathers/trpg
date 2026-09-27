@@ -351,7 +351,9 @@ internal static class ServiceCollectionExtensions
                                             context.Arguments,
                                             cancellationToken
                                         );
-                                        var outcome = result is ToolError ? "rejected" : "success";
+                                        var outcome = ToolResultOutcome.IsRejected(result)
+                                            ? "rejected"
+                                            : "success";
                                         toolLogger.LogInformation(
                                             "[perf] Tool {ToolName}: outcome={Outcome}, resultBytes~={ResultBytes}, total={ElapsedMs}ms",
                                             context.Function.Name,

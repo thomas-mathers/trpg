@@ -58,4 +58,30 @@ public class CreatureJobGeneratorTests
         // Assert
         Assert.Equal(originalLocationId, Assert.Single(jobs).LocationId);
     }
+
+    [Fact]
+    public void GenerateMeal_OutranksGenerateDayOff()
+    {
+        // Arrange
+        var creatureId = Guid.NewGuid();
+        var worldId = Guid.NewGuid();
+        var dayOff = CreatureJobGenerator.GenerateDayOff(
+            creatureId,
+            CreatureJobAction.Idle,
+            Guid.NewGuid(),
+            DayOfWeek.Sunday,
+            worldId
+        );
+
+        // Act
+        var meal = CreatureJobGenerator.GenerateMeal(
+            creatureId,
+            Guid.NewGuid(),
+            worldId,
+            new HourWindow(9, 10)
+        );
+
+        // Assert
+        Assert.True(meal.Priority > dayOff.Priority);
+    }
 }
