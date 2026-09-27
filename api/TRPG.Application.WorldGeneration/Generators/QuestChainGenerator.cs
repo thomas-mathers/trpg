@@ -469,9 +469,11 @@ public static class QuestChainGenerator
             or GeneratedObjectiveType.CollectItem
             or GeneratedObjectiveType.GiveItems
             or GeneratedObjectiveType.DeliverItem => [QuestChainEntityTypes.Creature],
-            GeneratedObjectiveType.ClearLocation => [QuestChainEntityTypes.Dungeon],
-            GeneratedObjectiveType.ExploreLocation or GeneratedObjectiveType.InteractWithProp =>
-                QuestChainEntityTypes.ExplorableTypes,
+            GeneratedObjectiveType.ClearLocation or GeneratedObjectiveType.InteractWithProp =>
+            [
+                QuestChainEntityTypes.Dungeon,
+            ],
+            GeneratedObjectiveType.ExploreLocation => QuestChainEntityTypes.ExplorableTypes,
             _ => throw new ArgumentOutOfRangeException(nameof(objective)),
         };
 

@@ -1,10 +1,13 @@
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Props.Commands;
+using TRPG.Application.Quests.Queries;
 
 namespace TRPG.Application.GameTurns;
 
 internal class StreamActivateTriggerTurnHandler(
     GameTurnStreamer streamer,
+    IQueryHandler<GetHiddenQuestTriggerIdsQuery, IReadOnlySet<Guid>> getHiddenQuestTriggerIds,
     ICommandHandler<ActivateTriggerCommand, ActivateTriggerResult> activateTrigger
 )
 {
@@ -12,21 +15,30 @@ internal class StreamActivateTriggerTurnHandler(
         GameTurnSession session,
         Guid triggerId,
         CancellationToken cancellationToken = default
-    ) =>
-        streamer.StreamTurn(
-            session,
-            ct => ResolveTurn(session.PlayerId, triggerId, ct),
-            cancellationToken
-        );
+    ) => streamer.StreamTurn(session, ct => ResolveTurn(session, triggerId, ct), cancellationToken);
 
     private async Task<GameTurnPrompt> ResolveTurn(
-        Guid playerId,
+        GameTurnSession session,
         Guid triggerId,
         CancellationToken cancellationToken
     )
     {
+        var hiddenTriggerIds = await getHiddenQuestTriggerIds.Handle(
+            new GetHiddenQuestTriggerIdsQuery
+            {
+                WorldId = session.WorldId,
+                PlayerId = session.PlayerId,
+                TriggerIds = [triggerId],
+            },
+            cancellationToken
+        );
+        if (hiddenTriggerIds.Contains(triggerId))
+        {
+            return new GameTurnPrompt.Reply("There is nothing here to activate.");
+        }
+
         var result = await activateTrigger.Handle(
-            new ActivateTriggerCommand { TriggerId = triggerId, PlayerId = playerId },
+            new ActivateTriggerCommand { TriggerId = triggerId, PlayerId = session.PlayerId },
             cancellationToken
         );
 

@@ -63,6 +63,7 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
     IQueryHandler<GetVisitedRoomLocationIdsQuery, IReadOnlySet<Guid>> getVisitedRoomLocationIds,
     IQueryHandler<GetKnownTrapIdsQuery, IReadOnlySet<Guid>> getKnownTrapIds,
+    IQueryHandler<GetHiddenQuestTriggerIdsQuery, IReadOnlySet<Guid>> getHiddenQuestTriggerIds,
     IQueryHandler<GetBuildingPremiseQuery, string?> getBuildingPremise,
     IQueryHandler<GetBuildingsByIdsQuery, IReadOnlyDictionary<Guid, Building>> getBuildingsByIds,
     IQueryHandler<GetDistrictsByIdsQuery, IReadOnlyDictionary<Guid, District>> getDistrictsByIds,
@@ -137,8 +138,8 @@ internal class GetSceneQueryHandler(
 
         var details =
             player.RoomId != null
-                ? await BuildIndoorScene(player, cancellationToken)
-                : await BuildOutdoorScene(player, state, cancellationToken);
+                ? await BuildIndoorScene(query.WorldId, player, cancellationToken)
+                : await BuildOutdoorScene(query.WorldId, player, state, cancellationToken);
         var playerCreatureInfo = await BuildPlayerCreatureInfo(query, player, cancellationToken);
         var weather =
             player.RoomId == null
@@ -531,6 +532,7 @@ internal class GetSceneQueryHandler(
     }
 
     private async Task<SceneLocationData> BuildIndoorScene(
+        Guid worldId,
         CreatureResult player,
         CancellationToken cancellationToken
     )
@@ -576,10 +578,47 @@ internal class GetSceneQueryHandler(
             roomResult.RoomDescription,
             roomResult.RoomFloorNumber
         );
-        var visibleProps = await ExcludeUndiscoveredTraps(props, player.Id, cancellationToken);
+        var visibleProps = await ExcludeHiddenProps(props, worldId, player.Id, cancellationToken);
         var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
         return new SceneLocationData(buildingInfo, roomInfo, null, nearbyProps, []);
+    }
+
+    private async Task<IReadOnlyCollection<Prop>> ExcludeHiddenProps(
+        IReadOnlyCollection<Prop> props,
+        Guid worldId,
+        Guid playerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var withoutTraps = await ExcludeUndiscoveredTraps(props, playerId, cancellationToken);
+        return await ExcludeHiddenQuestTriggers(withoutTraps, worldId, playerId, cancellationToken);
+    }
+
+    private async Task<IReadOnlyCollection<Prop>> ExcludeHiddenQuestTriggers(
+        IReadOnlyCollection<Prop> props,
+        Guid worldId,
+        Guid playerId,
+        CancellationToken cancellationToken
+    )
+    {
+        var triggerIds = props.OfType<Trigger>().Select(trigger => trigger.Id).ToArray();
+        if (triggerIds.Length == 0)
+        {
+            return props;
+        }
+
+        var hiddenTriggerIds = await getHiddenQuestTriggerIds.Handle(
+            new GetHiddenQuestTriggerIdsQuery
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                TriggerIds = triggerIds,
+            },
+            cancellationToken
+        );
+
+        return props.Where(prop => !hiddenTriggerIds.Contains(prop.Id)).ToArray();
     }
 
     // An undiscovered trap must never reach the narrator, or it warns the player about a hazard
@@ -619,6 +658,7 @@ internal class GetSceneQueryHandler(
     }
 
     private async Task<SceneLocationData> BuildOutdoorScene(
+        Guid worldId,
         CreatureResult player,
         State? state,
         CancellationToken cancellationToken
@@ -637,7 +677,7 @@ internal class GetSceneQueryHandler(
             new GetPropsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
-        var visibleProps = await ExcludeUndiscoveredTraps(props, player.Id, cancellationToken);
+        var visibleProps = await ExcludeHiddenProps(props, worldId, player.Id, cancellationToken);
         var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
         return new SceneLocationData(null, null, state?.Description, nearbyProps, nearbyBuildings);

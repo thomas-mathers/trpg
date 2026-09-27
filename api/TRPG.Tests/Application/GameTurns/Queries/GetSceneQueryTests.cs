@@ -550,6 +550,89 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_HidesAQuestTrigger_WhenPlayerHasNotAcceptedItsQuest()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(Guid.NewGuid(), worldId: WorldId);
+        var trigger = Builders.MakeTrigger(WorldId, _player.LocationId);
+        _context.Quests.Add(quest);
+        _context.Props.Add(trigger);
+        _context.QuestObjectives.Add(
+            Builders.MakeInteractWithPropObjective(quest.Id, trigger.Id, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(result.NearbyProps);
+    }
+
+    [Fact]
+    public async Task Handle_ShowsAQuestTrigger_WhenPlayerHasAcceptedItsQuest()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(Guid.NewGuid(), worldId: WorldId);
+        var trigger = Builders.MakeTrigger(WorldId, _player.LocationId);
+        _context.Quests.Add(quest);
+        _context.Props.Add(trigger);
+        _context.QuestObjectives.Add(
+            Builders.MakeInteractWithPropObjective(quest.Id, trigger.Id, worldId: WorldId)
+        );
+        _context.CreatureQuests.Add(
+            Builders.MakeCreatureQuest(_player.Id, quest.Id, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var nearbyProp = Assert.Single(result.NearbyProps);
+        Assert.Equal(trigger.Id, nearbyProp.Id);
+    }
+
+    [Fact]
+    public async Task Handle_ShowsATriggerNoQuestOwns_WhenOutdoors()
+    {
+        // Arrange
+        var lever = Builders.MakeTrigger(WorldId, _player.LocationId);
+        _context.Props.Add(lever);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(lever.Id, Assert.Single(result.NearbyProps).Id);
+    }
+
+    [Fact]
     public async Task Handle_IncludesWeather_WhenOutdoors()
     {
         // Arrange

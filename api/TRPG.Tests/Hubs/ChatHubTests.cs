@@ -529,6 +529,41 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task SendActivateTrigger_LeavesTheTriggerUnactivated_WhenItsQuestIsNotAccepted()
+    {
+        var quest = Builders.MakeQuest(Guid.NewGuid(), worldId: _worldId);
+        var trigger = Builders.MakeTrigger(_worldId, _locationId);
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            context.Quests.Add(quest);
+            context.Props.Add(trigger);
+            context.QuestObjectives.Add(
+                Builders.MakeInteractWithPropObjective(quest.Id, trigger.Id, worldId: _worldId)
+            );
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+        var sessionId = await StartSession();
+        await using var gameHub = await Connect(sessionId);
+
+        var narration = await Drain(
+            gameHub.StreamAsync<string>(
+                "SendActivateTrigger",
+                trigger.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        Assert.Equal("There is nothing here to activate.", narration);
+        await using var verifyScope = fixture.CreateScope();
+        var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var stored = await verifyContext
+            .Props.OfType<Trigger>()
+            .SingleAsync(t => t.Id == trigger.Id, TestContext.Current.CancellationToken);
+        Assert.False(stored.IsActivated);
+    }
+
+    [Fact]
     public async Task SendWait_DoesNotAdvanceTime_WhenPlayerIsNotSitting()
     {
         var sessionId = await StartSession();

@@ -84,6 +84,56 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_HidesAQuestTrigger_WhenPlayerHasNotAcceptedItsQuest()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(Guid.NewGuid(), worldId: WorldId);
+        var trigger = Builders.MakeTrigger(WorldId, _currentLocationId);
+        _context.Quests.Add(quest);
+        _context.Props.Add(trigger);
+        _context.QuestObjectives.Add(
+            Builders.MakeInteractWithPropObjective(quest.Id, trigger.Id, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetLocalMapQuery { PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(Assert.Single(result.Rooms).Markers);
+    }
+
+    [Fact]
+    public async Task Handle_ShowsAQuestTrigger_WhenPlayerHasAcceptedItsQuest()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(Guid.NewGuid(), worldId: WorldId);
+        var trigger = Builders.MakeTrigger(WorldId, _currentLocationId);
+        _context.Quests.Add(quest);
+        _context.Props.Add(trigger);
+        _context.QuestObjectives.Add(
+            Builders.MakeInteractWithPropObjective(quest.Id, trigger.Id, worldId: WorldId)
+        );
+        _context.CreatureQuests.Add(
+            Builders.MakeCreatureQuest(_player.Id, quest.Id, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetLocalMapQuery { PlayerId = _player.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var marker = Assert.Single(Assert.Single(result.Rooms).Markers);
+        Assert.Equal(trigger.Id, marker.Id);
+    }
+
+    [Fact]
     public async Task Handle_HidesProps_InFrontierRooms()
     {
         // Arrange
