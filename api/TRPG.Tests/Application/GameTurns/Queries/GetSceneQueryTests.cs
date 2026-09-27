@@ -167,7 +167,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ExcludesNearbyCreatures_WhoAreWalkingInTransit()
+    public async Task Handle_IncludesNearbyCreatures_WhoAreWalkingInTransit()
     {
         // Arrange
         _nearbyCreature.State = CreatureState.Walking;
@@ -184,7 +184,8 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Empty(result.NearbyCreatures);
+        var creature = Assert.Single(result.NearbyCreatures);
+        Assert.Equal(_nearbyCreature.Id, creature.Id);
     }
 
     [Fact]

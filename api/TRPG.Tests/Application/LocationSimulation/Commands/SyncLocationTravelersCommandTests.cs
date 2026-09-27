@@ -212,7 +212,7 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task GetScene_HidesTheTravelerFromAWatcherAtTheDepartureStop_OnceTheyAreInTransit()
+    public async Task GetScene_ShowsTheTravelerAsWalkingToAWatcherAtTheDepartureStop_WhileTheyAreInTransit()
     {
         // Arrange
         await SyncAt(_locationA.Id, hours: 1.5);
@@ -230,7 +230,11 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.DoesNotContain(scene.NearbyCreatures, creature => creature.Id == _traveler.Id);
+        var traveler = Assert.Single(
+            scene.NearbyCreatures,
+            creature => creature.Id == _traveler.Id
+        );
+        Assert.Equal(CreatureState.Walking, traveler.State);
     }
 
     [Fact]
