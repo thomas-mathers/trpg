@@ -9,8 +9,8 @@ internal static class CreatureJobGenerator
     private static readonly HourWindow DefaultSleepHours = new(22, 6);
     private static readonly HourWindow DefaultWorkHours = new(8, 20);
     private static readonly HourWindow IdleHours = new(6, 22);
-    private const int DayOffPriority = 60;
-    private const int MealPriority = 55;
+    private const int MealPriority = 60;
+    private const int DayOffPriority = 55;
     private const int UnemployedActivityPriority = 10;
 
     public static CreatureJob GenerateSleep(
