@@ -71,6 +71,73 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
         Assert.Equal("Beware of the dog.", result!.Text);
     }
 
+    [Theory]
+    [InlineData(0.5, "Emberday, Frostwane 1 - 13:30")]
+    [InlineData(0.501, "Emberday, Frostwane 1 - 13:30")]
+    public async Task GetSignText_ShowsTheArrivalMinute_RoundedUpToTheWholeMinute(
+        double phaseOffsetHours,
+        string expectedArrival
+    )
+    {
+        // Arrange — the cycle is 6 hours and it is 10:00, so the next arrival is 4 hours minus the phase away
+        var route = Builders.MakeCaravanRoute(_worldId);
+        var connectorA = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: _worldId
+        );
+        var connectorB = Builders.MakeTravelConnector(
+            Guid.NewGuid(),
+            distance: 10,
+            worldId: _worldId
+        );
+        var sign = new CaravanScheduleSign
+        {
+            WorldId = _worldId,
+            LocationId = _locationA,
+            Name = "Caravan Schedule",
+            Description = "A wooden signpost listing caravan arrival times.",
+        };
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            await context
+                .Worlds.Where(world => world.Id == _worldId)
+                .ExecuteUpdateAsync(
+                    setters =>
+                        setters.SetProperty(
+                            world => world.GameTime,
+                            GameClock.Epoch + TimeSpan.FromHours(2)
+                        ),
+                    TestContext.Current.CancellationToken
+                );
+            context.Routes.Add(route);
+            context.RouteSteps.AddRange(
+                Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, connectorA.ConnectorId),
+                Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, connectorB.ConnectorId)
+            );
+            context.TravelConnectors.AddRange(connectorA, connectorB);
+            context.CaravanFares.Add(Builders.MakeCaravanFare(route.Id, _worldId));
+            context.RouteTravelers.Add(
+                Builders.MakeCaravan(route.Id, _worldId, phaseOffsetHours: phaseOffsetHours)
+            );
+            context.Props.Add(sign);
+            context.GameSessions.Add(Builders.MakeGameSession(_worldId, Guid.NewGuid()));
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        var result = await _client.ReadFromJsonAsync<SignTextResponse>(
+            "GetSignText",
+            routeValues: new { signId = sign.Id },
+            query: new Dictionary<string, object?> { ["worldId"] = _worldId },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Contains($"next arrival {expectedArrival}", result!.Text);
+    }
+
     [Fact]
     public async Task GetSignText_ReturnsLiveArrivalText_ForACaravanScheduleSign()
     {

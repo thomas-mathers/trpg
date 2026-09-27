@@ -86,9 +86,20 @@ internal static class SignEndpoints
             return $"{routeLabel}: here now";
         }
 
-        var arrivalGameTime = currentGameTime + TimeSpan.FromHours(1) * arrival.HoursUntilArrival;
+        var arrivalGameTime = RoundUpToMinute(
+            currentGameTime + TimeSpan.FromHours(1) * arrival.HoursUntilArrival
+        );
         var arrivalDate = GameClock.GetCurrentInGameDate(arrivalGameTime);
 
-        return $"{routeLabel}: next arrival {arrivalDate.WeekdayName}, {arrivalDate.MonthName} {arrivalDate.Day} - {arrivalDate.Hour}:00";
+        return $"{routeLabel}: next arrival {arrivalDate.WeekdayName}, {arrivalDate.MonthName} {arrivalDate.Day} - {arrivalDate.Hour:00}:{arrivalGameTime.Value.Minute:00}";
+    }
+
+    // Waiting until the printed minute must land on or after the arrival, never just before it.
+    private static GameInstant RoundUpToMinute(GameInstant instant)
+    {
+        var remainder = instant.Value.Ticks % TimeSpan.TicksPerMinute;
+        return remainder == 0
+            ? instant
+            : instant + TimeSpan.FromTicks(TimeSpan.TicksPerMinute - remainder);
     }
 }
