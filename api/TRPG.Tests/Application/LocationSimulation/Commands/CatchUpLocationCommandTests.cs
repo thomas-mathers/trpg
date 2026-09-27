@@ -634,6 +634,60 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         );
     }
 
+    [Fact]
+    public async Task Handle_PlacesWorkerAtShopWorking_WhenTheyLiveElsewhereAndTheirShiftHasStarted()
+    {
+        // Arrange
+        var district = await SeedLocation(districtId: Guid.NewGuid());
+        var home = await SeedLocation(roomId: Guid.NewGuid());
+        var shopLocationId = Guid.NewGuid();
+        var shopBuilding = Builders.MakeBuilding(district.Id, WorldId);
+        var shopRoom = Builders.MakeRoom(
+            shopBuilding.Id,
+            worldId: WorldId,
+            locationId: shopLocationId
+        );
+        _context.Buildings.Add(shopBuilding);
+        _context.Rooms.Add(shopRoom);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var shop = await SeedLocation(roomId: shopRoom.Id, id: shopLocationId);
+        var worker = await SeedCreature(home.Id);
+        await AddMeasuredConnector(home.Id, district.Id);
+        await AddMeasuredConnector(district.Id, shop.Id);
+        await AddJob(
+            Builders.MakeCreatureJob(
+                worker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 8,
+                endHour: 18,
+                locationId: shop.Id,
+                priority: 50
+            )
+        );
+
+        // Act
+        await _handler.Handle(
+            new CatchUpLocationCommand
+            {
+                WorldId = WorldId,
+                PlayerId = PlayerId,
+                LocationId = district.Id,
+                PlayerLevel = 1,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 7,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updated = await verifyContext.Creatures.FindAsync(
+            [worker.Id],
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(shop.Id, updated!.LocationId);
+        Assert.Equal(CreatureState.Working, updated.State);
+    }
+
     private async Task<Building> SeedBuilding(Guid ownerId)
     {
         var building = Builders.MakeBuilding(worldId: WorldId);

@@ -22,9 +22,14 @@ public class SyncLocationJobsCommand
 internal class SyncLocationJobsCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<
-        GetCreatureIdsWithCreatureJobInLocationQuery,
+        GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
-    > getCreatureIdsWithJobInLocation,
+    > getCreatureIdsWithJobInLocations,
+    IQueryHandler<
+        GetBuildingsByLocationQuery,
+        IReadOnlyCollection<Building>
+    > getBuildingsByLocation,
+    IQueryHandler<GetRoomsByBuildingIdsQuery, IReadOnlyCollection<Room>> getRoomsByBuildingIds,
     IQueryHandler<GetCreatureIdsByDistrictQuery, IReadOnlyList<Guid>> getCreatureIdsByDistrict,
     IQueryHandler<GetRouteIdsByLocationIdQuery, IReadOnlyList<Guid>> getRouteIdsByLocationId,
     IQueryHandler<
@@ -86,8 +91,7 @@ internal class SyncLocationJobsCommandHandler(
         }
     }
 
-    // Creatures whose job targets this location, creatures already standing in its district, and
-    // travelers passing through overlap, so they are unioned to avoid advancing a schedule twice.
+    // The sources overlap, so they are unioned to avoid advancing a schedule twice.
     private async Task<HashSet<Guid>> ResolveScheduledCreatureIds(
         SyncLocationJobsCommand command,
         Location location,
@@ -95,10 +99,13 @@ internal class SyncLocationJobsCommandHandler(
     )
     {
         var creatureIds = new HashSet<Guid>(
-            await getCreatureIdsWithJobInLocation.Handle(
-                new GetCreatureIdsWithCreatureJobInLocationQuery
+            await getCreatureIdsWithJobInLocations.Handle(
+                new GetCreatureIdsWithCreatureJobInLocationsQuery
                 {
-                    LocationId = command.LocationId,
+                    LocationIds = await ResolveJobLocationIds(
+                        command.LocationId,
+                        cancellationToken
+                    ),
                 },
                 cancellationToken
             )
@@ -145,6 +152,30 @@ internal class SyncLocationJobsCommandHandler(
         }
 
         return creatureIds;
+    }
+
+    private async Task<IReadOnlyCollection<Guid>> ResolveJobLocationIds(
+        Guid locationId,
+        CancellationToken cancellationToken
+    )
+    {
+        var buildings = await getBuildingsByLocation.Handle(
+            new GetBuildingsByLocationQuery { LocationId = locationId },
+            cancellationToken
+        );
+        if (buildings.Count == 0)
+        {
+            return [locationId];
+        }
+
+        var rooms = await getRoomsByBuildingIds.Handle(
+            new GetRoomsByBuildingIdsQuery
+            {
+                BuildingIds = buildings.Select(building => building.Id).ToArray(),
+            },
+            cancellationToken
+        );
+        return [locationId, .. rooms.Select(room => room.LocationId)];
     }
 
     private async Task AssignWorkstations(
