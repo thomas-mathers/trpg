@@ -61,7 +61,8 @@ internal record MoveToolResult(
     MoveToolShakedownEncounter? ShakedownEncounter,
     MoveToolGuardEncounter? GuardEncounter,
     MoveToolOverdueKeyEncounter? OverdueRoomKeyEncounter,
-    MoveToolSuspicionEncounter? SuspicionEncounter
+    MoveToolSuspicionEncounter? SuspicionEncounter,
+    string? TravelTime = null
 );
 
 internal class MoveTool(
@@ -93,7 +94,7 @@ internal class MoveTool(
 
     [DisplayName("move")]
     [Description(
-        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it. When the result carries a guardEncounter, the named guard is stopping the player over the offences in RecentOffenses: any entry with AgainstTheGuard true was committed against that guard personally, so have them speak as the wronged party for those and as an officer of the city for the rest."
+        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it. When the result carries a guardEncounter, the named guard is stopping the player over the offences in RecentOffenses: any entry with AgainstTheGuard true was committed against that guard personally, so have them speak as the wronged party for those and as an officer of the city for the rest. When the result carries a travelTime, that is exactly how long the trip took: narrate that duration and never work it out from the change in the date or hour, because time also passes while the player is idle."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -214,7 +215,11 @@ internal class MoveTool(
             cancellationToken
         );
 
-        var result = BuildResult(scene, startedEncounter);
+        var result = BuildResult(
+            scene,
+            startedEncounter,
+            FormatTravelTime(destinationResult.TravelTimeHours)
+        );
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
@@ -284,13 +289,39 @@ internal class MoveTool(
         return BuildResult(scene, interception.Encounter);
     }
 
-    private static MoveToolResult BuildResult(SceneResult scene, Encounter? encounter) =>
+    private static MoveToolResult BuildResult(
+        SceneResult scene,
+        Encounter? encounter,
+        string? travelTime = null
+    ) =>
         new(
             scene.ToLlmScene(),
             (encounter as HostileEncounter)?.ToMoveToolSummary(),
             (encounter as ShakedownEncounter)?.ToMoveToolSummary(),
             (encounter as GuardEncounter)?.ToMoveToolSummary(),
             (encounter as TheftEncounter)?.ToMoveToolSummary(),
-            (encounter as SuspicionEncounter)?.ToMoveToolSummary()
+            (encounter as SuspicionEncounter)?.ToMoveToolSummary(),
+            travelTime
         );
+
+    private static string? FormatTravelTime(double travelTimeHours)
+    {
+        if (travelTimeHours <= 0)
+        {
+            return null;
+        }
+
+        var totalMinutes = Math.Max(1, (int)Math.Round(travelTimeHours * 60));
+        var parts = new List<string>();
+        if (totalMinutes / 60 > 0)
+        {
+            parts.Add($"{totalMinutes / 60} {(totalMinutes / 60 == 1 ? "hour" : "hours")}");
+        }
+        if (totalMinutes % 60 > 0)
+        {
+            parts.Add($"{totalMinutes % 60} {(totalMinutes % 60 == 1 ? "minute" : "minutes")}");
+        }
+
+        return string.Join(" and ", parts);
+    }
 }

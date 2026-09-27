@@ -477,6 +477,61 @@ public sealed class MoveToolTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Invoke_ReportsTheTravelTime_WhenCrossingATravelConnector()
+    {
+        // Arrange — default player has Dexterity 8, so speed is 50 + 8 = 58; 116 / 58 = 2 hours
+        var connector = await _context.LocationConnectors.SingleAsync(
+            c => c.OriginLocationId == _oldLocation.Id,
+            TestContext.Current.CancellationToken
+        );
+        _context.TravelConnectors.Add(
+            Builders.MakeTravelConnector(connector.Id, distance: 116, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("2 hours", Assert.IsType<MoveToolResult>(result).TravelTime);
+    }
+
+    [Fact]
+    public async Task Invoke_ReportsMinutes_WhenTheTripIsShorterThanAnHour()
+    {
+        // Arrange — 29 / 58 = 30 minutes
+        var connector = await _context.LocationConnectors.SingleAsync(
+            c => c.OriginLocationId == _oldLocation.Id,
+            TestContext.Current.CancellationToken
+        );
+        _context.TravelConnectors.Add(
+            Builders.MakeTravelConnector(connector.Id, distance: 29, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal("30 minutes", Assert.IsType<MoveToolResult>(result).TravelTime);
+    }
+
+    [Fact]
+    public async Task Invoke_ReportsNoTravelTime_WhenTheConnectorHasNoTravelConnector()
+    {
+        // Arrange
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Null(Assert.IsType<MoveToolResult>(result).TravelTime);
+    }
+
+    [Fact]
     public async Task Invoke_RegeneratesThePlayerOverTheTravelTime_WhenCrossingATravelConnector()
     {
         // Arrange
