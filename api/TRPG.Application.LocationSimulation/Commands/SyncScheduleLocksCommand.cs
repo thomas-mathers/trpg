@@ -34,7 +34,7 @@ internal class SyncScheduleLocksCommandHandler(
     > getJobsOfBuildingWorkers,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<GetRoomsByBuildingIdsQuery, IReadOnlyCollection<Room>> getRoomsByBuildingIds,
-    ICommandHandler<SetFrontDoorLockedCommand, bool?> setFrontDoorLocked
+    ICommandHandler<SetFrontDoorsLockedCommand> setFrontDoorsLocked
 ) : ICommandHandler<SyncScheduleLocksCommand>
 {
     private static readonly HashSet<BuildingType> NeverLocked =
@@ -104,18 +104,30 @@ internal class SyncScheduleLocksCommandHandler(
             cancellationToken
         );
 
-        foreach (var shop in shops)
-        {
-            var roomLocationIds = roomLocationIdsByBuilding.GetValueOrDefault(shop.BuildingId, []);
-            var anyoneWorking = workersById.Values.Any(worker =>
-                worker.State == CreatureState.Working && roomLocationIds.Contains(worker.LocationId)
-            );
+        var workingLocationIds = workersById
+            .Values.Where(worker => worker.State == CreatureState.Working)
+            .Select(worker => worker.LocationId)
+            .ToHashSet();
 
-            await setFrontDoorLocked.Handle(
-                new SetFrontDoorLockedCommand
+        var buildingIdsByLockState = shops
+            .Select(shop =>
+                (
+                    shop.BuildingId,
+                    IsLocked: !roomLocationIdsByBuilding
+                        .GetValueOrDefault(shop.BuildingId, [])
+                        .Overlaps(workingLocationIds)
+                )
+            )
+            .GroupBy(entry => entry.IsLocked, entry => entry.BuildingId)
+            .ToArray();
+
+        foreach (var group in buildingIdsByLockState)
+        {
+            await setFrontDoorsLocked.Handle(
+                new SetFrontDoorsLockedCommand
                 {
-                    BuildingId = shop.BuildingId,
-                    IsLocked = !anyoneWorking,
+                    BuildingIds = group.ToArray(),
+                    IsLocked = group.Key,
                 },
                 cancellationToken
             );
@@ -167,25 +179,38 @@ internal class SyncScheduleLocksCommandHandler(
             cancellationToken
         );
 
-        foreach (var (buildingId, ownerId) in ownerIdByBuildingId)
-        {
-            var jobs = jobsByCreatureId.GetValueOrDefault(ownerId!.Value, []);
-            var activeJob = jobs.Where(job =>
-                    CreatureJobScheduling.IsActiveAtHour(job, currentDate.Weekday, currentDate.Hour)
+        var buildingIdsByLockState = ownerIdByBuildingId
+            .Select(entry =>
+                (
+                    entry.BuildingId,
+                    ActiveJob: jobsByCreatureId
+                        .GetValueOrDefault(entry.OwnerId!.Value, [])
+                        .Where(job =>
+                            CreatureJobScheduling.IsActiveAtHour(
+                                job,
+                                currentDate.Weekday,
+                                currentDate.Hour
+                            )
+                        )
+                        .OrderByDescending(job => job.Priority)
+                        .ThenBy(job => job.Id)
+                        .FirstOrDefault()
                 )
-                .OrderByDescending(job => job.Priority)
-                .ThenBy(job => job.Id)
-                .FirstOrDefault();
-            if (activeJob == null)
-            {
-                continue;
-            }
+            )
+            .Where(entry => entry.ActiveJob != null)
+            .GroupBy(
+                entry => entry.ActiveJob!.Action == CreatureJobAction.Sleep,
+                entry => entry.BuildingId
+            )
+            .ToArray();
 
-            await setFrontDoorLocked.Handle(
-                new SetFrontDoorLockedCommand
+        foreach (var group in buildingIdsByLockState)
+        {
+            await setFrontDoorsLocked.Handle(
+                new SetFrontDoorsLockedCommand
                 {
-                    BuildingId = buildingId,
-                    IsLocked = activeJob.Action == CreatureJobAction.Sleep,
+                    BuildingIds = group.ToArray(),
+                    IsLocked = group.Key,
                 },
                 cancellationToken
             );
