@@ -1,6 +1,7 @@
 using System.Transactions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Chat.Commands;
+using TRPG.Application.Chat.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -22,9 +23,11 @@ public class CloseLingeringNpcConversationsCommand
 internal class CloseLingeringNpcConversationsCommandHandler(
     LlmConversationClient llmConversationClient,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
+    IQueryHandler<GetNextChatMessageOrdinalQuery, int> getNextChatMessageOrdinal,
     ICommandHandler<ClearOpenNpcConversationsCommand> clearOpenNpcConversations,
     ICommandHandler<ReleaseCreaturesCommand> releaseCreatures,
     ICommandHandler<ClearChatMessagesCommand> clearChatMessages,
+    ICommandHandler<RemoveChatMessagesFromOrdinalCommand> removeChatMessagesFromOrdinal,
     ILogger<CloseLingeringNpcConversationsCommandHandler> logger
 ) : ICommandHandler<CloseLingeringNpcConversationsCommand>
 {
@@ -37,6 +40,15 @@ internal class CloseLingeringNpcConversationsCommandHandler(
             new GetOpenNpcConversationsQuery { SessionId = command.SessionId },
             cancellationToken
         );
+
+        // Captured before the forced end_conversation exchanges below so that bookkeeping can be purged afterward.
+        var forceEndBoundary =
+            openConversations.Count == 0
+                ? (int?)null
+                : await getNextChatMessageOrdinal.Handle(
+                    new GetNextChatMessageOrdinalQuery { SessionId = command.SessionId },
+                    cancellationToken
+                );
 
         foreach (var npcName in openConversations.Keys)
         {
@@ -73,6 +85,18 @@ internal class CloseLingeringNpcConversationsCommandHandler(
             },
             cancellationToken
         );
+
+        if (forceEndBoundary != null)
+        {
+            await removeChatMessagesFromOrdinal.Handle(
+                new RemoveChatMessagesFromOrdinalCommand
+                {
+                    SessionId = command.SessionId,
+                    FromOrdinal = forceEndBoundary.Value,
+                },
+                cancellationToken
+            );
+        }
 
         transaction.Complete();
     }

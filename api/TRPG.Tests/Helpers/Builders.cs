@@ -1328,6 +1328,22 @@ internal static class Builders
         return new GameSession { WorldId = worldId, PlayerId = playerId };
     }
 
+    public static ChatMessage MakeChatMessage(
+        Guid sessionId,
+        int ordinal,
+        string role = "user",
+        string messageJson = "{}"
+    )
+    {
+        return new ChatMessage
+        {
+            SessionId = sessionId,
+            Ordinal = ordinal,
+            Role = role,
+            MessageJson = messageJson,
+        };
+    }
+
     public static Reputation MakeReputation(
         Guid? worldId = null,
         Guid? creatureId = null,
