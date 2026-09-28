@@ -68,6 +68,7 @@ public record SceneCreatureInfo(
     int Age,
     IReadOnlyCollection<string> FactionNames,
     CreatureState? State,
+    CreaturePosture Posture,
     bool IsSneaking,
     int? Reputation,
     int Gold,

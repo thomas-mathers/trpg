@@ -230,18 +230,21 @@ internal static class Builders
         int? currentAp = null,
         int? currentMp = null,
         CreatureState state = default,
+        CreaturePosture posture = default,
         int naturalWeaponMinDamage = 3,
         int naturalWeaponMaxDamage = 3,
         Guid? playerCorpseOwnerId = null,
         Guid? spawnerId = null,
         bool isSneaking = false,
-        bool isEngaged = false
+        bool isEngaged = false,
+        Guid? id = null
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
 
         return new Creature
         {
+            Id = id ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             CreatureType = creatureType,
@@ -252,6 +255,7 @@ internal static class Builders
             PreviousLocationId = previousLocationId,
             Level = level,
             State = state,
+            Posture = posture,
             PlayerCorpseOwnerId = playerCorpseOwnerId,
             SpawnerId = spawnerId,
             IsSneaking = isSneaking,

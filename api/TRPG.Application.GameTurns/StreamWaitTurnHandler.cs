@@ -53,7 +53,7 @@ internal class StreamWaitTurnHandler(
             new GetCreatureByIdQuery { Id = session.PlayerId },
             cancellationToken
         );
-        if (player?.State != CreatureState.Sitting)
+        if (player?.Posture != CreaturePosture.Sitting)
         {
             return new GameTurnPrompt.Reply("You need to sit down before waiting.");
         }

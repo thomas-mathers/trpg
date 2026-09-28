@@ -435,6 +435,7 @@ internal class GetSceneQueryHandler(
             query.CurrentDate.Year,
             factionNames: [],
             state: player.State,
+            posture: player.Posture,
             reputation: null,
             totalCharacterXp
         );
@@ -445,6 +446,7 @@ internal class GetSceneQueryHandler(
         int currentYear,
         IReadOnlyCollection<string> factionNames,
         CreatureState? state,
+        CreaturePosture posture,
         int? reputation,
         int totalCharacterXp,
         Guid? tradeWorkstationId = null,
@@ -468,6 +470,7 @@ internal class GetSceneQueryHandler(
             currentYear - creature.BirthYear,
             factionNames,
             state,
+            posture,
             creature.IsSneaking,
             reputation,
             creature.Gold,
@@ -766,6 +769,7 @@ internal class GetSceneQueryHandler(
                     query.CurrentDate.Year,
                     factionNames: factionNamesByCreature.GetValueOrDefault(x.Id, []),
                     state: x.State,
+                    posture: x.Posture,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),

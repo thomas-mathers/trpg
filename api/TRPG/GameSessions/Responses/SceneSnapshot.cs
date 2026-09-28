@@ -64,7 +64,6 @@ public enum Profession
 public enum CreatureState
 {
     Idle,
-    Sitting,
     Sleeping,
     Working,
     Studying,
@@ -74,6 +73,14 @@ public enum CreatureState
     Dead,
     Restrained,
     Walking,
+}
+
+[TranspilationSource]
+public enum CreaturePosture
+{
+    Standing,
+    Sitting,
+    Laying,
 }
 
 [TranspilationSource]
@@ -198,6 +205,7 @@ public record CreatureStatusSnapshot(
     int Level,
     int Age,
     CreatureState? State,
+    CreaturePosture Posture,
     bool IsSneaking,
     int Gold,
     int CurrentHp,

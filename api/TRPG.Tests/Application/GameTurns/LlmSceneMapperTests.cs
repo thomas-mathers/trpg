@@ -145,6 +145,7 @@ public sealed class LlmSceneMapperTests
             Age: 68,
             FactionNames: [],
             State: CreatureState.Working,
+            Posture: CreaturePosture.Standing,
             IsSneaking: false,
             Reputation: -50,
             Gold: gold,

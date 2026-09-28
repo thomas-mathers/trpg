@@ -6,6 +6,7 @@ using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Props.Commands;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.Routing.Commands;
 using TRPG.Application.Routing.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -54,7 +55,11 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     ICommandHandler<ExecuteCreatureJobCommand> executeCreatureJob,
     ICommandHandler<ClearBedOccupantsCommand> clearBedOccupants,
     ICommandHandler<ClearWorkstationOccupantsCommand> clearWorkstationOccupants,
-    ICommandHandler<ClearSeatOccupantsCommand> clearSeatOccupants
+    ICommandHandler<ClearSeatOccupantsCommand> clearSeatOccupants,
+    IQueryHandler<
+        GetSeatIdsByOccupantIdsQuery,
+        IReadOnlyDictionary<Guid, Guid>
+    > getSeatIdsByOccupantIds
 ) : ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
 {
     private static readonly HashSet<CreatureState> NonSchedulableStates =
@@ -113,6 +118,10 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                     .Distinct()
                     .ToArray(),
             },
+            cancellationToken
+        );
+        var previousSeatIdByCreatureId = await getSeatIdsByOccupantIds.Handle(
+            new GetSeatIdsByOccupantIdsQuery { OccupantIds = scheduledIds },
             cancellationToken
         );
         await clearBedOccupants.Handle(
@@ -181,6 +190,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             creaturesReadyForJobs,
             jobsByCreatureId,
             command.GameTime,
+            previousSeatIdByCreatureId,
             cancellationToken
         );
     }
@@ -578,6 +588,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         IReadOnlyCollection<CreatureAtDestination> creatures,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
         GameInstant gameTime,
+        IReadOnlyDictionary<Guid, Guid> previousSeatIdByCreatureId,
         CancellationToken cancellationToken
     )
     {
@@ -587,7 +598,12 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         foreach (
             var entry in creatures
                 .DistinctBy(entry => entry.Creature.Id)
-                .OrderBy(entry => entry.AvailableAtGameTime.HasValue)
+                // A creature reclaiming the seat it already held gets first crack at the seat
+                // pool, so a scarce-seat location doesn't reshuffle occupants every resync.
+                .OrderByDescending(entry =>
+                    previousSeatIdByCreatureId.ContainsKey(entry.Creature.Id)
+                )
+                .ThenBy(entry => entry.AvailableAtGameTime.HasValue)
                 .ThenBy(entry => entry.AvailableAtGameTime)
                 .ThenBy(entry => entry.Creature.Id)
         )
@@ -630,9 +646,16 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                 {
                     CreatureId = entry.Creature.Id,
                     CurrentLocationId = entry.LocationId,
-                    CurrentState = CreatureState.Idle,
+                    CurrentState = entry.Creature.State,
+                    CurrentPosture = entry.Creature.Posture,
                     CreatureJobAction = job.Action,
                     JobLocationId = job.LocationId,
+                    PreferredSeatId = previousSeatIdByCreatureId.TryGetValue(
+                        entry.Creature.Id,
+                        out var previousSeatId
+                    )
+                        ? previousSeatId
+                        : null,
                 },
                 cancellationToken
             );

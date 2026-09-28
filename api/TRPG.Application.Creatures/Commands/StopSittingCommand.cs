@@ -20,10 +20,11 @@ internal class StopSittingCommandHandler(ICreaturesDbContext context)
     {
         await context
             .Creatures.Where(creature =>
-                creature.Id == command.CreatureId && creature.State == CreatureState.Sitting
+                creature.Id == command.CreatureId && creature.Posture == CreaturePosture.Sitting
             )
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(creature => creature.State, CreatureState.Idle),
+                setters =>
+                    setters.SetProperty(creature => creature.Posture, CreaturePosture.Standing),
                 cancellationToken
             );
     }

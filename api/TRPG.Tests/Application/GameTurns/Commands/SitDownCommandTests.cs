@@ -52,7 +52,7 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
             .Props.OfType<Seat>()
             .SingleAsync(prop => prop.Id == _seat.Id, TestContext.Current.CancellationToken);
         Assert.Equal(SitDownResult.Success, result);
-        Assert.Equal(CreatureState.Sitting, player.State);
+        Assert.Equal(CreaturePosture.Sitting, player.Posture);
         Assert.Equal(_player.Id, seat.OccupantId);
     }
 
@@ -80,7 +80,7 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
     [Fact]
     public async Task StandUp_ClearsSeatAndSetsPlayerIdle_WhenPlayerIsSitting()
     {
-        _player.State = CreatureState.Sitting;
+        _player.Posture = CreaturePosture.Sitting;
         _seat.OccupantId = _player.Id;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var handler = _services.GetRequiredService<StandUpCommandHandler>();
@@ -99,7 +99,7 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
             .Props.OfType<Seat>()
             .SingleAsync(prop => prop.Id == _seat.Id, TestContext.Current.CancellationToken);
         Assert.Equal(StandUpResult.Success, result);
-        Assert.Equal(CreatureState.Idle, player.State);
+        Assert.Equal(CreaturePosture.Standing, player.Posture);
         Assert.Null(seat.OccupantId);
     }
 }

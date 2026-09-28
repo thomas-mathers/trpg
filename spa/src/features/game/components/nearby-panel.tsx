@@ -410,7 +410,7 @@ export function NearbyPanel({
       {nearbySeats.length > 0 && (
         <Section title="Nearby Seating">
           {nearbySeats.map((seat) => {
-            const playerIsSitting = scene.playerStatus.state === 'Sitting';
+            const playerIsSitting = scene.playerStatus.posture === 'Sitting';
             const disabled =
               (seat.isOccupied && !seat.isOccupiedByPlayer) ||
               (playerIsSitting && !seat.isOccupiedByPlayer);
@@ -671,6 +671,11 @@ function CreatureRow({
         {creature.state && (
           <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
             {creature.state}
+          </span>
+        )}
+        {creature.posture !== 'Standing' && (
+          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
+            {creature.posture}
           </span>
         )}
       </span>

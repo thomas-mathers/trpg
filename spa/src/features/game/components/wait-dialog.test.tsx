@@ -22,7 +22,7 @@ function scene(hour: number, minute = 0): SceneSnapshot {
     gameTimeMilliseconds: ((hour - EPOCH_HOUR) * 60 + minute) * MILLISECONDS_PER_MINUTE,
     anchoredAtUnixMilliseconds: Date.now(),
     timeScale: 1,
-    playerStatus: { id: 'player-id', level: 1, state: 'Sitting' },
+    playerStatus: { id: 'player-id', level: 1, state: 'Idle', posture: 'Sitting' },
   } as unknown as SceneSnapshot;
 }
 
@@ -157,7 +157,7 @@ describe('WaitDialog', () => {
     const onClose = vi.fn();
     const notSitting = {
       ...scene(8),
-      playerStatus: { ...scene(8).playerStatus, state: 'Idle' as const },
+      playerStatus: { ...scene(8).playerStatus, posture: 'Standing' as const },
     };
 
     renderWithProviders(

@@ -11,6 +11,7 @@ public class UpdateCreaturesCommand
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
     public Guid? LocationId { get; init; }
     public CreatureState? State { get; init; }
+    public CreaturePosture? Posture { get; init; }
     public GameInstant? LastRegenGameTime { get; init; }
     public string? Name { get; init; }
 }
@@ -26,6 +27,7 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
         var hasFieldToUpdate =
             command.LocationId != null
             || command.State != null
+            || command.Posture != null
             || command.LastRegenGameTime != null
             || command.Name != null;
 
@@ -36,9 +38,11 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
 
         var locationId = command.LocationId ?? Guid.Empty;
         var state = command.State ?? default;
+        var posture = command.Posture ?? default;
         var lastRegenGameTime = command.LastRegenGameTime ?? default;
         var hasLocation = command.LocationId != null;
         var hasState = command.State != null;
+        var hasPosture = command.Posture != null;
         var hasLastRegenGameTime = command.LastRegenGameTime != null;
         var hasName = command.Name != null;
 
@@ -48,6 +52,7 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
             .Where(c =>
                 (hasLocation && c.LocationId != locationId)
                 || (hasState && c.State != state)
+                || (hasPosture && c.Posture != posture)
                 || (hasLastRegenGameTime && c.LastRegenGameTime != lastRegenGameTime)
                 || (hasName && c.Name != command.Name)
             )
@@ -65,6 +70,10 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
                     if (command.State != null)
                     {
                         s.SetProperty(c => c.State, command.State.Value);
+                    }
+                    if (command.Posture != null)
+                    {
+                        s.SetProperty(c => c.Posture, command.Posture.Value);
                     }
                     if (command.LastRegenGameTime != null)
                     {

@@ -240,6 +240,7 @@ public class SceneSemanticComparerTests
             Age: 30,
             FactionNames: ["Guild"],
             State: state,
+            Posture: CreaturePosture.Standing,
             IsSneaking: false,
             Reputation: 0,
             Gold: 5,

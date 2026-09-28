@@ -7,6 +7,7 @@ export type CrimeNotification = {
     /** Transpiled from string */
     crimeName: string;
 }
+
 /** Transpiled from TRPG.GameSessions.Responses.CreatureType */
 export type CreatureType = "Human" | "Elf" | "Dwarf" | "Orc" | "Halfling" | "Gnome" | "Undead" | "Demon" | "Beast" | "Construct" | "Elemental" | "Goblin" | "Wraith" | "Giant" | "Dragon";
 
@@ -17,7 +18,10 @@ export type Gender = "Male" | "Female";
 export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Mercenary" | "Alchemist" | "Blacksmith" | "Scholar" | "Merchant" | "Politician" | "StableMaster" | "Bartender" | "Guard" | "Baker" | "Innkeeper" | "Tailor" | "Carpenter" | "Jeweler" | "Homemaker" | "Unemployed";
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
-export type CreatureState = "Idle" | "Sitting" | "Sleeping" | "Working" | "Studying" | "Praying" | "Eating" | "Alerted" | "Dead" | "Restrained" | "Walking";
+export type CreatureState = "Idle" | "Sleeping" | "Working" | "Studying" | "Praying" | "Eating" | "Alerted" | "Dead" | "Restrained" | "Walking";
+
+/** Transpiled from TRPG.GameSessions.Responses.CreaturePosture */
+export type CreaturePosture = "Standing" | "Sitting" | "Laying";
 
 /** Transpiled from TRPG.GameSessions.Responses.RoomRole */
 export type RoomRole = "Entrance" | "BossChamber" | "Passage" | "GuardPost" | "Storeroom" | "TreasureRoom" | "Shrine" | "Study" | "CellBlock" | "CollapsedGallery" | "FloodedSump";
@@ -85,6 +89,8 @@ export type CreatureStatusSnapshot = {
     age: number;
     /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
     state?: CreatureState;
+    /** Transpiled from TRPG.GameSessions.Responses.CreaturePosture */
+    posture: CreaturePosture;
     /** Transpiled from bool */
     isSneaking: boolean;
     /** Transpiled from int */
@@ -257,3 +263,4 @@ export type NearbyCaravanSnapshot = {
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CaravanDestinationSnapshot> */
     destinations: CaravanDestinationSnapshot[];
 }
+
