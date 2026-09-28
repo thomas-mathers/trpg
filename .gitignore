@@ -6,6 +6,5 @@ riderModule.iml
 logs/
 .idea/
 .vs/
-/scripts/benchmark-results.csv
 /TestResults/
 /CoverageReport/

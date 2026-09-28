@@ -1,0 +1,15 @@
+model_verbosity = "low"
+
+[mcp_servers.roslyn-codelens]
+command = "roslyn-codelens-mcp"
+args = ["api/TRPG.sln"]
+
+[mcp_servers.typescript]
+command = "typescript-mcp"
+
+[mcp_servers.postgres]
+command = "docker"
+args = ["run", "-i", "--rm", "-e", "DATABASE_URI", "crystaldba/postgres-mcp", "--access-mode=restricted"]
+
+[mcp_servers.postgres.env]
+DATABASE_URI = "postgresql://postgres:postgres@host.docker.internal:5432/trpg"

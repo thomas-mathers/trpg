@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "roslyn-codelens": {
+      "command": "roslyn-codelens-mcp",
+      "args": ["api/TRPG.sln"]
+    },
+    "typescript": {
+      "command": "typescript-mcp"
+    },
+    "postgres": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "DATABASE_URI", "crystaldba/postgres-mcp", "--access-mode=restricted"],
+      "env": {
+        "DATABASE_URI": "postgresql://postgres:postgres@host.docker.internal:5432/trpg"
+      }
+    }
+  }
+}

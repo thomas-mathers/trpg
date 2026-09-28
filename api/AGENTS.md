@@ -1,0 +1,234 @@
+# Backend Guide
+
+## Project Structure
+
+### Projects
+- `api/TRPG` — ASP.NET Core host: HTTP endpoints, SignalR hubs, DI composition, jobs, and LLM tool adapters.
+- `api/TRPG.Application.*` — feature assemblies; there is no `TRPG.Application` umbrella project. The host and `TRPG.Balance` compose the modules directly.
+- `api/TRPG.Application.Common` — small shared foundation only: events, exceptions, optional values, shared JSON serialization options, and genuinely reusable utilities. It must not become a feature-mapping or feature-logic bucket.
+- `api/TRPG.Application.Configuration` — public configuration options shared across modules.
+- `api/TRPG.Application.CreatureFormulas` — public stat, skill, and progression formulas.
+- `api/TRPG.Application.Combat` — deterministic combat rules, simulation state, and result types. It has no persistence or fight-lifecycle ownership.
+- `api/TRPG.Application.GameTurns` — turn orchestration, player movement, scene projection, LLM conversation execution, and application event publication for that workflow.
+- `api/TRPG.Application.LocationSimulation` — lazy location catch-up: creature jobs and spawning, scheduled locks, restocking, abandoned-corpse cleanup, and transient alerted-state reset. It owns `CreatureSpawner` and `RestockPolicy` persistence.
+- `api/TRPG.Application.WorldGeneration` — procedural world-generation content: all `Generators/`, the player-creation mapper/enum catalog, and the static naming catalogs (`JailRoomNames`, `TempleRoomNames`, `ShopBuildingTypes`) generated content must match. Zero cross-module Application dependencies — a stateless content-generation library, not an orchestrator.
+- Feature modules own their domain: Abilities, Chat, CreatureJobs, Creatures, Encounters, Factions, GameSessions, Inventory, Knowledge, Narration, NpcConversations, Props, Quests, Reputations, RoomBookings, Routing, WeaponProficiency, and Worlds. Routing owns route-backed traveler groups, their memberships, purposes, and position calculation. Encounters owns the persisted encounter hierarchy and every fight-lifecycle command/query/event; it uses Combat only for deterministic round simulation. Worlds owns location/building/room/door-connector structure and ownership, plus world/country/state/city/district lifecycle; it depends on WorldGeneration (never the reverse) to run generation during world creation. Knowledge owns what a creature has learned about the world (`CreatureKnowledge`) and family ties (`Relationship`) — graph-edge tables distinct from Creatures' intrinsic-attribute tables.
+- `api/TRPG.Domain` — dependency-free game entities, value objects, and domain enums. It has no project or package dependencies.
+- `api/TRPG.Data` — EF Core contexts, persistence configuration, and migrations. It references Domain for the persisted model types.
+- `api/TRPG.Tests` — xUnit tests with Testcontainers-backed PostgreSQL.
+
+### Module boundaries
+- A feature module owns its commands, queries, events, mappers, and result types. Keep feature-specific enum/response mapping in that feature's `Mappers/` folder.
+- Put a module's `*ServiceCollectionExtensions` registration class in its top-level `Extensions/` folder and namespace it under `<Module>.Extensions`.
+- In `Application.Common`, keep command contracts in `Commands/`, query contracts in `Queries/`, and validator contracts and attributes in `Validation/`. Keep host command/query decorators and validation adapters in the corresponding top-level folders.
+- Commands, queries, and their result/response types are public. Command and query handler implementations (`*CommandHandler`/`*QueryHandler`) are `internal` — callers depend on `ICommandHandler<>`/`IQueryHandler<,>` (`TRPG.Application.Common.Commands` / `TRPG.Application.Common.Queries`) and never name the concrete handler class, and DI resolves them via assembly scanning (`ApplicationServiceCollectionExtensions`'s `Scan(...)`, which scans non-public types too), so no `InternalsVisibleTo` is needed for this. Keep all other types `internal` unless they are an intentional shared contract or a public API requires them to be public.
+- Do not add `InternalsVisibleTo` preemptively. First make the boundary explicit and compile; add the narrow one-way friendship only when an internal implementation dependency is genuinely required.
+- Prefer a feature-local type or boundary mapping over a new Common dependency. A utility used by only one feature belongs in that feature.
+- `DeleteCreaturesCommand` is a deliberate exception to feature-owned persistence: creature removal atomically cleans every dependent row because its only production caller is abandoned-corpse cleanup. Do not copy this pattern; revisit it if creature deletion gains another caller or module persistence is separated.
+- Application modules never define HTTP or SignalR wire types: requests, responses, client payloads, hub method names, and their mappings belong in the host `TRPG`. `GameClientEvent` is a payload-free application notification marker; host event mappers translate it into a typed client call, which the SignalR dispatcher delivers. Its sink and `EntityNotFoundException` are public Common infrastructure.
+- LLM-facing payloads are not client wire types and do not belong in the host. `LlmScene`/`LlmSceneMapper` (`TRPG.Application.GameTurns`) are the one shape the model is shown a location in, and are public precisely so the host's `look`/`move` tools and the module's own narration prompts render it identically. A turn prompt that relocates the player without a tool call must include this payload, or the model has no exit or prop names to pass back to a tool.
+- Keep serialization consistent: use `TrpgJsonOptions.Default`; do not introduce feature-specific JSON option sets.
+
+### Folder convention: feature-then-type
+- Inside `api/TRPG` and each `api/TRPG.Application.*` module, each top-level folder is a feature area (`Combat`, `Worlds`, `GameSessions`, `Inventory`, `Abilities`, `Creatures`, ...), not a type bucket
+- Within a feature module, command, query, mapper, event, and shared result files live in `Commands/`, `Queries/`, `Mappers/`, `Events/`, and `Results/`. Define a result beside the single command/query handler that instantiates and uses it; move it to `Results/` when it is reused by multiple application types. Other role-specific folders include `Tools/` and `Generators/`. Host features use `Endpoints/`, `Hubs/`, `Jobs/`, `Requests/`, and `Responses/`; `Responses/` contains both HTTP responses and SignalR callback payloads.
+- `api/TRPG.Domain/Models/` is flat — entities aren't split by feature. `api/TRPG.Data` contains EF contexts and migrations only.
+
+### Key request flows
+- **Plain HTTP**: `api/TRPG/<Feature>/Endpoints/<Feature>Endpoints.cs` → one or more `*QueryHandler`/`*CommandHandler` in the owning application module, or a host-owned handler for endpoint-specific composition such as the world map → module query/command handlers → `TrpgDbContext`
+- Endpoint methods never inject `TrpgDbContext`. Database access belongs in a dedicated command or query handler.
+- **Player turn (chat/wait)**: `api/TRPG/GameSessions/Hubs/ChatHub.cs` (SignalR) → `GameTurnRunner` (`api/TRPG.Application.GameTurns/GameTurnRunner.cs`) → LLM (`IChatClient`) with host-owned tool adapters → narration streamed back token-by-token. Waiting additionally requires the player to occupy a nearby seat and have `Sitting` state; sit/stand actions update both facts transactionally and publish a scene refresh without narration.
+- **World clock**: game time belongs to the `World` and runs at `WorldClock:TimeScale` times real time (default 1, read once at startup, and sent to the SPA in every scene snapshot so the displayed clock matches) while the world is active; `IWorldClock` (contract in Common, singleton in Worlds, driven by an injected `TimeProvider`) pairs a `GameInstant` with a real UTC anchor per active world and persists it on checkpoint. `GameInstant` (Domain) is an absolute fictional instant persisted as `timestamp without time zone`; `DateTimeOffset` is real UTC and `TimeSpan` is a duration, and nothing absolute is stored as a `TimeSpan`. `ChatHub` resumes a world on its first session connection and pauses it only after the last session has been disconnected for `SessionEndGracePeriod`; a reconnect inside grace continues the same clock. `WorldClockCheckpointService` checkpoints active worlds on shutdown, startup treats every world as paused, and `EngagementStartupRecovery` clears abandoned non-encounter engagement. Each deterministic workflow captures one `GameInstant` at its boundary and passes it explicitly to nested commands; an LLM tool captures its instant when the tool invocation begins, never at narration start. Gameplay and background mutations for one world serialize on `IWorldMutationGate`, which is never held across narration streaming, acknowledgement waits, or conversation-summary LLM work.
+- **Explicit time skips**: wait, sleep, walking (the host move tool), and caravan boarding return a new instant from `IWorldClock.Advance`, which advances the whole world and re-anchors an active clock without stopping it. Wait and sleep reject a non-positive duration and anything over 24 in-game hours; travel is uncapped. After a skip the affected creatures catch up passive regeneration at the resulting instant and the location reconciles once at that instant, so a large jump resolves weather, restocking, spawning, quest seeding, jobs, and routes to one plausible current state instead of replaying missed intervals. The SPA derives the visible clock and its wait/sleep targets from the scene snapshot's game-time/real-time anchor.
+- **Creature engagement**: `Creature.IsEngaged` is a routing and routine lock independent of `CreatureState`. Conversations, trade, NPC quest and item hand-off panels (`BeginCreatureInteractionCommand`/`EndCreatureInteractionCommand` behind `/players/{playerId}/interactions/{creatureId}`), caravan panels (`BeginCaravanInteractionCommand`/`EndCaravanInteractionCommand`), encounters, and fights engage their participants through the shared `EngageCreaturesCommand`/`ReleaseCreaturesCommand`. Route and job synchronization skip an engaged creature; engaging any member of a route-traveler group pauses the whole group (`RouteTraveler.PausedAtGameTime`), and releasing the last member shifts the route timeline by the paused duration and reconciles job-backed creatures at the release instant. Session end and startup recovery release abandoned interactions but keep unresolved encounter and fight participants engaged, so a fight survives a disconnect.
+- **Ordinary movement**: the host move tool validates the destination, then Encounters evaluates departure interception (overdue room keys first, then location encounters excluding traps). An encounter interrupts the move and stores its departure destination; otherwise `MovePlayerCommand` stands a seated player, releases their seat through the movement event, relocates the player, and the arrival event catches up the destination and evaluates all arrival encounters. Successfully evading a hostile encounter or fleeing a suspicion encounter revalidates the connector and resumes the saved move. Encounter-driven relocations bypass departure interception and still evaluate arrival encounters.
+- **Dungeon expedition**: world generation places one eligible survivor/corpse/journal situation; Worlds persists the expedition and shared premise. Books composes the journal from that context and reading learns its secret through Knowledge. GameTurns validates explicit sharing during an active conversation and records the survivor's knowledge; LocationSimulation preserves expedition participants during corpse cleanup.
+- **Fact disclosure**: conversation tools resolve an active learn-fact objective through Quests. Failed, blocked, and too-weak attempts persist an approach-independent marker; a subsequent qualifying failure can teach the configured reason through Knowledge. New fact knowledge publishes `FactLearnedEvent`, which Quests maps to a journal refresh. Quest offers, nearby markers, and acceptance require any configured `RequiredFactId`; learning the reason never auto-accepts the supporting quest.
+- **Scene refresh**: a GameTurns workflow or host adapter → GameTurns' `RefreshSceneCommand` → LocationSimulation's `CatchUpLocationCommand` reconciles the location at the supplied instant in two lanes, with no once-per-hour gate. The traveler lane (`SyncLocationTravelersCommand`) ensures the job-derived recurring route projection exists, materializes any scheduled journey currently passing through the location, then relocates route-backed creatures to their projected leg origin or stop. The routine lane (`SyncLocationRoutinesCommand`) syncs weather, jobs with workstation occupancy, front-door locks, spawning, restocking, and quest seeding, each idempotent at the instant and due-gated by its own persisted schedule; worker job and occupancy effects run only after arrival → GameTurns' `GetSceneQuery` composes the current scene projection, showing travelers in transit as walking at their leg origin, with compact traveler journey context for the LLM.
+- **Continuous world simulation**: host `ContinuousWorldService` (an ASP.NET `BackgroundService`, not TickerQ) runs two independent `PeriodicTimer` loops that call `ContinuousWorldProcessor`. The frequent pass (every 5 seconds) checkpoints each active world's clock, runs LocationSimulation's `SyncActiveLocationTravelersCommand`, then `SyncActiveLocationRegenerationCommand`, which regenerates below-maximum creatures at the watched location (never active fight participants) and pushes the watching player's `PlayerVitalsUpdated` without waiting for an acknowledgement; the routine pass (every 30 seconds) runs `SyncActiveLocationRoutinesCommand`, which feeds any encounter group newly spawned at the watched location (reported by `SyncCreatureSpawnerCommand`) to Encounters' `EvaluateAmbientEncounterCommand`: it skips a dead player or one with an unresolved encounter or fight, evaluates only those groups, and publishes the started encounter without resolving a round or applying damage. After each pass, GameTurns' `PublishAmbientSceneCommand` compares the player's scene with the last one published (`PublishedSceneRegistry`) using `SceneSemanticComparer` and sends a full `SceneSnapshot` only on a player-visible change. Every snapshot (connect, turn diff, HTTP refresh, ambient) and every vitals update carries the persisted per-world state version from Worlds' `StampWorldStateCommand` (stamped before the scene is read, or after the mutation under the lease), and snapshots also carry the game-time/real-time clock anchor; the SPA drops a snapshot not newer than the last snapshot and a vitals update not newer than the last vitals or snapshot, and a late snapshot keeps the newer vitals that reached the client before it. Active worlds come from `IWorldClock.GetActiveWorldIds`, and the watched location comes from the world's player (`GetActiveLocationPlayersQuery`). A pass skips a world whose previous pass for the same lane is still running, and failures are logged and retried on the next tick. Each world pass captures its `GameInstant` inside an `IWorldMutationGate` lease, the same per-world lease that gameplay's deterministic operations hold (turn resolution in `GameTurnStreamer`, game tool invocation, the creature/caravan interaction endpoints, and session end). Never hold the lease across narration streaming, SignalR acknowledgement waits, or `CloseLingeringNpcConversationsCommand`'s LLM work.
+- **Quest seeding**: the scene-refresh routine lane calls LocationSimulation's `SyncQuestSeedScheduleCommand` at each `QuestSeedSchedule`d location (city entrances); on a due, chance-rolled tick it tries seven independent seed commands, each a no-op if nothing eligible exists. Six build and persist a single quest synchronously. The seventh, `SeedLlmQuestChainCommand`, gathers a bounded real-entity pool with faction bindings and enqueues `GenerateQuestChainCommand` via the host-implemented `IQuestChainGenerationScheduler` (a TickerQ job, `api/TRPG/Quests/Jobs/GenerateQuestChainJob.cs`) — LLM-authored chain generation has been measured at 50-70 seconds and must never run inline. WorldGeneration deterministically composes the graph, casts every giver and a negatively aligned antagonist from persisted faction standings, then asks the LLM only for content against that fixed cast. Long chains require a joinable, Guard, or Castle faction roster; their opening quests require player membership. Validation enforces narrated giver handoffs and a finale aimed at the cast antagonist before facts, quests, and objectives are persisted together. A `QuestChainGenerationRequest` row tracks Pending/InProgress/Completed/Failed; failed work is terminal, and startup marks interrupted in-progress requests failed so a later seed can proceed.
+- **Combat action (Attack/Defend/Item menu)**: client sends a typed `PlayerCombatAction` (`UseAbilityAction`/`UseItemAction`) over the same `SendCombatAction` hub method → `GameTurnRunner.StreamCombatAction` → `PlayerCombatActionResolver` (validates the action, never throws — returns a `PlayerCombatActionResolverResult` with `Result`/`ErrorMessage`) → `CombatEngine.ProcessRound` (pure simulation over an already-validated action, also records any items consumed) → Encounters' `ResolveCombatRoundCommand` persists the fight result and depletes any consumed inventory items → the LLM narrates the already-resolved outcome (tool-calling disabled for that one completion)
+
+Keep this section in sync: when a change adds, removes, or moves a top-level project, a feature folder, or alters one of the flows above, update this section in the same commit. This section is structural only (project/folder map, request-flow shapes) — it should rarely need touching for ordinary feature work, which is exactly why it's worth keeping accurate.
+
+---
+
+## Gameplay Workflows
+
+- A command result should make the next workflow step explicit.
+- Validate the operation's domain/source before generic validation that assumes it is authorized or meaningful. Keep validation before mutation, but do not force every rule into a command validator.
+- Keep stable ownership, current occupancy/assignment, and historical attribution distinct. Choose the field whose lifecycle matches the rule rather than inferring a live actor from a static assignment.
+- Make materially different domain variants explicit. Prefer a small dispatcher with descriptive variant-specific helpers to an abstraction that hides different rules.
+- Persist deterministic gameplay facts in gameplay-owned storage, separate from LLM-authored conversation memory. Store enough immutable context to resolve later consequences without reconstructing the past scene.
+- Name persisted states for the fact they represent, not an assumed cause. Aggregate consequences at their intended domain level rather than multiplying them per witness.
+
+---
+
+## Services
+
+### Structure
+- Throw `EntityNotFoundException` when an entity lookup fails; the global exception handler maps it to `404`.
+- Queries focus on building their requested response; commands enforce the operational rules required to mutate state.
+- When validation resolves data needed by a subsequent operation, return that resolved data in the validation result rather than issuing a second query.
+- An execution command throws when revalidation fails; only a proposal-style command returns an accepted/rejected outcome.
+- Primary constructor injection: `public class ReputationService(TrpgDbContext context)`
+- Default to concrete classes, not interfaces. An interface is justified by genuine polymorphism — a decorator chain, more than one real implementation, or a true external dependency boundary (e.g. `IChatClient`) — never merely to allow mocking in tests or because a class happens to have only one implementation. Command and query handlers implement `ICommandHandler<>`/`IQueryHandler<,>` (`TRPG.Application.Common.Commands` / `TRPG.Application.Common.Queries`) for this reason: the validation/logging decorators wrap them, and DI resolves them through the interface
+- Throw `InvalidOperationException` for business rule violations
+- Exception: a pure resolver/validator whose caller needs to turn failure into user-facing output without exception-driven control flow (e.g. a SignalR-streamed response) can return a small Result-style object instead of throwing — see `PlayerCombatActionResolver`'s `PlayerCombatActionResolverResult` (`Result`/`ErrorMessage`/`IsError`). Reserve this for that specific shape of caller, not general command/query handlers
+- No pre-checks for uniqueness — rely on DB constraints
+
+### Persistence
+- A command handler calls `SaveChangesAsync` before returning, so using a command in isolation always persists its operation.
+- A shared internal service or helper normally only changes tracked entities; a reusable transactional operation may invoke a saving command handler, but only from within an ambient `TransactionScope` owned by its command-handler caller.
+- A workflow that composes saving command handlers and requires atomicity uses `TransactionScope(TransactionScopeOption.Required, TransactionScopeAsyncFlowOption.Enabled)`. Nested workflows join the ambient transaction; its outermost `Complete()` is the atomic boundary.
+
+### Patterns
+- `FindAsync([id], cancellationToken)` for PK lookups
+- `ExecuteDeleteAsync` for hard deletes
+- `FirstOrDefaultAsync` + null check for lookups with side effects
+
+---
+
+## C# Style
+
+### General
+- File-scoped namespaces (`namespace TRPG.Models;`)
+- Primary constructors everywhere (`public class ReputationService(TrpgDbContext context)`)
+- Expression-bodied members for simple one-liners
+- Place related types (classes, records, enums) in the same file as the class they primarily support — no standalone `Enums.cs` or similar
+- Use named parameters when constructing records or objects with multiple positional arguments of the same or similar types (e.g. `new StatAffinities(Strength: 3, Defense: 2, ...)` not `new StatAffinities(3, 2, ...)`)
+- No alignment padding — do not add extra spaces to align `=`, `:`, or other tokens across lines
+- Investigate the root cause of a bug before patching around it — treat the underlying issue, not just the symptom
+- Prefer affirmative conditionals over negated ones (`if (combatant.IsAlive)` not `if (!combatant.IsDead)`) — double negatives are harder to read at a glance
+- For a multiline string, use a raw string literal (`"""..."""`, with `$"""..."""` for interpolation) instead of concatenating single-line string literals with `+`
+
+### Comments
+- No XML doc comments
+- See root `AGENTS.md` § Comments for the general rules (why not how, one line max, context-free, never comment out code, no closing-brace comments) — those apply here too.
+
+### Naming
+- `_camelCase` for private fields
+- `PascalCase` for everything public
+- No abbreviations — write `minimum`, `maximum`, `quantity`, `defense`, `index`, not `min`, `max`, `qty`, `def`, `idx`
+- Name shared contracts for their enduring domain meaning, not the feature that first introduced them.
+- No tuple return types or tuple parameters — use a named `record` instead; tuples as local variables inside method bodies are fine
+- Functions with more than 5 parameters must capture those parameters in a class instead (constructors excluded — DI constructors may have as many parameters as needed)
+
+### Classes
+- See root `AGENTS.md` § Classes for the general rules (single responsibility, no hard line-count ceiling, static-data exception) — those apply here too.
+- Example: `PlayerActionResolver` was split out of `CombatEngine` because validating player input is a different responsibility than simulating a round, not because of line count.
+
+### Mappers
+- Put each mapper in its feature's `Mappers/` folder. A mapper file contains one `internal static` mapper class, named for its source type (`WeaponMapper`, `SceneCreatureInfoMapper`), and its mapping methods are extension methods on that source type.
+- A concrete source type gets its own mapper. Do not embed mappings for its derived, nested, or related source types inside another mapper: compose their extension methods instead.
+- A base-type mapper may be a small polymorphic dispatcher (`ItemMapper`, `ItemModifierMapper`), but each switch arm must delegate to the concrete source type's mapper rather than construct its target there.
+- Mappers are pure transformations: no mutation, I/O, database access, logging, validation, business logic, or exceptions. Validate inputs and make business decisions before calling a mapper; mapper bodies may only perform straightforward value/collection/enum transformations and compose other mappers.
+
+### Functions
+- See root `AGENTS.md` § Functions for the general rules (one thing per function, prefer pure functions, 40-line ceiling, no flag parameters) — those apply here too.
+- A command represents one operation. Do not use a command property as a flag that switches its behavior; model each operation as its own command instead.
+- Separate a batch mutation into validation, mutation, and post-mutation reconciliation; do not interleave all three in one loop.
+
+### Null handling
+- `null!` for fields initialized in `InitializeAsync` (not inline)
+- Nullable reference types enabled; use `?` where genuinely optional
+
+### Collections
+- `List<T>` is required for PostgreSQL array columns (Npgsql requirement)
+- Public/internal method return types and parameters: use `IReadOnlyCollection<T>`, `IReadOnlyList<T>`, or `IReadOnlyDictionary<K,V>` — never expose concrete collection types in signatures
+- Private method signatures and local fields may use concrete types (`List<T>`, `Dictionary<K,V>`) for performance
+- Collection expressions `[]` for empty collections, `[x, y]` for inline initialization
+- When returning `IReadOnlyCollection<T>` or `IReadOnlyList<T>` from a method, use `.ToArray()` — never `.ToList().AsReadOnly()` or `.AsReadOnly()`
+
+### Async
+- No `Async` suffix on service methods
+- `CancellationToken cancellationToken = default` on every public service method
+- `await using` for disposable contexts
+- Never chain member access directly on an awaited expression: `(await Foo()).Bar` — always assign to a variable first
+
+---
+
+## Models
+
+### Immutability
+- Prefer `init` by default — only use `set` when a property genuinely needs to change after construction
+- `set` is justified for runtime game state: `Gold`, `Biography`, `Location`, `Progression`, `Attributes`, `DurabilityCurrent`
+- Standard Id pattern: `public Guid Id { get; init; } = Guid.NewGuid();`
+
+### Value objects
+- `record` for purely scalar value objects: `Meter(int Current, int Maximum)`, `Point(int X, int Y)`, `Rectangle`
+- `class` for value objects that contain other owned types: `Location`, `Circle`, `Progression`, `Attributes`
+  (EF Core cannot bind owned entity types to positional record constructor parameters)
+
+### Strings
+- No max-length constraints — PostgreSQL `text` is used throughout
+
+---
+
+## EF Core / Data
+
+### Naming
+- `UseSnakeCaseNamingConvention()` applied globally — all tables and columns are snake_case
+- DbSet accessor: expression body using `Set<T>()`, not auto-property
+
+### Migrations
+- `Microsoft.EntityFrameworkCore.Design` is referenced by `api/TRPG.Data`, not `api/TRPG` (the host) — `--startup-project` must point at `api/TRPG.Data`, not `api/TRPG`, or the CLI fails with "doesn't reference Microsoft.EntityFrameworkCore.Design"
+- Two `DbContext`s exist (`TrpgDbContext`, `TrpgTickerQDbContext`) — always pass `--context TrpgDbContext` explicitly or the CLI fails with "More than one DbContext was found"
+- To scaffold a new migration, use `scripts/add-migration.sh <Name>` — it wraps `dotnet ef migrations add <Name> --project api/TRPG.Data --startup-project api/TRPG.Data --context TrpgDbContext`
+- To apply migrations against a running Postgres instance, use `scripts/migrate.sh [target-migration-name]` — it wraps `dotnet ef database update --project api/TRPG.Data --startup-project api/TRPG.Data --context TrpgDbContext` (tests never need this — `DatabaseFixture` calls `MigrateAsync` itself against its Testcontainers instance)
+
+### Owned entities
+- `ToJson()` for owned types not queried/indexed (e.g. `Attributes`, `Progression`, `World.Boundary`)
+- No `ToJson()` for owned types that need indexed columns (e.g. `Person.Location`) — these flatten to regular columns
+- Composite index `(RegionId, BuildingId)` on any flattened `Location`
+
+### Enum storage
+- All enums stored as `string` via `HaveConversion<string>()` in `ConfigureConventions`
+
+### MaxAsync on nullable
+- Use `MaxAsync(x => (int?)x.Field) ?? -1` — `DefaultIfEmpty(-1).MaxAsync()` cannot be translated by EF Core
+
+### Unique constraints
+- Let EF Core throw `DbUpdateException` on violations — no pre-check queries
+
+### Query tracking
+- Call `.AsEnumerable()` before using a local collection in an EF Core predicate, such as `.Where(x => ids.AsEnumerable().Contains(x.Id))`.
+- Separate each database query/load phase in a method with a blank line.
+- Project only the fields a query needs; do not materialize an entity solely to read one of its values.
+- Use `AnyAsync` when a lookup only needs to establish existence; do not select or materialize an identifier already supplied to the operation.
+- Public **query methods** (read-only, never call `SaveChangesAsync`) use `.AsNoTracking()`
+- **Command methods** (mutate + call `SaveChangesAsync` in the same method) use the default tracked query instead — fetch the entity, mutate its properties in place, `SaveChangesAsync()` picks up the change automatically; no explicit `.Update()` call needed
+- When a write only needs to set a field by id/filter and doesn't otherwise need the entity, prefer `ExecuteUpdateAsync` (or `ExecuteDeleteAsync`) over fetch-then-mutate — it never touches the change tracker, so it can't conflict with anything else tracked in the same `DbContext`
+- A command method never returns the tracked entity it mutated to its caller — its effect is observed either by the caller re-querying, or by the command method returning a plain value describing the result
+- Don't mix the two within one method, and don't let a second no-tracking-fetched copy of an already-tracked row get `.Update()`-ed — same "another instance with the same key value is already being tracked" exception as accepting a full entity in a command (see Command input shape)
+- Watch for cross-service ordering/identity assumptions when two methods touch the same row through separate queries on the same `DbContext` — don't rely on the identity map coincidentally handing back the same in-memory object; make any mutating call run before a dependent read, and don't hold a pre-fetched entity/list across a call to another method that independently re-fetches-mutates-saves that same row
+- When a row needs both a cheap read accessor and a targeted write, give the write its own `ExecuteUpdateAsync` query rather than making the read accessor tracked to accommodate a fetch-then-mutate write
+- For a batch lookup by identifier, materialize the rows once as a dictionary, validate missing identifiers as a set, then use direct dictionary access during execution.
+
+### Command input shape
+- A command class takes scalar ids/values, not a full domain entity — the one exception is a pure creation command (`Add*Command`) that only ever calls `.Add()`, since there's no pre-existing tracked row for a brand-new entity to conflict with
+- A command receives only identifiers that independently define or authorize its operation. Do not carry a related identifier solely to revalidate a relationship or duplicate a route identifier in the request body.
+- When a batch command accepts quantities by identifier, aggregate duplicate identifiers and validate every requested total before mutating tracked entities.
+- Never accept a full entity as a command property and call `.Update()` on it — the entity's tracking state depends entirely on how the caller happened to fetch it, and a second tracked copy of the same row anywhere else in the same `DbContext` throws "another instance with the same key value is already being tracked"; use `ExecuteUpdateAsync` with named `SetProperty` calls instead
+- For a command that may only partially update a row, use `Optional<T>` (`TRPG.Application.Common/Optional.cs`) for any field that's already nullable in the domain — a plain `T?` can't distinguish "leave this alone" from "set it to null". A field that's never legitimately null (e.g. an enum status) can stay a plain `T?` on the command
+- Build the `ExecuteUpdateAsync` call as a block-bodied lambda (EF Core 10+) and only call `s.SetProperty(...)` for fields the command actually set — `if (command.State != null) { s.SetProperty(c => c.State, command.State.Value); }`, `if (command.CityId.IsSet) { s.SetProperty(c => c.CityId, command.CityId.Value); }` — rather than the old pattern of unconditionally chaining every `SetProperty` and null-coalescing against the row's own current value (`c => command.State ?? c.State`); the old pattern always wrote every column, whether the caller set that field or not. `ExecuteUpdateAsync` throws if the lambda ends up calling `SetProperty` zero times, so guard the call (or return early) when every optional field on the command is unset
+- A command that can act on more than one row takes a pluralized `IReadOnlyCollection<Guid> XIds` and applies the same field values to all of them in one `ExecuteUpdateAsync` call — matches the `GetXsByIdsQuery` batch-read naming convention rather than looping a singular command
+
+### World scoping
+- Every new entity/table must have a `WorldId` column with `HasIndex(x => x.WorldId)` — no FK constraint needed (matches other loose Guid references like `Job.PersonId`), just the indexed column
+- This keeps `DropWorldCommandHandler` a flat `Where(x => x.WorldId == worldId).ExecuteDeleteAsync(...)` per table — never make it derive world membership by chasing a parent entity's FK chain again
+
+---
+
+## Build
+
+- C# .NET 10, EF Core 10.0.9, Npgsql 10.0.2
+- Use `scripts/build.sh` for routine builds instead of raw `dotnet build` — it wraps the full solution invocation and filters noisy restore/target output down to what's actually actionable, which matters because that output goes into an LLM's context.
+
+---
+
+## Formatting
+
+- CSharpier formats the whole solution; version is pinned in `.config/dotnet-tools.json` (a local dotnet tool manifest) so CI and every machine use the exact same version — `dotnet tool restore` fetches it, then `dotnet csharpier format .` / `dotnet csharpier check .` run it
+- CI runs `dotnet csharpier check .` and fails the build on any unformatted file
+- One-time local setup for the pre-commit hook is documented in `docs/local-setup.md`
