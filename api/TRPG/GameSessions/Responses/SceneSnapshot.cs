@@ -174,6 +174,31 @@ public enum BuildingType
 }
 
 [TranspilationSource]
+public enum WeatherCondition
+{
+    Clear,
+    Cloudy,
+    Rain,
+    Storm,
+    Snow,
+    Fog,
+}
+
+[TranspilationSource]
+public enum CreatureMovementDirection
+{
+    Arrived,
+    Departed,
+}
+
+[TranspilationSource]
+public record CreaturesMoved(
+    CreatureMovementDirection Direction,
+    IReadOnlyCollection<string> Names,
+    string? PlaceName
+);
+
+[TranspilationSource]
 public record SceneSnapshot(
     Guid WorldId,
     string StateName,
@@ -181,6 +206,7 @@ public record SceneSnapshot(
     string? DistrictName,
     string? BuildingName,
     string? RoomName,
+    WeatherCondition? Weather,
     CreatureStatusSnapshot PlayerStatus,
     IReadOnlyCollection<CreatureStatusSnapshot> NearbyCreatures,
     IReadOnlyCollection<NearbyBuildingSnapshot> NearbyBuildings,

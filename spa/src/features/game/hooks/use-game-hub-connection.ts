@@ -97,6 +97,7 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
 
     const gameClient: IGameClient = {
       sceneSnapshot: async (snapshot) => gameEventBus.emit('SceneSnapshot', snapshot),
+      creaturesMoved: async (movement) => gameEventBus.emit('CreaturesMoved', movement),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
       combatUpdated: async (update) => gameEventBus.emit('CombatUpdated', update),
       hostileEncounterStarted: async (encounter) =>

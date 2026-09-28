@@ -78,6 +78,7 @@ public sealed class RelocationFactsTests
     ) =>
         new(
             Guid.NewGuid(),
+            Guid.NewGuid(),
             new SceneDateInfo(975, "Frostwane", 1, "Emberday", 8),
             new SceneStateInfo("Ravenhollow Territory", null),
             new SceneCityInfo("Ravenhollow", null),

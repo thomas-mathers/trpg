@@ -18,7 +18,8 @@ internal class PublishAmbientSceneCommandHandler(
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     PublishedSceneRegistry publishedScenes,
-    ScenePublisher scenePublisher
+    ScenePublisher scenePublisher,
+    CreatureMovementPublisher movementPublisher
 ) : ICommandHandler<PublishAmbientSceneCommand>
 {
     public async Task Handle(
@@ -48,5 +49,10 @@ internal class PublishAmbientSceneCommandHandler(
             cancellationToken
         );
         scenePublisher.Publish(command.PlayerId, scene, stamp);
+
+        if (previous != null)
+        {
+            await movementPublisher.Publish(command.PlayerId, previous, scene, cancellationToken);
+        }
     }
 }

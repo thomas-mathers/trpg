@@ -15,6 +15,9 @@ import { NarrationText } from './narration-text';
 
 export type ChatMarkerVariant =
   | 'location'
+  | 'weather'
+  | 'arrival'
+  | 'departure'
   | 'reconnecting'
   | 'reconnected'
   | 'disconnected'
@@ -28,6 +31,9 @@ interface ChatMarkerProps {
 
 const VARIANT_CLASSES: Record<ChatMarkerVariant, string> = {
   location: 'text-muted-foreground',
+  weather: 'text-muted-foreground',
+  arrival: 'text-muted-foreground',
+  departure: 'text-muted-foreground',
   reconnecting: 'text-stamina',
   reconnected: 'text-heal',
   disconnected: 'text-destructive',

@@ -35,6 +35,22 @@ export type DistrictType = "Residential" | "Scientific" | "CityCenter" | "CityEn
 /** Transpiled from TRPG.GameSessions.Responses.BuildingType */
 export type BuildingType = "ArcaneShop" | "Apothecary" | "Bakery" | "Barracks" | "Blacksmith" | "Carpenter" | "Castle" | "Cave" | "Crypt" | "GeneralGoods" | "GuildHall" | "House" | "Inn" | "Jail" | "Jeweler" | "Library" | "Mine" | "Ruins" | "Stable" | "Tailor" | "Tavern" | "Temple" | "Tower";
 
+/** Transpiled from TRPG.GameSessions.Responses.WeatherCondition */
+export type WeatherCondition = "Clear" | "Cloudy" | "Rain" | "Storm" | "Snow" | "Fog";
+
+/** Transpiled from TRPG.GameSessions.Responses.CreatureMovementDirection */
+export type CreatureMovementDirection = "Arrived" | "Departed";
+
+/** Transpiled from TRPG.GameSessions.Responses.CreaturesMoved */
+export type CreaturesMoved = {
+    /** Transpiled from TRPG.GameSessions.Responses.CreatureMovementDirection */
+    direction: CreatureMovementDirection;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
+    names: string[];
+    /** Transpiled from string? */
+    placeName?: string;
+}
+
 /** Transpiled from TRPG.GameSessions.Responses.SceneSnapshot */
 export type SceneSnapshot = {
     /** Transpiled from System.Guid */
@@ -49,6 +65,8 @@ export type SceneSnapshot = {
     buildingName?: string;
     /** Transpiled from string? */
     roomName?: string;
+    /** Transpiled from TRPG.GameSessions.Responses.WeatherCondition */
+    weather?: WeatherCondition;
     /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */
     playerStatus: CreatureStatusSnapshot;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureStatusSnapshot> */

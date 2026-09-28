@@ -96,6 +96,7 @@ public sealed class LlmSceneMapperTests
     private static SceneResult MakeScene() =>
         new(
             Guid.NewGuid(),
+            Guid.NewGuid(),
             new SceneDateInfo(975, "Frostwane", 1, "Emberday", 8),
             new SceneStateInfo("Darkstead Territory", "The territory around Darkstead."),
             new SceneCityInfo("Darkstead", "The capital."),

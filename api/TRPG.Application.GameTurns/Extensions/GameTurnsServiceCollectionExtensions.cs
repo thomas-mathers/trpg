@@ -10,6 +10,7 @@ public static class GameTurnsServiceCollectionExtensions
         serviceCollection
             .AddSingleton<PublishedSceneRegistry>()
             .AddTransient<ScenePublisher>()
+            .AddTransient<CreatureMovementPublisher>()
             .AddTransient<LlmConversationClient>()
             .AddTransient<GameTurnStreamer>()
             .AddTransient<StreamOpeningTurnHandler>()

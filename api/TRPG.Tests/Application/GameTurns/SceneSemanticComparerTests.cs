@@ -7,6 +7,7 @@ namespace TRPG.Tests.Application.GameTurns;
 public class SceneSemanticComparerTests
 {
     private static readonly Guid WorldId = Guid.NewGuid();
+    private static readonly Guid LocationId = Guid.NewGuid();
     private static readonly Guid PlayerId = Guid.NewGuid();
     private static readonly Guid VillagerId = Guid.NewGuid();
     private static readonly Guid CaravanId = Guid.NewGuid();
@@ -209,6 +210,7 @@ public class SceneSemanticComparerTests
     ) =>
         new(
             WorldId,
+            LocationId,
             new SceneDateInfo(975, "Thawmoon", 1, "Stormday", hour),
             new SceneStateInfo("Northmarch", null),
             null,

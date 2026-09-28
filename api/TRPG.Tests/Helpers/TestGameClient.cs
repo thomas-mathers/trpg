@@ -12,6 +12,7 @@ internal sealed class TestGameClient : IGameClient
 {
     public required HubConnection Connection { get; init; }
     public Action<SceneSnapshot>? OnSceneSnapshot { get; set; }
+    public Action<CreaturesMoved>? OnCreaturesMoved { get; set; }
     public Action<CombatStarted>? OnCombatStarted { get; set; }
     public Action<CombatUpdated>? OnCombatUpdated { get; set; }
     public Action<HostileEncounterState>? OnHostileEncounterStarted { get; set; }
@@ -37,6 +38,12 @@ internal sealed class TestGameClient : IGameClient
     public Task SceneSnapshot(SceneSnapshot snapshot)
     {
         OnSceneSnapshot?.Invoke(snapshot);
+        return Task.CompletedTask;
+    }
+
+    public Task CreaturesMoved(CreaturesMoved movement)
+    {
+        OnCreaturesMoved?.Invoke(movement);
         return Task.CompletedTask;
     }
 
