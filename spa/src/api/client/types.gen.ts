@@ -838,6 +838,7 @@ export type SceneSnapshot = {
     districtName: null | string;
     buildingName: null | string;
     roomName: null | string;
+    weather: null | WeatherCondition;
     playerStatus: CreatureStatusSnapshot;
     nearbyCreatures: Array<CreatureStatusSnapshot>;
     nearbyBuildings: Array<NearbyBuildingSnapshot>;
@@ -911,6 +912,8 @@ export type TradeSnapshot = {
     playerInventory: InventorySummary;
     shopInventory: InventorySummary;
 };
+
+export type WeatherCondition = 'Clear' | 'Cloudy' | 'Rain' | 'Storm' | 'Snow' | 'Fog';
 
 export type WorldMapResponse = {
     countries: Array<CountryMapResponse>;

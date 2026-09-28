@@ -122,6 +122,7 @@ public record SceneCaravanInfo(
 
 public record SceneResult(
     Guid WorldId,
+    Guid LocationId,
     SceneDateInfo CurrentDate,
     SceneStateInfo? State,
     SceneCityInfo? City,

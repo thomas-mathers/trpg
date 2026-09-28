@@ -15,6 +15,7 @@ internal static class SceneSnapshotMapper
             DistrictName: scene.District?.Name,
             BuildingName: scene.Building?.Name,
             RoomName: scene.Room?.Name,
+            Weather: scene.Weather?.ToResponse(),
             PlayerStatus: scene.Player.ToStatusSnapshot(),
             NearbyCreatures: scene
                 .NearbyCreatures.Select(creature => creature.ToStatusSnapshot())

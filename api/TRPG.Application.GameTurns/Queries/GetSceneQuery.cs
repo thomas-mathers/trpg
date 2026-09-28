@@ -162,6 +162,7 @@ internal class GetSceneQueryHandler(
 
         return new SceneResult(
             query.WorldId,
+            player.LocationId,
             new SceneDateInfo(
                 query.CurrentDate.Year,
                 query.CurrentDate.MonthName,
