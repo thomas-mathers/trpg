@@ -36,7 +36,7 @@ internal class ResetAlertedCreaturesCommandHandler(
         );
 
         var alertedCreatureIds = nearby
-            .Where(creature => creature.State == CreatureState.Alerted)
+            .Where(creature => creature.IsAlerted)
             .Select(creature => creature.Id)
             .ToArray();
 
@@ -46,11 +46,7 @@ internal class ResetAlertedCreaturesCommandHandler(
         }
 
         await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = alertedCreatureIds,
-                State = CreatureState.Idle,
-            },
+            new UpdateCreaturesCommand { CreatureIds = alertedCreatureIds, IsAlerted = false },
             cancellationToken
         );
     }

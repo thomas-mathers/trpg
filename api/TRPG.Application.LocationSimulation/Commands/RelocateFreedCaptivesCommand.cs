@@ -65,8 +65,7 @@ internal class RelocateFreedCaptivesCommandHandler(
 
         var strandedCaptiveIds = nearby
             .Where(creature =>
-                creature.State == CreatureState.Idle
-                && freeCreatureObjectiveCreatureIds.Contains(creature.Id)
+                !creature.IsRestrained && freeCreatureObjectiveCreatureIds.Contains(creature.Id)
             )
             .Select(creature => creature.Id)
             .ToArray();

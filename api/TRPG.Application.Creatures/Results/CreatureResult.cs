@@ -14,6 +14,8 @@ public record CreatureResult(
     CreaturePosture Posture,
     Guid? PlayerCorpseOwnerId,
     bool IsSneaking,
+    bool IsAlerted,
+    bool IsRestrained,
     int Gold,
     Guid StateId,
     Guid LocationId,

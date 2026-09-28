@@ -46,13 +46,14 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ClearsAlert_ForAlertedCreaturesAtTheLocation()
+    public async Task Handle_ClearsAlert_ForAlertedCreaturesAtTheLocation_WithoutTouchingState()
     {
         // Arrange
         var alertedMonster = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
-            state: CreatureState.Alerted
+            state: CreatureState.Working,
+            isAlerted: true
         );
         _context.Creatures.Add(alertedMonster);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -69,11 +70,12 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             [alertedMonster.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Idle, updatedMonster!.State);
+        Assert.False(updatedMonster!.IsAlerted);
+        Assert.Equal(CreatureState.Working, updatedMonster.State);
     }
 
     [Fact]
-    public async Task Handle_LeavesCreaturesIdle_WhenNoCreaturesAreAlerted()
+    public async Task Handle_LeavesCreaturesUnaffected_WhenNoCreaturesAreAlerted()
     {
         // Arrange
         var idleMonster = Builders.MakeCreature(
@@ -97,5 +99,6 @@ public sealed class ResetAlertedCreaturesCommandHandlerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(CreatureState.Idle, unchangedMonster!.State);
+        Assert.False(unchangedMonster.IsAlerted);
     }
 }

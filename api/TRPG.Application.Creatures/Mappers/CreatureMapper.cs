@@ -36,6 +36,8 @@ internal static class CreatureMapper
             creature.Posture,
             creature.PlayerCorpseOwnerId,
             creature.IsSneaking,
+            creature.IsAlerted,
+            creature.IsRestrained,
             gold,
             stateId,
             creature.LocationId,

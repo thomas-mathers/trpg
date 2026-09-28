@@ -56,7 +56,7 @@ public sealed class GetLiveHumanoidWitnessesAtLocationQueryTests(DatabaseFixture
         var restrained = Builders.MakeCreature(
             WorldId,
             locationId: _locationId,
-            state: CreatureState.Restrained
+            isRestrained: true
         );
         var nonHumanoid = Builders.MakeCreature(
             WorldId,

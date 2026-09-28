@@ -114,7 +114,7 @@ public sealed class SeedCaptiveRescueQuestCommandTests
             creature => creature.Id == _captive.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Restrained, captive.State);
+        Assert.True(captive.IsRestrained);
         Assert.Equal(_cellBlockLocation.Id, captive.LocationId);
 
         var cell = await verification

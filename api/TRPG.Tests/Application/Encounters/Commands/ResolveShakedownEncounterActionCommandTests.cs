@@ -277,7 +277,7 @@ public sealed class ResolveShakedownEncounterActionCommandTests(DatabaseFixture 
             [_bandit.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedBandit!.State);
+        Assert.True(updatedBandit!.IsAlerted);
         var fight = await verifyContext
             .Encounters.OfType<FightEncounter>()
             .SingleAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken);

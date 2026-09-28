@@ -194,11 +194,7 @@ internal class EndFightCommandHandler(
         if (witnesses.Length > 0)
         {
             await updateCreatures.Handle(
-                new UpdateCreaturesCommand
-                {
-                    CreatureIds = witnesses,
-                    State = CreatureState.Alerted,
-                },
+                new UpdateCreaturesCommand { CreatureIds = witnesses, IsAlerted = true },
                 cancellationToken
             );
             gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Killing));

@@ -143,7 +143,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
             creature => creature.Id == bystander.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedBystander.State);
+        Assert.True(updatedBystander.IsAlerted);
     }
 
     [Fact]

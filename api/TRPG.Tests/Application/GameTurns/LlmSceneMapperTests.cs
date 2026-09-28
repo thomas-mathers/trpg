@@ -147,6 +147,8 @@ public sealed class LlmSceneMapperTests
             State: CreatureState.Working,
             Posture: CreaturePosture.Standing,
             IsSneaking: false,
+            IsAlerted: false,
+            IsRestrained: false,
             Reputation: -50,
             Gold: gold,
             CurrentHp: 700,

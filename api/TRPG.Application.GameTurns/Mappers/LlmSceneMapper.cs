@@ -93,6 +93,8 @@ public static class LlmSceneMapper
             creature.FactionNames,
             creature.State,
             creature.IsSneaking,
+            creature.IsAlerted,
+            creature.IsRestrained,
             creature.Reputation,
             creature.CurrentHp,
             creature.MaximumHp,

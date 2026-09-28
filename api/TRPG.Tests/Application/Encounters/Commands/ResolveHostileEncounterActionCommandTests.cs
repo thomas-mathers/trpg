@@ -129,7 +129,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
             [_enemy.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedEnemy!.State);
+        Assert.True(updatedEnemy!.IsAlerted);
         var fight = await verifyContext
             .Encounters.OfType<FightEncounter>()
             .SingleAsync(f => f.PlayerId == _player.Id, TestContext.Current.CancellationToken);
@@ -532,7 +532,7 @@ public sealed class ResolveHostileEncounterActionCommandTests(DatabaseFixture db
             [_enemy.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, enemy!.State);
+        Assert.True(enemy!.IsAlerted);
         Assert.True(
             await verifyContext
                 .Encounters.OfType<FightEncounter>()

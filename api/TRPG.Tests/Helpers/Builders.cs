@@ -237,6 +237,8 @@ internal static class Builders
         Guid? spawnerId = null,
         bool isSneaking = false,
         bool isEngaged = false,
+        bool isAlerted = false,
+        bool isRestrained = false,
         Guid? id = null
     )
     {
@@ -260,6 +262,8 @@ internal static class Builders
             SpawnerId = spawnerId,
             IsSneaking = isSneaking,
             IsEngaged = isEngaged,
+            IsAlerted = isAlerted,
+            IsRestrained = isRestrained,
             BaseAttributes = attributes,
             CurrentHp = currentHp ?? attributes.MaximumHp,
             CurrentAp = currentAp ?? attributes.MaximumAp,

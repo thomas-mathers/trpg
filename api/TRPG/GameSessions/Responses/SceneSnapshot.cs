@@ -69,9 +69,7 @@ public enum CreatureState
     Studying,
     Praying,
     Eating,
-    Alerted,
     Dead,
-    Restrained,
     Walking,
 }
 
@@ -207,6 +205,8 @@ public record CreatureStatusSnapshot(
     CreatureState? State,
     CreaturePosture Posture,
     bool IsSneaking,
+    bool IsAlerted,
+    bool IsRestrained,
     int Gold,
     int CurrentHp,
     int MaximumHp,

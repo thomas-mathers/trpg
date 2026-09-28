@@ -229,7 +229,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
             .ToArray();
 
         await updateCreatures.Handle(
-            new UpdateCreaturesCommand { CreatureIds = guardIds, State = CreatureState.Alerted },
+            new UpdateCreaturesCommand { CreatureIds = guardIds, IsAlerted = true },
             cancellationToken
         );
 

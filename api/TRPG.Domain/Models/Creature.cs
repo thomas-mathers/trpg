@@ -40,9 +40,7 @@ public enum CreatureState
     Studying,
     Praying,
     Eating,
-    Alerted,
     Dead,
-    Restrained,
     Walking,
 }
 
@@ -133,6 +131,8 @@ public class Creature
     public CreaturePosture Posture { get; set; }
     public bool IsEngaged { get; set; }
     public bool IsSneaking { get; set; }
+    public bool IsAlerted { get; set; }
+    public bool IsRestrained { get; set; }
     public Guid WorldId { get; init; }
 
     public int Strength { get; set; }

@@ -18,7 +18,7 @@ export type Gender = "Male" | "Female";
 export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Mercenary" | "Alchemist" | "Blacksmith" | "Scholar" | "Merchant" | "Politician" | "StableMaster" | "Bartender" | "Guard" | "Baker" | "Innkeeper" | "Tailor" | "Carpenter" | "Jeweler" | "Homemaker" | "Unemployed";
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
-export type CreatureState = "Idle" | "Sleeping" | "Working" | "Studying" | "Praying" | "Eating" | "Alerted" | "Dead" | "Restrained" | "Walking";
+export type CreatureState = "Idle" | "Sleeping" | "Working" | "Studying" | "Praying" | "Eating" | "Dead" | "Walking";
 
 /** Transpiled from TRPG.GameSessions.Responses.CreaturePosture */
 export type CreaturePosture = "Standing" | "Sitting" | "Laying";
@@ -93,6 +93,10 @@ export type CreatureStatusSnapshot = {
     posture: CreaturePosture;
     /** Transpiled from bool */
     isSneaking: boolean;
+    /** Transpiled from bool */
+    isAlerted: boolean;
+    /** Transpiled from bool */
+    isRestrained: boolean;
     /** Transpiled from int */
     gold: number;
     /** Transpiled from int */

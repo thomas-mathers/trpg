@@ -62,12 +62,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     > getSeatIdsByOccupantIds
 ) : ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
 {
-    private static readonly HashSet<CreatureState> NonSchedulableStates =
-    [
-        CreatureState.Alerted,
-        CreatureState.Dead,
-        CreatureState.Restrained,
-    ];
+    private static readonly HashSet<CreatureState> NonSchedulableStates = [CreatureState.Dead];
 
     public async Task<SyncCreatureJobSchedulesResult> Handle(
         SyncCreatureJobSchedulesCommand command,
@@ -96,7 +91,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             cancellationToken
         );
         scheduledIds = creaturesById
-            .Values.Where(creature => !creature.IsEngaged)
+            .Values.Where(creature => !creature.IsEngaged && !creature.IsRestrained)
             .Select(creature => creature.Id)
             .ToArray();
         if (scheduledIds.Length == 0)

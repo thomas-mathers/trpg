@@ -17,6 +17,8 @@ internal static class SceneCreatureInfoMapper
             creature.State?.ToResponse(),
             creature.Posture.ToResponse(),
             creature.IsSneaking,
+            creature.IsAlerted,
+            creature.IsRestrained,
             creature.Gold,
             creature.CurrentHp,
             creature.MaximumHp,
