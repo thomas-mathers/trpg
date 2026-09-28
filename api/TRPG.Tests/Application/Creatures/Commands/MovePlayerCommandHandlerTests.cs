@@ -108,8 +108,11 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
     {
         var oldLocation = Builders.MakeLocation(WorldId, _stateId);
         var newLocation = Builders.MakeLocation(WorldId, _stateId);
-        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
-        player.State = CreatureState.Sitting;
+        var player = Builders.MakeCreature(
+            WorldId,
+            locationId: oldLocation.Id,
+            posture: CreaturePosture.Sitting
+        );
         var seat = Builders.MakeSeat(WorldId, oldLocation.Id, player.Id);
         _context.Locations.AddRange(oldLocation, newLocation);
         _context.Creatures.Add(player);
@@ -134,7 +137,7 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
         var updatedSeat = await verifyContext
             .Props.OfType<Seat>()
             .SingleAsync(prop => prop.Id == seat.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(CreatureState.Idle, updatedPlayer.State);
+        Assert.Equal(CreaturePosture.Standing, updatedPlayer.Posture);
         Assert.Null(updatedSeat.OccupantId);
     }
 

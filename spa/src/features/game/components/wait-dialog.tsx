@@ -49,12 +49,12 @@ export function WaitDialog({ open, onClose }: WaitDialogProps) {
   }, [open, readGameTime]);
 
   useEffect(() => {
-    if (open && scene && scene.playerStatus.state !== 'Sitting') {
+    if (open && scene && scene.playerStatus.posture !== 'Sitting') {
       onClose();
     }
   }, [onClose, open, scene]);
 
-  if (!scene || scene.playerStatus.state !== 'Sitting') {
+  if (!scene || scene.playerStatus.posture !== 'Sitting') {
     return null;
   }
 

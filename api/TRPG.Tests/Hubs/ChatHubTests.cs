@@ -18,9 +18,11 @@ using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 using TypedSignalR.Client;
 using DataBuildingType = TRPG.Domain.Models.BuildingType;
+using DataCreaturePosture = TRPG.Domain.Models.CreaturePosture;
 using DataCreatureState = TRPG.Domain.Models.CreatureState;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 using DataDistrictType = TRPG.Domain.Models.DistrictType;
+using ResponseCreaturePosture = TRPG.GameSessions.Responses.CreaturePosture;
 using ResponseCreatureState = TRPG.GameSessions.Responses.CreatureState;
 
 namespace TRPG.Tests.Hubs;
@@ -96,14 +98,14 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         return result!.SessionId;
     }
 
-    private async Task SetPlayerState(DataCreatureState state)
+    private async Task SetPlayerPosture(DataCreaturePosture posture)
     {
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         await context
             .Creatures.Where(creature => creature.Id == _playerId)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(creature => creature.State, state),
+                setters => setters.SetProperty(creature => creature.Posture, posture),
                 TestContext.Current.CancellationToken
             );
     }
@@ -473,7 +475,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     public async Task SendWait_AdvancesTimeAndNarrates()
     {
         // Arrange
-        await SetPlayerState(DataCreatureState.Sitting);
+        await SetPlayerPosture(DataCreaturePosture.Sitting);
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
@@ -492,7 +494,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     public async Task SendWait_AdvancesTime_WhenOnlyMinutesAreProvided()
     {
         // Arrange
-        await SetPlayerState(DataCreatureState.Sitting);
+        await SetPlayerPosture(DataCreaturePosture.Sitting);
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
@@ -578,7 +580,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     [Fact]
     public async Task SendWait_DoesNotAdvanceTime_WhenDurationExceedsTwentyFourHours()
     {
-        await SetPlayerState(DataCreatureState.Sitting);
+        await SetPlayerPosture(DataCreaturePosture.Sitting);
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
@@ -616,7 +618,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         Assert.Empty(sitReply);
         var seated = Assert.Single(snapshots);
-        Assert.Equal(ResponseCreatureState.Sitting, seated.PlayerStatus.State);
+        Assert.Equal(ResponseCreaturePosture.Sitting, seated.PlayerStatus.Posture);
         var seatedProp = Assert.Single(seated.NearbyProps, prop => prop.Id == seat.Id);
         Assert.True(seatedProp.IsOccupied);
         Assert.True(seatedProp.IsOccupiedByPlayer);
@@ -628,7 +630,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         Assert.Empty(standReply);
         var standing = Assert.Single(snapshots);
-        Assert.Equal(ResponseCreatureState.Idle, standing.PlayerStatus.State);
+        Assert.Equal(ResponseCreaturePosture.Standing, standing.PlayerStatus.Posture);
         var standingProp = Assert.Single(standing.NearbyProps, prop => prop.Id == seat.Id);
         Assert.False(standingProp.IsOccupied);
         Assert.False(standingProp.IsOccupiedByPlayer);

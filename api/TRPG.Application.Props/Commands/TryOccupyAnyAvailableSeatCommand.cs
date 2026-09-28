@@ -9,6 +9,7 @@ public class TryOccupyAnyAvailableSeatCommand
 {
     public required Guid LocationId { get; init; }
     public required Guid CreatureId { get; init; }
+    public Guid? PreferredSeatId { get; init; }
 }
 
 // Claims one free seat atomically: finds a candidate then conditionally updates it, retrying with
@@ -21,6 +22,28 @@ internal class TryOccupyAnyAvailableSeatCommandHandler(IPropsDbContext context)
         CancellationToken cancellationToken = default
     )
     {
+        // Reclaiming the same seat the creature just vacated keeps a scarce-seat location's
+        // occupants stable across resyncs instead of reshuffling to whichever creature is
+        // processed first that tick.
+        if (command.PreferredSeatId != null)
+        {
+            var reclaimed = await context
+                .Props.OfType<Seat>()
+                .Where(seat =>
+                    seat.Id == command.PreferredSeatId
+                    && seat.LocationId == command.LocationId
+                    && seat.OccupantId == null
+                )
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(seat => seat.OccupantId, command.CreatureId),
+                    cancellationToken
+                );
+            if (reclaimed == 1)
+            {
+                return true;
+            }
+        }
+
         var excludedSeatIds = new HashSet<Guid>();
         while (true)
         {

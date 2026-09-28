@@ -289,8 +289,80 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             .Props.OfType<Seat>()
             .SingleAsync(prop => prop.Id == seat.Id, TestContext.Current.CancellationToken);
         Assert.Equal(firstArrival.Id, occupiedSeat.OccupantId);
-        Assert.Equal(CreatureState.Sitting, creatures[firstArrival.Id].State);
-        Assert.Equal(CreatureState.Idle, creatures[secondArrival.Id].State);
+        Assert.Equal(CreaturePosture.Sitting, creatures[firstArrival.Id].Posture);
+        Assert.Equal(CreaturePosture.Standing, creatures[secondArrival.Id].Posture);
+    }
+
+    [Fact]
+    public async Task Handle_KeepsTheSameOccupant_WhenResyncedWithoutNewArrivals()
+    {
+        var location = Builders.MakeLocation(_worldId);
+        var earlierArrival = Builders.MakeCreature(
+            _worldId,
+            locationId: location.Id,
+            id: Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")
+        );
+        var laterArrival = Builders.MakeCreature(
+            _worldId,
+            locationId: location.Id,
+            id: Guid.Parse("00000000-0000-0000-0000-000000000001")
+        );
+        var seat = Builders.MakeSeat(_worldId, location.Id);
+        _context.Locations.Add(location);
+        _context.Creatures.AddRange(earlierArrival, laterArrival);
+        _context.Props.Add(seat);
+        _context.CreatureJobs.AddRange(
+            Builders.MakeCreatureJob(
+                earlierArrival.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 0,
+                endHour: 23,
+                locationId: location.Id,
+                worldId: _worldId
+            ),
+            Builders.MakeCreatureJob(
+                laterArrival.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 0,
+                endHour: 23,
+                locationId: location.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        var firstSyncTime = GameClock.Epoch + TimeSpan.FromHours(3);
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [laterArrival.Id, earlierArrival.Id],
+                GameTime = firstSyncTime,
+                BecameAvailableAtGameTimeByCreatureId = new Dictionary<Guid, GameInstant>
+                {
+                    [earlierArrival.Id] = GameClock.Epoch + TimeSpan.FromHours(1),
+                    [laterArrival.Id] = GameClock.Epoch + TimeSpan.FromHours(2),
+                },
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act — a routine resync with no newly-available creatures, i.e. nothing has changed
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [laterArrival.Id, earlierArrival.Id],
+                GameTime = firstSyncTime + TimeSpan.FromMinutes(5),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var occupiedSeat = await verify
+            .Props.OfType<Seat>()
+            .SingleAsync(prop => prop.Id == seat.Id, TestContext.Current.CancellationToken);
+        Assert.Equal(earlierArrival.Id, occupiedSeat.OccupantId);
     }
 
     [Fact]

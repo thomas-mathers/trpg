@@ -65,6 +65,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = _creature.LocationId,
                 CurrentState = CreatureState.Idle,
+                CurrentPosture = CreaturePosture.Standing,
                 CreatureJobAction = CreatureJobAction.Idle,
                 JobLocationId = _creature.LocationId,
             },
@@ -79,7 +80,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
         var updatedSeat = await verifyContext
             .Props.OfType<Seat>()
             .SingleAsync(prop => prop.Id == seat.Id, TestContext.Current.CancellationToken);
-        Assert.Equal(CreatureState.Sitting, updatedCreature.State);
+        Assert.Equal(CreaturePosture.Sitting, updatedCreature.Posture);
         Assert.Equal(_creature.Id, updatedSeat.OccupantId);
     }
 
@@ -109,6 +110,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = originalLocationId,
                 CurrentState = _creature.State,
+                CurrentPosture = _creature.Posture,
                 CreatureJobAction = CreatureJobAction.Work,
                 JobLocationId = newLocationId,
             },
@@ -139,6 +141,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = originalLocationId,
                 CurrentState = CreatureState.Alerted,
+                CurrentPosture = _creature.Posture,
                 CreatureJobAction = CreatureJobAction.Sleep,
                 JobLocationId = Guid.NewGuid(),
             },
@@ -169,6 +172,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = originalLocationId,
                 CurrentState = CreatureState.Dead,
+                CurrentPosture = _creature.Posture,
                 CreatureJobAction = CreatureJobAction.Sleep,
                 JobLocationId = Guid.NewGuid(),
             },
@@ -199,6 +203,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = originalLocationId,
                 CurrentState = CreatureState.Restrained,
+                CurrentPosture = _creature.Posture,
                 CreatureJobAction = CreatureJobAction.Sleep,
                 JobLocationId = Guid.NewGuid(),
             },
@@ -235,6 +240,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = locationId,
                 CurrentState = _creature.State,
+                CurrentPosture = _creature.Posture,
                 CreatureJobAction = CreatureJobAction.Sleep,
                 JobLocationId = locationId,
             },
@@ -269,6 +275,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = _creature.LocationId,
                 CurrentState = _creature.State,
+                CurrentPosture = _creature.Posture,
                 CreatureJobAction = CreatureJobAction.Sleep,
                 JobLocationId = locationId,
             },
@@ -304,6 +311,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = locationId,
                 CurrentState = CreatureState.Sleeping,
+                CurrentPosture = CreaturePosture.Laying,
                 CreatureJobAction = CreatureJobAction.Work,
                 JobLocationId = locationId,
             },
@@ -330,6 +338,7 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
                 CreatureId = _creature.Id,
                 CurrentLocationId = _creature.LocationId,
                 CurrentState = _creature.State,
+                CurrentPosture = _creature.Posture,
                 CreatureJobAction = action,
                 JobLocationId = locationId,
             },

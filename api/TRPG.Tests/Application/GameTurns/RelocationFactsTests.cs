@@ -116,6 +116,7 @@ public sealed class RelocationFactsTests
             Age: 30,
             FactionNames: [],
             State: null,
+            Posture: CreaturePosture.Standing,
             IsSneaking: false,
             Reputation: null,
             Gold: 0,

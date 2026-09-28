@@ -23,10 +23,11 @@ internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
             .Creatures.Where(creature =>
                 creature.Id == command.CreatureId
                 && creature.LocationId == command.LocationId
-                && creature.State == CreatureState.Idle
+                && creature.Posture == CreaturePosture.Standing
             )
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(creature => creature.State, CreatureState.Sitting),
+                setters =>
+                    setters.SetProperty(creature => creature.Posture, CreaturePosture.Sitting),
                 cancellationToken
             );
 

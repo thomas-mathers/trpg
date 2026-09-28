@@ -41,7 +41,7 @@ internal class StandUpCommandHandler(
                 new GetCreatureByIdQuery { Id = command.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
-        if (player.State != CreatureState.Sitting)
+        if (player.Posture != CreaturePosture.Sitting)
         {
             return StandUpResult.PlayerNotSitting;
         }

@@ -15,6 +15,7 @@ internal static class SceneCreatureInfoMapper
             creature.Level,
             creature.Age,
             creature.State?.ToResponse(),
+            creature.Posture.ToResponse(),
             creature.IsSneaking,
             creature.Gold,
             creature.CurrentHp,

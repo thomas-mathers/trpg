@@ -41,6 +41,7 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
         creatureType: 'Human',
         level: 1,
         state: 'Idle',
+        posture: 'Standing',
         reputation: null,
         tradeWorkstationId,
         questMarkers: [],
@@ -167,7 +168,7 @@ describe('NearbyPanel', () => {
   it('gets up from the seat occupied by the player', async () => {
     const sceneWithSeat = {
       ...scene(undefined),
-      playerStatus: { ...scene(undefined).playerStatus, state: 'Sitting' },
+      playerStatus: { ...scene(undefined).playerStatus, posture: 'Sitting' },
       nearbyProps: [
         {
           id: 'chair-id',
@@ -243,6 +244,7 @@ describe('NearbyPanel', () => {
           creatureType: 'Beast',
           level: 3,
           state: 'Idle',
+          posture: 'Standing',
           reputation: null,
           tradeWorkstationId: undefined,
         },
@@ -361,6 +363,7 @@ describe('NearbyPanel', () => {
           creatureType: 'Human',
           level: 1,
           state: 'Idle',
+          posture: 'Standing',
           reputation: null,
           questMarkers: [
             { questId: 'quest-id', name: 'A Dangerous Delivery', marker: 'Available' },

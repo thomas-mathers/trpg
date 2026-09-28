@@ -193,7 +193,9 @@ export type CreatureLevelResponse = {
     level: number;
 };
 
-export type CreatureState = 'Idle' | 'Sitting' | 'Sleeping' | 'Working' | 'Studying' | 'Praying' | 'Eating' | 'Alerted' | 'Dead' | 'Restrained' | 'Walking';
+export type CreaturePosture = 'Standing' | 'Sitting' | 'Laying';
+
+export type CreatureState = 'Idle' | 'Sleeping' | 'Working' | 'Studying' | 'Praying' | 'Eating' | 'Alerted' | 'Dead' | 'Restrained' | 'Walking';
 
 export type CreatureStatusSnapshot = {
     id: string;
@@ -204,6 +206,7 @@ export type CreatureStatusSnapshot = {
     level: number;
     age: number;
     state: null | CreatureState;
+    posture: CreaturePosture;
     isSneaking: boolean;
     gold: number;
     currentHp: number;
