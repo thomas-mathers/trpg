@@ -258,7 +258,7 @@ internal class AttemptCellUnlockCommandHandler(
             new UpdateCreaturesCommand
             {
                 CreatureIds = [cell.CreatureId.Value],
-                State = CreatureState.Idle,
+                IsRestrained = false,
             },
             cancellationToken
         );

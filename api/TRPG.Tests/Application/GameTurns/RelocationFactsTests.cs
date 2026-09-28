@@ -118,6 +118,8 @@ public sealed class RelocationFactsTests
             State: null,
             Posture: CreaturePosture.Standing,
             IsSneaking: false,
+            IsAlerted: false,
+            IsRestrained: false,
             Reputation: null,
             Gold: 0,
             CurrentHp: 10,

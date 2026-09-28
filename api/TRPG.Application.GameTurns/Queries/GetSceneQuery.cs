@@ -472,6 +472,8 @@ internal class GetSceneQueryHandler(
             state,
             posture,
             creature.IsSneaking,
+            creature.IsAlerted,
+            creature.IsRestrained,
             reputation,
             creature.Gold,
             creature.CurrentHp,

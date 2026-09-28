@@ -242,6 +242,8 @@ public class SceneSemanticComparerTests
             State: state,
             Posture: CreaturePosture.Standing,
             IsSneaking: false,
+            IsAlerted: false,
+            IsRestrained: false,
             Reputation: 0,
             Gold: 5,
             CurrentHp: currentHp,

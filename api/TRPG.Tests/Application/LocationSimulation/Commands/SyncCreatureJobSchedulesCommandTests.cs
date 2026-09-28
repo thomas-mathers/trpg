@@ -233,6 +233,101 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_LeavesARestrainedCreatureInPlace_EvenWithADueJob()
+    {
+        var home = Builders.MakeLocation(_worldId);
+        var workplace = Builders.MakeLocation(_worldId);
+        var creature = Builders.MakeCreature(_worldId, locationId: home.Id, isRestrained: true);
+        creature.MovementSpeed = 5;
+        var connector = Connector(home.Id, workplace.Id);
+        _context.Locations.AddRange(home, workplace);
+        _context.Creatures.Add(creature);
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(Travel(connector, 5));
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Work,
+                startHour: 10,
+                endHour: 18,
+                locationId: workplace.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [creature.Id],
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 3,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var restrained = await verify.Creatures.SingleAsync(
+            entry => entry.Id == creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(home.Id, restrained.LocationId);
+        Assert.True(restrained.IsRestrained);
+        Assert.DoesNotContain(
+            await verify.RouteTravelerMembers.ToArrayAsync(TestContext.Current.CancellationToken),
+            member => member.CreatureId == creature.Id
+        );
+    }
+
+    [Fact]
+    public async Task Handle_AdvancesAnAlertedCreaturesSchedule_JustLikeAnyOther()
+    {
+        var home = Builders.MakeLocation(_worldId);
+        var workplace = Builders.MakeLocation(_worldId);
+        var creature = Builders.MakeCreature(_worldId, locationId: home.Id, isAlerted: true);
+        creature.MovementSpeed = 5;
+        var connector = Connector(home.Id, workplace.Id);
+        _context.Locations.AddRange(home, workplace);
+        _context.Creatures.Add(creature);
+        _context.LocationConnectors.Add(connector);
+        _context.TravelConnectors.Add(Travel(connector, 5));
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Work,
+                startHour: 10,
+                endHour: 18,
+                locationId: workplace.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var synchronize = _services.GetRequiredService<
+            ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
+        >();
+        await synchronize.Handle(
+            new SyncCreatureJobSchedulesCommand
+            {
+                CreatureIds = [creature.Id],
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 3,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verify = db.CreateContext();
+        var worker = await verify.Creatures.SingleAsync(
+            entry => entry.Id == creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(workplace.Id, worker.LocationId);
+        Assert.Equal(CreatureState.Working, worker.State);
+        Assert.True(worker.IsAlerted);
+    }
+
+    [Fact]
     public async Task Handle_AssignsLimitedSeating_InArrivalOrderForIdleVisitors()
     {
         var location = Builders.MakeLocation(_worldId);

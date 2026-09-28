@@ -63,14 +63,30 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsTheCreaturesCurrentState()
     {
         // Arrange
-        _npc.State = CreatureState.Alerted;
+        _npc.State = CreatureState.Working;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(CreatureState.Alerted, result.RuntimeState.State);
+        Assert.Equal(CreatureState.Working, result.RuntimeState.State);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheCreaturesAlertedAndRestrainedFlags()
+    {
+        // Arrange
+        _npc.IsAlerted = true;
+        _npc.IsRestrained = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.RuntimeState.IsAlerted);
+        Assert.True(result.RuntimeState.IsRestrained);
     }
 
     [Fact]

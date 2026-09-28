@@ -169,7 +169,7 @@ public sealed class StartFightToolTests(DatabaseFixture db)
             WorldId,
             locationId: LocationId,
             name: "Caged Captive",
-            state: CreatureState.Restrained
+            isRestrained: true
         );
         _context.Creatures.Add(target);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -223,8 +223,10 @@ public sealed class StartFightToolTests(DatabaseFixture db)
             [sleepingPackmate.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedTarget!.State);
-        Assert.Equal(CreatureState.Alerted, updatedPackmate!.State);
+        Assert.True(updatedTarget!.IsAlerted);
+        Assert.True(updatedPackmate!.IsAlerted);
+        Assert.Equal(CreatureState.Idle, updatedTarget.State);
+        Assert.Equal(CreatureState.Sleeping, updatedPackmate.State);
     }
 
     [Fact]
@@ -261,8 +263,10 @@ public sealed class StartFightToolTests(DatabaseFixture db)
             [sleepingPackmate.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedTarget!.State);
-        Assert.Equal(CreatureState.Sleeping, updatedPackmate!.State);
+        Assert.True(updatedTarget!.IsAlerted);
+        Assert.False(updatedPackmate!.IsAlerted);
+        Assert.Equal(CreatureState.Sleeping, updatedTarget.State);
+        Assert.Equal(CreatureState.Sleeping, updatedPackmate.State);
     }
 
     private async Task SeedGroup(params Creature[] members)

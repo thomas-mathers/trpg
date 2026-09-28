@@ -93,6 +93,8 @@ public record NpcConversationQuests(
 
 public record NpcConversationRuntimeState(
     CreatureState State,
+    bool IsAlerted,
+    bool IsRestrained,
     NpcConversationAttitude Attitude,
     NpcConversationHistoryResult ConversationHistory,
     NpcConversationQuests Quests,
@@ -280,6 +282,8 @@ internal class GetNpcConversationBriefingQueryHandler(
             ),
             new NpcConversationRuntimeState(
                 npc.State,
+                npc.IsAlerted,
+                npc.IsRestrained,
                 attitude,
                 new NpcConversationHistoryResult(
                     history?.Summary ?? "",

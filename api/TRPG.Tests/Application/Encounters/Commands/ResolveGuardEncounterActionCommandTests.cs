@@ -450,7 +450,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
             [_guard.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedGuard!.State);
+        Assert.True(updatedGuard!.IsAlerted);
 
         var fight = await verifyContext
             .Encounters.OfType<FightEncounter>()
@@ -484,7 +484,7 @@ public sealed class ResolveGuardEncounterActionCommandTests(DatabaseFixture db)
             [backupGuard.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedBackupGuard!.State);
+        Assert.True(updatedBackupGuard!.IsAlerted);
 
         var fight = await verifyContext
             .Encounters.OfType<FightEncounter>()

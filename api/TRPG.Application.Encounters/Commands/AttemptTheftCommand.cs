@@ -301,7 +301,7 @@ internal class AttemptTheftCommandHandler(
                 new UpdateCreaturesCommand
                 {
                     CreatureIds = theft.Witnesses.Select(witness => witness.Id).ToArray(),
-                    State = CreatureState.Alerted,
+                    IsAlerted = true,
                 },
                 cancellationToken
             );

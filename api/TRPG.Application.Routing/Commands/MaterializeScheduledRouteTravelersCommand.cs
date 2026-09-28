@@ -452,10 +452,7 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
         };
 
     private static bool CanFollowSchedule(Creature creature) =>
-        creature.State
-            is not CreatureState.Alerted
-                and not CreatureState.Dead
-                and not CreatureState.Restrained;
+        creature.State is not CreatureState.Dead && !creature.IsRestrained;
 
     private record ScheduledOccurrence(
         CreatureRouteSchedule Schedule,

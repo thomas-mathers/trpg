@@ -14,6 +14,8 @@ public class UpdateCreaturesCommand
     public CreaturePosture? Posture { get; init; }
     public GameInstant? LastRegenGameTime { get; init; }
     public string? Name { get; init; }
+    public bool? IsAlerted { get; init; }
+    public bool? IsRestrained { get; init; }
 }
 
 internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
@@ -29,7 +31,9 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
             || command.State != null
             || command.Posture != null
             || command.LastRegenGameTime != null
-            || command.Name != null;
+            || command.Name != null
+            || command.IsAlerted != null
+            || command.IsRestrained != null;
 
         if (command.CreatureIds.Count == 0 || !hasFieldToUpdate)
         {
@@ -40,11 +44,15 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
         var state = command.State ?? default;
         var posture = command.Posture ?? default;
         var lastRegenGameTime = command.LastRegenGameTime ?? default;
+        var isAlerted = command.IsAlerted ?? default;
+        var isRestrained = command.IsRestrained ?? default;
         var hasLocation = command.LocationId != null;
         var hasState = command.State != null;
         var hasPosture = command.Posture != null;
         var hasLastRegenGameTime = command.LastRegenGameTime != null;
         var hasName = command.Name != null;
+        var hasIsAlerted = command.IsAlerted != null;
+        var hasIsRestrained = command.IsRestrained != null;
 
         // Rows that already hold the requested values are left alone, so repeating an update is not a write.
         await context
@@ -55,6 +63,8 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
                 || (hasPosture && c.Posture != posture)
                 || (hasLastRegenGameTime && c.LastRegenGameTime != lastRegenGameTime)
                 || (hasName && c.Name != command.Name)
+                || (hasIsAlerted && c.IsAlerted != isAlerted)
+                || (hasIsRestrained && c.IsRestrained != isRestrained)
             )
             .ExecuteUpdateAsync(
                 s =>
@@ -82,6 +92,14 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
                     if (command.Name != null)
                     {
                         s.SetProperty(c => c.Name, command.Name);
+                    }
+                    if (command.IsAlerted != null)
+                    {
+                        s.SetProperty(c => c.IsAlerted, command.IsAlerted.Value);
+                    }
+                    if (command.IsRestrained != null)
+                    {
+                        s.SetProperty(c => c.IsRestrained, command.IsRestrained.Value);
                     }
                 },
                 cancellationToken

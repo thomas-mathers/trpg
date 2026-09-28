@@ -173,7 +173,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
         var captive = Builders.MakeCreature(
             WorldId,
             locationId: _cellLocation.Id,
-            state: CreatureState.Restrained
+            isRestrained: true
         );
         var quest = Builders.MakeQuest(GiverId, WorldId);
         var objective = new FreeCreatureObjective
@@ -214,7 +214,8 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
             [captive.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Restrained, stillRestrained!.State);
+        Assert.True(stillRestrained!.IsRestrained);
+        Assert.Equal(_cellLocation.Id, stillRestrained.LocationId);
     }
 
     [Fact]

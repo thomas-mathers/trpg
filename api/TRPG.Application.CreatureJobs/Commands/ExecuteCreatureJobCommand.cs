@@ -26,13 +26,7 @@ internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
-    // These states temporarily suppress ordinary schedule effects.
-    private static readonly HashSet<CreatureState> NonSchedulableStates =
-    [
-        CreatureState.Alerted,
-        CreatureState.Dead,
-        CreatureState.Restrained,
-    ];
+    private static readonly HashSet<CreatureState> NonSchedulableStates = [CreatureState.Dead];
 
     public async Task Handle(
         ExecuteCreatureJobCommand command,

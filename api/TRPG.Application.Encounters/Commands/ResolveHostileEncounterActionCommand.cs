@@ -114,11 +114,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
         var enemyCreatureIds = encounter.Members.Select(member => member.Id).ToArray();
 
         await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = enemyCreatureIds,
-                State = CreatureState.Alerted,
-            },
+            new UpdateCreaturesCommand { CreatureIds = enemyCreatureIds, IsAlerted = true },
             cancellationToken
         );
 

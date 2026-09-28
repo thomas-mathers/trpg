@@ -82,7 +82,7 @@ internal class StartFightTool(
             );
         }
 
-        if (target.State == CreatureState.Restrained)
+        if (target.IsRestrained)
         {
             return new ToolError($"{targetName} is locked away and cannot be reached to attack.");
         }
@@ -103,11 +103,7 @@ internal class StartFightTool(
         );
 
         await updateCreatures.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = enemyCreatureIds,
-                State = CreatureState.Alerted,
-            },
+            new UpdateCreaturesCommand { CreatureIds = enemyCreatureIds, IsAlerted = true },
             cancellationToken
         );
 

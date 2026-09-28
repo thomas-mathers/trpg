@@ -302,7 +302,7 @@ internal class SeedCaptiveRescueQuestCommandHandler(
             {
                 CreatureIds = [captive.Id],
                 LocationId = room.LocationId,
-                State = CreatureState.Restrained,
+                IsRestrained = true,
             },
             cancellationToken
         );

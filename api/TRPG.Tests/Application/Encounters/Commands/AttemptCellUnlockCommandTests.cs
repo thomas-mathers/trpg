@@ -30,7 +30,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             _worldId,
             locationId: _location.Id,
             name: "Captive",
-            state: CreatureState.Restrained
+            isRestrained: true
         );
         _captive.MovementSpeed = 5;
         _cell = new Cell

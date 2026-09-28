@@ -70,6 +70,8 @@ public record SceneCreatureInfo(
     CreatureState? State,
     CreaturePosture Posture,
     bool IsSneaking,
+    bool IsAlerted,
+    bool IsRestrained,
     int? Reputation,
     int Gold,
     int CurrentHp,

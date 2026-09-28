@@ -678,6 +678,16 @@ function CreatureRow({
             {creature.posture}
           </span>
         )}
+        {creature.isAlerted && (
+          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
+            Alerted
+          </span>
+        )}
+        {creature.isRestrained && (
+          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
+            Restrained
+          </span>
+        )}
       </span>
 
       <DropdownMenu>

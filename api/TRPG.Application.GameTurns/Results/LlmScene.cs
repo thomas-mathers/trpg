@@ -69,6 +69,8 @@ public record LlmSceneCreature(
     IReadOnlyCollection<string> FactionNames,
     CreatureState? State,
     bool IsSneaking,
+    bool IsAlerted,
+    bool IsRestrained,
     int? Reputation,
     int CurrentHp,
     int MaximumHp,

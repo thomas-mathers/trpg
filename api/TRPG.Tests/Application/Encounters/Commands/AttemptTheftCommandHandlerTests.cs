@@ -519,7 +519,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db)
             creature => creature.Id == bystander.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Alerted, updatedBystander.State);
+        Assert.True(updatedBystander.IsAlerted);
     }
 
     [Fact]
