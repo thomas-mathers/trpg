@@ -85,4 +85,51 @@ public sealed class CloseLingeringNpcConversationsCommandTests(DatabaseFixture d
         Assert.Equal(2, engagement.Length);
         Assert.All(engagement, Assert.False);
     }
+
+    [Fact]
+    public async Task Handle_ReleasesBothNpcs_WhenTwoConversationsAreOpen()
+    {
+        // Arrange
+        var otherNpc = Builders.MakeCreature(WorldId, name: "Kellan", isEngaged: true);
+        _context.Creatures.Add(otherNpc);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _context
+            .NpcConversationSessionStates.Where(s => s.SessionId == _session.Id)
+            .ExecuteUpdateAsync(
+                setters =>
+                    setters.SetProperty(
+                        s => s.OpenConversationCreatureIdsByName,
+                        new Dictionary<string, Guid>
+                        {
+                            ["Mira"] = _npc.Id,
+                            ["Kellan"] = otherNpc.Id,
+                        }
+                    ),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        await _handler.Handle(
+            new CloseLingeringNpcConversationsCommand
+            {
+                SessionId = _session.Id,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                GameTime = GameClock.Epoch,
+                CurrentTurnStart = 0,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var engagement = await verifyContext
+            .Creatures.Where(creature =>
+                creature.Id == _player.Id || creature.Id == _npc.Id || creature.Id == otherNpc.Id
+            )
+            .Select(creature => creature.IsEngaged)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(3, engagement.Length);
+        Assert.All(engagement, Assert.False);
+    }
 }

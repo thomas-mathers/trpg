@@ -116,4 +116,111 @@ public sealed class StartConversationToolTests(DatabaseFixture db)
             .ToArrayAsync(TestContext.Current.CancellationToken);
         Assert.All(participants, creature => Assert.False(creature.IsEngaged));
     }
+
+    [Fact]
+    public async Task Invoke_OpensASecondConversation_WhenAnotherIsAlreadyOpen()
+    {
+        // Arrange
+        var mara = Builders.MakeCreature(_worldId, locationId: _locationId, name: "Mara");
+        var kellan = Builders.MakeCreature(_worldId, locationId: _locationId, name: "Kellan");
+        _context.Creatures.AddRange(mara, kellan);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var start = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+        await start(mara.Name, TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await start(kellan.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsNotType<ToolError>(result);
+        _context.ChangeTracker.Clear();
+        var participants = await _context
+            .Creatures.Where(creature =>
+                creature.Id == _player.Id || creature.Id == mara.Id || creature.Id == kellan.Id
+            )
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(participants, creature => Assert.True(creature.IsEngaged));
+    }
+
+    [Fact]
+    public async Task Invoke_Refuses_WhenTheNpcIsAlreadyEngagedByAnotherPlayer()
+    {
+        // Arrange
+        var npc = Builders.MakeCreature(
+            _worldId,
+            locationId: _locationId,
+            name: "Mara",
+            isEngaged: true
+        );
+        _context.Creatures.Add(npc);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke(npc.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<ToolError>(result);
+    }
+
+    [Fact]
+    public async Task Invoke_Refuses_WhenThePlayerIsEngagedByAnUnrelatedInteraction()
+    {
+        // Arrange
+        var npc = Builders.MakeCreature(_worldId, locationId: _locationId, name: "Mara");
+        _context.Creatures.Add(npc);
+        _player.IsEngaged = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke(npc.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<ToolError>(result);
+    }
+
+    [Fact]
+    public async Task EndConversation_KeepsPlayerEngaged_WhenAnotherConversationRemainsOpen()
+    {
+        // Arrange
+        var mara = Builders.MakeCreature(_worldId, locationId: _locationId, name: "Mara");
+        var kellan = Builders.MakeCreature(_worldId, locationId: _locationId, name: "Kellan");
+        _context.Creatures.AddRange(mara, kellan);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var start = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+        await start(mara.Name, TestContext.Current.CancellationToken);
+        await start(kellan.Name, TestContext.Current.CancellationToken);
+
+        // Act
+        var endTask =
+            (Task<object?>)
+                _endTool.Invoke.DynamicInvoke(
+                    mara.Name,
+                    "They exchanged greetings.",
+                    "They have met once.",
+                    null,
+                    null,
+                    null,
+                    null,
+                    TestContext.Current.CancellationToken
+                )!;
+        var result = await endTask;
+
+        // Assert
+        Assert.IsNotType<ToolError>(result);
+        _context.ChangeTracker.Clear();
+        var participants = await _context
+            .Creatures.Where(creature =>
+                creature.Id == _player.Id || creature.Id == mara.Id || creature.Id == kellan.Id
+            )
+            .ToDictionaryAsync(
+                creature => creature.Name,
+                creature => creature.IsEngaged,
+                TestContext.Current.CancellationToken
+            );
+        Assert.False(participants[mara.Name]);
+        Assert.True(participants[kellan.Name]);
+        Assert.True(participants[_player.Name]);
+    }
 }
