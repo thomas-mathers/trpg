@@ -21,6 +21,7 @@ public class SyncLocationJobsCommand
 
 internal class SyncLocationJobsCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
+    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<
         GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
@@ -46,10 +47,10 @@ internal class SyncLocationJobsCommandHandler(
         SyncCreatureJobSchedulesResult
     > syncCreatureJobSchedules,
     IQueryHandler<
-        GetWorkstationsByLocationIdQuery,
-        IReadOnlyCollection<Workstation>
-    > getWorkstationsByLocationId,
-    ICommandHandler<SetWorkstationOccupantCommand> setWorkstationOccupant
+        GetWorkstationsByLocationIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Workstation>>
+    > getWorkstationsByLocationIds,
+    ICommandHandler<SetWorkstationOccupantsCommand> setWorkstationOccupants
 ) : ICommandHandler<SyncLocationJobsCommand>
 {
     public async Task Handle(
@@ -85,10 +86,7 @@ internal class SyncLocationJobsCommandHandler(
             },
             cancellationToken
         );
-        foreach (var (locationId, presentCreatureIds) in result.WorkingCreatureIdsByLocationId)
-        {
-            await AssignWorkstations(locationId, presentCreatureIds, cancellationToken);
-        }
+        await AssignWorkstations(result.WorkingCreatureIdsByLocationId, cancellationToken);
     }
 
     // The sources overlap, so they are unioned to avoid advancing a schedule twice.
@@ -179,43 +177,61 @@ internal class SyncLocationJobsCommandHandler(
     }
 
     private async Task AssignWorkstations(
-        Guid locationId,
-        IReadOnlyList<Guid> presentCreatureIds,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>> presentCreatureIdsByLocationId,
         CancellationToken cancellationToken
     )
     {
-        var location = await getLocationById.Handle(
-            new GetLocationByIdQuery { Id = locationId },
-            cancellationToken
-        );
-        if (location?.RoomId == null)
+        if (presentCreatureIdsByLocationId.Count == 0)
         {
             return;
         }
 
-        var workstations = await getWorkstationsByLocationId.Handle(
-            new GetWorkstationsByLocationIdQuery { LocationId = locationId },
+        var locationIds = presentCreatureIdsByLocationId.Keys.ToArray();
+        var locationsById = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = locationIds },
             cancellationToken
         );
-        var counter = workstations.Where(w => w.WorkstationType == WorkstationType.Trade);
-        var productionStations = workstations.Where(w =>
-            w.WorkstationType != WorkstationType.Trade
-        );
-        var orderedStations = counter.Concat(productionStations).ToArray();
-
-        var remainingCreatureIds = new Queue<Guid>(presentCreatureIds);
-        foreach (var station in orderedStations)
+        var roomLocationIds = locationsById
+            .Where(kv => kv.Value.RoomId != null)
+            .Select(kv => kv.Key)
+            .ToArray();
+        if (roomLocationIds.Length == 0)
         {
-            var occupantId =
-                remainingCreatureIds.Count > 0 ? remainingCreatureIds.Dequeue() : (Guid?)null;
-            await setWorkstationOccupant.Handle(
-                new SetWorkstationOccupantCommand
-                {
-                    WorkstationId = station.Id,
-                    OccupantId = occupantId,
-                },
-                cancellationToken
-            );
+            return;
         }
+
+        var workstationsByLocationId = await getWorkstationsByLocationIds.Handle(
+            new GetWorkstationsByLocationIdsQuery { LocationIds = roomLocationIds },
+            cancellationToken
+        );
+
+        var occupantIdsByWorkstationId = new Dictionary<Guid, Guid?>();
+        foreach (var locationId in roomLocationIds)
+        {
+            var workstations = workstationsByLocationId.GetValueOrDefault(
+                locationId,
+                (IReadOnlyList<Workstation>)[]
+            );
+            var counter = workstations.Where(w => w.WorkstationType == WorkstationType.Trade);
+            var productionStations = workstations.Where(w =>
+                w.WorkstationType != WorkstationType.Trade
+            );
+            var orderedStations = counter.Concat(productionStations).ToArray();
+
+            var remainingCreatureIds = new Queue<Guid>(presentCreatureIdsByLocationId[locationId]);
+            foreach (var station in orderedStations)
+            {
+                occupantIdsByWorkstationId[station.Id] =
+                    remainingCreatureIds.Count > 0 ? remainingCreatureIds.Dequeue() : (Guid?)null;
+            }
+        }
+
+        await setWorkstationOccupants.Handle(
+            new SetWorkstationOccupantsCommand
+            {
+                OccupantIdsByWorkstationId = occupantIdsByWorkstationId,
+            },
+            cancellationToken
+        );
     }
 }

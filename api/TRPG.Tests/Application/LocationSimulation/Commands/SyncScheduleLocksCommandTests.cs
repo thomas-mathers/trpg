@@ -10,7 +10,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.LocationSimulation.Commands;
 
-public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
+public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -21,7 +21,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
     private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private SyncScheduleLockCommandHandler _handler = null!;
+    private SyncScheduleLocksCommandHandler _handler = null!;
     private UpdateCreaturesCommandHandler _updateCreatures = null!;
 
     public async ValueTask InitializeAsync()
@@ -34,7 +34,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
         _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
         _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
-        _handler = _serviceProvider.GetRequiredService<SyncScheduleLockCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<SyncScheduleLocksCommandHandler>();
         _updateCreatures = _serviceProvider.GetRequiredService<UpdateCreaturesCommandHandler>();
     }
 
@@ -89,10 +89,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = building.Id,
-                BuildingType = building.BuildingType,
+                Buildings = [new BuildingLockTarget(building.Id, building.BuildingType)],
                 CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
@@ -129,10 +128,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
             )
         );
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = building.Id,
-                BuildingType = building.BuildingType,
+                Buildings = [new BuildingLockTarget(building.Id, building.BuildingType)],
                 CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
@@ -140,10 +138,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = building.Id,
-                BuildingType = building.BuildingType,
+                Buildings = [new BuildingLockTarget(building.Id, building.BuildingType)],
                 CurrentDate = Builders.MakeInGameDate(12),
             },
             TestContext.Current.CancellationToken
@@ -173,10 +170,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = building.Id,
-                BuildingType = BuildingType.Tavern,
+                Buildings = [new BuildingLockTarget(building.Id, BuildingType.Tavern)],
                 CurrentDate = Builders.MakeInGameDate(23),
             },
             TestContext.Current.CancellationToken
@@ -208,10 +204,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = shop.Id,
-                BuildingType = shop.BuildingType,
+                Buildings = [new BuildingLockTarget(shop.Id, shop.BuildingType)],
                 CurrentDate = Builders.MakeInGameDate(16),
             },
             TestContext.Current.CancellationToken
@@ -250,10 +245,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = shop.Id,
-                BuildingType = shop.BuildingType,
+                Buildings = [new BuildingLockTarget(shop.Id, shop.BuildingType)],
                 CurrentDate = Builders.MakeInGameDate(16),
             },
             TestContext.Current.CancellationToken
@@ -261,10 +255,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = shop.Id,
-                BuildingType = shop.BuildingType,
+                Buildings = [new BuildingLockTarget(shop.Id, shop.BuildingType)],
                 CurrentDate = Builders.MakeInGameDate(10),
             },
             TestContext.Current.CancellationToken
@@ -278,7 +271,7 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
     [Fact]
     public async Task Handle_LocksShop_WhenEveryWorkerIsOnADayOff()
     {
-        // Arrange - the Work window covers this hour, but a higher-priority day-off job overrides it
+        // Arrange - the Work window covers this hour, but a higher-priority day-off job overrides it
         var worker = await SeedOwner();
         var shop = await SeedBuilding(worker.Id, BuildingType.Bakery);
         var frontDoor = await SeedFrontDoor(shop.Id);
@@ -306,10 +299,9 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncScheduleLockCommand
+            new SyncScheduleLocksCommand
             {
-                BuildingId = shop.Id,
-                BuildingType = shop.BuildingType,
+                Buildings = [new BuildingLockTarget(shop.Id, shop.BuildingType)],
                 CurrentDate = Builders.MakeInGameDate(10),
             },
             TestContext.Current.CancellationToken
@@ -318,6 +310,69 @@ public sealed class SyncScheduleLockCommandTests(DatabaseFixture db)
         // Assert
         var door = await GetFrontDoor(frontDoor.Id);
         Assert.True(door.IsLocked);
+    }
+
+    [Fact]
+    public async Task Handle_SyncsEachBuildingIndependently_WhenLockingMultipleBuildingsAtOnce()
+    {
+        // Arrange — a home (locked while its owner sleeps) and a shop (unlocked while staffed)
+        // synced in one batched call, guarding the shop/home split and per-building lookups.
+        var homeOwner = await SeedOwner();
+        var home = await SeedBuilding(homeOwner.Id);
+        var homeFrontDoor = await SeedFrontDoor(home.Id);
+        await AddJob(
+            Builders.MakeCreatureJob(
+                homeOwner.Id,
+                action: CreatureJobAction.Sleep,
+                startHour: 22,
+                endHour: 6,
+                priority: 100
+            )
+        );
+
+        var shopWorker = await SeedOwner();
+        var shop = await SeedBuilding(shopWorker.Id, BuildingType.Bakery);
+        var shopFrontDoor = await SeedFrontDoor(shop.Id);
+        var shopWorkLocationId = await GetDestinationLocationId(shopFrontDoor.ConnectorId);
+        await AddJob(
+            Builders.MakeCreatureJob(
+                shopWorker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 20,
+                endHour: 4,
+                priority: 50,
+                locationId: shopWorkLocationId
+            )
+        );
+        await _updateCreatures.Handle(
+            new UpdateCreaturesCommand
+            {
+                CreatureIds = [shopWorker.Id],
+                LocationId = shopWorkLocationId,
+                State = CreatureState.Working,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await _handler.Handle(
+            new SyncScheduleLocksCommand
+            {
+                Buildings =
+                [
+                    new BuildingLockTarget(home.Id, home.BuildingType),
+                    new BuildingLockTarget(shop.Id, shop.BuildingType),
+                ],
+                CurrentDate = Builders.MakeInGameDate(23),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var homeDoor = await GetFrontDoor(homeFrontDoor.Id);
+        var shopDoor = await GetFrontDoor(shopFrontDoor.Id);
+        Assert.True(homeDoor.IsLocked);
+        Assert.False(shopDoor.IsLocked);
     }
 
     private async Task<Creature> SeedOwner()

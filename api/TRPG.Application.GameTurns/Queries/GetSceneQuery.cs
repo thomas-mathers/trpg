@@ -91,14 +91,17 @@ internal class GetSceneQueryHandler(
         IReadOnlyList<RouteTravelerSummary>
     > getRouteTravelersByLocationId,
     IQueryHandler<
-        ResolveRouteTravelerPositionQuery,
-        RouteTimelinePosition?
-    > resolveRouteTravelerPosition,
+        ResolveRouteTravelerPositionsQuery,
+        IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition>
+    > resolveRouteTravelerPositions,
     IQueryHandler<
         GetCaravanFaresByRouteIdsQuery,
         IReadOnlyDictionary<Guid, CaravanFare>
     > getCaravanFaresByRouteIds,
-    IQueryHandler<GetCaravanTicketQuery, CaravanTicket?> getCaravanTicket,
+    IQueryHandler<
+        GetCaravanTicketsByCaravanIdsQuery,
+        IReadOnlyDictionary<Guid, CaravanTicket>
+    > getCaravanTicketsByCaravanIds,
     IQueryHandler<GetCitiesByIdsQuery, IReadOnlyDictionary<Guid, City>> getCitiesByIds,
     IQueryHandler<
         GetRouteTravelerJourneysByCreatureIdsQuery,
@@ -215,44 +218,29 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
-        var result = new List<SceneCaravanInfo>();
-        foreach (var (traveler, fare, position) in lingeringCaravans)
-        {
-            var ticket = await getCaravanTicket.Handle(
-                new GetCaravanTicketQuery
-                {
-                    CreatureId = playerId,
-                    CaravanId = traveler.RouteTravelerId,
-                },
-                cancellationToken
-            );
-
-            var destinations = BuildCaravanDestinations(
-                traveler,
-                position.StepIndex,
-                ticket,
-                namesByLocationId
-            );
-            result.Add(
-                new SceneCaravanInfo(
-                    traveler.RouteTravelerId,
-                    traveler.RouteName,
-                    fare.TicketFeeGold,
-                    (int)Math.Ceiling(position.HoursUntilDeparture * 60),
-                    !WeatherConditions.PreventsOptionalTravel(weather),
-                    destinations
+        return lingeringCaravans
+            .Select(entry => new SceneCaravanInfo(
+                entry.Traveler.RouteTravelerId,
+                entry.Traveler.RouteName,
+                entry.Fare.TicketFeeGold,
+                (int)Math.Ceiling(entry.Position.HoursUntilDeparture * 60),
+                !WeatherConditions.PreventsOptionalTravel(weather),
+                BuildCaravanDestinations(
+                    entry.Traveler,
+                    entry.Position.StepIndex,
+                    entry.Ticket,
+                    namesByLocationId
                 )
-            );
-        }
-
-        return result;
+            ))
+            .ToArray();
     }
 
     private async Task<
         List<(
             RouteTravelerSummary Traveler,
             CaravanFare Fare,
-            RouteTimelinePosition.Lingering Position
+            RouteTimelinePosition.Lingering Position,
+            CaravanTicket? Ticket
         )>
     > ResolveLingeringCaravans(
         Guid worldId,
@@ -283,25 +271,50 @@ internal class GetSceneQueryHandler(
         var caravanTravelers = travelers
             .Where(traveler => faresByRouteId.ContainsKey(traveler.RouteId))
             .ToArray();
+        if (caravanTravelers.Length == 0)
+        {
+            return [];
+        }
+
+        var caravanTravelerIds = caravanTravelers
+            .Select(traveler => traveler.RouteTravelerId)
+            .ToArray();
+        var positionsByTravelerId = await resolveRouteTravelerPositions.Handle(
+            new ResolveRouteTravelerPositionsQuery
+            {
+                RouteTravelerIds = caravanTravelerIds,
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
+        var ticketsByTravelerId = await getCaravanTicketsByCaravanIds.Handle(
+            new GetCaravanTicketsByCaravanIdsQuery
+            {
+                CreatureId = playerId,
+                CaravanIds = caravanTravelerIds,
+            },
+            cancellationToken
+        );
 
         var lingering =
-            new List<(RouteTravelerSummary, CaravanFare, RouteTimelinePosition.Lingering)>();
+            new List<(
+                RouteTravelerSummary,
+                CaravanFare,
+                RouteTimelinePosition.Lingering,
+                CaravanTicket?
+            )>();
         foreach (var traveler in caravanTravelers)
         {
-            var position = await resolveRouteTravelerPosition.Handle(
-                new ResolveRouteTravelerPositionQuery
-                {
-                    RouteTravelerId = traveler.RouteTravelerId,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
+            var ticket = ticketsByTravelerId.GetValueOrDefault(traveler.RouteTravelerId);
+            var position = positionsByTravelerId
+                .GetValueOrDefault(traveler.RouteTravelerId)
+                ?.Position;
             if (
                 position is RouteTimelinePosition.Lingering atThisStop
                 && atThisStop.LocationId == playerLocationId
             )
             {
-                lingering.Add((traveler, faresByRouteId[traveler.RouteId], atThisStop));
+                lingering.Add((traveler, faresByRouteId[traveler.RouteId], atThisStop, ticket));
                 continue;
             }
 
@@ -309,14 +322,6 @@ internal class GetSceneQueryHandler(
             // ordinary narration-time overhead (every narrated turn advances gameTime a little)
             // nudged its live position past the strict window — BoardCaravanCommand honors the
             // same ticket regardless of this drift, so the scene has to agree.
-            var ticket = await getCaravanTicket.Handle(
-                new GetCaravanTicketQuery
-                {
-                    CreatureId = playerId,
-                    CaravanId = traveler.RouteTravelerId,
-                },
-                cancellationToken
-            );
             if (ticket != null && ticket.OriginStopLocationId == playerLocationId)
             {
                 var stopIndex = traveler
@@ -330,7 +335,8 @@ internal class GetSceneQueryHandler(
                             playerLocationId,
                             stopIndex,
                             HoursUntilDeparture: 0
-                        )
+                        ),
+                        ticket
                     )
                 );
             }
