@@ -6,10 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration;
@@ -829,37 +826,15 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
 
         var chatClient = new FakeChatClient();
-        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration(
-                (_, config) =>
-                {
-                    config.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["ConnectionStrings:Trpg"] = fixture.ConnectionString,
-                            ["Flee:MinimumCatchChance"] = "1",
-                            ["Flee:MaximumCatchChance"] = "1",
-                            ["GameClientEventAck:AckTimeout"] = "00:00:00.200",
-                        }
-                    );
-                }
-            );
-            builder.ConfigureServices(services =>
+        await using var factory = TestWebApplicationFactory.Create(
+            fixture.ConnectionString,
+            chatClient,
+            new Dictionary<string, string?>
             {
-                services.RemoveAll<DbContextOptions<TrpgDbContext>>();
-                services.AddDbContext<TrpgDbContext>(options =>
-                    options.UseNpgsql(fixture.ConnectionString)
-                );
-
-                services.RemoveAll<IChatClient>();
-                services.AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, chatClient);
-                services.AddKeyedSingleton<IChatClient>(
-                    LlmRoleKeys.Gameplay,
-                    (_, _) => chatClient.AsBuilder().UseFunctionInvocation().Build()
-                );
-            });
-        });
+                ["Flee:MinimumCatchChance"] = "1",
+                ["Flee:MaximumCatchChance"] = "1",
+            }
+        );
 
         chatClient.PendingToolCallName = "attack";
         chatClient.PendingToolCallArguments = new Dictionary<string, object?>
