@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
@@ -15,6 +17,7 @@ using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Narration;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -46,6 +49,7 @@ internal class GameTurnStreamer(
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
+    IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     ScenePublisher scenePublisher,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     IGameClientEventDispatcher eventDispatcher,
@@ -121,6 +125,7 @@ internal class GameTurnStreamer(
         // The state change already happened, so the client must learn of it before the narration describing it.
         var flushed = false;
         var lastScene = before;
+        var narration = new StringBuilder();
 
         await foreach (var token in linkedTokens)
         {
@@ -135,12 +140,49 @@ internal class GameTurnStreamer(
                 lastScene = await FlushSceneChange(lastScene, session, cancellationToken);
             }
 
+            narration.Append(token);
             yield return token;
         }
 
         if (!flushed)
         {
             await FlushSceneChange(lastScene, session, cancellationToken);
+        }
+
+        await LogUnbriefedNpcMentions(before, narration.ToString(), session, cancellationToken);
+    }
+
+    private async Task LogUnbriefedNpcMentions(
+        SceneResult before,
+        string narration,
+        GameTurnSession session,
+        CancellationToken cancellationToken
+    )
+    {
+        if (before.NearbyCreatures.Count == 0)
+        {
+            return;
+        }
+
+        var openConversations = await getOpenNpcConversations.Handle(
+            new GetOpenNpcConversationsQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
+        foreach (var creature in before.NearbyCreatures)
+        {
+            if (openConversations.ContainsKey(creature.Name))
+            {
+                continue;
+            }
+
+            if (Regex.IsMatch(narration, $@"\b{Regex.Escape(creature.Name)}\b"))
+            {
+                logger.LogWarning(
+                    "[game] Narration mentioned {NpcName} without an open start_conversation this turn",
+                    creature.Name
+                );
+            }
         }
     }
 

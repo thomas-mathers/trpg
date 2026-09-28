@@ -93,11 +93,15 @@ internal class EndConversationTool(
             );
         }
 
+        var otherOpenConversationsRemain = openConversations.Keys.Any(name => name != npcName);
+        IReadOnlyCollection<Guid> creatureIdsToRelease = otherOpenConversationsRemain
+            ? [openConversations[npcName]]
+            : [turnContext.PlayerId, openConversations[npcName]];
         await releaseCreatures.Handle(
             new ReleaseCreaturesCommand
             {
                 WorldId = turnContext.WorldId,
-                CreatureIds = [turnContext.PlayerId, openConversations[npcName]],
+                CreatureIds = creatureIdsToRelease,
                 GameTime = gameTime,
             },
             cancellationToken

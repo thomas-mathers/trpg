@@ -11,6 +11,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.NpcConversations.Commands;
+using TRPG.Application.NpcConversations.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tools;
@@ -26,6 +27,7 @@ internal class StartConversationTool(
         GetNpcConversationBriefingQuery,
         NpcConversationBriefing
     > getNpcConversationBriefing,
+    IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     ICommandHandler<OpenNpcConversationCommand, OpenNpcConversationResult> openNpcConversation,
     ICommandHandler<EngageCreaturesCommand> engageCreatures,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
@@ -36,7 +38,7 @@ internal class StartConversationTool(
 
     [DisplayName("start_conversation")]
     [Description(
-        "Call this when you begin talking to someone. It returns their player-visible appearance, private roleplaying background, reputation-driven attitude, conversation history, and quest context. If WithheldFact is present and the player's current message asks about that subject, call ask_about_fact (or the explicitly requested bribe/intimidation tool) before answering the question. Opening the conversation does not resolve that request."
+        "Call this when you begin talking to someone, including a second or third person who joins a conversation that's already open with someone else — call it once per new person, every time one speaks or is addressed for the first time this conversation. It returns their player-visible appearance, private roleplaying background, reputation-driven attitude, conversation history, and quest context. If WithheldFact is present and the player's current message asks about that subject, call ask_about_fact (or the explicitly requested bribe/intimidation tool) before answering the question. Opening the conversation does not resolve that request."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -81,9 +83,18 @@ internal class StartConversationTool(
                 $"No one named '{npcName}' found nearby. Call look to see who's around."
             );
         }
-        if (player.IsEngaged || npc.IsEngaged)
+        if (npc.IsEngaged)
         {
-            return new ToolError("One of the conversation participants is already engaged.");
+            return new ToolError($"{npcName} is currently engaged in something else.");
+        }
+
+        var openConversations = await getOpenNpcConversations.Handle(
+            new GetOpenNpcConversationsQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
+        if (player.IsEngaged && openConversations.Count == 0)
+        {
+            return new ToolError("You are currently engaged in something else.");
         }
 
         var gameTime = await getGameTime.Handle(
@@ -104,15 +115,18 @@ internal class StartConversationTool(
         if (outcome == OpenNpcConversationResult.AlreadyOpen)
         {
             return new ToolError(
-                $"You are already in conversation with {npcName}; no need to call this again for them. If the dialogue has turned to someone else, call lookup instead."
+                $"You are already in conversation with {npcName}; no need to call this again for them."
             );
         }
 
+        IReadOnlyCollection<Guid> creatureIdsToEngage = player.IsEngaged
+            ? [npc.Id]
+            : [turnContext.PlayerId, npc.Id];
         await engageCreatures.Handle(
             new EngageCreaturesCommand
             {
                 WorldId = turnContext.WorldId,
-                CreatureIds = [turnContext.PlayerId, npc.Id],
+                CreatureIds = creatureIdsToEngage,
                 GameTime = gameTime,
             },
             cancellationToken
