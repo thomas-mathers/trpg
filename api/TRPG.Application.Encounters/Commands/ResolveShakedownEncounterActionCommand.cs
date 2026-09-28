@@ -30,7 +30,7 @@ internal class ResolveShakedownEncounterActionCommandHandler(
     EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<AlertCreaturesCommand> alertCreatures,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<StartFightCommand> startFight,
     EncounterDepartureResolver encounterDepartureResolver,
@@ -151,8 +151,8 @@ internal class ResolveShakedownEncounterActionCommandHandler(
 
         var enemyCreatureIds = encounter.Members.Select(member => member.Id).ToArray();
 
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand { CreatureIds = enemyCreatureIds, IsAlerted = true },
+        await alertCreatures.Handle(
+            new AlertCreaturesCommand { CreatureIds = enemyCreatureIds },
             cancellationToken
         );
 

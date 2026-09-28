@@ -182,7 +182,7 @@ public static class StatFormulas
         CreatureRegenOptions options
     )
     {
-        if (creature.State == CreatureState.Dead)
+        if (creature.Condition == CreatureCondition.Dead)
         {
             return;
         }

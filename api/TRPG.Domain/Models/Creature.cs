@@ -32,23 +32,32 @@ public static class CreatureTypes
     ];
 }
 
-public enum CreatureState
+public enum CreatureCondition
 {
-    Idle,
+    Awake,
     Sleeping,
+    Dead,
+}
+
+public enum CreatureActivity
+{
     Working,
     Studying,
     Praying,
     Eating,
-    Dead,
-    Walking,
 }
 
 public enum CreaturePosture
 {
     Standing,
     Sitting,
-    Laying,
+    Lying,
+}
+
+public enum CreatureMovement
+{
+    Stationary,
+    Walking,
 }
 
 public enum Gender
@@ -127,8 +136,10 @@ public class Creature
     public Guid? PreviousLocationId { get; set; }
     public GameInstant? RestedUntilGameTime { get; set; }
     public Guid? SpawnerId { get; set; }
-    public CreatureState State { get; set; }
+    public CreatureCondition Condition { get; set; }
+    public CreatureActivity? Activity { get; set; }
     public CreaturePosture Posture { get; set; }
+    public CreatureMovement Movement { get; set; }
     public bool IsEngaged { get; set; }
     public bool IsSneaking { get; set; }
     public bool IsAlerted { get; set; }
@@ -160,4 +171,13 @@ public class Creature
     public List<ActiveDot> ActiveDots { get; set; } = [];
     public List<ActiveHot> ActiveHots { get; set; } = [];
     public List<ActiveBuff> ActiveBuffs { get; set; } = [];
+
+    public void Die()
+    {
+        Condition = CreatureCondition.Dead;
+        Activity = null;
+        Movement = CreatureMovement.Stationary;
+        IsAlerted = false;
+        IsSneaking = false;
+    }
 }

@@ -22,7 +22,12 @@ function scene(hour: number, minute = 0): SceneSnapshot {
     gameTimeMilliseconds: ((hour - EPOCH_HOUR) * 60 + minute) * MILLISECONDS_PER_MINUTE,
     anchoredAtUnixMilliseconds: Date.now(),
     timeScale: 1,
-    playerStatus: { id: 'player-id', level: 1, state: 'Idle', posture: 'Sitting' },
+    playerStatus: {
+      id: 'player-id',
+      level: 1,
+      condition: 'Awake',
+      posture: 'Sitting',
+    },
   } as unknown as SceneSnapshot;
 }
 
@@ -55,7 +60,12 @@ function renderDialog({
   minute = 0,
   open = true,
   onClose = vi.fn(),
-}: { hour?: number; minute?: number; open?: boolean; onClose?: () => void } = {}) {
+}: {
+  hour?: number;
+  minute?: number;
+  open?: boolean;
+  onClose?: () => void;
+} = {}) {
   const gameChat = buildGameChat();
   const chatHub = buildChatHub();
   const hubConnection: GameHubConnection = {

@@ -57,7 +57,11 @@ internal class SitDownCommandHandler(
             return SitDownResult.SeatNotNearby;
         }
 
-        if (player.State != CreatureState.Idle)
+        if (
+            player.Condition != CreatureCondition.Awake
+            || player.Activity != null
+            || player.Movement != CreatureMovement.Stationary
+        )
         {
             return SitDownResult.PlayerNotIdle;
         }

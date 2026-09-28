@@ -48,7 +48,7 @@ internal class TheftSourceResolver(
         var owner = await GetCreatureOrThrow(from.Id, worldId, cancellationToken);
 
         if (
-            owner.State != CreatureState.Dead
+            owner.Condition != CreatureCondition.Dead
             && !CreatureTypes.Humanoid.Contains(owner.CreatureType)
         )
         {
@@ -57,7 +57,7 @@ internal class TheftSourceResolver(
             );
         }
 
-        return owner.State == CreatureState.Dead
+        return owner.Condition == CreatureCondition.Dead
             ? null
             : new TheftSource(
                 Owner: owner,

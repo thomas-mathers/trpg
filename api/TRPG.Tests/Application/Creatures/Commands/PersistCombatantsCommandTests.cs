@@ -82,7 +82,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
         Assert.Equal(30, updated!.CurrentHp);
         Assert.Equal(5, updated.CurrentAp);
         Assert.Equal(3, updated.CurrentMp);
-        Assert.Equal(_creature.State, updated.State);
+        Assert.Equal(_creature.Condition, updated.Condition);
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(0, updated!.CurrentHp);
-        Assert.Equal(CreatureState.Dead, updated.State);
+        Assert.Equal(CreatureCondition.Dead, updated.Condition);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(30, updatedCreature!.CurrentHp);
-        Assert.Equal(CreatureState.Dead, updatedOther!.State);
+        Assert.Equal(CreatureCondition.Dead, updatedOther!.Condition);
     }
 
     [Fact]
@@ -238,5 +238,77 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(baseMaximumHp + 50, updated!.MaximumHp);
+    }
+
+    [Fact]
+    public async Task Handle_ReleasesTheSeat_WhenTheCreatureDies()
+    {
+        // Arrange
+        var prop = Builders.MakeSeat(occupantId: _creature.Id);
+        _context.Props.Add(prop);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: false)] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(await db.ReadPropOccupantId(prop.Id));
+    }
+
+    [Fact]
+    public async Task Handle_ReleasesTheBed_WhenTheCreatureDies()
+    {
+        // Arrange
+        var prop = Builders.MakeBed(occupantId: _creature.Id);
+        _context.Props.Add(prop);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: false)] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(await db.ReadPropOccupantId(prop.Id));
+    }
+
+    [Fact]
+    public async Task Handle_ReleasesTheWorkstation_WhenTheCreatureDies()
+    {
+        // Arrange
+        var prop = Builders.MakeWorkstation(occupantId: _creature.Id);
+        _context.Props.Add(prop);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: false)] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(await db.ReadPropOccupantId(prop.Id));
+    }
+
+    [Fact]
+    public async Task Handle_KeepsTheSeat_WhenTheCreatureSurvives()
+    {
+        // Arrange
+        var prop = Builders.MakeSeat(occupantId: _creature.Id);
+        _context.Props.Add(prop);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: true)] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(_creature.Id, await db.ReadPropOccupantId(prop.Id));
     }
 }

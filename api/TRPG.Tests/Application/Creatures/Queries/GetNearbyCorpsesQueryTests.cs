@@ -43,7 +43,7 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db)
         var corpse = Builders.MakeCreature(
             _worldId,
             locationId: location.Id,
-            state: CreatureState.Dead,
+            condition: CreatureCondition.Dead,
             name: "Corpse"
         );
         var livingCreature = Builders.MakeCreature(
@@ -74,7 +74,7 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db)
         var player = Builders.MakeCreature(
             _worldId,
             locationId: location.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         _context.Locations.Add(location);
         _context.Creatures.Add(player);
@@ -100,7 +100,7 @@ public sealed class GetNearbyCorpsesQueryTests(DatabaseFixture db)
         var farCorpse = Builders.MakeCreature(
             _worldId,
             locationId: otherLocation.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         _context.Locations.AddRange(location, otherLocation);
         _context.Creatures.AddRange(player, farCorpse);

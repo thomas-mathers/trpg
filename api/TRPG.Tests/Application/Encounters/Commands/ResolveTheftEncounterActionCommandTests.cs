@@ -184,7 +184,7 @@ public sealed class ResolveTheftEncounterActionCommandTests(DatabaseFixture db)
             .Encounters.OfType<TheftEncounter>()
             .SingleAsync(item => item.Id == encounter.Id, TestContext.Current.CancellationToken);
 
-        Assert.Equal(CreatureState.Idle, updatedConfronter!.State);
+        Assert.Null(updatedConfronter!.Activity);
         Assert.False(
             await verifyContext
                 .Encounters.OfType<FightEncounter>()

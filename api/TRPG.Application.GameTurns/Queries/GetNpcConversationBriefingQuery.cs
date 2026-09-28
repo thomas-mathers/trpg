@@ -92,7 +92,10 @@ public record NpcConversationQuests(
 );
 
 public record NpcConversationRuntimeState(
-    CreatureState State,
+    CreatureCondition Condition,
+    CreatureActivity? Activity,
+    CreaturePosture Posture,
+    CreatureMovement Movement,
     bool IsAlerted,
     bool IsRestrained,
     NpcConversationAttitude Attitude,
@@ -281,7 +284,10 @@ internal class GetNpcConversationBriefingQueryHandler(
                 profile.PrivateBackground.Home
             ),
             new NpcConversationRuntimeState(
-                npc.State,
+                npc.Condition,
+                npc.Activity,
+                npc.Posture,
+                npc.Movement,
                 npc.IsAlerted,
                 npc.IsRestrained,
                 attitude,

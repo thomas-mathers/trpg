@@ -22,6 +22,7 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private SyncScheduleLocksCommandHandler _handler = null!;
+    private SetCreatureActivityCommandHandler _setCreatureActivity = null!;
     private UpdateCreaturesCommandHandler _updateCreatures = null!;
 
     public async ValueTask InitializeAsync()
@@ -35,6 +36,8 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
         _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
         _handler = _serviceProvider.GetRequiredService<SyncScheduleLocksCommandHandler>();
+        _setCreatureActivity =
+            _serviceProvider.GetRequiredService<SetCreatureActivityCommandHandler>();
         _updateCreatures = _serviceProvider.GetRequiredService<UpdateCreaturesCommandHandler>();
     }
 
@@ -236,11 +239,14 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
             )
         );
         await _updateCreatures.Handle(
-            new UpdateCreaturesCommand
+            new UpdateCreaturesCommand { CreatureIds = [worker.Id], LocationId = workLocationId },
+            TestContext.Current.CancellationToken
+        );
+        await _setCreatureActivity.Handle(
+            new SetCreatureActivityCommand
             {
                 CreatureIds = [worker.Id],
-                LocationId = workLocationId,
-                State = CreatureState.Working,
+                Activity = CreatureActivity.Working,
             },
             TestContext.Current.CancellationToken
         );
@@ -349,7 +355,14 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
             {
                 CreatureIds = [shopWorker.Id],
                 LocationId = shopWorkLocationId,
-                State = CreatureState.Working,
+            },
+            TestContext.Current.CancellationToken
+        );
+        await _setCreatureActivity.Handle(
+            new SetCreatureActivityCommand
+            {
+                CreatureIds = [shopWorker.Id],
+                Activity = CreatureActivity.Working,
             },
             TestContext.Current.CancellationToken
         );

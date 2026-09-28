@@ -194,7 +194,10 @@ export function NearbyPanel({
   } | null>(null);
   const [isTradeOpen, setIsTradeOpen] = useState(false);
   const [isSleepOpen, setIsSleepOpen] = useState(false);
-  const [bookshelf, setBookshelf] = useState<{ id: string; name: string } | null>(null);
+  const [bookshelf, setBookshelf] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [caravan, setCaravan] = useState<NearbyCaravanSnapshot | null>(null);
   const [sign, setSign] = useState<{ id: string; name: string } | null>(null);
 
@@ -204,7 +207,11 @@ export function NearbyPanel({
       query: { worldId: scene.worldId, giverId, questId },
     });
     if (response.data) {
-      onQuestDialogRequested({ ...response.data, giverId, worldId: scene.worldId });
+      onQuestDialogRequested({
+        ...response.data,
+        giverId,
+        worldId: scene.worldId,
+      });
     }
   };
 
@@ -214,7 +221,11 @@ export function NearbyPanel({
       query: { worldId: scene.worldId, recipientId },
     });
     if (response.data) {
-      onDeliverItemDialogRequested({ ...response.data, recipientId, worldId: scene.worldId });
+      onDeliverItemDialogRequested({
+        ...response.data,
+        recipientId,
+        worldId: scene.worldId,
+      });
     }
   };
 
@@ -263,7 +274,8 @@ export function NearbyPanel({
                   name: creature.name,
                   ownerType: 'Creature',
                   transfersEnabled:
-                    creature.state === 'Dead' || HUMANOID_CREATURE_TYPES.has(creature.creatureType),
+                    creature.condition === 'Dead' ||
+                    HUMANOID_CREATURE_TYPES.has(creature.creatureType),
                 });
                 setIsTransferOpen(true);
               }}
@@ -584,6 +596,24 @@ function pickExitIcon(destination: NearbyExitDestination): IconType {
   return GiMountains;
 }
 
+function creatureStatusLabels(creature: CreatureStatusSnapshot): string[] {
+  if (creature.condition !== 'Awake') {
+    return [creature.condition];
+  }
+
+  const labels: string[] = [];
+  if (creature.movement === 'Walking') {
+    labels.push('Walking');
+  }
+  if (creature.activity) {
+    labels.push(creature.activity);
+  }
+  if (creature.posture !== 'Standing') {
+    labels.push(creature.posture);
+  }
+  return labels;
+}
+
 function CreatureRow({
   creature,
   playerLevel,
@@ -601,7 +631,7 @@ function CreatureRow({
   onQuestDialog: (questId: string) => void;
   onDeliverItem: () => void;
 }) {
-  const dead = creature.state === 'Dead';
+  const dead = creature.condition === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
   const reputation = creature.reputation == null ? null : Number(creature.reputation);
   const RaceIcon = CREATURE_TYPE_ICON[creature.creatureType];
@@ -668,16 +698,14 @@ function CreatureRow({
         >
           {creature.name}
         </button>
-        {creature.state && (
-          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
-            {creature.state}
+        {creatureStatusLabels(creature).map((label) => (
+          <span
+            key={label}
+            className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]"
+          >
+            {label}
           </span>
-        )}
-        {creature.posture !== 'Standing' && (
-          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
-            {creature.posture}
-          </span>
-        )}
+        ))}
         {creature.isAlerted && (
           <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px]">
             Alerted

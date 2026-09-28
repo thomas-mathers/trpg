@@ -44,6 +44,6 @@ internal static class SceneMovementDetector
     }
 
     private static bool CanBeSeenMoving(SceneCreatureInfo creature) =>
-        creature.State is not (CreatureState.Dead or CreatureState.Sleeping)
+        creature.Condition is not (CreatureCondition.Dead or CreatureCondition.Sleeping)
         && !creature.IsRestrained;
 }

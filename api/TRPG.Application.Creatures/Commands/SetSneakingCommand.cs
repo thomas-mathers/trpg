@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 
@@ -19,7 +20,10 @@ internal class SetSneakingCommandHandler(ICreaturesDbContext context)
     )
     {
         await context
-            .Creatures.Where(c => c.Id == command.CreatureId)
+            .Creatures.Where(c =>
+                c.Id == command.CreatureId
+                && (!command.IsSneaking || c.Condition == CreatureCondition.Awake)
+            )
             .ExecuteUpdateAsync(
                 s => s.SetProperty(c => c.IsSneaking, command.IsSneaking),
                 cancellationToken

@@ -30,7 +30,7 @@ internal static class CreatureLocationFiltering
 
         if (!includeDead)
         {
-            query = query.Where(p => p.State != CreatureState.Dead);
+            query = query.Where(p => p.Condition != CreatureCondition.Dead);
         }
 
         return query;

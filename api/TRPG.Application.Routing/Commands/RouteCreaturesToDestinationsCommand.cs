@@ -17,7 +17,7 @@ public record CreatureRouteRequest(
     Guid DestinationLocationId,
     GameInstant GameTime,
     string Purpose,
-    CreatureState ArrivalState = CreatureState.Idle
+    CreatureActivity? ArrivalActivity = null
 );
 
 public class RouteCreaturesToDestinationsCommand
@@ -34,7 +34,8 @@ public record RouteCreatureResult(
 internal class RouteCreaturesToDestinationsCommandHandler(
     IRoutingDbContext context,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<StartWalkingCommand> startWalking
 )
     : ICommandHandler<
         RouteCreaturesToDestinationsCommand,
@@ -412,7 +413,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             StartedAtGameTime = plan.StartedAtGameTime,
             SpeedUnitsPerHour = plan.SpeedUnitsPerHour,
             Purpose = plan.Request.Purpose,
-            ArrivalState = plan.Request.ArrivalState,
+            ArrivalActivity = plan.Request.ArrivalActivity,
         };
         context.RouteTravelers.Add(traveler);
         context.RouteTravelerMembers.Add(
@@ -431,32 +432,29 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var creatureIdsByTarget = plans
-            .Select(plan => new
-            {
-                Target = new CreatureTarget(
-                    plan.Creature.LocationId == plan.AnchorLocationId
-                        ? null
-                        : plan.AnchorLocationId,
-                    plan.IsAlreadyAtDestination ? null : CreatureState.Walking
-                ),
-                plan.Creature.Id,
-            })
-            .Where(entry => entry.Target.LocationId != null || entry.Target.State != null)
-            .GroupBy(entry => entry.Target)
-            .ToDictionary(group => group.Key, group => group.Select(entry => entry.Id).ToArray());
-        foreach (var (target, creatureIds) in creatureIdsByTarget)
+        var creatureIdsByAnchorLocationId = plans
+            .Where(plan => plan.Creature.LocationId != plan.AnchorLocationId)
+            .GroupBy(plan => plan.AnchorLocationId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(plan => plan.Creature.Id).ToArray()
+            );
+        foreach (var (locationId, creatureIds) in creatureIdsByAnchorLocationId)
         {
             await updateCreatures.Handle(
-                new UpdateCreaturesCommand
-                {
-                    CreatureIds = creatureIds,
-                    LocationId = target.LocationId,
-                    State = target.State,
-                },
+                new UpdateCreaturesCommand { CreatureIds = creatureIds, LocationId = locationId },
                 cancellationToken
             );
         }
+
+        var walkingCreatureIds = plans
+            .Where(plan => !plan.IsAlreadyAtDestination)
+            .Select(plan => plan.Creature.Id)
+            .ToArray();
+        await startWalking.Handle(
+            new StartWalkingCommand { CreatureIds = walkingCreatureIds },
+            cancellationToken
+        );
     }
 
     private static void ValidateRequests(IReadOnlyCollection<CreatureRouteRequest> requests)
@@ -572,8 +570,6 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                 IsAlreadyAtDestination: true
             );
     }
-
-    private record CreatureTarget(Guid? LocationId, CreatureState? State);
 
     private record FiniteRouteCache(
         List<Route> Routes,

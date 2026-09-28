@@ -48,11 +48,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
 
     private async Task<Guid> SeedFreedCaptive()
     {
-        var captive = Builders.MakeCreature(
-            WorldId,
-            locationId: _cellLocation.Id,
-            state: CreatureState.Idle
-        );
+        var captive = Builders.MakeCreature(WorldId, locationId: _cellLocation.Id);
         captive.MovementSpeed = 5;
         var quest = Builders.MakeQuest(GiverId, WorldId);
         var objective = new FreeCreatureObjective
@@ -129,7 +125,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_cellLocation.Id, relocated!.LocationId);
-        Assert.Equal(CreatureState.Walking, relocated.State);
+        Assert.Equal(CreatureMovement.Walking, relocated.Movement);
         Assert.Contains(
             await verifyContext.RouteTravelerMembers.ToArrayAsync(
                 TestContext.Current.CancellationToken
@@ -222,11 +218,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
     public async Task Handle_IgnoresAJoblessIdleCreature_WhenNotAFreeCreatureObjectiveTarget()
     {
         // Arrange
-        var guard = Builders.MakeCreature(
-            WorldId,
-            locationId: _cellLocation.Id,
-            state: CreatureState.Idle
-        );
+        var guard = Builders.MakeCreature(WorldId, locationId: _cellLocation.Id);
         _context.Creatures.Add(guard);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

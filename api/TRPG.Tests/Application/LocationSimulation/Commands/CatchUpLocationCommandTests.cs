@@ -142,7 +142,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(sleepLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Sleeping, updated.State);
+        Assert.Equal(CreatureCondition.Sleeping, updated.Condition);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(workLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Working, updated.State);
+        Assert.Equal(CreatureActivity.Working, updated.Activity);
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(idleLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Idle, updated.State);
+        Assert.Null(updated.Activity);
     }
 
     [Fact]
@@ -335,7 +335,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(gateLocation.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Working, updated.State);
+        Assert.Equal(CreatureActivity.Working, updated.Activity);
     }
 
     [Fact]
@@ -589,7 +589,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Sleeping, updated!.State);
+        Assert.Equal(CreatureCondition.Sleeping, updated!.Condition);
     }
 
     [Fact]
@@ -622,7 +622,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         await _context
             .Creatures.Where(c => c.Id == creature.Id)
             .ExecuteUpdateAsync(
-                s => s.SetProperty(c => c.State, CreatureState.Idle),
+                s => s.SetProperty(c => c.Activity, (CreatureActivity?)null),
                 TestContext.Current.CancellationToken
             );
 
@@ -635,7 +635,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             [creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(CreatureState.Sleeping, updated!.State);
+        Assert.Equal(CreatureCondition.Sleeping, updated!.Condition);
     }
 
     [Fact]
@@ -761,7 +761,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(shop.Id, updated!.LocationId);
-        Assert.Equal(CreatureState.Working, updated.State);
+        Assert.Equal(CreatureActivity.Working, updated.Activity);
     }
 
     private async Task<Building> SeedBuilding(Guid ownerId)

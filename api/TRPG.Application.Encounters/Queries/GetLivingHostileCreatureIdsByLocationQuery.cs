@@ -15,9 +15,9 @@ public class GetLivingHostileCreatureIdsByLocationQuery
 internal class GetLivingHostileCreatureIdsByLocationQueryHandler(
     IEncountersDbContext context,
     IQueryHandler<
-        GetCreatureStatesByIdsQuery,
-        IReadOnlyDictionary<Guid, CreatureState>
-    > getCreatureStatesByIds
+        GetCreatureConditionsByIdsQuery,
+        IReadOnlyDictionary<Guid, CreatureCondition>
+    > getCreatureConditionsByIds
 )
     : IQueryHandler<
         GetLivingHostileCreatureIdsByLocationQuery,
@@ -50,8 +50,8 @@ internal class GetLivingHostileCreatureIdsByLocationQueryHandler(
             .Select(member => new { member.EncounterGroupId, member.CreatureId })
             .ToArrayAsync(cancellationToken);
 
-        var statesById = await getCreatureStatesByIds.Handle(
-            new GetCreatureStatesByIdsQuery
+        var conditionsById = await getCreatureConditionsByIds.Handle(
+            new GetCreatureConditionsByIdsQuery
             {
                 Ids = members.Select(member => member.CreatureId).ToArray(),
             },
@@ -62,8 +62,8 @@ internal class GetLivingHostileCreatureIdsByLocationQueryHandler(
 
         return members
             .Where(member =>
-                statesById.TryGetValue(member.CreatureId, out var state)
-                && state != CreatureState.Dead
+                conditionsById.TryGetValue(member.CreatureId, out var state)
+                && state != CreatureCondition.Dead
             )
             .GroupBy(member => locationIdByGroupId[member.EncounterGroupId])
             .ToDictionary(

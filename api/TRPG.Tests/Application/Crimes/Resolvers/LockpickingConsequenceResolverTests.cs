@@ -45,7 +45,7 @@ public sealed class LockpickingConsequenceResolverTests(DatabaseFixture db)
         var deadWitness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var crime = new LockpickingCrime
         {
@@ -88,7 +88,7 @@ public sealed class LockpickingConsequenceResolverTests(DatabaseFixture db)
         var witness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var crime = new LockpickingCrime
         {

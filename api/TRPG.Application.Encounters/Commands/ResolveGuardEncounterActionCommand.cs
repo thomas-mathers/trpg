@@ -32,7 +32,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
     EncounterEngagementManager engagementManager,
     ICommandHandler<RemoveGoldCommand> removeGold,
     ICommandHandler<AdjustReputationsCommand> adjustReputations,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<AlertCreaturesCommand> alertCreatures,
     ICommandHandler<MovePlayerCommand> movePlayer,
     ICommandHandler<StartFightCommand> startFight,
     IQueryHandler<GetGuardsAtLocationQuery, IReadOnlyList<Creature>> getGuardsAtLocation,
@@ -228,8 +228,8 @@ internal class ResolveGuardEncounterActionCommandHandler(
             .Distinct()
             .ToArray();
 
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand { CreatureIds = guardIds, IsAlerted = true },
+        await alertCreatures.Handle(
+            new AlertCreaturesCommand { CreatureIds = guardIds },
             cancellationToken
         );
 

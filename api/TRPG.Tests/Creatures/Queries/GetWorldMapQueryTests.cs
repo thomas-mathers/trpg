@@ -128,14 +128,14 @@ public sealed class GetWorldMapQueryTests(DatabaseFixture db)
         var unlootedCorpse = Builders.MakeCreature(
             _worldId,
             locationId: _ruralLocation.Id,
-            state: CreatureState.Dead,
+            condition: CreatureCondition.Dead,
             playerCorpseOwnerId: _player.Id,
             name: "Player's remains"
         );
         var lootedCorpse = Builders.MakeCreature(
             _worldId,
             locationId: _playerLocation.Id,
-            state: CreatureState.Dead,
+            condition: CreatureCondition.Dead,
             playerCorpseOwnerId: _player.Id,
             name: "Looted remains"
         );

@@ -42,12 +42,8 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(locationId, updated!.LocationId);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(locationId, updated.LocationId);
     }
 
     [Fact]
@@ -67,12 +63,8 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(originalLocationId, updated!.PreviousLocationId);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(originalLocationId, updated.PreviousLocationId);
     }
 
     [Fact]
@@ -93,19 +85,15 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
             {
                 CreatureIds = [_creature.Id],
                 LocationId = _creature.LocationId,
-                State = CreatureState.Working,
+                Name = "Renamed",
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(previousLocationId, updated!.PreviousLocationId);
-        Assert.Equal(CreatureState.Working, updated.State);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(previousLocationId, updated.PreviousLocationId);
+        Assert.Equal("Renamed", updated.Name);
     }
 
     [Fact]
@@ -116,7 +104,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         {
             CreatureIds = [_creature.Id],
             LocationId = _creature.LocationId,
-            State = CreatureState.Working,
+            Name = "Renamed",
         };
         await _handler.Handle(command, TestContext.Current.CancellationToken);
         var versionBefore = await ReadRowVersion();
@@ -133,18 +121,14 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
     {
         // Arrange
         await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                State = CreatureState.Working,
-            },
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], Name = "First" },
             TestContext.Current.CancellationToken
         );
         var versionBefore = await ReadRowVersion();
 
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], State = CreatureState.Idle },
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], Name = "Second" },
             TestContext.Current.CancellationToken
         );
 
@@ -152,58 +136,18 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         Assert.NotEqual(versionBefore, await ReadRowVersion());
     }
 
-    private async Task<long> ReadRowVersion()
-    {
-        await using var verifyContext = db.CreateContext();
-        return await verifyContext
-            .Database.SqlQuery<long>(
-                $"SELECT xmin::text::bigint AS \"Value\" FROM creatures WHERE id = {_creature.Id}"
-            )
-            .SingleAsync(TestContext.Current.CancellationToken);
-    }
-
-    [Fact]
-    public async Task Handle_UpdatesState_WhenSet()
-    {
-        // Act
-        await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                State = CreatureState.Studying,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(CreatureState.Studying, updated!.State);
-    }
-
     [Fact]
     public async Task Handle_LeavesLocationUnchanged_WhenNotSet()
     {
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                State = CreatureState.Working,
-            },
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], Name = "Renamed" },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_creature.LocationId, updated!.LocationId);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(_creature.LocationId, updated.LocationId);
     }
 
     [Fact]
@@ -220,12 +164,8 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), updated!.LastRegenGameTime);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(3), updated.LastRegenGameTime);
     }
 
     [Fact]
@@ -236,46 +176,13 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                State = CreatureState.Working,
-            },
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], Name = "Renamed" },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(originalLastRegenGameTime, updated!.LastRegenGameTime);
-    }
-
-    [Fact]
-    public async Task Handle_LeavesStateUnchanged_WhenNotSet()
-    {
-        // Arrange
-        var originalState = _creature.State;
-
-        // Act
-        await _handler.Handle(
-            new UpdateCreaturesCommand
-            {
-                CreatureIds = [_creature.Id],
-                LocationId = Guid.NewGuid(),
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(originalState, updated!.State);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(originalLastRegenGameTime, updated.LastRegenGameTime);
     }
 
     [Fact]
@@ -288,15 +195,11 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_creature.LocationId, updated!.LocationId);
-        Assert.Equal(_creature.State, updated.State);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(_creature.LocationId, updated.LocationId);
         Assert.Equal(_creature.LastRegenGameTime, updated.LastRegenGameTime);
         Assert.Equal(_creature.Name, updated.Name);
+        Assert.Equal(_creature.IsRestrained, updated.IsRestrained);
     }
 
     [Fact]
@@ -309,12 +212,8 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal("Grukk the Butcher", updated!.Name);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal("Grukk the Butcher", updated.Name);
     }
 
     [Fact]
@@ -325,49 +224,74 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id],
-                State = CreatureState.Working,
+                LastRegenGameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        await using var verifyContext = db.CreateContext();
-        var updated = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_creature.Name, updated!.Name);
+        var updated = await ReadCreature(_creature.Id);
+        Assert.Equal(_creature.Name, updated.Name);
     }
 
     [Fact]
-    public async Task Handle_UpdatesState_ForEveryCreatureId_WhenGivenMultiple()
+    public async Task Handle_UpdatesIsRestrained_WhenSet()
+    {
+        // Act
+        await _handler.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [_creature.Id], IsRestrained = true },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await ReadCreature(_creature.Id);
+        Assert.True(updated.IsRestrained);
+    }
+
+    [Fact]
+    public async Task Handle_UpdatesLocation_ForEveryCreatureId_WhenGivenMultiple()
     {
         // Arrange
         var otherCreature = Builders.MakeCreature();
         _context.Creatures.Add(otherCreature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var locationId = Guid.NewGuid();
 
         // Act
         await _handler.Handle(
             new UpdateCreaturesCommand
             {
                 CreatureIds = [_creature.Id, otherCreature.Id],
-                State = CreatureState.Studying,
+                LocationId = locationId,
             },
             TestContext.Current.CancellationToken
         );
 
         // Assert
+        var updatedCreature = await ReadCreature(_creature.Id);
+        var updatedOther = await ReadCreature(otherCreature.Id);
+        Assert.Equal(locationId, updatedCreature.LocationId);
+        Assert.Equal(locationId, updatedOther.LocationId);
+    }
+
+    private async Task<Creature> ReadCreature(Guid creatureId)
+    {
         await using var verifyContext = db.CreateContext();
-        var updatedCreature = await verifyContext.Creatures.FindAsync(
-            [_creature.Id],
-            TestContext.Current.CancellationToken
-        );
-        var updatedOther = await verifyContext.Creatures.FindAsync(
-            [otherCreature.Id],
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(CreatureState.Studying, updatedCreature!.State);
-        Assert.Equal(CreatureState.Studying, updatedOther!.State);
+        return await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == creatureId,
+                TestContext.Current.CancellationToken
+            );
+    }
+
+    private async Task<long> ReadRowVersion()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext
+            .Database.SqlQuery<long>(
+                $"SELECT xmin::text::bigint AS \"Value\" FROM creatures WHERE id = {_creature.Id}"
+            )
+            .SingleAsync(TestContext.Current.CancellationToken);
     }
 }

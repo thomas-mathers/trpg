@@ -530,7 +530,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db)
         var sleepingBystander = Builders.MakeCreature(
             WorldId,
             locationId: _theftLocationId,
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         var item = await SeedItem(owner.Id, OwnerType.Creature);
         _context.Creatures.AddRange(owner, sleepingBystander);

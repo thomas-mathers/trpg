@@ -317,7 +317,7 @@ public sealed class MoveToolTests(DatabaseFixture db)
     public async Task Invoke_StartsTrapEncounter_WhenArrivingAtUnresolvedTrap()
     {
         // Arrange
-        _guard.State = CreatureState.Dead;
+        _guard.Condition = CreatureCondition.Dead;
         var trap = Builders.MakeTrap(
             WorldId,
             locationId: _newLocation.Id,

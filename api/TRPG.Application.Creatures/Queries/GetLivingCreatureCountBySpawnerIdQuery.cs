@@ -19,7 +19,8 @@ internal class GetLivingCreatureCountBySpawnerIdQueryHandler(ICreaturesDbContext
     ) =>
         await context.Creatures.CountAsync(
             creature =>
-                creature.SpawnerId == query.SpawnerId && creature.State != CreatureState.Dead,
+                creature.SpawnerId == query.SpawnerId
+                && creature.Condition != CreatureCondition.Dead,
             cancellationToken
         );
 }

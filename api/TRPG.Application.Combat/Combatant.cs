@@ -258,7 +258,7 @@ public class Combatant
 
         if (!IsAlive)
         {
-            creature.State = CreatureState.Dead;
+            creature.Die();
         }
     }
 

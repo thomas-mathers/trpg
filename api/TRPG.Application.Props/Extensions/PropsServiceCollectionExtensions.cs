@@ -11,5 +11,21 @@ public static class PropsServiceCollectionExtensions
             .AddTransient<PlayerMovedSeatEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedSeatEventHandler>()
+            )
+            .AddTransient<CreaturesStartedWalkingPropsEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreaturesStartedWalkingEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreaturesStartedWalkingPropsEventHandler>()
+            )
+            .AddTransient<CreaturesFellAsleepPropsEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreaturesFellAsleepEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreaturesFellAsleepPropsEventHandler>()
+            )
+            .AddTransient<CreaturesDiedPropsEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreaturesDiedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreaturesDiedPropsEventHandler>()
+            )
+            .AddTransient<CreaturesWokePropsEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreaturesWokeEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreaturesWokePropsEventHandler>()
             );
 }

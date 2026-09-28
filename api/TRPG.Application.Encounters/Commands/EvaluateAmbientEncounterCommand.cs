@@ -39,7 +39,7 @@ internal class EvaluateAmbientEncounterCommandHandler(
                 new GetCreatureByIdQuery { Id = command.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), command.PlayerId);
-        if (player.State == CreatureState.Dead)
+        if (player.Condition == CreatureCondition.Dead)
         {
             return;
         }

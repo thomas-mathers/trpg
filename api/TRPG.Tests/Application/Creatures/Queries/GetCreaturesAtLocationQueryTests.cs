@@ -90,7 +90,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db)
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: location.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         _context.Locations.Add(location);
         _context.Creatures.Add(corpse);
@@ -161,7 +161,7 @@ public sealed class GetCreaturesAtLocationQueryTests(DatabaseFixture db)
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: location.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var alive = Builders.MakeCreature(WorldId, locationId: location.Id);
         _context.Locations.Add(location);

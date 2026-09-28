@@ -10,6 +10,6 @@ internal static class CreaturePostureMapper
         {
             DataCreaturePosture.Standing => ContractCreaturePosture.Standing,
             DataCreaturePosture.Sitting => ContractCreaturePosture.Sitting,
-            DataCreaturePosture.Laying => ContractCreaturePosture.Laying,
+            DataCreaturePosture.Lying => ContractCreaturePosture.Lying,
         };
 }

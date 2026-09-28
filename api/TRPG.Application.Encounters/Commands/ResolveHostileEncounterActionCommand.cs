@@ -28,7 +28,7 @@ internal class ResolveHostileEncounterActionCommandHandler(
     EncounterEngagementManager engagementManager,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<AlertCreaturesCommand> alertCreatures,
     ICommandHandler<StartFightCommand> startFight,
     EncounterFleeResolver encounterFleeResolver,
     IOptionsSnapshot<FleeOptions> fleeOptions
@@ -113,8 +113,8 @@ internal class ResolveHostileEncounterActionCommandHandler(
 
         var enemyCreatureIds = encounter.Members.Select(member => member.Id).ToArray();
 
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand { CreatureIds = enemyCreatureIds, IsAlerted = true },
+        await alertCreatures.Handle(
+            new AlertCreaturesCommand { CreatureIds = enemyCreatureIds },
             cancellationToken
         );
 

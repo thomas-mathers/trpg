@@ -88,7 +88,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(CreatureState.Sleeping, await ReadSleeperState());
+        Assert.Equal(CreatureCondition.Sleeping, await ReadSleeperCondition());
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(_sleeper.State, await ReadSleeperState());
+        Assert.Equal(_sleeper.Condition, await ReadSleeperCondition());
     }
 
     [Fact]
@@ -240,10 +240,10 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         // Assert
         await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.False(pass.IsCompleted);
-        Assert.Equal(_sleeper.State, await ReadSleeperState());
+        Assert.Equal(_sleeper.Condition, await ReadSleeperCondition());
         await lease.DisposeAsync();
         await pass;
-        Assert.Equal(CreatureState.Sleeping, await ReadSleeperState());
+        Assert.Equal(CreatureCondition.Sleeping, await ReadSleeperCondition());
     }
 
     [Fact]
@@ -276,7 +276,10 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _context
             .Creatures.Where(creature => creature.Id == _sleeper.Id)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(creature => creature.State, CreatureState.Idle),
+                setters =>
+                    setters
+                        .SetProperty(creature => creature.Condition, CreatureCondition.Awake)
+                        .SetProperty(creature => creature.Posture, CreaturePosture.Standing),
                 TestContext.Current.CancellationToken
             );
 
@@ -284,7 +287,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(CreatureState.Sleeping, await ReadSleeperState());
+        Assert.Equal(CreatureCondition.Sleeping, await ReadSleeperCondition());
     }
 
     [Fact]
@@ -323,12 +326,12 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         Assert.NotEmpty(_logger.Errors);
     }
 
-    private async Task<CreatureState> ReadSleeperState()
+    private async Task<CreatureCondition> ReadSleeperCondition()
     {
         await using var verifyContext = db.CreateContext();
         return await verifyContext
             .Creatures.Where(creature => creature.Id == _sleeper.Id)
-            .Select(creature => creature.State)
+            .Select(creature => creature.Condition)
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 

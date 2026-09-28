@@ -8,7 +8,10 @@ using DamageTypeMapper = TRPG.Combat.Mappers.DamageTypeMapper;
 using DataAmountType = TRPG.Domain.Models.AmountType;
 using DataAttributeName = TRPG.Domain.Models.AttributeName;
 using DataBuildingType = TRPG.Domain.Models.BuildingType;
-using DataCreatureState = TRPG.Domain.Models.CreatureState;
+using DataCreatureActivity = TRPG.Domain.Models.CreatureActivity;
+using DataCreatureCondition = TRPG.Domain.Models.CreatureCondition;
+using DataCreatureMovement = TRPG.Domain.Models.CreatureMovement;
+using DataCreaturePosture = TRPG.Domain.Models.CreaturePosture;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 using DataDamageType = TRPG.Domain.Models.DamageType;
 using DataDistrictType = TRPG.Domain.Models.DistrictType;
@@ -58,8 +61,41 @@ public class ResponseEnumMappersTests
     }
 
     [Theory]
-    [MemberData(nameof(CreatureStateValues))]
-    public void ToResponse_MapsCreatureStateByName(DataCreatureState value)
+    [MemberData(nameof(CreatureConditionValues))]
+    public void ToResponse_MapsCreatureConditionByName(DataCreatureCondition value)
+    {
+        // Act
+        var result = value.ToResponse();
+
+        // Assert
+        Assert.Equal(value.ToString(), result.ToString());
+    }
+
+    [Theory]
+    [MemberData(nameof(CreatureActivityValues))]
+    public void ToResponse_MapsCreatureActivityByName(DataCreatureActivity value)
+    {
+        // Act
+        var result = value.ToResponse();
+
+        // Assert
+        Assert.Equal(value.ToString(), result.ToString());
+    }
+
+    [Theory]
+    [MemberData(nameof(CreaturePostureValues))]
+    public void ToResponse_MapsCreaturePostureByName(DataCreaturePosture value)
+    {
+        // Act
+        var result = value.ToResponse();
+
+        // Assert
+        Assert.Equal(value.ToString(), result.ToString());
+    }
+
+    [Theory]
+    [MemberData(nameof(CreatureMovementValues))]
+    public void ToResponse_MapsCreatureMovementByName(DataCreatureMovement value)
     {
         // Act
         var result = value.ToResponse();
@@ -173,7 +209,16 @@ public class ResponseEnumMappersTests
 
     public static IEnumerable<object[]> ProfessionValues() => AllValues<DataProfession>();
 
-    public static IEnumerable<object[]> CreatureStateValues() => AllValues<DataCreatureState>();
+    public static IEnumerable<object[]> CreatureConditionValues() =>
+        AllValues<DataCreatureCondition>();
+
+    public static IEnumerable<object[]> CreatureActivityValues() =>
+        AllValues<DataCreatureActivity>();
+
+    public static IEnumerable<object[]> CreaturePostureValues() => AllValues<DataCreaturePosture>();
+
+    public static IEnumerable<object[]> CreatureMovementValues() =>
+        AllValues<DataCreatureMovement>();
 
     public static IEnumerable<object[]> DistrictTypeValues() => AllValues<DataDistrictType>();
 

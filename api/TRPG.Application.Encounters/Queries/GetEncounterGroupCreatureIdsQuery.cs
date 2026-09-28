@@ -15,9 +15,9 @@ public class GetEncounterGroupCreatureIdsQuery
 internal class GetEncounterGroupCreatureIdsQueryHandler(
     IEncountersDbContext context,
     IQueryHandler<
-        GetCreatureStatesByIdsQuery,
-        IReadOnlyDictionary<Guid, CreatureState>
-    > getCreatureStatesByIds
+        GetCreatureConditionsByIdsQuery,
+        IReadOnlyDictionary<Guid, CreatureCondition>
+    > getCreatureConditionsByIds
 ) : IQueryHandler<GetEncounterGroupCreatureIdsQuery, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(
@@ -43,13 +43,15 @@ internal class GetEncounterGroupCreatureIdsQueryHandler(
             .Select(m => m.CreatureId)
             .ToArrayAsync(cancellationToken);
 
-        var statesById = await getCreatureStatesByIds.Handle(
-            new GetCreatureStatesByIdsQuery { Ids = memberIds },
+        var conditionsById = await getCreatureConditionsByIds.Handle(
+            new GetCreatureConditionsByIdsQuery { Ids = memberIds },
             cancellationToken
         );
 
-        var livingMembers = statesById.Where(kv => kv.Value != CreatureState.Dead).ToArray();
-        var hasAwakeMember = livingMembers.Any(kv => kv.Value != CreatureState.Sleeping);
+        var livingMembers = conditionsById
+            .Where(kv => kv.Value != CreatureCondition.Dead)
+            .ToArray();
+        var hasAwakeMember = livingMembers.Any(kv => kv.Value != CreatureCondition.Sleeping);
 
         return hasAwakeMember ? livingMembers.Select(kv => kv.Key).ToArray() : [query.CreatureId];
     }

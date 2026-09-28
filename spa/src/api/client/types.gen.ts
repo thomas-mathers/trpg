@@ -184,6 +184,10 @@ export type CreateWorldRequest = {
     maxHouseholdSize?: number;
 };
 
+export type CreatureActivity = 'Working' | 'Studying' | 'Praying' | 'Eating';
+
+export type CreatureCondition = 'Awake' | 'Sleeping' | 'Dead';
+
 export type CreatureGenerationOptionsResponse = {
     pointsPerLevel: number;
     baseAttributes: BaseAttributesResponse;
@@ -193,9 +197,9 @@ export type CreatureLevelResponse = {
     level: number;
 };
 
-export type CreaturePosture = 'Standing' | 'Sitting' | 'Laying';
+export type CreatureMovement = 'Stationary' | 'Walking';
 
-export type CreatureState = 'Idle' | 'Sleeping' | 'Working' | 'Studying' | 'Praying' | 'Eating' | 'Dead' | 'Walking';
+export type CreaturePosture = 'Standing' | 'Sitting' | 'Lying';
 
 export type CreatureStatusSnapshot = {
     id: string;
@@ -205,8 +209,10 @@ export type CreatureStatusSnapshot = {
     profession: null | Profession;
     level: number;
     age: number;
-    state: null | CreatureState;
+    condition: CreatureCondition;
+    activity: null | CreatureActivity;
     posture: CreaturePosture;
+    movement: CreatureMovement;
     isSneaking: boolean;
     isAlerted: boolean;
     isRestrained: boolean;

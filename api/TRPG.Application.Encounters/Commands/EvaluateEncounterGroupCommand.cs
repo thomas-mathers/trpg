@@ -77,7 +77,8 @@ internal class EvaluateEncounterGroupCommandHandler(
         );
         var livingCreaturesById = candidateCreaturesById
             .Where(kv =>
-                kv.Value.State != CreatureState.Dead && kv.Value.State != CreatureState.Sleeping
+                kv.Value.Condition != CreatureCondition.Dead
+                && kv.Value.Condition != CreatureCondition.Sleeping
             )
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 

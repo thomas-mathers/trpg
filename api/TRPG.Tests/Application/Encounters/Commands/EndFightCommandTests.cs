@@ -238,7 +238,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         var sleepingBystander = Builders.MakeCreature(
             WorldId,
             locationId: _player.LocationId,
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         _context.Creatures.Add(sleepingBystander);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

@@ -122,9 +122,9 @@ public class SceneSemanticComparerTests
     public void HasPlayerVisibleChange_ReturnsTrue_WhenACreatureChangesState()
     {
         // Arrange
-        var previous = MakeScene(creatures: [MakeCreature(VillagerId, state: CreatureState.Idle)]);
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId)]);
         var current = MakeScene(
-            creatures: [MakeCreature(VillagerId, state: CreatureState.Working)]
+            creatures: [MakeCreature(VillagerId, activity: CreatureActivity.Working)]
         );
 
         // Act
@@ -228,7 +228,7 @@ public class SceneSemanticComparerTests
 
     private static SceneCreatureInfo MakeCreature(
         Guid id,
-        CreatureState state = CreatureState.Idle,
+        CreatureActivity? activity = null,
         int currentHp = 10,
         SceneJourneyInfo? journey = null
     ) =>
@@ -241,8 +241,10 @@ public class SceneSemanticComparerTests
             Level: 1,
             Age: 30,
             FactionNames: ["Guild"],
-            State: state,
+            Condition: CreatureCondition.Awake,
+            Activity: activity,
             Posture: CreaturePosture.Standing,
+            Movement: CreatureMovement.Stationary,
             IsSneaking: false,
             IsAlerted: false,
             IsRestrained: false,

@@ -76,7 +76,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         Assert.Equal("Going to work.", traveler.Purpose);
         Assert.Equal([connector.Id, null], steps.Select(step => step.ConnectorId));
         Assert.Equal([originId, destinationId], steps.Select(step => step.LocationId));
-        Assert.Equal(CreatureState.Walking, updatedCreature.State);
+        Assert.Equal(CreatureMovement.Walking, updatedCreature.Movement);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         );
 
         Assert.Equal(locationY, updatedCreature.LocationId);
-        Assert.Equal(CreatureState.Walking, updatedCreature.State);
+        Assert.Equal(CreatureMovement.Walking, updatedCreature.Movement);
         Assert.Equal(locationY, firstStep.LocationId);
         Assert.Equal(second.Id, firstStep.ConnectorId);
         Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 2, replacement.StartedAtGameTime);

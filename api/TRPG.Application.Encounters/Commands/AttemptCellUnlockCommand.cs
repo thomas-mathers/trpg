@@ -183,7 +183,7 @@ internal class AttemptCellUnlockCommandHandler(
                 LivingMembers = members
                     .Where(member => member.EncounterGroupId == group.Id)
                     .Select(member => creaturesById.GetValueOrDefault(member.CreatureId))
-                    .Where(creature => creature is { State: not CreatureState.Dead })
+                    .Where(creature => creature is { Condition: not CreatureCondition.Dead })
                     .Select(creature => creature!)
                     .ToArray(),
             })

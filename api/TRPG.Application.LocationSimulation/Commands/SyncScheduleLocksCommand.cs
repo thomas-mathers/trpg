@@ -105,7 +105,7 @@ internal class SyncScheduleLocksCommandHandler(
         );
 
         var workingLocationIds = workersById
-            .Values.Where(worker => worker.State == CreatureState.Working)
+            .Values.Where(worker => worker.Activity == CreatureActivity.Working)
             .Select(worker => worker.LocationId)
             .ToHashSet();
 

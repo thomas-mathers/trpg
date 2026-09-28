@@ -23,15 +23,20 @@ public class CreatureJob
     public int StartHour { get; init; }
     public Guid WorldId { get; init; }
 
-    public CreatureState DefaultState =>
-        Action switch
+    public CreatureActivity? Activity => Action.ToActivity();
+}
+
+public static class CreatureJobActionExtensions
+{
+    public static CreatureActivity? ToActivity(this CreatureJobAction action) =>
+        action switch
         {
-            CreatureJobAction.Sleep => CreatureState.Sleeping,
-            CreatureJobAction.Work => CreatureState.Working,
-            CreatureJobAction.Idle => CreatureState.Idle,
-            CreatureJobAction.Study => CreatureState.Studying,
-            CreatureJobAction.Pray => CreatureState.Praying,
-            CreatureJobAction.Eat => CreatureState.Eating,
+            CreatureJobAction.Sleep => null,
+            CreatureJobAction.Idle => null,
+            CreatureJobAction.Work => CreatureActivity.Working,
+            CreatureJobAction.Study => CreatureActivity.Studying,
+            CreatureJobAction.Pray => CreatureActivity.Praying,
+            CreatureJobAction.Eat => CreatureActivity.Eating,
             _ => throw new InvalidOperationException("Unknown creature job action."),
         };
 }

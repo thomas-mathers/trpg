@@ -60,7 +60,10 @@ public sealed class RegenerateCreaturesAtLocationCommandTests(DatabaseFixture db
             ExcludedCreatureIds = excludedCreatureIds ?? [],
         };
 
-    private async Task<Creature> SeedInjuredCreature(Guid locationId, CreatureState state = default)
+    private async Task<Creature> SeedInjuredCreature(
+        Guid locationId,
+        CreatureCondition condition = default
+    )
     {
         var creature = Builders.MakeCreature(
             WorldId,
@@ -68,7 +71,7 @@ public sealed class RegenerateCreaturesAtLocationCommandTests(DatabaseFixture db
             currentHp: 0,
             currentAp: 0,
             currentMp: 0,
-            state: state
+            condition: condition
         );
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -139,7 +142,7 @@ public sealed class RegenerateCreaturesAtLocationCommandTests(DatabaseFixture db
     {
         // Arrange
         var locationId = Guid.NewGuid();
-        await SeedInjuredCreature(locationId, CreatureState.Dead);
+        await SeedInjuredCreature(locationId, CreatureCondition.Dead);
 
         // Act
         var result = await _handler.Handle(

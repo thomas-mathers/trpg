@@ -33,7 +33,7 @@ internal class RegenerateCreaturesAtLocationCommandHandler(
             .Creatures.Where(creature =>
                 creature.WorldId == command.WorldId
                 && creature.LocationId == command.LocationId
-                && creature.State != CreatureState.Dead
+                && creature.Condition != CreatureCondition.Dead
                 && (
                     creature.CurrentHp < creature.MaximumHp
                     || creature.CurrentAp < creature.MaximumAp

@@ -239,6 +239,37 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.SpawnerId);
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "ck_creatures_activity_requires_awake",
+                    "activity IS NULL OR condition = 'Awake'"
+                );
+                table.HasCheckConstraint(
+                    "ck_creatures_walking_requires_awake",
+                    "movement = 'Stationary' OR condition = 'Awake'"
+                );
+                table.HasCheckConstraint(
+                    "ck_creatures_walking_requires_standing",
+                    "movement = 'Stationary' OR posture = 'Standing'"
+                );
+                table.HasCheckConstraint(
+                    "ck_creatures_sleeping_requires_lying",
+                    "condition <> 'Sleeping' OR posture = 'Lying'"
+                );
+                table.HasCheckConstraint(
+                    "ck_creatures_lying_requires_not_awake",
+                    "posture <> 'Lying' OR condition <> 'Awake'"
+                );
+                table.HasCheckConstraint(
+                    "ck_creatures_alerted_requires_awake",
+                    "NOT is_alerted OR condition = 'Awake'"
+                );
+                table.HasCheckConstraint(
+                    "ck_creatures_sneaking_requires_awake",
+                    "NOT is_sneaking OR condition = 'Awake'"
+                );
+            });
             entity.OwnsOne(p => p.BaseAttributes, s => s.ToJson());
             entity.Property(c => c.ActiveConditions).HasJsonConversion(() => []);
             entity.Property(c => c.CooldownRemainingByAbility).HasJsonConversion(() => []);

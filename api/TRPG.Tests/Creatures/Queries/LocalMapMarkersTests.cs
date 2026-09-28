@@ -175,7 +175,7 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: lower.LocationId,
-            state: CreatureState.Dead,
+            condition: CreatureCondition.Dead,
             playerCorpseOwnerId: isOwner ? _player.Id : Guid.NewGuid()
         );
         _context.Rooms.Add(lower);

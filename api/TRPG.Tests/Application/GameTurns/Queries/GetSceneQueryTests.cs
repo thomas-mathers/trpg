@@ -170,7 +170,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
     public async Task Handle_IncludesNearbyCreatures_WhoAreWalkingInTransit()
     {
         // Arrange
-        _nearbyCreature.State = CreatureState.Walking;
+        _nearbyCreature.Movement = CreatureMovement.Walking;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var query = new GetSceneQuery
         {

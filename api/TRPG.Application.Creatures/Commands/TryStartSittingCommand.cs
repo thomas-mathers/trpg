@@ -23,6 +23,8 @@ internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
             .Creatures.Where(creature =>
                 creature.Id == command.CreatureId
                 && creature.LocationId == command.LocationId
+                && creature.Condition == CreatureCondition.Awake
+                && creature.Movement == CreatureMovement.Stationary
                 && creature.Posture == CreaturePosture.Standing
             )
             .ExecuteUpdateAsync(

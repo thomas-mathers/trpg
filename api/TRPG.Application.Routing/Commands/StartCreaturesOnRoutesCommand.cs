@@ -15,7 +15,7 @@ public record StartCreatureOnRouteRequest(
     Guid RouteId,
     GameInstant StartedAtGameTime,
     string Purpose,
-    CreatureState ArrivalState = CreatureState.Idle
+    CreatureActivity? ArrivalActivity = null
 );
 
 public class StartCreaturesOnRoutesCommand
@@ -95,7 +95,7 @@ internal class StartCreaturesOnRoutesCommandHandler(
                 StartedAtGameTime = request.StartedAtGameTime,
                 SpeedUnitsPerHour = creature.MovementSpeed,
                 Purpose = request.Purpose,
-                ArrivalState = request.ArrivalState,
+                ArrivalActivity = request.ArrivalActivity,
             };
             context.RouteTravelers.Add(traveler);
             context.RouteTravelerMembers.Add(

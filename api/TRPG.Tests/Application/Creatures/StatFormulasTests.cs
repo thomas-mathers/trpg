@@ -319,13 +319,13 @@ public class StatFormulasTests
         int maximumHp,
         int maximumAp,
         int maximumMp,
-        CreatureState state = default
+        CreatureCondition condition = default
     ) =>
         Builders.MakeCreature(
             currentHp: 0,
             currentAp: 0,
             currentMp: 0,
-            state: state,
+            condition: condition,
             baseAttributes: new Attributes
             {
                 MaximumHp = maximumHp,
@@ -461,7 +461,7 @@ public class StatFormulasTests
             maximumHp: 35,
             maximumAp: 12,
             maximumMp: 8,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
 
         // Act

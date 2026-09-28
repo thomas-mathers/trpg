@@ -62,7 +62,7 @@ public class DungeonExpeditionGenerator(CreatureGenerator creatureGenerator)
     {
         var survivor = CreateExplorer(dungeon.Building.WorldId, dungeon.EntranceLocationId);
         var companion = CreateExplorer(dungeon.Building.WorldId, placement.Room.LocationId);
-        companion.Creature.State = CreatureState.Dead;
+        companion.Creature.Die();
         companion.Creature.CurrentHp = 0;
         var expedition = Describe(dungeon, placement, route, survivor.Creature, companion.Creature);
         return BuildResult(expedition, survivor, companion);

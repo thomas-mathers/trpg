@@ -27,7 +27,7 @@ public class DungeonExpeditionGeneratorTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(dungeon.EntranceLocationId, result.Participants[0].Creature.LocationId);
-        Assert.Equal(CreatureState.Dead, result.Participants[1].Creature.State);
+        Assert.Equal(CreatureCondition.Dead, result.Participants[1].Creature.Condition);
         Assert.Equal(0, result.Participants[1].Creature.CurrentHp);
         Assert.All(result.Participants, participant => Assert.Null(participant.Creature.SpawnerId));
         Assert.All(result.Jobs, job => Assert.Equal(result.Expedition.SurvivorId, job.CreatureId));

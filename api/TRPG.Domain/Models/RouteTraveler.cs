@@ -11,5 +11,5 @@ public class RouteTraveler
     public required double SpeedUnitsPerHour { get; init; }
     public string? Purpose { get; init; }
     public Guid? CreatureRouteScheduleId { get; init; }
-    public CreatureState ArrivalState { get; init; } = CreatureState.Idle;
+    public CreatureActivity? ArrivalActivity { get; init; }
 }

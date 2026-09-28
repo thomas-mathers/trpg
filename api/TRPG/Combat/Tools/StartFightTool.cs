@@ -26,7 +26,8 @@ internal class StartFightTool(
     > getEncounterGroupCreatureIds,
     ICommandHandler<StartFightCommand> startFight,
     ICommandHandler<RecordAssaultCommand> recordAssault,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<WakeCreaturesCommand> wakeCreatures,
+    ICommandHandler<AlertCreaturesCommand> alertCreatures,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<StartFightTool> logger
 ) : IGameTool
@@ -75,7 +76,7 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        if (target == null || target.State == CreatureState.Dead)
+        if (target == null || target.Condition == CreatureCondition.Dead)
         {
             return new ToolError(
                 $"No '{targetName}' found nearby to attack. Call look to see what's around."
@@ -87,7 +88,7 @@ internal class StartFightTool(
             return new ToolError($"{targetName} is locked away and cannot be reached to attack.");
         }
 
-        var hasSurpriseRound = player.IsSneaking || target.State == CreatureState.Sleeping;
+        var hasSurpriseRound = player.IsSneaking || target.Condition == CreatureCondition.Sleeping;
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
@@ -102,8 +103,13 @@ internal class StartFightTool(
             cancellationToken
         );
 
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand { CreatureIds = enemyCreatureIds, IsAlerted = true },
+        await wakeCreatures.Handle(
+            new WakeCreaturesCommand { CreatureIds = enemyCreatureIds },
+            cancellationToken
+        );
+
+        await alertCreatures.Handle(
+            new AlertCreaturesCommand { CreatureIds = enemyCreatureIds },
             cancellationToken
         );
 

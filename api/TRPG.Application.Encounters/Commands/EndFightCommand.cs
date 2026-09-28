@@ -30,6 +30,7 @@ internal class EndFightCommand
 internal class EndFightCommandHandler(
     IEncountersDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<AlertCreaturesCommand> alertCreatures,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
@@ -193,8 +194,8 @@ internal class EndFightCommandHandler(
 
         if (witnesses.Length > 0)
         {
-            await updateCreatures.Handle(
-                new UpdateCreaturesCommand { CreatureIds = witnesses, IsAlerted = true },
+            await alertCreatures.Handle(
+                new AlertCreaturesCommand { CreatureIds = witnesses },
                 cancellationToken
             );
             gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Killing));
@@ -220,7 +221,7 @@ internal class EndFightCommandHandler(
             new GetGuardAtLocationQuery { WorldId = worldId, LocationId = fight.LocationId },
             cancellationToken
         );
-        if (guard == null || guard.Id == player.Id || guard.State == CreatureState.Dead)
+        if (guard == null || guard.Id == player.Id || guard.Condition == CreatureCondition.Dead)
         {
             return;
         }
