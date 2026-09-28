@@ -476,6 +476,82 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_AssignsWorkstationsAtEachLocationIndependently_WhenSchedulingSpansMultipleLocations()
+    {
+        // Arrange — two shops share a district, so syncing one location's schedule also advances
+        // the other's via the shared district scan; guards the batched cross-location assignment.
+        var districtId = Guid.NewGuid();
+        var firstShopLocation = await SeedLocation(roomId: Guid.NewGuid(), districtId: districtId);
+        var secondShopLocation = await SeedLocation(roomId: Guid.NewGuid(), districtId: districtId);
+        var firstCounter = new Workstation
+        {
+            LocationId = firstShopLocation.Id,
+            WorldId = WorldId,
+            Name = "First Counter",
+            Description = "A counter.",
+            WorkstationType = WorkstationType.Trade,
+        };
+        var secondCounter = new Workstation
+        {
+            LocationId = secondShopLocation.Id,
+            WorldId = WorldId,
+            Name = "Second Counter",
+            Description = "A counter.",
+            WorkstationType = WorkstationType.Trade,
+        };
+        _context.Props.AddRange(firstCounter, secondCounter);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var firstWorker = await SeedCreature(firstShopLocation.Id);
+        var secondWorker = await SeedCreature(secondShopLocation.Id);
+        await AddJob(
+            Builders.MakeCreatureJob(
+                firstWorker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 8,
+                endHour: 20,
+                locationId: firstShopLocation.Id,
+                priority: 50
+            )
+        );
+        await AddJob(
+            Builders.MakeCreatureJob(
+                secondWorker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 8,
+                endHour: 20,
+                locationId: secondShopLocation.Id,
+                priority: 50
+            )
+        );
+
+        // Act
+        await _handler.Handle(
+            new CatchUpLocationCommand
+            {
+                WorldId = WorldId,
+                PlayerId = PlayerId,
+                LocationId = firstShopLocation.Id,
+                PlayerLevel = 1,
+                GameTime = GameClock.Epoch,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert — each shop's counter is staffed by its own worker, never swapped with the other
+        var firstShopWorkstations = await _getWorkstationsByLocationId.Handle(
+            new GetWorkstationsByLocationIdQuery { LocationId = firstShopLocation.Id },
+            TestContext.Current.CancellationToken
+        );
+        var secondShopWorkstations = await _getWorkstationsByLocationId.Handle(
+            new GetWorkstationsByLocationIdQuery { LocationId = secondShopLocation.Id },
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(firstWorker.Id, firstShopWorkstations.Single().OccupantId);
+        Assert.Equal(secondWorker.Id, secondShopWorkstations.Single().OccupantId);
+    }
+
+    [Fact]
     public async Task Handle_AdvancesDueJobs_ForWildernessLocation()
     {
         // Arrange

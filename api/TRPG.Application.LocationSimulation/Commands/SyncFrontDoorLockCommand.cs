@@ -17,7 +17,7 @@ internal class SyncFrontDoorLockCommandHandler(
         GetBuildingsByLocationQuery,
         IReadOnlyCollection<Building>
     > getBuildingsByLocation,
-    ICommandHandler<SyncScheduleLockCommand, bool?> syncScheduleLock
+    ICommandHandler<SyncScheduleLocksCommand> syncScheduleLocks
 ) : ICommandHandler<SyncFrontDoorLockCommand>
 {
     public async Task Handle(
@@ -39,18 +39,20 @@ internal class SyncFrontDoorLockCommandHandler(
             .Select(building => building!)
             .DistinctBy(building => building.Id)
             .ToArray();
-
-        foreach (var building in buildings)
+        if (buildings.Length == 0)
         {
-            await syncScheduleLock.Handle(
-                new SyncScheduleLockCommand
-                {
-                    BuildingId = building.Id,
-                    BuildingType = building.BuildingType,
-                    CurrentDate = command.CurrentDate,
-                },
-                cancellationToken
-            );
+            return;
         }
+
+        await syncScheduleLocks.Handle(
+            new SyncScheduleLocksCommand
+            {
+                Buildings = buildings
+                    .Select(building => new BuildingLockTarget(building.Id, building.BuildingType))
+                    .ToArray(),
+                CurrentDate = command.CurrentDate,
+            },
+            cancellationToken
+        );
     }
 }

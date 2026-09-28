@@ -1,16 +1,10 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Serialization;
-using TRPG.Application.Configuration;
 using TRPG.Data;
 using TRPG.Tests.Helpers;
 
@@ -109,47 +103,7 @@ public sealed class EndpointTestFixture(PostgreSqlFixture postgres) : IAsyncLife
             await tickerContext.Database.MigrateAsync();
         }
 
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration(
-                (_, config) =>
-                {
-                    config.AddInMemoryCollection(
-                        new Dictionary<string, string?>
-                        {
-                            ["ConnectionStrings:Trpg"] = _databaseFixture.ConnectionString,
-                            // Guarantees flee always succeeds — hub tests exercise the flee
-                            // flow's narration and scene-relocation behavior, not the
-                            // catch-chance mechanic, which has its own dedicated tests at the
-                            // CombatEngine/ResolveFleeCombatCommand level.
-                            ["Flee:MinimumCatchChance"] = "0",
-                            ["Flee:MaximumCatchChance"] = "0",
-                            // Most tests never register a listening game client (a bare
-                            // HubConnection, or none at all for HTTP-only endpoint tests), so the
-                            // production 5s ack wait would be pure dead time on every flush.
-                            ["GameClientEventAck:AckTimeout"] = "00:00:00.200",
-                        }
-                    );
-                }
-            );
-            // Skips ZLogger's rolling-file sink and the default console provider — neither is
-            // useful for a test run, and both cost real I/O across thousands of log statements.
-            builder.ConfigureLogging(logging => logging.ClearProviders());
-            builder.ConfigureServices(services =>
-            {
-                services.RemoveAll<DbContextOptions<TrpgDbContext>>();
-                services.AddDbContext<TrpgDbContext>(options =>
-                    options.UseNpgsql(_databaseFixture.ConnectionString)
-                );
-
-                services.RemoveAll<IChatClient>();
-                services.AddKeyedSingleton<IChatClient>(LlmRoleKeys.WorldGeneration, ChatClient);
-                services.AddKeyedSingleton<IChatClient>(
-                    LlmRoleKeys.Gameplay,
-                    (_, _) => ChatClient.AsBuilder().UseFunctionInvocation().Build()
-                );
-            });
-        });
+        _factory = TestWebApplicationFactory.Create(_databaseFixture.ConnectionString, ChatClient);
     }
 
     public async ValueTask DisposeAsync()

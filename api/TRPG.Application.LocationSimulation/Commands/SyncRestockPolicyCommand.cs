@@ -42,7 +42,7 @@ internal class SyncRestockPolicyCommandHandler(
     ICommandHandler<AddItemsCommand> addItems,
     ICommandHandler<RestockGoldCommand> restockGold,
     ICommandHandler<UpdateItemQuantitiesCommand> updateItemQuantities,
-    ICommandHandler<IssueReplacementRoomKeyCommand> issueReplacementRoomKey
+    ICommandHandler<IssueReplacementRoomKeysCommand> issueReplacementRoomKeys
 ) : ICommandHandler<SyncRestockPolicyCommand>
 {
     public async Task Handle(
@@ -196,22 +196,21 @@ internal class SyncRestockPolicyCommandHandler(
             cancellationToken
         );
 
-        foreach (
-            var door in guestRoomDoors.Where(d =>
-                !d.CandidateKeyItemIds.Any(id => workstationIdsByItemId.ContainsKey(id))
+        var doorsNeedingKeys = guestRoomDoors
+            .Where(door =>
+                !door.CandidateKeyItemIds.Any(id => workstationIdsByItemId.ContainsKey(id))
             )
-        )
-        {
-            await issueReplacementRoomKey.Handle(
-                new IssueReplacementRoomKeyCommand
-                {
-                    WorkstationId = workstationId,
-                    DoorConnectorId = door.DoorConnectorId,
-                    WorldId = worldId,
-                    RoomName = door.RoomName,
-                },
-                cancellationToken
-            );
-        }
+            .Select(door => new ReplacementRoomKeyRequest(door.DoorConnectorId, door.RoomName))
+            .ToArray();
+
+        await issueReplacementRoomKeys.Handle(
+            new IssueReplacementRoomKeysCommand
+            {
+                WorkstationId = workstationId,
+                WorldId = worldId,
+                Doors = doorsNeedingKeys,
+            },
+            cancellationToken
+        );
     }
 }

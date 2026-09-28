@@ -833,12 +833,66 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         Assert.True(destination.HasTicket);
     }
 
-    private async Task<RouteTraveler> SeedCaravanAtPlayerLocation(Guid destinationLocationId)
+    [Fact]
+    public async Task Handle_ResolvesEachCaravanIndependently_WhenMultipleAreLingeringAtTheSameLocation()
+    {
+        // Arrange — two caravans lingering at once, only one ticketed, guards against the batched
+        // position/ticket lookups mixing up which result belongs to which traveler.
+        var firstDestinationId = Guid.NewGuid();
+        var secondDestinationId = Guid.NewGuid();
+        var firstCaravan = await SeedCaravanAtPlayerLocation(
+            firstDestinationId,
+            cityName: "Faraway City",
+            ticketFeeGold: 15
+        );
+        var secondCaravan = await SeedCaravanAtPlayerLocation(
+            secondDestinationId,
+            cityName: "Second City",
+            ticketFeeGold: 25,
+            destinationStateId: Guid.NewGuid()
+        );
+        _context.CaravanTickets.Add(
+            Builders.MakeCaravanTicket(
+                secondCaravan.Id,
+                _player.Id,
+                _player.LocationId,
+                secondDestinationId,
+                purchasedAtGameTime: GameClock.Epoch
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(2, result.NearbyCaravans.Count);
+        var firstInfo = result.NearbyCaravans.Single(c => c.CaravanId == firstCaravan.Id);
+        var secondInfo = result.NearbyCaravans.Single(c => c.CaravanId == secondCaravan.Id);
+        Assert.Equal(15, firstInfo.TicketFeeGold);
+        Assert.Equal(25, secondInfo.TicketFeeGold);
+        Assert.False(Assert.Single(firstInfo.Destinations).HasTicket);
+        Assert.True(Assert.Single(secondInfo.Destinations).HasTicket);
+    }
+
+    private async Task<RouteTraveler> SeedCaravanAtPlayerLocation(
+        Guid destinationLocationId,
+        string cityName = "Faraway City",
+        int ticketFeeGold = 15,
+        Guid? destinationStateId = null
+    )
     {
         var destinationCity = Builders.MakeCity(
-            _state.Id,
+            destinationStateId ?? _state.Id,
             Guid.NewGuid(),
-            name: "Faraway City",
+            name: cityName,
             worldId: WorldId
         );
         var destinationDistrictId = Guid.NewGuid();
@@ -879,7 +933,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             destinationLocationId,
             connectorThere.ConnectorId
         );
-        var fare = Builders.MakeCaravanFare(route.Id, WorldId, ticketFeeGold: 15);
+        var fare = Builders.MakeCaravanFare(route.Id, WorldId, ticketFeeGold: ticketFeeGold);
         var caravan = Builders.MakeCaravan(route.Id, WorldId);
 
         _context.Cities.Add(destinationCity);

@@ -20,11 +20,7 @@ internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
     ICommandHandler<SetBedOccupantCommand> setBedOccupant,
-    IQueryHandler<
-        GetAvailableSeatsByLocationIdQuery,
-        IReadOnlyList<Seat>
-    > getAvailableSeatsByLocationId,
-    ICommandHandler<TryOccupySeatCommand, bool> tryOccupySeat,
+    ICommandHandler<TryOccupyAnyAvailableSeatCommand, bool> tryOccupyAnyAvailableSeat,
     ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
@@ -117,29 +113,18 @@ internal class ExecuteCreatureJobCommandHandler(
         }
     }
 
-    private async Task<bool> TryOccupyAvailableSeat(
+    private Task<bool> TryOccupyAvailableSeat(
         ExecuteCreatureJobCommand command,
         CancellationToken cancellationToken
-    )
-    {
-        var seats = await getAvailableSeatsByLocationId.Handle(
-            new GetAvailableSeatsByLocationIdQuery { LocationId = command.JobLocationId },
+    ) =>
+        tryOccupyAnyAvailableSeat.Handle(
+            new TryOccupyAnyAvailableSeatCommand
+            {
+                LocationId = command.JobLocationId,
+                CreatureId = command.CreatureId,
+            },
             cancellationToken
         );
-        foreach (var seat in seats)
-        {
-            var occupied = await tryOccupySeat.Handle(
-                new TryOccupySeatCommand { SeatId = seat.Id, CreatureId = command.CreatureId },
-                cancellationToken
-            );
-            if (occupied)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     private async Task SetBedOccupant(
         Guid locationId,
