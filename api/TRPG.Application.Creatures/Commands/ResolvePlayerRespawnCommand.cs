@@ -92,7 +92,8 @@ internal class ResolvePlayerRespawnCommandHandler(
             BirthYear = player.BirthYear,
             LocationId = deathLocationId,
             Level = player.Level,
-            State = CreatureState.Dead,
+            Condition = CreatureCondition.Dead,
+            Posture = CreaturePosture.Lying,
             BaseAttributes = player.BaseAttributes with { },
             PlayerCorpseOwnerId = player.Id,
         };

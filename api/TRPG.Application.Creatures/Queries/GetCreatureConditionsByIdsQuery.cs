@@ -5,16 +5,16 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Queries;
 
-public class GetCreatureStatesByIdsQuery
+public class GetCreatureConditionsByIdsQuery
 {
     public required IReadOnlyCollection<Guid> Ids { get; init; }
 }
 
-internal class GetCreatureStatesByIdsQueryHandler(ICreaturesDbContext context)
-    : IQueryHandler<GetCreatureStatesByIdsQuery, IReadOnlyDictionary<Guid, CreatureState>>
+internal class GetCreatureConditionsByIdsQueryHandler(ICreaturesDbContext context)
+    : IQueryHandler<GetCreatureConditionsByIdsQuery, IReadOnlyDictionary<Guid, CreatureCondition>>
 {
-    public async Task<IReadOnlyDictionary<Guid, CreatureState>> Handle(
-        GetCreatureStatesByIdsQuery query,
+    public async Task<IReadOnlyDictionary<Guid, CreatureCondition>> Handle(
+        GetCreatureConditionsByIdsQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context
@@ -22,7 +22,7 @@ internal class GetCreatureStatesByIdsQueryHandler(ICreaturesDbContext context)
             .Where(creature => query.Ids.AsEnumerable().Contains(creature.Id))
             .ToDictionaryAsync(
                 creature => creature.Id,
-                creature => creature.State,
+                creature => creature.Condition,
                 cancellationToken
             );
 }

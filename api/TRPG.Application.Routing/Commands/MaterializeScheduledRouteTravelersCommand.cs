@@ -26,7 +26,8 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
         GetCreatureJobsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
     > getCreatureJobsByCreatureIds,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<SetCreatureActivityCommand> setCreatureActivity
 ) : ICommandHandler<MaterializeScheduledRouteTravelersCommand, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(
@@ -149,28 +150,27 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
                 worldId,
                 occurrence,
                 creature,
-                ResolveArrivalState(occurrence.Schedule, jobsByCreatureId)
+                ResolveArrivalActivity(occurrence.Schedule, jobsByCreatureId)
             );
             materializedCreatureIds.Add(creatureId);
         }
         return materializedCreatureIds.Distinct().ToArray();
     }
 
-    private static CreatureState ResolveArrivalState(
+    private static CreatureActivity? ResolveArrivalActivity(
         CreatureRouteSchedule schedule,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId
     ) =>
         jobsByCreatureId
             .GetValueOrDefault(schedule.CreatureId)
             ?.FirstOrDefault(job => job.Id == schedule.DestinationCreatureJobId)
-            ?.DefaultState
-        ?? CreatureState.Idle;
+            ?.Activity;
 
     private void AddTraveler(
         Guid worldId,
         ScheduledOccurrence occurrence,
         Creature creature,
-        CreatureState arrivalState
+        CreatureActivity? arrivalActivity
     )
     {
         var traveler = new RouteTraveler
@@ -181,7 +181,7 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             SpeedUnitsPerHour = creature.MovementSpeed,
             Purpose = occurrence.Schedule.Purpose,
             CreatureRouteScheduleId = occurrence.Schedule.Id,
-            ArrivalState = arrivalState,
+            ArrivalActivity = arrivalActivity,
         };
         context.RouteTravelers.Add(traveler);
         context.RouteTravelerMembers.Add(
@@ -236,12 +236,20 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             .GroupBy(relocation => relocation.LocationId!.Value);
         foreach (var relocation in relocations)
         {
+            var relocatedCreatureIds = relocation.Select(entry => entry.CreatureId).ToArray();
             await updateCreatures.Handle(
                 new UpdateCreaturesCommand
                 {
-                    CreatureIds = relocation.Select(entry => entry.CreatureId).ToArray(),
+                    CreatureIds = relocatedCreatureIds,
                     LocationId = relocation.Key,
-                    State = CreatureState.Idle,
+                },
+                cancellationToken
+            );
+            await setCreatureActivity.Handle(
+                new SetCreatureActivityCommand
+                {
+                    CreatureIds = relocatedCreatureIds,
+                    Activity = null,
                 },
                 cancellationToken
             );
@@ -452,7 +460,7 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
         };
 
     private static bool CanFollowSchedule(Creature creature) =>
-        creature.State is not CreatureState.Dead && !creature.IsRestrained;
+        creature.Condition is not CreatureCondition.Dead && !creature.IsRestrained;
 
     private record ScheduledOccurrence(
         CreatureRouteSchedule Schedule,

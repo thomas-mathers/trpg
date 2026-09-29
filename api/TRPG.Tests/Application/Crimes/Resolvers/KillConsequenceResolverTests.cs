@@ -46,7 +46,7 @@ public sealed class KillConsequenceResolverTests(DatabaseFixture db)
         var deadWitness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var crime = new KillCrime
         {
@@ -94,7 +94,7 @@ public sealed class KillConsequenceResolverTests(DatabaseFixture db)
         var witness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var crime = new KillCrime
         {

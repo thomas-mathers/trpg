@@ -23,7 +23,7 @@ internal class GetCorpsesByOwnerQueryHandler(ICreaturesDbContext context)
             .Where(creature =>
                 creature.WorldId == query.WorldId
                 && creature.PlayerCorpseOwnerId == query.OwnerId
-                && creature.State == CreatureState.Dead
+                && creature.Condition == CreatureCondition.Dead
             )
             .ToArrayAsync(cancellationToken);
 }

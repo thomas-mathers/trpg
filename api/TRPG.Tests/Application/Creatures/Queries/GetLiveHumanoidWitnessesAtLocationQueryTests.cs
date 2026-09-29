@@ -38,20 +38,16 @@ public sealed class GetLiveHumanoidWitnessesAtLocationQueryTests(DatabaseFixture
     public async Task Handle_ExcludesDeadSleepingRestrainedNonHumanoidAndExcludedCreatures()
     {
         // Arrange
-        var witness = Builders.MakeCreature(
-            WorldId,
-            locationId: _locationId,
-            state: CreatureState.Idle
-        );
+        var witness = Builders.MakeCreature(WorldId, locationId: _locationId);
         var dead = Builders.MakeCreature(
             WorldId,
             locationId: _locationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var sleeping = Builders.MakeCreature(
             WorldId,
             locationId: _locationId,
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         var restrained = Builders.MakeCreature(
             WorldId,
@@ -61,15 +57,10 @@ public sealed class GetLiveHumanoidWitnessesAtLocationQueryTests(DatabaseFixture
         var nonHumanoid = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
-            locationId: _locationId,
-            state: CreatureState.Idle
+            locationId: _locationId
         );
-        var excluded = Builders.MakeCreature(
-            WorldId,
-            locationId: _locationId,
-            state: CreatureState.Idle
-        );
-        var elsewhere = Builders.MakeCreature(WorldId, state: CreatureState.Idle);
+        var excluded = Builders.MakeCreature(WorldId, locationId: _locationId);
+        var elsewhere = Builders.MakeCreature(WorldId);
         _context.Creatures.AddRange(
             witness,
             dead,

@@ -11,7 +11,7 @@ public class ExecuteCreatureJobCommand
 {
     public required Guid CreatureId { get; init; }
     public required Guid CurrentLocationId { get; init; }
-    public required CreatureState CurrentState { get; init; }
+    public required CreatureCondition CurrentCondition { get; init; }
     public required CreaturePosture CurrentPosture { get; init; }
     public required CreatureJobAction CreatureJobAction { get; init; }
     public required Guid JobLocationId { get; init; }
@@ -19,21 +19,22 @@ public class ExecuteCreatureJobCommand
 }
 
 internal class ExecuteCreatureJobCommandHandler(
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<PutCreaturesToSleepCommand> putCreaturesToSleep,
+    ICommandHandler<SetCreatureActivityCommand> setCreatureActivity,
+    ICommandHandler<TryStartSittingCommand, bool> tryStartSitting,
+    ICommandHandler<StopSittingCommand> stopSitting,
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
     ICommandHandler<SetBedOccupantCommand> setBedOccupant,
     ICommandHandler<TryOccupyAnyAvailableSeatCommand, bool> tryOccupyAnyAvailableSeat,
     ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
-    private static readonly HashSet<CreatureState> NonSchedulableStates = [CreatureState.Dead];
-
     public async Task Handle(
         ExecuteCreatureJobCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        if (NonSchedulableStates.Contains(command.CurrentState))
+        if (command.CurrentCondition == CreatureCondition.Dead)
         {
             return;
         }
@@ -43,22 +44,35 @@ internal class ExecuteCreatureJobCommandHandler(
             return;
         }
 
-        var targetState = command.CreatureJobAction switch
+        if (command.CreatureJobAction == CreatureJobAction.Sleep)
         {
-            CreatureJobAction.Sleep => CreatureState.Sleeping,
-            CreatureJobAction.Work => CreatureState.Working,
-            CreatureJobAction.Idle => CreatureState.Idle,
-            CreatureJobAction.Study => CreatureState.Studying,
-            CreatureJobAction.Pray => CreatureState.Praying,
-            CreatureJobAction.Eat => CreatureState.Eating,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(command),
-                command.CreatureJobAction,
-                "Unhandled CreatureJobAction."
-            ),
-        };
+            await Sleep(command, cancellationToken);
+            return;
+        }
 
-        if (command.CurrentState == CreatureState.Sleeping && targetState != CreatureState.Sleeping)
+        await StayAwake(command, cancellationToken);
+    }
+
+    private async Task Sleep(ExecuteCreatureJobCommand command, CancellationToken cancellationToken)
+    {
+        await VacateSeatIfSitting(command, cancellationToken);
+        await putCreaturesToSleep.Handle(
+            new PutCreaturesToSleepCommand { CreatureIds = [command.CreatureId] },
+            cancellationToken
+        );
+
+        if (command.CurrentCondition != CreatureCondition.Sleeping)
+        {
+            await SetBedOccupant(command.JobLocationId, command.CreatureId, cancellationToken);
+        }
+    }
+
+    private async Task StayAwake(
+        ExecuteCreatureJobCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        if (command.CurrentCondition == CreatureCondition.Sleeping)
         {
             await ClearBedOccupant(
                 command.CurrentLocationId,
@@ -67,44 +81,59 @@ internal class ExecuteCreatureJobCommandHandler(
             );
         }
 
-        var targetPosture = command.CurrentPosture;
-        if (command.CurrentPosture == CreaturePosture.Sitting)
-        {
-            await vacateCreatureSeat.Handle(
-                new VacateCreatureSeatCommand { CreatureId = command.CreatureId },
-                cancellationToken
-            );
-            targetPosture = CreaturePosture.Standing;
-        }
-
-        if (command.CreatureJobAction == CreatureJobAction.Idle)
-        {
-            var seated = await TryOccupyAvailableSeat(command, cancellationToken);
-            targetPosture = seated ? CreaturePosture.Sitting : CreaturePosture.Standing;
-        }
-
-        if (targetState == CreatureState.Sleeping)
-        {
-            targetPosture = CreaturePosture.Laying;
-        }
-        else if (targetPosture == CreaturePosture.Laying)
-        {
-            targetPosture = CreaturePosture.Standing;
-        }
-
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand
+        await VacateSeatIfSitting(command, cancellationToken);
+        var activity = command.CreatureJobAction.ToActivity();
+        await setCreatureActivity.Handle(
+            new SetCreatureActivityCommand
             {
                 CreatureIds = [command.CreatureId],
-                State = targetState,
-                Posture = targetPosture,
+                Activity = activity,
             },
             cancellationToken
         );
 
-        if (targetState == CreatureState.Sleeping && command.CurrentState != CreatureState.Sleeping)
+        if (command.CreatureJobAction == CreatureJobAction.Idle)
         {
-            await SetBedOccupant(command.JobLocationId, command.CreatureId, cancellationToken);
+            await SitIfSeatAvailable(command, cancellationToken);
+        }
+    }
+
+    private async Task VacateSeatIfSitting(
+        ExecuteCreatureJobCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        if (command.CurrentPosture != CreaturePosture.Sitting)
+        {
+            return;
+        }
+
+        await vacateCreatureSeat.Handle(
+            new VacateCreatureSeatCommand { CreatureId = command.CreatureId },
+            cancellationToken
+        );
+        await stopSitting.Handle(
+            new StopSittingCommand { CreatureId = command.CreatureId },
+            cancellationToken
+        );
+    }
+
+    private async Task SitIfSeatAvailable(
+        ExecuteCreatureJobCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        var seated = await TryOccupyAvailableSeat(command, cancellationToken);
+        if (seated)
+        {
+            await tryStartSitting.Handle(
+                new TryStartSittingCommand
+                {
+                    CreatureId = command.CreatureId,
+                    LocationId = command.JobLocationId,
+                },
+                cancellationToken
+            );
         }
     }
 

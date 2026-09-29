@@ -18,7 +18,7 @@ internal class ResetAlertedCreaturesCommandHandler(
         GetCreaturesAtLocationQuery,
         IReadOnlyCollection<CreatureResult>
     > getCreaturesAtLocation,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    ICommandHandler<CalmCreaturesCommand> calmCreatures
 ) : ICommandHandler<ResetAlertedCreaturesCommand>
 {
     public async Task Handle(
@@ -45,8 +45,8 @@ internal class ResetAlertedCreaturesCommandHandler(
             return;
         }
 
-        await updateCreatures.Handle(
-            new UpdateCreaturesCommand { CreatureIds = alertedCreatureIds, IsAlerted = false },
+        await calmCreatures.Handle(
+            new CalmCreaturesCommand { CreatureIds = alertedCreatureIds },
             cancellationToken
         );
     }

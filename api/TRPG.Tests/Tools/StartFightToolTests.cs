@@ -82,7 +82,7 @@ public sealed class StartFightToolTests(DatabaseFixture db)
             creatureType: CreatureType.Beast,
             locationId: LocationId,
             name: "Sleeping Wolf",
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         _context.Creatures.Add(target);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -110,8 +110,7 @@ public sealed class StartFightToolTests(DatabaseFixture db)
             WorldId,
             creatureType: CreatureType.Beast,
             locationId: LocationId,
-            name: "Alert Wolf",
-            state: CreatureState.Idle
+            name: "Alert Wolf"
         );
         _context.Creatures.Add(target);
         _player.IsSneaking = true;
@@ -140,8 +139,7 @@ public sealed class StartFightToolTests(DatabaseFixture db)
             WorldId,
             creatureType: CreatureType.Beast,
             locationId: LocationId,
-            name: "Alert Wolf",
-            state: CreatureState.Idle
+            name: "Alert Wolf"
         );
         _context.Creatures.Add(target);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -190,22 +188,21 @@ public sealed class StartFightToolTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Invoke_AlertsTheWholeGroup_WhenAtLeastOneMemberIsAwake()
+    public async Task Invoke_WakesAndAlertsTheWholeGroup_WhenAtLeastOneMemberIsAwake()
     {
         // Arrange
         var target = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
             locationId: LocationId,
-            name: "Awake Goblin",
-            state: CreatureState.Idle
+            name: "Awake Goblin"
         );
         var sleepingPackmate = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
             locationId: LocationId,
             name: "Sleeping Goblin",
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         await SeedGroup(target, sleepingPackmate);
         var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
@@ -225,12 +222,12 @@ public sealed class StartFightToolTests(DatabaseFixture db)
         );
         Assert.True(updatedTarget!.IsAlerted);
         Assert.True(updatedPackmate!.IsAlerted);
-        Assert.Equal(CreatureState.Idle, updatedTarget.State);
-        Assert.Equal(CreatureState.Sleeping, updatedPackmate.State);
+        Assert.Null(updatedTarget.Activity);
+        Assert.Equal(CreatureCondition.Awake, updatedPackmate.Condition);
     }
 
     [Fact]
-    public async Task Invoke_AlertsOnlyTheTarget_WhenTheRestOfTheGroupIsAsleep()
+    public async Task Invoke_WakesAndAlertsOnlyTheTarget_WhenTheRestOfTheGroupIsAsleep()
     {
         // Arrange
         var target = Builders.MakeCreature(
@@ -238,14 +235,14 @@ public sealed class StartFightToolTests(DatabaseFixture db)
             creatureType: CreatureType.Beast,
             locationId: LocationId,
             name: "Sleeping Goblin Scout",
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         var sleepingPackmate = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
             locationId: LocationId,
             name: "Sleeping Goblin Guard",
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         await SeedGroup(target, sleepingPackmate);
         var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
@@ -265,8 +262,8 @@ public sealed class StartFightToolTests(DatabaseFixture db)
         );
         Assert.True(updatedTarget!.IsAlerted);
         Assert.False(updatedPackmate!.IsAlerted);
-        Assert.Equal(CreatureState.Sleeping, updatedTarget.State);
-        Assert.Equal(CreatureState.Sleeping, updatedPackmate.State);
+        Assert.Equal(CreatureCondition.Awake, updatedTarget.Condition);
+        Assert.Equal(CreatureCondition.Sleeping, updatedPackmate.Condition);
     }
 
     private async Task SeedGroup(params Creature[] members)

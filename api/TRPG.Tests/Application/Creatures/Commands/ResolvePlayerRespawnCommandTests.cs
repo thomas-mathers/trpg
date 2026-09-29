@@ -20,7 +20,7 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db)
     private Guid _sanctuaryLocationId;
     private readonly Creature _player = Builders.MakeCreature(
         WorldId,
-        state: CreatureState.Dead,
+        condition: CreatureCondition.Dead,
         currentHp: 0
     );
 
@@ -64,7 +64,7 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(deathLocationId, corpse.LocationId);
-        Assert.Equal(CreatureState.Dead, corpse.State);
+        Assert.Equal(CreatureCondition.Dead, corpse.Condition);
 
         var corpseItemCount = await verifyContext.Items.CountAsync(
             item => item.Ownership.OwnerId == corpse.Id,
@@ -85,8 +85,7 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db)
         var cleric = Builders.MakeCreature(
             WorldId,
             profession: Profession.Cleric,
-            locationId: _sanctuaryLocationId,
-            state: CreatureState.Idle
+            locationId: _sanctuaryLocationId
         );
         _context.Creatures.Add(cleric);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

@@ -51,7 +51,7 @@ public sealed class CleanUpAbandonedCorpsesCommandHandlerTests(DatabaseFixture d
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         _context.Creatures.Add(corpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -83,7 +83,7 @@ public sealed class CleanUpAbandonedCorpsesCommandHandlerTests(DatabaseFixture d
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var quest = Builders.MakeQuest(corpse.Id, WorldId);
         var item = Builders.MakeWeapon(WorldId);
@@ -146,7 +146,7 @@ public sealed class CleanUpAbandonedCorpsesCommandHandlerTests(DatabaseFixture d
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
-            state: CreatureState.Dead,
+            condition: CreatureCondition.Dead,
             playerCorpseOwnerId: _player.Id
         );
         var item = Builders.MakeWeapon(WorldId, quantity: 1);
@@ -184,7 +184,7 @@ public sealed class CleanUpAbandonedCorpsesCommandHandlerTests(DatabaseFixture d
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
-            state: CreatureState.Dead,
+            condition: CreatureCondition.Dead,
             playerCorpseOwnerId: _player.Id
         );
         _context.Creatures.Add(corpse);

@@ -270,7 +270,7 @@ internal static class InventoryEndpoints
             new GetCreatureByIdQuery { Id = creatureId },
             cancellationToken
         );
-        if (creature is not { State: not CreatureState.Dead })
+        if (creature is not { Condition: not CreatureCondition.Dead })
         {
             return true;
         }

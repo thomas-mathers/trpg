@@ -56,9 +56,9 @@ public sealed class GetLivingHostileCreatureCountsByLocationQueryTests
     public async Task Handle_CountsOnlyLivingMembers_PerRequestedLocation()
     {
         // Arrange
-        var living = Builders.MakeCreature(WorldId, state: CreatureState.Idle);
-        var dead = Builders.MakeCreature(WorldId, state: CreatureState.Dead);
-        var otherLiving = Builders.MakeCreature(WorldId, state: CreatureState.Idle);
+        var living = Builders.MakeCreature(WorldId);
+        var dead = Builders.MakeCreature(WorldId, condition: CreatureCondition.Dead);
+        var otherLiving = Builders.MakeCreature(WorldId);
         _context.Creatures.AddRange(living, dead, otherLiving);
         _context.EncounterGroupMembers.AddRange(
             Builders.MakeEncounterGroupMember(WorldId, _group.Id, living.Id),

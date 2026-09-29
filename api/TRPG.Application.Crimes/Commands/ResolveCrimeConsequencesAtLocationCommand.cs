@@ -93,7 +93,7 @@ internal class ResolveCrimeConsequencesAtLocationCommandHandler(
             cancellationToken
         );
         return creaturesById
-            .Where(creature => creature.Value.State != CreatureState.Dead)
+            .Where(creature => creature.Value.Condition != CreatureCondition.Dead)
             .Select(creature => creature.Key)
             .ToArray();
     }

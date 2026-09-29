@@ -114,7 +114,7 @@ public sealed class SyncLocationRoutinesCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(location.Id, updated.LocationId);
-        Assert.Equal(CreatureState.Sleeping, updated.State);
+        Assert.Equal(CreatureCondition.Sleeping, updated.Condition);
     }
 
     [Fact]

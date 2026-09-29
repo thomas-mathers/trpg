@@ -436,6 +436,10 @@ namespace TRPG.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("active_hots");
 
+                    b.Property<string>("Activity")
+                        .HasColumnType("text")
+                        .HasColumnName("activity");
+
                     b.Property<string>("Biography")
                         .IsRequired()
                         .HasColumnType("text")
@@ -452,6 +456,11 @@ namespace TRPG.Migrations
                     b.Property<int>("CarryingCapacity")
                         .HasColumnType("integer")
                         .HasColumnName("carrying_capacity");
+
+                    b.Property<string>("Condition")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("condition");
 
                     b.Property<string>("CooldownRemainingByAbility")
                         .IsRequired()
@@ -556,6 +565,11 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("maximum_mp");
 
+                    b.Property<string>("Movement")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("movement");
+
                     b.Property<float>("MovementSpeed")
                         .HasColumnType("real")
                         .HasColumnName("movement_speed");
@@ -610,11 +624,6 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("stamina");
 
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("state");
-
                     b.Property<int>("Strength")
                         .HasColumnType("integer")
                         .HasColumnName("strength");
@@ -635,7 +644,22 @@ namespace TRPG.Migrations
                     b.HasIndex("WorldId")
                         .HasDatabaseName("ix_creatures_world_id");
 
-                    b.ToTable("creatures", (string)null);
+                    b.ToTable("creatures", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_creatures_activity_requires_awake", "activity IS NULL OR condition = 'Awake'");
+
+                            t.HasCheckConstraint("ck_creatures_alerted_requires_awake", "NOT is_alerted OR condition = 'Awake'");
+
+                            t.HasCheckConstraint("ck_creatures_lying_requires_not_awake", "posture <> 'Lying' OR condition <> 'Awake'");
+
+                            t.HasCheckConstraint("ck_creatures_sleeping_requires_lying", "condition <> 'Sleeping' OR posture = 'Lying'");
+
+                            t.HasCheckConstraint("ck_creatures_sneaking_requires_awake", "NOT is_sneaking OR condition = 'Awake'");
+
+                            t.HasCheckConstraint("ck_creatures_walking_requires_awake", "movement = 'Stationary' OR condition = 'Awake'");
+
+                            t.HasCheckConstraint("ck_creatures_walking_requires_standing", "movement = 'Stationary' OR posture = 'Standing'");
+                        });
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.CreatureJob", b =>
@@ -2810,10 +2834,9 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<string>("ArrivalState")
-                        .IsRequired()
+                    b.Property<string>("ArrivalActivity")
                         .HasColumnType("text")
-                        .HasColumnName("arrival_state");
+                        .HasColumnName("arrival_activity");
 
                     b.Property<Guid?>("CreatureRouteScheduleId")
                         .HasColumnType("uuid")

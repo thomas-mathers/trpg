@@ -40,7 +40,8 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
         name: 'Tessa',
         creatureType: 'Human',
         level: 1,
-        state: 'Idle',
+        condition: 'Awake',
+        movement: 'Stationary',
         posture: 'Standing',
         reputation: null,
         tradeWorkstationId,
@@ -243,7 +244,8 @@ describe('NearbyPanel', () => {
           name: 'Ravenous Snarler',
           creatureType: 'Beast',
           level: 3,
-          state: 'Idle',
+          condition: 'Awake',
+          movement: 'Stationary',
           posture: 'Standing',
           reputation: null,
           tradeWorkstationId: undefined,
@@ -256,6 +258,64 @@ describe('NearbyPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Inspect Inventory' })).toBeVisible();
   });
+
+  it.each([
+    {
+      condition: 'Sleeping',
+      activity: undefined,
+      movement: 'Stationary',
+      posture: 'Lying',
+      labels: ['Sleeping'],
+    },
+    {
+      condition: 'Dead',
+      activity: undefined,
+      movement: 'Stationary',
+      posture: 'Lying',
+      labels: ['Dead'],
+    },
+    {
+      condition: 'Awake',
+      activity: undefined,
+      movement: 'Walking',
+      posture: 'Standing',
+      labels: ['Walking'],
+    },
+    {
+      condition: 'Awake',
+      activity: 'Eating',
+      movement: 'Stationary',
+      posture: 'Sitting',
+      labels: ['Eating', 'Sitting'],
+    },
+  ])(
+    'shows $labels for a $condition creature',
+    ({ condition, activity, movement, posture, labels }) => {
+      const sceneWithCreature = {
+        ...scene(undefined),
+        nearbyCreatures: [
+          {
+            id: 'creature-id',
+            name: 'Tessa',
+            creatureType: 'Human',
+            level: 1,
+            condition,
+            activity,
+            movement,
+            posture,
+            reputation: null,
+          },
+        ],
+      } as unknown as SceneSnapshot;
+
+      renderPanel(sceneWithCreature);
+
+      for (const label of labels) {
+        expect(screen.getByText(label)).toBeVisible();
+      }
+      expect(screen.queryByText('Standing')).not.toBeInTheDocument();
+    },
+  );
 
   it('opens a nearby container inventory when clicked', async () => {
     server.use(
@@ -362,11 +422,16 @@ describe('NearbyPanel', () => {
           name: 'Giver',
           creatureType: 'Human',
           level: 1,
-          state: 'Idle',
+          condition: 'Awake',
+          movement: 'Stationary',
           posture: 'Standing',
           reputation: null,
           questMarkers: [
-            { questId: 'quest-id', name: 'A Dangerous Delivery', marker: 'Available' },
+            {
+              questId: 'quest-id',
+              name: 'A Dangerous Delivery',
+              marker: 'Available',
+            },
           ],
           readyToDeliver: false,
         },
@@ -380,7 +445,11 @@ describe('NearbyPanel', () => {
 
     await waitFor(() =>
       expect(onQuestDialogRequested).toHaveBeenCalledWith(
-        expect.objectContaining({ questId: 'quest-id', mode: 'Offer', worldId: 'world-id' }),
+        expect.objectContaining({
+          questId: 'quest-id',
+          mode: 'Offer',
+          worldId: 'world-id',
+        }),
       ),
     );
   });

@@ -15,7 +15,7 @@ public record RouteTravelerSummary(
     GameInstant? PausedAtGameTime,
     double SpeedUnitsPerHour,
     IReadOnlyList<RouteTimelineStep> Steps,
-    CreatureState ArrivalState
+    CreatureActivity? ArrivalActivity
 );
 
 public class GetRouteTravelersByLocationIdQuery
@@ -106,7 +106,7 @@ internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext conte
                     traveler.PausedAtGameTime,
                     traveler.SpeedUnitsPerHour,
                     stepsByRouteId[traveler.RouteId],
-                    traveler.ArrivalState
+                    traveler.ArrivalActivity
                 );
             })
             .ToArray();

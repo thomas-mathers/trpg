@@ -34,7 +34,6 @@ internal static class SimulatedCombatantFactory
             BirthLocationId = Guid.NewGuid(),
             BirthYear = 1000,
             Level = 1,
-            State = CreatureState.Idle,
             BaseAttributes = attributes,
             CurrentHp = attributes.MaximumHp,
             CurrentAp = attributes.MaximumAp,

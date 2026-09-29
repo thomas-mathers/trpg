@@ -63,8 +63,8 @@ public sealed class GetEncounterGroupCreatureIdsQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsOnlyTheAttackedCreature_WhenEntireGroupIsAsleep()
     {
         // Arrange
-        var target = Builders.MakeCreature(WorldId, state: CreatureState.Sleeping);
-        var packmate = Builders.MakeCreature(WorldId, state: CreatureState.Sleeping);
+        var target = Builders.MakeCreature(WorldId, condition: CreatureCondition.Sleeping);
+        var packmate = Builders.MakeCreature(WorldId, condition: CreatureCondition.Sleeping);
         await SeedGroupMembers(target, packmate);
 
         // Act
@@ -81,8 +81,8 @@ public sealed class GetEncounterGroupCreatureIdsQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsAllLivingMembers_WhenAtLeastOneMemberIsAwake()
     {
         // Arrange
-        var target = Builders.MakeCreature(WorldId, state: CreatureState.Sleeping);
-        var awakePackmate = Builders.MakeCreature(WorldId, state: CreatureState.Idle);
+        var target = Builders.MakeCreature(WorldId, condition: CreatureCondition.Sleeping);
+        var awakePackmate = Builders.MakeCreature(WorldId);
         await SeedGroupMembers(target, awakePackmate);
 
         // Act
@@ -102,8 +102,8 @@ public sealed class GetEncounterGroupCreatureIdsQueryTests(DatabaseFixture db)
     public async Task Handle_ExcludesDeadMembers_WhenAtLeastOneMemberIsAwake()
     {
         // Arrange
-        var target = Builders.MakeCreature(WorldId, state: CreatureState.Idle);
-        var deadPackmate = Builders.MakeCreature(WorldId, state: CreatureState.Dead);
+        var target = Builders.MakeCreature(WorldId);
+        var deadPackmate = Builders.MakeCreature(WorldId, condition: CreatureCondition.Dead);
         await SeedGroupMembers(target, deadPackmate);
 
         // Act

@@ -46,6 +46,8 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     > getRouteTravelDurations,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<StartWalkingCommand> startWalking,
+    ICommandHandler<SetCreatureActivityCommand> setCreatureActivity,
     ICommandHandler<CompleteCreatureRoutesCommand> completeCreatureRoutes,
     ICommandHandler<
         RouteCreaturesToDestinationsCommand,
@@ -62,8 +64,6 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     > getSeatIdsByOccupantIds
 ) : ICommandHandler<SyncCreatureJobSchedulesCommand, SyncCreatureJobSchedulesResult>
 {
-    private static readonly HashSet<CreatureState> NonSchedulableStates = [CreatureState.Dead];
-
     public async Task<SyncCreatureJobSchedulesResult> Handle(
         SyncCreatureJobSchedulesCommand command,
         CancellationToken cancellationToken = default
@@ -242,7 +242,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         var ready = new List<ReadyCreature>();
         foreach (var creature in creaturesById.Values)
         {
-            if (NonSchedulableStates.Contains(creature.State))
+            if (creature.Condition == CreatureCondition.Dead)
             {
                 continue;
             }
@@ -287,13 +287,16 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                 case RouteTimelinePosition.InTransit inTransit:
                     AddTarget(
                         targets,
-                        inTransit.FromLocationId,
-                        CreatureState.Walking,
+                        CreatureTarget.Walking(inTransit.FromLocationId),
                         creature.Id
                     );
                     break;
                 case RouteTimelinePosition.Arrived arrived:
-                    AddTarget(targets, arrived.LocationId, null, creature.Id);
+                    AddTarget(
+                        targets,
+                        CreatureTarget.LocationOnly(arrived.LocationId),
+                        creature.Id
+                    );
                     arrivedIds.Add(creature.Id);
                     ready.Add(
                         new ReadyCreature(creature, arrived.LocationId, arrived.ArrivedAtGameTime)
@@ -313,10 +316,14 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         switch (position)
         {
             case RouteTimelinePosition.Lingering lingering:
-                AddTarget(targets, lingering.LocationId, CreatureState.Working, creatureId);
+                AddTarget(
+                    targets,
+                    CreatureTarget.Stationary(lingering.LocationId, CreatureActivity.Working),
+                    creatureId
+                );
                 break;
             case RouteTimelinePosition.InTransit inTransit:
-                AddTarget(targets, inTransit.FromLocationId, CreatureState.Walking, creatureId);
+                AddTarget(targets, CreatureTarget.Walking(inTransit.FromLocationId), creatureId);
                 break;
             case RouteTimelinePosition.Arrived:
                 throw new InvalidOperationException("A cyclic route cannot arrive.");
@@ -372,7 +379,11 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             var scheduled = entry.Scheduled;
             if (!ready.HasActiveRoute && ready.LocationId == scheduled.Job.LocationId)
             {
-                AddTarget(idleTargets, ready.LocationId, CreatureState.Idle, ready.Creature.Id);
+                AddTarget(
+                    idleTargets,
+                    CreatureTarget.Stationary(ready.LocationId, null),
+                    ready.Creature.Id
+                );
                 atDestination.Add(
                     new CreatureAtDestination(
                         ready.Creature,
@@ -392,7 +403,11 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                     : plannedDeparture;
             if (departure > gameTime)
             {
-                AddTarget(idleTargets, ready.LocationId, CreatureState.Idle, ready.Creature.Id);
+                AddTarget(
+                    idleTargets,
+                    CreatureTarget.Stationary(ready.LocationId, null),
+                    ready.Creature.Id
+                );
                 continue;
             }
 
@@ -403,7 +418,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                     scheduled.Job.LocationId,
                     departure,
                     entry.Purpose,
-                    scheduled.Job.DefaultState
+                    scheduled.Job.Activity
                 )
             );
         }
@@ -518,7 +533,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                         plan.DestinationLocationId,
                         plan.StartedAtGameTime,
                         plan.Purpose,
-                        plan.ArrivalState
+                        plan.ArrivalActivity
                     ))
                     .ToArray(),
             },
@@ -550,21 +565,32 @@ internal class SyncCreatureJobSchedulesCommandHandler(
             switch (position)
             {
                 case RouteTimelinePosition.Pending pending:
-                    AddTarget(targets, pending.LocationId, CreatureState.Idle, plan.Creature.Id);
+                    AddTarget(
+                        targets,
+                        CreatureTarget.Stationary(pending.LocationId, null),
+                        plan.Creature.Id
+                    );
                     break;
                 case RouteTimelinePosition.Lingering lingering:
-                    AddTarget(targets, lingering.LocationId, CreatureState.Idle, plan.Creature.Id);
+                    AddTarget(
+                        targets,
+                        CreatureTarget.Stationary(lingering.LocationId, null),
+                        plan.Creature.Id
+                    );
                     break;
                 case RouteTimelinePosition.InTransit inTransit:
                     AddTarget(
                         targets,
-                        inTransit.FromLocationId,
-                        CreatureState.Walking,
+                        CreatureTarget.Walking(inTransit.FromLocationId),
                         plan.Creature.Id
                     );
                     break;
                 case RouteTimelinePosition.Arrived arrived:
-                    AddTarget(targets, arrived.LocationId, CreatureState.Idle, plan.Creature.Id);
+                    AddTarget(
+                        targets,
+                        CreatureTarget.Stationary(arrived.LocationId, null),
+                        plan.Creature.Id
+                    );
                     arrivedIds.Add(plan.Creature.Id);
                     atDestination.Add(
                         new CreatureAtDestination(
@@ -630,7 +656,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                         job.RouteId.Value,
                         startedAt,
                         "Patrolling the city",
-                        CreatureState.Working
+                        CreatureActivity.Working
                     )
                 );
                 continue;
@@ -641,7 +667,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                 {
                     CreatureId = entry.Creature.Id,
                     CurrentLocationId = entry.LocationId,
-                    CurrentState = entry.Creature.State,
+                    CurrentCondition = entry.Creature.Condition,
                     CurrentPosture = entry.Creature.Posture,
                     CreatureJobAction = job.Action,
                     JobLocationId = job.LocationId,
@@ -714,21 +740,46 @@ internal class SyncCreatureJobSchedulesCommandHandler(
                 {
                     CreatureIds = creatureIds,
                     LocationId = target.LocationId,
-                    State = target.State,
                 },
                 cancellationToken
             );
+            await ApplyPhase(target, creatureIds, cancellationToken);
+        }
+    }
+
+    private async Task ApplyPhase(
+        CreatureTarget target,
+        IReadOnlyCollection<Guid> creatureIds,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (target.Phase)
+        {
+            case TargetPhase.Walking:
+                await startWalking.Handle(
+                    new StartWalkingCommand { CreatureIds = creatureIds },
+                    cancellationToken
+                );
+                break;
+            case TargetPhase.Stationary:
+                await setCreatureActivity.Handle(
+                    new SetCreatureActivityCommand
+                    {
+                        CreatureIds = creatureIds,
+                        Activity = target.Activity,
+                    },
+                    cancellationToken
+                );
+                break;
         }
     }
 
     private static void AddTarget(
         Dictionary<CreatureTarget, List<Guid>> targets,
-        Guid locationId,
-        CreatureState? state,
+        CreatureTarget target,
         Guid creatureId
     )
     {
-        var target = new CreatureTarget(locationId, state);
         targets.TryAdd(target, []);
         targets[target].Add(creatureId);
     }
@@ -748,7 +799,24 @@ internal class SyncCreatureJobSchedulesCommandHandler(
     private static SyncCreatureJobSchedulesResult EmptyResult() =>
         new(new Dictionary<Guid, IReadOnlyList<Guid>>());
 
-    private record CreatureTarget(Guid LocationId, CreatureState? State);
+    private enum TargetPhase
+    {
+        LocationOnly,
+        Walking,
+        Stationary,
+    }
+
+    private record CreatureTarget(Guid LocationId, TargetPhase Phase, CreatureActivity? Activity)
+    {
+        public static CreatureTarget LocationOnly(Guid locationId) =>
+            new(locationId, TargetPhase.LocationOnly, null);
+
+        public static CreatureTarget Walking(Guid locationId) =>
+            new(locationId, TargetPhase.Walking, null);
+
+        public static CreatureTarget Stationary(Guid locationId, CreatureActivity? activity) =>
+            new(locationId, TargetPhase.Stationary, activity);
+    }
 
     private record ReadyCreature(
         Creature Creature,
@@ -769,7 +837,7 @@ internal class SyncCreatureJobSchedulesCommandHandler(
         Guid DestinationLocationId,
         GameInstant StartedAtGameTime,
         string Purpose,
-        CreatureState ArrivalState
+        CreatureActivity? ArrivalActivity
     );
 
     private record CreatureAtDestination(

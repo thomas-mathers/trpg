@@ -52,7 +52,7 @@ internal class CleanUpAbandonedCorpsesCommandHandler(
         );
 
         var deadCreatureIds = nearby
-            .Where(creature => creature.State == CreatureState.Dead)
+            .Where(creature => creature.Condition == CreatureCondition.Dead)
             .Select(creature => creature.Id)
             .ToArray();
 

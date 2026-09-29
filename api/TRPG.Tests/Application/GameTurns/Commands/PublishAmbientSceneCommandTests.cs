@@ -230,7 +230,11 @@ public sealed class PublishAmbientSceneCommandTests(DatabaseFixture db)
         await _handler.Handle(MakeCommand(), TestContext.Current.CancellationToken);
         _events.EnqueuedEvents.Clear();
         _context.Creatures.Add(
-            Builders.MakeCreature(_worldId, locationId: _locationId, state: CreatureState.Sleeping)
+            Builders.MakeCreature(
+                _worldId,
+                locationId: _locationId,
+                condition: CreatureCondition.Sleeping
+            )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

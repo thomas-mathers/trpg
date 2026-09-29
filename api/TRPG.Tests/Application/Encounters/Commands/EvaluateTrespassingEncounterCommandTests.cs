@@ -191,7 +191,7 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
         var sleeper = Builders.MakeCreature(
             WorldId,
             locationId: _roomLocationId,
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         _context.Creatures.AddRange(confronter, bystander, sleeper);
         await SeedBreakInCrime();

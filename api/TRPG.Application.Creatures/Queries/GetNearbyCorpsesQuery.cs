@@ -31,7 +31,7 @@ internal class GetNearbyCorpsesQueryHandler(
             cancellationToken
         );
 
-        var corpses = nearby.Where(c => c.State == CreatureState.Dead).ToArray();
+        var corpses = nearby.Where(c => c.Condition == CreatureCondition.Dead).ToArray();
         var corpseIds = corpses.Select(c => c.Id).ToArray();
 
         var itemCountsByOwner = await getItemCountsByOwners.Handle(

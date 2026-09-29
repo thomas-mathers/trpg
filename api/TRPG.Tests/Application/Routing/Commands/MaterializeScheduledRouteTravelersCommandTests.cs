@@ -63,7 +63,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
         Assert.Equal([scenario.CreatureId], creatureIds);
         Assert.Equal(scenario.ScheduleId, traveler.CreatureRouteScheduleId);
         Assert.Equal(GameClock.Epoch - TimeSpan.FromHours(1), traveler.StartedAtGameTime);
-        Assert.Equal(CreatureState.Working, traveler.ArrivalState);
+        Assert.Equal(CreatureActivity.Working, traveler.ArrivalActivity);
         Assert.Equal(scenario.CreatureId, member.CreatureId);
     }
 

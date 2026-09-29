@@ -227,7 +227,7 @@ public sealed class EvaluateEncounterGroupCommandTests(DatabaseFixture db)
             creatureType: CreatureType.Beast,
             locationId: _location.Id,
             level: 1,
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
         var member = Builders.MakeEncounterGroupMember(WorldId, group.Id, monster.Id);
@@ -256,15 +256,14 @@ public sealed class EvaluateEncounterGroupCommandTests(DatabaseFixture db)
             WorldId,
             creatureType: CreatureType.Beast,
             locationId: _location.Id,
-            level: 1,
-            state: CreatureState.Idle
+            level: 1
         );
         var sleepingMonster = Builders.MakeCreature(
             WorldId,
             creatureType: CreatureType.Beast,
             locationId: _location.Id,
             level: 1,
-            state: CreatureState.Sleeping
+            condition: CreatureCondition.Sleeping
         );
         var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
         var awakeMember = Builders.MakeEncounterGroupMember(WorldId, group.Id, awakeMonster.Id);

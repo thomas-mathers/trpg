@@ -182,7 +182,8 @@ public sealed class EvaluateAmbientEncounterCommandTests(DatabaseFixture db)
         await _context
             .Creatures.Where(creature => creature.Id == _player.Id)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(creature => creature.State, CreatureState.Dead),
+                setters =>
+                    setters.SetProperty(creature => creature.Condition, CreatureCondition.Dead),
                 TestContext.Current.CancellationToken
             );
 
@@ -201,7 +202,10 @@ public sealed class EvaluateAmbientEncounterCommandTests(DatabaseFixture db)
         await _context
             .Creatures.Where(creature => creature.Id != _player.Id && creature.WorldId == _worldId)
             .ExecuteUpdateAsync(
-                setters => setters.SetProperty(creature => creature.State, CreatureState.Sleeping),
+                setters =>
+                    setters
+                        .SetProperty(creature => creature.Condition, CreatureCondition.Sleeping)
+                        .SetProperty(creature => creature.Posture, CreaturePosture.Lying),
                 TestContext.Current.CancellationToken
             );
 

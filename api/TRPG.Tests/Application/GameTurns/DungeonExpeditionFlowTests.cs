@@ -33,7 +33,11 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
         _database = database;
         _player = Builders.MakeCreature(WorldId, locationId: _location.Id);
         _survivor = Builders.MakeCreature(WorldId, locationId: _location.Id, name: "Survivor");
-        _companion = Builders.MakeCreature(WorldId, state: CreatureState.Dead, name: "Companion");
+        _companion = Builders.MakeCreature(
+            WorldId,
+            condition: CreatureCondition.Dead,
+            name: "Companion"
+        );
         _expedition = Builders.MakeDungeonExpedition(_survivor, _companion);
     }
 
@@ -62,12 +66,12 @@ public sealed class DungeonExpeditionFlowTests : IAsyncLifetime, IClassFixture<D
     public async Task Cleanup_PreservesParticipants_WhenBothAreDead()
     {
         // Arrange
-        _survivor.State = CreatureState.Dead;
+        _survivor.Condition = CreatureCondition.Dead;
         _companion.LocationId = _location.Id;
         var ordinaryCorpse = Builders.MakeCreature(
             WorldId,
             locationId: _location.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         _context.Creatures.Add(ordinaryCorpse);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

@@ -43,7 +43,7 @@ internal class EngageCreaturesCommandHandler(
         {
             throw new EntityNotFoundException(nameof(Creature), missingCreatureId);
         }
-        if (creatures.Any(creature => creature.State == CreatureState.Dead))
+        if (creatures.Any(creature => creature.Condition == CreatureCondition.Dead))
         {
             throw new InvalidOperationException("A dead creature cannot be engaged.");
         }

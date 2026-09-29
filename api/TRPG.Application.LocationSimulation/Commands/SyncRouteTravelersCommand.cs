@@ -29,7 +29,9 @@ internal class SyncRouteTravelersCommandHandler(
         IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition>
     > resolveRouteTravelerPositions,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<StartWalkingCommand> startWalking,
+    ICommandHandler<SetCreatureActivityCommand> setCreatureActivity
 ) : ICommandHandler<SyncRouteTravelersCommand>
 {
     public async Task Handle(
@@ -123,10 +125,37 @@ internal class SyncRouteTravelersCommandHandler(
                 {
                     CreatureIds = creatureIds,
                     LocationId = target.LocationId,
-                    State = target.State,
                 },
                 cancellationToken
             );
+            await ApplyPhase(target, creatureIds, cancellationToken);
+        }
+    }
+
+    private async Task ApplyPhase(
+        RouteTravelerTarget target,
+        IReadOnlyCollection<Guid> creatureIds,
+        CancellationToken cancellationToken
+    )
+    {
+        switch (target.Phase)
+        {
+            case RouteTravelerPhase.Walking:
+                await startWalking.Handle(
+                    new StartWalkingCommand { CreatureIds = creatureIds },
+                    cancellationToken
+                );
+                break;
+            case RouteTravelerPhase.Arrived:
+                await setCreatureActivity.Handle(
+                    new SetCreatureActivityCommand
+                    {
+                        CreatureIds = creatureIds,
+                        Activity = target.ArrivalActivity,
+                    },
+                    cancellationToken
+                );
+                break;
         }
     }
 
@@ -143,32 +172,32 @@ internal class SyncRouteTravelersCommandHandler(
                 continue;
             }
 
-            var arrivalState = travelers.TravelersById[routeTravelerId].ArrivalState;
+            var arrivalActivity = travelers.TravelersById[routeTravelerId].ArrivalActivity;
             foreach (var memberId in memberIds)
             {
                 if (syncData.CreaturesById.TryGetValue(memberId, out var creature))
                 {
-                    AddRelocation(relocations, position.Position, arrivalState, creature);
+                    AddRelocation(relocations, position.Position, arrivalActivity, creature);
                 }
             }
         }
         return relocations;
     }
 
-    // State changes only on a transition: leaving a stop (Walking) or arriving at one (the arrival state).
+    // Movement changes only on a transition: leaving a stop (walking) or arriving at one (the arrival activity).
     private static void AddRelocation(
         Dictionary<RouteTravelerTarget, List<Guid>> relocations,
         RouteTimelinePosition position,
-        CreatureState arrivalState,
+        CreatureActivity? arrivalActivity,
         Creature creature
     )
     {
-        if (creature.IsEngaged || creature.State == CreatureState.Dead)
+        if (creature.IsEngaged || creature.Condition == CreatureCondition.Dead)
         {
             return;
         }
 
-        var target = ResolveTarget(position, arrivalState, creature);
+        var target = ResolveTarget(position, arrivalActivity, creature);
         if (target == null)
         {
             return;
@@ -180,40 +209,44 @@ internal class SyncRouteTravelersCommandHandler(
 
     private static RouteTravelerTarget? ResolveTarget(
         RouteTimelinePosition position,
-        CreatureState arrivalState,
+        CreatureActivity? arrivalActivity,
         Creature creature
     ) =>
         position switch
         {
             RouteTimelinePosition.Pending pending => creature.LocationId == pending.LocationId
                 ? null
-                : new RouteTravelerTarget(pending.LocationId, null),
+                : new RouteTravelerTarget(pending.LocationId, RouteTravelerPhase.Waiting, null),
             RouteTimelinePosition.Lingering lingering => ArriveAt(
                 lingering.LocationId,
-                arrivalState,
+                arrivalActivity,
                 creature
             ),
             RouteTimelinePosition.Arrived arrived => ArriveAt(
                 arrived.LocationId,
-                arrivalState,
+                arrivalActivity,
                 creature
             ),
             RouteTimelinePosition.InTransit inTransit => creature.LocationId
                 == inTransit.FromLocationId
-            && creature.State == CreatureState.Walking
+            && creature.Movement == CreatureMovement.Walking
                 ? null
-                : new RouteTravelerTarget(inTransit.FromLocationId, CreatureState.Walking),
+                : new RouteTravelerTarget(
+                    inTransit.FromLocationId,
+                    RouteTravelerPhase.Walking,
+                    null
+                ),
             _ => throw new InvalidOperationException("Unknown route position."),
         };
 
     private static RouteTravelerTarget? ArriveAt(
         Guid locationId,
-        CreatureState arrivalState,
+        CreatureActivity? arrivalActivity,
         Creature creature
     ) =>
-        creature.LocationId == locationId && creature.State != CreatureState.Walking
+        creature.LocationId == locationId && creature.Movement != CreatureMovement.Walking
             ? null
-            : new RouteTravelerTarget(locationId, arrivalState);
+            : new RouteTravelerTarget(locationId, RouteTravelerPhase.Arrived, arrivalActivity);
 
     private record CreatureTravelers(
         IReadOnlyDictionary<Guid, RouteTravelerSummary> TravelersById,
@@ -225,5 +258,16 @@ internal class SyncRouteTravelersCommandHandler(
         IReadOnlyDictionary<Guid, Creature> CreaturesById
     );
 
-    private record RouteTravelerTarget(Guid LocationId, CreatureState? State);
+    private enum RouteTravelerPhase
+    {
+        Waiting,
+        Walking,
+        Arrived,
+    }
+
+    private record RouteTravelerTarget(
+        Guid LocationId,
+        RouteTravelerPhase Phase,
+        CreatureActivity? ArrivalActivity
+    );
 }

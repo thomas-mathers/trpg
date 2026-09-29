@@ -108,7 +108,7 @@ public sealed class GetNearbyCreaturesQueryTests(DatabaseFixture db)
         var corpse = Builders.MakeCreature(
             WorldId,
             locationId: location.Id,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         _context.Locations.Add(location);
         _context.Creatures.AddRange(player, corpse);

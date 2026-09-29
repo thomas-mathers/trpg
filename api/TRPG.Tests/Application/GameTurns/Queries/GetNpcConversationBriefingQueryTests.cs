@@ -63,14 +63,14 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
     public async Task Handle_ReturnsTheCreaturesCurrentState()
     {
         // Arrange
-        _npc.State = CreatureState.Working;
+        _npc.Activity = CreatureActivity.Working;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(CreatureState.Working, result.RuntimeState.State);
+        Assert.Equal(CreatureActivity.Working, result.RuntimeState.Activity);
     }
 
     [Fact]

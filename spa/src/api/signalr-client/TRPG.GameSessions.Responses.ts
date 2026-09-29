@@ -17,11 +17,17 @@ export type Gender = "Male" | "Female";
 /** Transpiled from TRPG.GameSessions.Responses.Profession */
 export type Profession = "Knight" | "Rogue" | "Ranger" | "Mage" | "Cleric" | "Mercenary" | "Alchemist" | "Blacksmith" | "Scholar" | "Merchant" | "Politician" | "StableMaster" | "Bartender" | "Guard" | "Baker" | "Innkeeper" | "Tailor" | "Carpenter" | "Jeweler" | "Homemaker" | "Unemployed";
 
-/** Transpiled from TRPG.GameSessions.Responses.CreatureState */
-export type CreatureState = "Idle" | "Sleeping" | "Working" | "Studying" | "Praying" | "Eating" | "Dead" | "Walking";
+/** Transpiled from TRPG.GameSessions.Responses.CreatureCondition */
+export type CreatureCondition = "Awake" | "Sleeping" | "Dead";
+
+/** Transpiled from TRPG.GameSessions.Responses.CreatureActivity */
+export type CreatureActivity = "Working" | "Studying" | "Praying" | "Eating";
+
+/** Transpiled from TRPG.GameSessions.Responses.CreatureMovement */
+export type CreatureMovement = "Stationary" | "Walking";
 
 /** Transpiled from TRPG.GameSessions.Responses.CreaturePosture */
-export type CreaturePosture = "Standing" | "Sitting" | "Laying";
+export type CreaturePosture = "Standing" | "Sitting" | "Lying";
 
 /** Transpiled from TRPG.GameSessions.Responses.RoomRole */
 export type RoomRole = "Entrance" | "BossChamber" | "Passage" | "GuardPost" | "Storeroom" | "TreasureRoom" | "Shrine" | "Study" | "CellBlock" | "CollapsedGallery" | "FloodedSump";
@@ -105,10 +111,14 @@ export type CreatureStatusSnapshot = {
     level: number;
     /** Transpiled from int */
     age: number;
-    /** Transpiled from TRPG.GameSessions.Responses.CreatureState */
-    state?: CreatureState;
+    /** Transpiled from TRPG.GameSessions.Responses.CreatureCondition */
+    condition: CreatureCondition;
+    /** Transpiled from TRPG.GameSessions.Responses.CreatureActivity */
+    activity?: CreatureActivity;
     /** Transpiled from TRPG.GameSessions.Responses.CreaturePosture */
     posture: CreaturePosture;
+    /** Transpiled from TRPG.GameSessions.Responses.CreatureMovement */
+    movement: CreatureMovement;
     /** Transpiled from bool */
     isSneaking: boolean;
     /** Transpiled from bool */

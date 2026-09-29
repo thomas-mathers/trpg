@@ -215,6 +215,9 @@ internal static class Builders
             ],
         };
 
+    private static CreaturePosture DefaultPosture(CreatureCondition condition) =>
+        condition == CreatureCondition.Sleeping ? CreaturePosture.Lying : CreaturePosture.Standing;
+
     public static Creature MakeCreature(
         Guid? worldId = null,
         CreatureType creatureType = CreatureType.Human,
@@ -229,8 +232,10 @@ internal static class Builders
         int? currentHp = null,
         int? currentAp = null,
         int? currentMp = null,
-        CreatureState state = default,
-        CreaturePosture posture = default,
+        CreatureCondition condition = default,
+        CreatureActivity? activity = null,
+        CreaturePosture? posture = null,
+        CreatureMovement movement = default,
         int naturalWeaponMinDamage = 3,
         int naturalWeaponMaxDamage = 3,
         Guid? playerCorpseOwnerId = null,
@@ -256,8 +261,10 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
             PreviousLocationId = previousLocationId,
             Level = level,
-            State = state,
-            Posture = posture,
+            Condition = condition,
+            Activity = activity,
+            Posture = posture ?? DefaultPosture(condition),
+            Movement = movement,
             PlayerCorpseOwnerId = playerCorpseOwnerId,
             SpawnerId = spawnerId,
             IsSneaking = isSneaking,

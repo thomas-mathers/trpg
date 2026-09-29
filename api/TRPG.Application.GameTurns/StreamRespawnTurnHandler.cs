@@ -18,7 +18,7 @@ internal class StreamRespawnTurnHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<ResolvePlayerRespawnCommand, PlayerRespawnFact> resolvePlayerRespawn,
     ICommandHandler<RestoreCreatureResourcesCommand> restoreCreatureResources,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<ReviveCreaturesCommand> reviveCreatures,
     ICommandHandler<MovePlayerCommand> movePlayer,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
@@ -40,7 +40,7 @@ internal class StreamRespawnTurnHandler(
             cancellationToken
         );
 
-        if (player?.State != CreatureState.Dead)
+        if (player?.Condition != CreatureCondition.Dead)
         {
             return new GameTurnPrompt.Reply("There's nothing to respawn from right now.");
         }
@@ -73,12 +73,8 @@ internal class StreamRespawnTurnHandler(
                 cancellationToken
             );
 
-            await updateCreatures.Handle(
-                new UpdateCreaturesCommand
-                {
-                    CreatureIds = [session.PlayerId],
-                    State = CreatureState.Idle,
-                },
+            await reviveCreatures.Handle(
+                new ReviveCreaturesCommand { CreatureIds = [session.PlayerId] },
                 cancellationToken
             );
 

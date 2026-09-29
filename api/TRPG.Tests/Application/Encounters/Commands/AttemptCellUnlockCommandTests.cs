@@ -124,7 +124,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             TestContext.Current.CancellationToken
         );
         Assert.Equal(_location.Id, captive.LocationId);
-        Assert.Equal(CreatureState.Walking, captive.State);
+        Assert.Equal(CreatureMovement.Walking, captive.Movement);
         Assert.Contains(
             await verification.RouteTravelerMembers.ToArrayAsync(
                 TestContext.Current.CancellationToken

@@ -373,7 +373,7 @@ internal class GenerateQuestChainCommandHandler(
         if (
             creatures.Count != referencedCreatureIds.Length
             || creatures.Values.Any(creature =>
-                creature.WorldId != worldId || creature.State == CreatureState.Dead
+                creature.WorldId != worldId || creature.Condition == CreatureCondition.Dead
             )
         )
         {

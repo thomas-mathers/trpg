@@ -18,12 +18,11 @@ using TRPG.GameSessions.Responses;
 using TRPG.Tests.Helpers;
 using TypedSignalR.Client;
 using DataBuildingType = TRPG.Domain.Models.BuildingType;
+using DataCreatureCondition = TRPG.Domain.Models.CreatureCondition;
 using DataCreaturePosture = TRPG.Domain.Models.CreaturePosture;
-using DataCreatureState = TRPG.Domain.Models.CreatureState;
 using DataCreatureType = TRPG.Domain.Models.CreatureType;
 using DataDistrictType = TRPG.Domain.Models.DistrictType;
 using ResponseCreaturePosture = TRPG.GameSessions.Responses.CreaturePosture;
-using ResponseCreatureState = TRPG.GameSessions.Responses.CreatureState;
 
 namespace TRPG.Tests.Hubs;
 
@@ -344,7 +343,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             c => c.Id == _playerId,
             TestContext.Current.CancellationToken
         );
-        player.State = DataCreatureState.Dead;
+        player.Die();
         player.CurrentHp = 0;
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -1342,7 +1341,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(sanctuaryLocationId, player.LocationId);
-        Assert.Equal(DataCreatureState.Idle, player.State);
+        Assert.Equal(DataCreatureCondition.Awake, player.Condition);
         var corpse = await context2.Creatures.SingleAsync(
             c => c.PlayerCorpseOwnerId == _playerId,
             TestContext.Current.CancellationToken

@@ -26,7 +26,8 @@ public class PersistCombatantsCommand
 
 internal class PersistCombatantsCommandHandler(
     ICreaturesDbContext context,
-    IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged
+    IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged,
+    IDomainEventPublisher<CreaturesDiedEvent> creaturesDied
 ) : ICommandHandler<PersistCombatantsCommand>
 {
     public async Task Handle(
@@ -38,6 +39,8 @@ internal class PersistCombatantsCommandHandler(
         var creatures = await context
             .Creatures.Where(c => ids.Contains(c.Id))
             .ToDictionaryAsync(c => c.Id, cancellationToken);
+
+        var diedIds = new List<Guid>();
 
         foreach (var update in command.Updates)
         {
@@ -55,11 +58,21 @@ internal class PersistCombatantsCommandHandler(
 
             if (!update.IsAlive)
             {
-                creature.State = CreatureState.Dead;
+                if (creature.Condition != CreatureCondition.Dead)
+                {
+                    diedIds.Add(creature.Id);
+                }
+
+                creature.Die();
             }
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        if (diedIds.Count > 0)
+        {
+            await creaturesDied.Publish(new CreaturesDiedEvent(diedIds), cancellationToken);
+        }
 
         foreach (var creatureId in ids)
         {

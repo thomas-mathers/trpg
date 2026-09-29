@@ -74,7 +74,7 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(SitDownResult.SeatOccupied, result);
-        Assert.Equal(CreatureState.Idle, player.State);
+        Assert.Null(player.Activity);
     }
 
     [Fact]

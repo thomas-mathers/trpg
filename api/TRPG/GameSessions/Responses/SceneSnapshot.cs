@@ -61,15 +61,26 @@ public enum Profession
 }
 
 [TranspilationSource]
-public enum CreatureState
+public enum CreatureCondition
 {
-    Idle,
+    Awake,
     Sleeping,
+    Dead,
+}
+
+[TranspilationSource]
+public enum CreatureActivity
+{
     Working,
     Studying,
     Praying,
     Eating,
-    Dead,
+}
+
+[TranspilationSource]
+public enum CreatureMovement
+{
+    Stationary,
     Walking,
 }
 
@@ -78,7 +89,7 @@ public enum CreaturePosture
 {
     Standing,
     Sitting,
-    Laying,
+    Lying,
 }
 
 [TranspilationSource]
@@ -228,8 +239,10 @@ public record CreatureStatusSnapshot(
     Profession? Profession,
     int Level,
     int Age,
-    CreatureState? State,
+    CreatureCondition Condition,
+    CreatureActivity? Activity,
     CreaturePosture Posture,
+    CreatureMovement Movement,
     bool IsSneaking,
     bool IsAlerted,
     bool IsRestrained,

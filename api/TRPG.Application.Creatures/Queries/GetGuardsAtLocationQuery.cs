@@ -24,7 +24,7 @@ internal class GetGuardsAtLocationQueryHandler(ICreaturesDbContext context)
                 creature.WorldId == query.WorldId
                 && creature.LocationId == query.LocationId
                 && creature.Profession == Profession.Guard
-                && creature.State != CreatureState.Dead
+                && creature.Condition != CreatureCondition.Dead
             )
             .ToArrayAsync(cancellationToken);
 }

@@ -111,7 +111,7 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         // Assert
         var traveler = await LoadTraveler();
         Assert.Equal(_locationA.Id, traveler.LocationId);
-        Assert.Equal(CreatureState.Walking, traveler.State);
+        Assert.Equal(CreatureMovement.Walking, traveler.Movement);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         // Assert
         var traveler = await LoadTraveler();
         Assert.Equal(_locationB.Id, traveler.LocationId);
-        Assert.Equal(CreatureState.Idle, traveler.State);
+        Assert.Null(traveler.Activity);
     }
 
     [Fact]
@@ -162,7 +162,7 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         // Assert
         var traveler = await LoadTraveler();
         Assert.Equal(_locationA.Id, traveler.LocationId);
-        Assert.Equal(CreatureState.Walking, traveler.State);
+        Assert.Equal(CreatureMovement.Walking, traveler.Movement);
     }
 
     [Fact]
@@ -171,22 +171,23 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         // Act & Assert
         await SyncAt(_locationA.Id, hours: 0.5);
         var lingering = await LoadTraveler();
-        Assert.Equal((_locationA.Id, CreatureState.Idle), (lingering.LocationId, lingering.State));
+        Assert.Equal(_locationA.Id, lingering.LocationId);
+        Assert.Equal(CreatureMovement.Stationary, lingering.Movement);
 
         await SyncAt(_locationA.Id, hours: 1.5);
         var departed = await LoadTraveler();
-        Assert.Equal((_locationA.Id, CreatureState.Walking), (departed.LocationId, departed.State));
+        Assert.Equal(_locationA.Id, departed.LocationId);
+        Assert.Equal(CreatureMovement.Walking, departed.Movement);
 
         await SyncAt(_locationA.Id, hours: 2.5);
         var traversing = await LoadTraveler();
-        Assert.Equal(
-            (_locationA.Id, CreatureState.Walking),
-            (traversing.LocationId, traversing.State)
-        );
+        Assert.Equal(_locationA.Id, traversing.LocationId);
+        Assert.Equal(CreatureMovement.Walking, traversing.Movement);
 
         await SyncAt(_locationB.Id, hours: 3.5);
         var arrived = await LoadTraveler();
-        Assert.Equal((_locationB.Id, CreatureState.Idle), (arrived.LocationId, arrived.State));
+        Assert.Equal(_locationB.Id, arrived.LocationId);
+        Assert.Equal(CreatureMovement.Stationary, arrived.Movement);
     }
 
     [Fact]
@@ -234,7 +235,7 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
             scene.NearbyCreatures,
             creature => creature.Id == _traveler.Id
         );
-        Assert.Equal(CreatureState.Walking, traveler.State);
+        Assert.Equal(CreatureMovement.Walking, traveler.Movement);
     }
 
     [Fact]

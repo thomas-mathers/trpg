@@ -81,7 +81,7 @@ public sealed class ResolveCrimeConsequencesAtLocationCommandTests(DatabaseFixtu
         var witness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var crime = SeedBreakInWitnessedBy(witness);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

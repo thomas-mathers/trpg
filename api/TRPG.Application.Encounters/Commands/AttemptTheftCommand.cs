@@ -49,7 +49,7 @@ internal class AttemptTheftCommandHandler(
         IReadOnlyCollection<InventoryItemTransferResult>
     > transferInventoryItems,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
-    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
+    ICommandHandler<AlertCreaturesCommand> alertCreatures,
     SkillCheckService skillCheckService,
     SneakDetectionService sneakDetectionService,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
@@ -297,11 +297,10 @@ internal class AttemptTheftCommandHandler(
 
         if (theft.Witnesses.Count > 0)
         {
-            await updateCreatures.Handle(
-                new UpdateCreaturesCommand
+            await alertCreatures.Handle(
+                new AlertCreaturesCommand
                 {
                     CreatureIds = theft.Witnesses.Select(witness => witness.Id).ToArray(),
-                    IsAlerted = true,
                 },
                 cancellationToken
             );
@@ -459,7 +458,7 @@ internal class AttemptTheftCommandHandler(
     )
     {
         var ownerIsPresent =
-            source.Owner.State != CreatureState.Dead
+            source.Owner.Condition != CreatureCondition.Dead
             && source.Owner.LocationId == source.LocationId;
         if (ownerIsPresent)
         {

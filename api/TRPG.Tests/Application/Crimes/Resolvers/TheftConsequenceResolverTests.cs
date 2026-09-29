@@ -93,7 +93,7 @@ public sealed class TheftConsequenceResolverTests(DatabaseFixture db)
         var witness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var crime = MakeCrime();
         _context.Creatures.Add(witness);
@@ -131,7 +131,7 @@ public sealed class TheftConsequenceResolverTests(DatabaseFixture db)
         var deadWitness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var crime = MakeCrime();
         _context.Creatures.AddRange(movedWitness, deadWitness);
@@ -200,7 +200,7 @@ public sealed class TheftConsequenceResolverTests(DatabaseFixture db)
         var deadWitness = Builders.MakeCreature(
             WorldId,
             locationId: LocationId,
-            state: CreatureState.Dead
+            condition: CreatureCondition.Dead
         );
         var absentOwner = Builders.MakeCreature(WorldId, locationId: Guid.NewGuid());
         var crime = MakeCrime(absentOwner.Id);

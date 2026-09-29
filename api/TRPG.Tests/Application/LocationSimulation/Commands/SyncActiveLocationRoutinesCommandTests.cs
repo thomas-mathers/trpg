@@ -72,14 +72,14 @@ public sealed class SyncActiveLocationRoutinesCommandTests(DatabaseFixture db)
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var states = await verifyContext
+        var conditions = await verifyContext
             .Creatures.Where(creature =>
                 creature.Id == firstSleeper.Id || creature.Id == secondSleeper.Id
             )
-            .Select(creature => creature.State)
+            .Select(creature => creature.Condition)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(2, states.Length);
-        Assert.All(states, state => Assert.Equal(CreatureState.Sleeping, state));
+        Assert.Equal(2, conditions.Length);
+        Assert.All(conditions, condition => Assert.Equal(CreatureCondition.Sleeping, condition));
     }
 
     [Fact]
