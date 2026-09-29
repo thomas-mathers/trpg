@@ -97,7 +97,10 @@ const createSkillTree = (
   dagreGraph.setGraph({ rankdir: isHorizontal ? 'LR' : 'TB' });
 
   abilities.forEach((ability) => {
-    dagreGraph.setNode(ability.name, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    dagreGraph.setNode(ability.name, {
+      width: NODE_WIDTH,
+      height: NODE_HEIGHT,
+    });
   });
 
   abilities.forEach((ability) => {
@@ -220,7 +223,7 @@ function AbilityTooltip({ ability, isUnlocked }: { ability: AbilitySummary; isUn
         </span>
         <span className="flex items-center gap-1">
           <Clock3 className="h-4 w-4" />
-          {ability.cooldown} turns
+          {ability.cooldownSeconds}s
         </span>
       </div>
 

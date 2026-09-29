@@ -14,7 +14,7 @@ public enum GearRequirement
 public class Ability
 {
     public int ApCost { get; init; }
-    public int Cooldown { get; init; }
+    public TimeSpan Cooldown { get; init; }
     public string Description { get; init; } = "";
     public int MpCost { get; init; }
     public string Name { get; init; } = "";

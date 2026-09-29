@@ -50,14 +50,18 @@ export interface WaitDuration {
   minutes: number;
 }
 
-export function gameDateTimeAt(
+export function gameTimeMillisecondsAt(
   { gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale }: GameClockAnchor,
   nowUnixMilliseconds: number,
-): GameDateTime {
+): number {
   // A client clock slightly behind the server's must not run the game clock backwards.
   const elapsedMilliseconds = Math.max(0, nowUnixMilliseconds - anchoredAtUnixMilliseconds);
+  return Number(gameTimeMilliseconds) + elapsedMilliseconds * timeScale;
+}
+
+export function gameDateTimeAt(anchor: GameClockAnchor, nowUnixMilliseconds: number): GameDateTime {
   const instant = new Date(
-    EPOCH_MILLISECONDS + Number(gameTimeMilliseconds) + elapsedMilliseconds * timeScale,
+    EPOCH_MILLISECONDS + gameTimeMillisecondsAt(anchor, nowUnixMilliseconds),
   );
 
   return {
@@ -69,6 +73,12 @@ export function gameDateTimeAt(
     minute: instant.getUTCMinutes(),
     second: instant.getUTCSeconds(),
   };
+}
+
+// Rounds up so an effect never reads as expired while the server still counts it as active.
+export function formatRemainingGameTime(remainingMilliseconds: number): string {
+  const seconds = Math.ceil(remainingMilliseconds / 1000);
+  return seconds < 60 ? `${seconds}s` : `${Math.ceil(seconds / 60)}m`;
 }
 
 export function formatGameDate({ weekdayName, monthName, day }: GameDateTime): string {

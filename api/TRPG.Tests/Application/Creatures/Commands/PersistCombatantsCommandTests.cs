@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -43,7 +44,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
         int currentAp = 20,
         int currentMp = 10,
         bool isAlive = true,
-        IReadOnlyDictionary<string, int>? activeConditions = null,
+        IReadOnlyDictionary<string, GameInstant>? activeConditions = null,
         IReadOnlyList<ActiveDot>? activeDots = null,
         IReadOnlyList<ActiveHot>? activeHots = null,
         IReadOnlyList<ActiveBuff>? activeBuffs = null
@@ -54,8 +55,8 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
             currentAp,
             currentMp,
             isAlive,
-            activeConditions ?? new Dictionary<string, int>(),
-            new Dictionary<string, int>(),
+            activeConditions ?? new Dictionary<string, GameInstant>(),
+            new Dictionary<string, GameInstant>(),
             activeDots ?? [],
             activeHots ?? [],
             activeBuffs ?? []
@@ -156,7 +157,10 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
         // Arrange
         var update = MakeUpdate(
             _creature.Id,
-            activeConditions: new Dictionary<string, int> { ["Poisoned"] = 3 },
+            activeConditions: new Dictionary<string, GameInstant>
+            {
+                ["Poisoned"] = TestTime.AfterRounds(3),
+            },
             activeDots:
             [
                 new ActiveDot
@@ -164,7 +168,8 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
                     AbilityName = "Venom",
                     Amount = 5,
                     DamageType = "Poison",
-                    RemainingTurns = 3,
+                    NextTickAt = TestTime.AfterRounds(1),
+                    ExpiresAt = TestTime.AfterRounds(3),
                 },
             ],
             activeHots:
@@ -173,7 +178,8 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
                 {
                     AbilityName = "Regen",
                     Amount = 4,
-                    RemainingTurns = 2,
+                    NextTickAt = TestTime.AfterRounds(1),
+                    ExpiresAt = TestTime.AfterRounds(2),
                 },
             ],
             activeBuffs:
@@ -182,7 +188,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
                 {
                     Amount = 2,
                     Attribute = "Strength",
-                    RemainingTurns = 4,
+                    ExpiresAt = TestTime.AfterRounds(4),
                     AmountType = "Flat",
                 },
             ]
@@ -200,7 +206,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
             [_creature.Id],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(3, updated!.ActiveConditions["Poisoned"]);
+        Assert.Equal(TestTime.AfterRounds(3), updated!.ActiveConditions["Poisoned"]);
         Assert.Single(updated.ActiveDots);
         Assert.Single(updated.ActiveHots);
         Assert.Single(updated.ActiveBuffs);
@@ -219,7 +225,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
                 {
                     Amount = 50,
                     Attribute = "MaximumHp",
-                    RemainingTurns = 4,
+                    ExpiresAt = TestTime.AfterRounds(4),
                     AmountType = "Flat",
                 },
             ]

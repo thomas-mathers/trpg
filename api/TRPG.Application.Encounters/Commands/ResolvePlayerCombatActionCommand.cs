@@ -50,10 +50,18 @@ internal class ResolvePlayerCombatActionCommandHandler(
             combatants.Single(c => c.IsPlayer).IsSurpriseAttacker = true;
         }
 
-        var resolved = new PlayerCombatActionResolver(combatants).Resolve(command.Action);
+        var resolved = new PlayerCombatActionResolver(combatants).Resolve(
+            command.Action,
+            command.GameTime
+        );
         if (resolved.ErrorMessage is not null)
             throw new InvalidOperationException(resolved.ErrorMessage);
-        var state = combatEngine.ProcessRound(combatants, resolved.Result!, isSurpriseRound);
+        var state = combatEngine.ProcessRound(
+            combatants,
+            resolved.Result!,
+            command.GameTime,
+            isSurpriseRound
+        );
         var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {

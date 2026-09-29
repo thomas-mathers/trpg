@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
@@ -12,11 +13,11 @@ public class EnemyCombatActionResolver(
     HitCalculator hitCalculator
 )
 {
-    internal ResolvedCombatAction Resolve(Combatant enemy, Combatant player)
+    internal ResolvedCombatAction Resolve(Combatant enemy, Combatant player, GameInstant now)
     {
         var affordableAbilities = enemy
             .Abilities.Where(a =>
-                enemy.CooldownRemainingByAbility[a.Name] == 0
+                !enemy.IsOnCooldown(a.Name, now)
                 && enemy.CurrentAp >= a.ApCost
                 && enemy.CurrentMp >= a.MpCost
                 && AbilityGearRequirement.IsMet(enemy, a)
@@ -29,7 +30,7 @@ public class EnemyCombatActionResolver(
             return resourceAction;
         }
 
-        var openingBuff = FindUsableOpeningBuff(enemy, player, affordableAbilities);
+        var openingBuff = FindUsableOpeningBuff(enemy, player, affordableAbilities, now);
         if (
             openingBuff is not null
             && Random.Shared.NextDouble() < optionsSnapshot.Value.OpeningBuffChancePercent
@@ -100,12 +101,15 @@ public class EnemyCombatActionResolver(
     private Ability? FindUsableOpeningBuff(
         Combatant enemy,
         Combatant player,
-        IReadOnlyList<Ability> affordableAbilities
+        IReadOnlyList<Ability> affordableAbilities,
+        GameInstant now
     )
     {
         var candidates = affordableAbilities
             .OfType<SupportAbility>()
-            .Where(a => HasBuffs(a) && GetBuffDuration(a, enemy) > 1 && IsUnused(enemy, a))
+            .Where(a =>
+                HasBuffs(a) && GetBuffDuration(a, enemy) > CombatTiming.Round && IsUnused(enemy, a)
+            )
             .ToArray();
 
         if (candidates.Length == 0)
@@ -135,7 +139,8 @@ public class EnemyCombatActionResolver(
                 enemyBestAttack,
                 playerBestAttack,
                 baselineOffense,
-                baselineDefense
+                baselineDefense,
+                now
             )
         );
     }
@@ -147,10 +152,11 @@ public class EnemyCombatActionResolver(
         AttackAbility? enemyBestAttack,
         AttackAbility? playerBestAttack,
         float baselineOffense,
-        float baselineDefense
+        float baselineDefense,
+        GameInstant now
     )
     {
-        ApplyTemporaryModifiers(enemy, buff);
+        ApplyTemporaryModifiers(enemy, buff, now);
 
         var buffedOffense = enemyBestAttack is null
             ? 0
@@ -167,7 +173,11 @@ public class EnemyCombatActionResolver(
         return offensiveGain + defensiveGain;
     }
 
-    private static void ApplyTemporaryModifiers(Combatant enemy, SupportAbility buff)
+    private static void ApplyTemporaryModifiers(
+        Combatant enemy,
+        SupportAbility buff,
+        GameInstant now
+    )
     {
         foreach (var modifier in GetBuffs(buff, enemy))
         {
@@ -178,7 +188,7 @@ public class EnemyCombatActionResolver(
                     Amount = modifier.Amount,
                     AmountType = modifier.AmountType,
                     Attribute = modifier.Attribute,
-                    RemainingTurns = modifier.Duration,
+                    ExpiresAt = now + modifier.Duration,
                 }
             );
         }
@@ -194,7 +204,11 @@ public class EnemyCombatActionResolver(
         PickRandom(
             affordableAbilities
                 .OfType<SupportAbility>()
-                .Where(a => HasBuffs(a) && GetBuffDuration(a, enemy) <= 1 && IsUnused(enemy, a))
+                .Where(a =>
+                    HasBuffs(a)
+                    && GetBuffDuration(a, enemy) <= CombatTiming.Round
+                    && IsUnused(enemy, a)
+                )
         );
 
     private static bool IsHealingAbility(Ability ability) =>
@@ -211,10 +225,10 @@ public class EnemyCombatActionResolver(
             ? ability.BuffsWhileParrying
             : ability.Buffs;
 
-    private static int GetBuffDuration(SupportAbility ability, Combatant enemy)
+    private static TimeSpan GetBuffDuration(SupportAbility ability, Combatant enemy)
     {
         var buffs = GetBuffs(ability, enemy);
-        return buffs.Count > 0 ? buffs[0].Duration : 0;
+        return buffs.Count > 0 ? buffs[0].Duration : TimeSpan.Zero;
     }
 
     private static Ability? PickRandom(IEnumerable<Ability> candidates)

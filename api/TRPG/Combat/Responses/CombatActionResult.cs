@@ -20,7 +20,7 @@ public record CombatActionBuffModifier(
     AttributeName Attribute,
     float Amount,
     AmountType AmountType,
-    int RemainingTurns
+    int DurationSeconds
 );
 
 [TranspilationSource]
@@ -39,7 +39,7 @@ public record CombatActionResult(
     int? TargetMaximumHp,
     IReadOnlyCollection<ConditionType>? AppliedConditions,
     IReadOnlyCollection<CombatActionBuffModifier>? AppliedBuffs,
-    int? HotAmountPerTurn,
-    int? HotDuration,
+    int? HotAmountPerTick,
+    int? HotDurationSeconds,
     string Narration
 );

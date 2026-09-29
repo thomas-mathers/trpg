@@ -52,14 +52,14 @@ public class StatFormulasTests
                 Attribute = AttributeName.Strength,
                 AmountType = AmountType.Flat,
                 Amount = 5,
-                RemainingTurns = 3,
+                ExpiresAt = TestTime.AfterRounds(3),
             },
             new()
             {
                 Attribute = AttributeName.Strength,
                 AmountType = AmountType.Percent,
                 Amount = 20,
-                RemainingTurns = 3,
+                ExpiresAt = TestTime.AfterRounds(3),
             },
         ];
 
@@ -86,7 +86,7 @@ public class StatFormulasTests
                 Attribute = AttributeName.Dexterity,
                 AmountType = AmountType.Flat,
                 Amount = 99,
-                RemainingTurns = 3,
+                ExpiresAt = TestTime.AfterRounds(3),
             },
         ];
 
@@ -195,7 +195,7 @@ public class StatFormulasTests
                 Attribute = AttributeName.Strength,
                 AmountType = AmountType.Flat,
                 Amount = 5,
-                RemainingTurns = 3,
+                ExpiresAt = TestTime.AfterRounds(3),
             },
         ];
         Item[] inventory = [Builders.MakeArmor()];

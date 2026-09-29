@@ -31,7 +31,7 @@ function ability(
     description: `${name} description`,
     apCost: 2,
     mpCost: 0,
-    cooldown: 0,
+    cooldownSeconds: 0,
     category,
     requiredSkillLevel: 0,
     prerequisites: [],
@@ -158,7 +158,11 @@ describe('AbilityPicker', () => {
       handleGetPlayerFightAbilities(() => {
         requestCount += 1;
         return HttpResponse.json<AbilityAvailabilityResponse[]>([
-          { name: selected.name, isUsable: requestCount < 2, reason: 'On cooldown.' },
+          {
+            name: selected.name,
+            isUsable: requestCount < 2,
+            reason: 'On cooldown.',
+          },
         ]);
       }),
     );

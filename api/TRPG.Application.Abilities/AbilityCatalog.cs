@@ -12,7 +12,7 @@ public static class AbilityCatalog
             Description = "A plain attack with whatever is at hand.",
             Skill = Skill.General,
             ApCost = 0,
-            Cooldown = 0,
+            Cooldown = TimeSpan.Zero,
             TargetType = AttackTargetType.Single,
             DamageType = DamageType.Physical,
             DamageAmount = 100,
@@ -1479,7 +1479,7 @@ public static class AbilityCatalog
                 ),
                 ApCost = apCost,
                 MpCost = mpCost,
-                Cooldown = cooldown,
+                Cooldown = CombatTiming.Rounds(cooldown),
                 TargetType = targetType,
                 DamageType = damageType,
                 DamageAmountType = damageAmountType,
@@ -1514,7 +1514,7 @@ public static class AbilityCatalog
                 ),
                 ApCost = apCost,
                 MpCost = mpCost,
-                Cooldown = cooldown,
+                Cooldown = CombatTiming.Rounds(cooldown),
                 TargetType = targetType,
                 HealAmount = healAmount,
                 HealAmountType = healAmountType,
@@ -1540,7 +1540,7 @@ public static class AbilityCatalog
             attack.Dots.Add(
                 new DotEffect
                 {
-                    Duration = duration,
+                    Duration = CombatTiming.Rounds(duration),
                     Amount = amount,
                     AmountType = amountType,
                 }
@@ -1550,7 +1550,9 @@ public static class AbilityCatalog
 
         private AttackAbilityEntry AddCondition(ConditionType condition, int duration)
         {
-            attack.Conditions.Add(new StatusEffect { Condition = condition, Duration = duration });
+            attack.Conditions.Add(
+                new StatusEffect { Condition = condition, Duration = CombatTiming.Rounds(duration) }
+            );
             return this;
         }
 
@@ -1637,7 +1639,7 @@ public static class AbilityCatalog
                     Attribute = attribute,
                     AmountType = amountType,
                     Amount = -amount,
-                    Duration = duration,
+                    Duration = CombatTiming.Rounds(duration),
                 }
             );
             return this;
@@ -1670,7 +1672,7 @@ public static class AbilityCatalog
                 {
                     Amount = amountPerTurn,
                     AmountType = amountType,
-                    Duration = duration,
+                    Duration = CombatTiming.Rounds(duration),
                 }
             );
             return this;
@@ -1689,7 +1691,7 @@ public static class AbilityCatalog
                     Attribute = attribute,
                     AmountType = amountType,
                     Amount = amount,
-                    Duration = duration,
+                    Duration = CombatTiming.Rounds(duration),
                 }
             );
             return this;
@@ -1708,7 +1710,7 @@ public static class AbilityCatalog
                     Attribute = attribute,
                     AmountType = amountType,
                     Amount = amount,
-                    Duration = duration,
+                    Duration = CombatTiming.Rounds(duration),
                 }
             );
             return this;

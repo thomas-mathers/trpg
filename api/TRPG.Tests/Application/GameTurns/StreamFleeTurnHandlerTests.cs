@@ -2,6 +2,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameTurns;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.GameTurns;
@@ -13,7 +14,7 @@ public class StreamFleeTurnHandlerTests
         10,
         10,
         [],
-        new Dictionary<ConditionType, int>()
+        new Dictionary<ConditionType, GameInstant>()
     );
 
     private static CombatResult MakeCombatResult(CombatOutcome outcome) =>

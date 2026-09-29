@@ -117,7 +117,9 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
     {
         var strengthBonus = attacker.Strength * optionsSnapshot.Value.StrengthDamageBonusPerPoint;
 
-        var effectiveWeapon = attacker.ActiveConditions[ConditionType.Disarmed] > 0 ? null : weapon;
+        var effectiveWeapon = attacker.ActiveConditions.ContainsKey(ConditionType.Disarmed)
+            ? null
+            : weapon;
         var roll = effectiveWeapon is null
             ? rollRange(attacker.NaturalWeaponMinDamage, attacker.NaturalWeaponMaxDamage)
             : rollRange(effectiveWeapon.MinDamage, effectiveWeapon.MaxDamage);
@@ -180,7 +182,7 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
 
         return
             ability.DamageType == DamageType.Physical
-            && attacker.ActiveConditions[ConditionType.Disarmed] == 0
+            && !attacker.ActiveConditions.ContainsKey(ConditionType.Disarmed)
             && swungWeapon is not null
             ? swungWeapon.Modifiers.OfType<ElementalDamageModifier>().ToArray()
             : [];

@@ -1,3 +1,4 @@
+using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Domain.Models;
@@ -8,6 +9,36 @@ namespace TRPG.Tests.Application.Combat;
 public class CombatantTests
 {
     private readonly Guid _worldId = Guid.NewGuid();
+
+    [Fact]
+    public void IsUnder_IsTrueOnlyUntilTheConditionExpires()
+    {
+        // Arrange
+        var combatant = new CombatantBuilder().Build();
+        combatant.ActiveConditions[ConditionType.Stunned] = TestTime.AfterRounds(2);
+
+        // Act
+        var underBeforeExpiry = combatant.IsUnder(ConditionType.Stunned, TestTime.AfterRounds(1));
+
+        // Assert
+        Assert.True(underBeforeExpiry);
+        Assert.False(combatant.IsUnder(ConditionType.Stunned, TestTime.AfterRounds(2)));
+    }
+
+    [Fact]
+    public void IsOnCooldown_IsTrueOnlyUntilTheAbilityIsReady()
+    {
+        // Arrange
+        var combatant = new CombatantBuilder().Build();
+        combatant.CooldownReadyAtByAbility["Smite"] = TestTime.AfterRounds(2);
+
+        // Act
+        var onCooldownBeforeReady = combatant.IsOnCooldown("Smite", TestTime.AfterRounds(1));
+
+        // Assert
+        Assert.True(onCooldownBeforeReady);
+        Assert.False(combatant.IsOnCooldown("Smite", TestTime.AfterRounds(2)));
+    }
 
     [Fact]
     public void FromCreature_StartsWithNoActiveModifiers_SinceBuffsAreCombatScoped()

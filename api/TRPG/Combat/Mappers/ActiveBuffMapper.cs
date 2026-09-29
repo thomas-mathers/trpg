@@ -11,6 +11,6 @@ internal static class ActiveBuffMapper
             buff.Attribute.ToContract(),
             buff.Amount,
             buff.AmountType.ToContract(),
-            buff.RemainingTurns
+            buff.ExpiresAt.ToGameTimeMilliseconds()
         );
 }

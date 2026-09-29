@@ -47,17 +47,7 @@ import { gameEventBus } from '@/lib/game-event-bus';
 
 import { CombatDialog } from './combat-dialog';
 
-const noActiveConditions: ActiveConditions = {
-  blinded: 0,
-  bleeding: 0,
-  burning: 0,
-  disarmed: 0,
-  frozen: 0,
-  poisoned: 0,
-  silenced: 0,
-  snared: 0,
-  stunned: 0,
-};
+const noActiveConditions: ActiveConditions = {};
 
 const player: CombatantState = {
   id: 'player-id',
@@ -84,7 +74,7 @@ const abilities: AbilitySummary[] = [
     description: 'A heavy blow that deals increased physical damage.',
     apCost: 4,
     mpCost: 0,
-    cooldown: 0,
+    cooldownSeconds: 0,
     category: 'Offensive',
     requiredSkillLevel: 0,
     prerequisites: [],
@@ -95,7 +85,7 @@ const abilities: AbilitySummary[] = [
     description: 'Hurl a bolt of fire at an enemy.',
     apCost: 2,
     mpCost: 5,
-    cooldown: 0,
+    cooldownSeconds: 0,
     category: 'Offensive',
     requiredSkillLevel: 0,
     prerequisites: [],
@@ -106,7 +96,7 @@ const abilities: AbilitySummary[] = [
     description: 'Swing through an enemy with a wide, punishing arc.',
     apCost: 5,
     mpCost: 0,
-    cooldown: 1,
+    cooldownSeconds: 6,
     category: 'Offensive',
     requiredSkillLevel: 2,
     prerequisites: [],
@@ -117,7 +107,7 @@ const abilities: AbilitySummary[] = [
     description: 'Loose a fast shot before your target can react.',
     apCost: 3,
     mpCost: 0,
-    cooldown: 0,
+    cooldownSeconds: 0,
     category: 'Offensive',
     requiredSkillLevel: 1,
     prerequisites: [],
@@ -128,7 +118,7 @@ const abilities: AbilitySummary[] = [
     description: 'Drive a shard of ice through an enemy.',
     apCost: 2,
     mpCost: 4,
-    cooldown: 0,
+    cooldownSeconds: 0,
     category: 'Offensive',
     requiredSkillLevel: 2,
     prerequisites: [],
@@ -139,7 +129,7 @@ const abilities: AbilitySummary[] = [
     description: 'Exploit an opening with a precise surprise attack.',
     apCost: 4,
     mpCost: 1,
-    cooldown: 2,
+    cooldownSeconds: 12,
     category: 'Offensive',
     requiredSkillLevel: 3,
     prerequisites: [],
@@ -150,7 +140,7 @@ const abilities: AbilitySummary[] = [
     description: 'Release a focused burst of unstable magic.',
     apCost: 2,
     mpCost: 6,
-    cooldown: 1,
+    cooldownSeconds: 6,
     category: 'Offensive',
     requiredSkillLevel: 4,
     prerequisites: [],
@@ -161,7 +151,7 @@ const abilities: AbilitySummary[] = [
     description: 'Restore a small amount of health.',
     apCost: 3,
     mpCost: 2,
-    cooldown: 0,
+    cooldownSeconds: 0,
     category: 'Support',
     requiredSkillLevel: 0,
     prerequisites: [],
@@ -172,7 +162,7 @@ const abilities: AbilitySummary[] = [
     description: 'Regain your composure and a small amount of health.',
     apCost: 4,
     mpCost: 0,
-    cooldown: 2,
+    cooldownSeconds: 12,
     category: 'Support',
     requiredSkillLevel: 1,
     prerequisites: [],
@@ -183,7 +173,7 @@ const abilities: AbilitySummary[] = [
     description: 'Raise a brief protective ward around yourself.',
     apCost: 3,
     mpCost: 4,
-    cooldown: 1,
+    cooldownSeconds: 6,
     category: 'Support',
     requiredSkillLevel: 2,
     prerequisites: [],
@@ -194,7 +184,7 @@ const abilities: AbilitySummary[] = [
     description: 'Steady your mind and restore magical reserves.',
     apCost: 2,
     mpCost: 0,
-    cooldown: 1,
+    cooldownSeconds: 6,
     category: 'Support',
     requiredSkillLevel: 2,
     prerequisites: [],
@@ -215,7 +205,13 @@ const consumables: ConsumableSummary[] = [
     resource: 'Hp',
     restoreAmount: 25,
   },
-  { itemId: 'mana-potion', name: 'Mana Potion', quantity: 1, resource: 'Mp', restoreAmount: 15 },
+  {
+    itemId: 'mana-potion',
+    name: 'Mana Potion',
+    quantity: 1,
+    resource: 'Mp',
+    restoreAmount: 15,
+  },
 ];
 
 const handlers = [
@@ -232,7 +228,10 @@ function WorkbenchProviders({
   const [queryClient] = useState(
     () =>
       new QueryClient({
-        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
       }),
   );
   const [, setFight] = useState(initialFight);
@@ -240,7 +239,10 @@ function WorkbenchProviders({
 
   useEffect(() => {
     setFight(initialFight);
-    gameEventBus.emit('CombatStarted', { fightId: 'story-fight-id', combatants: initialFight });
+    gameEventBus.emit('CombatStarted', {
+      fightId: 'story-fight-id',
+      combatants: initialFight,
+    });
   }, [initialFight]);
 
   const resolveAction = useCallback(
@@ -539,8 +541,14 @@ const standardFight: CombatantState[] = [
 const crowdedFight: CombatantState[] = [
   {
     ...player,
-    activeConditions: { ...noActiveConditions, burning: 2 },
-    activeHots: [{ abilityName: 'Regeneration', amount: 4, remainingTurns: 3 }],
+    activeConditions: { ...noActiveConditions, burning: 60_000 },
+    activeHots: [
+      {
+        abilityName: 'Regeneration',
+        amount: 4,
+        expiresAtGameTimeMilliseconds: 60_000,
+      },
+    ],
   },
   {
     ...player,
@@ -559,7 +567,14 @@ const crowdedFight: CombatantState[] = [
     isPlayer: false,
     currentHp: 51,
     maximumHp: 60,
-    activeDots: [{ abilityName: 'Burning', amount: 6, damageType: 'Fire', remainingTurns: 2 }],
+    activeDots: [
+      {
+        abilityName: 'Burning',
+        amount: 6,
+        damageType: 'Fire',
+        expiresAtGameTimeMilliseconds: 60_000,
+      },
+    ],
   },
   {
     ...player,
@@ -595,7 +610,9 @@ export const Standard: Story = { args: { fight: standardFight } };
 
 export const CrowdedAndEffected: Story = { args: { fight: crowdedFight } };
 
-export const Resolving: Story = { args: { fight: standardFight, isStreaming: true } };
+export const Resolving: Story = {
+  args: { fight: standardFight, isStreaming: true },
+};
 
 export const NarrationToastPreview: Story = {
   args: { fight: crowdedFight },
@@ -1069,8 +1086,13 @@ function FullRoundDialogMock({ fight }: { fight: CombatantState[] }) {
                     return (
                       <motion.div
                         key={enemy.id}
-                        animate={{ x: isActor ? actorOffset : isTarget ? targetOffset : 0 }}
-                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        animate={{
+                          x: isActor ? actorOffset : isTarget ? targetOffset : 0,
+                        }}
+                        transition={{
+                          duration: 0.18,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                       >
                         <CombatantPreviewCard
                           key={`${cycle}-${enemy.id}`}

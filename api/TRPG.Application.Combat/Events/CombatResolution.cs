@@ -66,7 +66,7 @@ public record BuffModifierInfo(
     float Amount,
     AmountType AmountType,
     AttributeName Attribute,
-    int RemainingTurns
+    int DurationSeconds
 );
 
 public sealed record BuffApplied(
@@ -95,8 +95,8 @@ public sealed record HealOverTimeApplied(
     string AbilityName,
     [property: JsonIgnore] Guid TargetId,
     string TargetName,
-    int AmountPerTurn,
-    int Duration
+    int AmountPerTick,
+    int DurationSeconds
 ) : CombatResolution;
 
 public sealed record ConsumedPotion(

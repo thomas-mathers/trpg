@@ -9,7 +9,7 @@ public class ActiveBuff
     public string AbilityName { get; init; } = "";
     public float Amount { get; init; }
     public AttributeName Attribute { get; init; }
-    public int RemainingTurns { get; set; }
+    public GameInstant ExpiresAt { get; init; }
     public AmountType AmountType { get; init; }
 }
 
@@ -280,7 +280,7 @@ public static class StatFormulas
             {
                 Amount = buff.Amount,
                 Attribute = Enum.Parse<AttributeName>(buff.Attribute),
-                RemainingTurns = buff.RemainingTurns,
+                ExpiresAt = buff.ExpiresAt,
                 AmountType = Enum.Parse<AmountType>(buff.AmountType),
             })
             .ToArray();

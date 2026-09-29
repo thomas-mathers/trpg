@@ -4,7 +4,9 @@ import {
   durationUntilNextTime,
   formatGameClockTime,
   formatGameDate,
+  formatRemainingGameTime,
   gameDateTimeAt,
+  gameTimeMillisecondsAt,
   type GameClockAnchor,
   type GameDateTime,
 } from './game-clock';
@@ -14,7 +16,11 @@ const DAY = 24 * HOUR;
 const ANCHORED_AT = 1_700_000_000_000;
 
 function anchorAt(gameTimeMilliseconds: number): GameClockAnchor {
-  return { gameTimeMilliseconds, anchoredAtUnixMilliseconds: ANCHORED_AT, timeScale: 1 };
+  return {
+    gameTimeMilliseconds,
+    anchoredAtUnixMilliseconds: ANCHORED_AT,
+    timeScale: 1,
+  };
 }
 
 function timeOfDay(hour: number, minute = 0, second = 0): GameDateTime {
@@ -25,6 +31,37 @@ function timeOfDay(hour: number, minute = 0, second = 0): GameDateTime {
     second,
   };
 }
+
+describe('gameTimeMillisecondsAt', () => {
+  it('scales real elapsed time by the anchor time scale', () => {
+    const gameTime = gameTimeMillisecondsAt(
+      { ...anchorAt(5_000), timeScale: 6 },
+      ANCHORED_AT + 10_000,
+    );
+
+    expect(gameTime).toBe(65_000);
+  });
+
+  it('holds at the anchor when the client clock is behind the server clock', () => {
+    const gameTime = gameTimeMillisecondsAt(anchorAt(5_000), ANCHORED_AT - 10_000);
+
+    expect(gameTime).toBe(5_000);
+  });
+});
+
+describe('formatRemainingGameTime', () => {
+  it.each([
+    [1, '1s'],
+    [12_000, '12s'],
+    [12_001, '13s'],
+    [59_000, '59s'],
+    [60_000, '1m'],
+    [60_001, '2m'],
+    [300_000, '5m'],
+  ])('formats %i ms as %s', (remainingMilliseconds, expected) => {
+    expect(formatRemainingGameTime(remainingMilliseconds)).toBe(expected);
+  });
+});
 
 describe('gameDateTimeAt', () => {
   it('starts at the fictional epoch when no game time has elapsed', () => {
@@ -94,26 +131,44 @@ describe('formatGameClockTime', () => {
 
 describe('durationUntilNextTime', () => {
   it('measures a later time the same day', () => {
-    expect(durationUntilNextTime(timeOfDay(8), 14, 30)).toEqual({ hours: 6, minutes: 30 });
+    expect(durationUntilNextTime(timeOfDay(8), 14, 30)).toEqual({
+      hours: 6,
+      minutes: 30,
+    });
   });
 
   it('measures from the current minute rather than the current hour', () => {
-    expect(durationUntilNextTime(timeOfDay(8, 45), 14, 30)).toEqual({ hours: 5, minutes: 45 });
+    expect(durationUntilNextTime(timeOfDay(8, 45), 14, 30)).toEqual({
+      hours: 5,
+      minutes: 45,
+    });
   });
 
   it('rounds a partial minute up so the wait never ends early', () => {
-    expect(durationUntilNextTime(timeOfDay(8, 0, 30), 8, 10)).toEqual({ hours: 0, minutes: 10 });
+    expect(durationUntilNextTime(timeOfDay(8, 0, 30), 8, 10)).toEqual({
+      hours: 0,
+      minutes: 10,
+    });
   });
 
   it('wraps to the next day when the target is earlier', () => {
-    expect(durationUntilNextTime(timeOfDay(14), 8, 0)).toEqual({ hours: 18, minutes: 0 });
+    expect(durationUntilNextTime(timeOfDay(14), 8, 0)).toEqual({
+      hours: 18,
+      minutes: 0,
+    });
   });
 
   it('waits a full day when the target is the current minute', () => {
-    expect(durationUntilNextTime(timeOfDay(8), 8, 0)).toEqual({ hours: 24, minutes: 0 });
+    expect(durationUntilNextTime(timeOfDay(8), 8, 0)).toEqual({
+      hours: 24,
+      minutes: 0,
+    });
   });
 
   it('waits a full day when the target passed seconds ago', () => {
-    expect(durationUntilNextTime(timeOfDay(8, 0, 30), 8, 0)).toEqual({ hours: 24, minutes: 0 });
+    expect(durationUntilNextTime(timeOfDay(8, 0, 30), 8, 0)).toEqual({
+      hours: 24,
+      minutes: 0,
+    });
   });
 });

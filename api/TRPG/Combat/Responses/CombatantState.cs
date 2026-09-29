@@ -109,10 +109,15 @@ public record CombatantState(
 );
 
 [TranspilationSource]
-public record ActiveDot(string AbilityName, int Amount, DamageType DamageType, int RemainingTurns);
+public record ActiveDot(
+    string AbilityName,
+    int Amount,
+    DamageType DamageType,
+    long ExpiresAtGameTimeMilliseconds
+);
 
 [TranspilationSource]
-public record ActiveHot(string AbilityName, int Amount, int RemainingTurns);
+public record ActiveHot(string AbilityName, int Amount, long ExpiresAtGameTimeMilliseconds);
 
 [TranspilationSource]
 public record ActiveBuff(
@@ -120,5 +125,5 @@ public record ActiveBuff(
     AttributeName Attribute,
     float Amount,
     AmountType AmountType,
-    int RemainingTurns
+    long ExpiresAtGameTimeMilliseconds
 );

@@ -1,6 +1,8 @@
+using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Balance;
@@ -45,7 +47,8 @@ public class FightSimulator
             fleeOptionsSnapshot,
             hitCalculator,
             damageCalculator,
-            _resolver
+            _resolver,
+            new EffectAdvancer(damageCalculator)
         );
         _creatureGeneratorOptions = creatureGeneratorOptions ?? new CreatureGeneratorOptions();
     }
@@ -83,12 +86,14 @@ public class FightSimulator
 
         var snapshots = new List<RoundSnapshot>();
         var round = 0;
+        var now = new GameInstant(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified));
 
         while (round < maxRounds)
         {
             round++;
-            var playerAction = _resolver.Resolve(player, enemy);
-            var state = _engine.ProcessRound(combatants, playerAction);
+            now += CombatTiming.Round;
+            var playerAction = _resolver.Resolve(player, enemy, now);
+            var state = _engine.ProcessRound(combatants, playerAction, now);
 
             snapshots.Add(
                 new RoundSnapshot(

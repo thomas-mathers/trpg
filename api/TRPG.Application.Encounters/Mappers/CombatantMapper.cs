@@ -17,14 +17,15 @@ internal static class CombatantMapper
                 condition => condition.Key.ToString(),
                 condition => condition.Value
             ),
-            combatant.CooldownRemainingByAbility,
+            combatant.CooldownReadyAtByAbility,
             combatant
                 .ActiveDots.Select(dot => new PersistedCombat.ActiveDot
                 {
                     AbilityName = dot.AbilityName,
                     Amount = dot.Amount,
                     DamageType = dot.DamageType.ToString(),
-                    RemainingTurns = dot.RemainingTurns,
+                    NextTickAt = dot.NextTickAt,
+                    ExpiresAt = dot.ExpiresAt,
                 })
                 .ToArray(),
             combatant
@@ -32,7 +33,8 @@ internal static class CombatantMapper
                 {
                     AbilityName = hot.AbilityName,
                     Amount = hot.Amount,
-                    RemainingTurns = hot.RemainingTurns,
+                    NextTickAt = hot.NextTickAt,
+                    ExpiresAt = hot.ExpiresAt,
                 })
                 .ToArray(),
             combatant
@@ -41,7 +43,7 @@ internal static class CombatantMapper
                     AbilityName = buff.AbilityName,
                     Amount = buff.Amount,
                     Attribute = buff.Attribute.ToString(),
-                    RemainingTurns = buff.RemainingTurns,
+                    ExpiresAt = buff.ExpiresAt,
                     AmountType = buff.AmountType.ToString(),
                 })
                 .ToArray()

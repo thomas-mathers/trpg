@@ -18,7 +18,7 @@ export type AbilitySummary = {
     description: string;
     apCost: number;
     mpCost: number;
-    cooldown: number;
+    cooldownSeconds: number;
     category: AbilityCategory;
     requiredSkillLevel: number;
     prerequisites: Array<string>;
@@ -29,32 +29,32 @@ export type ActiveBuff = {
     attribute: AttributeName;
     amount: number;
     amountType: AmountType;
-    remainingTurns: number;
+    expiresAtGameTimeMilliseconds: number;
 };
 
 export type ActiveConditions = {
-    blinded?: number;
-    bleeding?: number;
-    burning?: number;
-    disarmed?: number;
-    frozen?: number;
-    poisoned?: number;
-    silenced?: number;
-    snared?: number;
-    stunned?: number;
+    blinded?: null | number;
+    bleeding?: null | number;
+    burning?: null | number;
+    disarmed?: null | number;
+    frozen?: null | number;
+    poisoned?: null | number;
+    silenced?: null | number;
+    snared?: null | number;
+    stunned?: null | number;
 };
 
 export type ActiveDot = {
     abilityName: string;
     amount: number;
     damageType: DamageType;
-    remainingTurns: number;
+    expiresAtGameTimeMilliseconds: number;
 };
 
 export type ActiveHot = {
     abilityName: string;
     amount: number;
-    remainingTurns: number;
+    expiresAtGameTimeMilliseconds: number;
 };
 
 export type AllocateAttributePointsRequest = {

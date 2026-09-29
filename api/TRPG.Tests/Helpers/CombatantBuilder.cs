@@ -3,6 +3,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using PersistedActiveBuff = TRPG.Domain.Models.ActiveBuff;
 
@@ -15,7 +16,7 @@ internal sealed class CombatantBuilder
 
     private readonly List<Item> _items = [];
     private readonly Dictionary<WeaponType, int> _weaponProficiencies = [];
-    private readonly Dictionary<ConditionType, int> _activeConditions = [];
+    private readonly Dictionary<ConditionType, GameInstant> _activeConditions = [];
     private readonly List<PersistedActiveBuff> _activeBuffs = [];
     private Guid _worldId = Guid.NewGuid();
     private string _name = "Test Combatant";
@@ -164,7 +165,7 @@ internal sealed class CombatantBuilder
 
     public CombatantBuilder WithCondition(ConditionType condition, int remainingTurns)
     {
-        _activeConditions[condition] = remainingTurns;
+        _activeConditions[condition] = TestTime.AfterRounds(remainingTurns);
         return this;
     }
 
@@ -183,7 +184,7 @@ internal sealed class CombatantBuilder
                 Amount = amount,
                 Attribute = attribute.ToString(),
                 AmountType = amountType.ToString(),
-                RemainingTurns = remainingTurns,
+                ExpiresAt = TestTime.AfterRounds(remainingTurns),
             }
         );
         return this;

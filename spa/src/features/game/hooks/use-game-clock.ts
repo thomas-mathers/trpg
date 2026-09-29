@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useScene } from '@/features/game/contexts/scene-context';
 import {
   gameDateTimeAt,
+  gameTimeMillisecondsAt,
   type GameClockAnchor,
   type GameDateTime,
 } from '@/features/game/game-clock';
@@ -20,9 +21,7 @@ function useClockAnchor(): GameClockAnchor | undefined {
   };
 }
 
-// Re-renders once per second with the current fictional date and time.
-export function useGameClock(): GameDateTime | undefined {
-  const anchor = useClockAnchor();
+function useClockNow(anchor: GameClockAnchor | undefined): number {
   const gameTimeMilliseconds = anchor?.gameTimeMilliseconds;
   const anchoredAtUnixMilliseconds = anchor?.anchoredAtUnixMilliseconds;
   const timeScale = anchor?.timeScale;
@@ -37,15 +36,23 @@ export function useGameClock(): GameDateTime | undefined {
     setNow(Date.now());
   }, [gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale]);
 
-  if (
-    gameTimeMilliseconds === undefined ||
-    anchoredAtUnixMilliseconds === undefined ||
-    timeScale === undefined
-  ) {
-    return undefined;
-  }
+  return now;
+}
 
-  return gameDateTimeAt({ gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale }, now);
+// Re-renders once per second with the current fictional date and time.
+export function useGameClock(): GameDateTime | undefined {
+  const anchor = useClockAnchor();
+  const now = useClockNow(anchor);
+
+  return anchor ? gameDateTimeAt(anchor, now) : undefined;
+}
+
+// Re-renders once per second with the current game time in milliseconds since the game epoch.
+export function useGameTimeMilliseconds(): number | undefined {
+  const anchor = useClockAnchor();
+  const now = useClockNow(anchor);
+
+  return anchor ? gameTimeMillisecondsAt(anchor, now) : undefined;
 }
 
 // For one-off calculations at a moment of interaction; never re-renders and never reads a stale hour.

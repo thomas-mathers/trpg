@@ -75,7 +75,8 @@ public class CombatEngineTests
             fleeOptionsSnapshot ?? DefaultFleeOptions,
             hitCalculator,
             damageCalculator,
-            enemyCombatActionResolver
+            enemyCombatActionResolver,
+            new EffectAdvancer(damageCalculator)
         );
     }
 
@@ -83,12 +84,14 @@ public class CombatEngineTests
         CombatEngine engine,
         IReadOnlyList<Combatant> combatants,
         PlayerCombatAction action,
-        bool isSurpriseRound = false
+        bool isSurpriseRound = false,
+        int round = 0
     )
     {
-        var resolution = new PlayerCombatActionResolver(combatants).Resolve(action);
+        var now = TestTime.AfterRounds(round);
+        var resolution = new PlayerCombatActionResolver(combatants).Resolve(action, now);
         Assert.NotNull(resolution.Result);
-        return engine.ProcessRound(combatants, resolution.Result, isSurpriseRound);
+        return engine.ProcessRound(combatants, resolution.Result, now, isSurpriseRound);
     }
 
     private static AttackAbility MakeAttack(
@@ -110,7 +113,7 @@ public class CombatEngineTests
             Description = "A test attack.",
             ApCost = cost,
             MpCost = mpCost,
-            Cooldown = cooldown,
+            Cooldown = CombatTiming.Rounds(cooldown),
             TargetType = targetType,
             DamageType = damageType,
             DamageAmount = damage,
@@ -135,9 +138,12 @@ public class CombatEngineTests
             Name = name,
             Description = "A test heal-over-time ability.",
             ApCost = cost,
-            Cooldown = cooldown,
+            Cooldown = CombatTiming.Rounds(cooldown),
             TargetType = TargetType.Single,
-            Hots = [new HotEffect { Amount = amountPerTurn, Duration = duration }],
+            Hots =
+            [
+                new HotEffect { Amount = amountPerTurn, Duration = CombatTiming.Rounds(duration) },
+            ],
         };
     }
 
@@ -293,7 +299,11 @@ public class CombatEngineTests
         // Arrange — a high-percent ability with a status effect; only the first swing should
         // carry either, the bonus swing is a plain 100% weapon hit
         var dagger = Builders.MakeWeapon(minDamage: 5, maxDamage: 5, attacksPerTurn: 2);
-        var stun = new StatusEffect { Condition = ConditionType.Stunned, Duration = 1 };
+        var stun = new StatusEffect
+        {
+            Condition = ConditionType.Stunned,
+            Duration = CombatTiming.Rounds(1),
+        };
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -438,7 +448,11 @@ public class CombatEngineTests
     public void ResolvePlayerAction_SkipsStunnedCombatant_AndTicksTheCondition()
     {
         // Arrange
-        var stun = new StatusEffect { Condition = ConditionType.Stunned, Duration = 2 };
+        var stun = new StatusEffect
+        {
+            Condition = ConditionType.Stunned,
+            Duration = CombatTiming.Rounds(2),
+        };
         var player = MakeCombatant("Hero")
             .AsPlayer()
             .WithDexterity(20)
@@ -469,7 +483,7 @@ public class CombatEngineTests
             Attribute = AttributeName.Dexterity,
             AmountType = AmountType.Percent,
             Amount = -50,
-            Duration = 2,
+            Duration = CombatTiming.Rounds(2),
         };
         var player = MakeCombatant("Hero")
             .AsPlayer()
@@ -490,7 +504,7 @@ public class CombatEngineTests
         var appliedDebuff = Assert.Single(monster.ActiveBuffs);
         Assert.Equal(AttributeName.Dexterity, appliedDebuff.Attribute);
         Assert.Equal(-50, appliedDebuff.Amount);
-        Assert.Equal(2, appliedDebuff.RemainingTurns);
+        Assert.Equal(TestTime.AfterRounds(2), appliedDebuff.ExpiresAt);
         Assert.Equal(50f, monster.Dexterity);
     }
 
@@ -500,7 +514,7 @@ public class CombatEngineTests
         // Arrange
         var player = MakeCombatant("Hero").AsPlayer().WithDexterity(20).Build();
         var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
-        monster.ActiveConditions[ConditionType.Frozen] = 2;
+        monster.ActiveConditions[ConditionType.Frozen] = TestTime.AfterRounds(2);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -521,7 +535,7 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith")
             .WithAbilities(MakeAttack(damageType: DamageType.Physical))
             .Build();
-        monster.ActiveConditions[ConditionType.Blinded] = 1;
+        monster.ActiveConditions[ConditionType.Blinded] = TestTime.AfterRounds(1);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -541,7 +555,7 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith")
             .WithAbilities(MakeAttack("Fireball", damageType: DamageType.Fire))
             .Build();
-        monster.ActiveConditions[ConditionType.Blinded] = 1;
+        monster.ActiveConditions[ConditionType.Blinded] = TestTime.AfterRounds(1);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -560,7 +574,7 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith")
             .WithAbilities(MakeAttack("Fireball", damageType: DamageType.Fire))
             .Build();
-        monster.ActiveConditions[ConditionType.Silenced] = 1;
+        monster.ActiveConditions[ConditionType.Silenced] = TestTime.AfterRounds(1);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -580,7 +594,7 @@ public class CombatEngineTests
         var monster = MakeCombatant("Wraith")
             .WithAbilities(MakeAttack(damageType: DamageType.Physical))
             .Build();
-        monster.ActiveConditions[ConditionType.Silenced] = 1;
+        monster.ActiveConditions[ConditionType.Silenced] = TestTime.AfterRounds(1);
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
@@ -652,12 +666,14 @@ public class CombatEngineTests
 
         // Act & Assert — neither consumed the round
         var unknownAbility = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(monster.CreatureId, "Fireball")
+            new UseAbilityAction(monster.CreatureId, "Fireball"),
+            TestTime.Start
         );
         Assert.Equal("Ability Fireball not found", unknownAbility.ErrorMessage);
 
         var unaffordableAbility = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(monster.CreatureId, "Devour")
+            new UseAbilityAction(monster.CreatureId, "Devour"),
+            TestTime.Start
         );
         Assert.Equal(
             $"Ability Devour costs {devour.ApCost} AP but {player.Name} only has {player.CurrentAp}",
@@ -677,7 +693,8 @@ public class CombatEngineTests
 
         // Act
         var resolution = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(unknownTargetId, "Strike")
+            new UseAbilityAction(unknownTargetId, "Strike"),
+            TestTime.Start
         );
 
         // Assert
@@ -694,7 +711,8 @@ public class CombatEngineTests
 
         // Act
         var resolution = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(monster.CreatureId, "Strike")
+            new UseAbilityAction(monster.CreatureId, "Strike"),
+            TestTime.Start
         );
 
         // Assert
@@ -716,7 +734,8 @@ public class CombatEngineTests
 
         // Act
         var resolution = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(monster.CreatureId, "Battle Stance")
+            new UseAbilityAction(monster.CreatureId, "Battle Stance"),
+            TestTime.Start
         );
 
         // Assert
@@ -736,7 +755,8 @@ public class CombatEngineTests
 
         // Act
         var resolution = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(player.CreatureId, "Strike")
+            new UseAbilityAction(player.CreatureId, "Strike"),
+            TestTime.Start
         );
 
         // Assert
@@ -754,7 +774,8 @@ public class CombatEngineTests
 
         // Act
         var resolution = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(monster.CreatureId, "Arcane Blast")
+            new UseAbilityAction(monster.CreatureId, "Arcane Blast"),
+            TestTime.Start
         );
 
         // Assert
@@ -774,7 +795,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit, AlwaysEvades);
 
         // Act
-        var state = engine.ProcessRound(combatants, new ResolvedFleeAction());
+        var state = engine.ProcessRound(combatants, new ResolvedFleeAction(), TestTime.Start);
 
         // Assert
         Assert.Equal(CombatOutcome.Fled, state.Outcome);
@@ -793,7 +814,7 @@ public class CombatEngineTests
         var engine = MakeEngine(AlwaysHit, AlwaysCaught);
 
         // Act
-        var state = engine.ProcessRound(combatants, new ResolvedFleeAction());
+        var state = engine.ProcessRound(combatants, new ResolvedFleeAction(), TestTime.Start);
 
         // Assert — turn order between the tied-Dexterity player and monster is randomized, so
         // FleeFailed and the monster's Hit can land in either order.
@@ -826,15 +847,20 @@ public class CombatEngineTests
 
         // Assert — still cooling down next round, available again after two full rounds
         var stillOnCooldown = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(monster.CreatureId, "Smite")
+            new UseAbilityAction(monster.CreatureId, "Smite"),
+            TestTime.AfterRounds(1)
         );
         Assert.Equal(
-            $"Ability 'Smite' is on cooldown for {smite.Cooldown} more round(s).",
+            $"Ability 'Smite' is on cooldown for {CombatTiming.Round.TotalSeconds} more second(s).",
             stillOnCooldown.ErrorMessage
         );
-        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Smite"));
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"), round: 1);
+        var state = Resolve(
+            engine,
+            combatants,
+            new UseAbilityAction(monster.CreatureId, "Smite"),
+            round: 2
+        );
         var smiteHit = Assert.Single(state.Events.OfType<Hit>(), h => h.AbilityName == "Smite");
         Assert.Equal("Smite", smiteHit.AbilityName);
     }
@@ -845,7 +871,7 @@ public class CombatEngineTests
         // Arrange
         var burn = new DotEffect
         {
-            Duration = 3,
+            Duration = CombatTiming.Rounds(3),
             Amount = 2f,
             AmountType = AmountType.Flat,
         };
@@ -861,10 +887,17 @@ public class CombatEngineTests
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
-        // Act
-        var state = Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Ignite"));
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Ignite"));
 
-        // Assert — the burn ticked at round end as its own Turn entry, identified by ability and damage type
+        // Act — one round later the burn is owed its first tick
+        var state = Resolve(
+            engine,
+            combatants,
+            new UseAbilityAction(monster.CreatureId, "Strike"),
+            round: 1
+        );
+
+        // Assert — the burn ticked as its own entry, identified by ability and damage type
         var tick = Assert.Single(state.Events.OfType<DamageTicked>());
         Assert.Equal("Wraith", tick.CreatureName);
         Assert.Equal("Ignite", tick.AbilityName);
@@ -885,20 +918,20 @@ public class CombatEngineTests
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysMiss);
 
-        // Act — cast the buff (duration 3), then let it tick down over subsequent rounds
+        // Act — cast the buff (duration 3 rounds), then let time pass over subsequent rounds
         Resolve(engine, combatants, new UseAbilityAction(player.CreatureId, "Battle Stance"));
         var afterCast = combatants.Single(c => c.IsPlayer);
-        Assert.Equal(3, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
+        Assert.Equal(TestTime.AfterRounds(3), Assert.Single(afterCast.ActiveBuffs).ExpiresAt);
 
-        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-        Assert.Equal(2, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"), round: 1);
+        Assert.Single(afterCast.ActiveBuffs);
 
-        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
-        Assert.Equal(1, Assert.Single(afterCast.ActiveBuffs).RemainingTurns);
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"), round: 2);
+        Assert.Single(afterCast.ActiveBuffs);
 
-        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"), round: 3);
 
-        // Assert — expired after its duration elapsed
+        // Assert — expired once its duration elapsed
         Assert.Empty(afterCast.ActiveBuffs);
     }
 
@@ -906,7 +939,11 @@ public class CombatEngineTests
     public void ProcessRound_TicksDownAndExpiresConditions_OverSubsequentRounds()
     {
         // Arrange
-        var status = new StatusEffect { Condition = ConditionType.Blinded, Duration = 2 };
+        var status = new StatusEffect
+        {
+            Condition = ConditionType.Blinded,
+            Duration = CombatTiming.Rounds(2),
+        };
         var attackWithCondition = MakeAttack(name: "Sand Throw", status: status);
         var player = MakeCombatant("Hero")
             .AsPlayer()
@@ -917,16 +954,18 @@ public class CombatEngineTests
         IReadOnlyList<Combatant> combatants = [player, monster];
         var engine = MakeEngine(AlwaysHit);
 
-        // Act — inflict the condition (duration 2). The player acts first (higher dexterity), so
-        // the target's own tick later this same round already counts it down once.
+        // Act — inflict the condition (duration 2 rounds), then let time pass
         Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Sand Throw"));
         var target = combatants.Single(c => !c.IsPlayer);
-        Assert.Equal(1, target.ActiveConditions[ConditionType.Blinded]);
+        Assert.Equal(TestTime.AfterRounds(2), target.ActiveConditions[ConditionType.Blinded]);
 
-        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"));
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"), round: 1);
+        Assert.True(target.ActiveConditions.ContainsKey(ConditionType.Blinded));
 
-        // Assert — expired after its duration elapsed
-        Assert.Equal(0, target.ActiveConditions[ConditionType.Blinded]);
+        Resolve(engine, combatants, new UseAbilityAction(monster.CreatureId, "Strike"), round: 2);
+
+        // Assert — expired once its duration elapsed
+        Assert.False(target.ActiveConditions.ContainsKey(ConditionType.Blinded));
     }
 
     [Fact]
@@ -989,7 +1028,7 @@ public class CombatEngineTests
         // Arrange
         var burn = new DotEffect
         {
-            Duration = 3,
+            Duration = CombatTiming.Rounds(3),
             Amount = 2f,
             AmountType = AmountType.Flat,
         };
@@ -1021,13 +1060,13 @@ public class CombatEngineTests
         // Arrange
         var burn = new DotEffect
         {
-            Duration = 3,
+            Duration = CombatTiming.Rounds(3),
             Amount = 2f,
             AmountType = AmountType.Flat,
         };
         var poison = new DotEffect
         {
-            Duration = 3,
+            Duration = CombatTiming.Rounds(3),
             Amount = 1f,
             AmountType = AmountType.Flat,
         };

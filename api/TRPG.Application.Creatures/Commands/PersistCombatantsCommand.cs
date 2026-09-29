@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
@@ -12,8 +13,8 @@ public record CreatureCombatStateUpdate(
     int CurrentAp,
     int CurrentMp,
     bool IsAlive,
-    IReadOnlyDictionary<string, int> ActiveConditions,
-    IReadOnlyDictionary<string, int> CooldownRemainingByAbility,
+    IReadOnlyDictionary<string, GameInstant> ActiveConditions,
+    IReadOnlyDictionary<string, GameInstant> CooldownReadyAtByAbility,
     IReadOnlyList<ActiveDot> ActiveDots,
     IReadOnlyList<ActiveHot> ActiveHots,
     IReadOnlyList<ActiveBuff> ActiveBuffs
@@ -48,9 +49,11 @@ internal class PersistCombatantsCommandHandler(
             creature.CurrentHp = update.CurrentHp;
             creature.CurrentAp = update.CurrentAp;
             creature.CurrentMp = update.CurrentMp;
-            creature.ActiveConditions = new Dictionary<string, int>(update.ActiveConditions);
-            creature.CooldownRemainingByAbility = new Dictionary<string, int>(
-                update.CooldownRemainingByAbility
+            creature.ActiveConditions = new Dictionary<string, GameInstant>(
+                update.ActiveConditions
+            );
+            creature.CooldownReadyAtByAbility = new Dictionary<string, GameInstant>(
+                update.CooldownReadyAtByAbility
             );
             creature.ActiveDots = update.ActiveDots.ToList();
             creature.ActiveHots = update.ActiveHots.ToList();

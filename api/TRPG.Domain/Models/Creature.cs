@@ -96,14 +96,16 @@ public class ActiveDot
     public string AbilityName { get; init; } = "";
     public int Amount { get; init; }
     public string DamageType { get; init; } = "";
-    public int RemainingTurns { get; init; }
+    public GameInstant NextTickAt { get; init; }
+    public GameInstant ExpiresAt { get; init; }
 }
 
 public class ActiveHot
 {
     public string AbilityName { get; init; } = "";
     public int Amount { get; init; }
-    public int RemainingTurns { get; init; }
+    public GameInstant NextTickAt { get; init; }
+    public GameInstant ExpiresAt { get; init; }
 }
 
 public class ActiveBuff
@@ -111,7 +113,7 @@ public class ActiveBuff
     public string AbilityName { get; init; } = "";
     public float Amount { get; init; }
     public string Attribute { get; init; } = "";
-    public int RemainingTurns { get; init; }
+    public GameInstant ExpiresAt { get; init; }
     public string AmountType { get; init; } = "";
 }
 
@@ -166,8 +168,8 @@ public class Creature
     public float MagicResistance { get; set; }
     public int NaturalWeaponMinDamage { get; set; }
     public int NaturalWeaponMaxDamage { get; set; }
-    public Dictionary<string, int> ActiveConditions { get; set; } = [];
-    public Dictionary<string, int> CooldownRemainingByAbility { get; set; } = [];
+    public Dictionary<string, GameInstant> ActiveConditions { get; set; } = [];
+    public Dictionary<string, GameInstant> CooldownReadyAtByAbility { get; set; } = [];
     public List<ActiveDot> ActiveDots { get; set; } = [];
     public List<ActiveHot> ActiveHots { get; set; } = [];
     public List<ActiveBuff> ActiveBuffs { get; set; } = [];
