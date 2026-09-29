@@ -2,12 +2,16 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Extensions;
+using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Extensions;
 using TRPG.Application.Configuration;
+using TRPG.Application.Effects;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
+using ActiveDot = TRPG.Application.Effects.ActiveDot;
+using ActiveHot = TRPG.Application.Effects.ActiveHot;
 
 namespace TRPG.Application.Combat;
 
@@ -18,7 +22,7 @@ public class CombatEngine(
     DamageCalculator damageCalculator,
     EnemyCombatActionResolver enemyCombatActionResolver,
     EffectAdvancer effectAdvancer,
-    CombatTimeScale timeScale
+    EffectTimeScale timeScale
 )
 {
     public CombatState ProcessRound(
@@ -43,7 +47,8 @@ public class CombatEngine(
             );
         }
 
-        var combatEvents = AdvanceEffects(combatants, now);
+        var effects = AdvanceEffects(combatants, now);
+        var combatEvents = effects.Events.ToList();
 
         combatEvents.AddRange(
             isSurpriseRound
@@ -58,7 +63,8 @@ public class CombatEngine(
             Combatants: ToOrderedCombatantResults(combatants),
             Events: combatEvents,
             WeaponSwingCounts: player.WeaponSwingCounts,
-            SkillUsageCounts: player.SkillUsageCounts
+            SkillUsageCounts: player.SkillUsageCounts,
+            EffectsChanged: effects.Changed
         );
     }
 
@@ -67,14 +73,16 @@ public class CombatEngine(
         var player = combatants.Single(c => c.IsPlayer);
         var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
 
-        var combatEvents = AdvanceEffects(combatants, now);
+        var effects = AdvanceEffects(combatants, now);
+        var combatEvents = effects.Events.ToList();
 
         return new CombatState(
             Outcome: GetCurrentOutcome(player, enemies),
             Combatants: ToOrderedCombatantResults(combatants),
             Events: combatEvents,
             WeaponSwingCounts: player.WeaponSwingCounts,
-            SkillUsageCounts: player.SkillUsageCounts
+            SkillUsageCounts: player.SkillUsageCounts,
+            EffectsChanged: effects.Changed
         );
     }
 
@@ -96,10 +104,22 @@ public class CombatEngine(
             .Select(combatant => combatant.ToCombatantResult())
             .ToArray();
 
-    private List<CombatResolution> AdvanceEffects(
-        IReadOnlyList<Combatant> combatants,
-        GameInstant now
-    ) => combatants.SelectMany(combatant => effectAdvancer.Advance(combatant, now)).ToList();
+    private sealed record AdvancedEffects(bool Changed, IReadOnlyList<CombatResolution> Events);
+
+    private AdvancedEffects AdvanceEffects(IReadOnlyList<Combatant> combatants, GameInstant now)
+    {
+        var events = new List<CombatResolution>();
+        var changed = false;
+        foreach (var combatant in combatants)
+        {
+            var state = combatant.ToEffectState();
+            var result = effectAdvancer.Advance(state, now);
+            combatant.CurrentHp = state.CurrentHp;
+            changed |= result.Changed;
+            events.AddRange(result.Ticks.Select(tick => tick.ToCombatResolution(combatant)));
+        }
+        return new AdvancedEffects(changed, events);
+    }
 
     private List<CombatResolution> ProcessNormalRound(
         IReadOnlyList<Combatant> combatants,

@@ -9,7 +9,5 @@ public static class CombatServiceCollectionExtensions
             .AddTransient<HitCalculator>()
             .AddTransient<DamageCalculator>()
             .AddTransient<EnemyCombatActionResolver>()
-            .AddSingleton<CombatTimeScale>()
-            .AddTransient<EffectAdvancer>()
             .AddTransient<CombatEngine>();
 }

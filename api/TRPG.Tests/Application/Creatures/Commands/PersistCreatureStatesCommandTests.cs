@@ -7,13 +7,13 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
-public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
+public sealed class PersistCreatureStatesCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private PersistCombatantsCommandHandler _handler = null!;
+    private PersistCreatureStatesCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature(
         currentHp: 100,
         currentAp: 20,
@@ -26,7 +26,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<PersistCombatantsCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<PersistCreatureStatesCommandHandler>();
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -38,7 +38,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
-    private static CreatureCombatStateUpdate MakeUpdate(
+    private static CreatureStateUpdate MakeUpdate(
         Guid creatureId,
         int currentHp = 100,
         int currentAp = 20,
@@ -70,7 +70,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [update] },
+            new PersistCreatureStatesCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 
@@ -100,7 +100,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [update] },
+            new PersistCreatureStatesCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 
@@ -133,7 +133,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [aliveUpdate, deadUpdate] },
+            new PersistCreatureStatesCommand { Updates = [aliveUpdate, deadUpdate] },
             TestContext.Current.CancellationToken
         );
 
@@ -196,7 +196,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [update] },
+            new PersistCreatureStatesCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 
@@ -233,7 +233,7 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [update] },
+            new PersistCreatureStatesCommand { Updates = [update] },
             TestContext.Current.CancellationToken
         );
 
@@ -256,7 +256,10 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: false)] },
+            new PersistCreatureStatesCommand
+            {
+                Updates = [MakeUpdate(_creature.Id, isAlive: false)],
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -274,7 +277,10 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: false)] },
+            new PersistCreatureStatesCommand
+            {
+                Updates = [MakeUpdate(_creature.Id, isAlive: false)],
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -292,7 +298,10 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: false)] },
+            new PersistCreatureStatesCommand
+            {
+                Updates = [MakeUpdate(_creature.Id, isAlive: false)],
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -310,7 +319,10 @@ public sealed class PersistCombatantsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new PersistCombatantsCommand { Updates = [MakeUpdate(_creature.Id, isAlive: true)] },
+            new PersistCreatureStatesCommand
+            {
+                Updates = [MakeUpdate(_creature.Id, isAlive: true)],
+            },
             TestContext.Current.CancellationToken
         );
 

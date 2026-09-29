@@ -39,7 +39,7 @@ internal class AdvanceFightEffectsCommandHandler(
         var combatants = await combatantLoader.Load(command.PlayerId, cancellationToken);
 
         var state = combatEngine.ProcessEffectTick(combatants, command.GameTime);
-        if (state.Events.Count == 0)
+        if (!state.EffectsChanged)
         {
             return;
         }

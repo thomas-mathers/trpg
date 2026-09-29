@@ -9,5 +9,6 @@ public record CombatState(
     IReadOnlyList<CombatantResult> Combatants,
     IReadOnlyList<CombatResolution> Events,
     IReadOnlyDictionary<WeaponType, int> WeaponSwingCounts,
-    IReadOnlyDictionary<Skill, int> SkillUsageCounts
+    IReadOnlyDictionary<Skill, int> SkillUsageCounts,
+    bool EffectsChanged = false
 );

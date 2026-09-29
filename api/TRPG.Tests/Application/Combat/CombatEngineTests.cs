@@ -3,6 +3,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
+using TRPG.Application.Effects;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -43,7 +44,7 @@ public class CombatEngineTests
         CritChancePerDexterityPoint = 0f,
     };
 
-    private static readonly CombatTimeScale TwentyTimesFaster = new(
+    private static readonly EffectTimeScale TwentyTimesFaster = new(
         Options.Create(new WorldClockOptions { TimeScale = 20 })
     );
 
@@ -65,10 +66,10 @@ public class CombatEngineTests
     private static CombatEngine MakeEngine(
         IOptionsSnapshot<CombatOptions> optionsSnapshot,
         IOptionsSnapshot<FleeOptions>? fleeOptionsSnapshot = null,
-        CombatTimeScale? timeScale = null
+        EffectTimeScale? timeScale = null
     )
     {
-        timeScale ??= CombatTimeScale.Unscaled;
+        timeScale ??= EffectTimeScale.Unscaled;
         var hitCalculator = new HitCalculator(optionsSnapshot);
         var damageCalculator = new DamageCalculator(optionsSnapshot);
         var enemyCombatActionResolver = new EnemyCombatActionResolver(
@@ -82,7 +83,7 @@ public class CombatEngineTests
             hitCalculator,
             damageCalculator,
             enemyCombatActionResolver,
-            new EffectAdvancer(damageCalculator, timeScale),
+            new EffectAdvancer(optionsSnapshot, timeScale),
             timeScale
         );
     }

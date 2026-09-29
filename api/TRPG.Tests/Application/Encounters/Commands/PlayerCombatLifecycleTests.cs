@@ -23,7 +23,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private StartFightCommandHandler _startFight = null!;
     private CombatEngine _combatEngine = null!;
-    private PersistCombatantsCommandHandler _persistCombatants = null!;
+    private PersistCreatureStatesCommandHandler _persistCombatants = null!;
 
     public ValueTask InitializeAsync()
     {
@@ -47,7 +47,8 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
 
         _startFight = _serviceProvider.GetRequiredService<StartFightCommandHandler>();
         _combatEngine = _serviceProvider.GetRequiredService<CombatEngine>();
-        _persistCombatants = _serviceProvider.GetRequiredService<PersistCombatantsCommandHandler>();
+        _persistCombatants =
+            _serviceProvider.GetRequiredService<PersistCreatureStatesCommandHandler>();
 
         return ValueTask.CompletedTask;
     }
@@ -137,10 +138,10 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
         _combatEngine.ProcessRound(combatants, resolution.Result, TestTime.Start);
 
         await _persistCombatants.Handle(
-            new PersistCombatantsCommand
+            new PersistCreatureStatesCommand
             {
                 Updates = combatants
-                    .Select(combatant => combatant.ToCreatureCombatStateUpdate())
+                    .Select(combatant => combatant.ToCreatureStateUpdate())
                     .ToArray(),
             },
             TestContext.Current.CancellationToken

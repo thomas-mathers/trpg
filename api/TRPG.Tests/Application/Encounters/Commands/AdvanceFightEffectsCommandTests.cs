@@ -168,6 +168,25 @@ public sealed class AdvanceFightEffectsCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_PersistsExpiredConditions_WhenNoDamageOrHealingTickIsDue()
+    {
+        // Arrange
+        _enemy.ActiveConditions[nameof(ConditionType.Stunned)] = OneRoundIn;
+        _enemy.CooldownReadyAtByAbility["Strike"] = OneRoundIn;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await Advance(OneRoundIn);
+
+        // Assert
+        var enemy = await Reload(_enemy.Id);
+        Assert.Empty(enemy.ActiveConditions);
+        Assert.Empty(enemy.CooldownReadyAtByAbility);
+        Assert.Equal(EncounterState.Active, (await ReloadFight()).State);
+        Assert.NotNull(PublishedCombatUpdate());
+    }
+
+    [Fact]
     public async Task Handle_DoesNothing_WhenThePlayerIsNotInAFight()
     {
         // Arrange

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
@@ -96,16 +97,12 @@ public class DamageCalculator(IOptionsSnapshot<CombatOptions> optionsSnapshot)
             + offHandSwings * EstimateRawDamage(attacker, AbilityCatalog.Strike, offHandWeapon);
     }
 
-    public int CalculateDamage(float amount, DamageType type, Combatant defender)
-    {
-        var resistance = Math.Min(
-            optionsSnapshot.Value.MaxResistancePercent,
-            defender.ResistanceFor(type)
+    public int CalculateDamage(float amount, DamageType type, Combatant defender) =>
+        DamageMitigation.Calculate(
+            amount,
+            defender.ResistanceFor(type),
+            optionsSnapshot.Value.MaxResistancePercent
         );
-        var mitigated = amount * (1 - resistance);
-
-        return Math.Max(0, (int)mitigated);
-    }
 
     private float CalculatePhysicalRawDamage(
         Combatant attacker,

@@ -46,6 +46,7 @@
     <ProjectReference Include="..\TRPG.Application.WeaponProficiency\TRPG.Application.WeaponProficiency.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Effects\TRPG.Application.Effects.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

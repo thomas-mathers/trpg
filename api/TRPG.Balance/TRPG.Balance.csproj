@@ -13,6 +13,7 @@
     <ProjectReference Include="..\TRPG.Application.CreatureFormulas\TRPG.Application.CreatureFormulas.csproj" />
     <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
     <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Effects\TRPG.Application.Effects.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>

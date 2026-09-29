@@ -11,6 +11,7 @@ using TRPG.Application.Common.Validation;
 using TRPG.Application.CreatureJobs.Extensions;
 using TRPG.Application.Creatures.Extensions;
 using TRPG.Application.Crimes.Extensions;
+using TRPG.Application.Effects.Extensions;
 using TRPG.Application.Encounters.Extensions;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
@@ -80,6 +81,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddReputationsServices()
             .AddWorldGenerationServices()
             .AddWorldsServices()
+            .AddEffectsServices()
             .AddCombatServices()
             .AddGameTurnsServices()
             .AddGameTool<LookTool>()

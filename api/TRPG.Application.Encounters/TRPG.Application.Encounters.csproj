@@ -23,6 +23,7 @@
     <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
     <ProjectReference Include="..\TRPG.Application.RoomBookings\TRPG.Application.RoomBookings.csproj" />
     <ProjectReference Include="..\TRPG.Application.WeaponProficiency\TRPG.Application.WeaponProficiency.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Effects\TRPG.Application.Effects.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
     <ProjectReference Include="..\TRPG.Data\TRPG.Data.csproj" />
   </ItemGroup>
