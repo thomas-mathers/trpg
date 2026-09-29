@@ -114,6 +114,13 @@ export type IChatHub = {
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */
+    sendCastAbility(targetId: string, abilityName: string): IStreamResult<string>;
+    /**
+    * @param targetId Transpiled from System.Guid
+    * @param abilityName Transpiled from string
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
     resolveUseAbilityCombatAction(targetId: string, abilityName: string): IStreamResult<string>;
     /**
     * @param itemName Transpiled from string

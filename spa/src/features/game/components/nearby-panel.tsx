@@ -37,6 +37,7 @@ import {
   GiHammerNails,
   GiHandcuffs,
   GiHobbitDoor,
+  GiHeartBeats,
   GiHolySymbol,
   GiHorseHead,
   GiHouse,
@@ -54,6 +55,8 @@ import {
   GiStable,
   GiStoneTower,
   GiTombstone,
+  GiWaterDrop,
+  GiWingfoot,
   GiWolfHead,
   GiWoodenSign,
   GiWoodenChair,
@@ -77,6 +80,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { BookshelfDialog } from '@/features/books/components/bookshelf-dialog';
 import { EffectBadges } from '@/features/combat/components/effect-badges';
+import { StatBar } from '@/features/combat/components/stat-bar';
 import { isDangerous } from '@/features/combat/threat-level';
 import { CaravanDialog } from '@/features/game/components/caravan-dialog';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
@@ -84,6 +88,7 @@ import { ExitDirectionArrow } from '@/features/game/components/exit-direction-ar
 import { ExitFamiliarity } from '@/features/game/components/exit-familiarity';
 import { SignDialog } from '@/features/game/components/sign-dialog';
 import { SleepDialog } from '@/features/game/components/sleep-dialog';
+import { useCastTargeting } from '@/features/game/hooks/use-cast-targeting';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { ROOM_ROLE_ICONS } from '@/features/game/room-role-icons';
@@ -181,6 +186,7 @@ export function NearbyPanel({
 }: NearbyPanelProps) {
   const chatHub = useChatHub();
   const { submitNarratedTurn } = useGameChat();
+  const { pendingAbility, castOn } = useCastTargeting();
   const [inventoryTarget, setInventoryTarget] = useState<{
     id: string;
     name: string;
@@ -291,6 +297,11 @@ export function NearbyPanel({
                 }
               }}
               tradeEnabled={Boolean(creature.tradeWorkstationId)}
+              onCastTarget={
+                pendingAbility && creature.condition !== 'Dead'
+                  ? () => castOn({ id: creature.id, name: creature.name })
+                  : undefined
+              }
               onQuestDialog={(questId) => void handleQuestDialog(creature.id, questId)}
               onDeliverItem={() => void handleDeliverItemDialog(creature.id)}
             />
@@ -623,6 +634,7 @@ function CreatureRow({
   tradeEnabled,
   onQuestDialog,
   onDeliverItem,
+  onCastTarget,
 }: {
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
@@ -631,6 +643,7 @@ function CreatureRow({
   tradeEnabled: boolean;
   onQuestDialog: (questId: string) => void;
   onDeliverItem: () => void;
+  onCastTarget?: () => void;
 }) {
   const dead = creature.condition === 'Dead';
   const dangerous = !dead && isDangerous(Number(creature.level), Number(playerLevel));
@@ -641,7 +654,15 @@ function CreatureRow({
   const hasReadyToTurnInQuest = questMarkers.some((marker) => marker.marker === 'ReadyToTurnIn');
 
   return (
-    <div className={cn('flex items-center gap-2 py-1.5', dead && 'opacity-45')}>
+    <div
+      className={cn(
+        'flex items-start gap-2 py-1.5',
+        dead && 'opacity-45',
+        onCastTarget &&
+          'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground cursor-pointer rounded-md px-1',
+      )}
+      onClick={onCastTarget}
+    >
       <span className="border-border bg-muted relative flex size-8 shrink-0 items-center justify-center rounded-full border">
         <RaceIcon className="text-muted-foreground size-4" aria-label={creature.creatureType} />
         {dead ? (
@@ -690,7 +711,7 @@ function CreatureRow({
       <span className="min-w-0 flex-1">
         <button
           type="button"
-          onClick={onOpenInventory}
+          onClick={onCastTarget ? undefined : onOpenInventory}
           className={cn(
             'block w-full cursor-pointer truncate text-left font-medium underline decoration-dotted underline-offset-2',
             reputation != null && reputation > 0 && 'text-heal',
@@ -717,6 +738,34 @@ function CreatureRow({
             Restrained
           </span>
         )}
+        {!dead && (
+          <div className="mt-1">
+            <StatBar
+              icon={GiHeartBeats}
+              colorClass="text-hp"
+              fillClass="bg-hp"
+              hideValue
+              current={Number(creature.currentHp)}
+              max={Number(creature.maximumHp)}
+            />
+            <StatBar
+              icon={GiWingfoot}
+              colorClass="text-stamina"
+              fillClass="bg-stamina"
+              hideValue
+              current={Number(creature.currentAp)}
+              max={Number(creature.maximumAp)}
+            />
+            <StatBar
+              icon={GiWaterDrop}
+              colorClass="text-mp"
+              fillClass="bg-mp"
+              hideValue
+              current={Number(creature.currentMp)}
+              max={Number(creature.maximumMp)}
+            />
+          </div>
+        )}
         <EffectBadges
           className="mt-1"
           activeConditions={creature.activeConditions}
@@ -726,26 +775,31 @@ function CreatureRow({
         />
       </span>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${creature.name}`}>
-            <MoreVertical />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
-          {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
-          {!dead &&
-            questMarkers.map((marker) => (
-              <DropdownMenuItem key={marker.questId} onClick={() => onQuestDialog(marker.questId)}>
-                Quest: {marker.name}
-              </DropdownMenuItem>
-            ))}
-          {!dead && creature.readyToDeliver && (
-            <DropdownMenuItem onClick={onDeliverItem}>Give Item</DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {!onCastTarget && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${creature.name}`}>
+              <MoreVertical />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
+            {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
+            {!dead &&
+              questMarkers.map((marker) => (
+                <DropdownMenuItem
+                  key={marker.questId}
+                  onClick={() => onQuestDialog(marker.questId)}
+                >
+                  Quest: {marker.name}
+                </DropdownMenuItem>
+              ))}
+            {!dead && creature.readyToDeliver && (
+              <DropdownMenuItem onClick={onDeliverItem}>Give Item</DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }

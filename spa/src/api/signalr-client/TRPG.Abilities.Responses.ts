@@ -28,5 +28,7 @@ export type AbilitySummary = {
     requiredSkillLevel: number;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
     prerequisites: string[];
+    /** Transpiled from bool */
+    requiresTarget: boolean;
 }
 

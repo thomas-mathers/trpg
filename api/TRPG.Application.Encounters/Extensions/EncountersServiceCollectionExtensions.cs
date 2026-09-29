@@ -15,6 +15,5 @@ public static class EncountersServiceCollectionExtensions
             .AddTransient<TheftSourceResolver>()
             .AddTransient<LocationCityResolver>()
             .AddTransient<WrongedFactionResolver>()
-            .AddTransient<CombatantFactory>()
             .AddTransient<ActiveFightCombatantLoader>();
 }

@@ -20,14 +20,7 @@ internal class StartFightTool(
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
-    IQueryHandler<
-        GetEncounterGroupCreatureIdsQuery,
-        IReadOnlyCollection<Guid>
-    > getEncounterGroupCreatureIds,
-    ICommandHandler<StartFightCommand> startFight,
-    ICommandHandler<RecordAssaultCommand> recordAssault,
-    ICommandHandler<WakeCreaturesCommand> wakeCreatures,
-    ICommandHandler<AlertCreaturesCommand> alertCreatures,
+    ICommandHandler<AttackCreatureCommand> attackCreature,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ILogger<StartFightTool> logger
 ) : IGameTool
@@ -88,50 +81,18 @@ internal class StartFightTool(
             return new ToolError($"{targetName} is locked away and cannot be reached to attack.");
         }
 
-        var hasSurpriseRound = player.IsSneaking || target.Condition == CreatureCondition.Sleeping;
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
 
-        var enemyCreatureIds = await getEncounterGroupCreatureIds.Handle(
-            new GetEncounterGroupCreatureIdsQuery
-            {
-                WorldId = turnContext.WorldId,
-                CreatureId = target.Id,
-            },
-            cancellationToken
-        );
-
-        await wakeCreatures.Handle(
-            new WakeCreaturesCommand { CreatureIds = enemyCreatureIds },
-            cancellationToken
-        );
-
-        await alertCreatures.Handle(
-            new AlertCreaturesCommand { CreatureIds = enemyCreatureIds },
-            cancellationToken
-        );
-
-        // The player chose to attack, which is what separates assault from self-defence.
-        await recordAssault.Handle(
-            new RecordAssaultCommand
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                VictimId = target.Id,
-            },
-            cancellationToken
-        );
-
-        await startFight.Handle(
-            new StartFightCommand
+        await attackCreature.Handle(
+            new AttackCreatureCommand
             {
                 SessionId = turnContext.SessionId,
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                EnemyCreatureIds = enemyCreatureIds,
-                HasSurpriseRound = hasSurpriseRound,
+                TargetId = target.Id,
                 GameTime = gameTime,
             },
             cancellationToken

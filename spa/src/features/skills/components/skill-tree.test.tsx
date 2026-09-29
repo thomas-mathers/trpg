@@ -18,6 +18,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 1,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Power Strike',
@@ -29,6 +30,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 2,
     prerequisites: ['Slash'],
+    requiresTarget: true,
   },
 ];
 

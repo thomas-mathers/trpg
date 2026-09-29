@@ -13,6 +13,7 @@ import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub, useGameHubConnection } from '@/features/game/hooks/use-game-hub-connection';
 import { useIsInCombat } from '@/features/game/hooks/use-is-in-combat';
 
+import { AbilityToolbar } from './ability-toolbar';
 import { ChatHistory } from './chat-history';
 import { ChatInput } from './chat-input';
 
@@ -76,6 +77,7 @@ function GameChatControls({
       <SuspicionEncounterDialog />
       <TheftEncounterDialog />
       <TrapEncounterDialog />
+      {!isInCombat && <AbilityToolbar />}
       {!isInCombat && (
         <ChatInput
           value={input}

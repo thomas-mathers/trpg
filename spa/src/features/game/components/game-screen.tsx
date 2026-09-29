@@ -27,6 +27,7 @@ import {
   useGameHubConnection,
 } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
+import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { SceneProvider } from '../providers/scene-provider';
 import { ConnectionLostDialog } from './connection-lost-dialog';
 import { GameChat } from './game-chat';
@@ -162,90 +163,95 @@ function GameScreenContent({
 
   return (
     <GameChatContext.Provider value={gameChat}>
-      <SidebarProvider
-        open={isNearbyOpen}
-        onOpenChange={onNearbyOpenChange}
-        className="h-screen flex-col"
-      >
-        <div className="chrome-surface chrome-surface-elevated text-chrome-foreground chrome-scope px-4 py-2">
-          <StatusBar
-            connectionStatus={connectionStatus}
-            isInCombat={isInCombat}
-            controls={
-              <>
-                {!isInCombat && <NearbyToggleButton />}
-                {!isInCombat && <SneakToggleButton />}
-                <GameMenu
-                  onOpenCharacterDialog={() => onOpenDialog('character')}
-                  onOpenInventoryDialog={() => onOpenDialog('inventory')}
-                  onOpenQuestJournal={() => onOpenDialog('questJournal')}
-                  onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
-                  onOpenWaitDialog={() => onOpenDialog('wait')}
-                  onOpenMapDialog={() => onOpenDialog('map')}
-                  onQuit={onQuit}
-                />
-              </>
-            }
-          />
-        </div>
+      <CastTargetingProvider>
+        <SidebarProvider
+          open={isNearbyOpen}
+          onOpenChange={onNearbyOpenChange}
+          className="h-screen flex-col"
+        >
+          <div className="chrome-surface chrome-surface-elevated text-chrome-foreground chrome-scope px-4 py-2">
+            <StatusBar
+              connectionStatus={connectionStatus}
+              isInCombat={isInCombat}
+              controls={
+                <>
+                  {!isInCombat && <NearbyToggleButton />}
+                  {!isInCombat && <SneakToggleButton />}
+                  <GameMenu
+                    onOpenCharacterDialog={() => onOpenDialog('character')}
+                    onOpenInventoryDialog={() => onOpenDialog('inventory')}
+                    onOpenQuestJournal={() => onOpenDialog('questJournal')}
+                    onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
+                    onOpenWaitDialog={() => onOpenDialog('wait')}
+                    onOpenMapDialog={() => onOpenDialog('map')}
+                    onQuit={onQuit}
+                  />
+                </>
+              }
+            />
+          </div>
 
-        <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
-          <SidebarInset className="parchment-surface">
-            <GameChat />
-          </SidebarInset>
+          <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
+            <SidebarInset className="parchment-surface">
+              <GameChat />
+            </SidebarInset>
 
-          <NearbySidebar
-            onOpenQuestJournal={() => onOpenDialog('questJournal')}
-            onQuestDialogRequested={setQuestDialog}
-            onDeliverItemDialogRequested={setDeliverItemDialog}
-          />
-        </div>
+            <NearbySidebar
+              onOpenQuestJournal={() => onOpenDialog('questJournal')}
+              onQuestDialogRequested={setQuestDialog}
+              onDeliverItemDialogRequested={setDeliverItemDialog}
+            />
+          </div>
 
-        {playerId && (
-          <>
-            <CharacterDialog open={openDialog === 'character'} onClose={() => onOpenDialog(null)} />
-            <InventoryDialog
-              playerId={playerId}
-              open={openDialog === 'inventory'}
-              onClose={() => onOpenDialog(null)}
-            />
-            <SkillTreeDialog
-              playerId={playerId}
-              open={openDialog === 'skillTree'}
-              onClose={() => onOpenDialog(null)}
-            />
-            <WaitDialog open={openDialog === 'wait'} onClose={() => onOpenDialog(null)} />
-            <MapDialog
-              playerId={playerId}
-              isInsideBuilding={Boolean(scene?.buildingName)}
-              open={openDialog === 'map'}
-              onClose={() => onOpenDialog(null)}
-            />
-            <QuestDialog
-              playerId={playerId}
-              quest={questDialog}
-              onClose={() => setQuestDialog(null)}
-            />
-            <DeliverItemDialog
-              playerId={playerId}
-              deliverable={deliverItemDialog}
-              onClose={() => setDeliverItemDialog(null)}
-            />
-            {scene && (
-              <QuestJournalDialog
-                playerId={playerId}
-                worldId={scene.worldId}
-                open={openDialog === 'questJournal'}
+          {playerId && (
+            <>
+              <CharacterDialog
+                open={openDialog === 'character'}
                 onClose={() => onOpenDialog(null)}
               />
-            )}
-          </>
-        )}
+              <InventoryDialog
+                playerId={playerId}
+                open={openDialog === 'inventory'}
+                onClose={() => onOpenDialog(null)}
+              />
+              <SkillTreeDialog
+                playerId={playerId}
+                open={openDialog === 'skillTree'}
+                onClose={() => onOpenDialog(null)}
+              />
+              <WaitDialog open={openDialog === 'wait'} onClose={() => onOpenDialog(null)} />
+              <MapDialog
+                playerId={playerId}
+                isInsideBuilding={Boolean(scene?.buildingName)}
+                open={openDialog === 'map'}
+                onClose={() => onOpenDialog(null)}
+              />
+              <QuestDialog
+                playerId={playerId}
+                quest={questDialog}
+                onClose={() => setQuestDialog(null)}
+              />
+              <DeliverItemDialog
+                playerId={playerId}
+                deliverable={deliverItemDialog}
+                onClose={() => setDeliverItemDialog(null)}
+              />
+              {scene && (
+                <QuestJournalDialog
+                  playerId={playerId}
+                  worldId={scene.worldId}
+                  open={openDialog === 'questJournal'}
+                  onClose={() => onOpenDialog(null)}
+                />
+              )}
+            </>
+          )}
 
-        <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
-        <GameNotifications />
-        <DeathRespawnEffect />
-      </SidebarProvider>
+          <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
+          <GameNotifications />
+          <DeathRespawnEffect />
+        </SidebarProvider>
+      </CastTargetingProvider>
     </GameChatContext.Provider>
   );
 }
