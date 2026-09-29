@@ -133,7 +133,7 @@ internal static class Builders
             MaximumMp: 5,
             IsAlive: isAlive,
             Abilities: [],
-            ActiveConditions: new Dictionary<ConditionType, int>(),
+            ActiveConditions: new Dictionary<ConditionType, GameInstant>(),
             ActiveDots: [],
             ActiveHots: [],
             ActiveBuffs: [],
@@ -181,7 +181,7 @@ internal static class Builders
             Name = name,
             Description = "A test instant-heal ability.",
             ApCost = cost,
-            Cooldown = cooldown,
+            Cooldown = CombatTiming.Rounds(cooldown),
             TargetType = TargetType.Single,
             HealAmount = amount,
         };
@@ -201,7 +201,7 @@ internal static class Builders
             Name = name,
             Description = "A test support ability.",
             ApCost = cost,
-            Cooldown = cooldown,
+            Cooldown = CombatTiming.Rounds(cooldown),
             TargetType = targetType,
             Buffs =
             [
@@ -210,7 +210,7 @@ internal static class Builders
                     Attribute = attribute,
                     AmountType = amountType,
                     Amount = amount,
-                    Duration = duration,
+                    Duration = CombatTiming.Rounds(duration),
                 },
             ],
         };

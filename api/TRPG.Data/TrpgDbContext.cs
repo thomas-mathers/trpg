@@ -13,7 +13,7 @@ file static class JsonColumnConversion
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        Converters = { new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter(), new GameInstantJsonConverter() },
         AllowOutOfOrderMetadataProperties = true,
     };
 
@@ -272,7 +272,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             });
             entity.OwnsOne(p => p.BaseAttributes, s => s.ToJson());
             entity.Property(c => c.ActiveConditions).HasJsonConversion(() => []);
-            entity.Property(c => c.CooldownRemainingByAbility).HasJsonConversion(() => []);
+            entity.Property(c => c.CooldownReadyAtByAbility).HasJsonConversion(() => []);
             entity.Property(c => c.ActiveDots).HasJsonConversion(() => []);
             entity.Property(c => c.ActiveHots).HasJsonConversion(() => []);
             entity.Property(c => c.ActiveBuffs).HasJsonConversion(() => []);

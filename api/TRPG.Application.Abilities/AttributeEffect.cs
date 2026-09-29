@@ -7,5 +7,5 @@ public class AttributeEffect
     public AttributeName Attribute { get; init; }
     public AmountType AmountType { get; init; }
     public float Amount { get; init; }
-    public int Duration { get; init; }
+    public TimeSpan Duration { get; init; }
 }

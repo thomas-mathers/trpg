@@ -4,24 +4,24 @@
 
 /** Transpiled from TRPG.Combat.Responses.ActiveConditions */
 export type ActiveConditions = {
-    /** Transpiled from int */
-    blinded: number;
-    /** Transpiled from int */
-    bleeding: number;
-    /** Transpiled from int */
-    burning: number;
-    /** Transpiled from int */
-    disarmed: number;
-    /** Transpiled from int */
-    frozen: number;
-    /** Transpiled from int */
-    poisoned: number;
-    /** Transpiled from int */
-    silenced: number;
-    /** Transpiled from int */
-    snared: number;
-    /** Transpiled from int */
-    stunned: number;
+    /** Transpiled from long */
+    blinded?: number;
+    /** Transpiled from long */
+    bleeding?: number;
+    /** Transpiled from long */
+    burning?: number;
+    /** Transpiled from long */
+    disarmed?: number;
+    /** Transpiled from long */
+    frozen?: number;
+    /** Transpiled from long */
+    poisoned?: number;
+    /** Transpiled from long */
+    silenced?: number;
+    /** Transpiled from long */
+    snared?: number;
+    /** Transpiled from long */
+    stunned?: number;
 }
 
 /** Transpiled from TRPG.Combat.Responses.CombatActionOutcome */
@@ -36,7 +36,7 @@ export type CombatActionBuffModifier = {
     /** Transpiled from TRPG.Combat.Responses.AmountType */
     amountType: AmountType;
     /** Transpiled from int */
-    remainingTurns: number;
+    durationSeconds: number;
 }
 
 /** Transpiled from TRPG.Combat.Responses.CombatActionResult */
@@ -70,9 +70,9 @@ export type CombatActionResult = {
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.CombatActionBuffModifier>? */
     appliedBuffs?: CombatActionBuffModifier[];
     /** Transpiled from int */
-    hotAmountPerTurn?: number;
+    hotAmountPerTick?: number;
     /** Transpiled from int */
-    hotDuration?: number;
+    hotDurationSeconds?: number;
     /** Transpiled from string */
     narration: string;
 }
@@ -134,8 +134,8 @@ export type ActiveDot = {
     amount: number;
     /** Transpiled from TRPG.Combat.Responses.DamageType */
     damageType: DamageType;
-    /** Transpiled from int */
-    remainingTurns: number;
+    /** Transpiled from long */
+    expiresAtGameTimeMilliseconds: number;
 }
 
 /** Transpiled from TRPG.Combat.Responses.ActiveHot */
@@ -144,8 +144,8 @@ export type ActiveHot = {
     abilityName: string;
     /** Transpiled from int */
     amount: number;
-    /** Transpiled from int */
-    remainingTurns: number;
+    /** Transpiled from long */
+    expiresAtGameTimeMilliseconds: number;
 }
 
 /** Transpiled from TRPG.Combat.Responses.ActiveBuff */
@@ -158,8 +158,8 @@ export type ActiveBuff = {
     amount: number;
     /** Transpiled from TRPG.Combat.Responses.AmountType */
     amountType: AmountType;
-    /** Transpiled from int */
-    remainingTurns: number;
+    /** Transpiled from long */
+    expiresAtGameTimeMilliseconds: number;
 }
 
 /** Transpiled from TRPG.Combat.Responses.CombatRegeneration */

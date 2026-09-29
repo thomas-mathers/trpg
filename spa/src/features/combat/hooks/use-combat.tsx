@@ -40,11 +40,20 @@ type AnimationStep =
       resourceState?: CombatResourceState;
       delayMs: number;
     }
-  | { kind: 'apply'; event: CombatActionResult; delayMs: number }
+  | {
+      kind: 'apply';
+      event: CombatActionResult;
+      settled: CombatantState[];
+      delayMs: number;
+    }
   | { kind: 'toast'; delayMs: number }
   | { kind: 'defenderRecovery'; delayMs: number }
   | { kind: 'attackerRecovery'; delayMs: number }
-  | { kind: 'prepareRegeneration'; events: CombatRegeneration[]; delayMs: number }
+  | {
+      kind: 'prepareRegeneration';
+      events: CombatRegeneration[];
+      delayMs: number;
+    }
   | { kind: 'regenerate'; events: CombatRegeneration[]; delayMs: number }
   | { kind: 'settle'; combatants: CombatantState[]; delayMs: number };
 
@@ -87,6 +96,7 @@ const initialState: CombatState = {
 function applyRoundEventToFight(
   fight: CombatantState[],
   event: CombatActionResult,
+  settled: CombatantState[],
 ): CombatantState[] {
   return fight.map((combatant) => {
     if (combatant.id !== event.targetId) {
@@ -105,32 +115,24 @@ function applyRoundEventToFight(
       };
     }
 
-    if (event.appliedBuffs && event.appliedBuffs.length > 0) {
+    const settledTarget = settled.find((candidate) => candidate.id === event.targetId);
+
+    if (settledTarget && event.appliedBuffs && event.appliedBuffs.length > 0) {
       next = {
         ...next,
         activeBuffs: [
           ...next.activeBuffs.filter((buff) => buff.abilityName !== event.abilityName),
-          ...event.appliedBuffs.map((modifier) => ({
-            abilityName: event.abilityName,
-            attribute: modifier.attribute,
-            amount: modifier.amount,
-            amountType: modifier.amountType,
-            remainingTurns: modifier.remainingTurns,
-          })),
+          ...settledTarget.activeBuffs.filter((buff) => buff.abilityName === event.abilityName),
         ],
       };
     }
 
-    if (event.hotAmountPerTurn !== undefined && event.hotDuration !== undefined) {
+    if (settledTarget && event.hotAmountPerTick !== undefined) {
       next = {
         ...next,
         activeHots: [
           ...next.activeHots.filter((hot) => hot.abilityName !== event.abilityName),
-          {
-            abilityName: event.abilityName,
-            amount: event.hotAmountPerTurn,
-            remainingTurns: event.hotDuration,
-          },
+          ...settledTarget.activeHots.filter((hot) => hot.abilityName === event.abilityName),
         ],
       };
     }
@@ -213,10 +215,21 @@ function buildRoundSteps(payload: CombatUpdated): AnimationStep[] {
       resourceState: resourceStatesByCombatantId.get(event.attackerId),
       delayMs: index === 0 ? 0 : BETWEEN_TURNS_MS,
     });
-    steps.push({ kind: 'apply', event, delayMs: ATTACK_WINDUP_MS });
+    steps.push({
+      kind: 'apply',
+      event,
+      settled: payload.combatants,
+      delayMs: ATTACK_WINDUP_MS,
+    });
     steps.push({ kind: 'toast', delayMs: IMPACT_TO_TOAST_MS });
-    steps.push({ kind: 'defenderRecovery', delayMs: TOAST_TO_DEFENDER_RECOVERY_MS });
-    steps.push({ kind: 'attackerRecovery', delayMs: DEFENDER_TO_ATTACKER_RECOVERY_MS });
+    steps.push({
+      kind: 'defenderRecovery',
+      delayMs: TOAST_TO_DEFENDER_RECOVERY_MS,
+    });
+    steps.push({
+      kind: 'attackerRecovery',
+      delayMs: DEFENDER_TO_ATTACKER_RECOVERY_MS,
+    });
   }
 
   if (payload.regenerations.length > 0) {
@@ -225,7 +238,11 @@ function buildRoundSteps(payload: CombatUpdated): AnimationStep[] {
       events: payload.regenerations,
       delayMs: BEFORE_ROUND_REGEN_MS,
     });
-    steps.push({ kind: 'regenerate', events: payload.regenerations, delayMs: 280 });
+    steps.push({
+      kind: 'regenerate',
+      events: payload.regenerations,
+      delayMs: 280,
+    });
   }
 
   steps.push({ kind: 'settle', combatants: payload.combatants, delayMs: 0 });
@@ -250,7 +267,9 @@ function reduceStep(state: CombatState, step: AnimationStep): CombatState {
       const flash = toCombatFlash(step.event, state.eventCounter + 1);
       return {
         ...state,
-        fight: state.fight ? applyRoundEventToFight(state.fight, step.event) : state.fight,
+        fight: state.fight
+          ? applyRoundEventToFight(state.fight, step.event, step.settled)
+          : state.fight,
         activeDefenderId: step.event.targetId,
         activeCombatEvent: step.event,
         combatFlashes: flash
@@ -366,10 +385,18 @@ export function useCombat() {
 
   useEffect(() => {
     const unsubscribeCombatStarted = gameEventBus.on('CombatStarted', (payload) => {
-      dispatch({ type: 'FIGHT_STARTED', fightId: payload.fightId, fight: payload.combatants });
+      dispatch({
+        type: 'FIGHT_STARTED',
+        fightId: payload.fightId,
+        fight: payload.combatants,
+      });
     });
     const unsubscribeCombatUpdated = gameEventBus.on('CombatUpdated', (payload) => {
-      dispatch({ type: 'ROUND_RECEIVED', payload, skipAnimation: prefersReducedMotion() });
+      dispatch({
+        type: 'ROUND_RECEIVED',
+        payload,
+        skipAnimation: prefersReducedMotion(),
+      });
       if (payload.outcome !== 'Ongoing') {
         gameEventBus.emit('CombatOutcomeKnown', payload.outcome);
       }

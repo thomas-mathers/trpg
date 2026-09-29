@@ -52,7 +52,11 @@ internal class ResolveFleeCombatCommandHandler(
             cancellationToken
         );
 
-        var state = combatEngine.ProcessRound(combatants, new ResolvedFleeAction());
+        var state = combatEngine.ProcessRound(
+            combatants,
+            new ResolvedFleeAction(),
+            command.GameTime
+        );
         var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {

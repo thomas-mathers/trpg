@@ -130,10 +130,11 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
 
         // Act — run one full combat round with guaranteed hits both ways
         var resolution = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseAbilityAction(enemy.Id, "Strike")
+            new UseAbilityAction(enemy.Id, "Strike"),
+            TestTime.Start
         );
         Assert.NotNull(resolution.Result);
-        _combatEngine.ProcessRound(combatants, resolution.Result);
+        _combatEngine.ProcessRound(combatants, resolution.Result, TestTime.Start);
 
         await _persistCombatants.Handle(
             new PersistCombatantsCommand

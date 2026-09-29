@@ -23,7 +23,8 @@ public class PlayerCombatActionResolverTests
 
         // Act
         var action = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseItemAction("Health Potion")
+            new UseItemAction("Health Potion"),
+            TestTime.Start
         );
 
         // Assert
@@ -45,7 +46,8 @@ public class PlayerCombatActionResolverTests
 
         // Act
         var action = new PlayerCombatActionResolver(combatants).Resolve(
-            new UseItemAction("Health Potion")
+            new UseItemAction("Health Potion"),
+            TestTime.Start
         );
 
         // Assert

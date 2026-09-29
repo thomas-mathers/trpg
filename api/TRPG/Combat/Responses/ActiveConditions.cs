@@ -3,15 +3,15 @@ namespace TRPG.Combat.Responses;
 [Tapper.TranspilationSource]
 public record ActiveConditions
 {
-    public int Blinded { get; init; }
-    public int Bleeding { get; init; }
-    public int Burning { get; init; }
-    public int Disarmed { get; init; }
-    public int Frozen { get; init; }
-    public int Poisoned { get; init; }
-    public int Silenced { get; init; }
-    public int Snared { get; init; }
-    public int Stunned { get; init; }
+    public long? Blinded { get; init; }
+    public long? Bleeding { get; init; }
+    public long? Burning { get; init; }
+    public long? Disarmed { get; init; }
+    public long? Frozen { get; init; }
+    public long? Poisoned { get; init; }
+    public long? Silenced { get; init; }
+    public long? Snared { get; init; }
+    public long? Stunned { get; init; }
 
     public IReadOnlyCollection<ActiveCondition> ToEntries() =>
         new[]
@@ -26,8 +26,8 @@ public record ActiveConditions
             new ActiveCondition(ConditionType.Snared, Snared),
             new ActiveCondition(ConditionType.Stunned, Stunned),
         }
-            .Where(condition => condition.RemainingTurns is > 0)
+            .Where(condition => condition.ExpiresAtGameTimeMilliseconds is not null)
             .ToArray();
 }
 
-public record ActiveCondition(ConditionType Condition, int RemainingTurns);
+public record ActiveCondition(ConditionType Condition, long? ExpiresAtGameTimeMilliseconds);

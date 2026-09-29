@@ -24,14 +24,14 @@ public enum ConditionType
 public class StatusEffect
 {
     public ConditionType Condition { get; init; }
-    public int Duration { get; init; }
+    public TimeSpan Duration { get; init; }
 }
 
 public class DotEffect
 {
     public float Amount { get; init; }
     public AmountType AmountType { get; init; }
-    public int Duration { get; init; }
+    public TimeSpan Duration { get; init; }
 }
 
 public class AttackAbility : Ability

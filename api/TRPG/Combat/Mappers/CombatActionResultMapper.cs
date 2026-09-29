@@ -128,8 +128,8 @@ internal static class CombatActionResultMapper
             null,
             null,
             null,
-            hot.AmountPerTurn,
-            hot.Duration,
+            hot.AmountPerTick,
+            hot.DurationSeconds,
             CombatNarration.Describe(hot) ?? string.Empty
         );
 
@@ -152,7 +152,7 @@ internal static class CombatActionResultMapper
                     modifier.Attribute.ToContract(),
                     modifier.Amount,
                     modifier.AmountType.ToContract(),
-                    modifier.RemainingTurns
+                    modifier.DurationSeconds
                 ))
                 .ToArray(),
             null,

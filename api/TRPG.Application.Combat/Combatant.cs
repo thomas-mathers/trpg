@@ -1,6 +1,7 @@
 using TRPG.Application.Abilities;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 using PersistedCombat = TRPG.Domain.Models;
@@ -12,14 +13,16 @@ public class ActiveDot
     public string AbilityName { get; init; } = "";
     public int Amount { get; init; }
     public DamageType DamageType { get; init; }
-    public int RemainingTurns { get; set; }
+    public GameInstant NextTickAt { get; set; }
+    public GameInstant ExpiresAt { get; init; }
 }
 
 public class ActiveHot
 {
     public string AbilityName { get; init; } = "";
     public int Amount { get; init; }
-    public int RemainingTurns { get; set; }
+    public GameInstant NextTickAt { get; set; }
+    public GameInstant ExpiresAt { get; init; }
 }
 
 public record ConsumableItemSnapshot(
@@ -78,12 +81,19 @@ public class Combatant
     public Dictionary<WeaponType, int> WeaponSwingCounts { get; init; } = [];
     public Dictionary<Skill, int> SkillUsageCounts { get; init; } = [];
     public Dictionary<Guid, int> ItemsUsedCounts { get; init; } = [];
-    public Dictionary<ConditionType, int> ActiveConditions { get; init; } = [];
+    public Dictionary<ConditionType, GameInstant> ActiveConditions { get; init; } = [];
     public List<ActiveDot> ActiveDots { get; init; } = [];
     public List<ActiveHot> ActiveHots { get; init; } = [];
     public List<ActiveBuff> ActiveBuffs { get; init; } = [];
-    public Dictionary<string, int> CooldownRemainingByAbility { get; init; } = [];
+    public Dictionary<string, GameInstant> CooldownReadyAtByAbility { get; init; } = [];
     public bool IsAlive => CurrentHp > 0;
+
+    public bool IsUnder(ConditionType condition, GameInstant now) =>
+        ActiveConditions.TryGetValue(condition, out var expiresAt) && expiresAt > now;
+
+    public bool IsOnCooldown(string abilityName, GameInstant now) =>
+        CooldownReadyAtByAbility.TryGetValue(abilityName, out var readyAt) && readyAt > now;
+
     public int MaximumHp => (int)CalculateEffectiveAttribute(AttributeName.MaximumHp);
     public int MaximumAp => (int)CalculateEffectiveAttribute(AttributeName.MaximumAp);
     public int MaximumMp => (int)CalculateEffectiveAttribute(AttributeName.MaximumMp);
@@ -172,15 +182,12 @@ public class Combatant
             ConsumableItemSnapshots = ConsumableItemSnapshot.FromItems(items),
             WeaponProficiencies = Enum.GetValues<WeaponType>()
                 .ToDictionary(type => type, weaponProficiencies.GetValueOrDefault),
-            ActiveConditions = Enum.GetValues<ConditionType>()
-                .ToDictionary(
-                    condition => condition,
-                    condition =>
-                        creature.ActiveConditions.GetValueOrDefault(condition.ToString(), 0)
-                ),
-            CooldownRemainingByAbility = abilities.ToDictionary(
-                ability => ability.Name,
-                ability => creature.CooldownRemainingByAbility.GetValueOrDefault(ability.Name, 0)
+            ActiveConditions = creature.ActiveConditions.ToDictionary(
+                kv => Enum.Parse<ConditionType>(kv.Key),
+                kv => kv.Value
+            ),
+            CooldownReadyAtByAbility = new Dictionary<string, GameInstant>(
+                creature.CooldownReadyAtByAbility
             ),
             ActiveDots = creature
                 .ActiveDots.Select(d => new ActiveDot
@@ -188,7 +195,8 @@ public class Combatant
                     AbilityName = d.AbilityName,
                     Amount = d.Amount,
                     DamageType = Enum.Parse<DamageType>(d.DamageType),
-                    RemainingTurns = d.RemainingTurns,
+                    NextTickAt = d.NextTickAt,
+                    ExpiresAt = d.ExpiresAt,
                 })
                 .ToList(),
             ActiveHots = creature
@@ -196,7 +204,8 @@ public class Combatant
                 {
                     AbilityName = h.AbilityName,
                     Amount = h.Amount,
-                    RemainingTurns = h.RemainingTurns,
+                    NextTickAt = h.NextTickAt,
+                    ExpiresAt = h.ExpiresAt,
                 })
                 .ToList(),
             ActiveBuffs = creature
@@ -205,7 +214,7 @@ public class Combatant
                     AbilityName = b.AbilityName,
                     Amount = b.Amount,
                     Attribute = Enum.Parse<AttributeName>(b.Attribute),
-                    RemainingTurns = b.RemainingTurns,
+                    ExpiresAt = b.ExpiresAt,
                     AmountType = Enum.Parse<AmountType>(b.AmountType),
                 })
                 .ToList(),
@@ -223,8 +232,8 @@ public class Combatant
             kv => kv.Key.ToString(),
             kv => kv.Value
         );
-        creature.CooldownRemainingByAbility = new Dictionary<string, int>(
-            CooldownRemainingByAbility
+        creature.CooldownReadyAtByAbility = new Dictionary<string, GameInstant>(
+            CooldownReadyAtByAbility
         );
         creature.ActiveDots = ActiveDots
             .Select(d => new PersistedCombat.ActiveDot
@@ -232,7 +241,8 @@ public class Combatant
                 AbilityName = d.AbilityName,
                 Amount = d.Amount,
                 DamageType = d.DamageType.ToString(),
-                RemainingTurns = d.RemainingTurns,
+                NextTickAt = d.NextTickAt,
+                ExpiresAt = d.ExpiresAt,
             })
             .ToList();
         creature.ActiveHots = ActiveHots
@@ -240,7 +250,8 @@ public class Combatant
             {
                 AbilityName = h.AbilityName,
                 Amount = h.Amount,
-                RemainingTurns = h.RemainingTurns,
+                NextTickAt = h.NextTickAt,
+                ExpiresAt = h.ExpiresAt,
             })
             .ToList();
         creature.ActiveBuffs = ActiveBuffs
@@ -249,7 +260,7 @@ public class Combatant
                 AbilityName = b.AbilityName,
                 Amount = b.Amount,
                 Attribute = b.Attribute.ToString(),
-                RemainingTurns = b.RemainingTurns,
+                ExpiresAt = b.ExpiresAt,
                 AmountType = b.AmountType.ToString(),
             })
             .ToList();

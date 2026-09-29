@@ -43,13 +43,13 @@ export function CombatantCard({
 
   const badges = [
     ...Object.entries(combatant.activeConditions)
-      .filter(([, turns]) => Number(turns) > 0)
-      .map(([type, turns]) => (
+      .filter(([, expiresAt]) => expiresAt !== undefined)
+      .map(([type, expiresAt]) => (
         <EffectBadge
           key={`condition-${type}`}
           kind="condition"
           type={type}
-          remainingTurns={Number(turns)}
+          expiresAtGameTimeMilliseconds={Number(expiresAt)}
         />
       )),
     ...combatant.activeDots.map((dot, index) => (
@@ -215,7 +215,11 @@ function FlashFloat({ flash }: { flash: CombatFlash }) {
   return (
     <motion.span
       key={flash.nonce}
-      animate={{ opacity: [0, 1, 1, 0], scale: [1.5, 1.15, 0.85, 0.7], y: [8, 0, -24, -36] }}
+      animate={{
+        opacity: [0, 1, 1, 0],
+        scale: [1.5, 1.15, 0.85, 0.7],
+        y: [8, 0, -24, -36],
+      }}
       className={cn(
         'pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 font-black tracking-tight whitespace-nowrap [-webkit-text-stroke:1px_rgba(0,0,0,0.85)] [text-shadow:0_1px_0_rgba(0,0,0,0.65),0_2px_3px_rgba(0,0,0,0.4)]',
         current.className,

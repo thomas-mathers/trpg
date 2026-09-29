@@ -13,7 +13,7 @@ internal static class AbilityMapper
             ability.Description,
             ability.ApCost,
             ability.MpCost,
-            ability.Cooldown,
+            (int)ability.Cooldown.TotalSeconds,
             ability is AttackAbility
                 ? ContractAbilityCategory.Offensive
                 : ContractAbilityCategory.Support,

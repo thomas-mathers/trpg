@@ -136,7 +136,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
             _playerId,
             TestContext.Current.CancellationToken
         );
-        var state = combatEngine.ProcessRound(combatants, new ResolvedFleeAction());
+        var state = combatEngine.ProcessRound(combatants, new ResolvedFleeAction(), TestTime.Start);
 
         await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand

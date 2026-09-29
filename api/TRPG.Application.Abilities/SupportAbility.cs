@@ -13,7 +13,7 @@ public class HotEffect
 {
     public float Amount { get; init; }
     public AmountType AmountType { get; init; }
-    public int Duration { get; init; }
+    public TimeSpan Duration { get; init; }
 }
 
 public class SupportAbility : Ability

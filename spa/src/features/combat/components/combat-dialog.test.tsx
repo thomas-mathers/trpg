@@ -25,17 +25,7 @@ import { renderWithProviders } from '@/test/test-utils';
 
 import { CombatDialog } from './combat-dialog';
 
-const noActiveConditions: ActiveConditions = {
-  blinded: 0,
-  bleeding: 0,
-  burning: 0,
-  disarmed: 0,
-  frozen: 0,
-  poisoned: 0,
-  silenced: 0,
-  snared: 0,
-  stunned: 0,
-};
+const noActiveConditions: ActiveConditions = {};
 
 const player: CombatantState = {
   id: 'player-id',
@@ -55,7 +45,12 @@ const player: CombatantState = {
   activeBuffs: [],
 };
 
-const goblin: CombatantState = { ...player, id: 'goblin-id', name: 'Goblin', isPlayer: false };
+const goblin: CombatantState = {
+  ...player,
+  id: 'goblin-id',
+  name: 'Goblin',
+  isPlayer: false,
+};
 const fight: CombatantState[] = [player, goblin];
 
 const ui = {
@@ -75,7 +70,7 @@ function ability(name: string, category: AbilitySummary['category']): AbilitySum
     description: `${name} description`,
     apCost: 1,
     mpCost: 0,
-    cooldown: 0,
+    cooldownSeconds: 0,
     category,
     requiredSkillLevel: 0,
     prerequisites: [],
@@ -139,8 +134,13 @@ function renderConsole(
     </GameHubConnectionContext.Provider>,
   );
 
-  gameEventBus.emit('SceneSnapshot', { playerStatus: { id: 'player-id' } } as SceneSnapshot);
-  gameEventBus.emit('CombatStarted', { fightId: 'fight-id', combatants: fight });
+  gameEventBus.emit('SceneSnapshot', {
+    playerStatus: { id: 'player-id' },
+  } as SceneSnapshot);
+  gameEventBus.emit('CombatStarted', {
+    fightId: 'fight-id',
+    combatants: fight,
+  });
 
   return {
     submitNarratedTurn: gameChat.submitNarratedTurn,
@@ -167,7 +167,9 @@ describe('CombatDialog', () => {
 
   it('chooses an offensive ability after targeting an enemy', async () => {
     server.use(
-      handleGetCreatureAbilities({ body: [ability('Power Strike', 'Offensive')] }),
+      handleGetCreatureAbilities({
+        body: [ability('Power Strike', 'Offensive')],
+      }),
       handleGetPlayerFightAbilities({ body: [] }),
     );
     const { chatHub, user } = renderConsole();
@@ -269,8 +271,13 @@ describe('CombatDialog', () => {
     }
 
     const { user } = renderWithProviders(<Harness />);
-    gameEventBus.emit('SceneSnapshot', { playerStatus: { id: 'player-id' } } as SceneSnapshot);
-    gameEventBus.emit('CombatStarted', { fightId: 'fight-id', combatants: fight });
+    gameEventBus.emit('SceneSnapshot', {
+      playerStatus: { id: 'player-id' },
+    } as SceneSnapshot);
+    gameEventBus.emit('CombatStarted', {
+      fightId: 'fight-id',
+      combatants: fight,
+    });
 
     await user.click(await ui.item.find());
     await user.click(await ui.consumable('Healing Potion').find());

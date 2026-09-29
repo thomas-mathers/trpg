@@ -31,7 +31,7 @@ public record AbilitySummary(
     string Description,
     int ApCost,
     int MpCost,
-    int Cooldown,
+    int CooldownSeconds,
     AbilityCategory Category,
     int RequiredSkillLevel,
     IReadOnlyCollection<string> Prerequisites

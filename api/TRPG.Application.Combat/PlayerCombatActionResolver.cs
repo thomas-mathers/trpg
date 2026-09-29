@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Domain;
 
 namespace TRPG.Application.Combat;
 
@@ -35,17 +36,21 @@ public class PlayerCombatActionResolverResult
 
 public class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
 {
-    public PlayerCombatActionResolverResult Resolve(PlayerCombatAction playerAction) =>
+    public PlayerCombatActionResolverResult Resolve(
+        PlayerCombatAction playerAction,
+        GameInstant now
+    ) =>
         playerAction switch
         {
-            UseAbilityAction useAbility => ResolveUseAbilityAction(combatants, useAbility),
+            UseAbilityAction useAbility => ResolveUseAbilityAction(combatants, useAbility, now),
             UseItemAction useItem => ResolveUseItemAction(combatants, useItem),
             _ => throw new InvalidOperationException("Unrecognized action."),
         };
 
     private static PlayerCombatActionResolverResult ResolveUseAbilityAction(
         IReadOnlyList<Combatant> combatants,
-        UseAbilityAction useAbilityAction
+        UseAbilityAction useAbilityAction,
+        GameInstant now
     )
     {
         var player = combatants.SingleOrDefault(c => c.IsPlayer);
@@ -73,16 +78,16 @@ public class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
             );
         }
 
-        if (
-            player.CooldownRemainingByAbility.TryGetValue(
-                useAbilityAction.AbilityName,
-                out var cooldown
-            )
-            && cooldown > 0
-        )
+        if (player.IsOnCooldown(useAbilityAction.AbilityName, now))
         {
+            var secondsRemaining = (int)
+                Math.Ceiling(
+                    (
+                        player.CooldownReadyAtByAbility[useAbilityAction.AbilityName] - now
+                    ).TotalSeconds
+                );
             return PlayerCombatActionResolverResult.Failure(
-                $"Ability '{useAbilityAction.AbilityName}' is on cooldown for {cooldown} more round(s)."
+                $"Ability '{useAbilityAction.AbilityName}' is on cooldown for {secondsRemaining} more second(s)."
             );
         }
 

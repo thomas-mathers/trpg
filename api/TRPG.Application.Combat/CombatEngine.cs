@@ -5,6 +5,7 @@ using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Extensions;
 using TRPG.Application.Configuration;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 
@@ -15,12 +16,14 @@ public class CombatEngine(
     IOptionsSnapshot<FleeOptions> fleeOptionsSnapshot,
     HitCalculator hitCalculator,
     DamageCalculator damageCalculator,
-    EnemyCombatActionResolver enemyCombatActionResolver
+    EnemyCombatActionResolver enemyCombatActionResolver,
+    EffectAdvancer effectAdvancer
 )
 {
     public CombatState ProcessRound(
         IReadOnlyList<Combatant> combatants,
         ResolvedCombatAction action,
+        GameInstant now,
         bool isSurpriseRound = false
     )
     {
@@ -39,9 +42,13 @@ public class CombatEngine(
             );
         }
 
-        var combatEvents = isSurpriseRound
-            ? ProcessTurn(player, action)
-            : ProcessNormalRound(combatants, player, action);
+        var combatEvents = AdvanceEffects(combatants, now);
+
+        combatEvents.AddRange(
+            isSurpriseRound
+                ? ProcessTurn(player, action, now)
+                : ProcessNormalRound(combatants, player, action, now)
+        );
 
         var outcome = GetCurrentOutcome(player, enemies);
 
@@ -72,10 +79,16 @@ public class CombatEngine(
             .Select(combatant => combatant.ToCombatantResult())
             .ToArray();
 
+    private List<CombatResolution> AdvanceEffects(
+        IReadOnlyList<Combatant> combatants,
+        GameInstant now
+    ) => combatants.SelectMany(combatant => effectAdvancer.Advance(combatant, now)).ToList();
+
     private List<CombatResolution> ProcessNormalRound(
         IReadOnlyList<Combatant> combatants,
         Combatant player,
-        ResolvedCombatAction action
+        ResolvedCombatAction action,
+        GameInstant now
     )
     {
         var turnOrder = combatants.OrderByTurnOrder();
@@ -83,8 +96,12 @@ public class CombatEngine(
         var combatEvents = turnOrder
             .SelectMany(combatant =>
                 combatant == player
-                    ? ProcessTurn(player, action)
-                    : ProcessTurn(combatant, enemyCombatActionResolver.Resolve(combatant, player))
+                    ? ProcessTurn(player, action, now)
+                    : ProcessTurn(
+                        combatant,
+                        enemyCombatActionResolver.Resolve(combatant, player, now),
+                        now
+                    )
             )
             .ToList();
 
@@ -109,49 +126,47 @@ public class CombatEngine(
         return regenerationEvents;
     }
 
-    private List<CombatResolution> ProcessTurn(Combatant actor, ResolvedCombatAction action)
+    private List<CombatResolution> ProcessTurn(
+        Combatant actor,
+        ResolvedCombatAction action,
+        GameInstant now
+    )
     {
         if (!actor.IsAlive)
         {
             return [];
         }
 
-        var tickEvents = ProcessTicks(actor);
-
-        if (!actor.IsAlive)
-        {
-            return tickEvents;
-        }
-
-        var incapacitationEvent = GetIncapacitationEvent(actor, action);
-
-        TickConditions(actor);
+        var incapacitationEvent = GetIncapacitationEvent(actor, action, now);
 
         if (incapacitationEvent is not null)
         {
-            return tickEvents.Concat([incapacitationEvent]).ToList();
+            return [incapacitationEvent];
         }
 
-        var actionEvents = action switch
+        return action switch
         {
-            ResolvedUseAbilityAction resolved => ProcessAbility(actor, resolved),
+            ResolvedUseAbilityAction resolved => ProcessAbility(actor, resolved, now),
             ResolvedUseItemAction resolved => ProcessItem(actor, resolved.Item),
             // Reached only when the flee attempt was caught — a successful escape already returned above.
             ResolvedFleeAction => [new FleeFailed(actor.CreatureId, actor.Name)],
             _ => [],
         };
-
-        return tickEvents.Concat(actionEvents).ToList();
     }
 
     private List<CombatResolution> ProcessAbility(
         Combatant actor,
-        ResolvedUseAbilityAction resolvedUseAbilityAction
+        ResolvedUseAbilityAction resolvedUseAbilityAction,
+        GameInstant now
     )
     {
         var (ability, targets) = resolvedUseAbilityAction;
 
-        actor.CooldownRemainingByAbility[ability.Name] = ability.Cooldown;
+        if (ability.Cooldown > TimeSpan.Zero)
+        {
+            actor.CooldownReadyAtByAbility[ability.Name] = now + ability.Cooldown;
+        }
+
         actor.CurrentAp -= ability.ApCost;
         actor.CurrentMp -= ability.MpCost;
 
@@ -171,8 +186,8 @@ public class CombatEngine(
 
         var actionEvents = ability switch
         {
-            SupportAbility support => ApplySupport(actor, support, targets),
-            AttackAbility attack => ApplyAttack(actor, attack, targets),
+            SupportAbility support => ApplySupport(actor, support, targets, now),
+            AttackAbility attack => ApplyAttack(actor, attack, targets, now),
             _ => [],
         };
 
@@ -277,21 +292,11 @@ public class CombatEngine(
             );
     }
 
-    private static void TickCooldowns(Combatant actor)
-    {
-        foreach (var abilityName in actor.CooldownRemainingByAbility.Keys)
-        {
-            actor.CooldownRemainingByAbility[abilityName] = Math.Max(
-                0,
-                actor.CooldownRemainingByAbility[abilityName] - 1
-            );
-        }
-    }
-
     private static List<CombatResolution> ApplySupport(
         Combatant actor,
         SupportAbility ability,
-        IReadOnlyList<Combatant> targets
+        IReadOnlyList<Combatant> targets,
+        GameInstant now
     )
     {
         var buffs =
@@ -309,12 +314,12 @@ public class CombatEngine(
             }
 
             combatEvents.AddRange(
-                ability.Hots.Select(hot => ApplyHot(actor, ability.Name, hot, target))
+                ability.Hots.Select(hot => ApplyHot(actor, ability.Name, hot, target, now))
             );
 
             if (buffs.Count > 0)
             {
-                combatEvents.Add(ApplyBuffs(actor, ability.Name, buffs, target));
+                combatEvents.Add(ApplyBuffs(actor, ability.Name, buffs, target, now));
             }
         }
 
@@ -350,10 +355,11 @@ public class CombatEngine(
         Combatant actor,
         string abilityName,
         HotEffect hot,
-        Combatant target
+        Combatant target,
+        GameInstant now
     )
     {
-        var amountPerTurn =
+        var amountPerTick =
             hot.AmountType == AmountType.Percent
                 ? (int)Math.Round(target.MaximumHp * hot.Amount)
                 : (int)Math.Round(hot.Amount);
@@ -363,8 +369,9 @@ public class CombatEngine(
             new ActiveHot
             {
                 AbilityName = abilityName,
-                Amount = amountPerTurn,
-                RemainingTurns = hot.Duration,
+                Amount = amountPerTick,
+                NextTickAt = now + CombatTiming.Round,
+                ExpiresAt = now + hot.Duration,
             }
         );
 
@@ -374,8 +381,8 @@ public class CombatEngine(
             abilityName,
             target.CreatureId,
             target.Name,
-            amountPerTurn,
-            hot.Duration
+            amountPerTick,
+            (int)hot.Duration.TotalSeconds
         );
     }
 
@@ -383,7 +390,8 @@ public class CombatEngine(
         Combatant actor,
         string abilityName,
         IReadOnlyList<AttributeEffect> buffs,
-        Combatant target
+        Combatant target,
+        GameInstant now
     )
     {
         var appliedModifiers = new List<BuffModifierInfo>();
@@ -400,12 +408,17 @@ public class CombatEngine(
                     Amount = buff.Amount,
                     AmountType = buff.AmountType,
                     Attribute = buff.Attribute,
-                    RemainingTurns = buff.Duration,
+                    ExpiresAt = now + buff.Duration,
                 }
             );
 
             appliedModifiers.Add(
-                new BuffModifierInfo(buff.Amount, buff.AmountType, buff.Attribute, buff.Duration)
+                new BuffModifierInfo(
+                    buff.Amount,
+                    buff.AmountType,
+                    buff.Attribute,
+                    (int)buff.Duration.TotalSeconds
+                )
             );
         }
 
@@ -422,7 +435,8 @@ public class CombatEngine(
     private List<CombatResolution> ApplyAttack(
         Combatant attacker,
         AttackAbility ability,
-        IReadOnlyList<Combatant> defenders
+        IReadOnlyList<Combatant> defenders,
+        GameInstant now
     )
     {
         var mainHandWeapon = attacker.MainHandWeapon;
@@ -446,12 +460,12 @@ public class CombatEngine(
         {
             combatEvents.AddRange(
                 mainHandAbilities.Select(a =>
-                    ResolveWeaponSwing(attacker, a, defender, mainHandWeapon)
+                    ResolveWeaponSwing(attacker, a, defender, mainHandWeapon, now)
                 )
             );
             combatEvents.AddRange(
                 offHandAbilities.Select(a =>
-                    ResolveWeaponSwing(attacker, a, defender, offHandWeapon)
+                    ResolveWeaponSwing(attacker, a, defender, offHandWeapon, now)
                 )
             );
         }
@@ -463,7 +477,8 @@ public class CombatEngine(
         Combatant attacker,
         AttackAbility ability,
         Combatant defender,
-        Weapon? weapon
+        Weapon? weapon,
+        GameInstant now
     )
     {
         if (ability.DamageType == DamageType.Physical && weapon is { } swungWeapon)
@@ -523,7 +538,8 @@ public class CombatEngine(
                             ? (int)Math.Round(defender.MaximumHp * dot.Amount)
                             : (int)Math.Round(dot.Amount),
                     DamageType = ability.DamageType,
-                    RemainingTurns = dot.Duration,
+                    NextTickAt = now + CombatTiming.Round,
+                    ExpiresAt = now + dot.Duration,
                 }
             );
         }
@@ -532,7 +548,7 @@ public class CombatEngine(
 
         foreach (var status in ability.Conditions)
         {
-            defender.ActiveConditions[status.Condition] = status.Duration;
+            defender.ActiveConditions[status.Condition] = now + status.Duration;
             appliedConditions.Add(status.Condition);
         }
 
@@ -548,7 +564,7 @@ public class CombatEngine(
                     Amount = debuff.Amount,
                     AmountType = debuff.AmountType,
                     Attribute = debuff.Attribute,
-                    RemainingTurns = debuff.Duration,
+                    ExpiresAt = now + debuff.Duration,
                 }
             );
         }
@@ -569,121 +585,18 @@ public class CombatEngine(
         );
     }
 
-    private List<CombatResolution> ProcessTicks(Combatant actor)
-    {
-        var hotEvents = TickHots(actor);
-        var dotEvents = TickDots(actor);
-
-        TickBuffs(actor);
-
-        var tickEvents = hotEvents.Concat(dotEvents).ToList();
-
-        if (actor.IsAlive)
-        {
-            TickCooldowns(actor);
-        }
-
-        return tickEvents;
-    }
-
-    private static void TickConditions(Combatant actor)
-    {
-        foreach (var condition in actor.ActiveConditions.Keys.ToArray())
-        {
-            if (actor.ActiveConditions[condition] > 0)
-            {
-                actor.ActiveConditions[condition]--;
-            }
-        }
-    }
-
-    private static List<CombatResolution> TickHots(Combatant actor)
-    {
-        var healEvents = new List<CombatResolution>();
-
-        foreach (var hot in actor.ActiveHots.Where(hot => hot.RemainingTurns > 0))
-        {
-            hot.RemainingTurns--;
-
-            actor.CurrentHp = Math.Min(actor.CurrentHp + hot.Amount, actor.MaximumHp);
-
-            healEvents.Add(
-                new Healed(
-                    actor.CreatureId,
-                    actor.Name,
-                    hot.AbilityName,
-                    actor.CreatureId,
-                    actor.Name,
-                    hot.Amount,
-                    actor.CurrentHp,
-                    actor.MaximumHp
-                )
-            );
-        }
-
-        actor.ActiveHots.RemoveAll(hot => hot.RemainingTurns == 0);
-
-        return healEvents;
-    }
-
-    private static void TickBuffs(Combatant actor)
-    {
-        foreach (var buff in actor.ActiveBuffs.Where(buff => buff.RemainingTurns > 0))
-        {
-            buff.RemainingTurns--;
-        }
-
-        actor.ActiveBuffs.RemoveAll(buff => buff.RemainingTurns == 0);
-    }
-
-    private List<CombatResolution> TickDots(Combatant defender)
-    {
-        var damageTickedEvents = new List<CombatResolution>();
-
-        foreach (var dot in defender.ActiveDots.Where(dot => dot.RemainingTurns > 0))
-        {
-            dot.RemainingTurns--;
-
-            var damage = damageCalculator.CalculateDamage(dot.Amount, dot.DamageType, defender);
-
-            defender.CurrentHp = Math.Max(defender.CurrentHp - damage, 0);
-
-            damageTickedEvents.Add(
-                new DamageTicked(
-                    defender.Name,
-                    dot.AbilityName,
-                    dot.DamageType,
-                    damage,
-                    defender.CurrentHp,
-                    defender.MaximumHp,
-                    !defender.IsAlive
-                )
-            );
-
-            if (!defender.IsAlive)
-            {
-                break;
-            }
-        }
-
-        defender.ActiveDots.RemoveAll(dot => dot.RemainingTurns == 0);
-
-        return damageTickedEvents;
-    }
-
     private static CombatResolution? GetIncapacitationEvent(
         Combatant attacker,
-        ResolvedCombatAction action
+        ResolvedCombatAction action,
+        GameInstant now
     )
     {
-        var frozenTurnsRemaining = attacker.ActiveConditions[ConditionType.Frozen];
-        if (frozenTurnsRemaining > 0)
+        if (attacker.IsUnder(ConditionType.Frozen, now))
         {
             return new NoAction(attacker.Name, ConditionType.Frozen);
         }
 
-        var stunnedTurnsRemaining = attacker.ActiveConditions[ConditionType.Stunned];
-        if (stunnedTurnsRemaining > 0)
+        if (attacker.IsUnder(ConditionType.Stunned, now))
         {
             return new NoAction(attacker.Name, ConditionType.Stunned);
         }
@@ -697,18 +610,16 @@ public class CombatEngine(
             return null;
         }
 
-        var blindedTurnsRemaining = attacker.ActiveConditions[ConditionType.Blinded];
         if (
-            blindedTurnsRemaining > 0
+            attacker.IsUnder(ConditionType.Blinded, now)
             && ability is AttackAbility { DamageType: DamageType.Physical }
         )
         {
             return new NoAction(attacker.Name, ConditionType.Blinded);
         }
 
-        var silencedTurnsRemaining = attacker.ActiveConditions[ConditionType.Silenced];
         if (
-            silencedTurnsRemaining > 0
+            attacker.IsUnder(ConditionType.Silenced, now)
             && ability
                 is AttackAbility
                 {

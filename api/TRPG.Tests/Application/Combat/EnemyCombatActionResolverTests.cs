@@ -50,7 +50,7 @@ public class EnemyCombatActionResolverTests
         var monster = MakeCombatant("Wraith").WithItem(potion).WithCurrentHp(1).Build();
 
         // Act
-        var result = Resolver.Resolve(monster, player);
+        var result = Resolver.Resolve(monster, player, TestTime.Start);
 
         // Assert
         var itemAction = Assert.IsType<ResolvedUseItemAction>(result);
@@ -75,7 +75,7 @@ public class EnemyCombatActionResolverTests
             .Build();
 
         // Act
-        var result = Resolver.Resolve(monster, player);
+        var result = Resolver.Resolve(monster, player, TestTime.Start);
 
         // Assert — the ability is preferred; the potion is left untouched
         var abilityAction = Assert.IsType<ResolvedUseAbilityAction>(result);
@@ -96,7 +96,7 @@ public class EnemyCombatActionResolverTests
         var monster = MakeCombatant("Wraith").WithItem(potion).WithCurrentAp(1).Build();
 
         // Act
-        var result = Resolver.Resolve(monster, player);
+        var result = Resolver.Resolve(monster, player, TestTime.Start);
 
         // Assert
         var itemAction = Assert.IsType<ResolvedUseItemAction>(result);
@@ -117,7 +117,7 @@ public class EnemyCombatActionResolverTests
         var monster = MakeCombatant("Wraith").WithItem(potion).WithCurrentMp(1).Build();
 
         // Act
-        var result = Resolver.Resolve(monster, player);
+        var result = Resolver.Resolve(monster, player, TestTime.Start);
 
         // Assert
         var itemAction = Assert.IsType<ResolvedUseItemAction>(result);
@@ -142,7 +142,7 @@ public class EnemyCombatActionResolverTests
             .Build();
 
         // Act
-        var result = Resolver.Resolve(monster, player);
+        var result = Resolver.Resolve(monster, player, TestTime.Start);
 
         // Assert — raises its guard as a last resort rather than drinking an unrelated potion
         var abilityAction = Assert.IsType<ResolvedUseAbilityAction>(result);
@@ -159,7 +159,8 @@ public class EnemyCombatActionResolverTests
         var monster = MakeCombatant("Wraith").WithAbilities(battleStance).Build();
 
         // Act
-        var result = MakeResolver(openingBuffChancePercent: 1f).Resolve(monster, player);
+        var result = MakeResolver(openingBuffChancePercent: 1f)
+            .Resolve(monster, player, TestTime.Start);
 
         // Assert
         Assert.Equal("Battle Stance", Assert.IsType<ResolvedUseAbilityAction>(result).Ability.Name);
@@ -185,7 +186,8 @@ public class EnemyCombatActionResolverTests
         var monster = MakeCombatant("Wraith").WithAbilities(strengthBuff, speedBuff).Build();
 
         // Act
-        var result = MakeResolver(openingBuffChancePercent: 1f).Resolve(monster, player);
+        var result = MakeResolver(openingBuffChancePercent: 1f)
+            .Resolve(monster, player, TestTime.Start);
 
         // Assert
         Assert.Equal("Battle Stance", Assert.IsType<ResolvedUseAbilityAction>(result).Ability.Name);
@@ -201,7 +203,8 @@ public class EnemyCombatActionResolverTests
         var monster = MakeCombatant("Wraith").WithAbilities(battleStance).Build();
 
         // Act
-        var result = MakeResolver(openingBuffChancePercent: 0f).Resolve(monster, player);
+        var result = MakeResolver(openingBuffChancePercent: 0f)
+            .Resolve(monster, player, TestTime.Start);
 
         // Assert
         Assert.Equal("Strike", Assert.IsType<ResolvedUseAbilityAction>(result).Ability.Name);

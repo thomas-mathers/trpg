@@ -19,20 +19,20 @@ public static class CombatantExtensions
             MaximumMp: combatant.MaximumMp,
             IsAlive: combatant.IsAlive,
             Abilities: combatant.Abilities.Select(a => a.Name).ToArray(),
-            ActiveConditions: combatant.ActiveConditions.Where(c => c.Value > 0).ToDictionary(),
+            ActiveConditions: combatant.ActiveConditions.ToDictionary(),
             ActiveDots: combatant
                 .ActiveDots.Select(dot => new CombatDotState(
                     dot.AbilityName,
                     dot.Amount,
                     dot.DamageType,
-                    dot.RemainingTurns
+                    dot.ExpiresAt
                 ))
                 .ToArray(),
             ActiveHots: combatant
                 .ActiveHots.Select(hot => new CombatHotState(
                     hot.AbilityName,
                     hot.Amount,
-                    hot.RemainingTurns
+                    hot.ExpiresAt
                 ))
                 .ToArray(),
             ActiveBuffs: combatant
@@ -41,7 +41,7 @@ public static class CombatantExtensions
                     buff.Attribute,
                     buff.Amount,
                     buff.AmountType,
-                    buff.RemainingTurns
+                    buff.ExpiresAt
                 ))
                 .ToArray(),
             ItemsUsedCounts: combatant.ItemsUsedCounts.ToDictionary()

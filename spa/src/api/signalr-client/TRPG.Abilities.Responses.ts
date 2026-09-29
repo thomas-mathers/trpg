@@ -21,7 +21,7 @@ export type AbilitySummary = {
     /** Transpiled from int */
     mpCost: number;
     /** Transpiled from int */
-    cooldown: number;
+    cooldownSeconds: number;
     /** Transpiled from TRPG.Abilities.Responses.AbilityCategory */
     category: AbilityCategory;
     /** Transpiled from int */

@@ -1,4 +1,5 @@
 using TRPG.Application.Abilities;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Results;
@@ -16,7 +17,7 @@ public record CombatantResult(
     int MaximumMp,
     bool IsAlive,
     IReadOnlyList<string> Abilities,
-    IReadOnlyDictionary<ConditionType, int> ActiveConditions,
+    IReadOnlyDictionary<ConditionType, GameInstant> ActiveConditions,
     IReadOnlyCollection<CombatDotState> ActiveDots,
     IReadOnlyCollection<CombatHotState> ActiveHots,
     IReadOnlyCollection<CombatBuffState> ActiveBuffs,
@@ -27,15 +28,15 @@ public record CombatDotState(
     string AbilityName,
     int Amount,
     DamageType DamageType,
-    int RemainingTurns
+    GameInstant ExpiresAt
 );
 
-public record CombatHotState(string AbilityName, int Amount, int RemainingTurns);
+public record CombatHotState(string AbilityName, int Amount, GameInstant ExpiresAt);
 
 public record CombatBuffState(
     string AbilityName,
     AttributeName Attribute,
     float Amount,
     AmountType AmountType,
-    int RemainingTurns
+    GameInstant ExpiresAt
 );
