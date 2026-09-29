@@ -2,6 +2,7 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Configuration;
+using TRPG.Application.Effects;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -48,8 +49,8 @@ public class FightSimulator
             hitCalculator,
             damageCalculator,
             _resolver,
-            new EffectAdvancer(damageCalculator, CombatTimeScale.Unscaled),
-            CombatTimeScale.Unscaled
+            new EffectAdvancer(combatOptionsSnapshot, EffectTimeScale.Unscaled),
+            EffectTimeScale.Unscaled
         );
         _creatureGeneratorOptions = creatureGeneratorOptions ?? new CreatureGeneratorOptions();
     }

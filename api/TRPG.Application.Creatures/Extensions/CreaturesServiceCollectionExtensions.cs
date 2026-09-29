@@ -13,6 +13,7 @@ public static class CreaturesServiceCollectionExtensions
         serviceCollection
             .AddSingleton<IChanceRoller, ChanceRoller>()
             .AddTransient<SkillCheckService>()
+            .AddTransient<CreatureEffectAdvancer>()
             .AddTransient<SneakDetectionService>()
             .AddTransient<CreatureEquipmentChangedEventHandler>()
             .AddTransient<IDomainEventConsumer<CreatureEquipmentChangedEvent>>(serviceProvider =>

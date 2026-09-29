@@ -4,26 +4,11 @@ using TRPG.Application.CreatureFormulas;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
+using ActiveDot = TRPG.Application.Effects.ActiveDot;
+using ActiveHot = TRPG.Application.Effects.ActiveHot;
 using PersistedCombat = TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
-
-public class ActiveDot
-{
-    public string AbilityName { get; init; } = "";
-    public int Amount { get; init; }
-    public DamageType DamageType { get; init; }
-    public GameInstant NextTickAt { get; set; }
-    public GameInstant ExpiresAt { get; init; }
-}
-
-public class ActiveHot
-{
-    public string AbilityName { get; init; } = "";
-    public int Amount { get; init; }
-    public GameInstant NextTickAt { get; set; }
-    public GameInstant ExpiresAt { get; init; }
-}
 
 public record ConsumableItemSnapshot(
     Guid ItemId,
@@ -277,13 +262,5 @@ public class Combatant
         StatFormulas.CalculateEffectiveAttribute(Attributes, ActiveBuffs, EquippedItems, attribute);
 
     public float ResistanceFor(DamageType damageType) =>
-        damageType switch
-        {
-            DamageType.Physical => PhysicalResistance,
-            DamageType.Fire => FireResistance,
-            DamageType.Ice => IceResistance,
-            DamageType.Lightning => LightningResistance,
-            DamageType.Poison => PoisonResistance,
-            DamageType.Magic => MagicResistance,
-        };
+        CalculateEffectiveAttribute(DamageMitigation.ResistanceAttribute(damageType));
 }

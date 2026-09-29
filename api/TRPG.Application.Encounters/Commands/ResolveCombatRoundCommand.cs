@@ -25,7 +25,7 @@ internal class ResolveCombatRoundCommand
 }
 
 internal class ResolveCombatRoundCommandHandler(
-    ICommandHandler<PersistCombatantsCommand> persistCombatants,
+    ICommandHandler<PersistCreatureStatesCommand> persistCreatureStates,
     ICommandHandler<AdjustWeaponProficienciesCommand> adjustWeaponProficiencies,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
     ICommandHandler<RemoveInventoryItemsCommand> removeInventoryItems,
@@ -45,11 +45,11 @@ internal class ResolveCombatRoundCommandHandler(
         );
         var state = command.State;
 
-        await persistCombatants.Handle(
-            new PersistCombatantsCommand
+        await persistCreatureStates.Handle(
+            new PersistCreatureStatesCommand
             {
                 Updates = command
-                    .Combatants.Select(combatant => combatant.ToCreatureCombatStateUpdate())
+                    .Combatants.Select(combatant => combatant.ToCreatureStateUpdate())
                     .ToArray(),
             },
             cancellationToken

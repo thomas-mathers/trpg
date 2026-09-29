@@ -7,7 +7,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 
-public record CreatureCombatStateUpdate(
+public record CreatureStateUpdate(
     Guid CreatureId,
     int CurrentHp,
     int CurrentAp,
@@ -20,19 +20,19 @@ public record CreatureCombatStateUpdate(
     IReadOnlyList<ActiveBuff> ActiveBuffs
 );
 
-public class PersistCombatantsCommand
+public class PersistCreatureStatesCommand
 {
-    public required IReadOnlyList<CreatureCombatStateUpdate> Updates { get; init; }
+    public required IReadOnlyList<CreatureStateUpdate> Updates { get; init; }
 }
 
-internal class PersistCombatantsCommandHandler(
+internal class PersistCreatureStatesCommandHandler(
     ICreaturesDbContext context,
     IDomainEventPublisher<CreatureEquipmentChangedEvent> creatureEquipmentChanged,
     IDomainEventPublisher<CreaturesDiedEvent> creaturesDied
-) : ICommandHandler<PersistCombatantsCommand>
+) : ICommandHandler<PersistCreatureStatesCommand>
 {
     public async Task Handle(
-        PersistCombatantsCommand command,
+        PersistCreatureStatesCommand command,
         CancellationToken cancellationToken = default
     )
     {

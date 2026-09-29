@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
-using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Encounters.Commands;
+namespace TRPG.Tests.Application.Creatures.Commands;
 
 public sealed class AdvanceCreatureEffectsCommandTests(DatabaseFixture db)
     : IAsyncLifetime,

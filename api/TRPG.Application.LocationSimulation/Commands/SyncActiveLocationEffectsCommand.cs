@@ -1,5 +1,6 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters.Commands;
