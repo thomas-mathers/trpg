@@ -141,6 +141,7 @@ internal sealed class ContinuousWorldProcessor(
                     },
                     cancellationToken
                 );
+            await TickEffects(worldId, players, gameTime, cancellationToken);
             await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
             await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
             return;
@@ -192,6 +193,34 @@ internal sealed class ContinuousWorldProcessor(
         }
 
         // Flushing inside the lease keeps the snapshot ordered with the mutations it describes.
+        await services
+            .GetRequiredService<IGameClientEventDispatcher>()
+            .FlushAsync(worldId, cancellationToken);
+    }
+
+    private async Task TickEffects(
+        Guid worldId,
+        IReadOnlyCollection<ActiveLocationPlayer> players,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var services = scope.ServiceProvider;
+
+        await services
+            .GetRequiredService<ICommandHandler<SyncActiveLocationEffectsCommand>>()
+            .Handle(
+                new SyncActiveLocationEffectsCommand
+                {
+                    WorldId = worldId,
+                    Players = players,
+                    GameTime = gameTime,
+                },
+                cancellationToken
+            );
+
+        // Flushing inside the lease keeps fight updates and vitals ordered with the mutations they describe.
         await services
             .GetRequiredService<IGameClientEventDispatcher>()
             .FlushAsync(worldId, cancellationToken);

@@ -1,11 +1,23 @@
 using TRPG.Application.Combat;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Results;
 using PersistedCombat = TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Mappers;
 
 internal static class CombatantMapper
 {
+    public static CreatureVitals ToVitals(this Combatant combatant) =>
+        new(
+            combatant.CreatureId,
+            combatant.CurrentHp,
+            combatant.MaximumHp,
+            combatant.CurrentAp,
+            combatant.MaximumAp,
+            combatant.CurrentMp,
+            combatant.MaximumMp
+        );
+
     public static CreatureCombatStateUpdate ToCreatureCombatStateUpdate(this Combatant combatant) =>
         new(
             combatant.CreatureId,

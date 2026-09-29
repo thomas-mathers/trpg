@@ -23,7 +23,6 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
     private GameSession _session = null!;
     private World _world = null!;
-    private Guid _sessionId;
 
     public async ValueTask InitializeAsync()
     {
@@ -42,7 +41,6 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        _sessionId = _session.Id;
     }
 
     public async ValueTask DisposeAsync()
@@ -83,12 +81,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
+            new EndFightCommand { WorldId = WorldId, State = state },
             TestContext.Current.CancellationToken
         );
 
@@ -128,12 +121,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
+            new EndFightCommand { WorldId = WorldId, State = state },
             TestContext.Current.CancellationToken
         );
 
@@ -168,12 +156,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
+            new EndFightCommand { WorldId = WorldId, State = state },
             TestContext.Current.CancellationToken
         );
 
@@ -210,12 +193,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
+            new EndFightCommand { WorldId = WorldId, State = state },
             TestContext.Current.CancellationToken
         );
 
@@ -253,12 +231,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
+            new EndFightCommand { WorldId = WorldId, State = state },
             TestContext.Current.CancellationToken
         );
 
@@ -313,12 +286,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
+            new EndFightCommand { WorldId = WorldId, State = state },
             TestContext.Current.CancellationToken
         );
 
@@ -347,12 +315,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EndFightCommand
-            {
-                SessionId = _sessionId,
-                WorldId = WorldId,
-                State = state,
-            },
+            new EndFightCommand { WorldId = WorldId, State = state },
             TestContext.Current.CancellationToken
         );
 
@@ -385,7 +348,6 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new EndFightCommand
             {
-                SessionId = _sessionId,
                 WorldId = WorldId,
                 State = state,
                 GameTime = GameClock.Epoch + TimeSpan.FromHours(3),
@@ -425,7 +387,6 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new EndFightCommand
             {
-                SessionId = _sessionId,
                 WorldId = WorldId,
                 State = state,
                 GameTime = GameClock.Epoch + TimeSpan.FromHours(2),

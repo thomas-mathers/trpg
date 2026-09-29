@@ -17,7 +17,8 @@ public class CombatEngine(
     HitCalculator hitCalculator,
     DamageCalculator damageCalculator,
     EnemyCombatActionResolver enemyCombatActionResolver,
-    EffectAdvancer effectAdvancer
+    EffectAdvancer effectAdvancer,
+    CombatTimeScale timeScale
 )
 {
     public CombatState ProcessRound(
@@ -54,6 +55,22 @@ public class CombatEngine(
 
         return new CombatState(
             Outcome: outcome,
+            Combatants: ToOrderedCombatantResults(combatants),
+            Events: combatEvents,
+            WeaponSwingCounts: player.WeaponSwingCounts,
+            SkillUsageCounts: player.SkillUsageCounts
+        );
+    }
+
+    public CombatState ProcessEffectTick(IReadOnlyList<Combatant> combatants, GameInstant now)
+    {
+        var player = combatants.Single(c => c.IsPlayer);
+        var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
+
+        var combatEvents = AdvanceEffects(combatants, now);
+
+        return new CombatState(
+            Outcome: GetCurrentOutcome(player, enemies),
             Combatants: ToOrderedCombatantResults(combatants),
             Events: combatEvents,
             WeaponSwingCounts: player.WeaponSwingCounts,
@@ -164,7 +181,7 @@ public class CombatEngine(
 
         if (ability.Cooldown > TimeSpan.Zero)
         {
-            actor.CooldownReadyAtByAbility[ability.Name] = now + ability.Cooldown;
+            actor.CooldownReadyAtByAbility[ability.Name] = now + timeScale.Scale(ability.Cooldown);
         }
 
         actor.CurrentAp -= ability.ApCost;
@@ -292,7 +309,7 @@ public class CombatEngine(
             );
     }
 
-    private static List<CombatResolution> ApplySupport(
+    private List<CombatResolution> ApplySupport(
         Combatant actor,
         SupportAbility ability,
         IReadOnlyList<Combatant> targets,
@@ -351,7 +368,7 @@ public class CombatEngine(
         );
     }
 
-    private static CombatResolution ApplyHot(
+    private CombatResolution ApplyHot(
         Combatant actor,
         string abilityName,
         HotEffect hot,
@@ -370,8 +387,8 @@ public class CombatEngine(
             {
                 AbilityName = abilityName,
                 Amount = amountPerTick,
-                NextTickAt = now + CombatTiming.Round,
-                ExpiresAt = now + hot.Duration,
+                NextTickAt = now + timeScale.Round,
+                ExpiresAt = now + timeScale.Scale(hot.Duration),
             }
         );
 
@@ -382,11 +399,11 @@ public class CombatEngine(
             target.CreatureId,
             target.Name,
             amountPerTick,
-            (int)hot.Duration.TotalSeconds
+            (int)timeScale.Scale(hot.Duration).TotalSeconds
         );
     }
 
-    private static CombatResolution ApplyBuffs(
+    private CombatResolution ApplyBuffs(
         Combatant actor,
         string abilityName,
         IReadOnlyList<AttributeEffect> buffs,
@@ -408,7 +425,7 @@ public class CombatEngine(
                     Amount = buff.Amount,
                     AmountType = buff.AmountType,
                     Attribute = buff.Attribute,
-                    ExpiresAt = now + buff.Duration,
+                    ExpiresAt = now + timeScale.Scale(buff.Duration),
                 }
             );
 
@@ -417,7 +434,7 @@ public class CombatEngine(
                     buff.Amount,
                     buff.AmountType,
                     buff.Attribute,
-                    (int)buff.Duration.TotalSeconds
+                    (int)timeScale.Scale(buff.Duration).TotalSeconds
                 )
             );
         }
@@ -538,8 +555,8 @@ public class CombatEngine(
                             ? (int)Math.Round(defender.MaximumHp * dot.Amount)
                             : (int)Math.Round(dot.Amount),
                     DamageType = ability.DamageType,
-                    NextTickAt = now + CombatTiming.Round,
-                    ExpiresAt = now + dot.Duration,
+                    NextTickAt = now + timeScale.Round,
+                    ExpiresAt = now + timeScale.Scale(dot.Duration),
                 }
             );
         }
@@ -548,7 +565,7 @@ public class CombatEngine(
 
         foreach (var status in ability.Conditions)
         {
-            defender.ActiveConditions[status.Condition] = now + status.Duration;
+            defender.ActiveConditions[status.Condition] = now + timeScale.Scale(status.Duration);
             appliedConditions.Add(status.Condition);
         }
 
@@ -564,7 +581,7 @@ public class CombatEngine(
                     Amount = debuff.Amount,
                     AmountType = debuff.AmountType,
                     Attribute = debuff.Attribute,
-                    ExpiresAt = now + debuff.Duration,
+                    ExpiresAt = now + timeScale.Scale(debuff.Duration),
                 }
             );
         }

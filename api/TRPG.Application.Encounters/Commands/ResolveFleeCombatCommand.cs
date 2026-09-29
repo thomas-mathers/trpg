@@ -60,7 +60,6 @@ internal class ResolveFleeCombatCommandHandler(
         var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 LocationId = fight!.LocationId,

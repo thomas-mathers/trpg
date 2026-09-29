@@ -10,6 +10,7 @@ public static class LocationSimulationServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection
+            .AddTransient<PlayerVitalsPublisher>()
             .AddTransient<CreaturesReleasedEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesReleasedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreaturesReleasedEventHandler>()

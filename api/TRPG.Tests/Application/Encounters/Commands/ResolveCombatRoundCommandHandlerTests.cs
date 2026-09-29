@@ -22,7 +22,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ResolveCombatRoundCommandHandler _handler = null!;
-    private Guid _sessionId;
     private Creature _player = null!;
     private Creature _enemy = null!;
 
@@ -42,7 +41,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         _context.Creatures.AddRange(_player, _enemy);
         _context.GameSessions.Add(session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        _sessionId = session.Id;
     }
 
     public async ValueTask DisposeAsync()
@@ -99,7 +97,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -136,7 +133,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -177,7 +173,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -213,7 +208,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -246,7 +240,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -282,7 +275,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -318,7 +310,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -371,7 +362,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -424,7 +414,6 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = _sessionId,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,

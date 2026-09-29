@@ -560,6 +560,75 @@ public sealed class MoveToolTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Invoke_ExpiresTheEffectsOwedOverTheTravelTime_WhenCrossingATravelConnector()
+    {
+        // Arrange
+        await SeedTravelConnectorWithDot(amount: 1, expiresAfter: TimeSpan.FromSeconds(30));
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<MoveToolResult>(result);
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Empty(player.ActiveDots);
+        Assert.Equal(_newLocation.Id, player.LocationId);
+    }
+
+    [Fact]
+    public async Task Invoke_ReturnsToolErrorAndKeepsPlayerInPlace_WhenAnEffectKillsThemDuringTravel()
+    {
+        // Arrange
+        await SeedTravelConnectorWithDot(
+            amount: _player.MaximumHp,
+            expiresAfter: TimeSpan.FromDays(1)
+        );
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<ToolError>(result);
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(CreatureCondition.Dead, player.Condition);
+        Assert.Equal(_oldLocation.Id, player.LocationId);
+    }
+
+    private async Task SeedTravelConnectorWithDot(int amount, TimeSpan expiresAfter)
+    {
+        var connector = await _context.LocationConnectors.SingleAsync(
+            c => c.OriginLocationId == _oldLocation.Id,
+            TestContext.Current.CancellationToken
+        );
+        _context.TravelConnectors.Add(
+            Builders.MakeTravelConnector(connector.Id, distance: 116, worldId: WorldId)
+        );
+        _player.CurrentHp = _player.MaximumHp;
+        _player.ActiveDots =
+        [
+            new ActiveDot
+            {
+                AbilityName = "Ignite",
+                Amount = amount,
+                DamageType = nameof(DamageType.Fire),
+                NextTickAt = GameClock.Epoch + TimeSpan.FromSeconds(6),
+                ExpiresAt = GameClock.Epoch + expiresAfter,
+            },
+        ];
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
     public async Task Invoke_DoesNotAdvanceGameTime_WhenTheConnectorHasNoTravelConnector()
     {
         // Arrange

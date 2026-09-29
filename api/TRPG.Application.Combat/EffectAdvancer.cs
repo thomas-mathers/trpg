@@ -4,7 +4,7 @@ using TRPG.Domain;
 
 namespace TRPG.Application.Combat;
 
-public class EffectAdvancer(DamageCalculator damageCalculator)
+public class EffectAdvancer(DamageCalculator damageCalculator, CombatTimeScale timeScale)
 {
     private sealed record OwedTick(GameInstant At, Func<CombatResolution> Apply);
 
@@ -45,11 +45,11 @@ public class EffectAdvancer(DamageCalculator damageCalculator)
                 Enumerable
                     .Range(0, count)
                     .Select(index => new OwedTick(
-                        hot.NextTickAt + CombatTiming.Round * index,
+                        hot.NextTickAt + timeScale.Round * index,
                         () => ApplyHotTick(combatant, hot)
                     ))
             );
-            hot.NextTickAt += CombatTiming.Round * count;
+            hot.NextTickAt += timeScale.Round * count;
         }
 
         foreach (var dot in combatant.ActiveDots)
@@ -59,27 +59,23 @@ public class EffectAdvancer(DamageCalculator damageCalculator)
                 Enumerable
                     .Range(0, count)
                     .Select(index => new OwedTick(
-                        dot.NextTickAt + CombatTiming.Round * index,
+                        dot.NextTickAt + timeScale.Round * index,
                         () => ApplyDotTick(combatant, dot)
                     ))
             );
-            dot.NextTickAt += CombatTiming.Round * count;
+            dot.NextTickAt += timeScale.Round * count;
         }
 
         return ticks;
     }
 
-    private static int CountOwedTicks(
-        GameInstant nextTickAt,
-        GameInstant expiresAt,
-        GameInstant now
-    )
+    private int CountOwedTicks(GameInstant nextTickAt, GameInstant expiresAt, GameInstant now)
     {
         var lastEligible = expiresAt < now ? expiresAt : now;
 
         return nextTickAt > lastEligible
             ? 0
-            : (int)((lastEligible - nextTickAt) / CombatTiming.Round) + 1;
+            : (int)((lastEligible - nextTickAt) / timeScale.Round) + 1;
     }
 
     private CombatResolution ApplyDotTick(Combatant combatant, ActiveDot dot)

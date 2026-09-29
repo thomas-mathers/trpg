@@ -21,7 +21,6 @@ namespace TRPG.Application.Encounters.Commands;
 
 internal class EndFightCommand
 {
-    public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required CombatState State { get; init; }
     public GameInstant GameTime { get; init; } = GameClock.Epoch;

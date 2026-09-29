@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Abilities;
 using TRPG.Application.Combat;
 using TRPG.Application.Combat.Events;
@@ -14,7 +15,8 @@ namespace TRPG.Tests.Application.Combat;
 public class EffectAdvancerTests
 {
     private readonly EffectAdvancer _advancer = new(
-        new DamageCalculator(new DefaultOptionsSnapshot<CombatOptions>())
+        new DamageCalculator(new DefaultOptionsSnapshot<CombatOptions>()),
+        CombatTimeScale.Unscaled
     );
 
     private static Combatant MakeCombatant() =>
@@ -94,6 +96,34 @@ public class EffectAdvancerTests
         // Assert
         Assert.Equal(3, events.OfType<DamageTicked>().Count());
         Assert.Empty(combatant.ActiveDots);
+    }
+
+    [Fact]
+    public void Advance_TicksOncePerScaledRound()
+    {
+        // Arrange
+        var scale = new CombatTimeScale(Options.Create(new WorldClockOptions { TimeScale = 20 }));
+        var advancer = new EffectAdvancer(
+            new DamageCalculator(new DefaultOptionsSnapshot<CombatOptions>()),
+            scale
+        );
+        var combatant = MakeCombatant();
+        combatant.ActiveDots.Add(
+            new ActiveDot
+            {
+                AbilityName = "Ignite",
+                Amount = 2,
+                DamageType = DamageType.Fire,
+                NextTickAt = TestTime.Start + scale.Round,
+                ExpiresAt = TestTime.Start + scale.Round * 3,
+            }
+        );
+
+        // Act
+        var events = advancer.Advance(combatant, TestTime.Start + scale.Round * 10);
+
+        // Assert
+        Assert.Equal(3, events.OfType<DamageTicked>().Count());
     }
 
     [Fact]
