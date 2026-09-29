@@ -141,7 +141,6 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = sessionId,
                 WorldId = _worldId,
                 PlayerId = _playerId,
                 LocationId = _locationId,

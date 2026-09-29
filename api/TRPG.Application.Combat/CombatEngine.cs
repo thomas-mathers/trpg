@@ -61,6 +61,22 @@ public class CombatEngine(
         );
     }
 
+    public CombatState ProcessEffectTick(IReadOnlyList<Combatant> combatants, GameInstant now)
+    {
+        var player = combatants.Single(c => c.IsPlayer);
+        var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
+
+        var combatEvents = AdvanceEffects(combatants, now);
+
+        return new CombatState(
+            Outcome: GetCurrentOutcome(player, enemies),
+            Combatants: ToOrderedCombatantResults(combatants),
+            Events: combatEvents,
+            WeaponSwingCounts: player.WeaponSwingCounts,
+            SkillUsageCounts: player.SkillUsageCounts
+        );
+    }
+
     private bool IsFleeCaught(Combatant player, IReadOnlyList<Combatant> enemies)
     {
         var catchChance = EvadeChanceCalculator.CatchChance(

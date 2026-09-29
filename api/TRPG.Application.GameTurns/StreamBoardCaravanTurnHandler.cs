@@ -4,6 +4,8 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Creatures.Results;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Domain;
@@ -18,6 +20,10 @@ internal class StreamBoardCaravanTurnHandler(
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<BoardCaravanCommand, BoardCaravanResult> boardCaravan,
     ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
+    ICommandHandler<
+        AdvanceCreatureEffectsCommand,
+        IReadOnlyCollection<CreatureVitals>
+    > advanceCreatureEffects,
     ICommandHandler<
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
@@ -81,6 +87,23 @@ internal class StreamBoardCaravanTurnHandler(
             },
             cancellationToken
         );
+
+        var effectVitals = await advanceCreatureEffects.Handle(
+            new AdvanceCreatureEffectsCommand
+            {
+                WorldId = session.WorldId,
+                CreatureIds = [session.PlayerId],
+                GameTime = arrivalGameTime,
+            },
+            cancellationToken
+        );
+        if (effectVitals.HasDied(session.PlayerId))
+        {
+            return new GameTurnPrompt.Narrate(
+                "The player died from a lingering effect during the caravan journey and never arrived. Narrate their death in two or three sentences.",
+                IncludeTools: false
+            );
+        }
 
         await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand

@@ -2,6 +2,8 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Creatures.Results;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain;
@@ -11,6 +13,10 @@ namespace TRPG.Application.GameTurns;
 
 internal class StreamWaitTurnHandler(
     GameTurnStreamer streamer,
+    ICommandHandler<
+        AdvanceCreatureEffectsCommand,
+        IReadOnlyCollection<CreatureVitals>
+    > advanceCreatureEffects,
     ICommandHandler<
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
@@ -62,6 +68,23 @@ internal class StreamWaitTurnHandler(
             new AdvanceTimeCommand { WorldId = session.WorldId, Delta = delta },
             cancellationToken
         );
+
+        var effectVitals = await advanceCreatureEffects.Handle(
+            new AdvanceCreatureEffectsCommand
+            {
+                WorldId = session.WorldId,
+                CreatureIds = [session.PlayerId],
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
+        if (effectVitals.HasDied(session.PlayerId))
+        {
+            return new GameTurnPrompt.Narrate(
+                "The player died from a lingering effect while waiting. Narrate their death in two or three sentences.",
+                IncludeTools: false
+            );
+        }
 
         await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [session.PlayerId] },

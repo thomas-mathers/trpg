@@ -174,6 +174,13 @@ public class Creature
     public List<ActiveHot> ActiveHots { get; set; } = [];
     public List<ActiveBuff> ActiveBuffs { get; set; } = [];
 
+    public bool HasActiveEffects =>
+        ActiveConditions.Count > 0
+        || CooldownReadyAtByAbility.Count > 0
+        || ActiveDots.Count > 0
+        || ActiveHots.Count > 0
+        || ActiveBuffs.Count > 0;
+
     public void Die()
     {
         Condition = CreatureCondition.Dead;

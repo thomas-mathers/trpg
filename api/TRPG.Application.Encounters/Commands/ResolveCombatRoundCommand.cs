@@ -16,7 +16,6 @@ namespace TRPG.Application.Encounters.Commands;
 
 internal class ResolveCombatRoundCommand
 {
-    public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
@@ -64,7 +63,6 @@ internal class ResolveCombatRoundCommandHandler(
             await endFight.Handle(
                 new EndFightCommand
                 {
-                    SessionId = command.SessionId,
                     WorldId = command.WorldId,
                     State = state,
                     GameTime = command.GameTime,

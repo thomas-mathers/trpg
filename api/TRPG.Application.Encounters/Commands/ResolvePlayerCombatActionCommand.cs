@@ -65,7 +65,6 @@ internal class ResolvePlayerCombatActionCommandHandler(
         var combatResult = await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {
-                SessionId = command.SessionId,
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 LocationId = fight!.LocationId,

@@ -7,6 +7,7 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Commands;
@@ -78,6 +79,10 @@ internal class MoveTool(
     > evaluateMoveInterception,
     ICommandHandler<MovePlayerCommand> movePlayer,
     ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
+    ICommandHandler<
+        AdvanceCreatureEffectsCommand,
+        IReadOnlyCollection<CreatureVitals>
+    > advanceCreatureEffects,
     ICommandHandler<
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
@@ -167,6 +172,21 @@ internal class MoveTool(
                 },
                 cancellationToken
             );
+            var effectVitals = await advanceCreatureEffects.Handle(
+                new AdvanceCreatureEffectsCommand
+                {
+                    WorldId = turnContext.WorldId,
+                    CreatureIds = [turnContext.PlayerId],
+                    GameTime = arrivalGameTime,
+                },
+                cancellationToken
+            );
+            if (effectVitals.HasDied(turnContext.PlayerId))
+            {
+                return new ToolError(
+                    "The player died from a lingering effect during the journey and never arrived. Narrate their death."
+                );
+            }
             await applyPassiveRegen.Handle(
                 new ApplyPassiveRegenCommand
                 {
