@@ -76,6 +76,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { BookshelfDialog } from '@/features/books/components/bookshelf-dialog';
+import { EffectBadges } from '@/features/combat/components/effect-badges';
 import { isDangerous } from '@/features/combat/threat-level';
 import { CaravanDialog } from '@/features/game/components/caravan-dialog';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
@@ -716,6 +717,13 @@ function CreatureRow({
             Restrained
           </span>
         )}
+        <EffectBadges
+          className="mt-1"
+          activeConditions={creature.activeConditions}
+          activeDots={creature.activeDots}
+          activeHots={creature.activeHots}
+          activeBuffs={creature.activeBuffs}
+        />
       </span>
 
       <DropdownMenu>

@@ -2,6 +2,10 @@ using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Tapper;
 using TypedSignalR.Client;
+using ActiveBuff = TRPG.Combat.Responses.ActiveBuff;
+using ActiveConditions = TRPG.Combat.Responses.ActiveConditions;
+using ActiveDot = TRPG.Combat.Responses.ActiveDot;
+using ActiveHot = TRPG.Combat.Responses.ActiveHot;
 
 namespace TRPG.GameSessions.Responses;
 
@@ -273,7 +277,11 @@ public record CreatureStatusSnapshot(
     float MagicResistance,
     Guid? TradeWorkstationId,
     IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
-    bool ReadyToDeliver
+    bool ReadyToDeliver,
+    ActiveConditions ActiveConditions,
+    IReadOnlyCollection<ActiveDot> ActiveDots,
+    IReadOnlyCollection<ActiveHot> ActiveHots,
+    IReadOnlyCollection<ActiveBuff> ActiveBuffs
 );
 
 [TranspilationSource]

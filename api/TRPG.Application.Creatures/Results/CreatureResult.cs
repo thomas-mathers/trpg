@@ -44,5 +44,6 @@ public record CreatureResult(
     float IceResistance,
     float LightningResistance,
     float PoisonResistance,
-    float MagicResistance
+    float MagicResistance,
+    CreatureEffects Effects
 );
