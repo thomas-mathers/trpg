@@ -4,7 +4,7 @@ import {
   durationUntilNextTime,
   formatGameClockTime,
   formatGameDate,
-  formatRemainingGameTime,
+  formatRemainingDuration,
   gameDateTimeAt,
   gameTimeMillisecondsAt,
   type GameClockAnchor,
@@ -49,7 +49,7 @@ describe('gameTimeMillisecondsAt', () => {
   });
 });
 
-describe('formatRemainingGameTime', () => {
+describe('formatRemainingDuration', () => {
   it.each([
     [1, '1s'],
     [12_000, '12s'],
@@ -59,7 +59,7 @@ describe('formatRemainingGameTime', () => {
     [60_001, '2m'],
     [300_000, '5m'],
   ])('formats %i ms as %s', (remainingMilliseconds, expected) => {
-    expect(formatRemainingGameTime(remainingMilliseconds)).toBe(expected);
+    expect(formatRemainingDuration(remainingMilliseconds)).toBe(expected);
   });
 });
 

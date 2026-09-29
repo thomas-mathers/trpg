@@ -21,8 +21,8 @@ import {
   HoverPopoverContent,
   HoverPopoverTrigger,
 } from '@/components/ui/hover-popover';
-import { formatRemainingGameTime } from '@/features/game/game-clock';
-import { useGameTimeMilliseconds } from '@/features/game/hooks/use-game-clock';
+import { formatRemainingDuration } from '@/features/game/game-clock';
+import { useGameTimeMilliseconds, useGameTimeScale } from '@/features/game/hooks/use-game-clock';
 import { ATTRIBUTE_LABEL } from '@/features/inventory/display-names';
 import { formatAmount } from '@/lib/formatting';
 import { cn } from '@/lib/utils';
@@ -103,6 +103,7 @@ const VARIANT_CLASSES: Record<Description['variant'], string> = {
 
 export function EffectBadge(props: EffectBadgeProps) {
   const currentGameTimeMilliseconds = useGameTimeMilliseconds();
+  const timeScale = useGameTimeScale();
   const { icon: Icon, variant, title, detail, expiresAtGameTimeMilliseconds } = describe(props);
 
   const remainingMilliseconds =
@@ -114,8 +115,17 @@ export function EffectBadge(props: EffectBadgeProps) {
   }
 
   const remaining =
-    remainingMilliseconds === undefined ? '' : formatRemainingGameTime(remainingMilliseconds);
-  const body = [detail, remaining && `${remaining} remaining`].filter(Boolean).join(' — ');
+    remainingMilliseconds === undefined || !timeScale
+      ? ''
+      : formatRemainingDuration(remainingMilliseconds / timeScale);
+  const inGameRemaining =
+    remainingMilliseconds === undefined || timeScale === 1
+      ? ''
+      : formatRemainingDuration(remainingMilliseconds);
+  const remainingText = inGameRemaining
+    ? `${remaining} remaining (${inGameRemaining} in game time)`
+    : remaining && `${remaining} remaining`;
+  const body = [detail, remainingText].filter(Boolean).join(' — ');
 
   return (
     <HoverPopover>

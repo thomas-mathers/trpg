@@ -43,6 +43,10 @@ public class CombatEngineTests
         CritChancePerDexterityPoint = 0f,
     };
 
+    private static readonly CombatTimeScale TwentyTimesFaster = new(
+        Options.Create(new WorldClockOptions { TimeScale = 20 })
+    );
+
     private static readonly string[] CleaveTargets = ["Husk", "Wraith"];
 
     private static readonly IOptionsSnapshot<FleeOptions> DefaultFleeOptions =
@@ -60,9 +64,11 @@ public class CombatEngineTests
 
     private static CombatEngine MakeEngine(
         IOptionsSnapshot<CombatOptions> optionsSnapshot,
-        IOptionsSnapshot<FleeOptions>? fleeOptionsSnapshot = null
+        IOptionsSnapshot<FleeOptions>? fleeOptionsSnapshot = null,
+        CombatTimeScale? timeScale = null
     )
     {
+        timeScale ??= CombatTimeScale.Unscaled;
         var hitCalculator = new HitCalculator(optionsSnapshot);
         var damageCalculator = new DamageCalculator(optionsSnapshot);
         var enemyCombatActionResolver = new EnemyCombatActionResolver(
@@ -76,7 +82,8 @@ public class CombatEngineTests
             hitCalculator,
             damageCalculator,
             enemyCombatActionResolver,
-            new EffectAdvancer(damageCalculator)
+            new EffectAdvancer(damageCalculator, timeScale),
+            timeScale
         );
     }
 
@@ -902,6 +909,30 @@ public class CombatEngineTests
         Assert.Equal("Wraith", tick.CreatureName);
         Assert.Equal("Ignite", tick.AbilityName);
         Assert.Equal(DamageType.Fire, tick.DamageType);
+    }
+
+    [Fact]
+    public void ProcessRound_ScalesBuffDurationByTheTimeScale()
+    {
+        // Arrange
+        var buffAbility = Builders.MakeBuffSupportAbility(name: "Battle Stance");
+        var player = MakeCombatant("Hero")
+            .AsPlayer()
+            .WithDexterity(20)
+            .WithAbilities(buffAbility)
+            .Build();
+        var monster = MakeCombatant("Wraith").WithAbilities(MakeAttack()).Build();
+        IReadOnlyList<Combatant> combatants = [player, monster];
+        var engine = MakeEngine(AlwaysMiss, timeScale: TwentyTimesFaster);
+
+        // Act
+        Resolve(engine, combatants, new UseAbilityAction(player.CreatureId, "Battle Stance"));
+
+        // Assert
+        Assert.Equal(
+            TestTime.Start + CombatTiming.Rounds(3) * 20,
+            Assert.Single(player.ActiveBuffs).ExpiresAt
+        );
     }
 
     [Fact]

@@ -76,7 +76,7 @@ export function gameDateTimeAt(anchor: GameClockAnchor, nowUnixMilliseconds: num
 }
 
 // Rounds up so an effect never reads as expired while the server still counts it as active.
-export function formatRemainingGameTime(remainingMilliseconds: number): string {
+export function formatRemainingDuration(remainingMilliseconds: number): string {
   const seconds = Math.ceil(remainingMilliseconds / 1000);
   return seconds < 60 ? `${seconds}s` : `${Math.ceil(seconds / 60)}m`;
 }

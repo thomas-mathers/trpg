@@ -69,3 +69,7 @@ export function useGameTimeReader(): () => GameDateTime | undefined {
     [],
   );
 }
+
+export function useGameTimeScale(): number | undefined {
+  return useClockAnchor()?.timeScale;
+}

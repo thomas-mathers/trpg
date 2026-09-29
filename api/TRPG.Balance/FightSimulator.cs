@@ -48,7 +48,8 @@ public class FightSimulator
             hitCalculator,
             damageCalculator,
             _resolver,
-            new EffectAdvancer(damageCalculator)
+            new EffectAdvancer(damageCalculator, CombatTimeScale.Unscaled),
+            CombatTimeScale.Unscaled
         );
         _creatureGeneratorOptions = creatureGeneratorOptions ?? new CreatureGeneratorOptions();
     }
