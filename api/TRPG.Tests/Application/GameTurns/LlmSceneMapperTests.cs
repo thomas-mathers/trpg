@@ -1,5 +1,6 @@
 using System.Text.Json;
 using TRPG.Application.Common.Serialization;
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns.Mappers;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Domain.Models;
@@ -179,6 +180,7 @@ public sealed class LlmSceneMapperTests
             TradeWorkstationId: Guid.NewGuid(),
             QuestMarkers: [],
             ReadyToDeliver: false,
+            Effects: CreatureEffects.None,
             Journey: name == "Cora"
                 ? new SceneJourneyInfo("Making a pilgrimage.", "Westmere")
                 : null

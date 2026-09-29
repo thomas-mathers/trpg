@@ -1,5 +1,8 @@
+using TRPG.Application.Abilities;
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Results;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.GameTurns;
@@ -159,6 +162,71 @@ public class SceneSemanticComparerTests
     }
 
     [Fact]
+    public void HasPlayerVisibleChange_ReturnsTrue_WhenACreatureGainsADot()
+    {
+        // Arrange
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId)]);
+        var current = MakeScene(
+            creatures: [MakeCreature(VillagerId, effects: MakeEffects(MakeDot("Ignite", 60)))]
+        );
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void HasPlayerVisibleChange_ReturnsTrue_WhenACreatureGainsACondition()
+    {
+        // Arrange
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId)]);
+        var current = MakeScene(
+            creatures:
+            [
+                MakeCreature(VillagerId, effects: MakeConditionEffects(ConditionType.Stunned, 60)),
+            ]
+        );
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void HasPlayerVisibleChange_ReturnsFalse_WhenTheSameEffectsAreRebuilt()
+    {
+        // Arrange
+        var previous = MakeScene(
+            creatures:
+            [
+                MakeCreature(
+                    VillagerId,
+                    effects: MakeEffects(MakeDot("Ignite", 60), MakeDot("Venom", 90))
+                ),
+            ]
+        );
+        var current = MakeScene(
+            creatures:
+            [
+                MakeCreature(
+                    VillagerId,
+                    effects: MakeEffects(MakeDot("Venom", 90), MakeDot("Ignite", 60))
+                ),
+            ]
+        );
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.False(changed);
+    }
+
+    [Fact]
     public void HasPlayerVisibleChange_ReturnsTrue_WhenTheWeatherChanges()
     {
         // Arrange
@@ -230,7 +298,8 @@ public class SceneSemanticComparerTests
         Guid id,
         CreatureActivity? activity = null,
         int currentHp = 10,
-        SceneJourneyInfo? journey = null
+        SceneJourneyInfo? journey = null,
+        CreatureEffects? effects = null
     ) =>
         new(
             Id: id,
@@ -275,8 +344,33 @@ public class SceneSemanticComparerTests
             TradeWorkstationId: null,
             QuestMarkers: [],
             ReadyToDeliver: false,
+            Effects: effects ?? CreatureEffects.None,
             Journey: journey
         );
+
+    private static CreatureDotEffect MakeDot(string abilityName, int expiresAtSecond) =>
+        new(abilityName, 3, DamageType.Fire, MakeInstant(expiresAtSecond));
+
+    private static CreatureEffects MakeEffects(params CreatureDotEffect[] dots) =>
+        CreatureEffects.None with
+        {
+            Dots = dots,
+        };
+
+    private static CreatureEffects MakeConditionEffects(
+        ConditionType condition,
+        int expiresAtSecond
+    ) =>
+        CreatureEffects.None with
+        {
+            Conditions = new Dictionary<ConditionType, GameInstant>
+            {
+                [condition] = MakeInstant(expiresAtSecond),
+            },
+        };
+
+    private static GameInstant MakeInstant(int second) =>
+        new(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified).AddSeconds(second));
 
     private static SceneExitInfo MakeExit(bool isLocked) =>
         new(

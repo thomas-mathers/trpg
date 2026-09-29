@@ -3,7 +3,7 @@ import type { IconType } from 'react-icons';
 import { GiDeathSkull, GiHeartBeats, GiTombstone, GiWingfoot, GiWaterDrop } from 'react-icons/gi';
 
 import type { CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
-import { EffectBadge } from '@/features/combat/components/effect-badge';
+import { EffectBadges } from '@/features/combat/components/effect-badges';
 import type { CombatFlash } from '@/features/combat/hooks/use-combat';
 import { useStatDelta } from '@/features/combat/hooks/use-stat-delta';
 import { isDangerous } from '@/features/combat/threat-level';
@@ -40,28 +40,6 @@ export function CombatantCard({
 
   const danger = !isSelf && combatant.isAlive && isDangerous(Number(combatant.level), playerLevel);
   const canTarget = targetable && combatant.isAlive;
-
-  const badges = [
-    ...Object.entries(combatant.activeConditions)
-      .filter(([, expiresAt]) => expiresAt !== undefined)
-      .map(([type, expiresAt]) => (
-        <EffectBadge
-          key={`condition-${type}`}
-          kind="condition"
-          type={type}
-          expiresAtGameTimeMilliseconds={Number(expiresAt)}
-        />
-      )),
-    ...combatant.activeDots.map((dot, index) => (
-      <EffectBadge key={`dot-${index}`} kind="dot" dot={dot} />
-    )),
-    ...combatant.activeHots.map((hot, index) => (
-      <EffectBadge key={`hot-${index}`} kind="hot" hot={hot} />
-    )),
-    ...combatant.activeBuffs.map((buff, index) => (
-      <EffectBadge key={`buff-${index}`} kind="buff" buff={buff} />
-    )),
-  ];
 
   return (
     <div
@@ -148,7 +126,13 @@ export function CombatantCard({
         delta={mpDelta}
       />
 
-      {badges.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{badges}</div>}
+      <EffectBadges
+        className="mt-1.5"
+        activeConditions={combatant.activeConditions}
+        activeDots={combatant.activeDots}
+        activeHots={combatant.activeHots}
+        activeBuffs={combatant.activeBuffs}
+      />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Domain.Models;
@@ -149,6 +150,7 @@ public sealed class RelocationFactsTests
             MagicResistance: 0,
             TradeWorkstationId: null,
             QuestMarkers: [],
-            ReadyToDeliver: false
+            ReadyToDeliver: false,
+            Effects: CreatureEffects.None
         );
 }

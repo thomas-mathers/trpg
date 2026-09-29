@@ -508,6 +508,7 @@ internal class GetSceneQueryHandler(
             tradeWorkstationId,
             questMarkers ?? [],
             readyToDeliver,
+            creature.Effects,
             journey
         );
     }

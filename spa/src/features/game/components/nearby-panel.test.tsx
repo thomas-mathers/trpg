@@ -47,6 +47,10 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
         tradeWorkstationId,
         questMarkers: [],
         readyToDeliver: false,
+        activeConditions: {},
+        activeDots: [],
+        activeHots: [],
+        activeBuffs: [],
       },
     ],
     playerStatus: { id: 'player-id', level: 1 },
@@ -249,6 +253,10 @@ describe('NearbyPanel', () => {
           posture: 'Standing',
           reputation: null,
           tradeWorkstationId: undefined,
+          activeConditions: {},
+          activeDots: [],
+          activeHots: [],
+          activeBuffs: [],
         },
       ],
     } as unknown as SceneSnapshot;
@@ -304,6 +312,10 @@ describe('NearbyPanel', () => {
             movement,
             posture,
             reputation: null,
+            activeConditions: {},
+            activeDots: [],
+            activeHots: [],
+            activeBuffs: [],
           },
         ],
       } as unknown as SceneSnapshot;
@@ -434,6 +446,10 @@ describe('NearbyPanel', () => {
             },
           ],
           readyToDeliver: false,
+          activeConditions: {},
+          activeDots: [],
+          activeHots: [],
+          activeBuffs: [],
         },
       ],
     } as unknown as SceneSnapshot;
@@ -452,6 +468,28 @@ describe('NearbyPanel', () => {
         }),
       ),
     );
+  });
+
+  it('shows the active effects on a nearby creature', () => {
+    const sceneWithBurningCreature = {
+      ...scene(undefined),
+      nearbyCreatures: [
+        {
+          ...scene(undefined).nearbyCreatures[0],
+          activeDots: [
+            {
+              abilityName: 'Ignite',
+              amount: 3,
+              damageType: 'Fire',
+              expiresAtGameTimeMilliseconds: 60000,
+            },
+          ],
+        },
+      ],
+    } as unknown as SceneSnapshot;
+    renderPanel(sceneWithBurningCreature);
+
+    expect(screen.getByRole('button', { name: /^Ignite/ })).toBeInTheDocument();
   });
 
   it('opens the sleep dialog from a nearby bed', async () => {

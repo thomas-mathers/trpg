@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { GiHeartBeats, GiWingfoot, GiWaterDrop } from 'react-icons/gi';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { EffectBadges } from '@/features/combat/components/effect-badges';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { formatGameClockTime, formatGameDate } from '@/features/game/game-clock';
 import { useGameClock } from '@/features/game/hooks/use-game-clock';
@@ -43,12 +44,20 @@ export function StatusBar({ isInCombat = false, connectionStatus, controls }: St
               level={scene.playerStatus.level}
             />
             {!isInCombat && (
-              <div className="hidden lg:block">
-                <ExperienceProgress
-                  current={scene.playerStatus.experienceCurrent}
-                  toNextLevel={scene.playerStatus.experienceToNextLevel}
+              <>
+                <div className="hidden lg:block">
+                  <ExperienceProgress
+                    current={scene.playerStatus.experienceCurrent}
+                    toNextLevel={scene.playerStatus.experienceToNextLevel}
+                  />
+                </div>
+                <EffectBadges
+                  activeConditions={scene.playerStatus.activeConditions}
+                  activeDots={scene.playerStatus.activeDots}
+                  activeHots={scene.playerStatus.activeHots}
+                  activeBuffs={scene.playerStatus.activeBuffs}
                 />
-              </div>
+              </>
             )}
           </>
         )}

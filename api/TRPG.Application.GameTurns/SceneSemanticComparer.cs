@@ -1,3 +1,4 @@
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Quests.Queries;
 
@@ -38,7 +39,8 @@ public static class SceneSemanticComparer
     private static bool AreEquivalent(SceneCreatureInfo previous, SceneCreatureInfo current) =>
         Normalize(previous) == Normalize(current)
         && previous.FactionNames.Order().SequenceEqual(current.FactionNames.Order())
-        && SetEquals(previous.QuestMarkers, current.QuestMarkers);
+        && SetEquals(previous.QuestMarkers, current.QuestMarkers)
+        && EffectsAreEquivalent(previous.Effects, current.Effects);
 
     private static SceneCreatureInfo Normalize(SceneCreatureInfo creature) =>
         creature with
@@ -48,7 +50,14 @@ public static class SceneSemanticComparer
             CurrentMp = 0,
             FactionNames = Array.Empty<string>(),
             QuestMarkers = Array.Empty<QuestMarkerEntry>(),
+            Effects = CreatureEffects.None,
         };
+
+    private static bool EffectsAreEquivalent(CreatureEffects previous, CreatureEffects current) =>
+        SetEquals(previous.Conditions, current.Conditions)
+        && SetEquals(previous.Dots, current.Dots)
+        && SetEquals(previous.Hots, current.Hots)
+        && SetEquals(previous.Buffs, current.Buffs);
 
     private static bool CaravansAreEquivalent(
         IReadOnlyCollection<SceneCaravanInfo> previous,

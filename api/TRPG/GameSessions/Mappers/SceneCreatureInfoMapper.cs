@@ -1,4 +1,5 @@
 using TRPG.Application.GameTurns.Results;
+using TRPG.Combat.Mappers;
 using TRPG.GameSessions.Responses;
 
 namespace TRPG.GameSessions.Mappers;
@@ -48,6 +49,10 @@ internal static class SceneCreatureInfoMapper
             creature.MagicResistance,
             creature.TradeWorkstationId,
             creature.QuestMarkers.Select(marker => marker.ToResponse()).ToArray(),
-            creature.ReadyToDeliver
+            creature.ReadyToDeliver,
+            creature.Effects.Conditions.ToContract(),
+            creature.Effects.Dots.Select(dot => dot.ToContract()).ToArray(),
+            creature.Effects.Hots.Select(hot => hot.ToContract()).ToArray(),
+            creature.Effects.Buffs.Select(buff => buff.ToContract()).ToArray()
         );
 }

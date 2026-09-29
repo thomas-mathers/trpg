@@ -30,8 +30,12 @@ function scene(gameTimeMilliseconds: number): SceneSnapshot {
       maximumMp: 4,
       experienceCurrent: 0,
       experienceToNextLevel: 100,
+      activeConditions: {},
+      activeDots: [],
+      activeHots: [],
+      activeBuffs: [],
     },
-  } as SceneSnapshot;
+  } as unknown as SceneSnapshot;
 }
 
 function renderStatusBar(current: SceneSnapshot | undefined) {
@@ -84,5 +88,18 @@ describe('StatusBar clock', () => {
     renderStatusBar(undefined);
 
     expect(screen.queryByText(/Frostwane/)).not.toBeInTheDocument();
+  });
+});
+
+describe('StatusBar effects', () => {
+  it('shows the active effects on the player', () => {
+    const current = scene(0);
+    current.playerStatus.activeHots = [
+      { abilityName: 'Rejuvenate', amount: 4, expiresAtGameTimeMilliseconds: 60_000 },
+    ];
+
+    renderStatusBar(current);
+
+    expect(screen.getByRole('button', { name: /^Rejuvenate/ })).toBeInTheDocument();
   });
 });

@@ -66,6 +66,7 @@ internal static class CreatureMapper
             creature.IceResistance,
             creature.LightningResistance,
             creature.PoisonResistance,
-            creature.MagicResistance
+            creature.MagicResistance,
+            creature.ToEffects()
         );
 }

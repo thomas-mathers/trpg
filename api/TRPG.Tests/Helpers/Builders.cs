@@ -7,6 +7,9 @@ using TRPG.Application.CreatureFormulas;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain;
 using TRPG.Domain.Models;
+using PersistedBuff = TRPG.Domain.Models.ActiveBuff;
+using PersistedDot = TRPG.Domain.Models.ActiveDot;
+using PersistedHot = TRPG.Domain.Models.ActiveHot;
 using Profession = TRPG.Domain.Models.Profession;
 
 namespace TRPG.Tests.Helpers;
@@ -244,6 +247,10 @@ internal static class Builders
         bool isEngaged = false,
         bool isAlerted = false,
         bool isRestrained = false,
+        Dictionary<string, GameInstant>? activeConditions = null,
+        List<PersistedDot>? activeDots = null,
+        List<PersistedHot>? activeHots = null,
+        List<PersistedBuff>? activeBuffs = null,
         Guid? id = null
     )
     {
@@ -295,6 +302,10 @@ internal static class Builders
             MagicResistance = attributes.MagicResistance,
             NaturalWeaponMinDamage = naturalWeaponMinDamage,
             NaturalWeaponMaxDamage = naturalWeaponMaxDamage,
+            ActiveConditions = activeConditions ?? [],
+            ActiveDots = activeDots ?? [],
+            ActiveHots = activeHots ?? [],
+            ActiveBuffs = activeBuffs ?? [],
         };
     }
 

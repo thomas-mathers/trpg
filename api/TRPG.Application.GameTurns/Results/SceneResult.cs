@@ -1,3 +1,4 @@
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.Quests.Queries;
 using TRPG.Domain.Models;
 
@@ -101,6 +102,7 @@ public record SceneCreatureInfo(
     Guid? TradeWorkstationId,
     IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
     bool ReadyToDeliver,
+    CreatureEffects Effects,
     SceneJourneyInfo? Journey = null
 );
 

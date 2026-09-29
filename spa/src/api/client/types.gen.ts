@@ -244,6 +244,10 @@ export type CreatureStatusSnapshot = {
     tradeWorkstationId: null | string;
     questMarkers: Array<QuestMarkerEntry>;
     readyToDeliver: boolean;
+    activeConditions: ActiveConditions;
+    activeDots: Array<ActiveDot>;
+    activeHots: Array<ActiveHot>;
+    activeBuffs: Array<ActiveBuff>;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
