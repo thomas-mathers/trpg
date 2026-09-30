@@ -32,7 +32,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 
 ## Milestone tracker
 
-- [ ] M01 — World deletion coverage
+- [x] M01 — World deletion coverage
 - [ ] M02 — Dependency cleanup and architecture checks
 - [ ] M03 — Fact ownership in Knowledge
 - [ ] M04 — Faction ownership
@@ -49,29 +49,29 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 
 ## Wave 1 — correctness and guardrails
 
-### [ ] M01 — World deletion coverage
+### [x] M01 — World deletion coverage
 
 Ensure deleting a world removes every record owned by that world. This is a bug fix and must begin with a failing integration test.
 
 Scope:
 
-- [ ] Add records for every world-owned table to a world-deletion integration test.
-- [ ] Confirm the test fails before changing `DropWorldCommand`.
-- [ ] Add ordered deletion for Routes, RouteSteps, RouteTravelers, CaravanFares, CaravanTickets, WeatherStates, QuestSeedSchedules, and QuestChainGenerationRequests.
-- [ ] Check the current EF model for any additional world-owned tables missing from the command.
-- [ ] Query through a fresh context after deletion so tracked entities cannot hide survivors.
+- [x] Add records for every world-owned table to a world-deletion integration test.
+- [x] Confirm the test fails before changing `DropWorldCommand`.
+- [x] Add ordered deletion for Routes, RouteSteps, RouteTravelers, CaravanFares, CaravanTickets, WeatherStates, QuestSeedSchedules, and QuestChainGenerationRequests.
+- [x] Check the current EF model for any additional world-owned tables missing from the command.
+- [x] Query through a fresh context after deletion so tracked entities cannot hide survivors.
 
 Acceptance:
 
-- [ ] No seeded record for the deleted world remains.
-- [ ] Records belonging to another world remain unchanged.
-- [ ] Foreign-key ordering is explicit and the deletion remains transactional.
+- [x] No seeded record for the deleted world remains.
+- [x] Records belonging to another world remain unchanged.
+- [x] Foreign-key ordering is explicit and the deletion remains transactional.
 
 Verification:
 
-- [ ] Focused `DropWorldCommand` integration tests pass.
-- [ ] Full backend test suite passes.
-- [ ] Repository formatting checks pass.
+- [x] Focused `DropWorldCommand` integration tests pass.
+- [x] Full backend test suite passes.
+- [x] Repository formatting checks pass.
 
 Completion commit:
 
