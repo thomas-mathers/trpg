@@ -52,11 +52,28 @@ public sealed class ReturnRoomKeyToolTests(DatabaseFixture db)
 
         var result = await Invoke();
 
-        Assert.Contains("\"Returned\":true", JsonSerializer.Serialize(result));
+        Assert.Contains(
+            "\"Returned\":true",
+            JsonSerializer.Serialize(result),
+            StringComparison.Ordinal
+        );
         await using var verifyContext = db.CreateContext();
-        Assert.False(await verifyContext.Encounters.AnyAsync());
-        Assert.False(await verifyContext.RoomBookings.AnyAsync());
-        var key = await verifyContext.Items.SingleAsync(item => item.Id == _roomKey.KeyId);
+        Assert.False(
+            await verifyContext.Encounters.AnyAsync(
+                encounter => encounter.WorldId == _worldId,
+                TestContext.Current.CancellationToken
+            )
+        );
+        Assert.False(
+            await verifyContext.RoomBookings.AnyAsync(
+                booking => booking.PlayerId == _roomKey.PlayerId,
+                TestContext.Current.CancellationToken
+            )
+        );
+        var key = await verifyContext.Items.SingleAsync(
+            item => item.Id == _roomKey.KeyId,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(OwnerType.Workstation, key.Ownership.OwnerType);
         Assert.Equal(_roomKey.WorkstationId, key.Ownership.OwnerId);
     }
@@ -68,11 +85,27 @@ public sealed class ReturnRoomKeyToolTests(DatabaseFixture db)
 
         var result = await Invoke();
 
-        Assert.Contains("\"Confronted\":true", JsonSerializer.Serialize(result));
+        Assert.Contains(
+            "\"Confronted\":true",
+            JsonSerializer.Serialize(result),
+            StringComparison.Ordinal
+        );
         await using var verifyContext = db.CreateContext();
-        Assert.IsType<TheftEncounter>(await verifyContext.Encounters.SingleAsync());
-        Assert.False(await verifyContext.RoomBookings.AnyAsync());
-        var key = await verifyContext.Items.SingleAsync(item => item.Id == _roomKey.KeyId);
+        var encounter = await verifyContext.Encounters.SingleAsync(
+            encounter => encounter.WorldId == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        Assert.IsType<TheftEncounter>(encounter);
+        Assert.False(
+            await verifyContext.RoomBookings.AnyAsync(
+                booking => booking.PlayerId == _roomKey.PlayerId,
+                TestContext.Current.CancellationToken
+            )
+        );
+        var key = await verifyContext.Items.SingleAsync(
+            item => item.Id == _roomKey.KeyId,
+            TestContext.Current.CancellationToken
+        );
         Assert.Equal(OwnerType.Creature, key.Ownership.OwnerType);
         var events = _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents;
         Assert.Contains(events, gameEvent => gameEvent is TheftEncounterStartedEvent);
@@ -111,7 +144,12 @@ public sealed class ReturnRoomKeyToolTests(DatabaseFixture db)
             locationId: lobbyLocationId,
             ownerCreatureId: innkeeper.Id
         );
-        var key = Builders.MakeKey(_worldId, ownerId: player.Id, ownerType: OwnerType.Creature);
+        var key = Builders.MakeKey(
+            _worldId,
+            quantity: 1,
+            ownerId: player.Id,
+            ownerType: OwnerType.Creature
+        );
         var session = Builders.MakeGameSession(_worldId, player.Id);
 
         _context.Buildings.Add(building);

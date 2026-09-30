@@ -178,11 +178,8 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(20)
         );
         _context.RoomBookings.Add(booking);
-        _key.Ownership = new ItemOwnership
-        {
-            OwnerId = Guid.NewGuid(),
-            OwnerType = OwnerType.Creature,
-        };
+        _key.Ownership.OwnerId = Guid.NewGuid();
+        _key.Ownership.OwnerType = OwnerType.Creature;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act, Assert
