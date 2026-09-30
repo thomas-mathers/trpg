@@ -33,7 +33,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 ## Milestone tracker
 
 - [x] M01 — World deletion coverage
-- [ ] M02 — Dependency cleanup and architecture checks
+- [x] M02 — Dependency cleanup and architecture checks
 - [ ] M03 — Fact ownership in Knowledge
 - [ ] M04 — Faction ownership
 - [ ] M05 — World time and captured gameplay time
@@ -79,38 +79,38 @@ Completion commit:
 milestone(M01): complete world deletion coverage
 ```
 
-### [ ] M02 — Dependency cleanup and architecture checks
+### [x] M02 — Dependency cleanup and architecture checks
 
 Remove compiler-proven unused project references and add automated checks that prevent the same boundary problems from returning.
 
 Scope:
 
-- [ ] Remove Caravans → Configuration.
-- [ ] Remove CreatureJobs → GameSessions.
-- [ ] Remove Creatures → Factions.
-- [ ] Remove Crimes → Factions.
-- [ ] Remove Reputations → Configuration.
-- [ ] Remove Routing → Configuration.
-- [ ] Move the Combat-only `Shuffled` helper out of Common.
-- [ ] Add an architecture check for forbidden project cycles.
-- [ ] Add an architecture check for undeclared direct project dependencies.
-- [ ] Add an allowlisted check for foreign module database-context access.
-- [ ] Add a check that persistence-free rule modules do not reference Data.
-- [ ] Correct the WorldGeneration guide wording to allow foundational, stateless dependencies.
+- [x] Remove Caravans → Configuration.
+- [x] Remove CreatureJobs → GameSessions.
+- [x] Remove Creatures → Factions.
+- [x] Remove Crimes → Factions.
+- [x] Remove Reputations → Configuration.
+- [x] Remove Routing → Configuration.
+- [x] Move the Combat-only `Shuffled` helper out of Common.
+- [x] Add an architecture check for forbidden project cycles.
+- [x] Add an architecture check for undeclared direct project dependencies.
+- [x] Add an allowlisted check for foreign module database-context access.
+- [x] Add a check that persistence-free rule modules do not reference Data.
+- [x] Correct the WorldGeneration guide wording to allow foundational, stateless dependencies.
 
 Acceptance:
 
-- [ ] Each removed reference is independently verified by a successful solution build.
-- [ ] Existing foreign-context violations are documented in a small, named allowlist.
-- [ ] A new unapproved foreign-context dependency makes the architecture test fail.
-- [ ] The checks inspect production projects without relying on broad test-project transitive references.
+- [x] Each removed reference is independently verified by a successful solution build.
+- [x] Existing foreign-context violations are documented in a small, named allowlist.
+- [x] A new unapproved foreign-context dependency makes the architecture test fail.
+- [x] The checks inspect production projects without relying on broad test-project transitive references.
 
 Verification:
 
-- [ ] Architecture tests pass.
-- [ ] Full solution build passes.
-- [ ] Full backend test suite passes.
-- [ ] Repository formatting checks pass.
+- [x] Architecture tests pass.
+- [x] Full solution build passes.
+- [x] Full backend test suite passes.
+- [x] Repository formatting checks pass.
 
 Completion commit:
 
