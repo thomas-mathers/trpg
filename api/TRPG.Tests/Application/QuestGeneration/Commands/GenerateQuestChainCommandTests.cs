@@ -3,13 +3,13 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Configuration;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.LocationSimulation.Commands;
+namespace TRPG.Tests.Application.QuestGeneration.Commands;
 
 public sealed class GenerateQuestChainCommandTests : IAsyncLifetime, IClassFixture<DatabaseFixture>
 {

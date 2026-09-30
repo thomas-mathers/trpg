@@ -3,7 +3,7 @@ using TickerQ.Utilities.Base;
 using TickerQ.Utilities.Interfaces;
 using TickerQ.Utilities.Interfaces.Managers;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Data;
 
 namespace TRPG.Quests.Jobs;
@@ -17,10 +17,6 @@ public class GenerateQuestChainJob(ICommandHandler<GenerateQuestChainCommand, bo
     ) => await handler.Handle(context.Request, cancellationToken);
 }
 
-// The IQuestChainGenerationScheduler implementation the host wires up — LocationSimulation only
-// depends on the interface, never on TickerQ directly. Success/failure is tracked on
-// QuestChainGenerationRequest.Status by GenerateQuestChainCommand itself, so this scheduler doesn't
-// need to inspect or persist the ticker's own result.
 internal class TickerQuestChainGenerationScheduler(ITimeTickerManager<TrpgTimeTicker> timeTicker)
     : IQuestChainGenerationScheduler
 {

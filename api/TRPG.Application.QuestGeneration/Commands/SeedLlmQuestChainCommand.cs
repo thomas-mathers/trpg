@@ -12,7 +12,7 @@ using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.QuestGeneration.Commands;
 
 public class SeedLlmQuestChainCommand
 {
@@ -33,7 +33,7 @@ public class SeedLlmQuestChainCommand
 // been measured at 50-70 seconds. No-ops at any step where nothing eligible exists, same contract
 // as the other Seed*QuestCommand types.
 internal class SeedLlmQuestChainCommandHandler(
-    ILocationSimulationDbContext context,
+    IQuestGenerationDbContext context,
     IQueryHandler<GetFactionsByWorldIdQuery, IReadOnlyList<Faction>> getFactionsByWorldId,
     IQueryHandler<
         GetFactionIdsByCreatureIdsQuery,

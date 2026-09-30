@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Scheduling;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.QuestGeneration.Commands;
 
 public class SyncQuestSeedScheduleCommand
 {
@@ -15,7 +16,7 @@ public class SyncQuestSeedScheduleCommand
 }
 
 internal class SyncQuestSeedScheduleCommandHandler(
-    ILocationSimulationDbContext context,
+    IQuestGenerationDbContext context,
     ICommandHandler<SeedAssassinateQuestCommand, bool> seedAssassinateQuest,
     ICommandHandler<SeedCaptiveRescueQuestCommand, bool> seedCaptiveRescueQuest,
     ICommandHandler<SeedClearDungeonQuestCommand, bool> seedClearDungeonQuest,

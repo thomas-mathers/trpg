@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TickerQ.Utilities;
 using TickerQ.Utilities.Enums;
 using TickerQ.Utilities.Interfaces;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Data;
 using TRPG.Quests.Jobs;
 

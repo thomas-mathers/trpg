@@ -8,6 +8,9 @@
     <InternalsVisibleTo Include="TRPG.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="NCrontab" Version="3.3.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
   </ItemGroup>
 </Project>

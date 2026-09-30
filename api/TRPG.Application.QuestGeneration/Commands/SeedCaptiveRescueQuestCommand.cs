@@ -4,6 +4,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.CreatureSpawning.Commands;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Props.Commands;
@@ -14,7 +15,7 @@ using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.QuestGeneration.Commands;
 
 public class SeedCaptiveRescueQuestCommand
 {

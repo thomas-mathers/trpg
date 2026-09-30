@@ -11,7 +11,7 @@ using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.QuestGeneration.Commands;
 
 public class SeedFetchQuestCommand
 {
