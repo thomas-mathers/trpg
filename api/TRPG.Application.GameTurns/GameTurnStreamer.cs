@@ -238,7 +238,7 @@ internal class GameTurnStreamer(
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            scenePublisher.Publish(session.PlayerId, after, stamp);
+            scenePublisher.PublishIfChanged(session.PlayerId, after, stamp);
         }
 
         return after;

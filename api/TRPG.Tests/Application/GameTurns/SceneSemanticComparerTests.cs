@@ -1,7 +1,10 @@
 using TRPG.Application.Abilities;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns;
+using TRPG.Application.GameTurns.Events;
 using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -15,6 +18,19 @@ public class SceneSemanticComparerTests
     private static readonly Guid VillagerId = Guid.NewGuid();
     private static readonly Guid CaravanId = Guid.NewGuid();
     private static readonly Guid DestinationId = Guid.NewGuid();
+
+    [Fact]
+    public void ScenePublisher_EnqueuesAnUnchangedSceneOnlyOnce()
+    {
+        var events = new RecordingGameClientEventSink();
+        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
+        var scene = MakeScene();
+
+        publisher.PublishIfChanged(PlayerId, scene, MakeStamp(1));
+        publisher.PublishIfChanged(PlayerId, scene, MakeStamp(2));
+
+        Assert.Single(events.Events);
+    }
 
     [Fact]
     public void HasPlayerVisibleChange_ReturnsFalse_WhenTheScenesAreIdentical()
@@ -293,6 +309,16 @@ public class SceneSemanticComparerTests
             weather,
             caravans ?? []
         );
+
+    private static WorldStateStamp MakeStamp(long version) =>
+        new(version, GameClock.Epoch, DateTimeOffset.UnixEpoch, 1);
+
+    private sealed class RecordingGameClientEventSink : IGameClientEventSink
+    {
+        public List<GameClientEvent> Events { get; } = [];
+
+        public void Enqueue(GameClientEvent gameEvent) => Events.Add(gameEvent);
+    }
 
     private static SceneCreatureInfo MakeCreature(
         Guid id,
