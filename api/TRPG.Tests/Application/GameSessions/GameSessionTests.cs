@@ -6,6 +6,8 @@ using TRPG.Application.Chat.Queries;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Worlds.Commands;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Tests.Helpers;

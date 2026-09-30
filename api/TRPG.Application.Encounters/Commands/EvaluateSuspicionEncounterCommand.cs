@@ -6,6 +6,7 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -14,6 +15,7 @@ public class EvaluateSuspicionEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class EvaluateSuspicionEncounterCommandHandler(
@@ -58,6 +60,7 @@ internal class EvaluateSuspicionEncounterCommandHandler(
             command.WorldId,
             command.PlayerId,
             player.IsSneaking,
+            command.GameTime,
             curve,
             cancellationToken
         );

@@ -33,7 +33,7 @@ public class AttemptLockpickCommand
     public required Guid WorldId { get; init; }
     public required Guid ConnectorId { get; init; }
     public required Guid DestinationLocationId { get; init; }
-    public GameInstant GameTime { get; init; } = GameClock.Epoch;
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class AttemptLockpickCommandHandler(
@@ -113,6 +113,7 @@ internal class AttemptLockpickCommandHandler(
                 {
                     WorldId = command.WorldId,
                     CreatureId = player.Id,
+                    GameTime = command.GameTime,
                     UsageCounts = new Dictionary<Skill, int> { [Skill.Lockpicking] = 1 },
                 },
                 cancellationToken
@@ -170,6 +171,7 @@ internal class AttemptLockpickCommandHandler(
                 {
                     WorldId = command.WorldId,
                     PlayerId = player.Id,
+                    GameTime = command.GameTime,
                 },
                 cancellationToken
             );
@@ -331,6 +333,7 @@ internal class AttemptLockpickCommandHandler(
             command.WorldId,
             player.Id,
             player.IsSneaking,
+            command.GameTime,
             LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
             cancellationToken
         );

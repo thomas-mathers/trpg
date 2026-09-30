@@ -67,6 +67,7 @@ internal class CastAbilityCommandHandler(
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
+                GameTime = command.GameTime,
                 State = state,
             },
             cancellationToken

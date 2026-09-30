@@ -158,7 +158,12 @@ public sealed class EvaluateJailbreakEncounterCommandTests(DatabaseFixture db)
     }
 
     private EvaluateJailbreakEncounterCommand MakeCommand() =>
-        new() { WorldId = WorldId, PlayerId = _player.Id };
+        new()
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            GameTime = TestTime.Start,
+        };
 
     private async Task StartSneaking() =>
         await _serviceProvider

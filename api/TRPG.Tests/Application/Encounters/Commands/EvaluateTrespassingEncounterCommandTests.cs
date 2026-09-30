@@ -5,6 +5,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Creatures;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -79,7 +80,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -98,7 +104,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -115,7 +126,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -134,7 +150,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -151,7 +172,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -171,7 +197,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -200,7 +231,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -228,7 +264,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -264,7 +305,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -290,7 +336,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 
@@ -318,7 +369,12 @@ public sealed class EvaluateTrespassingEncounterCommandTests(DatabaseFixture db)
 
         // Act
         var result = await _handler.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = WorldId, PlayerId = _player.Id },
+            new EvaluateTrespassingEncounterCommand
+            {
+                GameTime = GameClock.Epoch,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
             TestContext.Current.CancellationToken
         );
 

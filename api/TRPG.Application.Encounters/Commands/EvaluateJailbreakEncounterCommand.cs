@@ -10,6 +10,7 @@ using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -18,6 +19,7 @@ public class EvaluateJailbreakEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 // An escapee is caught by walking past a jailer, not at the moment the lock clicks: the room
@@ -90,6 +92,7 @@ internal class EvaluateJailbreakEncounterCommandHandler(
             command.WorldId,
             player.Id,
             player.IsSneaking,
+            command.GameTime,
             LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
             cancellationToken
         );

@@ -19,6 +19,7 @@ using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -39,6 +40,7 @@ public class AttemptTheftCommand
     public required IReadOnlyList<ItemSelection> Items { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class AttemptTheftCommandHandler(
@@ -229,6 +231,7 @@ internal class AttemptTheftCommandHandler(
             command.WorldId,
             command.PlayerId,
             player!.IsSneaking,
+            command.GameTime,
             curve,
             cancellationToken
         );
@@ -269,6 +272,7 @@ internal class AttemptTheftCommandHandler(
                 {
                     WorldId = command.WorldId,
                     CreatureId = command.PlayerId,
+                    GameTime = command.GameTime,
                     UsageCounts = new Dictionary<Skill, int> { [source.Skill] = 1 },
                 },
                 cancellationToken

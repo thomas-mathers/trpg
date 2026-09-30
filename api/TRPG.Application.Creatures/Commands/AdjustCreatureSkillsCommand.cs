@@ -2,11 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Events;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -17,13 +15,13 @@ public class AdjustCreatureSkillsCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid CreatureId { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required IReadOnlyDictionary<Skill, int> UsageCounts { get; init; }
 }
 
 internal class AdjustCreatureSkillsCommandHandler(
     ICreaturesDbContext context,
     IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot,
-    IQueryHandler<GetGameTimeByWorldIdQuery, GameInstant> getGameTimeByWorldId,
     IGameClientEventSink gameEvents
 ) : ICommandHandler<AdjustCreatureSkillsCommand>
 {
@@ -41,11 +39,8 @@ internal class AdjustCreatureSkillsCommandHandler(
             c => c.Id == command.CreatureId,
             cancellationToken
         );
-        var gameTime = await getGameTimeByWorldId.Handle(
-            new GetGameTimeByWorldIdQuery { WorldId = command.WorldId },
-            cancellationToken
-        );
-        var isRested = creature.RestedUntilGameTime is { } restedUntil && gameTime < restedUntil;
+        var isRested =
+            creature.RestedUntilGameTime is { } restedUntil && command.GameTime < restedUntil;
         var experienceMultiplier = isRested
             ? optionsSnapshot.Value.RestedSkillExperienceMultiplier
             : 1f;

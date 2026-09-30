@@ -148,6 +148,7 @@ internal static class Builders
         IReadOnlyList<CombatantResult> combatants,
         int? goldLooted = null,
         IReadOnlyDictionary<WeaponType, int>? weaponSwingCounts = null,
+        IReadOnlyDictionary<Skill, int>? skillUsageCounts = null,
         IReadOnlyList<CombatResolution>? events = null
     ) =>
         new(
@@ -155,7 +156,7 @@ internal static class Builders
             Combatants: combatants,
             Events: events ?? [],
             WeaponSwingCounts: weaponSwingCounts ?? new Dictionary<WeaponType, int>(),
-            SkillUsageCounts: new Dictionary<Skill, int>()
+            SkillUsageCounts: skillUsageCounts ?? new Dictionary<Skill, int>()
         );
 
     public static AttackAbility MakeAttackAbility(

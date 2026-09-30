@@ -1,6 +1,7 @@
 using TRPG.Application.Combat.Events;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat.Commands;
@@ -10,6 +11,7 @@ public class ApplyCombatRoundOutcomeCommand
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required IReadOnlyList<Combatant> Combatants { get; init; }
     public required CombatState State { get; init; }
 }
@@ -34,6 +36,7 @@ internal class ApplyCombatRoundOutcomeCommandHandler(
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
+                GameTime = command.GameTime,
                 State = state,
             },
             cancellationToken

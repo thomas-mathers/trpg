@@ -2,6 +2,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WeaponProficiency.Commands;
+using TRPG.Domain;
 
 namespace TRPG.Application.Combat.Commands;
 
@@ -9,6 +10,7 @@ public class ApplyCombatUsageCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required GameInstant GameTime { get; init; }
     public required CombatState State { get; init; }
 }
 
@@ -45,6 +47,7 @@ internal class ApplyCombatUsageCommandHandler(
                 {
                     WorldId = command.WorldId,
                     CreatureId = command.PlayerId,
+                    GameTime = command.GameTime,
                     UsageCounts = state.SkillUsageCounts,
                 },
                 cancellationToken

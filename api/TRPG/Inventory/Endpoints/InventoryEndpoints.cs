@@ -15,7 +15,9 @@ using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Results;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Creatures.Mappers;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Mappers;
@@ -107,6 +109,7 @@ internal static class InventoryEndpoints
         [FromServices] ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
         [FromServices] ICommandHandler<AttemptTheftCommand, TheftAttemptResult> attemptTheft,
         [FromServices] ICommandHandler<TransferPlayerInventoryCommand> transferInventory,
+        [FromServices] IQueryHandler<GetGameTimeByWorldIdQuery, GameInstant> getGameTimeByWorldId,
         GameClientEventDispatcher eventDispatcher,
         CancellationToken cancellationToken
     )
@@ -179,6 +182,10 @@ internal static class InventoryEndpoints
         }
         else if (request.To.Id == playerId && request.To.Type == OwnerType.Creature)
         {
+            var gameTime = await getGameTimeByWorldId.Handle(
+                new GetGameTimeByWorldIdQuery { WorldId = from.Value.WorldId },
+                cancellationToken
+            );
             var theftAttempt = await attemptTheft.Handle(
                 new AttemptTheftCommand
                 {
@@ -186,6 +193,7 @@ internal static class InventoryEndpoints
                     Items = request.Items,
                     PlayerId = playerId,
                     WorldId = from.Value.WorldId,
+                    GameTime = gameTime,
                 },
                 cancellationToken
             );

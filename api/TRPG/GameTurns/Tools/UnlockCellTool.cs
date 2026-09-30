@@ -5,8 +5,10 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Props.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
@@ -20,6 +22,7 @@ internal class UnlockCellTool(
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCellByNameAtLocationQuery, Cell?> getCellByNameAtLocation,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<AttemptCellUnlockCommand, AttemptCellUnlockResult> attemptCellUnlock,
     ILogger<UnlockCellTool> logger
 ) : IGameTool
@@ -70,12 +73,17 @@ internal class UnlockCellTool(
             return new ToolError($"There's no cell called '{cellName}' here.");
         }
 
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = turnContext.SessionId },
+            cancellationToken
+        );
         var result = await attemptCellUnlock.Handle(
             new AttemptCellUnlockCommand
             {
                 PlayerId = turnContext.PlayerId,
                 WorldId = turnContext.WorldId,
                 CellId = cell.Id,
+                GameTime = gameTime,
             },
             cancellationToken
         );

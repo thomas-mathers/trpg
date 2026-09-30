@@ -6,8 +6,8 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters.Commands;
-using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 

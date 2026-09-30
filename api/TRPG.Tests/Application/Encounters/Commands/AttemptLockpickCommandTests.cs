@@ -70,6 +70,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -97,6 +98,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -132,6 +134,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -195,6 +198,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -235,6 +239,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -260,6 +265,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = jail.ConnectorId,
@@ -292,6 +298,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = jail.ConnectorId,
@@ -425,6 +432,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -458,6 +466,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -503,6 +512,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -538,6 +548,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,
@@ -587,6 +598,7 @@ public sealed class AttemptLockpickCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new AttemptLockpickCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = WorldId,
                 ConnectorId = connectorId,

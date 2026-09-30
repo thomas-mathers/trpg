@@ -2,7 +2,7 @@ using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Queries;
 using TRPG.Domain;
 
-namespace TRPG.Application.GameSessions.Queries;
+namespace TRPG.Application.Worlds.Queries;
 
 public class GetGameTimeByWorldIdQuery
 {

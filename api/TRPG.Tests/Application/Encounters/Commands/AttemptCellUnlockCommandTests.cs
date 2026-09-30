@@ -64,9 +64,6 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         );
         _context.Creatures.AddRange(_player, _captive);
         _context.Props.Add(_cell);
-        // GameTime defaults to GameClock.Epoch, which GameClock resolves to hour 8 at the world
-        // epoch — matching MakeCreatureJob's default 8-17 Idle window below.
-        _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _player.Id));
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 _captive.Id,
@@ -103,6 +100,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         var result = await _handler.Handle(
             new AttemptCellUnlockCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = _worldId,
                 CellId = _cell.Id,
@@ -149,6 +147,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         var result = await _handler.Handle(
             new AttemptCellUnlockCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = _worldId,
                 CellId = _cell.Id,
@@ -179,6 +178,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         var result = await _handler.Handle(
             new AttemptCellUnlockCommand
             {
+                GameTime = GameClock.Epoch,
                 PlayerId = _player.Id,
                 WorldId = _worldId,
                 CellId = _cell.Id,
