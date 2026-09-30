@@ -218,7 +218,7 @@ public sealed partial class ModuleArchitectureTests
                 .Descendants("ProjectReference")
                 .Select(element => element.Attribute("Include")?.Value)
                 .OfType<string>()
-                .Select(reference => Path.GetFileNameWithoutExtension(reference))
+                .Select(reference => Path.GetFileNameWithoutExtension(reference.Replace('\\', '/')))
                 .ToHashSet();
             return new ProjectInfo(Path.GetFileNameWithoutExtension(path), references);
         }
