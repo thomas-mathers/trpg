@@ -40,7 +40,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M06 — QuestGeneration extraction
 - [x] M07 — Weather extraction
 - [x] M08 — Routing data boundaries
-- [ ] M09 — Room-key workflow split
+- [x] M09 — Room-key workflow split
 - [ ] M10 — GameTurns movement workflow
 - [ ] M11 — Notification event seams
 - [ ] M12 — Application scene projection
@@ -349,30 +349,30 @@ milestone(M08): complete routing data boundaries
 
 ## Wave 4 — workflow boundaries and event seams
 
-### [ ] M09 — Room-key workflow split
+### [x] M09 — Room-key workflow split
 
 Move ordinary key return and booking deletion to RoomBookings while Encounters retains overdue confrontation. GameTurns or the host adapter coordinates the two outcomes without creating a module cycle.
 
 Scope:
 
-- [ ] Add a RoomBookings command for ordinary key return and entitlement removal.
-- [ ] Keep overdue confrontation in Encounters.
-- [ ] Replace `GetTradeWorkstationByBuildingIdQuery` with composition from Worlds and Props queries, or a focused owner projection.
-- [ ] Update `ReturnRoomKeyTool` to call the workflow boundary.
-- [ ] Preserve key ownership, booking state, and confrontation narration results.
+- [x] Add a RoomBookings command for ordinary key return and entitlement removal.
+- [x] Keep overdue confrontation in Encounters.
+- [x] Replace `GetTradeWorkstationByBuildingIdQuery` with composition from Worlds and Props queries, or a focused owner projection.
+- [x] Update `ReturnRoomKeyTool` to call the workflow boundary.
+- [x] Preserve key ownership, booking state, and confrontation narration results.
 
 Acceptance:
 
-- [ ] An on-time return never creates an encounter.
-- [ ] An overdue return follows the existing confrontation branches.
-- [ ] RoomBookings does not reference Encounters.
-- [ ] Encounters no longer owns ordinary booking deletion.
+- [x] An on-time return never creates an encounter.
+- [x] An overdue return follows the existing confrontation branches.
+- [x] RoomBookings does not reference Encounters.
+- [x] Encounters no longer owns ordinary booking deletion.
 
 Verification:
 
-- [ ] On-time, overdue, missing-key, and replacement-key tests pass.
-- [ ] Tool-level return-key tests pass.
-- [ ] Full backend test suite passes.
+- [x] On-time, overdue, missing-key, and replacement-key tests pass.
+- [x] Tool-level return-key tests pass.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

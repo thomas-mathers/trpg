@@ -1,21 +1,18 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.RoomBookings.Commands;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.RoomBookings.Queries;
 using TRPG.Application.Worlds.Queries;
-using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Encounters.Commands;
+namespace TRPG.Application.RoomBookings.Commands;
 
 public class ReturnRoomKeyCommand
 {
     public required Guid WorldId { get; init; }
-    public required GameInstant GameTime { get; init; }
     public required Guid PlayerId { get; init; }
     public required Guid LocationId { get; init; }
 }
@@ -24,22 +21,21 @@ public enum ReturnRoomKeyOutcome
 {
     Returned,
     NoActiveBooking,
-    Overdue,
 }
 
-public record ReturnRoomKeyResult(ReturnRoomKeyOutcome Outcome, TheftEncounter? Encounter = null);
+public record ReturnRoomKeyResult(ReturnRoomKeyOutcome Outcome);
 
 internal class ReturnRoomKeyCommandHandler(
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
-    IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
+    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
+    IQueryHandler<
+        GetTradeWorkstationByLocationIdsQuery,
+        Workstation?
+    > getTradeWorkstationByLocationIds,
     IQueryHandler<
         GetRoomBookingsForPlayerInBuildingQuery,
         IReadOnlyCollection<RoomBooking>
     > getRoomBookingsForPlayerInBuilding,
-    ICommandHandler<
-        ConfrontOverdueRoomKeyCommand,
-        ConfrontOverdueRoomKeyResult
-    > confrontOverdueRoomKey,
     ICommandHandler<TransferPlayerInventoryCommand> transferPlayerInventory,
     ICommandHandler<DeleteRoomBookingsCommand> deleteRoomBookings
 ) : ICommandHandler<ReturnRoomKeyCommand, ReturnRoomKeyResult>
@@ -65,23 +61,6 @@ internal class ReturnRoomKeyCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        var confrontation = await confrontOverdueRoomKey.Handle(
-            new ConfrontOverdueRoomKeyCommand
-            {
-                WorldId = command.WorldId,
-                GameTime = command.GameTime,
-                PlayerId = command.PlayerId,
-                LocationId = command.LocationId,
-                BuildingId = building.Id,
-            },
-            cancellationToken
-        );
-        if (confrontation.Encounter != null)
-        {
-            transaction.Complete();
-            return new ReturnRoomKeyResult(ReturnRoomKeyOutcome.Overdue, confrontation.Encounter);
-        }
-
         var bookings = await getRoomBookingsForPlayerInBuilding.Handle(
             new GetRoomBookingsForPlayerInBuildingQuery
             {
@@ -97,10 +76,7 @@ internal class ReturnRoomKeyCommandHandler(
             return new ReturnRoomKeyResult(ReturnRoomKeyOutcome.NoActiveBooking);
         }
 
-        var workstation = await getTradeWorkstation.Handle(
-            new GetTradeWorkstationByBuildingIdQuery { BuildingId = building.Id },
-            cancellationToken
-        );
+        var workstation = await GetTradeWorkstation(building.Id, cancellationToken);
         if (workstation == null)
         {
             throw new InvalidOperationException(
@@ -126,5 +102,24 @@ internal class ReturnRoomKeyCommandHandler(
 
         transaction.Complete();
         return new ReturnRoomKeyResult(ReturnRoomKeyOutcome.Returned);
+    }
+
+    private async Task<Workstation?> GetTradeWorkstation(
+        Guid buildingId,
+        CancellationToken cancellationToken
+    )
+    {
+        var rooms = await getRoomsByBuildingId.Handle(
+            new GetRoomsByBuildingIdQuery { BuildingId = buildingId },
+            cancellationToken
+        );
+
+        return await getTradeWorkstationByLocationIds.Handle(
+            new GetTradeWorkstationByLocationIdsQuery
+            {
+                LocationIds = rooms.Select(room => room.LocationId).ToArray(),
+            },
+            cancellationToken
+        );
     }
 }

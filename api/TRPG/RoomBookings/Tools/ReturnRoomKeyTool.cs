@@ -8,6 +8,8 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
+using TRPG.Application.RoomBookings.Commands;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tools;
@@ -19,8 +21,13 @@ internal class ReturnRoomKeyTool(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetCreatureByNameAtLocationQuery, Creature?> getCreatureByNameAtLocation,
     ICommandHandler<ReturnRoomKeyCommand, ReturnRoomKeyResult> returnRoomKey,
+    ICommandHandler<
+        ConfrontOverdueRoomKeyCommand,
+        ConfrontOverdueRoomKeyResult
+    > confrontOverdueRoomKey,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
+    IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
     ILogger<ReturnRoomKeyTool> logger
 ) : IGameTool
 {
@@ -45,15 +52,7 @@ internal class ReturnRoomKeyTool(
             new GetCreatureByIdQuery { Id = turnContext.PlayerId },
             cancellationToken
         );
-        var npc = await getCreatureByNameAtLocation.Handle(
-            new GetCreatureByNameAtLocationQuery
-            {
-                WorldId = turnContext.WorldId,
-                LocationId = player!.LocationId,
-                Name = npcName,
-            },
-            cancellationToken
-        );
+        var npc = await FindNpc(npcName, player!.LocationId, cancellationToken);
         if (npc == null)
         {
             return new ToolError(
@@ -66,46 +65,109 @@ internal class ReturnRoomKeyTool(
             cancellationToken
         );
 
+        var buildingId = await GetInnBuildingId(player.LocationId, cancellationToken);
+        var confrontation = await ConfrontOverdueKey(
+            player.LocationId,
+            buildingId,
+            gameTime,
+            cancellationToken
+        );
+        if (confrontation.Encounter != null)
+        {
+            await PublishConfrontation(confrontation.Encounter, gameTime, cancellationToken);
+            var confrontedResult = new
+            {
+                Confronted = true,
+                Instruction = "The innkeeper has confronted the player about the overdue key. Stop the response without narration.",
+            };
+            LogResult(stopwatch, confrontedResult);
+            return confrontedResult;
+        }
+
         var returnResult = await returnRoomKey.Handle(
             new ReturnRoomKeyCommand
             {
                 PlayerId = turnContext.PlayerId,
                 WorldId = turnContext.WorldId,
-                GameTime = gameTime,
                 LocationId = player.LocationId,
             },
             cancellationToken
         );
 
-        object? result;
-        if (returnResult.Outcome == ReturnRoomKeyOutcome.Overdue)
+        object? result = returnResult.Outcome switch
         {
-            await publishEncounterStarted.Handle(
-                new PublishEncounterStartedCommand
-                {
-                    PlayerId = turnContext.PlayerId,
-                    Encounter = returnResult.Encounter,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
-            result = new
-            {
-                Confronted = true,
-                Instruction = "The innkeeper has confronted the player about the overdue key. Stop the response without narration.",
-            };
-        }
-        else
-        {
-            result = returnResult.Outcome switch
-            {
-                ReturnRoomKeyOutcome.NoActiveBooking => new ToolError(
-                    "The player isn't currently renting a room here."
-                ),
-                _ => new { Returned = true },
-            };
-        }
+            ReturnRoomKeyOutcome.NoActiveBooking => new ToolError(
+                "The player isn't currently renting a room here."
+            ),
+            _ => new { Returned = true },
+        };
 
+        LogResult(stopwatch, result);
+        return result;
+    }
+
+    private Task<Creature?> FindNpc(
+        string npcName,
+        Guid locationId,
+        CancellationToken cancellationToken
+    ) =>
+        getCreatureByNameAtLocation.Handle(
+            new GetCreatureByNameAtLocationQuery
+            {
+                WorldId = turnContext.WorldId,
+                LocationId = locationId,
+                Name = npcName,
+            },
+            cancellationToken
+        );
+
+    private async Task<Guid> GetInnBuildingId(Guid locationId, CancellationToken cancellationToken)
+    {
+        var building = await getBuildingByLocationId.Handle(
+            new GetBuildingByLocationIdQuery { LocationId = locationId },
+            cancellationToken
+        );
+        if (building is not { BuildingType: BuildingType.Inn })
+        {
+            throw new InvalidOperationException($"Location {locationId} is not inside an Inn.");
+        }
+        return building.Id;
+    }
+
+    private Task<ConfrontOverdueRoomKeyResult> ConfrontOverdueKey(
+        Guid locationId,
+        Guid buildingId,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    ) =>
+        confrontOverdueRoomKey.Handle(
+            new ConfrontOverdueRoomKeyCommand
+            {
+                PlayerId = turnContext.PlayerId,
+                WorldId = turnContext.WorldId,
+                GameTime = gameTime,
+                LocationId = locationId,
+                BuildingId = buildingId,
+            },
+            cancellationToken
+        );
+
+    private Task PublishConfrontation(
+        TheftEncounter encounter,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    ) =>
+        publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = turnContext.PlayerId,
+                Encounter = encounter,
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
+
+    private void LogResult(Stopwatch stopwatch, object? result) =>
         logger.LogInformation(
             "[perf] [return_key] result in {ElapsedMs}ms: {Result}",
             stopwatch.ElapsedMilliseconds,
@@ -114,6 +176,4 @@ internal class ReturnRoomKeyTool(
                 TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
             )
         );
-        return result;
-    }
 }

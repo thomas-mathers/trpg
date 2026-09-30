@@ -4,12 +4,13 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Commands;
-using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.RoomBookings.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -30,7 +31,11 @@ public record ConfrontOverdueRoomKeyResult(TheftEncounter? Encounter);
 
 internal class ConfrontOverdueRoomKeyCommandHandler(
     IEncountersDbContext context,
-    IQueryHandler<GetTradeWorkstationByBuildingIdQuery, Workstation?> getTradeWorkstation,
+    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
+    IQueryHandler<
+        GetTradeWorkstationByLocationIdsQuery,
+        Workstation?
+    > getTradeWorkstationByLocationIds,
     IQueryHandler<GetCityFactionForCreatureQuery, Guid?> getCityFactionForCreature,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
@@ -61,10 +66,7 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
             return new ConfrontOverdueRoomKeyResult(null);
         }
 
-        var workstation = await getTradeWorkstation.Handle(
-            new GetTradeWorkstationByBuildingIdQuery { BuildingId = command.BuildingId },
-            cancellationToken
-        );
+        var workstation = await GetTradeWorkstation(command.BuildingId, cancellationToken);
         if (workstation?.OwnerCreatureId is not { } innkeeperId)
         {
             transaction.Complete();
@@ -196,6 +198,25 @@ internal class ConfrontOverdueRoomKeyCommandHandler(
                 bookingIdByKeyItemId[item.Id]
             ))
             .ToList();
+    }
+
+    private async Task<Workstation?> GetTradeWorkstation(
+        Guid buildingId,
+        CancellationToken cancellationToken
+    )
+    {
+        var rooms = await getRoomsByBuildingId.Handle(
+            new GetRoomsByBuildingIdQuery { BuildingId = buildingId },
+            cancellationToken
+        );
+
+        return await getTradeWorkstationByLocationIds.Handle(
+            new GetTradeWorkstationByLocationIdsQuery
+            {
+                LocationIds = rooms.Select(room => room.LocationId).ToArray(),
+            },
+            cancellationToken
+        );
     }
 
     private sealed record HeldOverdueKey(Guid Id, string Name, int Quantity, Guid RoomBookingId);
