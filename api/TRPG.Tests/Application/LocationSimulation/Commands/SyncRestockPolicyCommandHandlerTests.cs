@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Events;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Data;
 using TRPG.Domain;
@@ -18,6 +19,8 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private SyncRestockPolicyCommandHandler _handler = null!;
     private readonly Guid _locationId = Guid.NewGuid();
+    private readonly RecordingWorkstationRestockedConsumer _restocked = new();
+    private Building _building = null!;
     private Workstation _workstation = null!;
 
     public async ValueTask InitializeAsync()
@@ -25,18 +28,16 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .AddSingleton<IDomainEventConsumer<WorkstationRestockedEvent>>(_restocked)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<SyncRestockPolicyCommandHandler>();
 
-        var building = Builders.MakeBuilding(
-            worldId: WorldId,
-            buildingType: BuildingType.Apothecary
-        );
-        var room = Builders.MakeRoom(building.Id, worldId: WorldId, locationId: _locationId);
+        _building = Builders.MakeBuilding(worldId: WorldId, buildingType: BuildingType.Apothecary);
+        var room = Builders.MakeRoom(_building.Id, worldId: WorldId, locationId: _locationId);
         var location = Builders.MakeLocation(WorldId, roomId: room.Id, id: _locationId);
         _workstation = Builders.MakeWorkstation(worldId: WorldId, locationId: _locationId);
 
-        _context.Buildings.Add(building);
+        _context.Buildings.Add(_building);
         _context.Rooms.Add(room);
         _context.Locations.Add(location);
         _context.Props.Add(_workstation);
@@ -167,6 +168,57 @@ public sealed class SyncRestockPolicyCommandHandlerTests(DatabaseFixture db)
                 .Items.Where(i => i.Ownership.OwnerId == _workstation.Id)
                 .AnyAsync(TestContext.Current.CancellationToken)
         );
+    }
+
+    [Fact]
+    public async Task Handle_PublishesWorkstationRestockedOnce_WhenScheduleHasTriggered()
+    {
+        // Arrange
+        var policy = Builders.MakeRestockPolicy(WorldId, _workstation.Id);
+        _context.RestockPolicies.Add(policy);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var currentGameTime = GameClock.Epoch + TimeSpan.FromHours(24);
+
+        // Act
+        await _handler.Handle(
+            new SyncRestockPolicyCommand
+            {
+                LocationId = _locationId,
+                PlayerLevel = 5,
+                CurrentGameTime = currentGameTime,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var restocked = Assert.Single(_restocked.Events);
+        Assert.Equal(
+            new WorkstationRestockedEvent(WorldId, _building.Id, _workstation.Id, currentGameTime),
+            restocked
+        );
+    }
+
+    [Fact]
+    public async Task Handle_PublishesNothing_WhenScheduleHasNotYetTriggered()
+    {
+        // Arrange
+        var policy = Builders.MakeRestockPolicy(WorldId, _workstation.Id);
+        _context.RestockPolicies.Add(policy);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new SyncRestockPolicyCommand
+            {
+                LocationId = _locationId,
+                PlayerLevel = 5,
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(12),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(_restocked.Events);
     }
 
     [Fact]

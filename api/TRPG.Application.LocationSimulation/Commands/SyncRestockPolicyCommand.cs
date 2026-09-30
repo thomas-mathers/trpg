@@ -1,13 +1,13 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Scheduling;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Props.Queries;
-using TRPG.Application.RoomBookings.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
@@ -31,19 +31,11 @@ internal class SyncRestockPolicyCommandHandler(
         IReadOnlyCollection<Workstation>
     > getWorkstationsByLocationId,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
-    IQueryHandler<
-        GetGuestRoomDoorsByBuildingIdQuery,
-        IReadOnlyList<GuestRoomDoor>
-    > getGuestRoomDoors,
     IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
-    IQueryHandler<
-        GetWorkstationOwnedItemIdsQuery,
-        IReadOnlyDictionary<Guid, Guid>
-    > getWorkstationOwnedItemIds,
     ICommandHandler<AddItemsCommand> addItems,
     ICommandHandler<RestockGoldCommand> restockGold,
     ICommandHandler<UpdateItemQuantitiesCommand> updateItemQuantities,
-    ICommandHandler<IssueReplacementRoomKeysCommand> issueReplacementRoomKeys
+    IDomainEventPublisher<WorkstationRestockedEvent> workstationRestockedPublisher
 ) : ICommandHandler<SyncRestockPolicyCommand>
 {
     public async Task Handle(
@@ -97,7 +89,26 @@ internal class SyncRestockPolicyCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var buildingType = building.BuildingType;
+        await Restock(policy, building.BuildingType, command, cancellationToken);
+
+        await workstationRestockedPublisher.Publish(
+            new WorkstationRestockedEvent(
+                policy.WorldId,
+                building.Id,
+                policy.WorkstationId,
+                command.CurrentGameTime
+            ),
+            cancellationToken
+        );
+    }
+
+    private async Task Restock(
+        RestockPolicy policy,
+        BuildingType buildingType,
+        SyncRestockPolicyCommand command,
+        CancellationToken cancellationToken
+    )
+    {
         var workstationId = policy.WorkstationId;
 
         var currentItems = await getInventoryItemsByOwner.Handle(
@@ -160,58 +171,10 @@ internal class SyncRestockPolicyCommandHandler(
             );
         }
 
-        if (buildingType == BuildingType.Inn)
-        {
-            await RegenerateMissingRoomKeys(
-                workstationId,
-                building.Id,
-                policy.WorldId,
-                cancellationToken
-            );
-        }
-
         policy.LastSyncGameTime = command.CurrentGameTime;
 
         await context.SaveChangesAsync(cancellationToken);
 
         transaction.Complete();
-    }
-
-    // Mints a replacement on the same cadence as restocking; never revokes an already-issued key.
-    private async Task RegenerateMissingRoomKeys(
-        Guid workstationId,
-        Guid buildingId,
-        Guid worldId,
-        CancellationToken cancellationToken
-    )
-    {
-        var guestRoomDoors = await getGuestRoomDoors.Handle(
-            new GetGuestRoomDoorsByBuildingIdQuery { BuildingId = buildingId },
-            cancellationToken
-        );
-        var candidateKeyItemIds = guestRoomDoors
-            .SelectMany(door => door.CandidateKeyItemIds)
-            .ToArray();
-        var workstationIdsByItemId = await getWorkstationOwnedItemIds.Handle(
-            new GetWorkstationOwnedItemIdsQuery { ItemIds = candidateKeyItemIds },
-            cancellationToken
-        );
-
-        var doorsNeedingKeys = guestRoomDoors
-            .Where(door =>
-                !door.CandidateKeyItemIds.Any(id => workstationIdsByItemId.ContainsKey(id))
-            )
-            .Select(door => new ReplacementRoomKeyRequest(door.DoorConnectorId, door.RoomName))
-            .ToArray();
-
-        await issueReplacementRoomKeys.Handle(
-            new IssueReplacementRoomKeysCommand
-            {
-                WorkstationId = workstationId,
-                WorldId = worldId,
-                Doors = doorsNeedingKeys,
-            },
-            cancellationToken
-        );
     }
 }

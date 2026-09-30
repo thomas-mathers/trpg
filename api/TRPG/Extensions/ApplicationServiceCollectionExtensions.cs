@@ -23,6 +23,7 @@ using TRPG.Application.Props.Extensions;
 using TRPG.Application.QuestGeneration.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
+using TRPG.Application.RoomBookings.Extensions;
 using TRPG.Application.Routing.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Application.Worlds.Extensions;
@@ -77,6 +78,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddKnowledgeServices()
             .AddEncountersServices()
             .AddRoutingServices()
+            .AddRoomBookingsServices()
             .AddLocationSimulationServices()
             .AddQuestGenerationServices()
             .AddQuestServices()

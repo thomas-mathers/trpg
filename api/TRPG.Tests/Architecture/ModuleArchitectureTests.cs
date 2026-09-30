@@ -20,6 +20,11 @@ public sealed partial class ModuleArchitectureTests
 
     private static readonly IReadOnlySet<string> ForeignContextAllowlist = new HashSet<string>();
 
+    private static readonly (string From, string To)[] ForbiddenReferences =
+    [
+        ("TRPG.Application.LocationSimulation", "TRPG.Application.RoomBookings"),
+    ];
+
     private static readonly IReadOnlySet<string> ConcreteContextAllowlist = new HashSet<string>
     {
         "TRPG.Application.Creatures/Commands/DeleteCreaturesCommand.cs:TrpgDbContext",
@@ -78,6 +83,19 @@ public sealed partial class ModuleArchitectureTests
         var projects = LoadProjects();
         var violations = PersistenceFreeProjects
             .Where(name => projects[name].References.Contains("TRPG.Data"))
+            .Order()
+            .ToArray();
+
+        Assert.True(violations.Length == 0, string.Join(Environment.NewLine, violations));
+    }
+
+    [Fact]
+    public void ForbiddenProjectReferences_AreAbsent()
+    {
+        var projects = LoadProjects();
+        var violations = ForbiddenReferences
+            .Where(edge => projects[edge.From].References.Contains(edge.To))
+            .Select(edge => $"{edge.From} -> {edge.To}")
             .Order()
             .ToArray();
 
