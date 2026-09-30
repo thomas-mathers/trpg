@@ -7,5 +7,4 @@ public interface ILocationSimulationDbContext : ITrpgDbContext
 {
     DbSet<CreatureSpawner> CreatureSpawners { get; }
     DbSet<RestockPolicy> RestockPolicies { get; }
-    DbSet<WeatherState> WeatherStates { get; }
 }

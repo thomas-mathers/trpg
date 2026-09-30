@@ -1,8 +1,8 @@
-using TRPG.Application.LocationSimulation;
+using TRPG.Application.Weather;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Tests.Application.LocationSimulation;
+namespace TRPG.Tests.Application.Weather;
 
 public sealed class WeatherRollTests
 {
