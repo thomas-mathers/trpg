@@ -39,7 +39,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M05 — World time and captured gameplay time
 - [x] M06 — QuestGeneration extraction
 - [x] M07 — Weather extraction
-- [ ] M08 — Routing data boundaries
+- [x] M08 — Routing data boundaries
 - [ ] M09 — Room-key workflow split
 - [ ] M10 — GameTurns movement workflow
 - [ ] M11 — Notification event seams
@@ -309,35 +309,37 @@ Completion commit:
 milestone(M07): complete weather extraction
 ```
 
-### [ ] M08 — Routing data boundaries
+### [x] M08 — Routing data boundaries
 
 Hide Routing persistence behind owner queries and projections. Caravans should consume stable journey information rather than Routing DbSets.
 
 Scope:
 
-- [ ] Add a Routing projection for traveler identity and world.
-- [ ] Add a Routing projection for valid stops.
-- [ ] Add a journey quote containing route, origin, destination, and timing.
-- [ ] Replace direct `IRoutingDbContext` access in caravan interaction, ticket purchase, and boarding.
-- [ ] Add a batched Worlds travel-topology query.
-- [ ] Remove LocationConnector and TravelConnector access from `IRoutingDbContext`.
-- [ ] Update Routing algorithms to consume the Worlds topology projection.
-- [ ] Decide whether shared pure algorithms justify a later TravelPlanning project; do not create it solely for symmetry.
+- [x] Add a Routing projection for traveler identity and world.
+- [x] Add a Routing projection for valid stops.
+- [x] Add a journey quote containing route, origin, destination, and timing.
+- [x] Replace direct `IRoutingDbContext` access in caravan interaction, ticket purchase, and boarding.
+- [x] Add batched Worlds travel-topology and connector-distance queries.
+- [x] Remove LocationConnector and TravelConnector access from `IRoutingDbContext`.
+- [x] Update Routing algorithms to consume the Worlds topology projection.
+- [x] Decide whether shared pure algorithms justify a later TravelPlanning project; do not create it solely for symmetry.
+
+Decision: Keep pathfinding in Routing for now. No second module needs the algorithm, so a TravelPlanning project would add a boundary without creating shared ownership value.
 
 Acceptance:
 
-- [ ] A purchased ticket retains its quoted schedule across narration delay.
-- [ ] Invalid stops, insufficient funds, and late boarding behave as before.
-- [ ] Caravans cannot access Routing DbSets.
-- [ ] Routing cannot access Worlds-owned connector DbSets.
-- [ ] No WorldGeneration → Routing → Worlds → WorldGeneration cycle is introduced.
+- [x] A purchased ticket retains its quoted schedule across narration delay.
+- [x] Invalid stops, insufficient funds, and late boarding behave as before.
+- [x] Caravans cannot access Routing DbSets.
+- [x] Routing cannot access Worlds-owned connector DbSets.
+- [x] No WorldGeneration → Routing → Worlds → WorldGeneration cycle is introduced.
 
 Verification:
 
-- [ ] Caravan interaction, purchase, and boarding tests pass.
-- [ ] Routing schedule, position, and pathfinding tests pass.
-- [ ] Architecture tests confirm the foreign contexts are gone.
-- [ ] Full backend test suite passes.
+- [x] Caravan interaction, purchase, and boarding tests pass.
+- [x] Routing schedule, position, and pathfinding tests pass.
+- [x] Architecture tests confirm the foreign contexts are gone.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

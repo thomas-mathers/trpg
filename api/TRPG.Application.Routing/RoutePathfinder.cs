@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Algorithms;
-using TRPG.Domain.Models;
+using TRPG.Application.Worlds.Queries;
 
 namespace TRPG.Application.Routing;
 
@@ -8,25 +8,11 @@ internal record RoutePathLeg(Guid OriginLocationId, Guid ConnectorId, Guid Desti
 internal static class RoutePathfinder
 {
     public static IReadOnlyList<RoutePathLeg> FindShortestPath(
-        IReadOnlyCollection<LocationConnector> connectors,
-        IReadOnlyCollection<TravelConnector> travelConnectors,
+        IReadOnlyCollection<TravelTopologyEdge> edges,
         Guid originLocationId,
         Guid destinationLocationId
     )
     {
-        var distanceByConnectorId = travelConnectors.ToDictionary(
-            connector => connector.ConnectorId,
-            connector => connector.Distance
-        );
-        var edges = connectors
-            .Where(connector => distanceByConnectorId.ContainsKey(connector.Id))
-            .Select(connector => new RoutePathEdge(
-                connector.OriginLocationId,
-                connector.Id,
-                connector.DestinationLocationId,
-                distanceByConnectorId[connector.Id]
-            ))
-            .ToArray();
         if (
             edges
                 .GroupBy(edge => (edge.OriginLocationId, edge.DestinationLocationId))
@@ -68,11 +54,4 @@ internal static class RoutePathfinder
         }
         return path.ToArray();
     }
-
-    private record RoutePathEdge(
-        Guid OriginLocationId,
-        Guid ConnectorId,
-        Guid DestinationLocationId,
-        float Distance
-    );
 }

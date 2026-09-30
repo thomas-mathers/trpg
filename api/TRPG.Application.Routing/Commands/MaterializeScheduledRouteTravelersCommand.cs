@@ -6,6 +6,7 @@ using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -27,7 +28,11 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
     > getCreatureJobsByCreatureIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<SetCreatureActivityCommand> setCreatureActivity
+    ICommandHandler<SetCreatureActivityCommand> setCreatureActivity,
+    IQueryHandler<
+        GetTravelConnectorDistancesQuery,
+        IReadOnlyDictionary<Guid, float>
+    > getTravelConnectorDistances
 ) : ICommandHandler<MaterializeScheduledRouteTravelersCommand, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(
@@ -331,14 +336,10 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             .Select(step => step.ConnectorId!.Value)
             .Distinct()
             .ToArray();
-        var distances = await context
-            .TravelConnectors.AsNoTracking()
-            .Where(connector => connectorIds.AsEnumerable().Contains(connector.ConnectorId))
-            .ToDictionaryAsync(
-                connector => connector.ConnectorId,
-                connector => connector.Distance,
-                cancellationToken
-            );
+        var distances = await getTravelConnectorDistances.Handle(
+            new GetTravelConnectorDistancesQuery { ConnectorIds = connectorIds },
+            cancellationToken
+        );
         var stepsByRouteId = steps
             .GroupBy(step => step.RouteId)
             .ToDictionary(

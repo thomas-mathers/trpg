@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -14,7 +15,13 @@ public class ResolveRouteTravelerPositionsQuery
     public required GameInstant GameTime { get; init; }
 }
 
-internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext context)
+internal class ResolveRouteTravelerPositionsQueryHandler(
+    IRoutingDbContext context,
+    IQueryHandler<
+        GetTravelConnectorDistancesQuery,
+        IReadOnlyDictionary<Guid, float>
+    > getTravelConnectorDistances
+)
     : IQueryHandler<
         ResolveRouteTravelerPositionsQuery,
         IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition>
@@ -47,14 +54,10 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
             .Distinct()
             .ToArray();
 
-        var distancesByConnectorId = await context
-            .TravelConnectors.AsNoTracking()
-            .Where(connector => connectorIds.AsEnumerable().Contains(connector.ConnectorId))
-            .ToDictionaryAsync(
-                connector => connector.ConnectorId,
-                connector => (double)connector.Distance,
-                cancellationToken
-            );
+        var distances = await getTravelConnectorDistances.Handle(
+            new GetTravelConnectorDistancesQuery { ConnectorIds = connectorIds },
+            cancellationToken
+        );
         var timelineStepsByRouteId = routeSteps
             .GroupBy(step => step.RouteId)
             .ToDictionary(
@@ -64,9 +67,7 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
                         .Select(step => new RouteTimelineStep(
                             step.LocationId,
                             step.ConnectorId,
-                            step.ConnectorId == null
-                                ? 0
-                                : distancesByConnectorId[step.ConnectorId.Value],
+                            step.ConnectorId == null ? 0 : distances[step.ConnectorId.Value],
                             step.DwellHours
                         ))
                         .ToArray()

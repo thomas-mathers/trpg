@@ -6,6 +6,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Routing.Queries;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -35,7 +36,8 @@ internal class RouteCreaturesToDestinationsCommandHandler(
     IRoutingDbContext context,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<StartWalkingCommand> startWalking
+    ICommandHandler<StartWalkingCommand> startWalking,
+    IQueryHandler<GetTravelTopologyQuery, IReadOnlyList<TravelTopologyEdge>> getTravelTopology
 )
     : ICommandHandler<
         RouteCreaturesToDestinationsCommand,
@@ -104,21 +106,12 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var connectors = await context
-            .LocationConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
-
-        var travelConnectors = await context
-            .TravelConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
-
-        return new RouteTopology(
-            connectors,
-            travelConnectors,
-            travelConnectors.ToDictionary(connector => connector.ConnectorId)
+        var edges = await getTravelTopology.Handle(
+            new GetTravelTopologyQuery { WorldIds = [worldId] },
+            cancellationToken
         );
+
+        return new RouteTopology(edges, edges.ToDictionary(edge => edge.ConnectorId));
     }
 
     private async Task<IReadOnlyDictionary<Guid, ActiveCreatureRoute>> LoadActiveRoutes(
@@ -188,7 +181,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                                 step.ConnectorId,
                                 step.ConnectorId == null
                                     ? 0
-                                    : topology.TravelByConnectorId[step.ConnectorId.Value].Distance,
+                                    : topology.EdgeByConnectorId[step.ConnectorId.Value].Distance,
                                 step.DwellHours
                             ))
                             .ToArray()
@@ -289,7 +282,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             inTransit.ToLocationId
         );
         var path = new[] { currentLeg }.Concat(tail).ToArray();
-        var currentDistance = topology.TravelByConnectorId[inTransit.ConnectorId].Distance;
+        var currentDistance = topology.EdgeByConnectorId[inTransit.ConnectorId].Distance;
         var elapsedHours =
             currentDistance / activeRoute.Traveler.SpeedUnitsPerHour - inTransit.HoursUntilArrival;
         return new CreatureRoutePlan(
@@ -311,8 +304,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         originLocationId == destinationLocationId
             ? []
             : RoutePathfinder.FindShortestPath(
-                topology.Connectors,
-                topology.TravelConnectors,
+                topology.Edges,
                 originLocationId,
                 destinationLocationId
             );
@@ -365,7 +357,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             var route = GetOrCreateRoute(worldId, plan.Path, routeCache);
             var traveler = AddTraveler(worldId, plan, route.Id);
             var travelHours =
-                plan.Path.Sum(leg => topology.TravelByConnectorId[leg.ConnectorId].Distance)
+                plan.Path.Sum(leg => topology.EdgeByConnectorId[leg.ConnectorId].Distance)
                 / plan.SpeedUnitsPerHour;
             results[plan.Creature.Id] = new RouteCreatureResult(
                 traveler.Id,
@@ -534,9 +526,8 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         ];
 
     private record RouteTopology(
-        IReadOnlyCollection<LocationConnector> Connectors,
-        IReadOnlyCollection<TravelConnector> TravelConnectors,
-        IReadOnlyDictionary<Guid, TravelConnector> TravelByConnectorId
+        IReadOnlyCollection<TravelTopologyEdge> Edges,
+        IReadOnlyDictionary<Guid, TravelTopologyEdge> EdgeByConnectorId
     );
 
     private record ActiveCreatureRoute(

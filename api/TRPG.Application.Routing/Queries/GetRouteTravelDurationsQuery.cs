@@ -1,8 +1,6 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
-using TRPG.Data.ModuleContexts;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
-using TRPG.Domain.Models;
 
 namespace TRPG.Application.Routing.Queries;
 
@@ -19,8 +17,9 @@ public class GetRouteTravelDurationsQuery
     public required IReadOnlyCollection<RouteTravelDurationRequest> Routes { get; init; }
 }
 
-internal class GetRouteTravelDurationsQueryHandler(IRoutingDbContext context)
-    : IQueryHandler<GetRouteTravelDurationsQuery, IReadOnlyDictionary<Guid, TimeSpan>>
+internal class GetRouteTravelDurationsQueryHandler(
+    IQueryHandler<GetTravelTopologyQuery, IReadOnlyList<TravelTopologyEdge>> getTravelTopology
+) : IQueryHandler<GetRouteTravelDurationsQuery, IReadOnlyDictionary<Guid, TimeSpan>>
 {
     public async Task<IReadOnlyDictionary<Guid, TimeSpan>> Handle(
         GetRouteTravelDurationsQuery query,
@@ -34,31 +33,20 @@ internal class GetRouteTravelDurationsQueryHandler(IRoutingDbContext context)
 
         Validate(query.Routes);
 
-        var connectors = await context
-            .LocationConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == query.WorldId)
-            .ToArrayAsync(cancellationToken);
-
-        var travelConnectors = await context
-            .TravelConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == query.WorldId)
-            .ToArrayAsync(cancellationToken);
-        var distanceByConnectorId = travelConnectors.ToDictionary(
-            connector => connector.ConnectorId,
-            connector => connector.Distance
+        var topology = await getTravelTopology.Handle(
+            new GetTravelTopologyQuery { WorldIds = [query.WorldId] },
+            cancellationToken
         );
 
         return query.Routes.ToDictionary(
             request => request.CreatureId,
-            request => ResolveDuration(request, connectors, travelConnectors, distanceByConnectorId)
+            request => ResolveDuration(request, topology)
         );
     }
 
     private static TimeSpan ResolveDuration(
         RouteTravelDurationRequest request,
-        IReadOnlyCollection<LocationConnector> connectors,
-        IReadOnlyCollection<TravelConnector> travelConnectors,
-        IReadOnlyDictionary<Guid, float> distanceByConnectorId
+        IReadOnlyCollection<TravelTopologyEdge> topology
     )
     {
         if (request.OriginLocationId == request.DestinationLocationId)
@@ -67,8 +55,7 @@ internal class GetRouteTravelDurationsQueryHandler(IRoutingDbContext context)
         }
 
         var path = RoutePathfinder.FindShortestPath(
-            connectors,
-            travelConnectors,
+            topology,
             request.OriginLocationId,
             request.DestinationLocationId
         );
@@ -77,8 +64,8 @@ internal class GetRouteTravelDurationsQueryHandler(IRoutingDbContext context)
             throw new InvalidOperationException("No measured route connects the two locations.");
         }
 
-        var hours =
-            path.Sum(leg => distanceByConnectorId[leg.ConnectorId]) / request.SpeedUnitsPerHour;
+        var distances = topology.ToDictionary(edge => edge.ConnectorId, edge => edge.Distance);
+        var hours = path.Sum(leg => distances[leg.ConnectorId]) / request.SpeedUnitsPerHour;
         return TimeSpan.FromHours(1) * hours;
     }
 

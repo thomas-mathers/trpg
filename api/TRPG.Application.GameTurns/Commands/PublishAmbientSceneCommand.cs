@@ -48,7 +48,10 @@ internal class PublishAmbientSceneCommandHandler(
             new StampWorldStateCommand { WorldId = command.WorldId },
             cancellationToken
         );
-        scenePublisher.Publish(command.PlayerId, scene, stamp);
+        if (!scenePublisher.PublishIfChanged(command.PlayerId, scene, stamp))
+        {
+            return;
+        }
 
         if (previous != null)
         {
