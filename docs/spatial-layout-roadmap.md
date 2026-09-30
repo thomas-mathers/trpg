@@ -29,7 +29,7 @@ Working rules for every milestone:
 ## Milestone tracker
 
 - [x] S01 Domain value types, columns, migration
-- [ ] S02 Oriented box geometry
+- [x] S02 Oriented box geometry
 - [ ] S03 Footprint catalogs and asset keys
 - [ ] S04 Location sizing
 - [ ] S05 District and building layout
@@ -46,7 +46,7 @@ Working rules for every milestone:
 
 Frame and units:
 
-- Meters as `double`, snapped to a 0.25 m grid. X east, Y south, Angle in radians with 0 facing north, rotation about the rect center. Defined once on `Placement`.
+- Meters as `double`, snapped to a 0.25 m grid. X east, Y south, Angle in radians with 0 facing north, rotation about the rect center. `Placement` X and Y are the rect center, and Width runs along the box's local X axis. Defined once on `Placement`.
 - Each `Location` has a size only (`Width` x `Depth`). No parent rects, no world offsets. Locations are axis-aligned; props may be rotated.
 - `Placement(X, Y, Angle)`, `Footprint(Width, Depth)`. A prop rect is a placement plus a footprint. Columns are plain non-null doubles defaulting to 0 (existing worlds are ignored; the jsonb default bug does not apply to scalars).
 - The server never sends geometry: only sizes, rects, asset keys, connector points, and creature poses. The client builds walls and scenery.
@@ -94,15 +94,15 @@ Verification:
 - [x] `scripts/build.sh` passes.
 - [x] Migration SQL reviewed: plain double columns, default 0, no jsonb.
 
-### [ ] S02 Oriented box geometry
+### [x] S02 Oriented box geometry
 
 Scope:
 
-- [ ] Add a pure internal `OrientedBox` (center, footprint, angle) with corners, `IsInside(width, depth)`, and `Overlaps(other, margin)` using the separating axis test.
+- [x] Add a pure internal `OrientedBox` (center, footprint, angle) with corners, `IsInside(width, depth)`, and `Overlaps(other, margin)` using the separating axis test.
 
 Verification:
 
-- [ ] Tests: axis-aligned and rotated overlap, touching edges, margin inflation, containment at bounds, 90 degree symmetry.
+- [x] Tests: axis-aligned and rotated overlap, touching edges, margin inflation, containment at bounds, 90 degree symmetry.
 
 ### [ ] S03 Footprint catalogs and asset keys
 
