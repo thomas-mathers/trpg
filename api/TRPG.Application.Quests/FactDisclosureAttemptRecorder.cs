@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Books.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Knowledge.Commands;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;

@@ -152,6 +152,59 @@ public sealed class ReadBookPageCommandTests(DatabaseFixture db)
         );
     }
 
+    [Fact]
+    public async Task Handle_RereadingDoesNotDuplicateKnowledgeOrQuestProgress()
+    {
+        var work = await SeedWorkWithFactOnPage(2);
+        var objective = await SeedReportObjective(work.FactId!.Value);
+
+        var first = await _handler.Handle(
+            MakeCommand(2, work.Id),
+            TestContext.Current.CancellationToken
+        );
+        var second = await _handler.Handle(
+            MakeCommand(2, work.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.True(first.RevealedFact);
+        Assert.False(second.RevealedFact);
+        await using var verifyContext = db.CreateContext();
+        Assert.Single(
+            await verifyContext
+                .CreatureKnowledge.Where(knowledge =>
+                    knowledge.KnowerId == _reader.Id && knowledge.SubjectId == work.FactId
+                )
+                .ToArrayAsync(TestContext.Current.CancellationToken)
+        );
+        var progress = await verifyContext.CreatureQuestObjectives.SingleAsync(
+            item => item.ObjectiveId == objective.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(1, progress.Amount);
+    }
+
+    private async Task<ReportFactToCreatureObjective> SeedReportObjective(Guid factId)
+    {
+        var quest = Builders.MakeQuest(_reader.Id, WorldId);
+        var objective = new ReportFactToCreatureObjective
+        {
+            WorldId = WorldId,
+            QuestId = quest.Id,
+            CreatureId = _reader.Id,
+            FactId = factId,
+            RequiredAmount = 2,
+        };
+        _context.AddRange(
+            quest,
+            objective,
+            Builders.MakeCreatureQuest(_reader.Id, quest.Id, worldId: WorldId),
+            Builders.MakeCreatureQuestObjective(_reader.Id, objective.Id, WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return objective;
+    }
+
     private ReadBookPageCommand MakeCommand(int pageNumber, Guid? workId = null) =>
         new()
         {

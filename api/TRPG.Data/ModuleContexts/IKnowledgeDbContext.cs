@@ -5,6 +5,7 @@ namespace TRPG.Data.ModuleContexts;
 
 public interface IKnowledgeDbContext : ITrpgDbContext
 {
+    DbSet<Fact> Facts { get; }
     DbSet<CreatureKnowledge> CreatureKnowledge { get; }
     DbSet<Relationship> Relationships { get; }
 }

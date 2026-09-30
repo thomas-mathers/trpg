@@ -1,9 +1,9 @@
-using TRPG.Application.Books.Queries;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Factions.Queries;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.NpcConversations.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;

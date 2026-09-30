@@ -2,14 +2,15 @@ using TRPG.Application.Common.Commands;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Books.Commands;
+namespace TRPG.Application.Knowledge.Commands;
 
 public class AddFactsCommand
 {
     public required IReadOnlyCollection<Fact> Facts { get; init; }
 }
 
-internal class AddFactsCommandHandler(IBooksDbContext context) : ICommandHandler<AddFactsCommand>
+internal class AddFactsCommandHandler(IKnowledgeDbContext context)
+    : ICommandHandler<AddFactsCommand>
 {
     public async Task Handle(AddFactsCommand command, CancellationToken cancellationToken = default)
     {
