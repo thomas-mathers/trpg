@@ -727,7 +727,8 @@ internal static class Builders
         Guid? worldId = null,
         string? name = null,
         Guid? requiredFactId = null,
-        Guid? membershipRewardFactionId = null
+        Guid? membershipRewardFactionId = null,
+        Guid? requiredFactionId = null
     )
     {
         return new Quest
@@ -739,6 +740,7 @@ internal static class Builders
             GoldReward = 100,
             RequiredFactId = requiredFactId,
             MembershipRewardFactionId = membershipRewardFactionId,
+            RequiredFactionId = requiredFactionId,
         };
     }
 

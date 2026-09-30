@@ -5,6 +5,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Crimes.Queries;
+using TRPG.Application.Factions.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -27,7 +28,8 @@ internal record GiveItemKindRequirement(string ItemName, int RequiredAmount, Gui
 
 internal class CompleteQuestCommandHandler(
     IQuestsDbContext context,
-    IFactionsDbContext factionsContext,
+    ICommandHandler<GrantFactionMembershipCommand> grantFactionMembership,
+    ICommandHandler<ApplyTerminalChainStandingChangeCommand> applyTerminalChainStandingChange,
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
     IDomainEventPublisher<QuestCompletedEvent> questCompleted,
@@ -153,25 +155,15 @@ internal class CompleteQuestCommandHandler(
 
         await questInteractablePropCleaner.CleanUp(command.QuestId, cancellationToken);
 
-        if (
-            creatureQuest.Quest.MembershipRewardFactionId is { } membershipFactionId
-            && !await factionsContext.FactionMembers.AnyAsync(
-                member =>
-                    member.WorldId == command.WorldId
-                    && member.CreatureId == command.PlayerId
-                    && member.FactionId == membershipFactionId,
-                cancellationToken
-            )
-        )
+        if (creatureQuest.Quest.MembershipRewardFactionId is { } membershipFactionId)
         {
-            factionsContext.FactionMembers.Add(
-                new FactionMember
-                {
-                    WorldId = command.WorldId,
-                    CreatureId = command.PlayerId,
-                    FactionId = membershipFactionId,
-                    Role = FactionRole.Member,
-                }
+            await grantFactionMembership.Handle(
+                new GrantFactionMembershipCommand(
+                    command.WorldId,
+                    command.PlayerId,
+                    membershipFactionId
+                ),
+                cancellationToken
             );
         }
 
@@ -181,33 +173,17 @@ internal class CompleteQuestCommandHandler(
             && creatureQuest.Quest.ChainAntagonistFactionId is { } antagonistFactionId
         )
         {
-            await factionsContext
-                .FactionStandings.Where(standing =>
-                    standing.WorldId == command.WorldId
-                    && standing.Score < 0
-                    && (
-                        (
-                            standing.FactionId == giverFactionId
-                            && standing.OtherFactionId == antagonistFactionId
-                        )
-                        || (
-                            standing.FactionId == antagonistFactionId
-                            && standing.OtherFactionId == giverFactionId
-                        )
-                    )
-                )
-                .ExecuteUpdateAsync(
-                    setters =>
-                        setters.SetProperty(
-                            standing => standing.Score,
-                            standing => standing.Score - 5
-                        ),
-                    cancellationToken
-                );
+            await applyTerminalChainStandingChange.Handle(
+                new ApplyTerminalChainStandingChangeCommand(
+                    command.WorldId,
+                    giverFactionId,
+                    antagonistFactionId
+                ),
+                cancellationToken
+            );
         }
 
         await context.SaveChangesAsync(cancellationToken);
-        await factionsContext.SaveChangesAsync(cancellationToken);
 
         await questCompleted.Publish(
             new QuestCompletedEvent(command.PlayerId, command.WorldId, command.QuestId),

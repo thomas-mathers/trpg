@@ -35,7 +35,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M01 — World deletion coverage
 - [x] M02 — Dependency cleanup and architecture checks
 - [x] M03 — Fact ownership in Knowledge
-- [ ] M04 — Faction ownership
+- [x] M04 — Faction ownership
 - [ ] M05 — World time and captured gameplay time
 - [ ] M06 — QuestGeneration extraction
 - [ ] M07 — Weather extraction
@@ -156,34 +156,34 @@ Completion commit:
 milestone(M03): complete knowledge fact ownership
 ```
 
-### [ ] M04 — Faction ownership
+### [x] M04 — Faction ownership
 
 Remove direct faction persistence access from Quests. Required reads use Factions queries; membership and standing writes use explicit Factions commands so transaction order remains visible.
 
 Scope:
 
-- [ ] Replace faction reads in quest acceptance with a Factions query.
-- [ ] Replace faction reads in quest interactions and marker projection with a batched Factions query.
-- [ ] Add an idempotent command for granting faction membership.
-- [ ] Add a focused command for applying the terminal-chain standing change.
-- [ ] Call faction reward commands inside the existing quest-completion transaction.
-- [ ] Complete faction rewards before publishing `QuestCompletedEvent`.
-- [ ] Remove direct `IFactionsDbContext` access from Quests.
-- [ ] Replace quest-generation faction reads with Factions queries, either here or in M06.
+- [x] Replace faction reads in quest acceptance with a Factions query.
+- [x] Replace faction reads in quest interactions and marker projection with a batched Factions query.
+- [x] Add an idempotent command for granting faction membership.
+- [x] Add a focused command for applying the terminal-chain standing change.
+- [x] Call faction reward commands inside the existing quest-completion transaction.
+- [x] Complete faction rewards before publishing `QuestCompletedEvent`.
+- [x] Remove direct `IFactionsDbContext` access from Quests.
+- [x] Replace quest-generation faction reads with Factions queries, either here or in M06.
 
 Acceptance:
 
-- [ ] Completing a membership-reward quest grants membership once.
-- [ ] Retrying an already-applied membership does not insert a duplicate.
-- [ ] Terminal-chain standing changes preserve the existing rules.
-- [ ] Follow-up quest generation observes the new membership.
-- [ ] A failed completion transaction leaves no partial quest or faction reward.
+- [x] Completing a membership-reward quest grants membership once.
+- [x] Retrying an already-applied membership does not insert a duplicate.
+- [x] Terminal-chain standing changes preserve the existing rules.
+- [x] Follow-up quest generation observes the new membership.
+- [x] A failed completion transaction leaves no partial quest or faction reward.
 
 Verification:
 
-- [ ] Quest acceptance and marker tests pass with and without required membership.
-- [ ] Quest completion tests cover membership, standing, retry, and rollback cases.
-- [ ] Full backend test suite passes.
+- [x] Quest acceptance and marker tests pass with and without required membership.
+- [x] Quest completion tests cover membership, standing, retry, and rollback cases.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

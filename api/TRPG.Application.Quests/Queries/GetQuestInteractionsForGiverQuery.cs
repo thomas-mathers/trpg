@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Quests.Results;
@@ -18,7 +19,10 @@ public class GetQuestInteractionsForGiverQuery
 internal class GetQuestInteractionsForGiverQueryHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
-    IFactionsDbContext factionsContext,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds,
     IQueryHandler<GetItemNamesByIdsQuery, IReadOnlyDictionary<Guid, string>> getItemNamesByIds
 ) : IQueryHandler<GetQuestInteractionsForGiverQuery, QuestInteractionsResult>
 {
@@ -81,11 +85,11 @@ internal class GetQuestInteractionsForGiverQueryHandler(
             new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
             cancellationToken
         );
-        var playerFactionIds = await factionsContext
-            .FactionMembers.AsNoTracking()
-            .Where(member => member.WorldId == query.WorldId && member.CreatureId == query.PlayerId)
-            .Select(member => member.FactionId)
-            .ToArrayAsync(cancellationToken);
+        var factionIdsByCreatureId = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = [query.PlayerId] },
+            cancellationToken
+        );
+        var playerFactionIds = factionIdsByCreatureId.GetValueOrDefault(query.PlayerId, []);
 
         var prerequisiteQuestIds = giverQuests
             .SelectMany(quest => quest.PrerequisiteQuestIds)

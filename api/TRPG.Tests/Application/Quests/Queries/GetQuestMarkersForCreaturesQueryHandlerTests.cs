@@ -115,6 +115,50 @@ public sealed class GetQuestMarkersForCreaturesQueryHandlerTests(DatabaseFixture
     }
 
     [Fact]
+    public async Task Handle_ShowsOnlyFactionQuestsWhoseMembershipRequirementIsMet()
+    {
+        var availableQuest = await SeedFactionGatedQuests();
+
+        var result = await _handler.Handle(
+            new GetQuestMarkersForCreaturesQuery
+            {
+                PlayerId = _player.Id,
+                WorldId = WorldId,
+                CreatureIds = [_availableGiver.Id],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        var marker = Assert.Single(result.EntriesByCreatureId[_availableGiver.Id]);
+        Assert.Equal(availableQuest.Id, marker.QuestId);
+    }
+
+    private async Task<Quest> SeedFactionGatedQuests()
+    {
+        var joinedFaction = Builders.MakeFaction(WorldId);
+        var missingFaction = Builders.MakeFaction(WorldId);
+        var availableQuest = MakeFactionGatedQuest(joinedFaction.Id);
+        _context.AddRange(
+            joinedFaction,
+            missingFaction,
+            availableQuest,
+            MakeFactionGatedQuest(missingFaction.Id),
+            new FactionMember
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                FactionId = joinedFaction.Id,
+                Role = FactionRole.Member,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return availableQuest;
+    }
+
+    private Quest MakeFactionGatedQuest(Guid factionId) =>
+        Builders.MakeQuest(_availableGiver.Id, WorldId, requiredFactionId: factionId);
+
+    [Fact]
     public async Task Handle_ReturnsReadyToDeliverMarker_WhenPlayerHoldsAnUndeliveredItemForARecipient()
     {
         // Arrange

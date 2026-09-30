@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
@@ -21,7 +22,10 @@ public class AcceptQuestCommand
 internal class AcceptQuestCommandHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
-    IFactionsDbContext factionsContext,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
     ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory
@@ -51,17 +55,14 @@ internal class AcceptQuestCommandHandler(
                 throw new EntityNotFoundException("Quest", command.QuestId);
         }
 
+        var factionIdsByCreatureId = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = [command.PlayerId] },
+            cancellationToken
+        );
+        var playerFactionIds = factionIdsByCreatureId.GetValueOrDefault(command.PlayerId, []);
         if (
             quest.RequiredFactionId is { } requiredFactionId
-            && !await factionsContext
-                .FactionMembers.AsNoTracking()
-                .AnyAsync(
-                    member =>
-                        member.WorldId == command.WorldId
-                        && member.CreatureId == command.PlayerId
-                        && member.FactionId == requiredFactionId,
-                    cancellationToken
-                )
+            && !playerFactionIds.Contains(requiredFactionId)
         )
         {
             throw new EntityNotFoundException("Quest", command.QuestId);
