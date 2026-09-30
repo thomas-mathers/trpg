@@ -1,4 +1,4 @@
-using TRPG.Application.Encounters.Events;
+using TRPG.Application.Combat.Events;
 using TRPG.Combat.Mappers;
 using TRPG.Combat.Responses;
 

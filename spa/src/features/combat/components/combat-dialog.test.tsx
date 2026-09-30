@@ -8,7 +8,7 @@ import type { AbilitySummary, ConsumableSummary } from '@/api/client';
 import {
   handleGetCreatureAbilities,
   handleGetCreatureConsumables,
-  handleGetPlayerFightAbilities,
+  handleGetPlayerAbilityAvailability,
 } from '@/api/client/msw.gen';
 import type { ActiveConditions, CombatantState } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -74,6 +74,7 @@ function ability(name: string, category: AbilitySummary['category']): AbilitySum
     category,
     requiredSkillLevel: 0,
     prerequisites: [],
+    requiresTarget: category === 'Offensive',
   };
 }
 
@@ -170,7 +171,7 @@ describe('CombatDialog', () => {
       handleGetCreatureAbilities({
         body: [ability('Power Strike', 'Offensive')],
       }),
-      handleGetPlayerFightAbilities({ body: [] }),
+      handleGetPlayerAbilityAvailability({ body: [] }),
     );
     const { chatHub, user } = renderConsole();
 
@@ -184,7 +185,7 @@ describe('CombatDialog', () => {
   it('targets the player when choosing a support ability', async () => {
     server.use(
       handleGetCreatureAbilities({ body: [ability('First Aid', 'Support')] }),
-      handleGetPlayerFightAbilities({ body: [] }),
+      handleGetPlayerAbilityAvailability({ body: [] }),
     );
     const { chatHub, user } = renderConsole();
 

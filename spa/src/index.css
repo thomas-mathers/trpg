@@ -242,6 +242,8 @@
   --muted: oklch(0.34 0.08 55);
   --muted-foreground: oklch(0.78 0.045 65);
   --border: var(--chrome-border);
+  --card: var(--chrome);
+  --card-foreground: var(--chrome-foreground);
   --destructive: oklch(0.72 0.16 22);
   --hp: oklch(0.7 0.18 25);
   --mp: oklch(0.74 0.09 230);

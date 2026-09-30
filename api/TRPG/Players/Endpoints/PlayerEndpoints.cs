@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using TRPG.Application.Combat.Queries;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Queries;
@@ -16,8 +17,8 @@ internal static class PlayerEndpoints
     public static void MapPlayerEndpoints(this WebApplication app)
     {
         app.MapGet("/players/{playerId:guid}/fight", GetFight).WithName("GetPlayerFight");
-        app.MapGet("/players/{playerId:guid}/fight/abilities", GetAbilityAvailability)
-            .WithName("GetPlayerFightAbilities");
+        app.MapGet("/players/{playerId:guid}/abilities/availability", GetAbilityAvailability)
+            .WithName("GetPlayerAbilityAvailability");
     }
 
     private static async Task<

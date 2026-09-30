@@ -26,6 +26,7 @@ public class GameTurnRunner
     private readonly StreamTheftEncounterNarrationTurnHandler _streamTheftEncounterNarrationTurn;
     private readonly StreamTheftEncounterActionTurnHandler _streamTheftEncounterActionTurn;
     private readonly StreamCombatActionTurnHandler _streamCombatActionTurn;
+    private readonly StreamCastAbilityTurnHandler _streamCastAbilityTurn;
     private readonly StreamPurchaseCaravanTicketTurnHandler _streamPurchaseCaravanTicketTurn;
     private readonly StreamDeclineCaravanTicketTurnHandler _streamDeclineCaravanTicketTurn;
     private readonly StreamBoardCaravanTurnHandler _streamBoardCaravanTurn;
@@ -52,6 +53,7 @@ public class GameTurnRunner
         StreamTheftEncounterNarrationTurnHandler streamTheftEncounterNarrationTurn,
         StreamTheftEncounterActionTurnHandler streamTheftEncounterActionTurn,
         StreamCombatActionTurnHandler streamCombatActionTurn,
+        StreamCastAbilityTurnHandler streamCastAbilityTurn,
         StreamPurchaseCaravanTicketTurnHandler streamPurchaseCaravanTicketTurn,
         StreamDeclineCaravanTicketTurnHandler streamDeclineCaravanTicketTurn,
         StreamBoardCaravanTurnHandler streamBoardCaravanTurn
@@ -78,6 +80,7 @@ public class GameTurnRunner
         _streamTheftEncounterNarrationTurn = streamTheftEncounterNarrationTurn;
         _streamTheftEncounterActionTurn = streamTheftEncounterActionTurn;
         _streamCombatActionTurn = streamCombatActionTurn;
+        _streamCastAbilityTurn = streamCastAbilityTurn;
         _streamPurchaseCaravanTicketTurn = streamPurchaseCaravanTicketTurn;
         _streamDeclineCaravanTicketTurn = streamDeclineCaravanTicketTurn;
         _streamBoardCaravanTurn = streamBoardCaravanTurn;
@@ -206,6 +209,13 @@ public class GameTurnRunner
         PlayerCombatAction action,
         CancellationToken cancellationToken = default
     ) => _streamCombatActionTurn.Handle(session, action, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamCastAbility(
+        GameTurnSession session,
+        Guid targetId,
+        string abilityName,
+        CancellationToken cancellationToken = default
+    ) => _streamCastAbilityTurn.Handle(session, targetId, abilityName, cancellationToken);
 
     public IAsyncEnumerable<string> StreamPurchaseCaravanTicket(
         GameTurnSession session,

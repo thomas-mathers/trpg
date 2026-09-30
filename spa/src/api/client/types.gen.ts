@@ -22,6 +22,7 @@ export type AbilitySummary = {
     category: AbilityCategory;
     requiredSkillLevel: number;
     prerequisites: Array<string>;
+    requiresTarget: boolean;
 };
 
 export type ActiveBuff = {
@@ -1465,23 +1466,23 @@ export type GetPlayerFightResponses = {
 
 export type GetPlayerFightResponse = GetPlayerFightResponses[keyof GetPlayerFightResponses];
 
-export type GetPlayerFightAbilitiesData = {
+export type GetPlayerAbilityAvailabilityData = {
     body?: never;
     path: {
         playerId: string;
     };
     query?: never;
-    url: '/players/{playerId}/fight/abilities';
+    url: '/players/{playerId}/abilities/availability';
 };
 
-export type GetPlayerFightAbilitiesResponses = {
+export type GetPlayerAbilityAvailabilityResponses = {
     /**
      * OK
      */
     200: Array<AbilityAvailabilityResponse>;
 };
 
-export type GetPlayerFightAbilitiesResponse = GetPlayerFightAbilitiesResponses[keyof GetPlayerFightAbilitiesResponses];
+export type GetPlayerAbilityAvailabilityResponse = GetPlayerAbilityAvailabilityResponses[keyof GetPlayerAbilityAvailabilityResponses];
 
 export type GetCreatureGenerationOptionsData = {
     body?: never;

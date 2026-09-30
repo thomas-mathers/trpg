@@ -18,6 +18,7 @@ internal static class AbilityMapper
                 ? ContractAbilityCategory.Offensive
                 : ContractAbilityCategory.Support,
             ability.RequiredSkillLevel,
-            ability.Prerequisites
+            ability.Prerequisites,
+            ability is AttackAbility or SupportAbility { TargetType: TargetType.Single }
         );
 }

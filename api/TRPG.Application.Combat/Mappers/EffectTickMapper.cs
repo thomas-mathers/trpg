@@ -6,7 +6,7 @@ namespace TRPG.Application.Combat.Mappers;
 internal static class EffectTickMapper
 {
     public static CombatResolution ToCombatResolution(this EffectTick tick, Combatant target) =>
-        tick.Match(
+        tick.Match<CombatResolution>(
             damage => damage.ToCombatResolution(target),
             healing => healing.ToCombatResolution(target)
         );

@@ -1,11 +1,11 @@
 using TRPG.Application.Abilities;
-using TRPG.Application.Combat;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Encounters.Queries;
+namespace TRPG.Application.Combat.Queries;
 
 public record AbilityAvailability(string Name, bool IsUsable, string? Reason);
 
@@ -15,8 +15,8 @@ public class GetAbilityAvailabilityQuery
 }
 
 internal class GetAbilityAvailabilityQueryHandler(
-    ActiveFightCombatantLoader combatantLoader,
-    IQueryHandler<GetActiveFightQuery, FightEncounter?> getActiveFight,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    CombatantFactory combatantFactory,
     IWorldClock worldClock
 ) : IQueryHandler<GetAbilityAvailabilityQuery, IReadOnlyList<AbilityAvailability>>
 {
@@ -25,24 +25,17 @@ internal class GetAbilityAvailabilityQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var fight = await getActiveFight.Handle(
-            new GetActiveFightQuery { PlayerId = query.PlayerId },
+        var creature = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = query.PlayerId },
             cancellationToken
         );
-        if (fight is null)
+        if (creature is null)
         {
             return [];
         }
 
-        var combatants = await combatantLoader.Load(query.PlayerId, cancellationToken);
-
-        var player = combatants.SingleOrDefault(c => c.IsPlayer);
-        if (player is null)
-        {
-            return [];
-        }
-
-        var now = await worldClock.GetCurrent(fight.WorldId, cancellationToken);
+        var player = await combatantFactory.Create(creature, true, cancellationToken);
+        var now = await worldClock.GetCurrent(creature.WorldId, cancellationToken);
 
         return player.Abilities.Select(ability => Evaluate(player, ability, now)).ToArray();
     }

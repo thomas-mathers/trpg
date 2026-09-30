@@ -5,7 +5,10 @@ import { byRole, byText } from 'testing-library-selector';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AbilityAvailabilityResponse, AbilityCategory, AbilitySummary } from '@/api/client';
-import { handleGetCreatureAbilities, handleGetPlayerFightAbilities } from '@/api/client/msw.gen';
+import {
+  handleGetCreatureAbilities,
+  handleGetPlayerAbilityAvailability,
+} from '@/api/client/msw.gen';
 import { gameEventBus } from '@/lib/game-event-bus';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
@@ -35,6 +38,7 @@ function ability(
     category,
     requiredSkillLevel: 0,
     prerequisites: [],
+    requiresTarget: category === 'Offensive',
     ...overrides,
   };
 }
@@ -45,7 +49,7 @@ function mockAbilityData(
 ) {
   server.use(
     handleGetCreatureAbilities({ body: abilities }),
-    handleGetPlayerFightAbilities({ body: availability }),
+    handleGetPlayerAbilityAvailability({ body: availability }),
   );
 }
 
@@ -155,7 +159,7 @@ describe('AbilityPicker', () => {
     let requestCount = 0;
     server.use(
       handleGetCreatureAbilities({ body: [selected] }),
-      handleGetPlayerFightAbilities(() => {
+      handleGetPlayerAbilityAvailability(() => {
         requestCount += 1;
         return HttpResponse.json<AbilityAvailabilityResponse[]>([
           {

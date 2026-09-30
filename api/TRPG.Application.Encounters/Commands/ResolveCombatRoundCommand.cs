@@ -1,14 +1,10 @@
 using System.Transactions;
 using TRPG.Application.Combat;
+using TRPG.Application.Combat.Commands;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Results;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Encounters.Events;
-using TRPG.Application.Encounters.Mappers;
-using TRPG.Application.Inventory.Commands;
-using TRPG.Application.WeaponProficiency.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -26,12 +22,8 @@ internal class ResolveCombatRoundCommand
 
 internal class ResolveCombatRoundCommandHandler(
     ICommandHandler<PersistCreatureStatesCommand> persistCreatureStates,
-    ICommandHandler<AdjustWeaponProficienciesCommand> adjustWeaponProficiencies,
-    ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
-    ICommandHandler<RemoveInventoryItemsCommand> removeInventoryItems,
     ICommandHandler<EndFightCommand> endFight,
-    IGameClientEventSink gameEvents,
-    IDomainEventPublisher<CreatureKilledEvent> domainEvents
+    ICommandHandler<ApplyCombatRoundOutcomeCommand> applyCombatRoundOutcome
 ) : ICommandHandler<ResolveCombatRoundCommand, CombatResult>
 {
     public async Task<CombatResult> Handle(
@@ -71,69 +63,17 @@ internal class ResolveCombatRoundCommandHandler(
             );
         }
 
-        gameEvents.Enqueue(new CombatUpdatedEvent(state.Combatants, state.Events, state.Outcome));
-
-        if (state.WeaponSwingCounts.Count > 0)
-        {
-            await adjustWeaponProficiencies.Handle(
-                new AdjustWeaponProficienciesCommand
-                {
-                    WorldId = command.WorldId,
-                    CreatureId = command.PlayerId,
-                    ProficiencyDeltas = state.WeaponSwingCounts,
-                },
-                cancellationToken
-            );
-        }
-
-        if (state.SkillUsageCounts.Count > 0)
-        {
-            await adjustCreatureSkills.Handle(
-                new AdjustCreatureSkillsCommand
-                {
-                    WorldId = command.WorldId,
-                    CreatureId = command.PlayerId,
-                    UsageCounts = state.SkillUsageCounts,
-                },
-                cancellationToken
-            );
-        }
-
-        var itemRemovals = state
-            .Combatants.SelectMany(combatantState =>
-                combatantState.ItemsUsedCounts.Select(itemUsedCount => new InventoryItemRemoval(
-                    combatantState.Id,
-                    itemUsedCount.Key,
-                    itemUsedCount.Value
-                ))
-            )
-            .ToArray();
-
-        if (itemRemovals.Length > 0)
-        {
-            await removeInventoryItems.Handle(
-                new RemoveInventoryItemsCommand { Removals = itemRemovals },
-                cancellationToken
-            );
-        }
-
-        foreach (
-            var combatant in command.Combatants.Where(combatant =>
-                combatant is { IsPlayer: false, IsAlive: false }
-            )
-        )
-        {
-            await domainEvents.Publish(
-                new CreatureKilledEvent(
-                    command.PlayerId,
-                    command.WorldId,
-                    combatant.CreatureId,
-                    combatant.CreatureType,
-                    command.LocationId
-                ),
-                cancellationToken
-            );
-        }
+        await applyCombatRoundOutcome.Handle(
+            new ApplyCombatRoundOutcomeCommand
+            {
+                WorldId = command.WorldId,
+                PlayerId = command.PlayerId,
+                LocationId = command.LocationId,
+                Combatants = command.Combatants,
+                State = state,
+            },
+            cancellationToken
+        );
 
         transaction.Complete();
         return state.ToCombatResult();

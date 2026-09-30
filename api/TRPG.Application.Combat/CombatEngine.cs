@@ -68,6 +68,12 @@ public class CombatEngine(
         );
     }
 
+    public CombatState ProcessPlayerTurn(
+        IReadOnlyList<Combatant> combatants,
+        ResolvedCombatAction action,
+        GameInstant now
+    ) => ProcessRound(combatants, action, now, isSurpriseRound: true);
+
     public CombatState ProcessEffectTick(IReadOnlyList<Combatant> combatants, GameInstant now)
     {
         var player = combatants.Single(c => c.IsPlayer);

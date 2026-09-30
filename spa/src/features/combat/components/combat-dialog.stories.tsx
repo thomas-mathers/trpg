@@ -22,7 +22,7 @@ import type {
 import {
   handleGetCreatureAbilities,
   handleGetCreatureConsumables,
-  handleGetPlayerFightAbilities,
+  handleGetPlayerAbilityAvailability,
 } from '@/api/client/msw.gen';
 import type {
   ActiveConditions,
@@ -78,6 +78,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 0,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Firebolt',
@@ -89,6 +90,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 0,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Cleave',
@@ -100,6 +102,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 2,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Quick Shot',
@@ -111,6 +114,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 1,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Ice Lance',
@@ -122,6 +126,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 2,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Shadow Strike',
@@ -133,6 +138,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 3,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Arcane Burst',
@@ -144,6 +150,7 @@ const abilities: AbilitySummary[] = [
     category: 'Offensive',
     requiredSkillLevel: 4,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'First Aid',
@@ -155,6 +162,7 @@ const abilities: AbilitySummary[] = [
     category: 'Support',
     requiredSkillLevel: 0,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Second Wind',
@@ -166,6 +174,7 @@ const abilities: AbilitySummary[] = [
     category: 'Support',
     requiredSkillLevel: 1,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Ward',
@@ -177,6 +186,7 @@ const abilities: AbilitySummary[] = [
     category: 'Support',
     requiredSkillLevel: 2,
     prerequisites: [],
+    requiresTarget: true,
   },
   {
     name: 'Focus',
@@ -188,6 +198,7 @@ const abilities: AbilitySummary[] = [
     category: 'Support',
     requiredSkillLevel: 2,
     prerequisites: [],
+    requiresTarget: true,
   },
 ];
 
@@ -216,7 +227,7 @@ const consumables: ConsumableSummary[] = [
 
 const handlers = [
   handleGetCreatureAbilities({ body: abilities }),
-  handleGetPlayerFightAbilities({ body: availability }),
+  handleGetPlayerAbilityAvailability({ body: availability }),
   handleGetCreatureConsumables({ body: consumables }),
 ];
 
@@ -293,6 +304,7 @@ function WorkbenchProviders({
     sendStandUp: noopStream,
     sendSleep: noopStream,
     sendActivateTrigger: noopStream,
+    sendCastAbility: noopStream,
     sendAcceptQuest: noopStream,
     sendDeclineQuest: noopStream,
     sendCompleteQuest: noopStream,

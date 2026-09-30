@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Abilities;
+using TRPG.Application.Combat.Events;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Encounters.Events;

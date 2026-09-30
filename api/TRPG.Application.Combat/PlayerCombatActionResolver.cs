@@ -78,19 +78,6 @@ public class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
             );
         }
 
-        if (player.IsOnCooldown(useAbilityAction.AbilityName, now))
-        {
-            var secondsRemaining = (int)
-                Math.Ceiling(
-                    (
-                        player.CooldownReadyAtByAbility[useAbilityAction.AbilityName] - now
-                    ).TotalSeconds
-                );
-            return PlayerCombatActionResolverResult.Failure(
-                $"Ability '{useAbilityAction.AbilityName}' is on cooldown for {secondsRemaining} more second(s)."
-            );
-        }
-
         switch (ability)
         {
             case SupportAbility when target != player:
@@ -110,25 +97,10 @@ public class PlayerCombatActionResolver(IReadOnlyList<Combatant> combatants)
             );
         }
 
-        if (!AbilityGearRequirement.IsMet(player, ability))
+        var failure = AbilityUsability.FirstFailure(player, ability, now);
+        if (failure is not null)
         {
-            return PlayerCombatActionResolverResult.Failure(
-                $"Ability {useAbilityAction.AbilityName} requires {AbilityGearRequirement.DescribeRequirement(ability)} to be equipped."
-            );
-        }
-
-        if (player.CurrentAp < ability.ApCost)
-        {
-            return PlayerCombatActionResolverResult.Failure(
-                $"Ability {useAbilityAction.AbilityName} costs {ability.ApCost} AP but {player.Name} only has {player.CurrentAp}"
-            );
-        }
-
-        if (player.CurrentMp < ability.MpCost)
-        {
-            return PlayerCombatActionResolverResult.Failure(
-                $"Ability {useAbilityAction.AbilityName} costs {ability.MpCost} MP but {player.Name} only has {player.CurrentMp}"
-            );
+            return PlayerCombatActionResolverResult.Failure(failure);
         }
 
         var targets = ability switch

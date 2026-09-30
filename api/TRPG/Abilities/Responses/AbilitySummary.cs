@@ -34,5 +34,6 @@ public record AbilitySummary(
     int CooldownSeconds,
     AbilityCategory Category,
     int RequiredSkillLevel,
-    IReadOnlyCollection<string> Prerequisites
+    IReadOnlyCollection<string> Prerequisites,
+    bool RequiresTarget
 );
