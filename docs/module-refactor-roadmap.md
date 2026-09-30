@@ -34,7 +34,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 
 - [x] M01 — World deletion coverage
 - [x] M02 — Dependency cleanup and architecture checks
-- [ ] M03 — Fact ownership in Knowledge
+- [x] M03 — Fact ownership in Knowledge
 - [ ] M04 — Faction ownership
 - [ ] M05 — World time and captured gameplay time
 - [ ] M06 — QuestGeneration extraction
@@ -120,35 +120,35 @@ milestone(M02): complete dependency guardrails
 
 ## Wave 2 — restore data ownership
 
-### [ ] M03 — Fact ownership in Knowledge
+### [x] M03 — Fact ownership in Knowledge
 
 Make Knowledge the owner of general facts while Books continues to own works, pages, reading, and book text generation.
 
 Scope:
 
-- [ ] Move `AddFactsCommand` from Books to Knowledge.
-- [ ] Move `GetFactByIdQuery` from Books to Knowledge.
-- [ ] Move `Facts` access from `IBooksDbContext` to `IKnowledgeDbContext`.
-- [ ] Update Books page composition to use Knowledge contracts.
-- [ ] Update Quests fact disclosure to use Knowledge contracts.
-- [ ] Update GameTurns briefing and completion narration to use Knowledge contracts.
-- [ ] Update quest generation to add facts through Knowledge.
-- [ ] Remove Books project references where fact access was the only use.
-- [ ] Update the backend project map and affected workflow documentation.
+- [x] Move `AddFactsCommand` from Books to Knowledge.
+- [x] Move `GetFactByIdQuery` from Books to Knowledge.
+- [x] Move `Facts` access from `IBooksDbContext` to `IKnowledgeDbContext`.
+- [x] Update Books page composition to use Knowledge contracts.
+- [x] Update Quests fact disclosure to use Knowledge contracts.
+- [x] Update GameTurns briefing and completion narration to use Knowledge contracts.
+- [x] Update quest generation to add facts through Knowledge.
+- [x] Remove Books project references where fact access was the only use.
+- [x] Update the backend project map and affected workflow documentation.
 
 Acceptance:
 
-- [ ] Books has no general Fact persistence ownership.
-- [ ] Reading a fact for the first time still returns the correct learned result.
-- [ ] Rereading does not duplicate knowledge or quest progress.
-- [ ] Quest fact disclosure and NPC briefing return the same information.
+- [x] Books has no general Fact persistence ownership.
+- [x] Reading a fact for the first time still returns the correct learned result.
+- [x] Rereading does not duplicate knowledge or quest progress.
+- [x] Quest fact disclosure and NPC briefing return the same information.
 
 Verification:
 
-- [ ] Knowledge fact command/query tests pass.
-- [ ] Book reading and fact-learning tests pass.
-- [ ] Quest disclosure and GameTurns briefing tests pass.
-- [ ] Full backend test suite passes.
+- [x] Knowledge fact command/query tests pass.
+- [x] Book reading and fact-learning tests pass.
+- [x] Quest disclosure and GameTurns briefing tests pass.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

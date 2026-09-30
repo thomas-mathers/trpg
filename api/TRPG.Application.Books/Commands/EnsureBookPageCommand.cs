@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -19,6 +21,7 @@ public class EnsureBookPageCommand
 internal class EnsureBookPageCommandHandler(
     IBooksDbContext context,
     BookPageComposer composer,
+    IQueryHandler<GetFactByIdQuery, Fact?> getFactById,
     ICommandHandler<
         EnsureExpeditionJournalContextCommand,
         ExpeditionJournalContext?
@@ -134,8 +137,9 @@ internal class EnsureBookPageCommandHandler(
             return null;
         }
 
-        return await context
-            .Facts.AsNoTracking()
-            .FirstOrDefaultAsync(f => f.Id == factId, cancellationToken);
+        return await getFactById.Handle(
+            new GetFactByIdQuery { FactId = factId },
+            cancellationToken
+        );
     }
 }

@@ -44,13 +44,3 @@ public class BookPage
     public int PageNumber { get; init; }
     public string Text { get; init; } = "";
 }
-
-// Something learnable, held apart from whatever reveals it, so a countersign found in a ledger and
-// the same countersign overheard from a sentry are one fact rather than two.
-public class Fact
-{
-    public Guid Id { get; init; } = Guid.NewGuid();
-    public Guid WorldId { get; init; }
-    public string Subject { get; init; } = "";
-    public string Value { get; init; } = "";
-}

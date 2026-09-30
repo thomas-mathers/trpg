@@ -1,12 +1,12 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Books.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Knowledge.Commands;
+using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations.Queries;
