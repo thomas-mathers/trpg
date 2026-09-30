@@ -4,7 +4,6 @@ using TRPG.Application.Combat.Events;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Combat.Mappers;
 using TRPG.Application.Combat.Results;
-using TRPG.Application.Common.Extensions;
 using TRPG.Application.Configuration;
 using TRPG.Application.Effects;
 using TRPG.Domain;
