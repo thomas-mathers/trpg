@@ -1,7 +1,7 @@
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation;
+namespace TRPG.Application.Weather;
 
 internal static class WeatherRoll
 {

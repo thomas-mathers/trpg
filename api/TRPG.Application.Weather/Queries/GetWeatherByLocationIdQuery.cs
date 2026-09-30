@@ -2,7 +2,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Queries;
+namespace TRPG.Application.Weather.Queries;
 
 public class GetWeatherByLocationIdQuery
 {

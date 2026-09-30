@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.Weather.Commands;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.LocationSimulation.Commands;
+namespace TRPG.Tests.Application.Weather.Commands;
 
 public sealed class SyncWeatherCommandTests(DatabaseFixture db)
     : IAsyncLifetime,

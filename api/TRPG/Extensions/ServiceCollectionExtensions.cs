@@ -226,6 +226,7 @@ internal static class ServiceCollectionExtensions
             .AddScoped<ICrimesDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<ILocationSimulationDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<IQuestGenerationDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IWeatherDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<IRoomBookingsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<IBooksDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<ICaravansDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())

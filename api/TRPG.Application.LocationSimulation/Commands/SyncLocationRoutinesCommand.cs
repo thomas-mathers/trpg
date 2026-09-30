@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.QuestGeneration.Commands;
+using TRPG.Application.Weather.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;

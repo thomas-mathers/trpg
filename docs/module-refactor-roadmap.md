@@ -38,7 +38,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M04 — Faction ownership
 - [x] M05 — World time and captured gameplay time
 - [x] M06 — QuestGeneration extraction
-- [ ] M07 — Weather extraction
+- [x] M07 — Weather extraction
 - [ ] M08 — Routing data boundaries
 - [ ] M09 — Room-key workflow split
 - [ ] M10 — GameTurns movement workflow
@@ -271,37 +271,37 @@ Completion commit:
 milestone(M06): complete quest generation extraction
 ```
 
-### [ ] M07 — Weather extraction
+### [x] M07 — Weather extraction
 
 Create `Application.Weather` as the focused owner of weather state, rolls, synchronization, and queries.
 
 Scope:
 
-- [ ] Create the Weather project and service-registration extension.
-- [ ] Move `SyncWeatherCommand`.
-- [ ] Move `GetWeatherByStateIdQuery` and `GetWeatherByLocationIdQuery`.
-- [ ] Move `WeatherRoll`.
-- [ ] Move WeatherState persistence ownership to a Weather module context.
-- [ ] Let Weather use Worlds to resolve a location's state when needed.
-- [ ] Update LocationSimulation to schedule Weather synchronization.
-- [ ] Update location job simulation to query Weather.
-- [ ] Update Caravans to query Weather directly.
-- [ ] Remove Caravans → LocationSimulation if no other use remains.
-- [ ] Update the backend project map and continuous-simulation workflow documentation.
+- [x] Create the Weather project (no service-registration extension: it registers no services beyond the assembly scan).
+- [x] Move `SyncWeatherCommand`.
+- [x] Move `GetWeatherByStateIdQuery` and `GetWeatherByLocationIdQuery`.
+- [x] Move `WeatherRoll`.
+- [x] Move WeatherState persistence ownership to a Weather module context.
+- [x] Let Weather use Worlds to resolve a location's state when needed.
+- [x] Update LocationSimulation to schedule Weather synchronization.
+- [x] Update location job simulation to query Weather.
+- [x] Update Caravans to query Weather directly.
+- [x] Remove Caravans → LocationSimulation if no other use remains.
+- [x] Update the backend project map and continuous-simulation workflow documentation.
 
 Acceptance:
 
-- [ ] Worlds does not depend on Weather.
-- [ ] Weather synchronization remains idempotent at the supplied instant.
-- [ ] Caravan purchase and boarding retain their bad-weather behavior.
-- [ ] Scene weather output remains unchanged.
+- [x] Worlds does not depend on Weather.
+- [x] Weather synchronization remains idempotent at the supplied instant.
+- [x] Caravan purchase and boarding retain their bad-weather behavior.
+- [x] Scene weather output remains unchanged.
 
 Verification:
 
-- [ ] Weather synchronization and query tests pass.
-- [ ] Caravan purchase and boarding tests pass in good and bad weather.
-- [ ] Scene and location-job tests pass.
-- [ ] Full backend test suite passes.
+- [x] Weather synchronization and query tests pass.
+- [x] Caravan purchase and boarding tests pass in good and bad weather.
+- [x] Scene and location-job tests pass.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

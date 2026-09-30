@@ -4,7 +4,7 @@ using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.Weather.Commands;
 
 public class SyncWeatherCommand
 {
@@ -13,7 +13,7 @@ public class SyncWeatherCommand
     public required GameInstant CurrentGameTime { get; init; }
 }
 
-internal class SyncWeatherCommandHandler(ILocationSimulationDbContext context)
+internal class SyncWeatherCommandHandler(IWeatherDbContext context)
     : ICommandHandler<SyncWeatherCommand>
 {
     public async Task Handle(

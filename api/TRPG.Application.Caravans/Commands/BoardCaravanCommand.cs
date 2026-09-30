@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Routing.Queries;
+using TRPG.Application.Weather.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;

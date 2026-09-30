@@ -3,14 +3,14 @@ using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Queries;
+namespace TRPG.Application.Weather.Queries;
 
 public class GetWeatherByStateIdQuery
 {
     public required Guid StateId { get; init; }
 }
 
-internal class GetWeatherByStateIdQueryHandler(ILocationSimulationDbContext context)
+internal class GetWeatherByStateIdQueryHandler(IWeatherDbContext context)
     : IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?>
 {
     public async Task<WeatherCondition?> Handle(
