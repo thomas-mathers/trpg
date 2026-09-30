@@ -42,7 +42,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M08 — Routing data boundaries
 - [x] M09 — Room-key workflow split
 - [x] M10 — GameTurns movement workflow
-- [ ] M11 — Notification event seams
+- [x] M11 — Notification event seams
 - [ ] M12 — Application scene projection
 - [ ] M13 — SPA shared boundaries
 - [ ] M14 — Optional placement cleanup
@@ -412,34 +412,34 @@ Completion commit:
 milestone(M10): complete movement workflow extraction
 ```
 
-### [ ] M11 — Notification event seams
+### [x] M11 — Notification event seams
 
 Use events for completed notifications where no synchronous result is required. Keep validation, transaction-sensitive work, and ordered gameplay as direct calls.
 
 Scope:
 
-- [ ] Add a small `WorkstationRestocked` contract with world, building, workstation, and captured time.
-- [ ] Publish it once after a due restock is persisted.
-- [ ] Let RoomBookings own replacement-key reaction.
-- [ ] Remove LocationSimulation → RoomBookings if no direct use remains.
-- [ ] Evaluate an `EncounterGroupsSpawned` event carrying only newly spawned group IDs, location, player, and time.
-- [ ] Add the spawn event only if ordering and duplicate behavior remain explicit.
-- [ ] Keep movement interception, time skips, quest rewards, and combat persistence as direct commands.
+- [x] Add a small `WorkstationRestocked` contract with world, building, workstation, and captured time.
+- [x] Publish it once after a due restock is persisted.
+- [x] Let RoomBookings own replacement-key reaction.
+- [x] Remove LocationSimulation → RoomBookings if no direct use remains.
+- [x] Evaluate an `EncounterGroupsSpawned` event carrying only newly spawned group IDs, location, player, and time.
+- [x] Add the spawn event only if ordering and duplicate behavior remain explicit. Not added: `SyncActiveLocationRoutinesCommand` passes `SpawnedEncounterGroupIds` from `SyncCreatureSpawnerCommand` straight into `EvaluateAmbientEncounterCommand`, so ordering and the newly-spawned-only rule are already explicit and an event would hide them.
+- [x] Keep movement interception, time skips, quest rewards, and combat persistence as direct commands.
 
 Acceptance:
 
-- [ ] Not-due restocks publish nothing.
-- [ ] Due restocks publish once and preserve key replacement behavior.
-- [ ] Event payloads contain IDs and values, not feature implementation result types.
-- [ ] Spawn reactions retain dead-player and active-encounter checks if implemented.
-- [ ] No workflow relies on sibling event-handler registration order.
+- [x] Not-due restocks publish nothing.
+- [x] Due restocks publish once and preserve key replacement behavior.
+- [x] Event payloads contain IDs and values, not feature implementation result types.
+- [x] Spawn reactions retain dead-player and active-encounter checks if implemented. Not applicable, no spawn event was added.
+- [x] No workflow relies on sibling event-handler registration order.
 
 Verification:
 
-- [ ] Restock tests cover due, not due, missing key, existing key, and repeat delivery.
-- [ ] Ambient encounter tests cover only newly spawned groups if the spawn event is added.
-- [ ] Architecture tests confirm any removed project edge.
-- [ ] Full backend test suite passes.
+- [x] Restock tests cover due, not due, missing key, existing key, and repeat delivery.
+- [x] Ambient encounter tests cover only newly spawned groups if the spawn event is added. Not applicable, no spawn event was added.
+- [x] Architecture tests confirm any removed project edge.
+- [x] Full backend test suite passes.
 
 Completion commit:
 
