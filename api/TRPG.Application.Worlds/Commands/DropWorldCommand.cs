@@ -23,7 +23,41 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
         );
 
         await context
+            .CaravanTickets.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
             .RouteTravelerMembers.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .RouteTravelers.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .CaravanFares.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .CreatureRouteSchedules.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .RouteSteps.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context.Routes.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .QuestChainGenerationRequests.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .QuestSeedSchedules.Where(x => x.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        await context
+            .WeatherStates.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
@@ -146,10 +180,6 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
 
         await context
             .CreatureWeaponProficiencies.Where(x => x.WorldId == worldId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context
-            .CreatureRouteSchedules.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
