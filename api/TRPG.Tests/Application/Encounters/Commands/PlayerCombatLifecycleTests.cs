@@ -117,6 +117,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
                 PlayerId = playerResult.Creature.Id,
                 EnemyCreatureIds = [enemy.Id],
                 HasSurpriseRound = false,
+                PlayerWasAggressor = true,
             },
             TestContext.Current.CancellationToken
         );
@@ -183,6 +184,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
                 PlayerId = player.Id,
                 EnemyCreatureIds = [enemy.Id],
                 HasSurpriseRound = true,
+                PlayerWasAggressor = true,
             },
             TestContext.Current.CancellationToken
         );
@@ -236,6 +238,7 @@ public sealed class PlayerCombatLifecycleTests(DatabaseFixture db)
                 PlayerId = player.Id,
                 EnemyCreatureIds = [enemy.Id],
                 HasSurpriseRound = false,
+                PlayerWasAggressor = true,
             },
             TestContext.Current.CancellationToken
         );

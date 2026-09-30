@@ -35,7 +35,7 @@ internal abstract class EncounterResolutionCommandHandlerBase<TEncounter, TComma
 
         var encounter = await GetEncounter(command, cancellationToken);
 
-        await CompleteEncounter(command.EncounterId, cancellationToken);
+        await CompleteEncounter(command.EncounterId, command.GameTime, cancellationToken);
 
         var resolution = await Resolve(command, encounter, cancellationToken);
         await engagementManager.ReconcileResolved(encounter, command.GameTime, cancellationToken);
@@ -77,14 +77,19 @@ internal abstract class EncounterResolutionCommandHandlerBase<TEncounter, TComma
         return encounter;
     }
 
-    private async Task CompleteEncounter(Guid encounterId, CancellationToken cancellationToken)
+    private async Task CompleteEncounter(
+        Guid encounterId,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    )
     {
         var rowsAffected = await context
             .Encounters.Where(e => e.Id == encounterId && e.State == EncounterState.Active)
             .ExecuteUpdateAsync(
                 s =>
                     s.SetProperty(e => e.State, EncounterState.Completed)
-                        .SetProperty(e => e.CompletedAt, DateTime.UtcNow),
+                        .SetProperty(e => e.CompletedAt, DateTime.UtcNow)
+                        .SetProperty(e => e.CompletedAtGameTime, gameTime),
                 cancellationToken
             );
 

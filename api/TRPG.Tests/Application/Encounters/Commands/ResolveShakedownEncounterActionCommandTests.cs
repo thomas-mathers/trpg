@@ -5,6 +5,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -164,6 +165,50 @@ public sealed class ResolveShakedownEncounterActionCommandTests(DatabaseFixture 
             TestContext.Current.CancellationToken
         );
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
+    }
+
+    [Fact]
+    public async Task Handle_PayToll_StampsTheEncounterWithTheGameTimeItCompleted()
+    {
+        // Arrange
+        var encounter = await SeedActiveEncounter(tollAmount: 10);
+        var gameTime = GameClock.Epoch + TimeSpan.FromHours(7);
+        _context.Items.Add(
+            new Gold
+            {
+                WorldId = WorldId,
+                Name = "Gold",
+                Quantity = 100,
+                Ownership = new ItemOwnership
+                {
+                    OwnerId = _player.Id,
+                    OwnerType = OwnerType.Creature,
+                },
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ResolveShakedownEncounterActionCommand
+            {
+                SessionId = _session.Id,
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+                Action = new PayTollEncounterAction(),
+                EncounterId = encounter.Id,
+                GameTime = gameTime,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var persisted = await verifyContext.Encounters.SingleAsync(
+            e => e.Id == encounter.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(gameTime, persisted.CompletedAtGameTime);
     }
 
     [Fact]

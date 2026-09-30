@@ -88,6 +88,7 @@ internal class AttackCreatureCommandHandler(
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = enemyCreatureIds,
                 HasSurpriseRound = hasSurpriseRound,
+                PlayerWasAggressor = true,
                 GameTime = command.GameTime,
             },
             cancellationToken

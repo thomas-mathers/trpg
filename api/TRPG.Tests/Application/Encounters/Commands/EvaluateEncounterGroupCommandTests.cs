@@ -405,6 +405,96 @@ public sealed class EvaluateEncounterGroupCommandTests(DatabaseFixture db)
         Assert.False(persistedPlayer.IsSneaking);
     }
 
+    [Fact]
+    public async Task Handle_ReturnsNull_WhenTheFactionEncounterCompletedWithinTheGracePeriod()
+    {
+        // Arrange
+        var faction = SeedShakedownGroup();
+        var completedAt = GameClock.Epoch + TimeSpan.FromHours(5);
+        _context.Encounters.Add(
+            Builders.MakeShakedownEncounter(
+                WorldId,
+                _player.Id,
+                _location.Id,
+                faction.Id,
+                state: EncounterState.Completed,
+                completedAtGameTime: completedAt
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateEncounterGroupCommand
+            {
+                GameTime = completedAt + TimeSpan.FromMinutes(10),
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesAnEncounter_WhenTheGracePeriodHasPassed()
+    {
+        // Arrange
+        var faction = SeedShakedownGroup();
+        var completedAt = GameClock.Epoch + TimeSpan.FromHours(5);
+        _context.Encounters.Add(
+            Builders.MakeShakedownEncounter(
+                WorldId,
+                _player.Id,
+                _location.Id,
+                faction.Id,
+                state: EncounterState.Completed,
+                completedAtGameTime: completedAt
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(
+            new EvaluateEncounterGroupCommand
+            {
+                GameTime = completedAt + TimeSpan.FromDays(1),
+                WorldId = WorldId,
+                PlayerId = _player.Id,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.IsType<ShakedownEncounter>(result);
+    }
+
+    private Faction SeedShakedownGroup()
+    {
+        var faction = Builders.MakeFaction(
+            WorldId,
+            aggression: 100,
+            creatureType: CreatureType.Beast,
+            encounterApproach: EncounterApproach.Shakedown
+        );
+        var bandit = Builders.MakeCreature(
+            WorldId,
+            creatureType: CreatureType.Beast,
+            locationId: _location.Id,
+            level: 4
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _location.Id, faction.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(bandit);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(
+            Builders.MakeEncounterGroupMember(WorldId, group.Id, bandit.Id)
+        );
+        return faction;
+    }
+
     private sealed class TestChanceRoller : IChanceRoller
     {
         public Queue<bool> Results { get; } = new();

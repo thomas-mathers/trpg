@@ -968,7 +968,8 @@ internal static class Builders
         string factionName = "Faction",
         string locationName = "Location",
         IReadOnlyList<HostileEncounterMemberSnapshot>? members = null,
-        EncounterState state = EncounterState.Active
+        EncounterState state = EncounterState.Active,
+        GameInstant? completedAtGameTime = null
     ) =>
         new()
         {
@@ -980,6 +981,7 @@ internal static class Builders
             LocationName = locationName,
             Members = members?.ToList() ?? [],
             State = state,
+            CompletedAtGameTime = completedAtGameTime,
         };
 
     public static ShakedownEncounter MakeShakedownEncounter(
@@ -991,7 +993,8 @@ internal static class Builders
         string locationName = "Location",
         int tollAmount = 25,
         IReadOnlyList<HostileEncounterMemberSnapshot>? members = null,
-        EncounterState state = EncounterState.Active
+        EncounterState state = EncounterState.Active,
+        GameInstant? completedAtGameTime = null
     ) =>
         new()
         {
@@ -1004,6 +1007,7 @@ internal static class Builders
             TollAmount = tollAmount,
             Members = members?.ToList() ?? [],
             State = state,
+            CompletedAtGameTime = completedAtGameTime,
         };
 
     public static GuardEncounter MakeGuardEncounter(

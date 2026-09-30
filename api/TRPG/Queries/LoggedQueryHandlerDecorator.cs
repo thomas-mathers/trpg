@@ -24,6 +24,7 @@ internal sealed class LoggedQueryHandlerDecorator<TQuery, TResult>(
             return result;
         }
         catch (Exception exception)
+            when (!HandlerCancellation.IsCallerCancellation(exception, cancellationToken))
         {
             logger.LogError(
                 exception,

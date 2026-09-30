@@ -435,6 +435,7 @@ internal static class ServiceCollectionExtensions
             .Configure<ReputationOptions>(configuration.GetSection("Reputation"))
             .Configure<GuardEncounterOptions>(configuration.GetSection("GuardEncounter"))
             .Configure<ShakedownOptions>(configuration.GetSection("Shakedown"))
+            .Configure<EncounterGroupOptions>(configuration.GetSection("EncounterGroup"))
             .Configure<IntimidationOptions>(configuration.GetSection("Intimidation"))
             .Configure<TheftOptions>(configuration.GetSection("Theft"))
             .Configure<LockpickingOptions>(configuration.GetSection("Lockpicking"))

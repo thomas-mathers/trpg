@@ -23,6 +23,7 @@ internal sealed class LoggedCommandHandlerDecorator<TCommand>(
             );
         }
         catch (Exception exception)
+            when (!HandlerCancellation.IsCallerCancellation(exception, cancellationToken))
         {
             logger.LogError(
                 exception,
@@ -58,6 +59,7 @@ internal sealed class LoggedCommandHandlerDecorator<TCommand, TResult>(
             return result;
         }
         catch (Exception exception)
+            when (!HandlerCancellation.IsCallerCancellation(exception, cancellationToken))
         {
             logger.LogError(
                 exception,
