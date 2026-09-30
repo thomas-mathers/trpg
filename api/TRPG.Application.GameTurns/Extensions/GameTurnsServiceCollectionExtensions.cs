@@ -34,6 +34,7 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<StreamTheftEncounterNarrationTurnHandler>()
             .AddTransient<StreamTheftEncounterActionTurnHandler>()
             .AddTransient<StreamCombatActionTurnHandler>()
+            .AddTransient<CastAbilityTurnResolver>()
             .AddTransient<StreamCastAbilityTurnHandler>()
             .AddTransient<StreamPurchaseCaravanTicketTurnHandler>()
             .AddTransient<StreamDeclineCaravanTicketTurnHandler>()
