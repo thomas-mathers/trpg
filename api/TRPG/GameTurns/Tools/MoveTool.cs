@@ -3,21 +3,10 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Common.Queries;
-using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Creatures.Results;
-using TRPG.Application.Encounters.Commands;
-using TRPG.Application.Encounters.Queries;
-using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.GameTurns.Mappers;
-using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.GameTurns.Results;
-using TRPG.Application.Worlds.Commands;
-using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
@@ -68,30 +57,7 @@ internal record MoveToolResult(
 
 internal class MoveTool(
     GameTurnContext turnContext,
-    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
-    ICommandHandler<
-        ResolveMoveDestinationCommand,
-        ResolveMoveDestinationResult
-    > resolveMoveDestination,
-    ICommandHandler<
-        EvaluateMoveInterceptionCommand,
-        EncounterEvaluationResult
-    > evaluateMoveInterception,
-    ICommandHandler<MovePlayerCommand> movePlayer,
-    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
-    ICommandHandler<
-        AdvanceCreatureEffectsCommand,
-        IReadOnlyCollection<CreatureVitals>
-    > advanceCreatureEffects,
-    ICommandHandler<
-        ApplyPassiveRegenCommand,
-        IReadOnlyDictionary<Guid, Creature>
-    > applyPassiveRegen,
-    ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
-    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetSceneQuery, SceneResult> getScene,
-    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
+    ICommandHandler<ExecutePlayerMoveCommand, ExecutePlayerMoveResult> executePlayerMove,
     ILogger<MoveTool> logger
 ) : IGameTool
 {
@@ -112,134 +78,17 @@ internal class MoveTool(
         logger.LogInformation("[move] destinationName={DestinationName}", destinationName);
         var stopwatch = Stopwatch.StartNew();
 
-        var activeEncounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
-            cancellationToken
-        );
-        if (activeEncounter != null)
-        {
-            return EntryOutcome.EncounterActive.ToToolError(destinationName);
-        }
-
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = turnContext.SessionId },
-            cancellationToken
-        );
-
-        var destinationResult = await resolveMoveDestination.Handle(
-            new ResolveMoveDestinationCommand
+        var moveResult = await executePlayerMove.Handle(
+            new ExecutePlayerMoveCommand
             {
-                PlayerId = turnContext.PlayerId,
-                DestinationName = destinationName,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        var error = destinationResult.Outcome.ToToolError(destinationName);
-        if (error != null)
-        {
-            return error;
-        }
-
-        var player =
-            await getCreatureById.Handle(
-                new GetCreatureByIdQuery { Id = turnContext.PlayerId },
-                cancellationToken
-            ) ?? throw new EntityNotFoundException(nameof(Creature), turnContext.PlayerId);
-
-        // Only a walk the player chose can be intercepted; being relocated by an encounter is not,
-        // so this runs here rather than inside the move itself.
-        var interception = await InterceptMove(
-            player.LocationId,
-            destinationResult.DestinationLocationId!.Value,
-            gameTime,
-            cancellationToken
-        );
-        if (interception != null)
-        {
-            return interception;
-        }
-
-        var arrivalGameTime = gameTime;
-        if (destinationResult.TravelTimeHours > 0)
-        {
-            arrivalGameTime = await advanceTime.Handle(
-                new AdvanceTimeCommand
-                {
-                    WorldId = turnContext.WorldId,
-                    Delta = TimeSpan.FromHours(1) * destinationResult.TravelTimeHours,
-                },
-                cancellationToken
-            );
-            var effectVitals = await advanceCreatureEffects.Handle(
-                new AdvanceCreatureEffectsCommand
-                {
-                    WorldId = turnContext.WorldId,
-                    CreatureIds = [turnContext.PlayerId],
-                    GameTime = arrivalGameTime,
-                },
-                cancellationToken
-            );
-            if (effectVitals.HasDied(turnContext.PlayerId))
-            {
-                return new ToolError(
-                    "The player died from a lingering effect during the journey and never arrived. Narrate their death."
-                );
-            }
-            await applyPassiveRegen.Handle(
-                new ApplyPassiveRegenCommand
-                {
-                    GameTime = arrivalGameTime,
-                    CreatureIds = [turnContext.PlayerId],
-                },
-                cancellationToken
-            );
-        }
-
-        await movePlayer.Handle(
-            new MovePlayerCommand
-            {
-                PlayerId = turnContext.PlayerId,
-                DestinationLocationId = destinationResult.DestinationLocationId!.Value,
-                GameTime = arrivalGameTime,
-            },
-            cancellationToken
-        );
-
-        turnContext.PlayerMoved = true;
-
-        var startedEncounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = turnContext.PlayerId },
-            cancellationToken
-        );
-
-        await publishEncounterStarted.Handle(
-            new PublishEncounterStartedCommand
-            {
-                PlayerId = turnContext.PlayerId,
-                Encounter = startedEncounter,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        var scene = await getScene.Handle(
-            new GetSceneQuery
-            {
+                SessionId = turnContext.SessionId,
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(arrivalGameTime),
-                GameTime = arrivalGameTime,
+                DestinationName = destinationName,
             },
             cancellationToken
         );
-
-        var result = BuildResult(
-            scene,
-            startedEncounter,
-            FormatTravelTime(destinationResult.TravelTimeHours)
-        );
+        var result = ToToolResult(moveResult, destinationName);
 
         logger.LogInformation(
             "[perf] [move] result in {ElapsedMs}ms: {Result}",
@@ -252,61 +101,30 @@ internal class MoveTool(
         return result;
     }
 
-    private async Task<MoveToolResult?> InterceptMove(
-        Guid fromLocationId,
-        Guid destinationLocationId,
-        GameInstant gameTime,
-        CancellationToken cancellationToken
-    )
+    private object ToToolResult(ExecutePlayerMoveResult result, string destinationName)
     {
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        var interception = await evaluateMoveInterception.Handle(
-            new EvaluateMoveInterceptionCommand
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                FromLocationId = fromLocationId,
-                ToLocationId = destinationLocationId,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-        if (interception.Encounter == null)
+        if (result is MoveCompletedResult)
         {
-            return null;
+            turnContext.PlayerMoved = true;
         }
 
-        var scene = await getScene.Handle(
-            new GetSceneQuery
-            {
-                WorldId = turnContext.WorldId,
-                PlayerId = turnContext.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(gameTime),
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        await publishEncounterStarted.Handle(
-            new PublishEncounterStartedCommand
-            {
-                PlayerId = turnContext.PlayerId,
-                Encounter = interception.Encounter,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        return BuildResult(scene, interception.Encounter);
+        return result switch
+        {
+            MoveRejectedResult rejected => rejected.Outcome.ToToolError(destinationName)!,
+            MoveTravelDeathResult => new ToolError(
+                "The player died from a lingering effect during the journey and never arrived. Narrate their death."
+            ),
+            MoveInterruptedResult interrupted => BuildResult(
+                interrupted.Scene,
+                interrupted.Encounter
+            ),
+            MoveCompletedResult completed => BuildResult(
+                completed.Scene,
+                completed.Encounter,
+                FormatTravelTime(completed.TravelTimeHours)
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(result)),
+        };
     }
 
     private static MoveToolResult BuildResult(
