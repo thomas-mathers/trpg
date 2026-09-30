@@ -18,13 +18,7 @@ public sealed partial class ModuleArchitectureTests
         "TRPG.Application.WorldGeneration",
     };
 
-    private static readonly IReadOnlySet<string> ForeignContextAllowlist = new HashSet<string>
-    {
-        "TRPG.Application.Caravans/Commands/BeginCaravanInteractionCommand.cs:IRoutingDbContext",
-        "TRPG.Application.Caravans/Commands/BoardCaravanCommand.cs:IRoutingDbContext",
-        "TRPG.Application.Caravans/Commands/EndCaravanInteractionCommand.cs:IRoutingDbContext",
-        "TRPG.Application.Caravans/Commands/PurchaseCaravanTicketCommand.cs:IRoutingDbContext",
-    };
+    private static readonly IReadOnlySet<string> ForeignContextAllowlist = new HashSet<string>();
 
     private static readonly IReadOnlySet<string> ConcreteContextAllowlist = new HashSet<string>
     {

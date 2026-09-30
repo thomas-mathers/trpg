@@ -41,11 +41,9 @@ public record PurchaseCaravanTicketResult(
 
 internal class PurchaseCaravanTicketCommandHandler(
     ICaravansDbContext caravansContext,
-    IRoutingDbContext routingContext,
-    IQueryHandler<
-        ResolveRouteTravelerPositionQuery,
-        RouteTimelinePosition?
-    > resolveRouteTravelerPosition,
+    IQueryHandler<GetRouteTravelerIdentityQuery, RouteTravelerIdentity?> getTravelerIdentity,
+    IQueryHandler<GetRouteStopsQuery, IReadOnlyList<Guid>> getRouteStops,
+    IQueryHandler<GetRouteJourneyQuoteQuery, RouteJourneyQuote?> getJourneyQuote,
     IQueryHandler<GetGoldQuantityQuery, int> getGoldQuantity,
     IQueryHandler<GetWeatherByLocationIdQuery, WeatherCondition?> getWeatherByLocationId,
     ICommandHandler<RemoveGoldCommand> removeGold
@@ -56,21 +54,23 @@ internal class PurchaseCaravanTicketCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var traveler =
-            await routingContext
-                .RouteTravelers.AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == command.CaravanId, cancellationToken)
-            ?? throw new EntityNotFoundException(nameof(RouteTraveler), command.CaravanId);
+        var traveler = await getTravelerIdentity.Handle(
+            new GetRouteTravelerIdentityQuery { RouteTravelerId = command.CaravanId },
+            cancellationToken
+        );
+        if (traveler?.WorldId != command.WorldId)
+        {
+            throw new EntityNotFoundException(nameof(RouteTraveler), command.CaravanId);
+        }
 
         var fare = await caravansContext
             .CaravanFares.AsNoTracking()
             .FirstAsync(f => f.RouteId == traveler.RouteId, cancellationToken);
 
-        var stopLocationIds = await routingContext
-            .RouteSteps.AsNoTracking()
-            .Where(step => step.RouteId == traveler.RouteId && step.DwellHours > 0)
-            .Select(s => s.LocationId)
-            .ToArrayAsync(cancellationToken);
+        var stopLocationIds = await getRouteStops.Handle(
+            new GetRouteStopsQuery { RouteId = traveler.RouteId },
+            cancellationToken
+        );
 
         if (
             command.DestinationLocationId == command.PlayerLocationId
@@ -80,18 +80,17 @@ internal class PurchaseCaravanTicketCommandHandler(
             return new PurchaseCaravanTicketResult(PurchaseCaravanTicketOutcome.InvalidDestination);
         }
 
-        var position = await resolveRouteTravelerPosition.Handle(
-            new ResolveRouteTravelerPositionQuery
+        var quote = await getJourneyQuote.Handle(
+            new GetRouteJourneyQuoteQuery
             {
                 RouteTravelerId = command.CaravanId,
+                OriginLocationId = command.PlayerLocationId,
+                DestinationLocationId = command.DestinationLocationId,
                 GameTime = command.GameTime,
             },
             cancellationToken
         );
-        if (
-            position is not RouteTimelinePosition.Lingering lingering
-            || lingering.LocationId != command.PlayerLocationId
-        )
+        if (quote == null)
         {
             return new PurchaseCaravanTicketResult(PurchaseCaravanTicketOutcome.CaravanNotPresent);
         }
@@ -134,8 +133,7 @@ internal class PurchaseCaravanTicketCommandHandler(
             TransactionScopeAsyncFlowOption.Enabled
         );
 
-        // The ticket fee is a pure gold sink — the caravan has no owning NPC or workstation to
-        // credit, unlike an innkeeper's room rate.
+        // Caravan fares are a gold sink because caravans have no owning trader to credit.
         await removeGold.Handle(
             new RemoveGoldCommand
             {

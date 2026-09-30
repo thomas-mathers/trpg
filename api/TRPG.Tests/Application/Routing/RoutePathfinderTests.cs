@@ -1,5 +1,5 @@
 using TRPG.Application.Routing;
-using TRPG.Domain.Models;
+using TRPG.Application.Worlds.Queries;
 
 namespace TRPG.Tests.Application.Routing;
 
@@ -11,28 +11,25 @@ public class RoutePathfinderTests
         var originId = Guid.NewGuid();
         var middleId = Guid.NewGuid();
         var destinationId = Guid.NewGuid();
-        var direct = Connector(originId, destinationId);
-        var first = Connector(originId, middleId);
-        var second = Connector(middleId, destinationId);
+        var direct = Edge(originId, destinationId, 10);
+        var first = Edge(originId, middleId, 3);
+        var second = Edge(middleId, destinationId, 4);
 
         var path = RoutePathfinder.FindShortestPath(
             [direct, first, second],
-            [Travel(direct, 10), Travel(first, 3), Travel(second, 4)],
             originId,
             destinationId
         );
 
-        Assert.Equal([first.Id, second.Id], path.Select(leg => leg.ConnectorId));
+        Assert.Equal([first.ConnectorId, second.ConnectorId], path.Select(leg => leg.ConnectorId));
     }
 
     [Fact]
-    public void FindShortestPath_IgnoresConnectorsWithoutMeasuredDistance()
+    public void FindShortestPath_ReturnsEmpty_WhenNoMeasuredEdgeExists()
     {
         var originId = Guid.NewGuid();
         var destinationId = Guid.NewGuid();
-        var connector = Connector(originId, destinationId);
-
-        var path = RoutePathfinder.FindShortestPath([connector], [], originId, destinationId);
+        var path = RoutePathfinder.FindShortestPath([], originId, destinationId);
 
         Assert.Empty(path);
     }
@@ -43,17 +40,12 @@ public class RoutePathfinderTests
         var originId = Guid.NewGuid();
         var middleId = Guid.NewGuid();
         var destinationId = Guid.NewGuid();
-        var indoor = Connector(originId, middleId);
-        var street = Connector(middleId, destinationId);
+        var indoor = Edge(originId, middleId, 0);
+        var street = Edge(middleId, destinationId, 5);
 
-        var path = RoutePathfinder.FindShortestPath(
-            [indoor, street],
-            [Travel(indoor, 0), Travel(street, 5)],
-            originId,
-            destinationId
-        );
+        var path = RoutePathfinder.FindShortestPath([indoor, street], originId, destinationId);
 
-        Assert.Equal([indoor.Id, street.Id], path.Select(leg => leg.ConnectorId));
+        Assert.Equal([indoor.ConnectorId, street.ConnectorId], path.Select(leg => leg.ConnectorId));
     }
 
     [Fact]
@@ -61,35 +53,16 @@ public class RoutePathfinderTests
     {
         var originId = Guid.NewGuid();
         var destinationId = Guid.NewGuid();
-        var first = Connector(originId, destinationId);
-        var second = Connector(originId, destinationId);
+        var first = Edge(originId, destinationId, 3);
+        var second = Edge(originId, destinationId, 4);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            RoutePathfinder.FindShortestPath(
-                [first, second],
-                [Travel(first, 3), Travel(second, 4)],
-                originId,
-                destinationId
-            )
+            RoutePathfinder.FindShortestPath([first, second], originId, destinationId)
         );
 
         Assert.Contains("same ordered pair", exception.Message, StringComparison.Ordinal);
     }
 
-    private static LocationConnector Connector(Guid originId, Guid destinationId) =>
-        new()
-        {
-            WorldId = Guid.NewGuid(),
-            OriginLocationId = originId,
-            DestinationLocationId = destinationId,
-            DestinationLabel = "Destination",
-        };
-
-    private static TravelConnector Travel(LocationConnector connector, float distance) =>
-        new()
-        {
-            WorldId = connector.WorldId,
-            ConnectorId = connector.Id,
-            Distance = distance,
-        };
+    private static TravelTopologyEdge Edge(Guid originId, Guid destinationId, float distance) =>
+        new(Guid.NewGuid(), Guid.NewGuid(), originId, destinationId, distance);
 }

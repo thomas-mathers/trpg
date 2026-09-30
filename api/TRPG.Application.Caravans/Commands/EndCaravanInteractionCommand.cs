@@ -1,10 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Routing.Queries;
-using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -19,7 +17,7 @@ public class EndCaravanInteractionCommand
 }
 
 internal class EndCaravanInteractionCommandHandler(
-    IRoutingDbContext context,
+    IQueryHandler<GetRouteTravelerIdentityQuery, RouteTravelerIdentity?> getTravelerIdentity,
     IQueryHandler<
         GetRouteTravelerMembersByRouteTravelerIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
@@ -32,13 +30,11 @@ internal class EndCaravanInteractionCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var travelerExists = await context
-            .RouteTravelers.AsNoTracking()
-            .AnyAsync(
-                traveler => traveler.Id == command.CaravanId && traveler.WorldId == command.WorldId,
-                cancellationToken
-            );
-        if (!travelerExists)
+        var traveler = await getTravelerIdentity.Handle(
+            new GetRouteTravelerIdentityQuery { RouteTravelerId = command.CaravanId },
+            cancellationToken
+        );
+        if (traveler?.WorldId != command.WorldId)
         {
             throw new EntityNotFoundException(nameof(RouteTraveler), command.CaravanId);
         }
