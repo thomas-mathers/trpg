@@ -45,7 +45,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M11 — Notification event seams
 - [x] M12 — Application scene projection
 - [ ] M13 — SPA shared boundaries
-- [ ] M14 — Optional placement cleanup
+- [x] M14 — Optional placement cleanup
 
 ## Wave 1 — correctness and guardrails
 
@@ -521,30 +521,30 @@ milestone(M13): complete spa shared boundaries
 
 ## Wave 6 — optional placement cleanup
 
-### [ ] M14 — Optional placement cleanup
+### [x] M14 — Optional placement cleanup
 
 Apply the remaining small placement improvements only after the higher-value boundaries are stable. Each item should be kept or dropped based on the dependencies that exist at that time.
 
 Scope:
 
-- [ ] Move `CombatNarration` into the host Combat presentation area if it still has only host consumers.
-- [ ] Reassess moving respawn preparation from Creatures to GameTurns.
-- [ ] Reassess a persistence-free TravelPlanning project after M08.
-- [ ] Reassess renaming Narration to LoreLinks if its responsibility remains lore linking.
-- [ ] Reassess extracting Trading only if trade workflows have grown beyond Inventory ownership.
-- [ ] Record rejected items and the current reason instead of moving code for symmetry.
+- [x] Move `CombatNarration` into the host Combat presentation area if it still has only host consumers. **Done:** only `CombatActionResultMapper` used it, so it now lives in `api/TRPG/Combat/Mappers` as an internal class.
+- [x] Reassess moving respawn preparation from Creatures to GameTurns. **Rejected:** `ResolvePlayerRespawnCommand` has one consumer, but Creatures would keep its Inventory and Worlds references after the move, so no dependency is removed and the creature-creation logic would be separated from its owner.
+- [x] Reassess a persistence-free TravelPlanning project after M08. **Deferred:** Routing's only WorldGeneration use is `CreatureRouteScheduleGenerator`, but `TravelGraph` has about 28 usages across the world generators and is coupled to `WorldGeneratorResult`. Extracting it is a large move with no current placement problem; revisit if Routing needs another WorldGeneration type.
+- [x] Reassess renaming Narration to LoreLinks if its responsibility remains lore linking. **Rejected:** the responsibility is unchanged, but a rename touches the project, solution, about 15 namespaces and tests for naming alone.
+- [x] Reassess extracting Trading only if trade workflows have grown beyond Inventory ownership. **Rejected:** trade commands, guard, validator and evaluator are about a dozen files inside Inventory and operate only on Inventory-owned data.
+- [x] Record rejected items and the current reason instead of moving code for symmetry.
 
 Acceptance:
 
-- [ ] Every performed move removes a demonstrated placement problem.
-- [ ] No move introduces a reverse dependency or project cycle.
-- [ ] Deferred or rejected items have a short decision recorded in this section.
+- [x] Every performed move removes a demonstrated placement problem.
+- [x] No move introduces a reverse dependency or project cycle.
+- [x] Deferred or rejected items have a short decision recorded in this section.
 
 Verification:
 
-- [ ] Focused tests for every moved workflow pass.
-- [ ] Architecture tests pass.
-- [ ] Full backend or frontend suite passes as applicable.
+- [x] Focused tests for every moved workflow pass.
+- [x] Architecture tests pass.
+- [x] Full backend or frontend suite passes as applicable.
 
 Completion commit:
 

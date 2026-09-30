@@ -1,8 +1,8 @@
 using TRPG.Application.Combat.Events;
 
-namespace TRPG.Application.Combat;
+namespace TRPG.Combat.Mappers;
 
-public static class CombatNarration
+internal static class CombatNarration
 {
     public static IReadOnlyList<string> Describe(IReadOnlyList<CombatResolution> events) =>
         events.Select(Describe).OfType<string>().ToArray();
