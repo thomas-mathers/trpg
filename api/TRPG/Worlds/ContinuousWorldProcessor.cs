@@ -10,6 +10,7 @@ using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.LocationSimulation;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.LocationSimulation.Queries;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Domain;
 
 namespace TRPG.Worlds;

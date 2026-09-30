@@ -1,4 +1,4 @@
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Results;
 using TRPG.GameSessions.Responses;
 
 namespace TRPG.GameSessions.Mappers;

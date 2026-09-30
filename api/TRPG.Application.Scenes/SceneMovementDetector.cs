@@ -1,8 +1,8 @@
-using TRPG.Application.GameTurns.Events;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Events;
+using TRPG.Application.Scenes.Results;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.GameTurns;
+namespace TRPG.Application.Scenes;
 
 internal record SceneMovement(Guid CreatureId, string Name, CreatureMovementDirection Direction);
 

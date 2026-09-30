@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Events;
-using TRPG.Application.GameTurns.Events;
+using TRPG.Application.Scenes.Events;
 using TRPG.Application.Worlds;
 using TRPG.Data;
 using TRPG.Domain;

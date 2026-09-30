@@ -25,6 +25,7 @@ using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
 using TRPG.Application.RoomBookings.Extensions;
 using TRPG.Application.Routing.Extensions;
+using TRPG.Application.Scenes.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Application.Worlds.Extensions;
 using TRPG.Commands;
@@ -87,6 +88,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddWorldsServices()
             .AddEffectsServices()
             .AddCombatServices()
+            .AddScenesServices()
             .AddGameTurnsServices()
             .AddGameTool<LookTool>()
             .AddGameTool<MoveTool>()

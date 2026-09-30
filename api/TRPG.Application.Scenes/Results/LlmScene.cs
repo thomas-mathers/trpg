@@ -1,7 +1,7 @@
 using TRPG.Application.Quests.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.GameTurns.Results;
+namespace TRPG.Application.Scenes.Results;
 
 // What the narrator can observe. Ids are omitted because everything is addressed by name, and
 // the mechanical stat block because creature_inspect fetches it on demand for whoever needs it.

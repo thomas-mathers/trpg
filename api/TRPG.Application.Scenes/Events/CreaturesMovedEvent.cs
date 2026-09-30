@@ -1,6 +1,6 @@
 using TRPG.Application.Common.Events;
 
-namespace TRPG.Application.GameTurns.Events;
+namespace TRPG.Application.Scenes.Events;
 
 public enum CreatureMovementDirection
 {

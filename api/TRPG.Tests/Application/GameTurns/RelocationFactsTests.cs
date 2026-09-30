@@ -1,6 +1,6 @@
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Results;
 using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.GameTurns;

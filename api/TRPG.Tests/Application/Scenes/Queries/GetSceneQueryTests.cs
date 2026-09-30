@@ -1,12 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.GameTurns.Queries;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes.Results;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.GameTurns.Queries;
+namespace TRPG.Tests.Application.Scenes.Queries;
 
 public sealed class GetSceneQueryTests(DatabaseFixture db)
     : IAsyncLifetime,
