@@ -7,6 +7,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
 using TRPG.GameSessions.Responses;
@@ -141,6 +142,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
         await resolveCombatRound.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _playerId,
                 LocationId = _locationId,

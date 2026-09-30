@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures;
@@ -15,6 +16,7 @@ public class SneakDetectionService(
         Guid worldId,
         Guid creatureId,
         bool isSneaking,
+        GameInstant gameTime,
         SkillCheckCurve curve,
         CancellationToken cancellationToken = default
     )
@@ -45,6 +47,7 @@ public class SneakDetectionService(
                 {
                     WorldId = worldId,
                     CreatureId = creatureId,
+                    GameTime = gameTime,
                     UsageCounts = new Dictionary<Skill, int> { [Skill.Sneak] = 1 },
                 },
                 cancellationToken

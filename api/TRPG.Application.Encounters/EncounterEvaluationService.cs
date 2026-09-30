@@ -1,5 +1,6 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Encounters.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters;
@@ -22,11 +23,17 @@ internal class EncounterEvaluationService(
     private async Task<EncounterEvaluationResult> EvaluateConfrontation(
         Guid worldId,
         Guid playerId,
+        GameInstant gameTime,
         CancellationToken cancellationToken = default
     )
     {
         var encounterGroupEncounter = await evaluateEncounterGroup.Handle(
-            new EvaluateEncounterGroupCommand { WorldId = worldId, PlayerId = playerId },
+            new EvaluateEncounterGroupCommand
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                GameTime = gameTime,
+            },
             cancellationToken
         );
         if (encounterGroupEncounter != null)
@@ -36,7 +43,12 @@ internal class EncounterEvaluationService(
 
         // Being caught escaping outranks a routine stop, and does not wait on standing reputation.
         var jailbreakEncounter = await evaluateJailbreakEncounter.Handle(
-            new EvaluateJailbreakEncounterCommand { WorldId = worldId, PlayerId = playerId },
+            new EvaluateJailbreakEncounterCommand
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                GameTime = gameTime,
+            },
             cancellationToken
         );
         if (jailbreakEncounter != null)
@@ -44,12 +56,13 @@ internal class EncounterEvaluationService(
             return new EncounterEvaluationResult(jailbreakEncounter);
         }
 
-        return await EvaluateGuardConfrontation(worldId, playerId, cancellationToken);
+        return await EvaluateGuardConfrontation(worldId, playerId, gameTime, cancellationToken);
     }
 
     private async Task<EncounterEvaluationResult> EvaluateGuardConfrontation(
         Guid worldId,
         Guid playerId,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
@@ -63,7 +76,12 @@ internal class EncounterEvaluationService(
         }
 
         var suspicionEncounter = await evaluateSuspicionEncounter.Handle(
-            new EvaluateSuspicionEncounterCommand { WorldId = worldId, PlayerId = playerId },
+            new EvaluateSuspicionEncounterCommand
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                GameTime = gameTime,
+            },
             cancellationToken
         );
         if (suspicionEncounter != null)
@@ -77,10 +95,16 @@ internal class EncounterEvaluationService(
     public async Task<EncounterEvaluationResult> EvaluateArrival(
         Guid worldId,
         Guid playerId,
+        GameInstant gameTime,
         CancellationToken cancellationToken = default
     )
     {
-        var confrontation = await EvaluateConfrontation(worldId, playerId, cancellationToken);
+        var confrontation = await EvaluateConfrontation(
+            worldId,
+            playerId,
+            gameTime,
+            cancellationToken
+        );
         if (confrontation.Encounter != null)
         {
             return confrontation;
@@ -95,29 +119,41 @@ internal class EncounterEvaluationService(
             return new EncounterEvaluationResult(trapEncounter);
         }
 
-        return await EvaluateTrespassing(worldId, playerId, cancellationToken);
+        return await EvaluateTrespassing(worldId, playerId, gameTime, cancellationToken);
     }
 
     public async Task<EncounterEvaluationResult> EvaluateDeparture(
         Guid worldId,
         Guid playerId,
+        GameInstant gameTime,
         CancellationToken cancellationToken = default
     )
     {
-        var confrontation = await EvaluateConfrontation(worldId, playerId, cancellationToken);
+        var confrontation = await EvaluateConfrontation(
+            worldId,
+            playerId,
+            gameTime,
+            cancellationToken
+        );
         return confrontation.Encounter != null
             ? confrontation
-            : await EvaluateTrespassing(worldId, playerId, cancellationToken);
+            : await EvaluateTrespassing(worldId, playerId, gameTime, cancellationToken);
     }
 
     private async Task<EncounterEvaluationResult> EvaluateTrespassing(
         Guid worldId,
         Guid playerId,
+        GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
         var trespassingEncounter = await evaluateTrespassingEncounter.Handle(
-            new EvaluateTrespassingEncounterCommand { WorldId = worldId, PlayerId = playerId },
+            new EvaluateTrespassingEncounterCommand
+            {
+                WorldId = worldId,
+                PlayerId = playerId,
+                GameTime = gameTime,
+            },
             cancellationToken
         );
 

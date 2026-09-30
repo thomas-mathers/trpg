@@ -16,6 +16,7 @@ using TRPG.Application.Props.Commands;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -37,6 +38,7 @@ public class AttemptCellUnlockCommand
     public required Guid PlayerId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid CellId { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class AttemptCellUnlockCommandHandler(
@@ -132,6 +134,7 @@ internal class AttemptCellUnlockCommandHandler(
                 {
                     WorldId = command.WorldId,
                     CreatureId = player.Id,
+                    GameTime = command.GameTime,
                     UsageCounts = new Dictionary<Skill, int> { [Skill.Lockpicking] = 1 },
                 },
                 cancellationToken
@@ -197,6 +200,7 @@ internal class AttemptCellUnlockCommandHandler(
             command.WorldId,
             player.Id,
             player.IsSneaking,
+            command.GameTime,
             LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
             cancellationToken
         );
@@ -267,7 +271,8 @@ internal class AttemptCellUnlockCommandHandler(
             new CreatureFreedEvent(
                 PlayerId: command.PlayerId,
                 WorldId: command.WorldId,
-                CreatureId: cell.CreatureId.Value
+                CreatureId: cell.CreatureId.Value,
+                GameTime: command.GameTime
             ),
             cancellationToken
         );

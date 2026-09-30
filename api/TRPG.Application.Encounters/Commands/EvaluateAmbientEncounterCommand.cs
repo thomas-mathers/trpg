@@ -70,6 +70,7 @@ internal class EvaluateAmbientEncounterCommandHandler(
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
+                GameTime = command.GameTime,
                 GroupIds = command.SpawnedGroupIds,
             },
             cancellationToken

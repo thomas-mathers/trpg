@@ -9,6 +9,7 @@ using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Inventory;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -80,6 +81,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new AttemptTheftCommand
             {
+                GameTime = GameClock.Epoch,
                 From = new ItemOwnerReference(_player.Id, OwnerType.Creature),
                 Items = [],
                 PlayerId = _player.Id,
@@ -642,6 +644,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new AttemptTheftCommand
             {
+                GameTime = GameClock.Epoch,
                 From = from,
                 Items = [new ItemSelection(item.Id, item.Quantity)],
                 PlayerId = _player.Id,

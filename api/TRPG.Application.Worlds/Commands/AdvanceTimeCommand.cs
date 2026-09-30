@@ -2,7 +2,7 @@ using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Domain;
 
-namespace TRPG.Application.GameSessions.Commands;
+namespace TRPG.Application.Worlds.Commands;
 
 public class AdvanceTimeCommand
 {

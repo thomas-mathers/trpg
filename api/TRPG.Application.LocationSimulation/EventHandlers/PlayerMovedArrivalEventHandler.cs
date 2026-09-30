@@ -45,6 +45,7 @@ internal sealed class PlayerMovedArrivalEventHandler(
             {
                 WorldId = domainEvent.WorldId,
                 PlayerId = domainEvent.PlayerId,
+                GameTime = domainEvent.GameTime,
             },
             cancellationToken
         );

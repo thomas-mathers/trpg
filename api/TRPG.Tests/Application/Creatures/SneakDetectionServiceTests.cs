@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -67,6 +68,7 @@ public sealed class SneakDetectionServiceTests(DatabaseFixture db)
             _creature.WorldId,
             _creature.Id,
             isSneaking: false,
+            gameTime: GameClock.Epoch,
             Curve,
             TestContext.Current.CancellationToken
         );
@@ -87,6 +89,7 @@ public sealed class SneakDetectionServiceTests(DatabaseFixture db)
             _creature.WorldId,
             _creature.Id,
             isSneaking: true,
+            gameTime: GameClock.Epoch,
             Curve,
             TestContext.Current.CancellationToken
         );
@@ -114,6 +117,7 @@ public sealed class SneakDetectionServiceTests(DatabaseFixture db)
             _creature.WorldId,
             _creature.Id,
             isSneaking: true,
+            gameTime: GameClock.Epoch,
             Curve,
             TestContext.Current.CancellationToken
         );

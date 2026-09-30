@@ -17,7 +17,7 @@ internal class ResolveCombatRoundCommand
     public required Guid LocationId { get; init; }
     public required IReadOnlyList<Combatant> Combatants { get; init; }
     public required CombatState State { get; init; }
-    public GameInstant GameTime { get; init; } = GameClock.Epoch;
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class ResolveCombatRoundCommandHandler(
@@ -69,6 +69,7 @@ internal class ResolveCombatRoundCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
                 LocationId = command.LocationId,
+                GameTime = command.GameTime,
                 Combatants = command.Combatants,
                 State = state,
             },

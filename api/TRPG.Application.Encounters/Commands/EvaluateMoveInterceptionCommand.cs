@@ -76,6 +76,7 @@ internal class EvaluateMoveInterceptionCommandHandler(
         return await encounterEvaluation.EvaluateDeparture(
             command.WorldId,
             command.PlayerId,
+            command.GameTime,
             cancellationToken
         );
     }

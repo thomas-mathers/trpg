@@ -28,7 +28,6 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
 
         _worldId = _creature.WorldId;
         _context.Creatures.Add(_creature);
-        _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _creature.Id));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -80,6 +79,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new AdjustCreatureSkillsCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
                 UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 1 },
@@ -106,6 +106,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new AdjustCreatureSkillsCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
                 UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 2 },
@@ -130,6 +131,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new AdjustCreatureSkillsCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
                 UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 1 },
@@ -159,6 +161,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new AdjustCreatureSkillsCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
                 UsageCounts = new Dictionary<Skill, int> { [Skill.General] = 1 },
@@ -178,6 +181,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new AdjustCreatureSkillsCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
                 UsageCounts = new Dictionary<Skill, int> { [Skill.Sneak] = 5 },
@@ -202,6 +206,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
         await _handler.Handle(
             new AdjustCreatureSkillsCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
                 UsageCounts = new Dictionary<Skill, int>(),
@@ -222,11 +227,12 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
     {
         // Arrange
         await SeedSkill(Skill.Melee, level: 1, experience: 100);
+        var restedUntil = GameClock.Epoch + TimeSpan.FromHours(24);
         var trackedCreature = await _context.Creatures.SingleAsync(
             c => c.Id == _creature.Id,
             TestContext.Current.CancellationToken
         );
-        trackedCreature.RestedUntilGameTime = GameClock.Epoch + TimeSpan.FromHours(24);
+        trackedCreature.RestedUntilGameTime = restedUntil;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -235,6 +241,7 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
             {
                 WorldId = _worldId,
                 CreatureId = _creature.Id,
+                GameTime = restedUntil - TimeSpan.FromTicks(1),
                 UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 1 },
             },
             TestContext.Current.CancellationToken
@@ -246,5 +253,31 @@ public sealed class AdjustCreatureSkillsCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.Equal(112, skill.Experience);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotBoostExperience_AtRestedExpiry()
+    {
+        await SeedSkill(Skill.Melee, level: 1, experience: 100);
+        var restedUntil = GameClock.Epoch + TimeSpan.FromHours(24);
+        _creature.RestedUntilGameTime = restedUntil;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new AdjustCreatureSkillsCommand
+            {
+                WorldId = _worldId,
+                CreatureId = _creature.Id,
+                GameTime = restedUntil,
+                UsageCounts = new Dictionary<Skill, int> { [Skill.Melee] = 1 },
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        var skill = await _context.CreatureSkills.SingleAsync(
+            item => item.CreatureId == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(110, skill.Experience);
     }
 }

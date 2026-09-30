@@ -1,8 +1,8 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.Props.Queries;
+using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 

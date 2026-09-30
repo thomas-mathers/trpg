@@ -134,6 +134,8 @@ public sealed class CastAbilityCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var player = await SeedPlayer();
         var bystander = await SeedBystander();
+        player.RestedUntilGameTime = TestTime.Start;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var before = await _context
             .CreatureSkills.AsNoTracking()
             .SingleAsync(s => s.CreatureId == player.Id, TestContext.Current.CancellationToken);
@@ -148,7 +150,7 @@ public sealed class CastAbilityCommandHandlerTests(DatabaseFixture db)
         var after = await _context
             .CreatureSkills.AsNoTracking()
             .SingleAsync(s => s.CreatureId == player.Id, TestContext.Current.CancellationToken);
-        Assert.True(after.Experience > before.Experience);
+        Assert.Equal(before.Experience + 10, after.Experience);
     }
 
     [Fact]

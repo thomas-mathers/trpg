@@ -9,6 +9,7 @@ using TRPG.Application.Factions.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -17,6 +18,7 @@ public class EvaluateEncounterGroupCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required GameInstant GameTime { get; init; }
     public IReadOnlyCollection<Guid>? GroupIds { get; init; }
 }
 
@@ -125,6 +127,7 @@ internal class EvaluateEncounterGroupCommandHandler(
             command.WorldId,
             player.Id,
             player.IsSneaking,
+            command.GameTime,
             SneakChanceCalculator.BuildHostileDetectionCurve(sneakOptions.CurrentValue),
             cancellationToken
         );

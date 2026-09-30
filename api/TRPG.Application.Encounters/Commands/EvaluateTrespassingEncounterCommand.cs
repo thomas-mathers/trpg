@@ -8,6 +8,7 @@ using TRPG.Application.Crimes.Commands;
 using TRPG.Application.Crimes.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -16,6 +17,7 @@ public class EvaluateTrespassingEncounterCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 internal class EvaluateTrespassingEncounterCommandHandler(
@@ -112,6 +114,7 @@ internal class EvaluateTrespassingEncounterCommandHandler(
             command.WorldId,
             player.Id,
             player.IsSneaking,
+            command.GameTime,
             LockpickingChanceCalculator.BuildDetectionCurve(lockpickingOptions.CurrentValue),
             cancellationToken
         );

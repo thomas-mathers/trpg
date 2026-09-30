@@ -191,37 +191,37 @@ Completion commit:
 milestone(M04): complete faction ownership
 ```
 
-### [ ] M05 — World time and captured gameplay time
+### [x] M05 — World time and captured gameplay time
 
 Keep session lookup in GameSessions while moving world-based clock operations to Worlds. Deterministic mechanics receive the already-captured game instant instead of reading the clock again.
 
 Scope:
 
-- [ ] Move `AdvanceTimeCommand` to Worlds.
-- [ ] Move `GetGameTimeByWorldIdQuery` to Worlds.
-- [ ] Keep the session-ID-based game-time query in GameSessions.
-- [ ] Add `GameInstant` to `AdjustCreatureSkillsCommand`.
-- [ ] Propagate the captured instant through `ApplyCombatUsageCommand` and combat round/cast workflows.
-- [ ] Propagate the captured instant through theft, lockpick, cell-unlock, and sneak workflows.
-- [ ] Add the captured instant to `CreatureFreedEvent`.
-- [ ] Stop the creature-freed schedule handler from reading the clock again.
-- [ ] Remove Creatures → GameSessions after all callers migrate.
-- [ ] Remove other GameSessions references that become unused.
+- [x] Move `AdvanceTimeCommand` to Worlds.
+- [x] Move `GetGameTimeByWorldIdQuery` to Worlds.
+- [x] Keep the session-ID-based game-time query in GameSessions.
+- [x] Add `GameInstant` to `AdjustCreatureSkillsCommand`.
+- [x] Propagate the captured instant through `ApplyCombatUsageCommand` and combat round/cast workflows.
+- [x] Propagate the captured instant through theft, lockpick, cell-unlock, and sneak workflows.
+- [x] Add the captured instant to `CreatureFreedEvent`.
+- [x] Stop the creature-freed schedule handler from reading the clock again.
+- [x] Remove Creatures → GameSessions after all callers migrate.
+- [x] Remove other GameSessions references that become unused.
 
 Acceptance:
 
-- [ ] One gameplay operation uses one captured game instant throughout.
-- [ ] Rested skill experience is deterministic at the exact expiry boundary.
-- [ ] Combat and non-combat skill gains use the supplied instant.
-- [ ] Time skips retain their explicit order for effects, regeneration, and catch-up.
-- [ ] No generic `WorldTimeAdvanced` event replaces ordered workflows.
+- [x] One gameplay operation uses one captured game instant throughout.
+- [x] Rested skill experience is deterministic at the exact expiry boundary.
+- [x] Combat and non-combat skill gains use the supplied instant.
+- [x] Time skips retain their explicit order for effects, regeneration, and catch-up.
+- [x] No generic `WorldTimeAdvanced` event replaces ordered workflows.
 
 Verification:
 
-- [ ] Skill-adjustment tests cover both sides of the rested boundary.
-- [ ] Combat casting and round-resolution tests pass.
-- [ ] Theft, lockpick, jailbreak, wait, sleep, movement, and caravan tests pass.
-- [ ] Full backend test suite passes.
+- [x] Skill-adjustment tests cover both sides of the rested boundary.
+- [x] Combat casting and round-resolution tests pass.
+- [x] Theft, lockpick, jailbreak, wait, sleep, movement, and caravan tests pass.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

@@ -97,6 +97,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -133,6 +134,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -156,6 +158,44 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_UsesRoundTimeForSkillExperience()
+    {
+        await SeedFight();
+        _player.RestedUntilGameTime = TestTime.Start;
+        _context.CreatureSkills.Add(
+            Builders.MakeCreatureSkill(_player.Id, Skill.Melee, experience: 100, worldId: _worldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Ongoing,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 33, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 12, isAlive: true),
+            ],
+            skillUsageCounts: new Dictionary<Skill, int> { [Skill.Melee] = 1 }
+        );
+
+        await _handler.Handle(
+            new ResolveCombatRoundCommand
+            {
+                WorldId = _worldId,
+                PlayerId = _player.Id,
+                LocationId = _locationId,
+                Combatants = [MakePlayerCombatant(), MakeEnemyCombatant(currentHp: 12)],
+                State = state,
+                GameTime = TestTime.Start,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        var skill = await _context.CreatureSkills.SingleAsync(
+            item => item.CreatureId == _player.Id && item.Skill == Skill.Melee,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(110, skill.Experience);
+    }
+
+    [Fact]
     public async Task Handle_EndsFight_OnVictory()
     {
         // Arrange
@@ -173,6 +213,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -208,6 +249,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -240,6 +282,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -275,6 +318,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         var result = await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -310,6 +354,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -362,6 +407,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,
@@ -414,6 +460,7 @@ public sealed class ResolveCombatRoundCommandHandlerTests(DatabaseFixture db)
         await _handler.Handle(
             new ResolveCombatRoundCommand
             {
+                GameTime = GameClock.Epoch,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
                 LocationId = _locationId,

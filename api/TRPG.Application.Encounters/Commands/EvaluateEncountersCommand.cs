@@ -1,5 +1,6 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Commands;
@@ -8,6 +9,7 @@ public class EvaluateEncountersCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
+    public required GameInstant GameTime { get; init; }
 }
 
 public record EncounterEvaluationResult(Encounter? Encounter)
@@ -30,6 +32,7 @@ internal class EvaluateEncountersCommandHandler(EncounterEvaluationService encou
         var result = await encounterEvaluation.EvaluateArrival(
             command.WorldId,
             command.PlayerId,
+            command.GameTime,
             cancellationToken
         );
         transaction.Complete();
