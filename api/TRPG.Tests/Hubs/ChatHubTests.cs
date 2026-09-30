@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration;
@@ -220,6 +221,20 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         return await context
             .Encounters.OfType<FightEncounter>()
             .SingleAsync(f => f.PlayerId == _playerId, TestContext.Current.CancellationToken);
+    }
+
+    private static void AssertOnlyClockDriftElapsed(World world)
+    {
+        Assert.True(world.GameTime >= GameClock.Epoch);
+        Assert.True(world.GameTime < GameClock.Epoch + TimeSpan.FromMinutes(1));
+    }
+
+    private async Task CheckpointRunningClock()
+    {
+        await Task.Delay(1100, TestContext.Current.CancellationToken);
+        await using var scope = fixture.CreateScope();
+        var worldClock = scope.ServiceProvider.GetRequiredService<IWorldClock>();
+        await worldClock.Checkpoint(_worldId, TestContext.Current.CancellationToken);
     }
 
     private async Task<World> GetWorld()
@@ -514,6 +529,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Arrange
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
+        await CheckpointRunningClock();
 
         // Act
         var narration = await Drain(
@@ -523,7 +539,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Assert
         Assert.Equal("The wait duration must be positive.", narration);
         var world = await GetWorld();
-        Assert.Equal(GameClock.Epoch, world.GameTime);
+        AssertOnlyClockDriftElapsed(world);
     }
 
     [Fact]
@@ -573,7 +589,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         Assert.Equal("You need to sit down before waiting.", narration);
         var world = await GetWorld();
-        Assert.Equal(GameClock.Epoch, world.GameTime);
+        AssertOnlyClockDriftElapsed(world);
     }
 
     [Fact]
@@ -589,7 +605,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         Assert.Equal("You can wait for at most 24 hours at a time.", narration);
         var world = await GetWorld();
-        Assert.Equal(GameClock.Epoch, world.GameTime);
+        AssertOnlyClockDriftElapsed(world);
     }
 
     [Fact]
@@ -674,7 +690,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         Assert.Equal("You can sleep for at most 24 hours at a time.", narration);
         var world = await GetWorld();
-        Assert.Equal(GameClock.Epoch, world.GameTime);
+        AssertOnlyClockDriftElapsed(world);
     }
 
     [Fact]
