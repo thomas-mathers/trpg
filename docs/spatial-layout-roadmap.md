@@ -28,7 +28,7 @@ Working rules for every milestone:
 
 ## Milestone tracker
 
-- [ ] S01 Domain value types, columns, migration
+- [x] S01 Domain value types, columns, migration
 - [ ] S02 Oriented box geometry
 - [ ] S03 Footprint catalogs and asset keys
 - [ ] S04 Location sizing
@@ -77,22 +77,22 @@ Creatures:
 
 ## Milestones
 
-### [ ] S01 Domain value types, columns, migration
+### [x] S01 Domain value types, columns, migration
 
 Scope:
 
-- [ ] Add `Placement` and `Footprint` records in `TRPG.Domain`.
-- [ ] Add `Width` and `Depth` to `Location`.
-- [ ] Add `X`, `Y`, `Angle`, `Width`, `Depth` to `Prop` (base class).
-- [ ] Add `X`, `Y`, `Angle`, `Width`, `Depth` to `Building`.
-- [ ] Add `ExitX`, `ExitY`, `ArrivalX`, `ArrivalY`, `ArrivalAngle` to `LocationConnector`.
-- [ ] Add `X`, `Y`, `Angle` to `Creature`.
-- [ ] Add the EF configuration for the new columns and a migration via `scripts/add-migration.sh`.
+- [x] Add `Placement` and `Footprint` records in `TRPG.Domain`.
+- [x] Add `Width` and `Depth` to `Location`.
+- [x] Add `X`, `Y`, `Angle`, `Width`, `Depth` to `Prop` (base class).
+- [x] Add `X`, `Y`, `Angle`, `Width`, `Depth` to `Building`.
+- [x] Add `ExitX`, `ExitY`, `ArrivalX`, `ArrivalY`, `ArrivalAngle` to `LocationConnector`.
+- [x] Add `X`, `Y`, `Angle` to `Creature`.
+- [x] Add the EF configuration for the new columns and a migration via `scripts/add-migration.sh`.
 
 Verification:
 
-- [ ] `scripts/build.sh` passes.
-- [ ] Migration SQL reviewed: plain double columns, default 0, no jsonb.
+- [x] `scripts/build.sh` passes.
+- [x] Migration SQL reviewed: plain double columns, default 0, no jsonb.
 
 ### [ ] S02 Oriented box geometry
 
