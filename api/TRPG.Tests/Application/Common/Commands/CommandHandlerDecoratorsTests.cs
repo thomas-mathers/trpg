@@ -114,6 +114,58 @@ public sealed class CommandHandlerDecoratorsTests
         Assert.StartsWith("Handled ExampleQuery in ", logger.Messages[1], StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Handle_DoesNotLogAnError_WhenTheCommandIsCanceledByItsCaller()
+    {
+        var logger = new RecordingLogger<LoggedCommandHandlerDecorator<ExampleCommand, string>>();
+        var handler = new LoggedCommandHandlerDecorator<ExampleCommand, string>(
+            new CancelingHandler(),
+            logger
+        );
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            handler.Handle(new ExampleCommand { Name = "Move" }, cancellation.Token)
+        );
+
+        Assert.DoesNotContain(LogLevel.Error, logger.Levels);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotLogAnError_WhenTheQueryIsCanceledByItsCaller()
+    {
+        var logger = new RecordingLogger<LoggedQueryHandlerDecorator<ExampleQuery, string>>();
+        var handler = new LoggedQueryHandlerDecorator<ExampleQuery, string>(
+            new CancelingQueryHandler(),
+            logger
+        );
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            handler.Handle(new ExampleQuery { Name = "Move" }, cancellation.Token)
+        );
+
+        Assert.DoesNotContain(LogLevel.Error, logger.Levels);
+    }
+
+    private sealed class CancelingHandler : ICommandHandler<ExampleCommand, string>
+    {
+        public Task<string> Handle(
+            ExampleCommand command,
+            CancellationToken cancellationToken = default
+        ) => Task.FromCanceled<string>(cancellationToken);
+    }
+
+    private sealed class CancelingQueryHandler : IQueryHandler<ExampleQuery, string>
+    {
+        public Task<string> Handle(
+            ExampleQuery query,
+            CancellationToken cancellationToken = default
+        ) => Task.FromCanceled<string>(cancellationToken);
+    }
+
     private sealed class ExampleCommand
     {
         [NotBlank]
@@ -150,6 +202,7 @@ public sealed class CommandHandlerDecoratorsTests
     private sealed class RecordingLogger<T> : ILogger<T>
     {
         public Collection<string> Messages { get; } = [];
+        public Collection<LogLevel> Levels { get; } = [];
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull => null;
@@ -162,6 +215,10 @@ public sealed class CommandHandlerDecoratorsTests
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter
-        ) => Messages.Add(formatter(state, exception));
+        )
+        {
+            Levels.Add(logLevel);
+            Messages.Add(formatter(state, exception));
+        }
     }
 }

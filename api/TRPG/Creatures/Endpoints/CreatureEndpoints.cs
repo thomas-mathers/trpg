@@ -24,6 +24,7 @@ using TRPG.Creatures.Queries;
 using TRPG.Creatures.Requests;
 using TRPG.Creatures.Responses;
 using TRPG.Domain.Models;
+using TRPG.GameSessions.Commands;
 using TRPG.Inventory.Mappers;
 using TRPG.Inventory.Requests;
 using TRPG.Inventory.Responses;
@@ -746,12 +747,17 @@ internal static class CreatureEndpoints
         Guid worldId,
         [FromServices] IWorldClock worldClock,
         [FromServices] IWorldMutationGate mutationGate,
+        [FromServices] ICommandHandler<ReleaseOpenInteractionsCommand> releaseOpenInteractions,
         [FromServices] ICommandHandler<BeginCreatureInteractionCommand> beginInteraction,
         CancellationToken cancellationToken
     )
     {
         await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
+        await releaseOpenInteractions.Handle(
+            new ReleaseOpenInteractionsCommand { WorldId = worldId, GameTime = gameTime },
+            cancellationToken
+        );
         await beginInteraction.Handle(
             new BeginCreatureInteractionCommand
             {

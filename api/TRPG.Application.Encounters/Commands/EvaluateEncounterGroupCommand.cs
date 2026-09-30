@@ -37,7 +37,8 @@ internal class EvaluateEncounterGroupCommandHandler(
     SneakDetectionService sneakDetectionService,
     IChanceRoller chanceRoller,
     IOptionsMonitor<SneakOptions> sneakOptions,
-    IOptionsMonitor<ShakedownOptions> shakedownOptions
+    IOptionsMonitor<ShakedownOptions> shakedownOptions,
+    IOptionsMonitor<EncounterGroupOptions> encounterGroupOptions
 ) : ICommandHandler<EvaluateEncounterGroupCommand, Encounter?>
 {
     public async Task<Encounter?> Handle(
@@ -58,7 +59,13 @@ internal class EvaluateEncounterGroupCommandHandler(
             groupQuery = groupQuery.Where(g => command.GroupIds.AsEnumerable().Contains(g.Id));
         }
 
-        var groups = await groupQuery.ToArrayAsync(cancellationToken);
+        var allGroups = await groupQuery.ToArrayAsync(cancellationToken);
+        var groups = await ExcludeGroupsInGracePeriod(
+            allGroups,
+            player!,
+            command,
+            cancellationToken
+        );
         if (groups.Length == 0)
         {
             return null;
@@ -195,6 +202,44 @@ internal class EvaluateEncounterGroupCommandHandler(
                 $"Faction {selectedFaction.Id} has no encounter approach."
             ),
         };
+    }
+
+    private async Task<EncounterGroup[]> ExcludeGroupsInGracePeriod(
+        EncounterGroup[] groups,
+        Creature player,
+        EvaluateEncounterGroupCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        if (groups.Length == 0)
+        {
+            return groups;
+        }
+
+        var graceStart = command.GameTime - encounterGroupOptions.CurrentValue.RepeatGracePeriod;
+        var hostileFactionIds = await context
+            .Encounters.OfType<HostileEncounter>()
+            .AsNoTracking()
+            .Where(e =>
+                e.PlayerId == command.PlayerId
+                && e.LocationId == player.LocationId
+                && e.CompletedAtGameTime >= graceStart
+            )
+            .Select(e => e.FactionId)
+            .ToArrayAsync(cancellationToken);
+        var shakedownFactionIds = await context
+            .Encounters.OfType<ShakedownEncounter>()
+            .AsNoTracking()
+            .Where(e =>
+                e.PlayerId == command.PlayerId
+                && e.LocationId == player.LocationId
+                && e.CompletedAtGameTime >= graceStart
+            )
+            .Select(e => e.FactionId)
+            .ToArrayAsync(cancellationToken);
+        var quietFactionIds = hostileFactionIds.Concat(shakedownFactionIds).ToHashSet();
+
+        return groups.Where(group => !quietFactionIds.Contains(group.FactionId)).ToArray();
     }
 
     private static EncounterGroupCandidate BuildCandidate(

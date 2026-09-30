@@ -6,6 +6,7 @@ using TRPG.Application.Caravans.Commands;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
+using TRPG.GameSessions.Commands;
 
 namespace TRPG.Caravans.Endpoints;
 
@@ -31,12 +32,17 @@ internal static class CaravanEndpoints
         Guid worldId,
         [FromServices] IWorldClock worldClock,
         [FromServices] IWorldMutationGate mutationGate,
+        [FromServices] ICommandHandler<ReleaseOpenInteractionsCommand> releaseOpenInteractions,
         [FromServices] ICommandHandler<BeginCaravanInteractionCommand> beginInteraction,
         CancellationToken cancellationToken
     )
     {
         await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
+        await releaseOpenInteractions.Handle(
+            new ReleaseOpenInteractionsCommand { WorldId = worldId, GameTime = gameTime },
+            cancellationToken
+        );
         await beginInteraction.Handle(
             new BeginCaravanInteractionCommand
             {

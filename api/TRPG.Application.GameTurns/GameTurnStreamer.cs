@@ -97,6 +97,7 @@ internal class GameTurnStreamer(
                     before,
                     session,
                     streamedReply.Tokens,
+                    narrate.IncludeTools,
                     cancellationToken
                 )
             )
@@ -112,6 +113,7 @@ internal class GameTurnStreamer(
         SceneResult before,
         GameTurnSession session,
         IAsyncEnumerable<string> tokens,
+        bool toolsAvailable,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
@@ -149,7 +151,11 @@ internal class GameTurnStreamer(
             await FlushSceneChange(lastScene, session, cancellationToken);
         }
 
-        await LogUnbriefedNpcMentions(before, narration.ToString(), session, cancellationToken);
+        // Without tools the model cannot open a conversation, so a mention is never an omission.
+        if (toolsAvailable)
+        {
+            await LogUnbriefedNpcMentions(before, narration.ToString(), session, cancellationToken);
+        }
     }
 
     private async Task LogUnbriefedNpcMentions(

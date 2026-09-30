@@ -18,6 +18,7 @@ public abstract class Encounter
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public DateTime? CompletedAt { get; set; }
+    public GameInstant? CompletedAtGameTime { get; set; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public Guid LocationId { get; init; }
 
@@ -49,6 +50,9 @@ public class FightEncounter : Encounter
     public CombatOutcome Outcome { get; set; } = CombatOutcome.Ongoing;
     public int RoundsResolved { get; set; }
     public bool HasSurpriseRound { get; init; }
+
+    // False when the opposing side attacked first, which makes killing a humanoid in it self-defense.
+    public bool PlayerWasAggressor { get; init; } = true;
 }
 
 // Everything but the subject reads the same to both audiences, so only the subject is deferred:

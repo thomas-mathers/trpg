@@ -566,4 +566,57 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
         );
         Assert.Null(unequipped.Ownership.EquippedSlot);
     }
+
+    [Fact]
+    public async Task BeginCreatureInteraction_ClosesThePreviousConversation_WhenThePlayerIsAlreadyEngaged()
+    {
+        // Arrange
+        var location = Builders.MakeLocation(_worldId);
+        var player = Builders.MakeCreature(_worldId, locationId: location.Id);
+        var firstNpc = Builders.MakeCreature(_worldId, locationId: location.Id);
+        var secondNpc = Builders.MakeCreature(_worldId, locationId: location.Id);
+        player.IsEngaged = true;
+        firstNpc.IsEngaged = true;
+        var session = Builders.MakeGameSession(_worldId, player.Id);
+        await using (var scope = fixture.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            context.Locations.Add(location);
+            context.Creatures.AddRange(player, firstNpc, secondNpc);
+            context.GameSessions.Add(session);
+            context.NpcConversationSessionStates.Add(
+                new NpcConversationSessionState
+                {
+                    SessionId = session.Id,
+                    WorldId = _worldId,
+                    OpenConversationCreatureIdsByName = new() { [firstNpc.Name] = firstNpc.Id },
+                }
+            );
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        var response = await _client.PutAsJsonAsync(
+            "BeginCreatureInteraction",
+            routeValues: new { playerId = player.Id, creatureId = secondNpc.Id },
+            query: new Dictionary<string, object?> { ["worldId"] = _worldId },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        await using var verifyContext = fixture.CreateScope();
+        var db = verifyContext.ServiceProvider.GetRequiredService<TrpgDbContext>();
+        var engagedById = await db
+            .Creatures.Where(c => c.WorldId == _worldId)
+            .ToDictionaryAsync(c => c.Id, c => c.IsEngaged, TestContext.Current.CancellationToken);
+        Assert.False(engagedById[firstNpc.Id]);
+        Assert.True(engagedById[secondNpc.Id]);
+        Assert.True(engagedById[player.Id]);
+        var state = await db.NpcConversationSessionStates.SingleAsync(
+            s => s.SessionId == session.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Empty(state.OpenConversationCreatureIdsByName);
+    }
 }

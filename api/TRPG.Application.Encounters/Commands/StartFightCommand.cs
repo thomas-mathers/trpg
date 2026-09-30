@@ -20,6 +20,7 @@ public class StartFightCommand
     public required Guid PlayerId { get; init; }
     public required IReadOnlyCollection<Guid> EnemyCreatureIds { get; init; }
     public required bool HasSurpriseRound { get; init; }
+    public required bool PlayerWasAggressor { get; init; }
     public GameInstant GameTime { get; init; } = GameClock.Epoch;
 }
 
@@ -68,6 +69,7 @@ internal class StartFightCommandHandler(
             LocationId = player!.LocationId,
             CombatantIds = combatants.Select(c => c.CreatureId).ToList(),
             HasSurpriseRound = command.HasSurpriseRound,
+            PlayerWasAggressor = command.PlayerWasAggressor,
         };
 
         context.Encounters.Add(fight);

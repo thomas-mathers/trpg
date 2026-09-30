@@ -30,6 +30,7 @@ internal class EndFightCommandHandler(
     IEncountersDbContext context,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<AlertCreaturesCommand> alertCreatures,
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     IQueryHandler<
         GetLiveHumanoidWitnessesAtLocationQuery,
         IReadOnlyCollection<LiveHumanoidWitness>
@@ -103,6 +104,7 @@ internal class EndFightCommandHandler(
         if (fight != null)
         {
             fight.CompletedAt = DateTime.UtcNow;
+            fight.CompletedAtGameTime = command.GameTime;
             fight.State = EncounterState.Completed;
             fight.Outcome = state.Outcome;
             await context.SaveChangesAsync(cancellationToken);
@@ -124,17 +126,22 @@ internal class EndFightCommandHandler(
         FightEncounter? fight,
         Guid worldId,
         Guid playerId,
-        IReadOnlyCollection<Guid> killedCreatureIds,
+        IReadOnlyCollection<Guid> slainCreatureIds,
         CombatState state,
         CancellationToken cancellationToken
     )
     {
-        if (killedCreatureIds.Count == 0)
+        if (fight == null)
         {
             return;
         }
 
-        if (fight == null)
+        var killedCreatureIds = await GetMurderedCreatureIds(
+            fight,
+            slainCreatureIds,
+            cancellationToken
+        );
+        if (killedCreatureIds.Count == 0)
         {
             return;
         }
@@ -199,6 +206,30 @@ internal class EndFightCommandHandler(
             );
             gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Killing));
         }
+    }
+
+    private async Task<IReadOnlyCollection<Guid>> GetMurderedCreatureIds(
+        FightEncounter fight,
+        IReadOnlyCollection<Guid> slainCreatureIds,
+        CancellationToken cancellationToken
+    )
+    {
+        if (slainCreatureIds.Count == 0 || !fight.PlayerWasAggressor)
+        {
+            return [];
+        }
+
+        var slainCreatures = await getCreaturesByIds.Handle(
+            new GetCreaturesByIdsQuery { Ids = slainCreatureIds },
+            cancellationToken
+        );
+
+        return slainCreatureIds
+            .Where(slainCreatureId =>
+                slainCreatures.TryGetValue(slainCreatureId, out var creature)
+                && CreatureTypes.Humanoid.Contains(creature.CreatureType)
+            )
+            .ToArray();
     }
 
     // The fight is the active encounter until it completes, so the guard can only step in afterwards.

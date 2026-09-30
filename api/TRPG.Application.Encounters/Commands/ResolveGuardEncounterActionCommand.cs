@@ -241,6 +241,7 @@ internal class ResolveGuardEncounterActionCommandHandler(
                 PlayerId = command.PlayerId,
                 EnemyCreatureIds = guardIds,
                 HasSurpriseRound = false,
+                PlayerWasAggressor = true,
                 GameTime = command.GameTime,
             },
             cancellationToken

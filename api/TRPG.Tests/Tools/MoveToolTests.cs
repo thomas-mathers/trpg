@@ -519,6 +519,46 @@ public sealed class MoveToolTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Invoke_FlagsTheMoveAsInterrupted_WhenAnEncounterStopsThePlayerFromLeaving()
+    {
+        // Arrange
+        var faction = Builders.MakeFaction(WorldId, aggression: 150);
+        var monster = Builders.MakeCreature(
+            WorldId,
+            locationId: _oldLocation.Id,
+            level: _player.Level
+        );
+        var group = Builders.MakeEncounterGroup(WorldId, _oldLocation.Id, faction.Id);
+        _context.Factions.Add(faction);
+        _context.Creatures.Add(monster);
+        _context.EncounterGroups.Add(group);
+        _context.EncounterGroupMembers.Add(
+            Builders.MakeEncounterGroupMember(WorldId, group.Id, monster.Id)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(Assert.IsType<MoveToolResult>(result).MoveInterrupted);
+    }
+
+    [Fact]
+    public async Task Invoke_DoesNotFlagTheMoveAsInterrupted_WhenThePlayerArrives()
+    {
+        // Arrange
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke("Elsewhere", TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.False(Assert.IsType<MoveToolResult>(result).MoveInterrupted);
+    }
+
+    [Fact]
     public async Task Invoke_ReportsNoTravelTime_WhenTheConnectorHasNoTravelConnector()
     {
         // Arrange

@@ -52,6 +52,7 @@ internal record MoveToolResult(
     MoveToolGuardEncounter? GuardEncounter,
     MoveToolOverdueKeyEncounter? OverdueRoomKeyEncounter,
     MoveToolSuspicionEncounter? SuspicionEncounter,
+    bool MoveInterrupted,
     string? TravelTime = null
 );
 
@@ -65,7 +66,7 @@ internal class MoveTool(
 
     [DisplayName("move")]
     [Description(
-        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it. When the result carries a guardEncounter, the named guard is stopping the player over the offences in RecentOffenses: any entry with AgainstTheGuard true was committed against that guard personally, so have them speak as the wronged party for those and as an officer of the city for the rest. When the result carries a travelTime, that is exactly how long the trip took: narrate that duration and never work it out from the change in the date or hour, because time also passes while the player is idle."
+        "Moves the player to a destination by exact name and returns the full scene there — do not call look after moving. When outdoors, pass the exact Name of a building from NearbyBuildings to enter it, or the exact DestinationName of an exit from Exits to travel to an adjacent district. When indoors, pass the exact DestinationName of an exit from Exits to travel through it (this includes the literal value \"Outside\" for exits that lead outdoors). The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased, and never a name you have not actually seen in a tool result this session. If this fails because the door is locked, just narrate that the door is locked — do not automatically call pick_lock; that requires the player to explicitly ask for it. When the result carries a guardEncounter, the named guard is stopping the player over the offences in RecentOffenses: any entry with AgainstTheGuard true was committed against that guard personally, so have them speak as the wronged party for those and as an officer of the city for the rest. When the result has moveInterrupted true, an encounter stopped the player before they left: they did not reach the destination and are still at the original location, so narrate the encounter and never describe an arrival. When the result carries a travelTime, that is exactly how long the trip took: narrate that duration and never work it out from the change in the date or hour, because time also passes while the player is idle."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
@@ -116,11 +117,13 @@ internal class MoveTool(
             ),
             MoveInterruptedResult interrupted => BuildResult(
                 interrupted.Scene,
-                interrupted.Encounter
+                interrupted.Encounter,
+                moveInterrupted: true
             ),
             MoveCompletedResult completed => BuildResult(
                 completed.Scene,
                 completed.Encounter,
+                moveInterrupted: false,
                 FormatTravelTime(completed.TravelTimeHours)
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(result)),
@@ -130,6 +133,7 @@ internal class MoveTool(
     private static MoveToolResult BuildResult(
         SceneResult scene,
         Encounter? encounter,
+        bool moveInterrupted,
         string? travelTime = null
     ) =>
         new(
@@ -139,6 +143,7 @@ internal class MoveTool(
             (encounter as GuardEncounter)?.ToMoveToolSummary(),
             (encounter as TheftEncounter)?.ToMoveToolSummary(),
             (encounter as SuspicionEncounter)?.ToMoveToolSummary(),
+            moveInterrupted,
             travelTime
         );
 

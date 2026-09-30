@@ -49,14 +49,18 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
-    private async Task<FightEncounter> SeedFight()
+    private async Task<FightEncounter> SeedFight(
+        Guid? enemyId = null,
+        bool playerWasAggressor = true
+    )
     {
         var fight = new FightEncounter
         {
             WorldId = WorldId,
             PlayerId = _player.Id,
             LocationId = _player.LocationId,
-            CombatantIds = [_player.Id, _enemy.Id],
+            CombatantIds = [_player.Id, enemyId ?? _enemy.Id],
+            PlayerWasAggressor = playerWasAggressor,
         };
         _context.Encounters.Add(fight);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -241,6 +245,77 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
             verifyContext.CrimeWitnesses.Where(witness =>
                 witness.CreatureId == sleepingBystander.Id
             )
+        );
+    }
+
+    [Fact]
+    public async Task Handle_RecordsNoKillCrime_WhenVictimIsNotHumanoid()
+    {
+        // Arrange
+        var beast = Builders.MakeCreature(
+            WorldId,
+            locationId: _player.LocationId,
+            creatureType: CreatureType.Beast
+        );
+        var bystander = Builders.MakeCreature(WorldId, locationId: _player.LocationId);
+        _context.Creatures.AddRange(beast, bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight(beast.Id);
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(beast.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand { WorldId = WorldId, State = state },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.Empty(
+            verifyContext.Crimes.OfType<KillCrime>().Where(crime => crime.VictimId == beast.Id)
+        );
+        Assert.DoesNotContain(
+            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
+            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Killing)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_RecordsNoKillCrime_WhenHumanoidVictimAttackedFirst()
+    {
+        // Arrange
+        var bystander = Builders.MakeCreature(WorldId, locationId: _player.LocationId);
+        _context.Creatures.Add(bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await SeedFight(playerWasAggressor: false);
+        var state = Builders.MakeCombatState(
+            CombatOutcome.Victory,
+            [
+                MakeCombatantState(_player.Id, isPlayer: true, currentHp: 35, isAlive: true),
+                MakeCombatantState(_enemy.Id, isPlayer: false, currentHp: 0, isAlive: false),
+            ]
+        );
+
+        // Act
+        await _handler.Handle(
+            new EndFightCommand { WorldId = WorldId, State = state },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        Assert.Empty(
+            verifyContext.Crimes.OfType<KillCrime>().Where(crime => crime.VictimId == _enemy.Id)
+        );
+        Assert.DoesNotContain(
+            _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
+            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Killing)
         );
     }
 
