@@ -41,7 +41,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M07 — Weather extraction
 - [x] M08 — Routing data boundaries
 - [x] M09 — Room-key workflow split
-- [ ] M10 — GameTurns movement workflow
+- [x] M10 — GameTurns movement workflow
 - [ ] M11 — Notification event seams
 - [ ] M12 — Application scene projection
 - [ ] M13 — SPA shared boundaries
@@ -380,31 +380,31 @@ Completion commit:
 milestone(M09): complete room key workflow split
 ```
 
-### [ ] M10 — GameTurns movement workflow
+### [x] M10 — GameTurns movement workflow
 
 Move deterministic movement orchestration from the host `MoveTool` into GameTurns. The host remains an LLM adapter.
 
 Scope:
 
-- [ ] Add a GameTurns command for destination validation and movement orchestration.
-- [ ] Move interception, time advancement, effect reconciliation, movement, and destination catch-up into that command.
-- [ ] Return application facts needed for narration.
-- [ ] Keep tool descriptions, JSON schema, and LLM serialization in the host.
-- [ ] Preserve the order between departure interception, relocation, destination catch-up, and arrival encounter evaluation.
+- [x] Add a GameTurns command for destination validation and movement orchestration.
+- [x] Move interception, time advancement, effect reconciliation, movement, and destination catch-up into that command.
+- [x] Return application facts needed for narration.
+- [x] Keep tool descriptions, JSON schema, and LLM serialization in the host.
+- [x] Preserve the order between departure interception, relocation, destination catch-up, and arrival encounter evaluation.
 
 Acceptance:
 
-- [ ] The movement workflow can be tested without invoking an LLM tool.
-- [ ] Ordinary movement, blocked movement, interception, and forced relocation retain behavior.
-- [ ] Destination catch-up completes before arrival encounter evaluation.
-- [ ] One captured instant flows through the operation.
+- [x] The movement workflow can be tested without invoking an LLM tool.
+- [x] Ordinary movement, blocked movement, interception, and forced relocation retain behavior.
+- [x] Destination catch-up completes before arrival encounter evaluation.
+- [x] One captured instant flows through the operation.
 
 Verification:
 
-- [ ] New GameTurns command tests cover every movement branch.
-- [ ] Existing `MoveTool` tests pass as adapter tests.
-- [ ] Scene and ambient encounter tests pass.
-- [ ] Full backend test suite passes.
+- [x] New GameTurns command tests cover every movement branch.
+- [x] Existing `MoveTool` tests pass as adapter tests.
+- [x] Scene and ambient encounter tests pass.
+- [x] Full backend test suite passes.
 
 Completion commit:
 
