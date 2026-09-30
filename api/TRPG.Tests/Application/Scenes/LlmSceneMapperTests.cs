@@ -1,11 +1,11 @@
 using System.Text.Json;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Creatures.Results;
-using TRPG.Application.GameTurns.Mappers;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Mappers;
+using TRPG.Application.Scenes.Results;
 using TRPG.Domain.Models;
 
-namespace TRPG.Tests.Application.GameTurns;
+namespace TRPG.Tests.Application.Scenes;
 
 public sealed class LlmSceneMapperTests
 {

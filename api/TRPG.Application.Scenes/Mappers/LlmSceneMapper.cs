@@ -1,6 +1,6 @@
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Results;
 
-namespace TRPG.Application.GameTurns.Mappers;
+namespace TRPG.Application.Scenes.Mappers;
 
 public static class LlmSceneMapper
 {

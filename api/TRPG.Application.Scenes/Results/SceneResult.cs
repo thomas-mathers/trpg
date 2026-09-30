@@ -2,7 +2,7 @@ using TRPG.Application.Creatures.Results;
 using TRPG.Application.Quests.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.GameTurns.Results;
+namespace TRPG.Application.Scenes.Results;
 
 public record SceneDateInfo(int Year, string MonthName, int Day, string WeekdayName, int Hour);
 

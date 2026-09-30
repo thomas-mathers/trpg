@@ -1,4 +1,5 @@
-using ApplicationCreatureMovementDirection = TRPG.Application.GameTurns.Events.CreatureMovementDirection;
+using TRPG.Application.Scenes.Events;
+using ApplicationCreatureMovementDirection = TRPG.Application.Scenes.Events.CreatureMovementDirection;
 using ContractCreatureMovementDirection = TRPG.GameSessions.Responses.CreatureMovementDirection;
 
 namespace TRPG.GameSessions.Mappers;

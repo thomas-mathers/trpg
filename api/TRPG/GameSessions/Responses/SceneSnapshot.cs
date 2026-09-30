@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Tapper;
+using TRPG.Application.Scenes.Events;
 using TypedSignalR.Client;
 using ActiveBuff = TRPG.Combat.Responses.ActiveBuff;
 using ActiveConditions = TRPG.Combat.Responses.ActiveConditions;

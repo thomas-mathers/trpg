@@ -1,8 +1,8 @@
 using TRPG.Application.Common.Queries;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Results;
 using TRPG.Domain;
 
-namespace TRPG.Application.GameTurns.Queries;
+namespace TRPG.Application.Scenes.Queries;
 
 public class GetCurrentSceneQuery
 {

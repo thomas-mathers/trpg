@@ -4,19 +4,19 @@ using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Factions.Queries;
-using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.Weather.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.Worlds.Results;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.GameTurns.Queries;
+namespace TRPG.Application.Scenes.Queries;
 
 public class GetSceneQuery
 {

@@ -1,8 +1,8 @@
 using TRPG.Application.Creatures.Results;
-using TRPG.Application.GameTurns.Results;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Scenes.Results;
 
-namespace TRPG.Application.GameTurns;
+namespace TRPG.Application.Scenes;
 
 public static class SceneSemanticComparer
 {

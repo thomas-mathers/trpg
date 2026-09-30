@@ -1,10 +1,10 @@
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.GameTurns.Events;
-using TRPG.Application.GameTurns.Queries;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Events;
+using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes.Results;
 
-namespace TRPG.Application.GameTurns;
+namespace TRPG.Application.Scenes;
 
 internal sealed class CreatureMovementPublisher(
     IQueryHandler<GetMovementPlaceLabelsQuery, IReadOnlyDictionary<Guid, string>> getPlaceLabels,

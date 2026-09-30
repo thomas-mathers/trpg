@@ -3,7 +3,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.GameTurns.Queries;
+namespace TRPG.Application.Scenes.Queries;
 
 public class GetMovementPlaceLabelsQuery
 {

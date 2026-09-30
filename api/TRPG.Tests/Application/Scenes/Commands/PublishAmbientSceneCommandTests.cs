@@ -1,13 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Application.GameTurns.Events;
+using TRPG.Application.Scenes.Commands;
+using TRPG.Application.Scenes.Events;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.GameTurns.Commands;
+namespace TRPG.Tests.Application.Scenes.Commands;
 
 public sealed class PublishAmbientSceneCommandTests(DatabaseFixture db)
     : IAsyncLifetime,

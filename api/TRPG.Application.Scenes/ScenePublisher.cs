@@ -1,11 +1,11 @@
 using TRPG.Application.Common.Events;
-using TRPG.Application.GameTurns.Events;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Events;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 
-namespace TRPG.Application.GameTurns;
+namespace TRPG.Application.Scenes;
 
-internal sealed class PublishedSceneRegistry
+public sealed class PublishedSceneRegistry
 {
     private readonly object _gate = new();
     private readonly Dictionary<Guid, SceneResult> _scenes = [];
@@ -42,7 +42,7 @@ internal sealed class PublishedSceneRegistry
     }
 }
 
-internal sealed class ScenePublisher(
+public sealed class ScenePublisher(
     IGameClientEventSink gameEvents,
     PublishedSceneRegistry publishedScenes
 )

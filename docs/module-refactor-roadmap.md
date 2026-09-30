@@ -43,7 +43,7 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M09 — Room-key workflow split
 - [x] M10 — GameTurns movement workflow
 - [x] M11 — Notification event seams
-- [ ] M12 — Application scene projection
+- [x] M12 — Application scene projection
 - [ ] M13 — SPA shared boundaries
 - [ ] M14 — Optional placement cleanup
 
@@ -449,32 +449,32 @@ milestone(M11): complete notification event seams
 
 ## Wave 5 — scene and frontend boundaries
 
-### [ ] M12 — Application scene projection
+### [x] M12 — Application scene projection
 
 Create a real `Application.Scenes` project for the scene read model. GameTurns continues to orchestrate mutation and catch-up before requesting a scene.
 
 Scope:
 
-- [ ] Inventory scene queries, results, mappers, semantic comparison, movement detection, and publication state as one group.
-- [ ] Move that group into the Scenes project.
-- [ ] Move corresponding application events and publishers so Scenes does not import GameTurns events.
-- [ ] Keep `RefreshSceneCommand` orchestration in GameTurns.
-- [ ] Keep SignalR/HTTP `SceneSnapshot` contracts and wire mappers in the host.
-- [ ] Update consumers to reference Scenes instead of GameTurns where appropriate.
-- [ ] Update the backend project map and scene-refresh workflow documentation.
+- [x] Inventory scene queries, results, mappers, semantic comparison, movement detection, and publication state as one group.
+- [x] Move that group into the Scenes project.
+- [x] Move corresponding application events and publishers so Scenes does not import GameTurns events.
+- [x] Keep `RefreshSceneCommand` orchestration in GameTurns.
+- [x] Keep SignalR/HTTP `SceneSnapshot` contracts and wire mappers in the host.
+- [x] Update consumers to reference Scenes instead of GameTurns where appropriate.
+- [x] Update the backend project map and scene-refresh workflow documentation.
 
 Acceptance:
 
-- [ ] Scenes never calls GameTurns.
-- [ ] GameTurns performs catch-up before scene projection.
-- [ ] Snapshot version filtering and movement markers retain behavior.
-- [ ] Host look/scene consumers do not need turn-execution contracts.
+- [x] Scenes never calls GameTurns.
+- [x] GameTurns performs catch-up before scene projection.
+- [x] Snapshot version filtering and movement markers retain behavior.
+- [x] Host look/scene consumers do not need turn-execution contracts.
 
 Verification:
 
-- [ ] Scene projection, comparison, and movement detection tests pass.
-- [ ] Refresh, SignalR snapshot, and ambient publication tests pass.
-- [ ] Full backend test suite passes.
+- [x] Scene projection, comparison, and movement detection tests pass.
+- [x] Refresh, SignalR snapshot, and ambient publication tests pass.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

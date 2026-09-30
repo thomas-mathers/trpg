@@ -2,13 +2,13 @@ using TRPG.Application.Abilities;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns;
-using TRPG.Application.GameTurns.Events;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
-namespace TRPG.Tests.Application.GameTurns;
+namespace TRPG.Tests.Application.Scenes;
 
 public class SceneSemanticComparerTests
 {

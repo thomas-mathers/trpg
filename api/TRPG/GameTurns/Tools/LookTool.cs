@@ -7,7 +7,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Application.GameTurns.Mappers;
+using TRPG.Application.Scenes.Mappers;
 using TRPG.Domain;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.GameTurns.Queries;
 using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;

@@ -54,6 +54,17 @@ public sealed partial class ModuleArchitectureTests
     }
 
     [Fact]
+    public void Scenes_DoesNotReferenceGameTurns()
+    {
+        var projects = LoadProjects();
+
+        Assert.DoesNotContain(
+            "TRPG.Application.GameTurns",
+            projects["TRPG.Application.Scenes"].References
+        );
+    }
+
+    [Fact]
     public void ForeignModuleContexts_AreExplicitlyAllowlisted()
     {
         var violations = FindContextUses()

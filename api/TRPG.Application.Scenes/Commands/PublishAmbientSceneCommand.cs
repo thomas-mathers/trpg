@@ -1,11 +1,11 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.GameTurns.Queries;
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 
-namespace TRPG.Application.GameTurns.Commands;
+namespace TRPG.Application.Scenes.Commands;
 
 public class PublishAmbientSceneCommand
 {

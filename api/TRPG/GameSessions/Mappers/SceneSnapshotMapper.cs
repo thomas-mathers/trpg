@@ -1,4 +1,4 @@
-using TRPG.Application.GameTurns.Results;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
 using TRPG.GameSessions.Responses;
