@@ -36,8 +36,8 @@ Each milestone should normally use a branch named `refactor/mNN-short-name` and 
 - [x] M02 — Dependency cleanup and architecture checks
 - [x] M03 — Fact ownership in Knowledge
 - [x] M04 — Faction ownership
-- [ ] M05 — World time and captured gameplay time
-- [ ] M06 — QuestGeneration extraction
+- [x] M05 — World time and captured gameplay time
+- [x] M06 — QuestGeneration extraction
 - [ ] M07 — Weather extraction
 - [ ] M08 — Routing data boundaries
 - [ ] M09 — Room-key workflow split
@@ -231,38 +231,39 @@ milestone(M05): complete captured gameplay time
 
 ## Wave 3 — split LocationSimulation
 
-### [ ] M06 — QuestGeneration extraction
+### [x] M06 — QuestGeneration extraction
 
 Create `Application.QuestGeneration` for quest seeding, request lifecycle, and generation orchestration. LocationSimulation remains the scheduler of location catch-up and calls one seed-if-due operation.
 
 Scope:
 
-- [ ] Create the QuestGeneration project and service-registration extension.
-- [ ] Move the six deterministic quest seed commands.
-- [ ] Move LLM quest-chain seeding and generation commands.
-- [ ] Move `SyncQuestSeedScheduleCommand`.
-- [ ] Move `QuestCompletedFactionChainSeedEventHandler`.
-- [ ] Move `IQuestChainGenerationScheduler`.
-- [ ] Move persistence ownership for QuestSeedSchedule and QuestChainGenerationRequest.
-- [ ] Update the host TickerQ job and startup recovery to use QuestGeneration contracts.
-- [ ] Keep pure graph, casting, and content generators in WorldGeneration initially.
-- [ ] Replace foreign Factions persistence reads with Factions queries.
-- [ ] Update the backend project map and continuous-simulation workflow documentation.
+- [x] Create the QuestGeneration project and service-registration extension.
+- [x] Move the six deterministic quest seed commands.
+- [x] Move LLM quest-chain seeding and generation commands.
+- [x] Move `SyncQuestSeedScheduleCommand`.
+- [x] Move `QuestCompletedFactionChainSeedEventHandler`.
+- [x] Move `IQuestChainGenerationScheduler`.
+- [x] Move persistence ownership for QuestSeedSchedule and QuestChainGenerationRequest.
+- [x] Extract shared generated-creature persistence into CreatureSpawning.
+- [x] Update the host TickerQ job and startup recovery to use QuestGeneration contracts.
+- [x] Keep pure graph, casting, and content generators in WorldGeneration initially.
+- [x] Replace foreign Factions persistence reads with Factions queries.
+- [x] Update the backend project map and continuous-simulation workflow documentation.
 
 Acceptance:
 
-- [ ] LocationSimulation exposes one seed-if-due call at a captured location and instant.
-- [ ] Slow LLM generation never runs under the world mutation gate or quest-completion transaction.
-- [ ] Pending/in-progress/completed/failed request behavior is unchanged.
-- [ ] Duplicate request prevention remains effective.
-- [ ] Generated facts, quests, items, and triggers remain atomic.
+- [x] LocationSimulation exposes one seed-if-due call at a captured location and instant.
+- [x] Slow LLM generation never runs under the world mutation gate or quest-completion transaction.
+- [x] Pending/in-progress/completed/failed request behavior is unchanged.
+- [x] Duplicate request prevention remains effective.
+- [x] Generated facts, quests, items, and triggers remain atomic.
 
 Verification:
 
-- [ ] Every deterministic seed command test passes in its new module.
-- [ ] LLM request lifecycle and startup recovery tests pass.
-- [ ] Location routine tests pass.
-- [ ] Full backend test suite passes.
+- [x] Every deterministic seed command test passes in its new module.
+- [x] LLM request lifecycle and startup recovery tests pass.
+- [x] Location routine tests pass.
+- [x] Full backend test suite passes.
 
 Completion commit:
 

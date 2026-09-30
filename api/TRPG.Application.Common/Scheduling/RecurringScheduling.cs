@@ -1,7 +1,7 @@
 using NCrontab;
 using TRPG.Domain;
 
-namespace TRPG.Application.LocationSimulation;
+namespace TRPG.Application.Common.Scheduling;
 
 public static class RecurringScheduling
 {

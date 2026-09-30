@@ -1,6 +1,7 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Queries;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Quests.Commands;
@@ -9,9 +10,9 @@ using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.QuestGeneration.Commands;
 
-public class SeedClearDungeonQuestCommand
+public class SeedAssassinateQuestCommand
 {
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
@@ -19,37 +20,40 @@ public class SeedClearDungeonQuestCommand
     public required int PlayerLevel { get; init; }
 }
 
-// Finds someone at the seeding location who wants a nearby dungeon cleared of its monsters. Unlike
-// the captive-rescue quest, the same dungeon can be offered again once its current clear-quest
-// (if any) is no longer active — CreatureSpawner refills a dungeon's population over time, so
-// clearing it is worth doing again later. No-ops at any step where nothing eligible exists.
-internal class SeedClearDungeonQuestCommandHandler(
+// Finds someone at the seeding location who wants a nearby dungeon's boss-room occupant taken out
+// by name. Unlike SeedClearDungeonQuestCommand, the target is one specific living creature —
+// renamed with a distinguishing epithet so it reads as a named quarry rather than an ordinary
+// monster — instead of the whole building's population. No-ops at any step where nothing eligible
+// exists.
+internal class SeedAssassinateQuestCommandHandler(
     IQueryHandler<
         GetCreatureIdsWithCreatureJobInLocationsQuery,
         IReadOnlyList<Guid>
     > getGiverCandidateIds,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
     IQueryHandler<GetBuildingsByWorldIdQuery, IReadOnlyCollection<Building>> getBuildingsByWorldId,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
-    IQueryHandler<
-        GetActiveClearLocationObjectiveBuildingIdsQuery,
-        IReadOnlySet<Guid>
-    > getActiveClearLocationObjectiveBuildingIds,
     IQueryHandler<GetRoomsByBuildingIdsQuery, IReadOnlyCollection<Room>> getRoomsByBuildingIds,
     IQueryHandler<
-        GetLivingHostileCreatureCountsByLocationQuery,
-        IReadOnlyDictionary<Guid, int>
-    > getLivingHostileCreatureCountsByLocation,
+        GetActiveKillCreatureObjectiveCreatureIdsQuery,
+        IReadOnlySet<Guid>
+    > getActiveKillCreatureObjectiveCreatureIds,
+    IQueryHandler<
+        GetLivingHostileCreatureIdsByLocationQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getLivingHostileCreatureIdsByLocation,
+    ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<AddQuestCommand> addQuest
-) : ICommandHandler<SeedClearDungeonQuestCommand, bool>
+) : ICommandHandler<SeedAssassinateQuestCommand, bool>
 {
-    private const int GoldReward = 60;
-    private const int GiverReputationReward = 15;
+    private const int GoldReward = 75;
+    private const int GiverReputationReward = 20;
 
-    // Authority/combat figures who'd plausibly issue a bounty on a dungeon's monsters, rather
-    // than any employed resident of the city.
+    // Authority/combat figures who'd plausibly put a price on a named creature's head, rather than
+    // any employed resident of the city.
     private static readonly IReadOnlyList<Profession> EligibleGiverProfessions =
     [
         Profession.Guard,
@@ -59,7 +63,7 @@ internal class SeedClearDungeonQuestCommandHandler(
     ];
 
     public async Task<bool> Handle(
-        SeedClearDungeonQuestCommand command,
+        SeedAssassinateQuestCommand command,
         CancellationToken cancellationToken = default
     )
     {
@@ -78,7 +82,7 @@ internal class SeedClearDungeonQuestCommandHandler(
             return false;
         }
 
-        var candidate = await FindEligibleDungeon(
+        var candidate = await FindEligibleTarget(
             command,
             entranceLocation.StateId,
             cancellationToken
@@ -88,14 +92,21 @@ internal class SeedClearDungeonQuestCommandHandler(
             return false;
         }
 
-        var (building, livingCount) = candidate.Value;
+        var (building, targetLocationId, target) = candidate.Value;
+
+        var newName = CreatureEpithetGenerator.ComposeName(target.Name, Random.Shared);
+        await updateCreatures.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [target.Id], Name = newName },
+            cancellationToken
+        );
 
         var quest = new Quest
         {
             WorldId = command.WorldId,
             GiverId = giver.Id,
-            Name = $"Clear Out {building.Name}",
-            Description = $"{building.Name} has drawn monsters again. Clear them out for a reward.",
+            Name = $"Silence {newName}",
+            Description =
+                $"{newName} has been terrorizing travelers from {building.Name}. Hunt them down.",
             GoldReward = GoldReward,
         };
         quest.ReputationRewards.Add(
@@ -108,15 +119,14 @@ internal class SeedClearDungeonQuestCommandHandler(
                 Score = GiverReputationReward,
             }
         );
-        var objective = new ClearLocationObjective
+        var objective = new KillCreatureObjective
         {
             WorldId = command.WorldId,
             QuestId = quest.Id,
-            Name = $"Clear {building.Name}",
-            Description = $"Defeat the monsters lurking in {building.Name}.",
-            BuildingId = building.Id,
-            LocationId = building.ExteriorLocationId,
-            RequiredAmount = livingCount,
+            Name = $"Kill {newName}",
+            Description = $"Find and defeat {newName} in {building.Name}.",
+            CreatureId = target.Id,
+            LocationId = targetLocationId,
         };
 
         await addQuest.Handle(
@@ -155,8 +165,8 @@ internal class SeedClearDungeonQuestCommandHandler(
             : eligibleGivers[Random.Shared.Next(eligibleGivers.Length)];
     }
 
-    private async Task<(Building Building, int LivingCount)?> FindEligibleDungeon(
-        SeedClearDungeonQuestCommand command,
+    private async Task<(Building Building, Guid LocationId, Creature Target)?> FindEligibleTarget(
+        SeedAssassinateQuestCommand command,
         Guid stateId,
         CancellationToken cancellationToken
     )
@@ -180,8 +190,42 @@ internal class SeedClearDungeonQuestCommandHandler(
             },
             cancellationToken
         );
-        var activeBuildingIds = await getActiveClearLocationObjectiveBuildingIds.Handle(
-            new GetActiveClearLocationObjectiveBuildingIdsQuery
+
+        var candidateBuildings = dungeonBuildings
+            .Where(building =>
+                exteriorLocationsById.TryGetValue(building.ExteriorLocationId, out var location)
+                && location.StateId == stateId
+            )
+            .ToArray();
+        if (candidateBuildings.Length == 0)
+        {
+            return null;
+        }
+
+        var candidateBuildingIds = candidateBuildings.Select(building => building.Id).ToArray();
+        var rooms = await getRoomsByBuildingIds.Handle(
+            new GetRoomsByBuildingIdsQuery { BuildingIds = candidateBuildingIds },
+            cancellationToken
+        );
+        var bossRoomByBuildingId = rooms
+            .Where(room => room.Role == RoomRole.BossChamber)
+            .ToDictionary(room => room.BuildingId, room => room);
+        if (bossRoomByBuildingId.Count == 0)
+        {
+            return null;
+        }
+
+        var bossLocationIds = bossRoomByBuildingId.Values.Select(room => room.LocationId).ToArray();
+        var livingHostilesByLocation = await getLivingHostileCreatureIdsByLocation.Handle(
+            new GetLivingHostileCreatureIdsByLocationQuery
+            {
+                WorldId = command.WorldId,
+                LocationIds = bossLocationIds,
+            },
+            cancellationToken
+        );
+        var activeTargetCreatureIds = await getActiveKillCreatureObjectiveCreatureIds.Handle(
+            new GetActiveKillCreatureObjectiveCreatureIdsQuery
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
@@ -189,52 +233,31 @@ internal class SeedClearDungeonQuestCommandHandler(
             cancellationToken
         );
 
-        var candidates = dungeonBuildings
-            .Where(building =>
-                exteriorLocationsById.TryGetValue(building.ExteriorLocationId, out var location)
-                && location.StateId == stateId
-            )
-            .Where(building => !activeBuildingIds.Contains(building.Id))
-            .ToArray();
-        if (candidates.Length == 0)
-        {
-            return null;
-        }
-
-        var candidateBuildingIds = candidates.Select(building => building.Id).ToArray();
-        var rooms = await getRoomsByBuildingIds.Handle(
-            new GetRoomsByBuildingIdsQuery { BuildingIds = candidateBuildingIds },
-            cancellationToken
-        );
-        var buildingIdByLocationId = rooms.ToDictionary(
-            room => room.LocationId,
-            room => room.BuildingId
-        );
-
-        var livingCountsByLocationId = await getLivingHostileCreatureCountsByLocation.Handle(
-            new GetLivingHostileCreatureCountsByLocationQuery
+        var buildingsById = candidateBuildings.ToDictionary(building => building.Id);
+        var eligible = bossRoomByBuildingId
+            .Select(pair => new
             {
-                WorldId = command.WorldId,
-                LocationIds = buildingIdByLocationId.Keys.ToArray(),
-            },
-            cancellationToken
-        );
-        var livingCountByBuildingId = livingCountsByLocationId
-            .GroupBy(countByLocationId => buildingIdByLocationId[countByLocationId.Key])
-            .ToDictionary(
-                group => group.Key,
-                group => group.Sum(countByLocationId => countByLocationId.Value)
-            );
-
-        var eligibleBuildings = candidates
-            .Where(building => livingCountByBuildingId.GetValueOrDefault(building.Id) > 0)
+                Building = buildingsById[pair.Key],
+                Room = pair.Value,
+                TargetIds = livingHostilesByLocation
+                    .GetValueOrDefault(pair.Value.LocationId, [])
+                    .Where(creatureId => !activeTargetCreatureIds.Contains(creatureId))
+                    .ToArray(),
+            })
+            .Where(candidate => candidate.TargetIds.Length > 0)
             .ToArray();
-        if (eligibleBuildings.Length == 0)
+        if (eligible.Length == 0)
         {
             return null;
         }
 
-        var chosen = eligibleBuildings[Random.Shared.Next(eligibleBuildings.Length)];
-        return (chosen, livingCountByBuildingId[chosen.Id]);
+        var chosen = eligible[Random.Shared.Next(eligible.Length)];
+        var targetId = chosen.TargetIds[Random.Shared.Next(chosen.TargetIds.Length)];
+        var target = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = targetId },
+            cancellationToken
+        );
+
+        return target == null ? null : (chosen.Building, chosen.Room.LocationId, target);
     }
 }

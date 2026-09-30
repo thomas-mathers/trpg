@@ -2,11 +2,11 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Application.Quests.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.EventHandlers;
+namespace TRPG.Application.QuestGeneration.EventHandlers;
 
 // Joining a faction through its initiation quest is the moment the player becomes eligible for
 // that faction's story content, so the follow-up chain is seeded right away rather than waiting

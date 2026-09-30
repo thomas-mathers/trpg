@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 
 namespace TRPG.Quests.Endpoints;
 

@@ -8,7 +8,7 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.CreatureSpawning.Commands;
 
 // One or more freshly-generated creatures plus everything that makes them real in the world —
 // their gear, skills, schedule, and (if hostile) the faction-aligned group that fights as one.

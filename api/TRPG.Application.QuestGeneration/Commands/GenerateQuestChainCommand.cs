@@ -14,7 +14,7 @@ using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.QuestGeneration.Commands;
 
 public class GenerateQuestChainCommand
 {
@@ -43,7 +43,7 @@ public interface IQuestChainGenerationScheduler
 // (Completed or Failed): a request stuck in Pending/InProgress forever would mean a giver can never
 // offer this chain, the same failure shape as the historical stuck CreateWorldJob bug.
 internal class GenerateQuestChainCommandHandler(
-    ILocationSimulationDbContext context,
+    IQuestGenerationDbContext context,
     QuestChainTreatmentFirstGenerator treatmentFirstGenerator,
     QuestChainFactDisclosureRepairer factDisclosureRepairer,
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,

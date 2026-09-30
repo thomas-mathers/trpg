@@ -9,7 +9,7 @@ using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Configuration;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Combat.Tools;
 using TRPG.Data;
 using TRPG.Domain;

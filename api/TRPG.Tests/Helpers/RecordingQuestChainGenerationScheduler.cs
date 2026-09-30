@@ -1,4 +1,4 @@
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 
 namespace TRPG.Tests.Helpers;
 

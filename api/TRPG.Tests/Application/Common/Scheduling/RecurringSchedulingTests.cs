@@ -1,7 +1,7 @@
-using TRPG.Application.LocationSimulation;
+using TRPG.Application.Common.Scheduling;
 using TRPG.Domain;
 
-namespace TRPG.Tests.Application.LocationSimulation;
+namespace TRPG.Tests.Application.Common.Scheduling;
 
 public class RecurringSchedulingTests
 {

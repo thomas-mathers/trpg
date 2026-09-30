@@ -62,6 +62,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         IChatDbContext,
         ICrimesDbContext,
         ILocationSimulationDbContext,
+        IQuestGenerationDbContext,
         IRoomBookingsDbContext,
         IBooksDbContext,
         ICaravansDbContext,

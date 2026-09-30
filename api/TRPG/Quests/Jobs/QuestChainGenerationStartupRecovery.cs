@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TRPG.Data;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Quests.Jobs;
@@ -17,7 +17,7 @@ internal sealed class QuestChainGenerationStartupRecovery(
         try
         {
             await using var scope = scopeFactory.CreateAsyncScope();
-            var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
+            var context = scope.ServiceProvider.GetRequiredService<IQuestGenerationDbContext>();
             await context
                 .QuestChainGenerationRequests.Where(request =>
                     request.Status == QuestChainGenerationStatus.InProgress

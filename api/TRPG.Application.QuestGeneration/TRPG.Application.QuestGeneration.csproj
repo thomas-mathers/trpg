@@ -9,18 +9,16 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Configuration\TRPG.Application.Configuration.csproj" />
     <ProjectReference Include="..\TRPG.Application.CreatureJobs\TRPG.Application.CreatureJobs.csproj" />
     <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
     <ProjectReference Include="..\TRPG.Application.CreatureSpawning\TRPG.Application.CreatureSpawning.csproj" />
     <ProjectReference Include="..\TRPG.Application.Encounters\TRPG.Application.Encounters.csproj" />
     <ProjectReference Include="..\TRPG.Application.Factions\TRPG.Application.Factions.csproj" />
-    <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Knowledge\TRPG.Application.Knowledge.csproj" />
     <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />
-    <ProjectReference Include="..\TRPG.Application.QuestGeneration\TRPG.Application.QuestGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Quests\TRPG.Application.Quests.csproj" />
-    <ProjectReference Include="..\TRPG.Application.RoomBookings\TRPG.Application.RoomBookings.csproj" />
-    <ProjectReference Include="..\TRPG.Application.Routing\TRPG.Application.Routing.csproj" />
     <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />

@@ -9,7 +9,7 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.LocationSimulation.Commands;
+namespace TRPG.Application.QuestGeneration.Commands;
 
 public class SeedCourierQuestCommand
 {

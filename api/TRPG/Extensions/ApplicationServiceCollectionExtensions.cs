@@ -20,6 +20,7 @@ using TRPG.Application.Knowledge.Extensions;
 using TRPG.Application.LocationSimulation.Extensions;
 using TRPG.Application.NpcConversations.Extensions;
 using TRPG.Application.Props.Extensions;
+using TRPG.Application.QuestGeneration.Extensions;
 using TRPG.Application.Quests.Extensions;
 using TRPG.Application.Reputations.Extensions;
 using TRPG.Application.Routing.Extensions;
@@ -77,6 +78,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddEncountersServices()
             .AddRoutingServices()
             .AddLocationSimulationServices()
+            .AddQuestGenerationServices()
             .AddQuestServices()
             .AddReputationsServices()
             .AddWorldGenerationServices()

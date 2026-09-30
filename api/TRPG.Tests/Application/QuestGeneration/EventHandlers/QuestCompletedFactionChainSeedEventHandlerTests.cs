@@ -1,13 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
-using TRPG.Application.LocationSimulation.Commands;
-using TRPG.Application.LocationSimulation.EventHandlers;
+using TRPG.Application.QuestGeneration.Commands;
+using TRPG.Application.QuestGeneration.EventHandlers;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.LocationSimulation.EventHandlers;
+namespace TRPG.Tests.Application.QuestGeneration.EventHandlers;
 
 public sealed class QuestCompletedFactionChainSeedEventHandlerTests
     : IAsyncLifetime,

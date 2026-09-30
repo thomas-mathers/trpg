@@ -19,7 +19,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
-using TRPG.Application.LocationSimulation.Commands;
+using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Combat.Tools;
 using TRPG.Configuration;
@@ -225,6 +225,7 @@ internal static class ServiceCollectionExtensions
             .AddScoped<IChatDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<ICrimesDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<ILocationSimulationDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
+            .AddScoped<IQuestGenerationDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<IRoomBookingsDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<IBooksDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
             .AddScoped<ICaravansDbContext>(sp => sp.GetRequiredService<TrpgDbContext>())
