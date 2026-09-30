@@ -1,20 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Encounters.Commands;
+using TRPG.Application.RoomBookings.Commands;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Encounters.Commands;
+namespace TRPG.Tests.Application.RoomBookings.Commands;
 
 public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
     private static readonly Guid WorldId = Guid.NewGuid();
-    private static readonly GameInstant GameTime = GameClock.Epoch + TimeSpan.FromHours(10);
-
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ReturnRoomKeyCommandHandler _handler = null!;
@@ -120,7 +118,6 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                GameTime = GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -130,7 +127,6 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
         // Assert
         await using var verifyContext = db.CreateContext();
         Assert.Equal(ReturnRoomKeyOutcome.Returned, result.Outcome);
-        Assert.Null(result.Encounter);
 
         var updatedKey = await verifyContext.Items.SingleAsync(
             i => i.Id == _key.Id,
@@ -160,7 +156,6 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             new ReturnRoomKeyCommand
             {
                 WorldId = WorldId,
-                GameTime = GameTime,
                 PlayerId = _player.Id,
                 LocationId = _lobbyLocationId,
             },
@@ -172,7 +167,7 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ConfrontsThePlayerInstead_WhenTheKeyIsOverdue()
+    public async Task Handle_Throws_WhenThePlayerNoLongerHasTheKey()
     {
         // Arrange
         var booking = Builders.MakeRoomBooking(
@@ -180,54 +175,27 @@ public sealed class ReturnRoomKeyCommandHandlerTests(DatabaseFixture db)
             _guestRoomId,
             _key.Id,
             _player.Id,
-            dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(5)
+            dueAtGameTime: GameClock.Epoch + TimeSpan.FromHours(20)
         );
         _context.RoomBookings.Add(booking);
+        _key.Ownership = new ItemOwnership
+        {
+            OwnerId = Guid.NewGuid(),
+            OwnerType = OwnerType.Creature,
+        };
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        // Act
-        var result = await _handler.Handle(
-            new ReturnRoomKeyCommand
-            {
-                WorldId = WorldId,
-                GameTime = GameTime,
-                PlayerId = _player.Id,
-                LocationId = _lobbyLocationId,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        Assert.Equal(ReturnRoomKeyOutcome.Overdue, result.Outcome);
-        Assert.NotNull(result.Encounter);
-        Assert.Equal(_innkeeper.Id, result.Encounter.ConfrontingCreatureId);
-        Assert.Contains(_key.Id, result.Encounter.ItemIds);
-        Assert.Contains(_innkeeper.Id, result.Encounter.WitnessCreatureIds);
-
-        var witness = await verifyContext.CrimeWitnesses.SingleAsync(
-            w => w.CrimeId == result.Encounter.TheftCrimeId,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(_innkeeper.Id, witness.CreatureId);
-
-        var updatedKey = await verifyContext.Items.SingleAsync(
-            i => i.Id == _key.Id,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(OwnerType.Creature, updatedKey.Ownership.OwnerType);
-        Assert.Equal(_player.Id, updatedKey.Ownership.OwnerId);
-
-        Assert.False(
-            await verifyContext.RoomBookings.AnyAsync(
-                b => b.PlayerId == _player.Id,
+        // Act, Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _handler.Handle(
+                new ReturnRoomKeyCommand
+                {
+                    WorldId = WorldId,
+                    PlayerId = _player.Id,
+                    LocationId = _lobbyLocationId,
+                },
                 TestContext.Current.CancellationToken
             )
         );
-
-        var updatedBed = await verifyContext
-            .Props.OfType<Bed>()
-            .SingleAsync(b => b.Id == _bed.Id, TestContext.Current.CancellationToken);
-        Assert.Null(updatedBed.AssignedCreatureId);
     }
 }

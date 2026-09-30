@@ -1,10 +1,10 @@
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Crimes.Queries;
-using TRPG.Application.Encounters.Queries;
 using TRPG.Application.Factions.Queries;
 using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.NpcConversations.Queries;
+using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Quests.Results;
 using TRPG.Application.Reputations;
@@ -146,10 +146,11 @@ internal class GetNpcConversationBriefingQueryHandler(
         IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
     > getFactionIdsByCreatureIds,
     IQueryHandler<GetBuildingByLocationIdQuery, BuildingIdentity?> getBuildingByLocationId,
+    IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
     IQueryHandler<
-        GetTradeWorkstationByBuildingIdQuery,
+        GetTradeWorkstationByLocationIdsQuery,
         Workstation?
-    > getTradeWorkstationByBuildingId,
+    > getTradeWorkstationByLocationIds,
     IQueryHandler<
         GetRoomBookingsForPlayerInBuildingQuery,
         IReadOnlyCollection<RoomBooking>
@@ -373,10 +374,7 @@ internal class GetNpcConversationBriefingQueryHandler(
             return null;
         }
 
-        var workstation = await getTradeWorkstationByBuildingId.Handle(
-            new GetTradeWorkstationByBuildingIdQuery { BuildingId = building.Id },
-            cancellationToken
-        );
+        var workstation = await GetTradeWorkstation(building.Id, cancellationToken);
         var isInnkeeperOrStaff =
             workstation?.OwnerCreatureId == query.NpcId || workstation?.OccupantId == query.NpcId;
         if (!isInnkeeperOrStaff)
@@ -405,6 +403,25 @@ internal class GetNpcConversationBriefingQueryHandler(
         return new NpcConversationRoomBookingStatus(
             true,
             rooms.GetValueOrDefault(booking.RoomId)?.Name
+        );
+    }
+
+    private async Task<Workstation?> GetTradeWorkstation(
+        Guid buildingId,
+        CancellationToken cancellationToken
+    )
+    {
+        var rooms = await getRoomsByBuildingId.Handle(
+            new GetRoomsByBuildingIdQuery { BuildingId = buildingId },
+            cancellationToken
+        );
+
+        return await getTradeWorkstationByLocationIds.Handle(
+            new GetTradeWorkstationByLocationIdsQuery
+            {
+                LocationIds = rooms.Select(room => room.LocationId).ToArray(),
+            },
+            cancellationToken
         );
     }
 
