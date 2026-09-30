@@ -6,6 +6,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
@@ -33,7 +34,15 @@ public class SeedLlmQuestChainCommand
 // as the other Seed*QuestCommand types.
 internal class SeedLlmQuestChainCommandHandler(
     ILocationSimulationDbContext context,
-    IFactionsDbContext factionsContext,
+    IQueryHandler<GetFactionsByWorldIdQuery, IReadOnlyList<Faction>> getFactionsByWorldId,
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds,
+    IQueryHandler<
+        GetFactionStandingsByWorldIdQuery,
+        IReadOnlyList<FactionStanding>
+    > getFactionStandingsByWorldId,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetLocationIdsByCityIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByCityId,
     IQueryHandler<GetLocationIdsByStateIdQuery, IReadOnlyCollection<Guid>> getLocationIdsByStateId,
@@ -90,7 +99,11 @@ internal class SeedLlmQuestChainCommandHandler(
 
         var entities = new List<QuestChainCandidateEntity>();
         entities.AddRange(
-            await GatherGiverCandidates(entranceLocation.CityId.Value, cancellationToken)
+            await GatherGiverCandidates(
+                command.WorldId,
+                entranceLocation.CityId.Value,
+                cancellationToken
+            )
         );
 
         entities.AddRange(
@@ -146,15 +159,19 @@ internal class SeedLlmQuestChainCommandHandler(
             options.MinimumChainLengthBase + levelBonus,
             maximumChainLength
         );
-        var factionStandings = await factionsContext
-            .FactionStandings.AsNoTracking()
-            .Where(standing => standing.WorldId == command.WorldId && standing.Score < 0)
+        var factionStandings = (
+            await getFactionStandingsByWorldId.Handle(
+                new GetFactionStandingsByWorldIdQuery(command.WorldId),
+                cancellationToken
+            )
+        )
+            .Where(standing => standing.Score < 0)
             .Select(standing => new QuestChainFactionStanding(
                 standing.FactionId,
                 standing.OtherFactionId,
                 standing.Score
             ))
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
         await scheduler.ScheduleAsync(
             new GenerateQuestChainCommand
             {
@@ -183,19 +200,16 @@ internal class SeedLlmQuestChainCommandHandler(
             .Where(entity => entity.Type == QuestChainEntityTypes.Creature)
             .Select(entity => entity.Id)
             .ToArray();
-        var factions = await factionsContext
-            .Factions.AsNoTracking()
-            .Where(faction => faction.WorldId == worldId)
-            .ToDictionaryAsync(faction => faction.Id, cancellationToken);
-        var factionIdsByCreatureId = await factionsContext
-            .FactionMembers.AsNoTracking()
-            .Where(member => creatureIds.AsEnumerable().Contains(member.CreatureId))
-            .GroupBy(member => member.CreatureId)
-            .ToDictionaryAsync(
-                group => group.Key,
-                group => group.Select(member => member.FactionId).ToArray(),
+        var factions = (
+            await getFactionsByWorldId.Handle(
+                new GetFactionsByWorldIdQuery(worldId),
                 cancellationToken
-            );
+            )
+        ).ToDictionary(faction => faction.Id);
+        var factionIdsByCreatureId = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = creatureIds },
+            cancellationToken
+        );
 
         return entities
             .Select(entity =>
@@ -240,6 +254,7 @@ internal class SeedLlmQuestChainCommandHandler(
         };
 
     private async Task<IReadOnlyList<QuestChainCandidateEntity>> GatherGiverCandidates(
+        Guid worldId,
         Guid cityId,
         CancellationToken cancellationToken
     )
@@ -256,8 +271,12 @@ internal class SeedLlmQuestChainCommandHandler(
             new GetCreaturesByIdsQuery { Ids = candidateIds },
             cancellationToken
         );
-        var priorityFactionIds = await factionsContext
-            .Factions.AsNoTracking()
+        var priorityFactionIds = (
+            await getFactionsByWorldId.Handle(
+                new GetFactionsByWorldIdQuery(worldId),
+                cancellationToken
+            )
+        )
             .Where(faction =>
                 faction.Kind == FactionKind.Joinable
                 || faction.Kind == FactionKind.Antagonist
@@ -267,12 +286,15 @@ internal class SeedLlmQuestChainCommandHandler(
                 )
             )
             .Select(faction => faction.Id)
-            .ToArrayAsync(cancellationToken);
-        var priorityCreatureIds = await factionsContext
-            .FactionMembers.AsNoTracking()
-            .Where(member => priorityFactionIds.AsEnumerable().Contains(member.FactionId))
-            .Select(member => member.CreatureId)
-            .ToHashSetAsync(cancellationToken);
+            .ToHashSet();
+        var factionIdsByCreatureId = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = candidateIds },
+            cancellationToken
+        );
+        var priorityCreatureIds = factionIdsByCreatureId
+            .Where(pair => pair.Value.Any(priorityFactionIds.Contains))
+            .Select(pair => pair.Key)
+            .ToHashSet();
 
         return candidates
             .Values.Where(creature => CreatureTypes.Humanoid.Contains(creature.CreatureType))

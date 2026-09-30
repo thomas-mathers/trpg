@@ -24,11 +24,6 @@ public sealed partial class ModuleArchitectureTests
         "TRPG.Application.Caravans/Commands/BoardCaravanCommand.cs:IRoutingDbContext",
         "TRPG.Application.Caravans/Commands/EndCaravanInteractionCommand.cs:IRoutingDbContext",
         "TRPG.Application.Caravans/Commands/PurchaseCaravanTicketCommand.cs:IRoutingDbContext",
-        "TRPG.Application.LocationSimulation/Commands/SeedLlmQuestChainCommand.cs:IFactionsDbContext",
-        "TRPG.Application.Quests/Commands/AcceptQuestCommand.cs:IFactionsDbContext",
-        "TRPG.Application.Quests/Commands/CompleteQuestCommand.cs:IFactionsDbContext",
-        "TRPG.Application.Quests/Queries/GetQuestInteractionsForGiverQuery.cs:IFactionsDbContext",
-        "TRPG.Application.Quests/Queries/GetQuestMarkersForCreaturesQuery.cs:IFactionsDbContext",
     };
 
     private static readonly IReadOnlySet<string> ConcreteContextAllowlist = new HashSet<string>

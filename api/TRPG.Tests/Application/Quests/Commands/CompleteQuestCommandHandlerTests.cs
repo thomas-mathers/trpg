@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Quests.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -501,6 +504,154 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
         Assert.Equal(1, playerEarCount);
     }
 
+    [Fact]
+    public async Task Handle_GrantsMembershipRewardOnce()
+    {
+        var faction = Builders.MakeFaction(WorldId);
+        _context.Factions.Add(faction);
+        var quest = Builders.MakeQuest(_giver.Id, WorldId, membershipRewardFactionId: faction.Id);
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete, quest);
+
+        await Complete(creatureQuest);
+
+        await using var verifyContext = db.CreateContext();
+        Assert.Single(
+            await verifyContext
+                .FactionMembers.Where(member =>
+                    member.CreatureId == _player.Id && member.FactionId == faction.Id
+                )
+                .ToArrayAsync(TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_PublishesCompletionAfterMembershipCanBeRead()
+    {
+        var faction = Builders.MakeFaction(WorldId);
+        _context.Factions.Add(faction);
+        var quest = Builders.MakeQuest(_giver.Id, WorldId, membershipRewardFactionId: faction.Id);
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete, quest);
+        var observer = new MembershipObservingQuestCompletedPublisher(
+            _serviceProvider.GetRequiredService<
+                IQueryHandler<
+                    GetFactionIdsByCreatureIdsQuery,
+                    IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+                >
+            >(),
+            _player.Id,
+            faction.Id
+        );
+        await using var provider = BuildCompletionProvider(observer);
+
+        await provider
+            .GetRequiredService<CompleteQuestCommandHandler>()
+            .Handle(MakeCommand(creatureQuest), TestContext.Current.CancellationToken);
+
+        Assert.True(observer.WasMembershipObserved);
+    }
+
+    [Fact]
+    public async Task Handle_AppliesTerminalChainStandingChange()
+    {
+        var giverFaction = Builders.MakeFaction(WorldId);
+        var antagonistFaction = Builders.MakeFaction(WorldId);
+        _context.Factions.AddRange(giverFaction, antagonistFaction);
+        var standings = new[]
+        {
+            MakeStanding(giverFaction.Id, antagonistFaction.Id, -20),
+            MakeStanding(antagonistFaction.Id, giverFaction.Id, -10),
+        };
+        _context.FactionStandings.AddRange(standings);
+        var quest = MakeTerminalQuest(giverFaction.Id, antagonistFaction.Id);
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete, quest);
+
+        await Complete(creatureQuest);
+
+        await using var verifyContext = db.CreateContext();
+        var scores = await verifyContext.FactionStandings.ToDictionaryAsync(
+            standing => standing.Id,
+            standing => standing.Score,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(-25, scores[standings[0].Id]);
+        Assert.Equal(-15, scores[standings[1].Id]);
+    }
+
+    [Fact]
+    public async Task Handle_RollsBackQuestAndFactionReward_WhenCompletionFails()
+    {
+        var faction = Builders.MakeFaction(WorldId);
+        _context.Factions.Add(faction);
+        var quest = Builders.MakeQuest(_giver.Id, WorldId, membershipRewardFactionId: faction.Id);
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete, quest);
+        await using var provider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .AddSingleton<IDomainEventPublisher<QuestCompletedEvent>>(
+                new ThrowingQuestCompletedPublisher()
+            )
+            .BuildServiceProvider();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider
+                .GetRequiredService<CompleteQuestCommandHandler>()
+                .Handle(MakeCommand(creatureQuest), TestContext.Current.CancellationToken)
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var storedQuest = await verifyContext.CreatureQuests.SingleAsync(
+            item => item.Id == creatureQuest.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(QuestStatus.ReadyToComplete, storedQuest.Status);
+        Assert.False(
+            await verifyContext.FactionMembers.AnyAsync(
+                member => member.CreatureId == _player.Id && member.FactionId == faction.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    private Task Complete(CreatureQuest creatureQuest) =>
+        _handler.Handle(MakeCommand(creatureQuest), TestContext.Current.CancellationToken);
+
+    private ServiceProvider BuildCompletionProvider(
+        IDomainEventPublisher<QuestCompletedEvent> publisher
+    ) =>
+        new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .AddSingleton(publisher)
+            .BuildServiceProvider();
+
+    private CompleteQuestCommand MakeCommand(CreatureQuest creatureQuest) =>
+        new()
+        {
+            PlayerId = _player.Id,
+            QuestId = creatureQuest.QuestId,
+            WorldId = WorldId,
+        };
+
+    private Quest MakeTerminalQuest(Guid giverFactionId, Guid antagonistFactionId) =>
+        new()
+        {
+            WorldId = WorldId,
+            GiverId = _giver.Id,
+            Name = $"Quest-{Guid.NewGuid():N}",
+            Description = "A test quest",
+            GoldReward = 100,
+            IsChainTerminal = true,
+            ChainGiverFactionId = giverFactionId,
+            ChainAntagonistFactionId = antagonistFactionId,
+        };
+
+    private static FactionStanding MakeStanding(Guid factionId, Guid otherFactionId, int score) =>
+        new()
+        {
+            WorldId = WorldId,
+            FactionId = factionId,
+            OtherFactionId = otherFactionId,
+            Score = score,
+        };
+
     private async Task<CreatureQuest> SeedQuest(
         QuestStatus status,
         Quest? quest = null,
@@ -520,5 +671,38 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
         _context.CreatureQuests.Add(creatureQuest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return creatureQuest;
+    }
+
+    private sealed class ThrowingQuestCompletedPublisher
+        : IDomainEventPublisher<QuestCompletedEvent>
+    {
+        public Task Publish(
+            QuestCompletedEvent domainEvent,
+            CancellationToken cancellationToken = default
+        ) => throw new InvalidOperationException("Completion failed.");
+    }
+
+    private sealed class MembershipObservingQuestCompletedPublisher(
+        IQueryHandler<
+            GetFactionIdsByCreatureIdsQuery,
+            IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+        > getFactionIdsByCreatureIds,
+        Guid creatureId,
+        Guid factionId
+    ) : IDomainEventPublisher<QuestCompletedEvent>
+    {
+        public bool WasMembershipObserved { get; private set; }
+
+        public async Task Publish(
+            QuestCompletedEvent domainEvent,
+            CancellationToken cancellationToken = default
+        )
+        {
+            var memberships = await getFactionIdsByCreatureIds.Handle(
+                new GetFactionIdsByCreatureIdsQuery { CreatureIds = [creatureId] },
+                cancellationToken
+            );
+            WasMembershipObserved = memberships[creatureId].Contains(factionId);
+        }
     }
 }

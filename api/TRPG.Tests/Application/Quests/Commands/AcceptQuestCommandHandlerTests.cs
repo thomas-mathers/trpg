@@ -243,4 +243,53 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
             )
         );
     }
+
+    [Fact]
+    public async Task Handle_Throws_WhenRequiredFactionMembershipIsMissing()
+    {
+        var faction = Builders.MakeFaction(WorldId);
+        var quest = Builders.MakeQuest(_giver.Id, WorldId, requiredFactionId: faction.Id);
+        _context.AddRange(faction, quest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            _handler.Handle(MakeCommand(quest.Id), TestContext.Current.CancellationToken)
+        );
+    }
+
+    [Fact]
+    public async Task Handle_Accepts_WhenRequiredFactionMembershipExists()
+    {
+        var faction = Builders.MakeFaction(WorldId);
+        var quest = Builders.MakeQuest(_giver.Id, WorldId, requiredFactionId: faction.Id);
+        _context.AddRange(
+            faction,
+            quest,
+            new FactionMember
+            {
+                WorldId = WorldId,
+                CreatureId = _player.Id,
+                FactionId = faction.Id,
+                Role = FactionRole.Member,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(MakeCommand(quest.Id), TestContext.Current.CancellationToken);
+
+        Assert.True(
+            await _context.CreatureQuests.AnyAsync(
+                creatureQuest => creatureQuest.QuestId == quest.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    private AcceptQuestCommand MakeCommand(Guid questId) =>
+        new()
+        {
+            PlayerId = _player.Id,
+            QuestId = questId,
+            WorldId = WorldId,
+        };
 }

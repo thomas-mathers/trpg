@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Factions.Queries;
 using TRPG.Application.Knowledge.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -29,7 +30,10 @@ public class GetQuestMarkersForCreaturesQuery
 internal class GetQuestMarkersForCreaturesQueryHandler(
     IQueryHandler<GetKnownFactIdsQuery, IReadOnlyList<Guid>> getKnownFacts,
     IQuestsDbContext context,
-    IFactionsDbContext factionsContext
+    IQueryHandler<
+        GetFactionIdsByCreatureIdsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
+    > getFactionIdsByCreatureIds
 ) : IQueryHandler<GetQuestMarkersForCreaturesQuery, QuestMarkersResult>
 {
     public async Task<QuestMarkersResult> Handle(
@@ -131,11 +135,11 @@ internal class GetQuestMarkersForCreaturesQueryHandler(
             new GetKnownFactIdsQuery(query.WorldId, query.PlayerId),
             cancellationToken
         );
-        var playerFactionIds = await factionsContext
-            .FactionMembers.AsNoTracking()
-            .Where(member => member.WorldId == query.WorldId && member.CreatureId == query.PlayerId)
-            .Select(member => member.FactionId)
-            .ToArrayAsync(cancellationToken);
+        var factionIdsByCreatureId = await getFactionIdsByCreatureIds.Handle(
+            new GetFactionIdsByCreatureIdsQuery { CreatureIds = [query.PlayerId] },
+            cancellationToken
+        );
+        var playerFactionIds = factionIdsByCreatureId.GetValueOrDefault(query.PlayerId, []);
 
         foreach (var quest in quests)
         {
