@@ -91,6 +91,9 @@ internal static class CreatureMapper
             creature.LightningResistance,
             creature.PoisonResistance,
             creature.MagicResistance,
-            creature.ToEffects()
+            creature.ToEffects(),
+            creature.X,
+            creature.Y,
+            creature.Angle
         );
 }

@@ -74,10 +74,14 @@ internal static class Builders
         string destinationLabel = "Outside",
         double arrivalX = 0,
         double arrivalY = 0,
-        double arrivalAngle = 0
+        double arrivalAngle = 0,
+        double exitX = 0,
+        double exitY = 0
     ) =>
         new()
         {
+            ExitX = exitX,
+            ExitY = exitY,
             ArrivalX = arrivalX,
             ArrivalY = arrivalY,
             ArrivalAngle = arrivalAngle,
@@ -1276,11 +1280,19 @@ internal static class Builders
         string? name = null,
         BuildingType buildingType = BuildingType.House,
         Guid? id = null,
-        Guid? factionId = null
+        Guid? factionId = null,
+        double x = 0,
+        double y = 0,
+        double width = 0,
+        double depth = 0
     )
     {
         return new Building
         {
+            X = x,
+            Y = y,
+            Width = width,
+            Depth = depth,
             Id = id ?? Guid.NewGuid(),
             ExteriorLocationId = exteriorLocationId ?? Guid.NewGuid(),
             Name = name ?? $"Building-{Guid.NewGuid():N}",

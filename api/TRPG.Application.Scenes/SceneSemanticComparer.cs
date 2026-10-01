@@ -21,7 +21,15 @@ public static class SceneSemanticComparer
         || !SetEquals(previous.NearbyProps, current.NearbyProps)
         || !SetEquals(previous.NearbyBuildings, current.NearbyBuildings)
         || !CreaturesAreEquivalent(previous.NearbyCreatures, current.NearbyCreatures)
-        || !CaravansAreEquivalent(previous.NearbyCaravans, current.NearbyCaravans);
+        || !CaravansAreEquivalent(previous.NearbyCaravans, current.NearbyCaravans)
+        || !LayoutsAreEquivalent(previous.Layout, current.Layout);
+
+    private static bool LayoutsAreEquivalent(SceneLayoutInfo previous, SceneLayoutInfo current) =>
+        previous.Size == current.Size
+        && SetEquals(previous.Props, current.Props)
+        && SetEquals(previous.Buildings, current.Buildings)
+        && SetEquals(previous.Connectors, current.Connectors)
+        && SetEquals(previous.Creatures, current.Creatures);
 
     private static bool CreaturesAreEquivalent(
         IReadOnlyCollection<SceneCreatureInfo> previous,

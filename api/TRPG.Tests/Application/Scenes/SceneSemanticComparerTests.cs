@@ -17,6 +17,7 @@ public class SceneSemanticComparerTests
     private static readonly Guid PlayerId = Guid.NewGuid();
     private static readonly Guid VillagerId = Guid.NewGuid();
     private static readonly Guid CaravanId = Guid.NewGuid();
+    private static readonly Guid ConnectorId = Guid.NewGuid();
     private static readonly Guid DestinationId = Guid.NewGuid();
 
     [Fact]
@@ -284,13 +285,68 @@ public class SceneSemanticComparerTests
         Assert.True(changed);
     }
 
+    [Fact]
+    public void HasPlayerVisibleChange_ReturnsTrue_WhenACreatureMovesWithinTheLocation()
+    {
+        // Arrange
+        var previous = MakeScene(layout: MakeLayout(creatureX: 2));
+        var current = MakeScene(layout: MakeLayout(creatureX: 6));
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void HasPlayerVisibleChange_ReturnsFalse_WhenTheLayoutIsIdentical()
+    {
+        // Arrange
+        var previous = MakeScene(layout: MakeLayout(creatureX: 2));
+        var current = MakeScene(layout: MakeLayout(creatureX: 2));
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.False(changed);
+    }
+
+    [Fact]
+    public void HasPlayerVisibleChange_ReturnsTrue_WhenThePlayerArrivesAtAnotherPoint()
+    {
+        // Arrange
+        var previous = MakeScene(layout: MakeLayout(playerX: 1));
+        var current = MakeScene(layout: MakeLayout(playerX: 9));
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.True(changed);
+    }
+
+    private static SceneLayoutInfo MakeLayout(double playerX = 1, double creatureX = 2) =>
+        new(
+            new Footprint(10, 10),
+            [],
+            [],
+            [],
+            [
+                new SceneCreatureLayout(PlayerId, new Placement(playerX, 3, 0)),
+                new SceneCreatureLayout(VillagerId, new Placement(creatureX, 4, 0)),
+            ]
+        );
+
     private static SceneResult MakeScene(
         int hour = 8,
         SceneCreatureInfo? player = null,
         IReadOnlyCollection<SceneCreatureInfo>? creatures = null,
         IReadOnlyCollection<SceneExitInfo>? exits = null,
         IReadOnlyCollection<SceneCaravanInfo>? caravans = null,
-        WeatherCondition? weather = null
+        WeatherCondition? weather = null,
+        SceneLayoutInfo? layout = null
     ) =>
         new(
             WorldId,
@@ -307,7 +363,8 @@ public class SceneSemanticComparerTests
             creatures ?? [],
             [],
             weather,
-            caravans ?? []
+            caravans ?? [],
+            layout ?? MakeLayout()
         );
 
     private static WorldStateStamp MakeStamp(long version) =>
@@ -400,6 +457,7 @@ public class SceneSemanticComparerTests
 
     private static SceneExitInfo MakeExit(bool isLocked) =>
         new(
+            ConnectorId: ConnectorId,
             Description: "A door.",
             Destination: new SceneWildernessExitDestination("Outside"),
             IsLocked: isLocked,

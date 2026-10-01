@@ -9,6 +9,68 @@ export type CrimeNotification = {
     crimeName: string;
 }
 
+/** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+export type PlacementWire = {
+    /** Transpiled from double */
+    x: number;
+    /** Transpiled from double */
+    y: number;
+    /** Transpiled from double */
+    angle: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+export type FootprintWire = {
+    /** Transpiled from double */
+    width: number;
+    /** Transpiled from double */
+    depth: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.BoxLayoutWire */
+export type BoxLayoutWire = {
+    /** Transpiled from System.Guid */
+    id: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    footprint: FootprintWire;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.ConnectorLayoutWire */
+export type ConnectorLayoutWire = {
+    /** Transpiled from System.Guid */
+    connectorId: string;
+    /** Transpiled from System.Guid */
+    destinationLocationId: string;
+    /** Transpiled from double */
+    exitX: number;
+    /** Transpiled from double */
+    exitY: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.CreatureLayoutWire */
+export type CreatureLayoutWire = {
+    /** Transpiled from System.Guid */
+    id: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.LocationLayoutWire */
+export type LocationLayoutWire = {
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    size: FootprintWire;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoxLayoutWire> */
+    props: BoxLayoutWire[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoxLayoutWire> */
+    buildings: BoxLayoutWire[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.ConnectorLayoutWire> */
+    connectors: ConnectorLayoutWire[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureLayoutWire> */
+    creatures: CreatureLayoutWire[];
+}
+
 /** Transpiled from TRPG.GameSessions.Responses.CreatureType */
 export type CreatureType = "Human" | "Elf" | "Dwarf" | "Orc" | "Halfling" | "Gnome" | "Undead" | "Demon" | "Beast" | "Construct" | "Elemental" | "Goblin" | "Wraith" | "Giant" | "Dragon";
 
@@ -86,6 +148,8 @@ export type SceneSnapshot = {
     exits: NearbyExitSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyCaravanSnapshot> */
     nearbyCaravans: NearbyCaravanSnapshot[];
+    /** Transpiled from TRPG.GameSessions.Responses.LocationLayoutWire */
+    layout: LocationLayoutWire;
     /** Transpiled from long */
     version: number;
     /** Transpiled from long */
@@ -265,6 +329,8 @@ export type WildernessExitDestination = {
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyExitSnapshot */
 export type NearbyExitSnapshot = {
+    /** Transpiled from System.Guid */
+    connectorId: string;
     /** Transpiled from string */
     description: string;
     /** Transpiled from TRPG.GameSessions.Responses.NearbyExitDestination */

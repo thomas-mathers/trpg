@@ -94,11 +94,13 @@ public sealed class RelocationFactsTests
             others.Select(MakeCreature).ToArray(),
             [],
             null,
-            []
+            [],
+            new SceneLayoutInfo(new Footprint(10, 10), [], [], [], [])
         );
 
     private static SceneExitInfo MakeExit(string destinationName, bool isLocked) =>
         new(
+            Guid.NewGuid(),
             $"A door to {destinationName}.",
             new SceneRoomExitDestination(destinationName, BuildingType.Jail, Role: null),
             isLocked,

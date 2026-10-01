@@ -39,7 +39,7 @@ Working rules for every milestone:
 - [x] S09 Creature placement resolver
 - [x] S10 Creature placement at world generation
 - [x] S11 Creature placement at runtime
-- [ ] S12 Contracts and scene layout
+- [x] S12 Contracts and scene layout
 - [ ] S13 Docs and final verification
 
 ## Design reference
@@ -201,19 +201,19 @@ Verification:
 - [x] Command-level test: a move writes a pose within bounds; the player lands at the matching arrival point.
 - [x] Invariant test over each of the six runtime move paths. All six relocate through `UpdateCreaturesCommand`, so the shared handler tests plus the `MovePlayerCommand` test cover them.
 
-### [ ] S12 Contracts and scene layout
+### [x] S12 Contracts and scene layout
 
 Scope:
 
-- [ ] Read `SceneResult`, the snapshot mapper, and `SceneSemanticComparer` first.
-- [ ] Add `PlacementWire`, `FootprintWire`, and `LocationLayoutWire` to `TRPG.Contracts`.
-- [ ] Add application result types, host mappers, and a `Layout` field on the scene snapshot, filtering hidden traps and triggers.
-- [ ] Decide and implement whether pose changes count in `SceneSemanticComparer`.
+- [x] Read `SceneResult`, the snapshot mapper, and `SceneSemanticComparer` first.
+- [x] Add `PlacementWire`, `FootprintWire`, and `LocationLayoutWire` (plus box, connector, and creature layout wires) in the host `Responses/LocationLayoutWire.cs`; there is no `TRPG.Contracts` project.
+- [x] Add application result types, host mappers, and a `Layout` field on the scene snapshot, filtering hidden traps and triggers. Exits also carry a `ConnectorId` to match connector layouts.
+- [x] Decide and implement whether pose changes count in `SceneSemanticComparer`. They do: a moved creature or a new arrival point is player-visible.
 
 Verification:
 
-- [ ] Mapper tests, including the hidden trap and trigger filter.
-- [ ] Seam test: a move produces a snapshot carrying the new pose.
+- [x] Mapper tests, including the hidden trap and trigger filter.
+- [x] Seam test: a move produces a snapshot carrying the new pose.
 
 ### [ ] S13 Docs and final verification
 

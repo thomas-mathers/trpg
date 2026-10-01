@@ -38,6 +38,7 @@ public sealed record SceneRoomExitDestination(
 public sealed record SceneWildernessExitDestination(string Name) : SceneExitDestination(Name);
 
 public record SceneExitInfo(
+    Guid ConnectorId,
     string Description,
     SceneExitDestination Destination,
     bool IsLocked,
@@ -124,6 +125,25 @@ public record SceneCaravanInfo(
     IReadOnlyCollection<SceneCaravanDestination> Destinations
 );
 
+public record SceneBoxLayout(Guid Id, Placement Placement, Footprint Footprint);
+
+public record SceneConnectorLayout(
+    Guid ConnectorId,
+    Guid DestinationLocationId,
+    double ExitX,
+    double ExitY
+);
+
+public record SceneCreatureLayout(Guid Id, Placement Placement);
+
+public record SceneLayoutInfo(
+    Footprint Size,
+    IReadOnlyCollection<SceneBoxLayout> Props,
+    IReadOnlyCollection<SceneBoxLayout> Buildings,
+    IReadOnlyCollection<SceneConnectorLayout> Connectors,
+    IReadOnlyCollection<SceneCreatureLayout> Creatures
+);
+
 public record SceneResult(
     Guid WorldId,
     Guid LocationId,
@@ -139,5 +159,6 @@ public record SceneResult(
     IReadOnlyCollection<SceneCreatureInfo> NearbyCreatures,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
     WeatherCondition? Weather,
-    IReadOnlyCollection<SceneCaravanInfo> NearbyCaravans
+    IReadOnlyCollection<SceneCaravanInfo> NearbyCaravans,
+    SceneLayoutInfo Layout
 );

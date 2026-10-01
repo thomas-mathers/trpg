@@ -107,6 +107,7 @@ public sealed class LlmSceneMapperTests
             MakeCreature("Thomas", gold: 45, profession: Profession.Knight, level: 1),
             [
                 new SceneExitInfo(
+                    Guid.NewGuid(),
                     "A path leading to The Forge Ward.",
                     new SceneDistrictExitDestination("The Forge Ward", DistrictType.CityCenter),
                     IsLocked: false,
@@ -128,7 +129,8 @@ public sealed class LlmSceneMapperTests
             [MakeCreature("Cora", gold: 1449, profession: Profession.Guard, level: 49)],
             [new SceneNearbyBuildingInfo(Guid.NewGuid(), "The Trading Post", BuildingType.Inn)],
             WeatherCondition.Storm,
-            []
+            [],
+            new SceneLayoutInfo(new Footprint(10, 10), [], [], [], [])
         );
 
     private static SceneCreatureInfo MakeCreature(
