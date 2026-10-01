@@ -92,7 +92,7 @@ internal static class DistrictLayoutGenerator
             var centerY = isNorthSide
                 ? streetEdgeY - footprint.Depth / 2
                 : streetEdgeY + footprint.Depth / 2;
-            var angle = isNorthSide ? NorthFacingAngle : SouthFacingAngle;
+            var angle = isNorthSide ? SouthFacingAngle : NorthFacingAngle;
             var placement = new Placement(X: centerX, Y: centerY, Angle: angle);
 
             yield return new DistrictBuildingLayout(
@@ -109,8 +109,8 @@ internal static class DistrictLayoutGenerator
         var distance = footprint.Depth / 2;
 
         return new PlanarPoint(
-            placement.X - distance * Math.Sin(placement.Angle),
-            placement.Y + distance * Math.Cos(placement.Angle)
+            placement.X + distance * Math.Sin(placement.Angle),
+            placement.Y - distance * Math.Cos(placement.Angle)
         );
     }
 

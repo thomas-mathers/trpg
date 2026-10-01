@@ -34,7 +34,7 @@ Working rules for every milestone:
 - [x] S04 Location sizing
 - [x] S05 District and building layout
 - [x] S06 Connector points
-- [ ] S07 Room prop placement
+- [x] S07 Room prop placement
 - [ ] S08 Layout post-pass in world generation
 - [ ] S09 Creature placement resolver
 - [ ] S10 Creature placement at world generation
@@ -61,7 +61,7 @@ Sizing:
 
 Placement:
 
-- Building boxes are packed in one row per side of an east-west street 6 m wide, 3 m gaps, largest first, balanced between sides, doors facing the street (the north row at angle 0, the south row at angle pi). The district widens to fit the longer row. Seats line the street edges facing the street.
+- Building boxes are packed in one row per side of an east-west street 6 m wide, 3 m gaps, largest first, balanced between sides, doors facing the street (a building faces its door side, so the north row is at angle pi and the south row at angle 0). The district widens to fit the longer row. Seats line the street edges facing the street.
 - Props: asset key (subtype plus discriminator, for example `prop.workstation.alchemy`) maps to footprint, rule (`Corner`, `Wall`, `Anchor`, `Center`, `Free`), and front clearance. Process in rule order, largest first. Wall and corner props are flush (0.05 m inset) at 0/90/180/270 facing inward. Anchor seats ring the workstation facing it. Center and free props use 50 rejection-sampling tries with a 1 m margin; free angles are multiples of 15 degrees. Accept only if all corners are in bounds and there is no oriented-box overlap (separating axis) with placed rects inflated by front clearance or with door keep-outs. If a prop fails to fit, grow the room 10% and rerun, up to 3 times.
 - Doors: one per room on the south wall center, 1.5 m keep-out in front. Hallway: front door at the south end, staircase at the north end, room doors alternating east and west walls at 1.5 m spacing. Single-room floors: front door south, stairs in the NE corner.
 - Connector points: compass connectors exit at the edge center for the `CompassDirection` (evenly spaced by destination id when sharing an edge). Arrival is the reverse connector's exit moved 1 m inward, facing inward. Wilderness exits sit on the edge at the bearing toward the neighbor state's center, spread when within 6 m. Building front door arrival is just inside the entrance room's south door, facing north.
@@ -147,15 +147,15 @@ Verification:
 
 - [x] Tests: exit and arrival on opposite edges per `CompassDirection`, bearing maps to the right edge, edge spreading, arrival is 1 m inside facing inward.
 
-### [ ] S07 Room prop placement
+### [x] S07 Room prop placement
 
 Scope:
 
-- [ ] Add `RoomPropPlacer` with the rule order, door keep-outs, and the grow-and-retry fallback.
+- [x] Add `RoomPropPlacer` with the rule order (Corner, Wall, Center, Anchor, Free so seats find their workstation), door keep-outs, and the grow-and-retry fallback.
 
 Verification:
 
-- [ ] Tests: everything in bounds, no overlaps, nothing in door keep-outs, seats face their workstation, beds prefer corners, determinism, growth fallback terminates.
+- [x] Tests: everything in bounds, no overlaps, nothing in door keep-outs, seats face their workstation, beds prefer corners, determinism, growth fallback terminates.
 
 ### [ ] S08 Layout post-pass in world generation
 
