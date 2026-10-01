@@ -40,7 +40,7 @@ Working rules for every milestone:
 - [x] S10 Creature placement at world generation
 - [x] S11 Creature placement at runtime
 - [x] S12 Contracts and scene layout
-- [ ] S13 Docs and final verification
+- [x] S13 Docs and final verification
 
 ## Design reference
 
@@ -215,14 +215,14 @@ Verification:
 - [x] Mapper tests, including the hidden trap and trigger filter.
 - [x] Seam test: a move produces a snapshot carrying the new pose.
 
-### [ ] S13 Docs and final verification
+### [x] S13 Docs and final verification
 
 Scope:
 
-- [ ] Update the structure section of `api/AGENTS.md`.
-- [ ] Run the full test suite once and fix regressions.
+- [x] Update the structure section of `api/AGENTS.md`.
+- [x] Run the full test suite once and fix regressions.
 
 Verification:
 
-- [ ] `scripts/build.sh` and the full suite pass.
-- [ ] Every milestone above is checked.
+- [x] `scripts/build.sh` and the full suite pass.
+- [x] Every milestone above is checked.
