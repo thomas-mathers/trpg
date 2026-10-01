@@ -82,6 +82,15 @@ describe('chair interaction', () => {
     act(() => renderer.frame(null, 0.1));
     expect(camera.position.z).toBeLessThan(6);
   });
+  it('stands back where the player sat down when the server pose follows the seat', () => {
+    const { props, rerender } = setup();
+    const camera = renderer.camera as PerspectiveCamera;
+    rerender(
+      <FpsController {...props} seated seatedPlacement={chair.placement} start={chair.placement} />,
+    );
+    rerender(<FpsController {...props} />);
+    expect(camera.position.toArray()).toEqual([5, EYE_HEIGHT, 6]);
+  });
   it('ignores interaction keys while typing outside pointer lock', () => {
     const { props } = setup();
     act(() => renderer.frame(null, 0.1));

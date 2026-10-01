@@ -90,9 +90,10 @@ export function FpsController({
 
   useEffect(() => {
     camera.rotation.order = 'YXZ';
+    if (seated) return;
     camera.position.set(...toScenePosition(x, y, EYE_HEIGHT));
     camera.rotation.set(0, headingToYaw(angle), 0);
-  }, [camera, x, y, angle]);
+  }, [camera, x, y, angle, seated]);
 
   useSeatedCamera(camera, seated, seatedPlacement, start, obstacles, size);
 
