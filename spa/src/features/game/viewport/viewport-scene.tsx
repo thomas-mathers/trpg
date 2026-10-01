@@ -5,11 +5,15 @@ import type {
   BuildingLayoutWire,
   ConnectorLayoutWire,
   CreatureLayoutWire,
+  CreatureStatusSnapshot,
   FootprintWire,
   PlacementWire,
   PropLayoutWire,
+  PropModel,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
+import { connectorYaw } from './connector-placement';
+import { DoorConnector } from './door-connector';
 import { EntityLabel } from './entity-label';
 import { headingToYaw, type Obstacle, toScenePosition, WALL_HEIGHT } from './layout-math';
 import {
@@ -19,10 +23,12 @@ import {
   PROP_MODEL_URLS,
   PROP_STYLES,
 } from './model-styles';
+import type { ViewportSeat } from './seat-interaction';
+import { SeatMesh } from './seat-mesh';
+import { SeatedBody } from './seated-body';
+import { StandingBody } from './standing-body';
 
 const CREATURE_HEIGHT = 1.7;
-const CREATURE_RADIUS = 0.35;
-const CONNECTOR_HEIGHT = 3;
 
 type EntityNames = ReadonlyMap<string, string>;
 
@@ -99,15 +105,21 @@ function Box({
   footprint,
   style,
   modelUrl,
+  propModel,
 }: {
   label?: string;
   placement: PlacementWire;
   footprint: FootprintWire;
   style: BoxStyle;
   modelUrl?: string;
+  propModel?: PropModel;
 }) {
   const { height } = style;
-  const fallback = <BoxMesh footprint={footprint} style={style} />;
+  const fallback = propModel?.startsWith('Seat') ? (
+    <SeatMesh footprint={footprint} style={style} model={propModel} />
+  ) : (
+    <BoxMesh footprint={footprint} style={style} />
+  );
 
   return (
     <group
@@ -146,6 +158,7 @@ export function Boxes({
           placement={placement}
           footprint={footprint}
           style={PROP_STYLES[model]}
+          propModel={model}
           modelUrl={PROP_MODEL_URLS[model]}
         />
       ))}
@@ -166,49 +179,65 @@ export function Creatures({
   creatures,
   playerId,
   names,
+  statuses,
+  playerSeat,
 }: {
   creatures: CreatureLayoutWire[];
   playerId: string;
   names: EntityNames;
+  statuses: Pick<CreatureStatusSnapshot, 'id' | 'posture'>[];
+  playerSeat?: ViewportSeat;
 }) {
   return (
     <>
-      {creatures
-        .filter((creature) => creature.id !== playerId)
-        .map(({ id, placement }) => (
+      {creatures.map(({ id, placement }) => {
+        const seated = statuses.find((creature) => creature.id === id)?.posture === 'Sitting';
+        if (id === playerId && !seated) return null;
+        const pose = id === playerId && playerSeat ? playerSeat.placement : placement;
+        return (
           <group
             key={id}
-            position={toScenePosition(placement.x, placement.y, CREATURE_HEIGHT / 2)}
-            rotation={[0, headingToYaw(placement.angle), 0]}
+            position={toScenePosition(pose.x, pose.y)}
+            rotation={[0, headingToYaw(pose.angle), 0]}
           >
-            <mesh>
-              <capsuleGeometry args={[CREATURE_RADIUS, CREATURE_HEIGHT - CREATURE_RADIUS * 2]} />
-              <meshStandardMaterial color="#b9503f" />
-            </mesh>
-            <group position={[0, CREATURE_HEIGHT / 2 + 0.4, 0]}>
-              <EntityLabel text={names.get(id)} />
-            </group>
+            {seated ? (
+              <SeatedBody
+                color={id === playerId ? '#4f8091' : '#b9503f'}
+                perspective={id === playerId ? 'first-person' : 'third-person'}
+              />
+            ) : (
+              <StandingBody color="#b9503f" />
+            )}
+            {id !== playerId && (
+              <group position={[0, seated ? 1.85 : CREATURE_HEIGHT + 0.4, 0]}>
+                <EntityLabel text={names.get(id)} />
+              </group>
+            )}
           </group>
-        ))}
+        );
+      })}
     </>
   );
 }
 
-export function Connectors({ connectors }: { connectors: ConnectorLayoutWire[] }) {
+export function Connectors({
+  connectors,
+  size,
+  buildings,
+}: {
+  connectors: ConnectorLayoutWire[];
+  size: FootprintWire;
+  buildings: BuildingLayoutWire[];
+}) {
   return (
     <>
-      {connectors.map(({ connectorId, exitX, exitY }) => (
-        <group key={connectorId} position={toScenePosition(exitX, exitY, CONNECTOR_HEIGHT / 2)}>
-          <mesh>
-            <cylinderGeometry args={[0.5, 0.5, CONNECTOR_HEIGHT, 16, 1, true]} />
-            <meshStandardMaterial
-              color="#e7c15a"
-              emissive="#e7c15a"
-              emissiveIntensity={0.6}
-              transparent
-              opacity={0.45}
-            />
-          </mesh>
+      {connectors.map((connector) => (
+        <group
+          key={connector.connectorId}
+          position={toScenePosition(connector.exitX, connector.exitY)}
+          rotation={[0, connectorYaw(connector, size, buildings), 0]}
+        >
+          <DoorConnector />
         </group>
       ))}
     </>

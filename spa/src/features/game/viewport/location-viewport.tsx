@@ -11,6 +11,8 @@ import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { FpsController } from './fps-controller';
 import { buildEntityNames, buildObstacles, buildWalls, findPlayerPlacement } from './layout-math';
+import { buildSeats, type ViewportSeat } from './seat-interaction';
+import { useSeatInteraction } from './use-seat-interaction';
 import { Boxes, Connectors, Creatures, Ground, Walls } from './viewport-scene';
 
 const CANVAS_ID = 'location-viewport-canvas';
@@ -23,6 +25,10 @@ export function LocationViewport() {
   const { isStreaming, submitNarratedTurn } = useGameChat();
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
+  const seated = scene?.playerStatus.posture === 'Sitting';
+  const canInteract = !isStreaming && (seated || (!isInCombat && !hasActiveEncounter));
+  const handleSeatInteraction = useSeatInteraction(seated, canInteract);
+  const [nearbySeat, setNearbySeat] = useState<ViewportSeat>();
   const [locked, setLocked] = useState(false);
   const [nearbyConnectorId, setNearbyConnectorId] = useState<string>();
   const names = useMemo(
@@ -46,7 +52,9 @@ export function LocationViewport() {
   const { layout, playerStatus } = scene;
   const { size, props, buildings, creatures, connectors } = layout;
   const start = findPlayerPlacement(scene) ?? { x: size.width / 2, y: size.depth / 2, angle: 0 };
-  const canTravel = !isStreaming && !isInCombat && !hasActiveEncounter;
+  const seats = buildSeats(props, scene.nearbyProps);
+  const occupiedSeat = seats.find((seat) => seat.isOccupiedByPlayer);
+  const canTravel = !seated && canInteract;
   const nearbyName = nearbyConnectorId ? names.get(nearbyConnectorId) : undefined;
 
   const handleEnterConnector = ({ connectorId }: ConnectorLayoutWire) => {
@@ -55,6 +63,18 @@ export function LocationViewport() {
     }
     submitNarratedTurn(null, chatHub.sendMove(connectorId));
   };
+
+  const interactionPrompt = seated
+    ? 'E: Stand up'
+    : nearbySeat
+      ? nearbySeat.isOccupied
+        ? `${nearbySeat.name} · Occupied`
+        : `E: Sit on ${nearbySeat.name}`
+      : nearbyConnectorId
+        ? nearbyName
+          ? `E: Enter ${nearbyName}`
+          : 'E: Enter'
+        : undefined;
 
   return (
     <div className="absolute inset-0 bg-black" role="region" aria-label="Location viewport">
@@ -66,9 +86,20 @@ export function LocationViewport() {
           <Ground size={size} />
           <Walls walls={walls} />
           <Boxes props={props} buildings={buildings} names={names} />
-          <Creatures creatures={creatures} playerId={playerStatus.id} names={names} />
-          <Connectors connectors={connectors} />
+          <Creatures
+            creatures={creatures}
+            playerId={playerStatus.id}
+            names={names}
+            statuses={[playerStatus, ...scene.nearbyCreatures]}
+            playerSeat={occupiedSeat}
+          />
+          <Connectors connectors={connectors} size={size} buildings={buildings} />
           <FpsController
+            seats={seats}
+            seated={seated}
+            seatedPlacement={occupiedSeat?.placement}
+            onNearbySeatChange={setNearbySeat}
+            onSeatInteraction={handleSeatInteraction}
             size={size}
             start={start}
             obstacles={obstacles}
@@ -86,9 +117,9 @@ export function LocationViewport() {
           Click to look around. WASD to move, Enter to chat, Esc to release the mouse.
         </p>
       )}
-      {locked && nearbyConnectorId && canTravel && (
+      {locked && interactionPrompt && canInteract && (
         <p className="pointer-events-none absolute inset-x-0 top-1/2 mt-12 text-center text-base font-medium text-white drop-shadow">
-          {nearbyName ? `E: Enter ${nearbyName}` : 'E: Enter'}
+          {interactionPrompt}
         </p>
       )}
     </div>

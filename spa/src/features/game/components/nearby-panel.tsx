@@ -59,7 +59,6 @@ import {
   GiWingfoot,
   GiWolfHead,
   GiWoodenSign,
-  GiWoodenChair,
 } from 'react-icons/gi';
 
 import { getDeliverItemDialog, getQuestDialog } from '@/api/client';
@@ -244,7 +243,6 @@ export function NearbyPanel({
   const nearbyTriggers = scene.nearbyProps.filter((prop) => prop.type === 'Trigger');
   const nearbyTradeWorkstations = scene.nearbyProps.filter((prop) => prop.type === 'Trade');
   const nearbyBeds = scene.nearbyProps.filter((prop) => prop.type === 'Bed');
-  const nearbySeats = scene.nearbyProps.filter((prop) => prop.type === 'Seat');
   const nearbyBookshelves = scene.nearbyProps.filter((prop) => prop.type === 'Reading');
   const nearbySigns = scene.nearbyProps.filter((prop) => prop.type === 'Sign');
 
@@ -428,42 +426,6 @@ export function NearbyPanel({
               </DropdownMenu>
             </div>
           ))}
-        </Section>
-      )}
-
-      {nearbySeats.length > 0 && (
-        <Section title="Nearby Seating">
-          {nearbySeats.map((seat) => {
-            const playerIsSitting = scene.playerStatus.posture === 'Sitting';
-            const disabled =
-              (seat.isOccupied && !seat.isOccupiedByPlayer) ||
-              (playerIsSitting && !seat.isOccupiedByPlayer);
-
-            return (
-              <div key={seat.id} className="flex items-center justify-between gap-2 py-1.5">
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <GiWoodenChair className="text-muted-foreground size-[18px] shrink-0" />
-                  <span className="truncate font-medium">{seat.name}</span>
-                </span>
-                <Button
-                  variant="outline"
-                  size="xs"
-                  disabled={disabled}
-                  className="border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
-                  onClick={() =>
-                    submitNarratedTurn(
-                      null,
-                      seat.isOccupiedByPlayer
-                        ? chatHub.sendStandUp()
-                        : chatHub.sendSitDown(seat.id),
-                    )
-                  }
-                >
-                  {seat.isOccupiedByPlayer ? 'Get up' : seat.isOccupied ? 'Occupied' : 'Sit'}
-                </Button>
-              </div>
-            );
-          })}
         </Section>
       )}
 

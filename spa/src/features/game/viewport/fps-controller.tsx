@@ -20,6 +20,8 @@ import {
   toScenePosition,
   yawToHeading,
 } from './layout-math';
+import { findSeatInRange, type ViewportSeat } from './seat-interaction';
+import { useSeatedCamera } from './use-seated-camera';
 
 const MAX_FRAME_SECONDS = 0.1;
 
@@ -31,6 +33,11 @@ const INTERACT_KEY = 'KeyE';
 const CHAT_KEY = 'Enter';
 
 interface FpsControllerProps {
+  seats: ViewportSeat[];
+  seated: boolean;
+  seatedPlacement?: PlacementWire;
+  onNearbySeatChange: (seat: ViewportSeat | undefined) => void;
+  onSeatInteraction: (seat: ViewportSeat | undefined) => void;
   size: FootprintWire;
   start: PlacementWire;
   obstacles: Obstacle[];
@@ -46,6 +53,11 @@ const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
   Number(positive.some((key) => keys.has(key))) - Number(negative.some((key) => keys.has(key)));
 
 export function FpsController({
+  seats,
+  seated,
+  seatedPlacement,
+  onNearbySeatChange,
+  onSeatInteraction,
   size,
   start,
   obstacles,
@@ -59,18 +71,21 @@ export function FpsController({
   const camera = useThree((state) => state.camera);
   const pressed = useRef(new Set<string>());
   const nearbyConnector = useRef<ConnectorLayoutWire | undefined>(undefined);
-  const handlers = useRef({ onEnterConnector, onChatRequested });
+  const nearbySeat = useRef<ViewportSeat | undefined>(undefined);
+  const handlers = useRef({ onEnterConnector, onChatRequested, onSeatInteraction, seated });
   const { x, y, angle } = start;
 
   useEffect(() => {
-    handlers.current = { onEnterConnector, onChatRequested };
-  }, [onEnterConnector, onChatRequested]);
+    handlers.current = { onEnterConnector, onChatRequested, onSeatInteraction, seated };
+  }, [onEnterConnector, onChatRequested, onSeatInteraction, seated]);
 
   useEffect(() => {
     camera.rotation.order = 'YXZ';
     camera.position.set(...toScenePosition(x, y, EYE_HEIGHT));
     camera.rotation.set(0, headingToYaw(angle), 0);
   }, [camera, x, y, angle]);
+
+  useSeatedCamera(camera, seated, seatedPlacement, start, obstacles, size);
 
   useEffect(() => {
     const keys = pressed.current;
@@ -83,8 +98,12 @@ export function FpsController({
         handlers.current.onChatRequested();
         return;
       }
-      if (event.code === INTERACT_KEY && !event.repeat && nearbyConnector.current) {
-        handlers.current.onEnterConnector(nearbyConnector.current);
+      if (event.code === INTERACT_KEY && !event.repeat) {
+        if (handlers.current.seated || nearbySeat.current) {
+          handlers.current.onSeatInteraction(nearbySeat.current);
+        } else if (nearbyConnector.current) {
+          handlers.current.onEnterConnector(nearbyConnector.current);
+        }
         return;
       }
       keys.add(event.code);
@@ -100,6 +119,7 @@ export function FpsController({
   }, []);
 
   useFrame((_, deltaSeconds) => {
+    if (seated) return;
     const keys = pressed.current;
     const delta = computeMovement({
       heading: yawToHeading(camera.rotation.y),
@@ -112,6 +132,14 @@ export function FpsController({
     const next = clampToBounds(pushOutOfObstacles(attempted, obstacles), size);
     camera.position.set(next.x, EYE_HEIGHT, next.y);
 
+    const seat = findSeatInRange(next, seats);
+    if (
+      seat?.id !== nearbySeat.current?.id ||
+      seat?.isOccupied !== nearbySeat.current?.isOccupied
+    ) {
+      nearbySeat.current = seat;
+      onNearbySeatChange(seat);
+    }
     const nearest = findConnectorInRange(next, connectors);
     if (nearest?.connectorId !== nearbyConnector.current?.connectorId) {
       nearbyConnector.current = nearest;
