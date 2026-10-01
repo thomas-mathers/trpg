@@ -61,7 +61,6 @@ import {
   GiWoodenSign,
 } from 'react-icons/gi';
 
-import { getDeliverItemDialog, getQuestDialog } from '@/api/client';
 import type { BuildingType, DistrictType, NearbyCaravanSnapshot, OwnerType } from '@/api/client';
 import type {
   CreatureStatusSnapshot,
@@ -91,21 +90,11 @@ import { useCastTargeting } from '@/features/game/hooks/use-cast-targeting';
 import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { ROOM_ROLE_ICONS } from '@/features/game/room-role-icons';
-import { TradeDialog } from '@/features/inventory/components/trade-dialog';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import type { DeliverItemDialogState } from '@/features/quests/components/deliver-item-dialog';
 import type { QuestDialogState } from '@/features/quests/components/quest-dialog';
 import { QuestTracker } from '@/features/quests/components/quest-tracker';
 import { cn } from '@/lib/utils';
-
-const HUMANOID_CREATURE_TYPES: ReadonlySet<CreatureType> = new Set([
-  'Human',
-  'Elf',
-  'Dwarf',
-  'Orc',
-  'Halfling',
-  'Gnome',
-]);
 
 const CREATURE_TYPE_ICON: Record<CreatureType, IconType> = {
   Human: GiPerson,
@@ -176,13 +165,7 @@ interface NearbyPanelProps {
   onTheftEncounter?: (encounterId: string) => void;
 }
 
-export function NearbyPanel({
-  scene,
-  onOpenQuestJournal,
-  onQuestDialogRequested,
-  onDeliverItemDialogRequested,
-  onTheftEncounter,
-}: NearbyPanelProps) {
+export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: NearbyPanelProps) {
   const chatHub = useChatHub();
   const { submitNarratedTurn } = useGameChat();
   const { pendingAbility, castOn } = useCastTargeting();
@@ -193,12 +176,6 @@ export function NearbyPanel({
     transfersEnabled: boolean;
   } | null>(null);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
-  const [tradeWorker, setTradeWorker] = useState<{
-    id: string;
-    name: string;
-    workstationId: string;
-  } | null>(null);
-  const [isTradeOpen, setIsTradeOpen] = useState(false);
   const [isSleepOpen, setIsSleepOpen] = useState(false);
   const [bookshelf, setBookshelf] = useState<{
     id: string;
@@ -206,34 +183,6 @@ export function NearbyPanel({
   } | null>(null);
   const [caravan, setCaravan] = useState<NearbyCaravanSnapshot | null>(null);
   const [sign, setSign] = useState<{ id: string; name: string } | null>(null);
-
-  const handleQuestDialog = async (giverId: string, questId: string) => {
-    const response = await getQuestDialog({
-      path: { playerId: scene.playerStatus.id },
-      query: { worldId: scene.worldId, giverId, questId },
-    });
-    if (response.data) {
-      onQuestDialogRequested({
-        ...response.data,
-        giverId,
-        worldId: scene.worldId,
-      });
-    }
-  };
-
-  const handleDeliverItemDialog = async (recipientId: string) => {
-    const response = await getDeliverItemDialog({
-      path: { playerId: scene.playerStatus.id },
-      query: { worldId: scene.worldId, recipientId },
-    });
-    if (response.data) {
-      onDeliverItemDialogRequested({
-        ...response.data,
-        recipientId,
-        worldId: scene.worldId,
-      });
-    }
-  };
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
     ...b,
@@ -273,35 +222,11 @@ export function NearbyPanel({
               key={creature.id}
               creature={creature}
               playerLevel={scene.playerStatus.level}
-              onOpenInventory={() => {
-                setInventoryTarget({
-                  id: creature.id,
-                  name: creature.name,
-                  ownerType: 'Creature',
-                  transfersEnabled:
-                    creature.condition === 'Dead' ||
-                    HUMANOID_CREATURE_TYPES.has(creature.creatureType),
-                });
-                setIsTransferOpen(true);
-              }}
-              onTrade={() => {
-                if (creature.tradeWorkstationId) {
-                  setTradeWorker({
-                    id: creature.id,
-                    name: creature.name,
-                    workstationId: creature.tradeWorkstationId,
-                  });
-                  setIsTradeOpen(true);
-                }
-              }}
-              tradeEnabled={Boolean(creature.tradeWorkstationId)}
               onCastTarget={
                 pendingAbility && creature.condition !== 'Dead'
                   ? () => castOn({ id: creature.id, name: creature.name })
                   : undefined
               }
-              onQuestDialog={(questId) => void handleQuestDialog(creature.id, questId)}
-              onDeliverItem={() => void handleDeliverItemDialog(creature.id)}
             />
           ))}
         </Section>
@@ -504,18 +429,6 @@ export function NearbyPanel({
         onClose={() => setIsTransferOpen(false)}
         onTheftEncounter={onTheftEncounter}
       />
-      {tradeWorker && (
-        <TradeDialog
-          playerId={scene.playerStatus.id}
-          worldId={scene.worldId}
-          workstationId={tradeWorker.workstationId}
-          workerId={tradeWorker.id}
-          workerName={tradeWorker.name}
-          shopName={scene.buildingName ?? 'Shop'}
-          open={isTradeOpen}
-          onClose={() => setIsTradeOpen(false)}
-        />
-      )}
       <SleepDialog open={isSleepOpen} onClose={() => setIsSleepOpen(false)} />
 
       <CaravanDialog caravan={caravan} onClose={() => setCaravan(null)} />
@@ -591,20 +504,10 @@ function creatureStatusLabels(creature: CreatureStatusSnapshot): string[] {
 function CreatureRow({
   creature,
   playerLevel,
-  onOpenInventory,
-  onTrade,
-  tradeEnabled,
-  onQuestDialog,
-  onDeliverItem,
   onCastTarget,
 }: {
   creature: CreatureStatusSnapshot;
   playerLevel: number | string;
-  onOpenInventory: () => void;
-  onTrade: () => void;
-  tradeEnabled: boolean;
-  onQuestDialog: (questId: string) => void;
-  onDeliverItem: () => void;
   onCastTarget?: () => void;
 }) {
   const dead = creature.condition === 'Dead';
@@ -671,17 +574,15 @@ function CreatureRow({
       </span>
 
       <span className="min-w-0 flex-1">
-        <button
-          type="button"
-          onClick={onCastTarget ? undefined : onOpenInventory}
+        <span
           className={cn(
-            'block w-full cursor-pointer truncate text-left font-medium underline decoration-dotted underline-offset-2',
+            'block truncate font-medium',
             reputation != null && reputation > 0 && 'text-heal',
             reputation != null && reputation < 0 && 'text-destructive',
           )}
         >
           {creature.name}
-        </button>
+        </span>
         {creatureStatusLabels(creature).map((label) => (
           <span
             key={label}
@@ -736,32 +637,6 @@ function CreatureRow({
           activeBuffs={creature.activeBuffs}
         />
       </span>
-
-      {!onCastTarget && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-xs" aria-label={`Actions for ${creature.name}`}>
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onOpenInventory}>Inspect</DropdownMenuItem>
-            {!dead && tradeEnabled && <DropdownMenuItem onClick={onTrade}>Trade</DropdownMenuItem>}
-            {!dead &&
-              questMarkers.map((marker) => (
-                <DropdownMenuItem
-                  key={marker.questId}
-                  onClick={() => onQuestDialog(marker.questId)}
-                >
-                  Quest: {marker.name}
-                </DropdownMenuItem>
-              ))}
-            {!dead && creature.readyToDeliver && (
-              <DropdownMenuItem onClick={onDeliverItem}>Give Item</DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
     </div>
   );
 }

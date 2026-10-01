@@ -13,6 +13,8 @@ import type {
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import { connectorYaw } from './connector-placement';
+import { CreatureFigure } from './creature-figure';
+import type { CreatureFocus } from './creature-focus';
 import { DoorConnector } from './door-connector';
 import { EntityLabel } from './entity-label';
 import { headingToYaw, type Obstacle, toScenePosition, WALL_HEIGHT } from './layout-math';
@@ -25,10 +27,6 @@ import {
 } from './model-styles';
 import type { ViewportSeat } from './seat-interaction';
 import { SeatMesh } from './seat-mesh';
-import { SeatedBody } from './seated-body';
-import { StandingBody } from './standing-body';
-
-const CREATURE_HEIGHT = 1.7;
 
 type EntityNames = ReadonlyMap<string, string>;
 
@@ -181,39 +179,32 @@ export function Creatures({
   names,
   statuses,
   playerSeat,
+  focus,
 }: {
   creatures: CreatureLayoutWire[];
   playerId: string;
   names: EntityNames;
-  statuses: Pick<CreatureStatusSnapshot, 'id' | 'posture'>[];
+  statuses: (Pick<CreatureStatusSnapshot, 'id' | 'posture'> &
+    Partial<Pick<CreatureStatusSnapshot, 'condition'>>)[];
   playerSeat?: ViewportSeat;
+  focus?: CreatureFocus | null;
 }) {
   return (
     <>
       {creatures.map(({ id, placement }) => {
-        const seated = statuses.find((creature) => creature.id === id)?.posture === 'Sitting';
-        if (id === playerId && !seated) return null;
-        const pose = id === playerId && playerSeat ? playerSeat.placement : placement;
+        const status = statuses.find((creature) => creature.id === id);
+        const posture = status?.posture;
+        if (id === playerId && posture !== 'Sitting') return null;
         return (
-          <group
+          <CreatureFigure
             key={id}
-            position={toScenePosition(pose.x, pose.y)}
-            rotation={[0, headingToYaw(pose.angle), 0]}
-          >
-            {seated ? (
-              <SeatedBody
-                color={id === playerId ? '#4f8091' : '#b9503f'}
-                perspective={id === playerId ? 'first-person' : 'third-person'}
-              />
-            ) : (
-              <StandingBody color="#b9503f" />
-            )}
-            {id !== playerId && (
-              <group position={[0, seated ? 1.85 : CREATURE_HEIGHT + 0.4, 0]}>
-                <EntityLabel text={names.get(id)} />
-              </group>
-            )}
-          </group>
+            id={id}
+            placement={id === playerId && playerSeat ? playerSeat.placement : placement}
+            posture={posture}
+            playerId={playerId}
+            label={names.get(id)}
+            facing={focus?.id === id && status?.condition !== 'Dead' ? focus.facing : undefined}
+          />
         );
       })}
     </>

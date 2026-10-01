@@ -30,9 +30,9 @@ const BACKWARD_KEYS = ['KeyS', 'ArrowDown'];
 const LEFT_KEYS = ['KeyA', 'ArrowLeft'];
 const RIGHT_KEYS = ['KeyD', 'ArrowRight'];
 const INTERACT_KEY = 'KeyE';
-const CHAT_KEY = 'Enter';
 
 interface FpsControllerProps {
+  movementLocked?: boolean;
   seats: ViewportSeat[];
   seated: boolean;
   seatedPlacement?: PlacementWire;
@@ -46,13 +46,13 @@ interface FpsControllerProps {
   onLockChange: (locked: boolean) => void;
   onNearbyConnectorChange: (connector: ConnectorLayoutWire | undefined) => void;
   onEnterConnector: (connector: ConnectorLayoutWire) => void;
-  onChatRequested: () => void;
 }
 
 const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
   Number(positive.some((key) => keys.has(key))) - Number(negative.some((key) => keys.has(key)));
 
 export function FpsController({
+  movementLocked = false,
   seats,
   seated,
   seatedPlacement,
@@ -66,36 +66,41 @@ export function FpsController({
   onLockChange,
   onNearbyConnectorChange,
   onEnterConnector,
-  onChatRequested,
 }: FpsControllerProps) {
   const camera = useThree((state) => state.camera);
   const pressed = useRef(new Set<string>());
   const nearbyConnector = useRef<ConnectorLayoutWire | undefined>(undefined);
   const nearbySeat = useRef<ViewportSeat | undefined>(undefined);
-  const handlers = useRef({ onEnterConnector, onChatRequested, onSeatInteraction, seated });
+  const handlers = useRef({
+    onEnterConnector,
+    onSeatInteraction,
+    seated,
+    movementLocked,
+  });
   const { x, y, angle } = start;
 
   useEffect(() => {
-    handlers.current = { onEnterConnector, onChatRequested, onSeatInteraction, seated };
-  }, [onEnterConnector, onChatRequested, onSeatInteraction, seated]);
+    handlers.current = {
+      onEnterConnector,
+      onSeatInteraction,
+      seated,
+      movementLocked,
+    };
+  }, [onEnterConnector, onSeatInteraction, seated, movementLocked]);
 
   useEffect(() => {
     camera.rotation.order = 'YXZ';
+    if (seated) return;
     camera.position.set(...toScenePosition(x, y, EYE_HEIGHT));
     camera.rotation.set(0, headingToYaw(angle), 0);
-  }, [camera, x, y, angle]);
+  }, [camera, x, y, angle, seated]);
 
   useSeatedCamera(camera, seated, seatedPlacement, start, obstacles, size);
 
   useEffect(() => {
     const keys = pressed.current;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!document.pointerLockElement) {
-        return;
-      }
-      if (event.code === CHAT_KEY) {
-        document.exitPointerLock();
-        handlers.current.onChatRequested();
+      if (!document.pointerLockElement || handlers.current.movementLocked) {
         return;
       }
       if (event.code === INTERACT_KEY && !event.repeat) {
@@ -119,7 +124,7 @@ export function FpsController({
   }, []);
 
   useFrame((_, deltaSeconds) => {
-    if (seated) return;
+    if (seated || movementLocked) return;
     const keys = pressed.current;
     const delta = computeMovement({
       heading: yawToHeading(camera.rotation.y),
@@ -149,6 +154,7 @@ export function FpsController({
 
   return (
     <PointerLockControls
+      enabled={!movementLocked}
       selector={lockSelector}
       onLock={() => onLockChange(true)}
       onUnlock={() => {

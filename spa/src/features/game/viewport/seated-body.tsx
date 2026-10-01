@@ -17,9 +17,13 @@ const pose: BodyPose = {
 export function SeatedBody({
   color,
   perspective,
+  upperBodyYaw,
 }: {
+  upperBodyYaw?: number;
   color: string;
   perspective?: 'first-person' | 'third-person';
 }) {
-  return <CreatureBody pose={pose} color={color} perspective={perspective} />;
+  return (
+    <CreatureBody pose={pose} color={color} perspective={perspective} upperBodyYaw={upperBodyYaw} />
+  );
 }
