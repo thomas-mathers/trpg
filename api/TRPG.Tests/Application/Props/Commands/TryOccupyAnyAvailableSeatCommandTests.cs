@@ -53,7 +53,7 @@ public sealed class TryOccupyAnyAvailableSeatCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.True(claimed);
+        Assert.NotNull(claimed);
         var updatedSeat = await _context
             .Props.OfType<Seat>()
             .AsNoTracking()
@@ -82,7 +82,7 @@ public sealed class TryOccupyAnyAvailableSeatCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.True(claimed);
+        Assert.NotNull(claimed);
         var updatedFreeSeat = await _context
             .Props.OfType<Seat>()
             .AsNoTracking()
@@ -91,7 +91,7 @@ public sealed class TryOccupyAnyAvailableSeatCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ReturnsFalse_WhenNoSeatIsAvailable()
+    public async Task Handle_ReturnsNull_WhenNoSeatIsAvailable()
     {
         // Arrange
         var occupiedSeat = Builders.MakeSeat(WorldId, LocationId, occupantId: Guid.NewGuid());
@@ -109,6 +109,28 @@ public sealed class TryOccupyAnyAvailableSeatCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.False(claimed);
+        Assert.Null(claimed);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheSeatPose_WhenTheSeatIsClaimed()
+    {
+        // Arrange
+        var seat = Builders.MakeSeat(WorldId, LocationId, x: 2.5, y: 3.5, angle: 0.75);
+        _context.Props.Add(seat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var claimed = await _handler.Handle(
+            new TryOccupyAnyAvailableSeatCommand
+            {
+                LocationId = LocationId,
+                CreatureId = Guid.NewGuid(),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(new Placement(X: 2.5, Y: 3.5, Angle: 0.75), claimed);
     }
 }

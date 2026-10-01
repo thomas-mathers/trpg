@@ -426,7 +426,10 @@ internal static class Builders
     public static Seat MakeSeat(
         Guid? worldId = null,
         Guid? locationId = null,
-        Guid? occupantId = null
+        Guid? occupantId = null,
+        double x = 0,
+        double y = 0,
+        double angle = 0
     ) =>
         new()
         {
@@ -435,6 +438,9 @@ internal static class Builders
             Description = "A test chair",
             LocationId = locationId ?? Guid.NewGuid(),
             OccupantId = occupantId,
+            X = x,
+            Y = y,
+            Angle = angle,
         };
 
     public static CreatureSpawner MakeCreatureSpawner(

@@ -89,6 +89,48 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_RestoresThePreSitPose_WhenASeatedCreatureLeavesToWork()
+    {
+        var seat = Builders.MakeSeat(
+            _creature.WorldId,
+            _creature.LocationId,
+            _creature.Id,
+            x: 4,
+            y: 5,
+            angle: 1
+        );
+        _creature.Posture = CreaturePosture.Sitting;
+        _creature.X = 4;
+        _creature.Y = 5;
+        _creature.Angle = 1;
+        _creature.StandingX = 8;
+        _creature.StandingY = 9;
+        _creature.StandingAngle = 2;
+        _context.Props.Add(seat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = _creature.LocationId,
+                CurrentCondition = CreatureCondition.Awake,
+                CurrentPosture = CreaturePosture.Sitting,
+                CreatureJobAction = CreatureJobAction.Work,
+                JobLocationId = _creature.LocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var updatedCreature = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal((8d, 9d, 2d), (updatedCreature.X, updatedCreature.Y, updatedCreature.Angle));
+    }
+
+    [Fact]
     public async Task Handle_UpdatesCreatureState_ForStudyJob()
     {
         await AssertStateUpdated(

@@ -11,6 +11,7 @@ internal sealed class RoomPlacementSession
     private const double WallInset = 0.05;
     private const double InteriorMargin = 1;
     private const double AnchorGap = 0.05;
+    private const double SeatedLegReach = 0.6;
     private const double DoorKeepOutSize = 1.5;
     private const int SamplingTries = 50;
     private const double FreeAngleStep = Math.PI / 12;
@@ -203,7 +204,8 @@ internal sealed class RoomPlacementSession
         var angle = target.Placement.Angle;
         var forward = new PlanarPoint(Math.Sin(angle), -Math.Cos(angle));
         var right = new PlanarPoint(Math.Cos(angle), Math.Sin(angle));
-        var distance = target.Footprint.Depth / 2 + spec.Depth / 2 + AnchorGap;
+        var seatToEdge = Math.Max(spec.Depth / 2, SeatedLegReach) + AnchorGap;
+        var distance = target.Footprint.Depth / 2 + seatToEdge;
         var seatAngle = Math.Atan2(-forward.X, forward.Y);
 
         foreach (var offset in FrontRowOffsets(target.Footprint.Width / 2, spec))
