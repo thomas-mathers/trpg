@@ -32,7 +32,7 @@ Working rules for every milestone:
 - [x] S02 Oriented box geometry
 - [x] S03 Footprint catalogs and asset keys
 - [x] S04 Location sizing
-- [ ] S05 District and building layout
+- [x] S05 District and building layout
 - [ ] S06 Connector points
 - [ ] S07 Room prop placement
 - [ ] S08 Layout post-pass in world generation
@@ -61,7 +61,7 @@ Sizing:
 
 Placement:
 
-- Building boxes are shelf-packed on both sides of an east-west street 6 m wide, 3 m gaps, largest first, doors facing the street. Seats line the street edges facing the street.
+- Building boxes are packed in one row per side of an east-west street 6 m wide, 3 m gaps, largest first, balanced between sides, doors facing the street (the north row at angle 0, the south row at angle pi). The district widens to fit the longer row. Seats line the street edges facing the street.
 - Props: asset key (subtype plus discriminator, for example `prop.workstation.alchemy`) maps to footprint, rule (`Corner`, `Wall`, `Anchor`, `Center`, `Free`), and front clearance. Process in rule order, largest first. Wall and corner props are flush (0.05 m inset) at 0/90/180/270 facing inward. Anchor seats ring the workstation facing it. Center and free props use 50 rejection-sampling tries with a 1 m margin; free angles are multiples of 15 degrees. Accept only if all corners are in bounds and there is no oriented-box overlap (separating axis) with placed rects inflated by front clearance or with door keep-outs. If a prop fails to fit, grow the room 10% and rerun, up to 3 times.
 - Doors: one per room on the south wall center, 1.5 m keep-out in front. Hallway: front door at the south end, staircase at the north end, room doors alternating east and west walls at 1.5 m spacing. Single-room floors: front door south, stairs in the NE corner.
 - Connector points: compass connectors exit at the edge center for the `CompassDirection` (evenly spaced by destination id when sharing an edge). Arrival is the reverse connector's exit moved 1 m inward, facing inward. Wilderness exits sit on the edge at the bearing toward the neighbor state's center, spread when within 6 m. Building front door arrival is just inside the entrance room's south door, facing north.
@@ -127,15 +127,15 @@ Verification:
 
 - [x] Tests: minimums and maximums respected, grid snapping, determinism for the same seed, hallway depth scales with room count.
 
-### [ ] S05 District and building layout
+### [x] S05 District and building layout
 
 Scope:
 
-- [ ] Add `DistrictLayoutGenerator`: building footprints, shelf packing along the street, door points, and seat placement.
+- [x] Add `DistrictLayoutGenerator`: building footprints, shelf packing along the street, door points, and seat placement.
 
 Verification:
 
-- [ ] Tests: no building overlap, all inside district bounds, doors face the street, determinism.
+- [x] Tests: no building overlap, all inside district bounds, doors face the street, determinism.
 
 ### [ ] S06 Connector points
 
