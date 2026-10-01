@@ -145,51 +145,22 @@ describe('NearbyPanel', () => {
     );
   });
 
-  it('sits in an available nearby seat', async () => {
-    const sceneWithSeat = {
+  it('keeps seating interactions out of the side panel', () => {
+    renderPanel({
       ...scene(undefined),
       nearbyProps: [
         {
-          id: 'chair-id',
+          id: 'chair',
           name: 'Wooden Chair',
-          description: '',
           type: 'Seat',
           isOccupied: false,
           isOccupiedByPlayer: false,
-        },
-      ],
-    } as SceneSnapshot;
-    const { user, chatHub, gameChat } = renderPanel(sceneWithSeat);
-
-    await user.click(screen.getByRole('button', { name: 'Sit' }));
-
-    expect(chatHub.sendSitDown).toHaveBeenCalledWith('chair-id');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      null,
-      vi.mocked(chatHub.sendSitDown).mock.results[0]?.value,
-    );
-  });
-
-  it('gets up from the seat occupied by the player', async () => {
-    const sceneWithSeat = {
-      ...scene(undefined),
-      playerStatus: { ...scene(undefined).playerStatus, posture: 'Sitting' },
-      nearbyProps: [
-        {
-          id: 'chair-id',
-          name: 'Wooden Chair',
           description: '',
-          type: 'Seat',
-          isOccupied: true,
-          isOccupiedByPlayer: true,
         },
       ],
-    } as SceneSnapshot;
-    const { user, chatHub } = renderPanel(sceneWithSeat);
-
-    await user.click(screen.getByRole('button', { name: 'Get up' }));
-
-    expect(chatHub.sendStandUp).toHaveBeenCalledOnce();
+    } as SceneSnapshot);
+    expect(screen.queryByText('Nearby Seating')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sit' })).not.toBeInTheDocument();
   });
 
   it('does not show trade when a scene snapshot omits the trade workstation ID', async () => {
