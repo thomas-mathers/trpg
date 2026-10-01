@@ -35,7 +35,7 @@ Working rules for every milestone:
 - [x] S05 District and building layout
 - [x] S06 Connector points
 - [x] S07 Room prop placement
-- [ ] S08 Layout post-pass in world generation
+- [x] S08 Layout post-pass in world generation
 - [ ] S09 Creature placement resolver
 - [ ] S10 Creature placement at world generation
 - [ ] S11 Creature placement at runtime
@@ -157,16 +157,16 @@ Verification:
 
 - [x] Tests: everything in bounds, no overlaps, nothing in door keep-outs, seats face their workstation, beds prefer corners, determinism, growth fallback terminates.
 
-### [ ] S08 Layout post-pass in world generation
+### [x] S08 Layout post-pass in world generation
 
 Scope:
 
-- [ ] Add `LocationLayoutGenerator` orchestrating sizes, building boxes, connector points, then props.
-- [ ] Call it as a post-pass in `WorldGenerator` and persist the results.
+- [x] Add `LocationLayoutGenerator` orchestrating room sizes and props, building boxes from final room sizes, district and wilderness layout, then connector points (props come before building boxes because prop growth can resize rooms and move exits).
+- [x] Call it as a post-pass in `WorldGenerator` and persist the results.
 
 Verification:
 
-- [ ] Generated-world test: every location has a positive size, every prop and building is inside its location, every connector has points.
+- [x] Generated-world test: every location has a positive size, every prop and building is inside its location, every connector has points.
 
 ### [ ] S09 Creature placement resolver
 
@@ -183,6 +183,7 @@ Verification:
 Scope:
 
 - [ ] Place every creature produced by the creation-time writers listed in the design reference, plus the player in `CreateWorldCommand`.
+- [ ] Give `CaravanScheduleSign` props (seeded after the layout post-pass) a pose.
 
 Verification:
 

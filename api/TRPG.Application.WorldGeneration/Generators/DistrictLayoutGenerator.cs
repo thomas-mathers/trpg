@@ -104,7 +104,7 @@ internal static class DistrictLayoutGenerator
         }
     }
 
-    private static PlanarPoint FrontDoorPoint(Placement placement, Footprint footprint)
+    internal static PlanarPoint FrontDoorPoint(Placement placement, Footprint footprint)
     {
         var distance = footprint.Depth / 2;
 

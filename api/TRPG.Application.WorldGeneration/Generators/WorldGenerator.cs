@@ -638,6 +638,17 @@ public class WorldGenerator(
             wildernessLocationByStateId
         );
 
+        LocationLayoutGenerator.Generate(
+            new LocationLayoutInput(
+                anchoredLocations,
+                props,
+                buildings,
+                rooms,
+                locationConnectors,
+                geography.States
+            )
+        );
+
         var knowledge = KnowledgeGenerator.Generate(
             new KnowledgeGeneratorInput
             {

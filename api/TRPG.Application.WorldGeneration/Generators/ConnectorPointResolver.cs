@@ -81,6 +81,9 @@ internal static class ConnectorPointResolver
             Angle: reverseExit.FacingAngle
         );
 
+    internal static Placement ResolveDefaultArrival(Footprint frame) =>
+        new(X: frame.Width / 2, Y: frame.Depth - ArrivalInset, Angle: 0);
+
     private static bool IsEvenlySpacedOnEdge(ConnectorExitRequest request) =>
         request.Kind is ConnectorExitKind.SouthDoor or ConnectorExitKind.NorthStairs
         || (request.Kind == ConnectorExitKind.Compass && IsCardinal(request.Direction));
