@@ -27,10 +27,10 @@ function BodySegment({ from, to, radius, color }: Limb & { color: string }) {
   );
 }
 
-function BodySide({ pose, color }: { pose: BodyPose; color: string }) {
+function BodyLegs({ pose, color }: { pose: BodyPose; color: string }) {
   return (
     <group>
-      {[...pose.arms, ...pose.legs].map((limb, index) => (
+      {pose.legs.map((limb, index) => (
         <BodySegment key={index} {...limb} color={color} />
       ))}
       <mesh position={pose.foot}>
@@ -41,27 +41,45 @@ function BodySide({ pose, color }: { pose: BodyPose; color: string }) {
   );
 }
 
+function BodyArms({ pose, color }: { pose: BodyPose; color: string }) {
+  return (
+    <>
+      {pose.arms.map((limb, index) => (
+        <BodySegment key={index} {...limb} color={color} />
+      ))}
+    </>
+  );
+}
+
 export function CreatureBody({
   pose,
   color,
   perspective = 'third-person',
+  upperBodyYaw = 0,
 }: {
+  upperBodyYaw?: number;
   pose: BodyPose;
   color: string;
   perspective?: 'first-person' | 'third-person';
 }) {
   return (
     <group>
-      <BodySegment {...pose.torso} color={color} />
-      {perspective === 'third-person' && (
-        <mesh position={pose.head}>
-          <sphereGeometry args={[0.18, 16, 12]} />
-          <meshStandardMaterial color={color} roughness={0.85} />
-        </mesh>
-      )}
-      <BodySide pose={pose} color={color} />
+      <group rotation={[0, upperBodyYaw, 0]}>
+        <BodySegment {...pose.torso} color={color} />
+        {perspective === 'third-person' && (
+          <mesh position={pose.head}>
+            <sphereGeometry args={[0.18, 16, 12]} />
+            <meshStandardMaterial color={color} roughness={0.85} />
+          </mesh>
+        )}
+        <BodyArms pose={pose} color={color} />
+        <group scale={[-1, 1, 1]}>
+          <BodyArms pose={pose} color={color} />
+        </group>
+      </group>
+      <BodyLegs pose={pose} color={color} />
       <group scale={[-1, 1, 1]}>
-        <BodySide pose={pose} color={color} />
+        <BodyLegs pose={pose} color={color} />
       </group>
     </group>
   );

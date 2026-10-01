@@ -7,7 +7,7 @@ import { CharacterDialog } from '@/features/character/components/character-dialo
 import { DeathRespawnEffect } from '@/features/combat/hooks/use-death-respawn';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
-import { SidebarInset, SidebarProvider } from '../../../components/ui/sidebar';
+import { SidebarProvider } from '../../../components/ui/sidebar';
 import { gameEventBus } from '../../../lib/game-event-bus';
 import { clearStoredMessages } from '../../../lib/session-storage';
 import { InventoryDialog } from '../../inventory/components/inventory-dialog';
@@ -31,7 +31,7 @@ import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { SceneProvider } from '../providers/scene-provider';
 import { AbilityToolbar } from './ability-toolbar';
 import { ConnectionLostDialog } from './connection-lost-dialog';
-import { GameChat } from './game-chat';
+import { EncounterDialogs } from './game-chat';
 import { GameMenu } from './game-menu';
 import { GameNotifications } from './game-notifications';
 import { NearbySidebar } from './nearby-sidebar';
@@ -198,12 +198,13 @@ function GameScreenContent({
 
           <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
             <Suspense fallback={null}>
-              <LocationViewport />
+              <LocationViewport
+                onQuestDialogRequested={setQuestDialog}
+                onDeliverItemDialogRequested={setDeliverItemDialog}
+              />
             </Suspense>
 
-            <SidebarInset className="bg-background/50 absolute bottom-4 left-4 z-10 h-[min(27rem,52%)] w-[36rem] max-w-[calc(100%-2rem)] flex-none overflow-hidden rounded-lg shadow-lg backdrop-blur-sm">
-              <GameChat />
-            </SidebarInset>
+            <EncounterDialogs />
 
             {!isInCombat && (
               <div className="bg-background/50 absolute bottom-4 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg px-3 pt-2 shadow-lg backdrop-blur-sm">

@@ -5,13 +5,20 @@ import { Input } from '@/components/ui/input';
 export const CHAT_INPUT_ID = 'game-chat-input';
 
 interface ChatInputProps {
+  placeholder?: string;
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
 }
 
-export function ChatInput({ value, onChange, onSubmit, disabled = false }: ChatInputProps) {
+export function ChatInput({
+  value,
+  onChange,
+  onSubmit,
+  placeholder = 'What do you do?',
+  disabled = false,
+}: ChatInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing) return;
 
@@ -29,7 +36,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled = false }: ChatI
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}
       disabled={disabled}
-      placeholder="What do you do?"
+      placeholder={placeholder}
     />
   );
 }

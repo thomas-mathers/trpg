@@ -16,7 +16,13 @@ import { useIsInCombat } from '@/features/game/hooks/use-is-in-combat';
 import { ChatHistory } from './chat-history';
 import { ChatInput } from './chat-input';
 
-export function GameChat() {
+export function GameChat({
+  recipient,
+  startIndex = 0,
+}: {
+  recipient?: string;
+  startIndex?: number;
+}) {
   const { messages, isStreaming, submitNarratedTurn } = useGameChat();
   const chatHub = useChatHub();
   const { connectionStatus } = useGameHubConnection();
@@ -32,13 +38,17 @@ export function GameChat() {
     }
 
     setInput('');
-    submitNarratedTurn(text, chatHub.sendChat(text));
+    submitNarratedTurn(
+      text,
+      chatHub.sendChat(recipient ? `Speaking to ${JSON.stringify(recipient)}: ${text}` : text),
+    );
   };
 
   return (
     <>
-      <ChatHistory messages={messages} />
+      <ChatHistory messages={messages.slice(startIndex)} />
       <GameChatControls
+        recipient={recipient}
         input={input}
         isConnected={isConnected}
         isInCombat={isInCombat || hasActiveEncounter}
@@ -51,6 +61,7 @@ export function GameChat() {
 }
 
 interface GameChatControlsProps {
+  recipient?: string;
   input: string;
   isConnected: boolean;
   isInCombat: boolean;
@@ -60,6 +71,7 @@ interface GameChatControlsProps {
 }
 
 function GameChatControls({
+  recipient,
   input,
   isConnected,
   isInCombat,
@@ -69,15 +81,9 @@ function GameChatControls({
 }: GameChatControlsProps) {
   return (
     <div className="mx-auto w-full max-w-2xl p-4">
-      <CombatDialog />
-      <HostileEncounterDialog />
-      <ShakedownEncounterDialog />
-      <GuardEncounterDialog />
-      <SuspicionEncounterDialog />
-      <TheftEncounterDialog />
-      <TrapEncounterDialog />
       {!isInCombat && (
         <ChatInput
+          placeholder={recipient ? `Say something to ${recipient}…` : undefined}
           value={input}
           disabled={!isConnected || isStreaming}
           onChange={onChange}
@@ -85,5 +91,19 @@ function GameChatControls({
         />
       )}
     </div>
+  );
+}
+
+export function EncounterDialogs() {
+  return (
+    <>
+      <CombatDialog />
+      <HostileEncounterDialog />
+      <ShakedownEncounterDialog />
+      <GuardEncounterDialog />
+      <SuspicionEncounterDialog />
+      <TheftEncounterDialog />
+      <TrapEncounterDialog />
+    </>
   );
 }
