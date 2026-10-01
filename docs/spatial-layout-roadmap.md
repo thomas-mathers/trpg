@@ -30,7 +30,7 @@ Working rules for every milestone:
 
 - [x] S01 Domain value types, columns, migration
 - [x] S02 Oriented box geometry
-- [ ] S03 Footprint catalogs and asset keys
+- [x] S03 Footprint catalogs and asset keys
 - [ ] S04 Location sizing
 - [ ] S05 District and building layout
 - [ ] S06 Connector points
@@ -104,18 +104,18 @@ Verification:
 
 - [x] Tests: axis-aligned and rotated overlap, touching edges, margin inflation, containment at bounds, 90 degree symmetry.
 
-### [ ] S03 Footprint catalogs and asset keys
+### [x] S03 Footprint catalogs and asset keys
 
 Scope:
 
-- [ ] Add `AssetKeyResolver` (prop to key, per-subtype fallback).
-- [ ] Add `PropFootprintCatalog` (key to footprint, rule, front clearance).
-- [ ] Add `RoomSizeCatalog` and `BuildingFootprintCatalog`.
-- [ ] Add the wilderness size constant.
+- [x] Add `AssetKeyResolver` (prop to key, per-subtype fallback).
+- [x] Add `PropFootprintCatalog` (key to footprint, rule, front clearance).
+- [x] Add `RoomSizeCatalog` and `BuildingFootprintCatalog`.
+- [x] Add the wilderness size constant.
 
 Verification:
 
-- [ ] Coverage tests: every `BuildingType`, `RoomRole`, `WorkstationType`, and `Prop` subtype resolves to a catalog entry.
+- [x] Coverage tests: every `BuildingType`, `RoomRole`, `WorkstationType`, and `Prop` subtype resolves to a catalog entry.
 
 ### [ ] S04 Location sizing
 
