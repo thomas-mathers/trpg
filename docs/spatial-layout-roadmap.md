@@ -36,7 +36,7 @@ Working rules for every milestone:
 - [x] S06 Connector points
 - [x] S07 Room prop placement
 - [x] S08 Layout post-pass in world generation
-- [ ] S09 Creature placement resolver
+- [x] S09 Creature placement resolver
 - [ ] S10 Creature placement at world generation
 - [ ] S11 Creature placement at runtime
 - [ ] S12 Contracts and scene layout
@@ -168,15 +168,15 @@ Verification:
 
 - [x] Generated-world test: every location has a positive size, every prop and building is inside its location, every connector has points.
 
-### [ ] S09 Creature placement resolver
+### [x] S09 Creature placement resolver
 
 Scope:
 
-- [ ] Add a pure `CreaturePlacementResolver` (player at arrival point, NPC near anchor or seeded free spot).
+- [x] Add a pure `CreaturePlacementResolver` (`PlaceAt` for the player arrival pose, `PlaceNear` for NPC anchors, `PlaceFree` for seeded free spots; callers pass props, door keep-outs and already placed creatures as obstacles).
 
 Verification:
 
-- [ ] Tests: player arrival point and facing, NPC anchor proximity, no overlap with props, fallback when the room is crowded, determinism.
+- [x] Tests: player arrival point and facing, NPC anchor proximity, no overlap with props, fallback when the room is crowded, determinism.
 
 ### [ ] S10 Creature placement at world generation
 
