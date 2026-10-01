@@ -19,4 +19,6 @@ public class Location
     public Guid? CityId { get; init; }
     public Guid? DistrictId { get; init; }
     public Guid? RoomId { get; init; }
+    public double Width { get; set; }
+    public double Depth { get; set; }
 }

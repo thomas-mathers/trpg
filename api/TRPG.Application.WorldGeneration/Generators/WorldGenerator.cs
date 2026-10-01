@@ -638,6 +638,17 @@ public class WorldGenerator(
             wildernessLocationByStateId
         );
 
+        LocationLayoutGenerator.Generate(
+            new LocationLayoutInput(
+                anchoredLocations,
+                props,
+                buildings,
+                rooms,
+                locationConnectors,
+                geography.States
+            )
+        );
+
         var knowledge = KnowledgeGenerator.Generate(
             new KnowledgeGeneratorInput
             {
@@ -741,6 +752,16 @@ public class WorldGenerator(
             jobs,
             locationConnectors,
             travelConnectors
+        );
+
+        CreatureLayoutGenerator.Place(
+            new CreatureLayoutInput(
+                anchoredLocations,
+                props,
+                buildings,
+                locationConnectors,
+                creatures
+            )
         );
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);

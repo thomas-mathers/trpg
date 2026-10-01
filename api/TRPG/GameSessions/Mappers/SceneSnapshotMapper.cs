@@ -26,6 +26,7 @@ internal static class SceneSnapshotMapper
             NearbyProps: scene.NearbyProps.Select(prop => prop.ToSnapshot()).ToArray(),
             Exits: scene.Exits.Select(exit => exit.ToSnapshot()).ToArray(),
             NearbyCaravans: scene.NearbyCaravans.Select(caravan => caravan.ToSnapshot()).ToArray(),
+            Layout: scene.Layout.ToWire(),
             Version: stamp.Version,
             GameTimeMilliseconds: (long)(stamp.GameTime - GameClock.Epoch).TotalMilliseconds,
             AnchoredAtUnixMilliseconds: stamp.CapturedAt.ToUnixTimeMilliseconds(),

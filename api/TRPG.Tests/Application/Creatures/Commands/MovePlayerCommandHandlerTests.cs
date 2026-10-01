@@ -43,6 +43,51 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_PutsThePlayerAtTheArrivalPointOfTheTakenConnector()
+    {
+        // Arrange
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId, width: 20, depth: 20);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId, width: 10, depth: 10);
+        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
+        var world = Builders.MakeWorld(WorldId);
+        var connector = Builders.MakeLocationConnector(
+            oldLocation.Id,
+            newLocation.Id,
+            worldId: WorldId,
+            arrivalX: 3,
+            arrivalY: 8,
+            arrivalAngle: 3
+        );
+        world.PlayerId = player.Id;
+        _context.Worlds.Add(world);
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.LocationConnectors.Add(connector);
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                DestinationLocationId = newLocation.Id,
+                GameTime = GameClock.Epoch,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var moved = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.Equal((3d, 8d, 3d), (moved.X, moved.Y, moved.Angle));
+    }
+
+    [Fact]
     public async Task Handle_ResolvesWitnessedTheft_WhenThePlayerLeavesTheCrimeScene()
     {
         // Arrange

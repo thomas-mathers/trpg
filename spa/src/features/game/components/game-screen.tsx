@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 
 import { getQuestJournalQueryKey } from '@/api/client';
 import { CharacterDialog } from '@/features/character/components/character-dialog';
@@ -29,6 +29,7 @@ import {
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { SceneProvider } from '../providers/scene-provider';
+import { ViewportToggleButton } from '../viewport/viewport-toggle-button';
 import { ConnectionLostDialog } from './connection-lost-dialog';
 import { GameChat } from './game-chat';
 import { GameMenu } from './game-menu';
@@ -38,6 +39,10 @@ import { NearbyToggleButton } from './nearby-toggle-button';
 import { SneakToggleButton } from './sneak-toggle-button';
 import { StatusBar } from './status-bar';
 import { WaitDialog } from './wait-dialog';
+
+const LocationViewport = lazy(() =>
+  import('../viewport/location-viewport').then((module) => ({ default: module.LocationViewport })),
+);
 
 type OpenDialog = 'character' | 'inventory' | 'questJournal' | 'skillTree' | 'wait' | 'map' | null;
 
@@ -133,6 +138,7 @@ function GameScreenContent({
   const playerId = usePlayerId();
   const scene = useScene();
   const queryClient = useQueryClient();
+  const [isViewportOpen, setIsViewportOpen] = useState(false);
   const [questDialog, setQuestDialog] = useState<QuestDialogState | null>(null);
   const [deliverItemDialog, setDeliverItemDialog] = useState<DeliverItemDialogState | null>(null);
 
@@ -175,6 +181,10 @@ function GameScreenContent({
               isInCombat={isInCombat}
               controls={
                 <>
+                  <ViewportToggleButton
+                    pressed={isViewportOpen}
+                    onPressedChange={setIsViewportOpen}
+                  />
                   {!isInCombat && <NearbyToggleButton />}
                   {!isInCombat && <SneakToggleButton />}
                   <GameMenu
@@ -201,6 +211,12 @@ function GameScreenContent({
               onQuestDialogRequested={setQuestDialog}
               onDeliverItemDialogRequested={setDeliverItemDialog}
             />
+
+            {isViewportOpen && (
+              <Suspense fallback={null}>
+                <LocationViewport onClose={() => setIsViewportOpen(false)} />
+              </Suspense>
+            )}
           </div>
 
           {playerId && (

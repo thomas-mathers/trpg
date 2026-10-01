@@ -229,6 +229,7 @@ public record SceneSnapshot(
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
     IReadOnlyCollection<NearbyExitSnapshot> Exits,
     IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans,
+    LocationLayoutWire Layout,
     long Version,
     long GameTimeMilliseconds,
     long AnchoredAtUnixMilliseconds,
@@ -338,6 +339,7 @@ public sealed record WildernessExitDestination(string Name) : NearbyExitDestinat
 
 [TranspilationSource]
 public record NearbyExitSnapshot(
+    Guid ConnectorId,
     string Description,
     NearbyExitDestination Destination,
     CompassDirection? Direction,

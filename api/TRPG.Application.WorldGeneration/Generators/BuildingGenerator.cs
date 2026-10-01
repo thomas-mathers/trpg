@@ -23,6 +23,8 @@ internal record BuildingGeneratorResult(
 
 public class BuildingGenerator
 {
+    internal const string HallwayName = "Hallway";
+
     internal static readonly Dictionary<BuildingType, string[]> Names = new()
     {
         [BuildingType.ArcaneShop] =
@@ -376,7 +378,7 @@ public class BuildingGenerator
                 Capacity = 4,
                 Description = "A connecting hallway.",
                 FloorNumber = floorRooms[0].FloorNumber,
-                Name = "Hallway",
+                Name = HallwayName,
                 WorldId = worldId,
             };
             allRooms.Add(hallway);
@@ -398,7 +400,7 @@ public class BuildingGenerator
                     new LocationConnector
                     {
                         OriginLocationId = room.LocationId,
-                        Name = "Hallway",
+                        Name = HallwayName,
                         Description = "The way back to the hallway.",
                         DestinationLocationId = hallway.LocationId,
                         DestinationLabel = hallway.Name,

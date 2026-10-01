@@ -147,6 +147,9 @@ public class Creature
     public bool IsAlerted { get; set; }
     public bool IsRestrained { get; set; }
     public Guid WorldId { get; init; }
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Angle { get; set; }
 
     public int Strength { get; set; }
     public int Dexterity { get; set; }

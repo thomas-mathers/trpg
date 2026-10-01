@@ -121,6 +121,20 @@ internal class CreateWorldCommandHandler(
             roadTravelerOptions.Value
         );
 
+        var seededCreatures = countryPatrolRoutes
+            .Creatures.Concat(roadTravelerRoutes.Creatures)
+            .ToArray();
+        CreatureLayoutGenerator.Place(
+            CreateLayoutInput(worldResult, seededCreatures, worldResult.Creatures)
+        );
+        CreatureLayoutGenerator.PlaceAtLocationCenter(
+            CreateLayoutInput(
+                worldResult,
+                [playerResult.Creature],
+                [.. worldResult.Creatures, .. seededCreatures]
+            )
+        );
+
         var bootstrapResult = await bootstrapWorld.Handle(
             new BootstrapWorldCommand
             {
@@ -161,4 +175,20 @@ internal class CreateWorldCommandHandler(
             worldResult.World.Name
         );
     }
+
+    private static CreatureLayoutInput CreateLayoutInput(
+        WorldGeneratorResult worldResult,
+        IReadOnlyList<Creature> creatures,
+        IReadOnlyList<Creature> alreadyPlaced
+    ) =>
+        new(
+            worldResult.Locations,
+            worldResult.Props,
+            worldResult.Buildings,
+            worldResult.LocationConnectors,
+            creatures
+        )
+        {
+            AlreadyPlaced = alreadyPlaced,
+        };
 }

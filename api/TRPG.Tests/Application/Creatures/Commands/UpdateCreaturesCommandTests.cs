@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Domain;
@@ -12,13 +13,17 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
+    private ServiceProvider _serviceProvider = null!;
     private UpdateCreaturesCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature(locationId: Guid.NewGuid());
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
-        _handler = new UpdateCreaturesCommandHandler(_context);
+        _serviceProvider = new ServiceCollection()
+            .AddTrpgTestServices(_context)
+            .BuildServiceProvider();
+        _handler = _serviceProvider.GetRequiredService<UpdateCreaturesCommandHandler>();
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -26,6 +31,7 @@ public sealed class UpdateCreaturesCommandTests(DatabaseFixture db)
 
     public async ValueTask DisposeAsync()
     {
+        await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
     }
 

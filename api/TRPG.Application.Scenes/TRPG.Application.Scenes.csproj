@@ -20,6 +20,7 @@
     <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
     <ProjectReference Include="..\TRPG.Application.Routing\TRPG.Application.Routing.csproj" />
     <ProjectReference Include="..\TRPG.Application.Weather\TRPG.Application.Weather.csproj" />
+    <ProjectReference Include="..\TRPG.Application.WorldGeneration\TRPG.Application.WorldGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
     <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
   </ItemGroup>

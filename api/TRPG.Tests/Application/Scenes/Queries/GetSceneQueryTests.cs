@@ -1,4 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Commands;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Data;
@@ -630,6 +633,150 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(lever.Id, Assert.Single(result.NearbyProps).Id);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheLocationLayout_WhenOutdoors()
+    {
+        // Arrange
+        var location = Builders.MakeLocation(WorldId, _state.Id, width: 40, depth: 30);
+        var player = Builders.MakeCreature(
+            WorldId,
+            birthYear: 950,
+            locationId: location.Id,
+            x: 5,
+            y: 6,
+            angle: 0.5
+        );
+        var chest = Builders.MakeContainer(WorldId, location.Id, x: 10, y: 12, width: 2, depth: 1);
+        var house = Builders.MakeBuilding(location.Id, WorldId, x: 20, y: 8, width: 6, depth: 4);
+        var connector = Builders.MakeLocationConnector(
+            location.Id,
+            worldId: WorldId,
+            exitX: 39,
+            exitY: 15
+        );
+        _context.Locations.Add(location);
+        _context.Creatures.Add(player);
+        _context.Props.Add(chest);
+        _context.Buildings.Add(house);
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(new Footprint(40, 30), result.Layout.Size);
+        Assert.Equal(
+            new ScenePropLayout(
+                chest.Id,
+                PropModel.ContainerBasic,
+                new Placement(10, 12, 0),
+                new Footprint(2, 1)
+            ),
+            Assert.Single(result.Layout.Props)
+        );
+        Assert.Equal(
+            new SceneBuildingLayout(
+                house.Id,
+                BuildingType.House,
+                new Placement(20, 8, 0),
+                new Footprint(6, 4)
+            ),
+            Assert.Single(result.Layout.Buildings)
+        );
+        Assert.Equal(
+            new SceneConnectorLayout(
+                connector.Id,
+                connector.DestinationLocationId,
+                ExitX: 39,
+                ExitY: 15
+            ),
+            Assert.Single(result.Layout.Connectors)
+        );
+        Assert.Equal(
+            new Placement(5, 6, 0.5),
+            result.Layout.Creatures.Single(c => c.Id == player.Id).Placement
+        );
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheSettledPose_WhenACreatureWasMovedIntoTheLocation()
+    {
+        // Arrange
+        var location = Builders.MakeLocation(WorldId, _state.Id, width: 40, depth: 30);
+        var player = Builders.MakeCreature(WorldId, birthYear: 950, locationId: location.Id);
+        var visitor = Builders.MakeCreature(WorldId, birthYear: 900);
+        _context.Locations.Add(location);
+        _context.Creatures.AddRange(player, visitor);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var moveHandler = _serviceProvider.GetRequiredService<
+            ICommandHandler<UpdateCreaturesCommand>
+        >();
+        await moveHandler.Handle(
+            new UpdateCreaturesCommand { CreatureIds = [visitor.Id], LocationId = location.Id },
+            TestContext.Current.CancellationToken
+        );
+        var stored = await _context
+            .Creatures.AsNoTracking()
+            .SingleAsync(c => c.Id == visitor.Id, TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var layout = result.Layout.Creatures.Single(c => c.Id == visitor.Id);
+        Assert.Equal(new Placement(stored.X, stored.Y, stored.Angle), layout.Placement);
+        Assert.InRange(layout.Placement.X, 0, 40);
+        Assert.InRange(layout.Placement.Y, 0, 30);
+    }
+
+    [Fact]
+    public async Task Handle_OmitsAnUndiscoveredTrapAndAHiddenTriggerFromTheLayout_WhenOutdoors()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(Guid.NewGuid(), worldId: WorldId);
+        var trap = Builders.MakeTrap(WorldId, _player.LocationId);
+        var trigger = Builders.MakeTrigger(WorldId, _player.LocationId);
+        var sign = Builders.MakeSign(WorldId, _player.LocationId, "Welcome");
+        _context.Quests.Add(quest);
+        _context.Props.AddRange(trap, trigger, sign);
+        _context.QuestObjectives.Add(
+            Builders.MakeInteractWithPropObjective(quest.Id, trigger.Id, worldId: WorldId)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = _player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(sign.Id, Assert.Single(result.Layout.Props).Id);
     }
 
     [Fact]

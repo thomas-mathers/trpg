@@ -12,4 +12,9 @@ public class LocationConnector
     public Guid OriginLocationId { get; init; }
     public Polyline? Path { get; init; }
     public Guid WorldId { get; init; }
+    public double ExitX { get; set; }
+    public double ExitY { get; set; }
+    public double ArrivalX { get; set; }
+    public double ArrivalY { get; set; }
+    public double ArrivalAngle { get; set; }
 }

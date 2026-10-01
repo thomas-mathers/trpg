@@ -125,10 +125,18 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<double>("Angle")
+                        .HasColumnType("double precision")
+                        .HasColumnName("angle");
+
                     b.Property<string>("BuildingType")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("building_type");
+
+                    b.Property<double>("Depth")
+                        .HasColumnType("double precision")
+                        .HasColumnName("depth");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -152,9 +160,21 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("premise");
 
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision")
+                        .HasColumnName("width");
+
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
+
+                    b.Property<double>("X")
+                        .HasColumnType("double precision")
+                        .HasColumnName("x");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("double precision")
+                        .HasColumnName("y");
 
                     b.HasKey("Id")
                         .HasName("pk_buildings");
@@ -440,6 +460,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("activity");
 
+                    b.Property<double>("Angle")
+                        .HasColumnType("double precision")
+                        .HasColumnName("angle");
+
                     b.Property<string>("Biography")
                         .IsRequired()
                         .HasColumnType("text")
@@ -631,6 +655,14 @@ namespace TRPG.Migrations
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
+
+                    b.Property<double>("X")
+                        .HasColumnType("double precision")
+                        .HasColumnName("x");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("double precision")
+                        .HasColumnName("y");
 
                     b.HasKey("Id")
                         .HasName("pk_creatures");
@@ -1950,6 +1982,10 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("coarse_anchor_location_id");
 
+                    b.Property<double>("Depth")
+                        .HasColumnType("double precision")
+                        .HasColumnName("depth");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -1976,6 +2012,10 @@ namespace TRPG.Migrations
                     b.Property<Guid>("StateId")
                         .HasColumnType("uuid")
                         .HasColumnName("state_id");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision")
+                        .HasColumnName("width");
 
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
@@ -2009,6 +2049,18 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<double>("ArrivalAngle")
+                        .HasColumnType("double precision")
+                        .HasColumnName("arrival_angle");
+
+                    b.Property<double>("ArrivalX")
+                        .HasColumnType("double precision")
+                        .HasColumnName("arrival_x");
+
+                    b.Property<double>("ArrivalY")
+                        .HasColumnType("double precision")
+                        .HasColumnName("arrival_y");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2026,6 +2078,14 @@ namespace TRPG.Migrations
                     b.Property<string>("Direction")
                         .HasColumnType("text")
                         .HasColumnName("direction");
+
+                    b.Property<double>("ExitX")
+                        .HasColumnType("double precision")
+                        .HasColumnName("exit_x");
+
+                    b.Property<double>("ExitY")
+                        .HasColumnType("double precision")
+                        .HasColumnName("exit_y");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -2173,6 +2233,14 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<double>("Angle")
+                        .HasColumnType("double precision")
+                        .HasColumnName("angle");
+
+                    b.Property<double>("Depth")
+                        .HasColumnType("double precision")
+                        .HasColumnName("depth");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2191,9 +2259,21 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("owner_creature_id");
 
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision")
+                        .HasColumnName("width");
+
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
+
+                    b.Property<double>("X")
+                        .HasColumnType("double precision")
+                        .HasColumnName("x");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("double precision")
+                        .HasColumnName("y");
 
                     b.Property<string>("behavior_type")
                         .IsRequired()

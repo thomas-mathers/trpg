@@ -9,6 +9,7 @@ using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
+using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Weather.Queries;
 using TRPG.Application.Worlds.Queries;
@@ -31,7 +32,9 @@ internal record SceneLocationData(
     SceneRoomInfo? Room,
     string? RegionDescription,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
+    IReadOnlyCollection<ScenePropLayout> PropLayouts,
+    IReadOnlyCollection<SceneBuildingLayout> BuildingLayouts
 );
 
 internal class GetSceneQueryHandler(
@@ -128,11 +131,12 @@ internal class GetSceneQueryHandler(
         var cityInfo = await BuildCityInfo(player, cancellationToken);
         var districtInfo = await BuildDistrictInfo(player, cancellationToken);
 
+        var connectors = await getConnectorsByLocationId.Handle(
+            new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
+            cancellationToken
+        );
         var exitInfos = await BuildExitInfos(
-            await getConnectorsByLocationId.Handle(
-                new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
-                cancellationToken
-            ),
+            connectors,
             player.RoomId != null,
             player,
             cancellationToken
@@ -159,6 +163,13 @@ internal class GetSceneQueryHandler(
             weather,
             cancellationToken
         );
+        var layout = await BuildLayout(
+            player.LocationId,
+            details,
+            connectors,
+            creaturesHere,
+            cancellationToken
+        );
 
         return new SceneResult(
             query.WorldId,
@@ -181,7 +192,31 @@ internal class GetSceneQueryHandler(
             nearbyPeople,
             details.NearbyBuildings,
             weather,
-            nearbyCaravans
+            nearbyCaravans,
+            layout
+        );
+    }
+
+    private async Task<SceneLayoutInfo> BuildLayout(
+        Guid locationId,
+        SceneLocationData details,
+        IReadOnlyCollection<LocationConnector> connectors,
+        IReadOnlyCollection<CreatureResult> creatures,
+        CancellationToken cancellationToken
+    )
+    {
+        var locations = await getLocationsByIds.Handle(
+            new GetLocationsByIdsQuery { Ids = [locationId] },
+            cancellationToken
+        );
+        var location = locations[locationId];
+
+        return new SceneLayoutInfo(
+            new Footprint(location.Width, location.Depth),
+            details.PropLayouts,
+            details.BuildingLayouts,
+            connectors.Select(connector => connector.ToLayout()).ToArray(),
+            creatures.Select(creature => creature.ToLayout()).ToArray()
         );
     }
 
@@ -600,7 +635,15 @@ internal class GetSceneQueryHandler(
         var visibleProps = await ExcludeHiddenProps(props, worldId, player.Id, cancellationToken);
         var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
-        return new SceneLocationData(buildingInfo, roomInfo, null, nearbyProps, []);
+        return new SceneLocationData(
+            buildingInfo,
+            roomInfo,
+            null,
+            nearbyProps,
+            [],
+            visibleProps.Select(prop => prop.ToLayout()).ToArray(),
+            []
+        );
     }
 
     private async Task<IReadOnlyCollection<Prop>> ExcludeHiddenProps(
@@ -699,7 +742,15 @@ internal class GetSceneQueryHandler(
         var visibleProps = await ExcludeHiddenProps(props, worldId, player.Id, cancellationToken);
         var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
-        return new SceneLocationData(null, null, state?.Description, nearbyProps, nearbyBuildings);
+        return new SceneLocationData(
+            null,
+            null,
+            state?.Description,
+            nearbyProps,
+            nearbyBuildings,
+            visibleProps.Select(prop => prop.ToLayout()).ToArray(),
+            buildings.Select(building => building.ToLayout()).ToArray()
+        );
     }
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
@@ -865,6 +916,7 @@ internal class GetSceneQueryHandler(
                     != LocationKind.Room
             )
             .Select(connector => new SceneExitInfo(
+                connector.Id,
                 connector.Description,
                 ToExitDestination(
                     connector,
