@@ -20,8 +20,8 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
     {
         _context = db.CreateContext();
         _services = new ServiceCollection().AddTrpgTestServices(_context).BuildServiceProvider();
-        _player = Builders.MakeCreature();
-        _seat = Builders.MakeSeat(_player.WorldId, _player.LocationId);
+        _player = Builders.MakeCreature(x: 1, y: 2, angle: 0.25);
+        _seat = Builders.MakeSeat(_player.WorldId, _player.LocationId, x: 4.5, y: 7.25, angle: 1.5);
         _context.Creatures.Add(_player);
         _context.Props.Add(_seat);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -54,6 +54,44 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
         Assert.Equal(SitDownResult.Success, result);
         Assert.Equal(CreaturePosture.Sitting, player.Posture);
         Assert.Equal(_player.Id, seat.OccupantId);
+    }
+
+    [Fact]
+    public async Task Handle_AlignsPlayerPoseToSeat_WhenSeatIsAvailable()
+    {
+        var handler = _services.GetRequiredService<SitDownCommandHandler>();
+
+        await handler.Handle(
+            new SitDownCommand { PlayerId = _player.Id, SeatId = _seat.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(4.5, player.X);
+        Assert.Equal(7.25, player.Y);
+        Assert.Equal(1.5, player.Angle);
+    }
+
+    [Fact]
+    public async Task Handle_RemembersThePreSitPose_WhenSeatIsAvailable()
+    {
+        var handler = _services.GetRequiredService<SitDownCommandHandler>();
+
+        await handler.Handle(
+            new SitDownCommand { PlayerId = _player.Id, SeatId = _seat.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal((1d, 2d, 0.25), (player.StandingX, player.StandingY, player.StandingAngle));
     }
 
     [Fact]

@@ -14,10 +14,11 @@ public class TryOccupyAnyAvailableSeatCommand
 
 // Claims one free seat atomically: finds a candidate then conditionally updates it, retrying with
 // that candidate excluded if another claim won the race, instead of fetching every seat up front.
+// Returns the claimed seat's pose, or null when no seat was available.
 internal class TryOccupyAnyAvailableSeatCommandHandler(IPropsDbContext context)
-    : ICommandHandler<TryOccupyAnyAvailableSeatCommand, bool>
+    : ICommandHandler<TryOccupyAnyAvailableSeatCommand, Placement?>
 {
-    public async Task<bool> Handle(
+    public async Task<Placement?> Handle(
         TryOccupyAnyAvailableSeatCommand command,
         CancellationToken cancellationToken = default
     )
@@ -40,7 +41,7 @@ internal class TryOccupyAnyAvailableSeatCommandHandler(IPropsDbContext context)
                 );
             if (reclaimed == 1)
             {
-                return true;
+                return await GetPlacement(command.PreferredSeatId.Value, cancellationToken);
             }
         }
 
@@ -59,7 +60,7 @@ internal class TryOccupyAnyAvailableSeatCommandHandler(IPropsDbContext context)
                 .FirstOrDefaultAsync(cancellationToken);
             if (candidateSeatId == null)
             {
-                return false;
+                return null;
             }
 
             var updated = await context
@@ -71,10 +72,16 @@ internal class TryOccupyAnyAvailableSeatCommandHandler(IPropsDbContext context)
                 );
             if (updated == 1)
             {
-                return true;
+                return await GetPlacement(candidateSeatId.Value, cancellationToken);
             }
 
             excludedSeatIds.Add(candidateSeatId.Value);
         }
     }
+
+    private async Task<Placement> GetPlacement(Guid seatId, CancellationToken cancellationToken) =>
+        await context
+            .Props.Where(seat => seat.Id == seatId)
+            .Select(seat => new Placement(seat.X, seat.Y, seat.Angle))
+            .SingleAsync(cancellationToken);
 }

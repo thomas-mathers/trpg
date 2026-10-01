@@ -23,9 +23,10 @@ internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<SetCreatureActivityCommand> setCreatureActivity,
     ICommandHandler<TryStartSittingCommand, bool> tryStartSitting,
     ICommandHandler<StopSittingCommand> stopSitting,
+    ICommandHandler<RestoreStandingPoseCommand> restoreStandingPose,
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
     ICommandHandler<SetBedOccupantCommand> setBedOccupant,
-    ICommandHandler<TryOccupyAnyAvailableSeatCommand, bool> tryOccupyAnyAvailableSeat,
+    ICommandHandler<TryOccupyAnyAvailableSeatCommand, Placement?> tryOccupyAnyAvailableSeat,
     ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
@@ -116,6 +117,10 @@ internal class ExecuteCreatureJobCommandHandler(
             new StopSittingCommand { CreatureId = command.CreatureId },
             cancellationToken
         );
+        await restoreStandingPose.Handle(
+            new RestoreStandingPoseCommand { CreatureId = command.CreatureId },
+            cancellationToken
+        );
     }
 
     private async Task SitIfSeatAvailable(
@@ -123,21 +128,24 @@ internal class ExecuteCreatureJobCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        var seated = await TryOccupyAvailableSeat(command, cancellationToken);
-        if (seated)
+        var seat = await TryOccupyAvailableSeat(command, cancellationToken);
+        if (seat != null)
         {
             await tryStartSitting.Handle(
                 new TryStartSittingCommand
                 {
                     CreatureId = command.CreatureId,
                     LocationId = command.JobLocationId,
+                    X = seat.X,
+                    Y = seat.Y,
+                    Angle = seat.Angle,
                 },
                 cancellationToken
             );
         }
     }
 
-    private Task<bool> TryOccupyAvailableSeat(
+    private Task<Placement?> TryOccupyAvailableSeat(
         ExecuteCreatureJobCommand command,
         CancellationToken cancellationToken
     ) =>
