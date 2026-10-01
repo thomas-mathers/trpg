@@ -9,6 +9,9 @@ public class TryStartSittingCommand
 {
     public required Guid CreatureId { get; init; }
     public required Guid LocationId { get; init; }
+    public required double X { get; init; }
+    public required double Y { get; init; }
+    public required double Angle { get; init; }
 }
 
 internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
@@ -29,7 +32,11 @@ internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
             )
             .ExecuteUpdateAsync(
                 setters =>
-                    setters.SetProperty(creature => creature.Posture, CreaturePosture.Sitting),
+                    setters
+                        .SetProperty(creature => creature.Posture, CreaturePosture.Sitting)
+                        .SetProperty(creature => creature.X, command.X)
+                        .SetProperty(creature => creature.Y, command.Y)
+                        .SetProperty(creature => creature.Angle, command.Angle),
                 cancellationToken
             );
 

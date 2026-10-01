@@ -80,6 +80,9 @@ internal class SitDownCommandHandler(
             {
                 CreatureId = command.PlayerId,
                 LocationId = player.LocationId,
+                X = prop.X,
+                Y = prop.Y,
+                Angle = prop.Angle,
             },
             cancellationToken
         );

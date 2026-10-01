@@ -21,7 +21,7 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
         _context = db.CreateContext();
         _services = new ServiceCollection().AddTrpgTestServices(_context).BuildServiceProvider();
         _player = Builders.MakeCreature();
-        _seat = Builders.MakeSeat(_player.WorldId, _player.LocationId);
+        _seat = Builders.MakeSeat(_player.WorldId, _player.LocationId, x: 4.5, y: 7.25, angle: 1.5);
         _context.Creatures.Add(_player);
         _context.Props.Add(_seat);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -54,6 +54,26 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
         Assert.Equal(SitDownResult.Success, result);
         Assert.Equal(CreaturePosture.Sitting, player.Posture);
         Assert.Equal(_player.Id, seat.OccupantId);
+    }
+
+    [Fact]
+    public async Task Handle_AlignsPlayerPoseToSeat_WhenSeatIsAvailable()
+    {
+        var handler = _services.GetRequiredService<SitDownCommandHandler>();
+
+        await handler.Handle(
+            new SitDownCommand { PlayerId = _player.Id, SeatId = _seat.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(4.5, player.X);
+        Assert.Equal(7.25, player.Y);
+        Assert.Equal(1.5, player.Angle);
     }
 
     [Fact]
