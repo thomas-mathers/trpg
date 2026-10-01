@@ -31,7 +31,7 @@ Working rules for every milestone:
 - [x] S01 Domain value types, columns, migration
 - [x] S02 Oriented box geometry
 - [x] S03 Footprint catalogs and asset keys
-- [ ] S04 Location sizing
+- [x] S04 Location sizing
 - [ ] S05 District and building layout
 - [ ] S06 Connector points
 - [ ] S07 Room prop placement
@@ -56,7 +56,7 @@ Sizing:
 - Room area is the larger of the catalog minimum (by building type and room role) and `1.5 x (sum of prop footprint areas) + 1.2 x Capacity`. Aspect is seeded in [1.0, 1.6]. Width is `sqrt(area x aspect)`, depth is `area / width`, snapped up to the grid, clamped to the catalog max.
 - Hallway: 2 m wide, depth `2 + 1.5 x roomCount`.
 - Building footprint: ground-floor rooms' area (hallway included) x 1.15, aspect near 1.3, catalog minimum for castle and temple. Stored on `Building` in the exterior district's frame.
-- District: `(sum of building footprints + 6 m margin per building + seat area) x 2`, roughly square.
+- District: `(sum of (building width + 6 m) x (building depth + 6 m) + seat area) x 2`, roughly square, widened and deepened if needed so the widest and deepest building fit on a side of the street.
 - Wilderness: constant 300 x 300 m regardless of state size.
 
 Placement:
@@ -117,15 +117,15 @@ Verification:
 
 - [x] Coverage tests: every `BuildingType`, `RoomRole`, `WorkstationType`, and `Prop` subtype resolves to a catalog entry.
 
-### [ ] S04 Location sizing
+### [x] S04 Location sizing
 
 Scope:
 
-- [ ] Add a pure `LocationSizer` for rooms, hallways, districts, and wilderness per the design reference.
+- [x] Add a pure `LocationSizer` for rooms, hallways, districts, and wilderness per the design reference.
 
 Verification:
 
-- [ ] Tests: minimums and maximums respected, grid snapping, determinism for the same seed, hallway depth scales with room count.
+- [x] Tests: minimums and maximums respected, grid snapping, determinism for the same seed, hallway depth scales with room count.
 
 ### [ ] S05 District and building layout
 
