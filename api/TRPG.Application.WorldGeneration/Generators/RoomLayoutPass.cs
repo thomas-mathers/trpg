@@ -30,7 +30,7 @@ internal static class RoomLayoutPass
         var random = new Random(LayoutSeed.From(location.Id));
         var props = context.PropsByLocationId[location.Id].ToArray();
         var inputs = props
-            .Select(prop => new RoomPropInput(prop.Id, AssetKeyResolver.Resolve(prop)))
+            .Select(prop => new RoomPropInput(prop.Id, PropModelResolver.Resolve(prop)))
             .ToArray();
         var requests = context
             .ConnectorsByOrigin[location.Id]
@@ -73,7 +73,7 @@ internal static class RoomLayoutPass
             new RoomSizingRequest(
                 context.BuildingById[room.BuildingId].BuildingType,
                 room.Role,
-                inputs.Select(input => input.AssetKey).ToArray(),
+                inputs.Select(input => input.Model).ToArray(),
                 room.Capacity
             ),
             random

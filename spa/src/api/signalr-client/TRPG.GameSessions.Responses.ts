@@ -27,10 +27,27 @@ export type FootprintWire = {
     depth: number;
 }
 
-/** Transpiled from TRPG.GameSessions.Responses.BoxLayoutWire */
-export type BoxLayoutWire = {
+/** Transpiled from TRPG.GameSessions.Responses.PropModel */
+export type PropModel = "Bed" | "Cell" | "Sign" | "ContainerBasic" | "ContainerBarrel" | "ContainerChest" | "ContainerCrate" | "ContainerFootlocker" | "ContainerStrongbox" | "ContainerWeaponRack" | "SeatBasic" | "SeatChair" | "SeatPew" | "SeatThrone" | "SeatBench" | "SeatStoneBench" | "SeatLowWall" | "TrapMechanical" | "TrapCollapse" | "TrapSlope" | "TrapWater" | "TriggerBasic" | "TriggerLever" | "WorkstationAlchemy" | "WorkstationArmorsmithing" | "WorkstationCarpentry" | "WorkstationCooking" | "WorkstationEnchanting" | "WorkstationJewelcrafting" | "WorkstationPrayer" | "WorkstationReading" | "WorkstationTailoring" | "WorkstationTrade" | "WorkstationWeaponsmithing";
+
+/** Transpiled from TRPG.GameSessions.Responses.PropLayoutWire */
+export type PropLayoutWire = {
     /** Transpiled from System.Guid */
     id: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PropModel */
+    model: PropModel;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    footprint: FootprintWire;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.BuildingLayoutWire */
+export type BuildingLayoutWire = {
+    /** Transpiled from System.Guid */
+    id: string;
+    /** Transpiled from TRPG.GameSessions.Responses.BuildingType */
+    type: BuildingType;
     /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
     placement: PlacementWire;
     /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
@@ -61,10 +78,10 @@ export type CreatureLayoutWire = {
 export type LocationLayoutWire = {
     /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
     size: FootprintWire;
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoxLayoutWire> */
-    props: BoxLayoutWire[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoxLayoutWire> */
-    buildings: BoxLayoutWire[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.PropLayoutWire> */
+    props: PropLayoutWire[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BuildingLayoutWire> */
+    buildings: BuildingLayoutWire[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.ConnectorLayoutWire> */
     connectors: ConnectorLayoutWire[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureLayoutWire> */

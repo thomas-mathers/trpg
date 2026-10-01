@@ -66,7 +66,7 @@ internal static class RoomPropPlacer
         IReadOnlyCollection<RoomPropInput> props
     ) =>
         props
-            .Select(prop => new { Prop = prop, Spec = PropFootprintCatalog.Get(prop.AssetKey) })
+            .Select(prop => new { Prop = prop, Spec = PropFootprintCatalog.Get(prop.Model) })
             .OrderBy(entry => RulePriority(entry.Spec.Rule))
             .ThenByDescending(entry => entry.Spec.Width * entry.Spec.Depth)
             .ThenBy(entry => entry.Prop.Id)

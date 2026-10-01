@@ -103,8 +103,9 @@ export type BookPageResponse = {
     revealedFact: boolean;
 };
 
-export type BoxLayoutWire = {
+export type BuildingLayoutWire = {
     id: string;
+    type: BuildingType;
     placement: PlacementWire;
     footprint: FootprintWire;
 };
@@ -670,8 +671,8 @@ export type LocalMapRoomResponse = {
 
 export type LocationLayoutWire = {
     size: FootprintWire;
-    props: Array<BoxLayoutWire>;
-    buildings: Array<BoxLayoutWire>;
+    props: Array<PropLayoutWire>;
+    buildings: Array<BuildingLayoutWire>;
     connectors: Array<ConnectorLayoutWire>;
     creatures: Array<CreatureLayoutWire>;
 };
@@ -795,6 +796,15 @@ export type ProblemDetails = {
 export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
 
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
+
+export type PropLayoutWire = {
+    id: string;
+    model: PropModel;
+    placement: PlacementWire;
+    footprint: FootprintWire;
+};
+
+export type PropModel = 'Bed' | 'Cell' | 'Sign' | 'ContainerBasic' | 'ContainerBarrel' | 'ContainerChest' | 'ContainerCrate' | 'ContainerFootlocker' | 'ContainerStrongbox' | 'ContainerWeaponRack' | 'SeatBasic' | 'SeatChair' | 'SeatPew' | 'SeatThrone' | 'SeatBench' | 'SeatStoneBench' | 'SeatLowWall' | 'TrapMechanical' | 'TrapCollapse' | 'TrapSlope' | 'TrapWater' | 'TriggerBasic' | 'TriggerLever' | 'WorkstationAlchemy' | 'WorkstationArmorsmithing' | 'WorkstationCarpentry' | 'WorkstationCooking' | 'WorkstationEnchanting' | 'WorkstationJewelcrafting' | 'WorkstationPrayer' | 'WorkstationReading' | 'WorkstationTailoring' | 'WorkstationTrade' | 'WorkstationWeaponsmithing';
 
 export type QuestDialogMode = 'Offer' | 'TurnIn';
 

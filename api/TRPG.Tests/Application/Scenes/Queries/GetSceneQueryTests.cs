@@ -677,11 +677,21 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         // Assert
         Assert.Equal(new Footprint(40, 30), result.Layout.Size);
         Assert.Equal(
-            new SceneBoxLayout(chest.Id, new Placement(10, 12, 0), new Footprint(2, 1)),
+            new ScenePropLayout(
+                chest.Id,
+                PropModel.ContainerBasic,
+                new Placement(10, 12, 0),
+                new Footprint(2, 1)
+            ),
             Assert.Single(result.Layout.Props)
         );
         Assert.Equal(
-            new SceneBoxLayout(house.Id, new Placement(20, 8, 0), new Footprint(6, 4)),
+            new SceneBuildingLayout(
+                house.Id,
+                BuildingType.House,
+                new Placement(20, 8, 0),
+                new Footprint(6, 4)
+            ),
             Assert.Single(result.Layout.Buildings)
         );
         Assert.Equal(

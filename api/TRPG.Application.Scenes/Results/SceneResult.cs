@@ -125,7 +125,14 @@ public record SceneCaravanInfo(
     IReadOnlyCollection<SceneCaravanDestination> Destinations
 );
 
-public record SceneBoxLayout(Guid Id, Placement Placement, Footprint Footprint);
+public record ScenePropLayout(Guid Id, PropModel Model, Placement Placement, Footprint Footprint);
+
+public record SceneBuildingLayout(
+    Guid Id,
+    BuildingType Type,
+    Placement Placement,
+    Footprint Footprint
+);
 
 public record SceneConnectorLayout(
     Guid ConnectorId,
@@ -138,8 +145,8 @@ public record SceneCreatureLayout(Guid Id, Placement Placement);
 
 public record SceneLayoutInfo(
     Footprint Size,
-    IReadOnlyCollection<SceneBoxLayout> Props,
-    IReadOnlyCollection<SceneBoxLayout> Buildings,
+    IReadOnlyCollection<ScenePropLayout> Props,
+    IReadOnlyCollection<SceneBuildingLayout> Buildings,
     IReadOnlyCollection<SceneConnectorLayout> Connectors,
     IReadOnlyCollection<SceneCreatureLayout> Creatures
 );

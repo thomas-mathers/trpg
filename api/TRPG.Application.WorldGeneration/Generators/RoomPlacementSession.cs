@@ -2,9 +2,9 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
 
-internal record RoomPropInput(Guid Id, string AssetKey);
+internal record RoomPropInput(Guid Id, PropModel Model);
 
-internal record PlacedProp(Guid Id, string AssetKey, Placement Placement, Footprint Footprint);
+internal record PlacedProp(Guid Id, PropModel Model, Placement Placement, Footprint Footprint);
 
 internal sealed class RoomPlacementSession
 {
@@ -34,7 +34,7 @@ internal sealed class RoomPlacementSession
 
     internal bool TryPlace(RoomPropInput prop)
     {
-        var spec = PropFootprintCatalog.Get(prop.AssetKey);
+        var spec = PropFootprintCatalog.Get(prop.Model);
 
         foreach (var rule in RuleChain(spec.Rule))
         {
@@ -58,7 +58,7 @@ internal sealed class RoomPlacementSession
             return;
         }
 
-        var spec = PropFootprintCatalog.Get(prop.AssetKey);
+        var spec = PropFootprintCatalog.Get(prop.Model);
         Commit(prop, spec, FirstUnobstructedPose(spec));
     }
 
@@ -239,7 +239,7 @@ internal sealed class RoomPlacementSession
 
     private void Commit(RoomPropInput prop, PropFootprintSpec spec, Placement pose)
     {
-        var placed = new PlacedProp(prop.Id, prop.AssetKey, pose, spec.Footprint);
+        var placed = new PlacedProp(prop.Id, prop.Model, pose, spec.Footprint);
         _placed.Add(placed);
         _obstacles.Add(
             new Obstacle(
@@ -252,7 +252,7 @@ internal sealed class RoomPlacementSession
             }
         );
 
-        if (prop.AssetKey.StartsWith("prop.workstation.", StringComparison.Ordinal))
+        if (IsWorkstation(prop.Model))
         {
             _workstations.Add(placed);
         }
@@ -262,6 +262,9 @@ internal sealed class RoomPlacementSession
             _anchoredCount++;
         }
     }
+
+    private static bool IsWorkstation(PropModel model) =>
+        model.ToString().StartsWith(nameof(Workstation), StringComparison.Ordinal);
 
     private Placement FirstUnobstructedPose(PropFootprintSpec spec)
     {

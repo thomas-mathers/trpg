@@ -67,7 +67,7 @@ internal static class ExteriorLayoutPass
         var seats = props
             .Select(prop => new DistrictSeatInput(
                 prop.Id,
-                PropFootprintCatalog.Get(AssetKeyResolver.Resolve(prop)).Footprint
+                PropFootprintCatalog.Get(PropModelResolver.Resolve(prop)).Footprint
             ))
             .ToArray();
 

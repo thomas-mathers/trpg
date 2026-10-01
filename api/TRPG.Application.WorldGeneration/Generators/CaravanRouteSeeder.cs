@@ -78,7 +78,7 @@ public static class CaravanRouteSeeder
             Name = "Caravan Schedule",
             Description = "A wooden signpost listing caravan arrival times.",
         };
-        var footprint = PropFootprintCatalog.Get(AssetKeyResolver.Resolve(sign)).Footprint;
+        var footprint = PropFootprintCatalog.Get(PropModelResolver.Resolve(sign)).Footprint;
         var location = layoutContext.LocationById[locationId];
         var preferred = new Placement(location.Width * 2 / 3, location.Depth / 2, 0);
         var placement = CreaturePlacementResolver.PlaceAt(

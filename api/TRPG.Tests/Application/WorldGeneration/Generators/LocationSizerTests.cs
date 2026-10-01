@@ -5,14 +5,14 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
 public class LocationSizerTests
 {
-    private static readonly string[] BedKeys = ["prop.bed.basic"];
+    private static readonly PropModel[] BedModels = [PropModel.Bed];
 
     private static RoomSizingRequest Request(
         BuildingType buildingType = BuildingType.House,
         RoomRole? role = null,
-        IReadOnlyCollection<string>? propAssetKeys = null,
+        IReadOnlyCollection<PropModel>? propModels = null,
         int capacity = 1
-    ) => new(buildingType, role, propAssetKeys ?? BedKeys, capacity);
+    ) => new(buildingType, role, propModels ?? BedModels, capacity);
 
     private static bool IsOnGrid(double value) =>
         Math.Abs(value / LocationSizer.GridSize - Math.Round(value / LocationSizer.GridSize))
@@ -22,7 +22,7 @@ public class LocationSizerTests
     public void SizeRoom_ReturnsAtLeastTheCatalogMinimumArea_WhenThereAreNoProps()
     {
         // Arrange
-        var request = Request(propAssetKeys: [], capacity: 0);
+        var request = Request(propModels: [], capacity: 0);
 
         // Act
         var footprint = LocationSizer.SizeRoom(request, new Random(1));
@@ -39,7 +39,7 @@ public class LocationSizerTests
     {
         // Arrange
         var request = Request(
-            propAssetKeys: Enumerable.Repeat("prop.bed.basic", 40).ToArray(),
+            propModels: Enumerable.Repeat(PropModel.Bed, 40).ToArray(),
             capacity: 30
         );
 
@@ -57,10 +57,10 @@ public class LocationSizerTests
     public void SizeRoom_GrowsWithPropFootprints_WhenAboveTheMinimum()
     {
         // Arrange
-        var small = Request(buildingType: BuildingType.Inn, propAssetKeys: ["prop.bed.basic"]);
+        var small = Request(buildingType: BuildingType.Inn, propModels: [PropModel.Bed]);
         var large = Request(
             buildingType: BuildingType.Inn,
-            propAssetKeys: Enumerable.Repeat("prop.bed.basic", 10).ToArray()
+            propModels: Enumerable.Repeat(PropModel.Bed, 10).ToArray()
         );
 
         // Act
@@ -106,7 +106,7 @@ public class LocationSizerTests
         var request = Request(
             buildingType: BuildingType.Crypt,
             role: RoomRole.BossChamber,
-            propAssetKeys: []
+            propModels: []
         );
 
         // Act

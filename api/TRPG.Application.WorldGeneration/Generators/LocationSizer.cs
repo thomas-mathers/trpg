@@ -5,7 +5,7 @@ namespace TRPG.Application.WorldGeneration.Generators;
 internal record RoomSizingRequest(
     BuildingType BuildingType,
     RoomRole? Role,
-    IReadOnlyCollection<string> PropAssetKeys,
+    IReadOnlyCollection<PropModel> PropModels,
     int Capacity
 );
 
@@ -28,8 +28,8 @@ internal static class LocationSizer
     internal static Footprint SizeRoom(RoomSizingRequest request, Random random)
     {
         var limits = RoomSizeCatalog.Get(request.BuildingType, request.Role);
-        var propArea = request.PropAssetKeys.Sum(key =>
-            PropFootprintCatalog.Get(key).Footprint.Area()
+        var propArea = request.PropModels.Sum(model =>
+            PropFootprintCatalog.Get(model).Footprint.Area()
         );
         var area = Math.Max(
             limits.MinimumArea,

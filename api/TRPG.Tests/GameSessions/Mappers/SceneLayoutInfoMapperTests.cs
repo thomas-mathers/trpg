@@ -2,6 +2,10 @@ using TRPG.Application.Scenes.Results;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Mappers;
 using TRPG.GameSessions.Responses;
+using DataBuildingType = TRPG.Domain.Models.BuildingType;
+using DataPropModel = TRPG.Domain.Models.PropModel;
+using WireBuildingType = TRPG.GameSessions.Responses.BuildingType;
+using WirePropModel = TRPG.GameSessions.Responses.PropModel;
 
 namespace TRPG.Tests.GameSessions.Mappers;
 
@@ -18,8 +22,22 @@ public sealed class SceneLayoutInfoMapperTests
         var creatureId = Guid.NewGuid();
         var layout = new SceneLayoutInfo(
             new Footprint(40, 30),
-            [new SceneBoxLayout(propId, new Placement(1, 2, 0.5), new Footprint(2, 1))],
-            [new SceneBoxLayout(buildingId, new Placement(20, 8, 1), new Footprint(6, 4))],
+            [
+                new ScenePropLayout(
+                    propId,
+                    DataPropModel.ContainerChest,
+                    new Placement(1, 2, 0.5),
+                    new Footprint(2, 1)
+                ),
+            ],
+            [
+                new SceneBuildingLayout(
+                    buildingId,
+                    DataBuildingType.Tavern,
+                    new Placement(20, 8, 1),
+                    new Footprint(6, 4)
+                ),
+            ],
             [new SceneConnectorLayout(connectorId, destinationId, ExitX: 39, ExitY: 15)],
             [new SceneCreatureLayout(creatureId, new Placement(5, 6, 1.5))]
         );
@@ -30,8 +48,22 @@ public sealed class SceneLayoutInfoMapperTests
         // Assert
         var expected = new LocationLayoutWire(
             new FootprintWire(40, 30),
-            [new BoxLayoutWire(propId, new PlacementWire(1, 2, 0.5), new FootprintWire(2, 1))],
-            [new BoxLayoutWire(buildingId, new PlacementWire(20, 8, 1), new FootprintWire(6, 4))],
+            [
+                new PropLayoutWire(
+                    propId,
+                    WirePropModel.ContainerChest,
+                    new PlacementWire(1, 2, 0.5),
+                    new FootprintWire(2, 1)
+                ),
+            ],
+            [
+                new BuildingLayoutWire(
+                    buildingId,
+                    WireBuildingType.Tavern,
+                    new PlacementWire(20, 8, 1),
+                    new FootprintWire(6, 4)
+                ),
+            ],
             [new ConnectorLayoutWire(connectorId, destinationId, ExitX: 39, ExitY: 15)],
             [new CreatureLayoutWire(creatureId, new PlacementWire(5, 6, 1.5))]
         );

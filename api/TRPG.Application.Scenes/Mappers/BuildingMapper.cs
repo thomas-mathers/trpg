@@ -5,9 +5,10 @@ namespace TRPG.Application.Scenes.Mappers;
 
 internal static class BuildingMapper
 {
-    public static SceneBoxLayout ToLayout(this Building building) =>
+    public static SceneBuildingLayout ToLayout(this Building building) =>
         new(
             building.Id,
+            building.BuildingType,
             new Placement(building.X, building.Y, building.Angle),
             new Footprint(building.Width, building.Depth)
         );

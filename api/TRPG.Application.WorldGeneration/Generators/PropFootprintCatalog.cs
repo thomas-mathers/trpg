@@ -23,207 +23,202 @@ internal record PropFootprintSpec(
 
 internal static class PropFootprintCatalog
 {
-    private static readonly Dictionary<string, PropFootprintSpec> Specs = new()
+    private static readonly Dictionary<PropModel, PropFootprintSpec> Specs = new()
     {
-        ["prop.bed.basic"] = new(
+        [PropModel.Bed] = new(
             Width: 1.0,
             Depth: 2.0,
             PropPlacementRule.Corner,
             FrontClearance: 0.6
         ),
-        ["prop.cell.basic"] = new(
+        [PropModel.Cell] = new(
             Width: 2.0,
             Depth: 2.0,
             PropPlacementRule.Corner,
             FrontClearance: 0.8
         ),
-        ["prop.sign.basic"] = new(
-            Width: 0.5,
-            Depth: 0.2,
-            PropPlacementRule.Wall,
-            FrontClearance: 0.5
-        ),
-        ["prop.container.basic"] = new(
+        [PropModel.Sign] = new(Width: 0.5, Depth: 0.2, PropPlacementRule.Wall, FrontClearance: 0.5),
+        [PropModel.ContainerBasic] = new(
             Width: 0.8,
             Depth: 0.6,
             PropPlacementRule.Wall,
             FrontClearance: 0.6
         ),
-        ["prop.container.barrel"] = new(
+        [PropModel.ContainerBarrel] = new(
             Width: 0.6,
             Depth: 0.6,
             PropPlacementRule.Wall,
             FrontClearance: 0.3
         ),
-        ["prop.container.chest"] = new(
+        [PropModel.ContainerChest] = new(
             Width: 0.9,
             Depth: 0.6,
             PropPlacementRule.Wall,
             FrontClearance: 0.6
         ),
-        ["prop.container.crate"] = new(
+        [PropModel.ContainerCrate] = new(
             Width: 0.7,
             Depth: 0.7,
             PropPlacementRule.Wall,
             FrontClearance: 0.3
         ),
-        ["prop.container.footlocker"] = new(
+        [PropModel.ContainerFootlocker] = new(
             Width: 0.9,
             Depth: 0.5,
             PropPlacementRule.Wall,
             FrontClearance: 0.3
         ),
-        ["prop.container.strongbox"] = new(
+        [PropModel.ContainerStrongbox] = new(
             Width: 0.8,
             Depth: 0.5,
             PropPlacementRule.Wall,
             FrontClearance: 0.6
         ),
-        ["prop.container.weapon_rack"] = new(
+        [PropModel.ContainerWeaponRack] = new(
             Width: 1.2,
             Depth: 0.4,
             PropPlacementRule.Wall,
             FrontClearance: 0.6
         ),
-        ["prop.seat.basic"] = new(
+        [PropModel.SeatBasic] = new(
             Width: 0.5,
             Depth: 0.5,
             PropPlacementRule.Anchor,
             FrontClearance: 0.3
         ),
-        ["prop.seat.chair"] = new(
+        [PropModel.SeatChair] = new(
             Width: 0.5,
             Depth: 0.5,
             PropPlacementRule.Anchor,
             FrontClearance: 0.3
         ),
-        ["prop.seat.pew"] = new(
+        [PropModel.SeatPew] = new(
             Width: 2.0,
             Depth: 0.6,
             PropPlacementRule.Center,
             FrontClearance: 0.5
         ),
-        ["prop.seat.throne"] = new(
+        [PropModel.SeatThrone] = new(
             Width: 0.9,
             Depth: 0.9,
             PropPlacementRule.Wall,
             FrontClearance: 0.8
         ),
-        ["prop.seat.bench"] = new(
+        [PropModel.SeatBench] = new(
             Width: 1.5,
             Depth: 0.5,
             PropPlacementRule.Wall,
             FrontClearance: 0.4
         ),
-        ["prop.seat.stone_bench"] = new(
+        [PropModel.SeatStoneBench] = new(
             Width: 1.6,
             Depth: 0.6,
             PropPlacementRule.Wall,
             FrontClearance: 0.4
         ),
-        ["prop.seat.low_wall"] = new(
+        [PropModel.SeatLowWall] = new(
             Width: 2.0,
             Depth: 0.4,
             PropPlacementRule.Wall,
             FrontClearance: 0.4
         ),
-        ["prop.trap.mechanical"] = new(
+        [PropModel.TrapMechanical] = new(
             Width: 1.5,
             Depth: 1.5,
             PropPlacementRule.Center,
             FrontClearance: 0.0
         ),
-        ["prop.trap.collapse"] = new(
+        [PropModel.TrapCollapse] = new(
             Width: 1.5,
             Depth: 1.5,
             PropPlacementRule.Center,
             FrontClearance: 0.0
         ),
-        ["prop.trap.slope"] = new(
+        [PropModel.TrapSlope] = new(
             Width: 1.5,
             Depth: 1.5,
             PropPlacementRule.Center,
             FrontClearance: 0.0
         ),
-        ["prop.trap.water"] = new(
+        [PropModel.TrapWater] = new(
             Width: 1.5,
             Depth: 1.5,
             PropPlacementRule.Center,
             FrontClearance: 0.0
         ),
-        ["prop.trigger.basic"] = new(
+        [PropModel.TriggerBasic] = new(
             Width: 0.4,
             Depth: 0.4,
             PropPlacementRule.Wall,
             FrontClearance: 0.5
         ),
-        ["prop.trigger.lever"] = new(
+        [PropModel.TriggerLever] = new(
             Width: 0.3,
             Depth: 0.3,
             PropPlacementRule.Wall,
             FrontClearance: 0.5
         ),
-        ["prop.workstation.alchemy"] = new(
+        [PropModel.WorkstationAlchemy] = new(
             Width: 1.4,
             Depth: 0.8,
             PropPlacementRule.Wall,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.armorsmithing"] = new(
+        [PropModel.WorkstationArmorsmithing] = new(
             Width: 0.8,
             Depth: 0.8,
             PropPlacementRule.Center,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.carpentry"] = new(
+        [PropModel.WorkstationCarpentry] = new(
             Width: 1.6,
             Depth: 0.8,
             PropPlacementRule.Wall,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.cooking"] = new(
+        [PropModel.WorkstationCooking] = new(
             Width: 1.4,
             Depth: 0.8,
             PropPlacementRule.Wall,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.enchanting"] = new(
+        [PropModel.WorkstationEnchanting] = new(
             Width: 1.2,
             Depth: 1.2,
             PropPlacementRule.Center,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.jewelcrafting"] = new(
+        [PropModel.WorkstationJewelcrafting] = new(
             Width: 1.2,
             Depth: 0.7,
             PropPlacementRule.Wall,
             FrontClearance: 0.6
         ),
-        ["prop.workstation.prayer"] = new(
+        [PropModel.WorkstationPrayer] = new(
             Width: 1.2,
             Depth: 0.8,
             PropPlacementRule.Wall,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.reading"] = new(
+        [PropModel.WorkstationReading] = new(
             Width: 1.0,
             Depth: 0.7,
             PropPlacementRule.Wall,
             FrontClearance: 0.6
         ),
-        ["prop.workstation.tailoring"] = new(
+        [PropModel.WorkstationTailoring] = new(
             Width: 1.4,
             Depth: 0.8,
             PropPlacementRule.Wall,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.trade"] = new(
+        [PropModel.WorkstationTrade] = new(
             Width: 1.8,
             Depth: 0.8,
             PropPlacementRule.Center,
             FrontClearance: 0.8
         ),
-        ["prop.workstation.weaponsmithing"] = new(
+        [PropModel.WorkstationWeaponsmithing] = new(
             Width: 1.4,
             Depth: 1.2,
             PropPlacementRule.Wall,
@@ -231,12 +226,10 @@ internal static class PropFootprintCatalog
         ),
     };
 
-    internal static IReadOnlyCollection<string> Keys => Specs.Keys;
+    internal static IReadOnlyCollection<PropModel> Models => Specs.Keys;
 
-    internal static bool Contains(string assetKey) => Specs.ContainsKey(assetKey);
-
-    internal static PropFootprintSpec Get(string assetKey) =>
-        Specs.TryGetValue(assetKey, out var spec)
+    internal static PropFootprintSpec Get(PropModel model) =>
+        Specs.TryGetValue(model, out var spec)
             ? spec
-            : throw new InvalidOperationException($"No footprint is cataloged for '{assetKey}'.");
+            : throw new InvalidOperationException($"No footprint is cataloged for {model}.");
 }

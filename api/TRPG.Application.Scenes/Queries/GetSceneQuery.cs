@@ -33,8 +33,8 @@ internal record SceneLocationData(
     string? RegionDescription,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
-    IReadOnlyCollection<SceneBoxLayout> PropLayouts,
-    IReadOnlyCollection<SceneBoxLayout> BuildingLayouts
+    IReadOnlyCollection<ScenePropLayout> PropLayouts,
+    IReadOnlyCollection<SceneBuildingLayout> BuildingLayouts
 );
 
 internal class GetSceneQueryHandler(

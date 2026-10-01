@@ -30,7 +30,7 @@ Working rules for every milestone:
 
 - [x] S01 Domain value types, columns, migration
 - [x] S02 Oriented box geometry
-- [x] S03 Footprint catalogs and asset keys
+- [x] S03 Footprint catalogs and prop models
 - [x] S04 Location sizing
 - [x] S05 District and building layout
 - [x] S06 Connector points
@@ -49,7 +49,7 @@ Frame and units:
 - Meters as `double`, snapped to a 0.25 m grid. X east, Y south, Angle in radians with 0 facing north, rotation about the rect center. `Placement` X and Y are the rect center, and Width runs along the box's local X axis. Defined once on `Placement`.
 - Each `Location` has a size only (`Width` x `Depth`). No parent rects, no world offsets. Locations are axis-aligned; props may be rotated.
 - `Placement(X, Y, Angle)`, `Footprint(Width, Depth)`. A prop rect is a placement plus a footprint. Columns are plain non-null doubles defaulting to 0 (existing worlds are ignored; the jsonb default bug does not apply to scalars).
-- The server never sends geometry: only sizes, rects, asset keys, connector points, and creature poses. The client builds walls and scenery.
+- The server never sends geometry: only sizes, rects, prop models and building types (enums), connector points, and creature poses. The client builds walls and scenery.
 
 Sizing:
 
@@ -62,7 +62,7 @@ Sizing:
 Placement:
 
 - Building boxes are packed in one row per side of an east-west street 6 m wide, 3 m gaps, largest first, balanced between sides, doors facing the street (a building faces its door side, so the north row is at angle pi and the south row at angle 0). The district widens to fit the longer row. Seats line the street edges facing the street.
-- Props: asset key (subtype plus discriminator, for example `prop.workstation.alchemy`) maps to footprint, rule (`Corner`, `Wall`, `Anchor`, `Center`, `Free`), and front clearance. Process in rule order, largest first. Wall and corner props are flush (0.05 m inset) at 0/90/180/270 facing inward. Anchor seats ring the workstation facing it. Center and free props use 50 rejection-sampling tries with a 1 m margin; free angles are multiples of 15 degrees. Accept only if all corners are in bounds and there is no oriented-box overlap (separating axis) with placed rects inflated by front clearance or with door keep-outs. If a prop fails to fit, grow the room 10% and rerun, up to 3 times.
+- Props: `PropModel` (subtype plus discriminator, for example `WorkstationAlchemy`) maps to footprint, rule (`Corner`, `Wall`, `Anchor`, `Center`, `Free`), and front clearance. Process in rule order, largest first. Wall and corner props are flush (0.05 m inset) at 0/90/180/270 facing inward. Anchor seats ring the workstation facing it. Center and free props use 50 rejection-sampling tries with a 1 m margin; free angles are multiples of 15 degrees. Accept only if all corners are in bounds and there is no oriented-box overlap (separating axis) with placed rects inflated by front clearance or with door keep-outs. If a prop fails to fit, grow the room 10% and rerun, up to 3 times.
 - Doors: one per room on the south wall center, 1.5 m keep-out in front. Hallway: front door at the south end, staircase at the north end, room doors alternating east and west walls at 1.5 m spacing. Single-room floors: front door south, stairs in the NE corner.
 - Connector points: compass connectors exit at the edge center for the `CompassDirection` (evenly spaced by destination id when sharing an edge). Arrival is the reverse connector's exit moved 1 m inward, facing inward. Wilderness exits sit on the edge at the bearing toward the neighbor state's center, spread when within 6 m. Building front door arrival is just inside the entrance room's south door, facing north.
 
@@ -104,12 +104,12 @@ Verification:
 
 - [x] Tests: axis-aligned and rotated overlap, touching edges, margin inflation, containment at bounds, 90 degree symmetry.
 
-### [x] S03 Footprint catalogs and asset keys
+### [x] S03 Footprint catalogs and prop models
 
 Scope:
 
-- [x] Add `AssetKeyResolver` (prop to key, per-subtype fallback).
-- [x] Add `PropFootprintCatalog` (key to footprint, rule, front clearance).
+- [x] Add `PropModelResolver` (prop to `PropModel`, per-subtype fallback).
+- [x] Add `PropFootprintCatalog` (`PropModel` to footprint, rule, front clearance).
 - [x] Add `RoomSizeCatalog` and `BuildingFootprintCatalog`.
 - [x] Add the wilderness size constant.
 
@@ -206,7 +206,7 @@ Verification:
 Scope:
 
 - [x] Read `SceneResult`, the snapshot mapper, and `SceneSemanticComparer` first.
-- [x] Add `PlacementWire`, `FootprintWire`, and `LocationLayoutWire` (plus box, connector, and creature layout wires) in the host `Responses/LocationLayoutWire.cs`; there is no `TRPG.Contracts` project.
+- [x] Add `PlacementWire`, `FootprintWire`, and `LocationLayoutWire` (plus prop, building, connector, and creature layout wires; props carry a `PropModel`, buildings a `BuildingType`) in the host `Responses/LocationLayoutWire.cs`; there is no `TRPG.Contracts` project.
 - [x] Add application result types, host mappers, and a `Layout` field on the scene snapshot, filtering hidden traps and triggers. Exits also carry a `ConnectorId` to match connector layouts.
 - [x] Decide and implement whether pose changes count in `SceneSemanticComparer`. They do: a moved creature or a new arrival point is player-visible.
 

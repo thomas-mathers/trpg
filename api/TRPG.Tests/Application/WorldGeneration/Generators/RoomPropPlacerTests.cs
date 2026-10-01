@@ -9,21 +9,21 @@ public class RoomPropPlacerTests
 
     private static readonly Footprint Room = new(Width: 12, Depth: 10);
 
-    private static readonly string[] MixedAssetKeys =
+    private static readonly PropModel[] MixedModels =
     [
-        "prop.bed.basic",
-        "prop.container.chest",
-        "prop.container.barrel",
-        "prop.workstation.cooking",
-        "prop.workstation.trade",
-        "prop.seat.chair",
-        "prop.seat.chair",
-        "prop.trigger.lever",
-        "prop.sign.basic",
+        PropModel.Bed,
+        PropModel.ContainerChest,
+        PropModel.ContainerBarrel,
+        PropModel.WorkstationCooking,
+        PropModel.WorkstationTrade,
+        PropModel.SeatChair,
+        PropModel.SeatChair,
+        PropModel.TriggerLever,
+        PropModel.Sign,
     ];
 
-    private static RoomPropInput[] Props(params string[] assetKeys) =>
-        assetKeys.Select(key => new RoomPropInput(Guid.NewGuid(), key)).ToArray();
+    private static RoomPropInput[] Props(params PropModel[] models) =>
+        models.Select(model => new RoomPropInput(Guid.NewGuid(), model)).ToArray();
 
     private static ConnectorExitRequest[] Doors() =>
         [
@@ -35,7 +35,7 @@ public class RoomPropPlacerTests
         ];
 
     private static RoomPlacementResult PlaceMixed(int seed, ConnectorExitRequest[] doors) =>
-        RoomPropPlacer.Place(Room, Props(MixedAssetKeys), doors, new Random(seed));
+        RoomPropPlacer.Place(Room, Props(MixedModels), doors, new Random(seed));
 
     private static OrientedBox BoxOf(PlacedProp prop) =>
         OrientedBox.From(prop.Placement, prop.Footprint);
@@ -59,7 +59,7 @@ public class RoomPropPlacerTests
         var result = PlaceMixed(seed, Doors());
 
         // Assert
-        Assert.Equal(MixedAssetKeys.Length, result.Props.Count);
+        Assert.Equal(MixedModels.Length, result.Props.Count);
         Assert.All(
             result.Props,
             prop => Assert.True(BoxOf(prop).IsInside(result.Room.Width, result.Room.Depth))
@@ -101,7 +101,7 @@ public class RoomPropPlacerTests
     public void Place_FacesASeatTowardItsWorkstation()
     {
         // Arrange
-        var props = Props("prop.workstation.cooking", "prop.seat.chair");
+        var props = Props(PropModel.WorkstationCooking, PropModel.SeatChair);
 
         // Act
         var result = RoomPropPlacer.Place(Room, props, [], new Random(7));
@@ -124,7 +124,7 @@ public class RoomPropPlacerTests
     public void Place_PutsABedInACorner()
     {
         // Arrange
-        var props = Props("prop.bed.basic");
+        var props = Props(PropModel.Bed);
 
         // Act
         var result = RoomPropPlacer.Place(Room, props, [], new Random(5));
@@ -152,7 +152,7 @@ public class RoomPropPlacerTests
     public void Place_ReturnsTheSamePlacement_ForTheSameSeed()
     {
         // Arrange
-        var props = Props(MixedAssetKeys);
+        var props = Props(MixedModels);
         var doors = Doors();
 
         // Act
@@ -171,8 +171,8 @@ public class RoomPropPlacerTests
         var tiny = new Footprint(Width: 3, Depth: 3);
         var props = Props(
             Enumerable
-                .Repeat("prop.workstation.armorsmithing", 3)
-                .Concat(Enumerable.Repeat("prop.container.chest", 8))
+                .Repeat(PropModel.WorkstationArmorsmithing, 3)
+                .Concat(Enumerable.Repeat(PropModel.ContainerChest, 8))
                 .ToArray()
         );
 
@@ -190,7 +190,7 @@ public class RoomPropPlacerTests
     {
         // Arrange
         var tiny = new Footprint(Width: 3, Depth: 3);
-        var props = Props(Enumerable.Repeat("prop.container.chest", 8).ToArray());
+        var props = Props(Enumerable.Repeat(PropModel.ContainerChest, 8).ToArray());
         var doors = Doors();
 
         // Act
