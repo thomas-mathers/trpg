@@ -15,13 +15,13 @@ internal sealed class RoomPlacementSession
     private const int SamplingTries = 50;
     private const double FreeAngleStep = Math.PI / 12;
     private const double RelaxedStep = 0.5;
+    private const double Tolerance = 1e-6;
 
     private readonly Footprint _room;
     private readonly Random _random;
     private readonly List<Obstacle> _obstacles;
     private readonly List<PlacedProp> _placed = [];
     private readonly List<PlacedProp> _workstations = [];
-    private int _anchoredCount;
 
     internal RoomPlacementSession(Footprint room, IReadOnlyList<ConnectorExit> exits, Random random)
     {
@@ -135,11 +135,16 @@ internal sealed class RoomPlacementSession
             yield break;
         }
 
-        var target = _workstations[_anchoredCount % _workstations.Count];
+        var preferred = _workstations.OrderBy(workstation =>
+            workstation.Model == PropModel.WorkstationTrade ? 0 : 1
+        );
 
-        for (var side = 0; side < 4; side++)
+        foreach (var target in preferred)
         {
-            yield return new Candidate(PoseBesideTarget(target, side, spec), target);
+            foreach (var pose in FrontRowPoses(target, spec))
+            {
+                yield return new Candidate(pose, target);
+            }
         }
     }
 
@@ -193,27 +198,35 @@ internal sealed class RoomPlacementSession
             _ => new Placement(WallInset + spec.Depth / 2, along, Math.PI / 2),
         };
 
-    private static Placement PoseBesideTarget(PlacedProp target, int side, PropFootprintSpec spec)
+    private static IEnumerable<Placement> FrontRowPoses(PlacedProp target, PropFootprintSpec spec)
     {
         var angle = target.Placement.Angle;
         var forward = new PlanarPoint(Math.Sin(angle), -Math.Cos(angle));
         var right = new PlanarPoint(Math.Cos(angle), Math.Sin(angle));
-        var direction = side switch
-        {
-            0 => forward,
-            1 => right,
-            2 => new PlanarPoint(-right.X, -right.Y),
-            _ => new PlanarPoint(-forward.X, -forward.Y),
-        };
-        var targetHalfExtent =
-            side % 2 == 0 ? target.Footprint.Depth / 2 : target.Footprint.Width / 2;
-        var distance = targetHalfExtent + spec.Depth / 2 + AnchorGap;
+        var distance = target.Footprint.Depth / 2 + spec.Depth / 2 + AnchorGap;
+        var seatAngle = Math.Atan2(-forward.X, forward.Y);
 
-        return new Placement(
-            target.Placement.X + direction.X * distance,
-            target.Placement.Y + direction.Y * distance,
-            Math.Atan2(-direction.X, direction.Y)
-        );
+        foreach (var offset in FrontRowOffsets(target.Footprint.Width / 2, spec))
+        {
+            yield return new Placement(
+                target.Placement.X + forward.X * distance + right.X * offset,
+                target.Placement.Y + forward.Y * distance + right.Y * offset,
+                seatAngle
+            );
+        }
+    }
+
+    private static IEnumerable<double> FrontRowOffsets(double reach, PropFootprintSpec spec)
+    {
+        var spacing = spec.Width + spec.FrontClearance + 2 * AnchorGap;
+
+        yield return 0;
+
+        for (var slot = 1; slot * spacing <= reach + Tolerance; slot++)
+        {
+            yield return -slot * spacing;
+            yield return slot * spacing;
+        }
     }
 
     private bool Fits(Candidate candidate, PropFootprintSpec spec)
@@ -234,7 +247,7 @@ internal sealed class RoomPlacementSession
         }
 
         return !box.Overlaps(obstacle.Raw.Inflated(obstacle.Clearance))
-            && !box.Inflated(clearance).Overlaps(obstacle.Raw);
+            && (!obstacle.IsPlacedProp || !box.Inflated(clearance).Overlaps(obstacle.Raw));
     }
 
     private void Commit(RoomPropInput prop, PropFootprintSpec spec, Placement pose)
@@ -255,11 +268,6 @@ internal sealed class RoomPlacementSession
         if (IsWorkstation(prop.Model))
         {
             _workstations.Add(placed);
-        }
-
-        if (spec.Rule == PropPlacementRule.Anchor)
-        {
-            _anchoredCount++;
         }
     }
 

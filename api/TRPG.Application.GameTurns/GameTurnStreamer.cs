@@ -266,7 +266,6 @@ internal class GameTurnStreamer(
         turnContext.SessionId = session.SessionId;
         turnContext.WorldId = session.WorldId;
         turnContext.PlayerId = session.PlayerId;
-        turnContext.PlayerMoved = false;
 
         await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
 

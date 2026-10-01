@@ -1,4 +1,4 @@
-import { Grid, Html, useGLTF } from '@react-three/drei';
+import { Grid, useGLTF } from '@react-three/drei';
 import { Suspense, useMemo } from 'react';
 
 import type {
@@ -10,7 +10,8 @@ import type {
   PropLayoutWire,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-import { headingToYaw, toScenePosition } from './layout-math';
+import { EntityLabel } from './entity-label';
+import { headingToYaw, type Obstacle, toScenePosition, WALL_HEIGHT } from './layout-math';
 import {
   BUILDING_MODEL_URLS,
   BUILDING_STYLES,
@@ -48,16 +49,19 @@ export function Ground({ size }: { size: FootprintWire }) {
   );
 }
 
-function Label({ text }: { text?: string }) {
-  if (!text) {
-    return null;
-  }
+export function Walls({ walls }: { walls: Obstacle[] }) {
   return (
-    <Html center distanceFactor={10} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-      <span className="rounded bg-black/70 px-1.5 py-0.5 text-xs whitespace-nowrap text-white">
-        {text}
-      </span>
-    </Html>
+    <>
+      {walls.map(({ placement, footprint }) => (
+        <mesh
+          key={`${placement.x}:${placement.y}`}
+          position={toScenePosition(placement.x, placement.y, WALL_HEIGHT / 2)}
+        >
+          <boxGeometry args={[footprint.width, WALL_HEIGHT, footprint.depth]} />
+          <meshStandardMaterial color="#8a7b66" />
+        </mesh>
+      ))}
+    </>
   );
 }
 
@@ -90,19 +94,17 @@ function BoxMesh({ footprint, style }: { footprint: FootprintWire; style: BoxSty
 }
 
 function Box({
-  id,
+  label,
   placement,
   footprint,
   style,
   modelUrl,
-  names,
 }: {
-  id: string;
+  label?: string;
   placement: PlacementWire;
   footprint: FootprintWire;
   style: BoxStyle;
   modelUrl?: string;
-  names: EntityNames;
 }) {
   const { height } = style;
   const fallback = <BoxMesh footprint={footprint} style={style} />;
@@ -120,7 +122,7 @@ function Box({
         fallback
       )}
       <group position={[0, height / 2 + 0.4, 0]}>
-        <Label text={names.get(id)} />
+        <EntityLabel text={label} />
       </group>
     </group>
   );
@@ -140,23 +142,20 @@ export function Boxes({
       {props.map(({ id, model, placement, footprint }) => (
         <Box
           key={id}
-          id={id}
+          label={names.get(id)}
           placement={placement}
           footprint={footprint}
           style={PROP_STYLES[model]}
           modelUrl={PROP_MODEL_URLS[model]}
-          names={names}
         />
       ))}
       {buildings.map(({ id, type, placement, footprint }) => (
         <Box
           key={id}
-          id={id}
           placement={placement}
           footprint={footprint}
           style={BUILDING_STYLES[type]}
           modelUrl={BUILDING_MODEL_URLS[type]}
-          names={names}
         />
       ))}
     </>
@@ -187,7 +186,7 @@ export function Creatures({
               <meshStandardMaterial color="#b9503f" />
             </mesh>
             <group position={[0, CREATURE_HEIGHT / 2 + 0.4, 0]}>
-              <Label text={names.get(id)} />
+              <EntityLabel text={names.get(id)} />
             </group>
           </group>
         ))}
@@ -195,13 +194,7 @@ export function Creatures({
   );
 }
 
-export function Connectors({
-  connectors,
-  names,
-}: {
-  connectors: ConnectorLayoutWire[];
-  names: EntityNames;
-}) {
+export function Connectors({ connectors }: { connectors: ConnectorLayoutWire[] }) {
   return (
     <>
       {connectors.map(({ connectorId, exitX, exitY }) => (
@@ -216,9 +209,6 @@ export function Connectors({
               opacity={0.45}
             />
           </mesh>
-          <group position={[0, CONNECTOR_HEIGHT / 2 + 0.4, 0]}>
-            <Label text={names.get(connectorId)} />
-          </group>
         </group>
       ))}
     </>

@@ -18,7 +18,7 @@ namespace TRPG.Application.GameTurns.Commands;
 public class ResolveMoveDestinationCommand
 {
     public required Guid PlayerId { get; init; }
-    public required string DestinationName { get; init; }
+    public required Guid ConnectorId { get; init; }
     public required GameInstant GameTime { get; init; }
 }
 
@@ -31,7 +31,10 @@ public record ResolveMoveDestinationResult(
 internal class ResolveMoveDestinationCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
-    IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
+    IQueryHandler<
+        GetConnectorsByLocationIdQuery,
+        IReadOnlyCollection<LocationConnector>
+    > getConnectorsByLocationId,
     ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock,
     ICommandHandler<
         ResolveAccessibleConnectorsCommand,
@@ -59,16 +62,13 @@ internal class ResolveMoveDestinationCommandHandler(
             cancellationToken
         );
 
-        var exitMatch = await getExitByDestinationName.Handle(
-            new GetExitByDestinationNameQuery
-            {
-                LocationId = player.LocationId,
-                DestinationName = command.DestinationName,
-            },
+        var connectors = await getConnectorsByLocationId.Handle(
+            new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
+        var connector = connectors.FirstOrDefault(c => c.Id == command.ConnectorId);
 
-        if (!exitMatch.Matched)
+        if (connector == null)
         {
             return new ResolveMoveDestinationResult(
                 currentLocation!.RoomId == null
@@ -78,8 +78,8 @@ internal class ResolveMoveDestinationCommandHandler(
             );
         }
 
-        var destinationLocationId = exitMatch.DestinationLocationId!.Value;
-        var connectorId = exitMatch.ConnectorId!.Value;
+        var destinationLocationId = connector.DestinationLocationId;
+        var connectorId = connector.Id;
 
         var currentDate = GameClock.GetCurrentInGameDate(command.GameTime);
 

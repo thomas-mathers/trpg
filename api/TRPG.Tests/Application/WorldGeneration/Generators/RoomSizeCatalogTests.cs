@@ -34,6 +34,16 @@ public class RoomSizeCatalogTests
     }
 
     [Fact]
+    public void Get_ReturnsRoomyTavernMinimum()
+    {
+        // Act
+        var limits = RoomSizeCatalog.Get(BuildingType.Tavern, null);
+
+        // Assert
+        Assert.Equal(60, limits.MinimumArea);
+    }
+
+    [Fact]
     public void Get_PrefersTheRoomRole_WhenOneIsGiven()
     {
         // Act

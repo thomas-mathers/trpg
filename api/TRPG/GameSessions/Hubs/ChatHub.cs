@@ -45,6 +45,7 @@ public interface IChatHub
     );
     IAsyncEnumerable<string> SendDeclineCaravanTicket(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendBoardCaravan(Guid caravanId, CancellationToken cancellationToken);
+    IAsyncEnumerable<string> SendMove(Guid connectorId, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendRespawn(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendCastAbility(
@@ -212,6 +213,11 @@ internal sealed class ChatHub(
         Guid caravanId,
         CancellationToken cancellationToken
     ) => gameTurnRunner.StreamBoardCaravan(Session, caravanId, cancellationToken);
+
+    public IAsyncEnumerable<string> SendMove(
+        Guid connectorId,
+        CancellationToken cancellationToken
+    ) => gameTurnRunner.StreamMove(Session, connectorId, cancellationToken);
 
     public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
         gameTurnRunner.StreamFlee(Session, cancellationToken);

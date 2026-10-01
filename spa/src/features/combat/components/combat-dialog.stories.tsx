@@ -312,6 +312,7 @@ function WorkbenchProviders({
     sendPurchaseCaravanTicket: noopStream,
     sendDeclineCaravanTicket: noopStream,
     sendBoardCaravan: noopStream,
+    sendMove: noopStream,
     sendFlee: resolveFlee,
     sendRespawn: noopStream,
     resolveUseAbilityCombatAction: (targetId, abilityName) =>

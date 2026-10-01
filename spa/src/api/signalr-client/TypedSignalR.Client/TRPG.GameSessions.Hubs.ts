@@ -99,6 +99,12 @@ export type IChatHub = {
     */
     sendBoardCaravan(caravanId: string): IStreamResult<string>;
     /**
+    * @param connectorId Transpiled from System.Guid
+    * @param cancellationToken Transpiled from System.Threading.CancellationToken
+    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    */
+    sendMove(connectorId: string): IStreamResult<string>;
+    /**
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
     */

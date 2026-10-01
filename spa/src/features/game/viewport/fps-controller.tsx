@@ -3,16 +3,20 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 
 import type {
+  ConnectorLayoutWire,
   FootprintWire,
   PlacementWire,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import {
   EYE_HEIGHT,
+  type Obstacle,
   WALK_SPEED,
   clampToBounds,
   computeMovement,
+  findConnectorInRange,
   headingToYaw,
+  pushOutOfObstacles,
   toScenePosition,
   yawToHeading,
 } from './layout-math';
@@ -23,21 +27,44 @@ const FORWARD_KEYS = ['KeyW', 'ArrowUp'];
 const BACKWARD_KEYS = ['KeyS', 'ArrowDown'];
 const LEFT_KEYS = ['KeyA', 'ArrowLeft'];
 const RIGHT_KEYS = ['KeyD', 'ArrowRight'];
+const INTERACT_KEY = 'KeyE';
+const CHAT_KEY = 'Enter';
 
 interface FpsControllerProps {
   size: FootprintWire;
   start: PlacementWire;
+  obstacles: Obstacle[];
+  connectors: ConnectorLayoutWire[];
   lockSelector: string;
   onLockChange: (locked: boolean) => void;
+  onNearbyConnectorChange: (connector: ConnectorLayoutWire | undefined) => void;
+  onEnterConnector: (connector: ConnectorLayoutWire) => void;
+  onChatRequested: () => void;
 }
 
 const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
   Number(positive.some((key) => keys.has(key))) - Number(negative.some((key) => keys.has(key)));
 
-export function FpsController({ size, start, lockSelector, onLockChange }: FpsControllerProps) {
+export function FpsController({
+  size,
+  start,
+  obstacles,
+  connectors,
+  lockSelector,
+  onLockChange,
+  onNearbyConnectorChange,
+  onEnterConnector,
+  onChatRequested,
+}: FpsControllerProps) {
   const camera = useThree((state) => state.camera);
   const pressed = useRef(new Set<string>());
+  const nearbyConnector = useRef<ConnectorLayoutWire | undefined>(undefined);
+  const handlers = useRef({ onEnterConnector, onChatRequested });
   const { x, y, angle } = start;
+
+  useEffect(() => {
+    handlers.current = { onEnterConnector, onChatRequested };
+  }, [onEnterConnector, onChatRequested]);
 
   useEffect(() => {
     camera.rotation.order = 'YXZ';
@@ -48,9 +75,19 @@ export function FpsController({ size, start, lockSelector, onLockChange }: FpsCo
   useEffect(() => {
     const keys = pressed.current;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (document.pointerLockElement) {
-        keys.add(event.code);
+      if (!document.pointerLockElement) {
+        return;
       }
+      if (event.code === CHAT_KEY) {
+        document.exitPointerLock();
+        handlers.current.onChatRequested();
+        return;
+      }
+      if (event.code === INTERACT_KEY && !event.repeat && nearbyConnector.current) {
+        handlers.current.onEnterConnector(nearbyConnector.current);
+        return;
+      }
+      keys.add(event.code);
     };
     const onKeyUp = (event: KeyboardEvent) => keys.delete(event.code);
 
@@ -71,11 +108,15 @@ export function FpsController({ size, start, lockSelector, onLockChange }: FpsCo
       speed: WALK_SPEED,
       deltaSeconds: Math.min(deltaSeconds, MAX_FRAME_SECONDS),
     });
-    const next = clampToBounds(
-      { x: camera.position.x + delta.x, y: camera.position.z + delta.y },
-      size,
-    );
+    const attempted = { x: camera.position.x + delta.x, y: camera.position.z + delta.y };
+    const next = clampToBounds(pushOutOfObstacles(attempted, obstacles), size);
     camera.position.set(next.x, EYE_HEIGHT, next.y);
+
+    const nearest = findConnectorInRange(next, connectors);
+    if (nearest?.connectorId !== nearbyConnector.current?.connectorId) {
+      nearbyConnector.current = nearest;
+      onNearbyConnectorChange(nearest);
+    }
   });
 
   return (

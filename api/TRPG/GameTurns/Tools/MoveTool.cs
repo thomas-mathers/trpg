@@ -3,10 +3,13 @@ using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Results;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 using TRPG.GameTurns.Mappers;
 using TRPG.Tools;
@@ -58,6 +61,8 @@ internal record MoveToolResult(
 
 internal class MoveTool(
     GameTurnContext turnContext,
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<GetExitByDestinationNameQuery, ExitMatch> getExitByDestinationName,
     ICommandHandler<ExecutePlayerMoveCommand, ExecutePlayerMoveResult> executePlayerMove,
     ILogger<MoveTool> logger
 ) : IGameTool
@@ -79,13 +84,27 @@ internal class MoveTool(
         logger.LogInformation("[move] destinationName={DestinationName}", destinationName);
         var stopwatch = Stopwatch.StartNew();
 
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = turnContext.PlayerId },
+            cancellationToken
+        );
+        var exitMatch = await getExitByDestinationName.Handle(
+            new GetExitByDestinationNameQuery
+            {
+                LocationId = player!.LocationId,
+                DestinationName = destinationName,
+            },
+            cancellationToken
+        );
+
         var moveResult = await executePlayerMove.Handle(
             new ExecutePlayerMoveCommand
             {
                 SessionId = turnContext.SessionId,
                 WorldId = turnContext.WorldId,
                 PlayerId = turnContext.PlayerId,
-                DestinationName = destinationName,
+                // An unmatched name has no connector, which the command rejects
+                ConnectorId = exitMatch.ConnectorId ?? Guid.Empty,
             },
             cancellationToken
         );

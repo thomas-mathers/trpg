@@ -9,10 +9,22 @@ namespace TRPG.Application.GameTurns;
 // about, so it furnishes one: an escape route that does not exist, a guard in an empty cell.
 internal static class RelocationFacts
 {
-    public static string Describe(SceneResult scene)
+    public static string Describe(SceneResult scene) =>
+        $"The player is now in {Place(scene)}, without having looked or moved to get here.\n{Observation(scene)}";
+
+    // A walk the player made on their own is never narrated, so the model only learns of it here.
+    public static string DescribeArrival(SceneResult scene) =>
+        $"The player walked to {Place(scene)} on their own, so nothing has been narrated yet.\n{Observation(scene)}";
+
+    private static string Place(SceneResult scene)
     {
         var place = scene.Room?.Name ?? scene.District?.Name ?? scene.State?.Name ?? "somewhere";
         var building = scene.Building == null ? "" : $" in {scene.Building.Name}";
+        return $"{place}{building}";
+    }
+
+    private static string Observation(SceneResult scene)
+    {
         var others = scene.NearbyCreatures.Select(creature => creature.Name).ToArray();
         var company =
             others.Length == 0
@@ -22,7 +34,6 @@ internal static class RelocationFacts
         var payload = JsonSerializer.Serialize(scene.ToLlmScene(), TrpgJsonOptions.Default);
 
         return $"""
-            The player is now in {place}{building}, without having looked or moved to get here.
             This is what they can observe, in the same shape the look tool returns:
             {payload}
             {company} Describe nobody else as present, and never invent someone arriving to

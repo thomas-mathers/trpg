@@ -2,6 +2,8 @@ import * as React from 'react';
 
 import { Input } from '@/components/ui/input';
 
+export const CHAT_INPUT_ID = 'game-chat-input';
+
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -21,6 +23,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled = false }: ChatI
 
   return (
     <Input
+      id={CHAT_INPUT_ID}
       className="bg-card"
       value={value}
       onChange={(e) => onChange(e.target.value)}
