@@ -174,6 +174,70 @@ public class CreatureLayoutGeneratorTests
         Assert.Empty(buildingOverlaps);
     }
 
+    [Fact]
+    public void PlaceAtArrival_PutsTheCreatureAtTheMatchingConnectorArrivalPoint()
+    {
+        // Arrange
+        var origin = Builders.MakeLocation(width: 20, depth: 20);
+        var room = Builders.MakeLocation(width: 10, depth: 10);
+        var connector = Builders.MakeLocationConnector(
+            origin.Id,
+            room.Id,
+            arrivalX: 2,
+            arrivalY: 7,
+            arrivalAngle: 1.5
+        );
+        var creature = Builders.MakeCreature(locationId: room.Id, previousLocationId: origin.Id);
+
+        // Act
+        CreatureLayoutGenerator.PlaceAtArrival(
+            new CreatureLayoutInput([origin, room], [], [], [connector], [creature])
+        );
+
+        // Assert
+        Assert.Equal((2d, 7d, 1.5), (creature.X, creature.Y, creature.Angle));
+    }
+
+    [Fact]
+    public void PlaceAtArrival_PutsTheCreatureAtTheDefaultArrival_WhenNoConnectorMatches()
+    {
+        // Arrange
+        var room = Builders.MakeLocation(width: 10, depth: 8);
+        var creature = Builders.MakeCreature(locationId: room.Id);
+
+        // Act
+        CreatureLayoutGenerator.PlaceAtArrival(
+            new CreatureLayoutInput([room], [], [], [], [creature])
+        );
+
+        // Assert
+        Assert.Equal((5d, 7d, 0d), (creature.X, creature.Y, creature.Angle));
+    }
+
+    [Fact]
+    public void PlaceAtArrival_MovesTheCreatureOffAProp_WhenTheArrivalPointIsBlocked()
+    {
+        // Arrange
+        var origin = Builders.MakeLocation(width: 20, depth: 20);
+        var room = Builders.MakeLocation(width: 10, depth: 10);
+        var connector = Builders.MakeLocationConnector(
+            origin.Id,
+            room.Id,
+            arrivalX: 5,
+            arrivalY: 5
+        );
+        var crate = Builders.MakeContainer(locationId: room.Id, x: 5, y: 5, width: 2, depth: 2);
+        var creature = Builders.MakeCreature(locationId: room.Id, previousLocationId: origin.Id);
+
+        // Act
+        CreatureLayoutGenerator.PlaceAtArrival(
+            new CreatureLayoutInput([origin, room], [crate], [], [connector], [creature])
+        );
+
+        // Assert
+        Assert.False(PropBox(crate).Overlaps(BodyAt(creature)));
+    }
+
     private static MiniLayoutWorld LaidOutWorld(int iteration)
     {
         var world = MiniLayoutWorldBuilder.BuildWorld(iteration);

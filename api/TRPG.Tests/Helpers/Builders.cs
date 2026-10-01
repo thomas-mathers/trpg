@@ -71,10 +71,16 @@ internal static class Builders
         Guid? worldId = null,
         string name = "Door",
         string description = "A door.",
-        string destinationLabel = "Outside"
+        string destinationLabel = "Outside",
+        double arrivalX = 0,
+        double arrivalY = 0,
+        double arrivalAngle = 0
     ) =>
         new()
         {
+            ArrivalX = arrivalX,
+            ArrivalY = arrivalY,
+            ArrivalAngle = arrivalAngle,
             OriginLocationId = originLocationId,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
@@ -252,7 +258,10 @@ internal static class Builders
         List<PersistedDot>? activeDots = null,
         List<PersistedHot>? activeHots = null,
         List<PersistedBuff>? activeBuffs = null,
-        Guid? id = null
+        Guid? id = null,
+        double x = 0,
+        double y = 0,
+        double angle = 0
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -260,6 +269,9 @@ internal static class Builders
         return new Creature
         {
             Id = id ?? Guid.NewGuid(),
+            X = x,
+            Y = y,
+            Angle = angle,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             CreatureType = creatureType,
@@ -310,9 +322,20 @@ internal static class Builders
         };
     }
 
-    public static Container MakeContainer(Guid? worldId = null, Guid? locationId = null) =>
+    public static Container MakeContainer(
+        Guid? worldId = null,
+        Guid? locationId = null,
+        double x = 0,
+        double y = 0,
+        double width = 0,
+        double depth = 0
+    ) =>
         new()
         {
+            X = x,
+            Y = y,
+            Width = width,
+            Depth = depth,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = $"Container-{Guid.NewGuid():N}",
             Description = "A test container",
@@ -1192,7 +1215,9 @@ internal static class Builders
         Guid? id = null,
         LocationKind? kind = null,
         Guid? coarseAnchorLocationId = null,
-        string? name = null
+        string? name = null,
+        double width = 0,
+        double depth = 0
     )
     {
         var locationId = id ?? Guid.NewGuid();
@@ -1200,6 +1225,8 @@ internal static class Builders
         return new Location
         {
             Id = locationId,
+            Width = width,
+            Depth = depth,
             WorldId = worldId ?? Guid.NewGuid(),
             StateId = stateId ?? Guid.NewGuid(),
             CityId = cityId,

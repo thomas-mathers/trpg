@@ -38,7 +38,7 @@ Working rules for every milestone:
 - [x] S08 Layout post-pass in world generation
 - [x] S09 Creature placement resolver
 - [x] S10 Creature placement at world generation
-- [ ] S11 Creature placement at runtime
+- [x] S11 Creature placement at runtime
 - [ ] S12 Contracts and scene layout
 - [ ] S13 Docs and final verification
 
@@ -189,17 +189,17 @@ Verification:
 
 - [x] Invariant test: after world generation every creature pose lies within its location bounds. Uses the mini-world builder because a full world generation needs an LLM client.
 
-### [ ] S11 Creature placement at runtime
+### [x] S11 Creature placement at runtime
 
 Scope:
 
-- [ ] Add the per-creature pose write to `UpdateCreaturesCommand`'s handler, fed by query handlers in `Worlds` and `Props`.
-- [ ] Cover the six runtime callers and `ResolvePlayerRespawnCommand`.
+- [x] Add the per-creature pose write to `UpdateCreaturesCommand`'s handler, fed by query handlers in `Worlds` and `Props`.
+- [x] Cover the six runtime callers and `ResolvePlayerRespawnCommand`.
 
 Verification:
 
-- [ ] Command-level test: a move writes a pose within bounds; the player lands at the matching arrival point.
-- [ ] Invariant test over each of the six runtime move paths.
+- [x] Command-level test: a move writes a pose within bounds; the player lands at the matching arrival point.
+- [x] Invariant test over each of the six runtime move paths. All six relocate through `UpdateCreaturesCommand`, so the shared handler tests plus the `MovePlayerCommand` test cover them.
 
 ### [ ] S12 Contracts and scene layout
 

@@ -20,6 +20,7 @@ internal sealed class CreatureLayoutContext
     private readonly ILookup<Guid, Prop> _propsByLocation;
     private readonly ILookup<Guid, Building> _buildingsByExterior;
     private readonly ILookup<Guid, LocationConnector> _connectorsByOrigin;
+    private readonly IReadOnlyList<LocationConnector> _connectors;
     private readonly Dictionary<Guid, List<PlacementObstacle>> _creaturesByLocation;
 
     internal CreatureLayoutContext(CreatureLayoutInput input)
@@ -27,6 +28,7 @@ internal sealed class CreatureLayoutContext
         LocationById = input.Locations.ToDictionary(location => location.Id);
         _propsByLocation = input.Props.ToLookup(prop => prop.LocationId);
         _buildingsByExterior = input.Buildings.ToLookup(building => building.ExteriorLocationId);
+        _connectors = input.Connectors;
         _connectorsByOrigin = input.Connectors.ToLookup(connector => connector.OriginLocationId);
         _creaturesByLocation = input
             .AlreadyPlaced.GroupBy(creature => creature.LocationId)
@@ -39,6 +41,20 @@ internal sealed class CreatureLayoutContext
 
     internal PlacementObstacle[] ObstaclesAt(Guid locationId, Guid? excludedPropId)
     {
+        var doors = _connectorsByOrigin[locationId]
+            .Select(connector => new PlacementObstacle(
+                new Placement(connector.ExitX, connector.ExitY, 0),
+                new Footprint(DoorKeepOut, DoorKeepOut)
+            ));
+
+        return [.. SolidsAt(locationId, excludedPropId), .. doors];
+    }
+
+    internal PlacementObstacle[] ArrivalObstaclesAt(Guid locationId) =>
+        SolidsAt(locationId, excludedPropId: null);
+
+    private PlacementObstacle[] SolidsAt(Guid locationId, Guid? excludedPropId)
+    {
         var props = _propsByLocation[locationId]
             .Where(prop => prop.Id != excludedPropId && prop.Width > 0)
             .Select(PropObstacle);
@@ -47,14 +63,21 @@ internal sealed class CreatureLayoutContext
                 new Placement(building.X, building.Y, building.Angle),
                 new Footprint(building.Width, building.Depth)
             ));
-        var doors = _connectorsByOrigin[locationId]
-            .Select(connector => new PlacementObstacle(
-                new Placement(connector.ExitX, connector.ExitY, 0),
-                new Footprint(DoorKeepOut, DoorKeepOut)
-            ));
         var creatures = _creaturesByLocation.GetValueOrDefault(locationId) ?? [];
 
-        return [.. props, .. buildings, .. doors, .. creatures];
+        return [.. props, .. buildings, .. creatures];
+    }
+
+    internal Placement? ArrivalPointFrom(Guid originLocationId, Guid destinationLocationId)
+    {
+        var connector = _connectors.FirstOrDefault(candidate =>
+            candidate.OriginLocationId == originLocationId
+            && candidate.DestinationLocationId == destinationLocationId
+        );
+
+        return connector is null
+            ? null
+            : new Placement(connector.ArrivalX, connector.ArrivalY, connector.ArrivalAngle);
     }
 
     internal void Record(Creature creature)

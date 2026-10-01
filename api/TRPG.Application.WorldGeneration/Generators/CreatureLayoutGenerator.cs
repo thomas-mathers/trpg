@@ -29,6 +29,28 @@ public static class CreatureLayoutGenerator
         }
     }
 
+    public static void PlaceAtArrival(CreatureLayoutInput input)
+    {
+        var context = new CreatureLayoutContext(input);
+
+        foreach (var creature in input.Creatures)
+        {
+            var location = context.LocationById[creature.LocationId];
+            var frame = new Footprint(Width: location.Width, Depth: location.Depth);
+            var arrival = creature.PreviousLocationId is { } previousLocationId
+                ? context.ArrivalPointFrom(previousLocationId, location.Id)
+                : null;
+            var preferred = arrival ?? ConnectorPointResolver.ResolveDefaultArrival(frame);
+            var obstacles = context.ArrivalObstaclesAt(location.Id);
+
+            Apply(
+                creature,
+                CreaturePlacementResolver.PlaceAt(frame, obstacles, preferred),
+                context
+            );
+        }
+    }
+
     private static Placement ResolveNearAnchor(Creature creature, CreatureLayoutContext context)
     {
         var location = context.LocationById[creature.LocationId];

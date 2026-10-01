@@ -15,8 +15,10 @@ public class UpdateCreaturesCommand
     public bool? IsRestrained { get; init; }
 }
 
-internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
-    : ICommandHandler<UpdateCreaturesCommand>
+internal class UpdateCreaturesCommandHandler(
+    ICreaturesDbContext context,
+    ICommandHandler<PlaceCreaturesAtLocationCommand> placeCreaturesAtLocation
+) : ICommandHandler<UpdateCreaturesCommand>
 {
     public async Task Handle(
         UpdateCreaturesCommand command,
@@ -41,6 +43,15 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
         var hasLastRegenGameTime = command.LastRegenGameTime != null;
         var hasName = command.Name != null;
         var hasIsRestrained = command.IsRestrained != null;
+
+        var relocatingIds = hasLocation
+            ? await context
+                .Creatures.Where(c =>
+                    command.CreatureIds.Contains(c.Id) && c.LocationId != locationId
+                )
+                .Select(c => c.Id)
+                .ToArrayAsync(cancellationToken)
+            : [];
 
         // Rows that already hold the requested values are left alone, so repeating an update is not a write.
         await context
@@ -77,5 +88,14 @@ internal class UpdateCreaturesCommandHandler(ICreaturesDbContext context)
                 },
                 cancellationToken
             );
+
+        await placeCreaturesAtLocation.Handle(
+            new PlaceCreaturesAtLocationCommand
+            {
+                CreatureIds = relocatingIds,
+                LocationId = locationId,
+            },
+            cancellationToken
+        );
     }
 }

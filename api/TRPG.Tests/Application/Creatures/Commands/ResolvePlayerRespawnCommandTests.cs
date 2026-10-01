@@ -21,7 +21,10 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db)
     private readonly Creature _player = Builders.MakeCreature(
         WorldId,
         condition: CreatureCondition.Dead,
-        currentHp: 0
+        currentHp: 0,
+        x: 4.5,
+        y: 6,
+        angle: 2
     );
 
     public async ValueTask InitializeAsync()
@@ -76,6 +79,24 @@ public sealed class ResolvePlayerRespawnCommandTests(DatabaseFixture db)
         Assert.Equal(1, fact.ItemsLeftOnCorpse);
         Assert.False(fact.IsClericPresent);
         Assert.Null(fact.ClericName);
+    }
+
+    [Fact]
+    public async Task Handle_LeavesTheCorpseWhereThePlayerFell()
+    {
+        // Arrange
+        var command = new ResolvePlayerRespawnCommand { WorldId = WorldId, PlayerId = _player.Id };
+
+        // Act
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var corpse = await verifyContext.Creatures.SingleAsync(
+            creature => creature.PlayerCorpseOwnerId == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal((4.5, 6d, 2d), (corpse.X, corpse.Y, corpse.Angle));
     }
 
     [Fact]
