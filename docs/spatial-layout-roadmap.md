@@ -33,7 +33,7 @@ Working rules for every milestone:
 - [x] S03 Footprint catalogs and asset keys
 - [x] S04 Location sizing
 - [x] S05 District and building layout
-- [ ] S06 Connector points
+- [x] S06 Connector points
 - [ ] S07 Room prop placement
 - [ ] S08 Layout post-pass in world generation
 - [ ] S09 Creature placement resolver
@@ -137,15 +137,15 @@ Verification:
 
 - [x] Tests: no building overlap, all inside district bounds, doors face the street, determinism.
 
-### [ ] S06 Connector points
+### [x] S06 Connector points
 
 Scope:
 
-- [ ] Add a pure `ConnectorPointResolver` for compass, door, stair, hallway, building front door, and wilderness-bearing connectors, producing exit and arrival points.
+- [x] Add a pure `ConnectorPointResolver` for compass, door, stair, hallway, building front door, and wilderness-bearing connectors, producing exit and arrival points.
 
 Verification:
 
-- [ ] Tests: exit and arrival on opposite edges per `CompassDirection`, bearing maps to the right edge, edge spreading, arrival is 1 m inside facing inward.
+- [x] Tests: exit and arrival on opposite edges per `CompassDirection`, bearing maps to the right edge, edge spreading, arrival is 1 m inside facing inward.
 
 ### [ ] S07 Room prop placement
 
