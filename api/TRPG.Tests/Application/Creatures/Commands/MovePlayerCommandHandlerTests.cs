@@ -187,6 +187,46 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_DoesNotRestoreTheRememberedStandingPose_WhenASeatedPlayerMoves()
+    {
+        var oldLocation = Builders.MakeLocation(WorldId, _stateId, width: 20, depth: 20);
+        var newLocation = Builders.MakeLocation(WorldId, _stateId, width: 10, depth: 10);
+        var player = Builders.MakeCreature(
+            WorldId,
+            locationId: oldLocation.Id,
+            posture: CreaturePosture.Sitting,
+            x: 5,
+            y: 5,
+            angle: 1
+        );
+        player.StandingX = 10;
+        player.StandingY = 11;
+        player.StandingAngle = 2;
+        _context.Locations.AddRange(oldLocation, newLocation);
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = player.Id,
+                DestinationLocationId = newLocation.Id,
+                GameTime = GameClock.Epoch,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var moved = await verifyContext
+            .Creatures.AsNoTracking()
+            .SingleAsync(
+                creature => creature.Id == player.Id,
+                TestContext.Current.CancellationToken
+            );
+        Assert.NotEqual((10d, 11d, 2d), (moved.X, moved.Y, moved.Angle));
+    }
+
+    [Fact]
     public async Task Handle_CreatesAnActiveEncounter_WhenMovingIntoALocationWithAnEngagingGroup()
     {
         // Arrange

@@ -122,6 +122,31 @@ public class RoomPropPlacerTests
 
     [Theory]
     [InlineData(1)]
+    [InlineData(7)]
+    [InlineData(13)]
+    public void Place_LeavesRoomForASeatedBodyBetweenTheSeatCentreAndTheWorkstationEdge(int seed)
+    {
+        // Arrange
+        const double SeatedLegReach = 0.6;
+        var props = Props(PropModel.WorkstationCooking, PropModel.SeatChair);
+
+        // Act
+        var result = RoomPropPlacer.Place(Room, props, [], new Random(seed));
+
+        // Assert
+        var workstation = result.Props.Single(prop => prop.Id == props[0].Id);
+        var seat = result.Props.Single(prop => prop.Id == props[1].Id);
+        var forwardX = Math.Sin(workstation.Placement.Angle);
+        var forwardY = -Math.Cos(workstation.Placement.Angle);
+        var centreToCentre =
+            (seat.Placement.X - workstation.Placement.X) * forwardX
+            + (seat.Placement.Y - workstation.Placement.Y) * forwardY;
+        var seatToEdge = centreToCentre - workstation.Footprint.Depth / 2;
+        Assert.True(seatToEdge >= SeatedLegReach);
+    }
+
+    [Theory]
+    [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
     [InlineData(4)]

@@ -23,7 +23,8 @@ public enum StandUpResult
 internal class StandUpCommandHandler(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat,
-    ICommandHandler<StopSittingCommand> stopSitting
+    ICommandHandler<StopSittingCommand> stopSitting,
+    ICommandHandler<RestoreStandingPoseCommand> restoreStandingPose
 ) : ICommandHandler<StandUpCommand, StandUpResult>
 {
     public async Task<StandUpResult> Handle(
@@ -52,6 +53,10 @@ internal class StandUpCommandHandler(
         );
         await stopSitting.Handle(
             new StopSittingCommand { CreatureId = command.PlayerId },
+            cancellationToken
+        );
+        await restoreStandingPose.Handle(
+            new RestoreStandingPoseCommand { CreatureId = command.PlayerId },
             cancellationToken
         );
 

@@ -23,6 +23,7 @@ internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<SetCreatureActivityCommand> setCreatureActivity,
     ICommandHandler<TryStartSittingCommand, bool> tryStartSitting,
     ICommandHandler<StopSittingCommand> stopSitting,
+    ICommandHandler<RestoreStandingPoseCommand> restoreStandingPose,
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
     ICommandHandler<SetBedOccupantCommand> setBedOccupant,
     ICommandHandler<TryOccupyAnyAvailableSeatCommand, Placement?> tryOccupyAnyAvailableSeat,
@@ -114,6 +115,10 @@ internal class ExecuteCreatureJobCommandHandler(
         );
         await stopSitting.Handle(
             new StopSittingCommand { CreatureId = command.CreatureId },
+            cancellationToken
+        );
+        await restoreStandingPose.Handle(
+            new RestoreStandingPoseCommand { CreatureId = command.CreatureId },
             cancellationToken
         );
     }

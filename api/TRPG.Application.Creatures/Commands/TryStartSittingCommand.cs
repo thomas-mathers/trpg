@@ -34,6 +34,9 @@ internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
                 setters =>
                     setters
                         .SetProperty(creature => creature.Posture, CreaturePosture.Sitting)
+                        .SetProperty(creature => creature.StandingX, creature => creature.X)
+                        .SetProperty(creature => creature.StandingY, creature => creature.Y)
+                        .SetProperty(creature => creature.StandingAngle, creature => creature.Angle)
                         .SetProperty(creature => creature.X, command.X)
                         .SetProperty(creature => creature.Y, command.Y)
                         .SetProperty(creature => creature.Angle, command.Angle),
