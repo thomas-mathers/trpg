@@ -754,6 +754,16 @@ public class WorldGenerator(
             travelConnectors
         );
 
+        CreatureLayoutGenerator.Place(
+            new CreatureLayoutInput(
+                anchoredLocations,
+                props,
+                buildings,
+                locationConnectors,
+                creatures
+            )
+        );
+
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
         return new WorldGeneratorResult

@@ -80,6 +80,26 @@ public class CaravanRouteSeederTests
     }
 
     [Fact]
+    public void Seed_PlacesEveryScheduleSignInsideItsLocation()
+    {
+        var worldId = Guid.NewGuid();
+        var (world, _) = BuildStarTopologyWorld(worldId, countryCount: 3);
+
+        var result = CaravanRouteSeeder.Seed(world, Options);
+
+        Assert.All(
+            result.Signs,
+            sign =>
+            {
+                var location = world.Locations.Single(candidate => candidate.Id == sign.LocationId);
+                Assert.True(sign.Width > 0 && sign.Depth > 0);
+                Assert.InRange(sign.X, sign.Width / 2, location.Width - sign.Width / 2);
+                Assert.InRange(sign.Y, sign.Depth / 2, location.Depth - sign.Depth / 2);
+            }
+        );
+    }
+
+    [Fact]
     public void Seed_ReturnsNoRoute_WhenFewerThanTwoCapitalsExist()
     {
         var worldId = Guid.NewGuid();
@@ -122,7 +142,13 @@ public class CaravanRouteSeederTests
                 CountryId = country.Id,
                 IsCapital = true,
             };
-            var entranceLocation = new Location { Id = Guid.NewGuid(), WorldId = worldId };
+            var entranceLocation = new Location
+            {
+                Id = Guid.NewGuid(),
+                WorldId = worldId,
+                Width = 40,
+                Depth = 30,
+            };
             var entranceDistrict = new District
             {
                 Id = Guid.NewGuid(),

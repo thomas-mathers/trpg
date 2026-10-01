@@ -43,14 +43,17 @@ public static class CaravanRouteSeeder
             "The Capital Circuit — Counter-clockwise"
         );
 
+        var layoutContext = new CreatureLayoutContext(
+            new CreatureLayoutInput(
+                world.Locations,
+                world.Props,
+                world.Buildings,
+                world.LocationConnectors,
+                []
+            )
+        );
         var signs = capitalLocationIds
-            .Select(locationId => new CaravanScheduleSign
-            {
-                WorldId = world.World.Id,
-                LocationId = locationId,
-                Name = "Caravan Schedule",
-                Description = "A wooden signpost listing caravan arrival times.",
-            })
+            .Select(locationId => CreateSign(world, layoutContext, locationId))
             .ToArray();
 
         return new CaravanRouteSeederResult(
@@ -60,6 +63,37 @@ public static class CaravanRouteSeeder
             [clockwise.Fare, counterClockwise.Fare],
             signs
         );
+    }
+
+    private static CaravanScheduleSign CreateSign(
+        WorldGeneratorResult world,
+        CreatureLayoutContext layoutContext,
+        Guid locationId
+    )
+    {
+        var sign = new CaravanScheduleSign
+        {
+            WorldId = world.World.Id,
+            LocationId = locationId,
+            Name = "Caravan Schedule",
+            Description = "A wooden signpost listing caravan arrival times.",
+        };
+        var footprint = PropFootprintCatalog.Get(AssetKeyResolver.Resolve(sign)).Footprint;
+        var location = layoutContext.LocationById[locationId];
+        var preferred = new Placement(location.Width * 2 / 3, location.Depth / 2, 0);
+        var placement = CreaturePlacementResolver.PlaceAt(
+            new Footprint(Width: location.Width, Depth: location.Depth),
+            layoutContext.ObstaclesAt(locationId, excludedPropId: null),
+            preferred
+        );
+
+        sign.X = placement.X;
+        sign.Y = placement.Y;
+        sign.Angle = placement.Angle;
+        sign.Width = footprint.Width;
+        sign.Depth = footprint.Depth;
+
+        return sign;
     }
 
     private static SeededCaravanRoute BuildRoute(

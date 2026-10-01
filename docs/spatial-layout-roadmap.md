@@ -37,7 +37,7 @@ Working rules for every milestone:
 - [x] S07 Room prop placement
 - [x] S08 Layout post-pass in world generation
 - [x] S09 Creature placement resolver
-- [ ] S10 Creature placement at world generation
+- [x] S10 Creature placement at world generation
 - [ ] S11 Creature placement at runtime
 - [ ] S12 Contracts and scene layout
 - [ ] S13 Docs and final verification
@@ -178,16 +178,16 @@ Verification:
 
 - [x] Tests: player arrival point and facing, NPC anchor proximity, no overlap with props, fallback when the room is crowded, determinism.
 
-### [ ] S10 Creature placement at world generation
+### [x] S10 Creature placement at world generation
 
 Scope:
 
-- [ ] Place every creature produced by the creation-time writers listed in the design reference, plus the player in `CreateWorldCommand`.
-- [ ] Give `CaravanScheduleSign` props (seeded after the layout post-pass) a pose.
+- [x] Place every creature produced by the creation-time writers listed in the design reference, plus the player in `CreateWorldCommand`.
+- [x] Give `CaravanScheduleSign` props (seeded after the layout post-pass) a pose.
 
 Verification:
 
-- [ ] Invariant test: after world generation every creature pose lies within its location bounds.
+- [x] Invariant test: after world generation every creature pose lies within its location bounds. Uses the mini-world builder because a full world generation needs an LLM client.
 
 ### [ ] S11 Creature placement at runtime
 
