@@ -28,7 +28,7 @@ internal static class RoomSizeCatalog
         [BuildingType.Ruins] = new(MinimumArea: 20, MaximumArea: 150),
         [BuildingType.Stable] = new(MinimumArea: 25, MaximumArea: 80),
         [BuildingType.Tailor] = new(MinimumArea: 15, MaximumArea: 40),
-        [BuildingType.Tavern] = new(MinimumArea: 30, MaximumArea: 90),
+        [BuildingType.Tavern] = new(MinimumArea: 60, MaximumArea: 120),
         [BuildingType.Temple] = new(MinimumArea: 40, MaximumArea: 150),
         [BuildingType.Tower] = new(MinimumArea: 12, MaximumArea: 60),
     };

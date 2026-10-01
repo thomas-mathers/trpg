@@ -29,7 +29,7 @@ import {
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { SceneProvider } from '../providers/scene-provider';
-import { ViewportToggleButton } from '../viewport/viewport-toggle-button';
+import { AbilityToolbar } from './ability-toolbar';
 import { ConnectionLostDialog } from './connection-lost-dialog';
 import { GameChat } from './game-chat';
 import { GameMenu } from './game-menu';
@@ -138,7 +138,6 @@ function GameScreenContent({
   const playerId = usePlayerId();
   const scene = useScene();
   const queryClient = useQueryClient();
-  const [isViewportOpen, setIsViewportOpen] = useState(false);
   const [questDialog, setQuestDialog] = useState<QuestDialogState | null>(null);
   const [deliverItemDialog, setDeliverItemDialog] = useState<DeliverItemDialogState | null>(null);
 
@@ -181,10 +180,6 @@ function GameScreenContent({
               isInCombat={isInCombat}
               controls={
                 <>
-                  <ViewportToggleButton
-                    pressed={isViewportOpen}
-                    onPressedChange={setIsViewportOpen}
-                  />
                   {!isInCombat && <NearbyToggleButton />}
                   {!isInCombat && <SneakToggleButton />}
                   <GameMenu
@@ -202,21 +197,25 @@ function GameScreenContent({
           </div>
 
           <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
-            <SidebarInset className="parchment-surface">
+            <Suspense fallback={null}>
+              <LocationViewport />
+            </Suspense>
+
+            <SidebarInset className="bg-background/50 absolute bottom-4 left-4 z-10 h-[min(27rem,52%)] w-[36rem] max-w-[calc(100%-2rem)] flex-none overflow-hidden rounded-lg shadow-lg backdrop-blur-sm">
               <GameChat />
             </SidebarInset>
+
+            {!isInCombat && (
+              <div className="bg-background/50 absolute bottom-4 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg px-3 pt-2 shadow-lg backdrop-blur-sm">
+                <AbilityToolbar />
+              </div>
+            )}
 
             <NearbySidebar
               onOpenQuestJournal={() => onOpenDialog('questJournal')}
               onQuestDialogRequested={setQuestDialog}
               onDeliverItemDialogRequested={setDeliverItemDialog}
             />
-
-            {isViewportOpen && (
-              <Suspense fallback={null}>
-                <LocationViewport onClose={() => setIsViewportOpen(false)} />
-              </Suspense>
-            )}
           </div>
 
           {playerId && (

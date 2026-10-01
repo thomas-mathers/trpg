@@ -30,6 +30,7 @@ public class GameTurnRunner
     private readonly StreamPurchaseCaravanTicketTurnHandler _streamPurchaseCaravanTicketTurn;
     private readonly StreamDeclineCaravanTicketTurnHandler _streamDeclineCaravanTicketTurn;
     private readonly StreamBoardCaravanTurnHandler _streamBoardCaravanTurn;
+    private readonly StreamMoveTurnHandler _streamMoveTurn;
 
     internal GameTurnRunner(
         StreamOpeningTurnHandler streamOpeningTurn,
@@ -56,7 +57,8 @@ public class GameTurnRunner
         StreamCastAbilityTurnHandler streamCastAbilityTurn,
         StreamPurchaseCaravanTicketTurnHandler streamPurchaseCaravanTicketTurn,
         StreamDeclineCaravanTicketTurnHandler streamDeclineCaravanTicketTurn,
-        StreamBoardCaravanTurnHandler streamBoardCaravanTurn
+        StreamBoardCaravanTurnHandler streamBoardCaravanTurn,
+        StreamMoveTurnHandler streamMoveTurn
     )
     {
         _streamOpeningTurn = streamOpeningTurn;
@@ -84,6 +86,7 @@ public class GameTurnRunner
         _streamPurchaseCaravanTicketTurn = streamPurchaseCaravanTicketTurn;
         _streamDeclineCaravanTicketTurn = streamDeclineCaravanTicketTurn;
         _streamBoardCaravanTurn = streamBoardCaravanTurn;
+        _streamMoveTurn = streamMoveTurn;
     }
 
     public IAsyncEnumerable<string> StreamOpening(
@@ -240,4 +243,10 @@ public class GameTurnRunner
         Guid caravanId,
         CancellationToken cancellationToken = default
     ) => _streamBoardCaravanTurn.Handle(session, caravanId, cancellationToken);
+
+    public IAsyncEnumerable<string> StreamMove(
+        GameTurnSession session,
+        Guid connectorId,
+        CancellationToken cancellationToken = default
+    ) => _streamMoveTurn.Handle(session, connectorId, cancellationToken);
 }

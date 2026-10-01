@@ -20,7 +20,7 @@ public class ExecutePlayerMoveCommand
     public required Guid SessionId { get; init; }
     public required Guid WorldId { get; init; }
     public required Guid PlayerId { get; init; }
-    public required string DestinationName { get; init; }
+    public required Guid ConnectorId { get; init; }
 }
 
 public abstract record ExecutePlayerMoveResult;
@@ -268,7 +268,7 @@ internal class ExecutePlayerMoveCommandHandler(
             new ResolveMoveDestinationCommand
             {
                 PlayerId = command.PlayerId,
-                DestinationName = command.DestinationName,
+                ConnectorId = command.ConnectorId,
                 GameTime = gameTime,
             },
             cancellationToken

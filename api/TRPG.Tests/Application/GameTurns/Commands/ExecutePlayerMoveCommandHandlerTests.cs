@@ -73,7 +73,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
     [Fact]
     public async Task Handle_MovesThePlayerAndReturnsTheDestinationScene()
     {
-        var result = Assert.IsType<MoveCompletedResult>(await Execute("Elsewhere"));
+        var result = Assert.IsType<MoveCompletedResult>(await Execute(_connector.Id));
 
         Assert.Equal(_destination.Id, result.Scene.LocationId);
         Assert.Null(result.Encounter);
@@ -85,7 +85,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
     [Fact]
     public async Task Handle_RejectsAnUnknownDestinationBeforeMoving()
     {
-        var result = Assert.IsType<MoveRejectedResult>(await Execute("Missing exit"));
+        var result = Assert.IsType<MoveRejectedResult>(await Execute(Guid.NewGuid()));
 
         Assert.Equal(EntryOutcome.DestinationNotFound, result.Outcome);
         await using var verifyContext = db.CreateContext();
@@ -103,7 +103,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         _context.DoorConnectorKeys.Add(Builders.MakeDoorConnectorKey(key.Id, door.Id, _worldId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = Assert.IsType<MoveRejectedResult>(await Execute("Elsewhere"));
+        var result = Assert.IsType<MoveRejectedResult>(await Execute(_connector.Id));
 
         Assert.Equal(EntryOutcome.Locked, result.Outcome);
         await using var verifyContext = db.CreateContext();
@@ -117,7 +117,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         _context.Encounters.Add(Builders.MakeHostileEncounter(_worldId, _player.Id, _origin.Id));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = Assert.IsType<MoveRejectedResult>(await Execute("Elsewhere"));
+        var result = Assert.IsType<MoveRejectedResult>(await Execute(_connector.Id));
 
         Assert.Equal(EntryOutcome.EncounterActive, result.Outcome);
         await using var verifyContext = db.CreateContext();
@@ -139,7 +139,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = Assert.IsType<MoveInterruptedResult>(await Execute("Elsewhere"));
+        var result = Assert.IsType<MoveInterruptedResult>(await Execute(_connector.Id));
 
         Assert.IsType<HostileEncounter>(result.Encounter);
         Assert.Equal(_origin.Id, result.Scene.LocationId);
@@ -167,7 +167,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         ];
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        Assert.IsType<MoveTravelDeathResult>(await Execute("Elsewhere"));
+        Assert.IsType<MoveTravelDeathResult>(await Execute(_connector.Id));
 
         await using var verifyContext = db.CreateContext();
         var player = await GetPlayer(verifyContext);
@@ -187,7 +187,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         _context.Props.Add(trap);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = Assert.IsType<MoveCompletedResult>(await Execute("Elsewhere"));
+        var result = Assert.IsType<MoveCompletedResult>(await Execute(_connector.Id));
 
         Assert.IsType<TrapEncounter>(result.Encounter);
         Assert.Equal(_destination.Id, result.Scene.LocationId);
@@ -223,7 +223,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
                 TestContext.Current.CancellationToken
             );
 
-        var result = Assert.IsType<MoveCompletedResult>(await Execute("Elsewhere"));
+        var result = Assert.IsType<MoveCompletedResult>(await Execute(_connector.Id));
 
         Assert.IsType<HostileEncounter>(result.Encounter);
         await using var verifyContext = db.CreateContext();
@@ -244,7 +244,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         _player.CurrentHp = 1;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = Assert.IsType<MoveCompletedResult>(await Execute("Elsewhere"));
+        var result = Assert.IsType<MoveCompletedResult>(await Execute(_connector.Id));
 
         var expectedArrival = GameClock.Epoch + TimeSpan.FromHours(2);
         Assert.Equal(2, result.TravelTimeHours);
@@ -262,14 +262,14 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         Assert.Equal(expectedArrival, player.LastRegenGameTime);
     }
 
-    private Task<ExecutePlayerMoveResult> Execute(string destinationName) =>
+    private Task<ExecutePlayerMoveResult> Execute(Guid connectorId) =>
         _handler.Handle(
             new ExecutePlayerMoveCommand
             {
                 SessionId = _session.Id,
                 WorldId = _worldId,
                 PlayerId = _player.Id,
-                DestinationName = destinationName,
+                ConnectorId = connectorId,
             },
             TestContext.Current.CancellationToken
         );

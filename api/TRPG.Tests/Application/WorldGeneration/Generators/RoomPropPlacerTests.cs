@@ -120,6 +120,65 @@ public class RoomPropPlacerTests
         Assert.Equal(1, facingDot, precision: 6);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void Place_LinesSeatsUpInFrontOfTheTradeWorkstation_BeforeSeatingOtherWorkstations(
+        int seed
+    )
+    {
+        // Arrange
+        var props = Props(
+            PropModel.WorkstationCooking,
+            PropModel.WorkstationTrade,
+            PropModel.SeatChair,
+            PropModel.SeatChair,
+            PropModel.SeatChair
+        );
+
+        // Act
+        var result = RoomPropPlacer.Place(Room, props, [], new Random(seed));
+
+        // Assert
+        var trade = result.Props.Single(prop => prop.Model == PropModel.WorkstationTrade);
+        var seats = result.Props.Where(prop => prop.Model == PropModel.SeatChair).ToArray();
+        Assert.All(seats, seat => Assert.True(IsInFrontOf(trade, seat)));
+    }
+
+    [Fact]
+    public void Place_CentersTheTradeWorkstation_WhenOnlyASouthDoorLimitsTheRoom()
+    {
+        // Arrange
+        var tavernRoom = new Footprint(Width: 6, Depth: 5);
+        var props = Props(PropModel.WorkstationTrade);
+        ConnectorExitRequest[] southDoor =
+        [
+            new(Guid.NewGuid(), Guid.NewGuid(), ConnectorExitKind.SouthDoor),
+        ];
+
+        // Act
+        var result = RoomPropPlacer.Place(tavernRoom, props, southDoor, new Random(1));
+
+        // Assert
+        var placement = result.Props.Single().Placement;
+        Assert.Equal(tavernRoom.Width / 2, placement.X);
+        Assert.Equal(tavernRoom.Depth / 2, placement.Y);
+    }
+
+    private static bool IsInFrontOf(PlacedProp workstation, PlacedProp seat)
+    {
+        var offsetX = seat.Placement.X - workstation.Placement.X;
+        var offsetY = seat.Placement.Y - workstation.Placement.Y;
+        var angle = workstation.Placement.Angle;
+        var forward = offsetX * Math.Sin(angle) - offsetY * Math.Cos(angle);
+        var lateral = offsetX * Math.Cos(angle) + offsetY * Math.Sin(angle);
+
+        return forward > workstation.Footprint.Depth / 2
+            && Math.Abs(lateral) <= workstation.Footprint.Width / 2 + 1e-6;
+    }
+
     [Fact]
     public void Place_PutsABedInACorner()
     {
