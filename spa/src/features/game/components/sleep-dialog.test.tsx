@@ -2,10 +2,9 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { SceneContext } from '@/features/game/contexts/scene-context';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -26,26 +25,21 @@ function scene(hour: number, minute = 0): SceneSnapshot {
   } as unknown as SceneSnapshot;
 }
 
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
 }
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendWait: vi.fn(),
-    sendSleep: vi.fn(),
-    sendFlee: vi.fn(),
+    sendWait: vi.fn(succeeded),
+    sendSleep: vi.fn(succeeded),
+    sendFlee: vi.fn(succeeded),
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
-    resolveAttackEncounterAction: vi.fn(),
-    resolveFleeEncounterAction: vi.fn(),
+    resolveAttackEncounterAction: vi.fn(succeeded),
+    resolveFleeEncounterAction: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
 }
@@ -56,7 +50,6 @@ function renderDialog({
   open = true,
   onClose = vi.fn(),
 }: { hour?: number; minute?: number; open?: boolean; onClose?: () => void } = {}) {
-  const gameChat = buildGameChat();
   const chatHub = buildChatHub();
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
@@ -67,14 +60,12 @@ function renderDialog({
   const result = renderWithProviders(
     <SceneContext.Provider value={scene(hour, minute)}>
       <GameHubConnectionContext.Provider value={hubConnection}>
-        <GameChatContext.Provider value={gameChat}>
-          <SleepDialog open={open} onClose={onClose} />
-        </GameChatContext.Provider>
+        <SleepDialog open={open} onClose={onClose} />
       </GameHubConnectionContext.Provider>
     </SceneContext.Provider>,
   );
 
-  return { ...result, gameChat, chatHub, onClose };
+  return { ...result, chatHub, onClose };
 }
 
 describe('SleepDialog', () => {
@@ -86,7 +77,7 @@ describe('SleepDialog', () => {
   });
 
   it('sends the hour delta to the picked time later the same day', async () => {
-    const { user, gameChat, chatHub, onClose } = renderDialog({ hour: 8 });
+    const { user, chatHub, onClose } = renderDialog({ hour: 8 });
 
     await user.clear(screen.getByLabelText('Sleep until'));
     await user.type(screen.getByLabelText('Sleep until'), '14');
@@ -95,10 +86,6 @@ describe('SleepDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Sleep' }));
 
     expect(chatHub.sendSleep).toHaveBeenCalledWith(6, 30);
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Sleep until 14:30',
-      vi.mocked(chatHub.sendSleep).mock.results[0]?.value,
-    );
     expect(onClose).toHaveBeenCalledOnce();
   });
 
@@ -143,9 +130,7 @@ describe('SleepDialog', () => {
             chatHub: buildChatHub(),
           }}
         >
-          <GameChatContext.Provider value={buildGameChat()}>
-            <SleepDialog open onClose={() => {}} />
-          </GameChatContext.Provider>
+          <SleepDialog open onClose={() => {}} />
         </GameHubConnectionContext.Provider>
       </SceneContext.Provider>,
     );

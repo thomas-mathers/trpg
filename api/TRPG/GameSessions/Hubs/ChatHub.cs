@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,6 +15,7 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Commands;
+using TRPG.GameSessions.Responses;
 using TypedSignalR.Client;
 
 namespace TRPG.GameSessions.Hubs;
@@ -25,74 +25,44 @@ public interface IChatHub
 {
     Task EndSession();
     IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendWait(int hours, int minutes, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendSitDown(Guid seatId, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendStandUp(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendSleep(int hours, int minutes, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendActivateTrigger(
-        Guid triggerId,
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> SendAcceptQuest(Guid questId, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendDeclineQuest(Guid questId, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendCompleteQuest(Guid questId, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendDeliverItem(Guid recipientId, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendPurchaseCaravanTicket(
-        Guid caravanId,
-        Guid destinationLocationId,
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> SendDeclineCaravanTicket(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendBoardCaravan(Guid caravanId, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendMove(Guid connectorId, CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendRespawn(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> SendCastAbility(
-        Guid targetId,
-        string abilityName,
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> ResolveUseAbilityCombatAction(
-        Guid targetId,
-        string abilityName,
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> ResolveUseItemCombatAction(
-        string itemName,
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> ResolveAttackEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveFleeEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveIntimidateEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolvePayTollEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveFightEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveFleeShakedownEncounterAction(
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> ResolvePayFineEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveGoToJailEncounterAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveResistArrestEncounterAction(
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> ResolveComplySuspicionAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveFleeSuspicionAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveAttemptTrapAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveWithdrawTrapAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> ResolveDisarmTrapAction(CancellationToken cancellationToken);
-    IAsyncEnumerable<string> StartTheftEncounterNarration(
-        Guid encounterId,
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> ResolveApologizeTheftEncounterAction(
-        CancellationToken cancellationToken
-    );
-    IAsyncEnumerable<string> ResolveFleeTheftEncounterAction(CancellationToken cancellationToken);
+    Task<ActionResult> SendWait(int hours, int minutes);
+    Task<ActionResult> SendSitDown(Guid seatId);
+    Task<ActionResult> SendStandUp();
+    Task<ActionResult> SendSleep(int hours, int minutes);
+    Task<ActionResult> SendActivateTrigger(Guid triggerId);
+    Task<ActionResult> SendAcceptQuest(Guid questId);
+    Task<ActionResult> SendCompleteQuest(Guid questId);
+    Task<ActionResult> SendDeliverItem(Guid recipientId);
+    Task<ActionResult> SendPurchaseCaravanTicket(Guid caravanId, Guid destinationLocationId);
+    Task<ActionResult> SendBoardCaravan(Guid caravanId);
+    Task<ActionResult> SendMove(Guid connectorId);
+    Task<ActionResult> SendFlee();
+    Task<ActionResult> SendRespawn();
+    Task<ActionResult> SendCastAbility(Guid targetId, string abilityName);
+    Task<ActionResult> ResolveUseAbilityCombatAction(Guid targetId, string abilityName);
+    Task<ActionResult> ResolveUseItemCombatAction(string itemName);
+    Task<ActionResult> ResolveAttackEncounterAction();
+    Task<ActionResult> ResolveFleeEncounterAction();
+    Task<ActionResult> ResolveIntimidateEncounterAction();
+    Task<ActionResult> ResolvePayTollEncounterAction();
+    Task<ActionResult> ResolveFightEncounterAction();
+    Task<ActionResult> ResolveFleeShakedownEncounterAction();
+    Task<ActionResult> ResolvePayFineEncounterAction();
+    Task<ActionResult> ResolveGoToJailEncounterAction();
+    Task<ActionResult> ResolveResistArrestEncounterAction();
+    Task<ActionResult> ResolveComplySuspicionAction();
+    Task<ActionResult> ResolveFleeSuspicionAction();
+    Task<ActionResult> ResolveAttemptTrapAction();
+    Task<ActionResult> ResolveWithdrawTrapAction();
+    Task<ActionResult> ResolveDisarmTrapAction();
+    Task<ActionResult> StartTheftEncounter(Guid encounterId);
+    Task<ActionResult> ResolveApologizeTheftEncounterAction();
+    Task<ActionResult> ResolveFleeTheftEncounterAction();
     Task AcknowledgeEvents(Guid flushId);
 }
 
 internal sealed class ChatHub(
     GameTurnRunner gameTurnRunner,
-    GameClientEventDispatcher eventDispatcher,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     PendingSessionEndRegistry pendingSessionEnds,
@@ -147,256 +117,227 @@ internal sealed class ChatHub(
     public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken) =>
         gameTurnRunner.StreamChat(Session, message, cancellationToken);
 
-    public IAsyncEnumerable<string> SendWait(
-        int hours,
-        int minutes,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamWait(Session, hours, minutes, cancellationToken);
+    public Task<ActionResult> SendWait(int hours, int minutes) =>
+        Result(gameTurnRunner.Wait(Session, hours, minutes, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendSitDown(Guid seatId, CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamSitDown(Session, seatId, cancellationToken);
+    public Task<ActionResult> SendSitDown(Guid seatId) =>
+        Result(gameTurnRunner.SitDown(Session, seatId, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendStandUp(CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamStandUp(Session, cancellationToken);
+    public Task<ActionResult> SendStandUp() =>
+        Result(gameTurnRunner.StandUp(Session, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendSleep(
-        int hours,
-        int minutes,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamSleep(Session, hours, minutes, cancellationToken);
+    public Task<ActionResult> SendSleep(int hours, int minutes) =>
+        Result(gameTurnRunner.Sleep(Session, hours, minutes, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendActivateTrigger(
-        Guid triggerId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamActivateTrigger(Session, triggerId, cancellationToken);
+    public Task<ActionResult> SendActivateTrigger(Guid triggerId) =>
+        Result(gameTurnRunner.ActivateTrigger(Session, triggerId, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendAcceptQuest(
-        Guid questId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamAcceptQuest(Session, questId, cancellationToken);
+    public Task<ActionResult> SendAcceptQuest(Guid questId) =>
+        Result(gameTurnRunner.AcceptQuest(Session, questId, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendDeclineQuest(
-        Guid questId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamDeclineQuest(Session, questId, cancellationToken);
+    public Task<ActionResult> SendCompleteQuest(Guid questId) =>
+        Result(gameTurnRunner.CompleteQuest(Session, questId, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendCompleteQuest(
-        Guid questId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamCompleteQuest(Session, questId, cancellationToken);
+    public Task<ActionResult> SendDeliverItem(Guid recipientId) =>
+        Result(gameTurnRunner.DeliverItem(Session, recipientId, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendDeliverItem(
-        Guid recipientId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamDeliverItem(Session, recipientId, cancellationToken);
-
-    public IAsyncEnumerable<string> SendPurchaseCaravanTicket(
+    public Task<ActionResult> SendPurchaseCaravanTicket(
         Guid caravanId,
-        Guid destinationLocationId,
-        CancellationToken cancellationToken
+        Guid destinationLocationId
     ) =>
-        gameTurnRunner.StreamPurchaseCaravanTicket(
-            Session,
-            caravanId,
-            destinationLocationId,
-            cancellationToken
+        Result(
+            gameTurnRunner.PurchaseCaravanTicket(
+                Session,
+                caravanId,
+                destinationLocationId,
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> SendDeclineCaravanTicket(CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamDeclineCaravanTicket(Session, cancellationToken);
+    public Task<ActionResult> SendBoardCaravan(Guid caravanId) =>
+        Result(gameTurnRunner.BoardCaravan(Session, caravanId, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendBoardCaravan(
-        Guid caravanId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamBoardCaravan(Session, caravanId, cancellationToken);
+    public Task<ActionResult> SendMove(Guid connectorId) =>
+        Result(gameTurnRunner.Move(Session, connectorId, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendMove(
-        Guid connectorId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamMove(Session, connectorId, cancellationToken);
+    public Task<ActionResult> SendFlee() =>
+        Result(gameTurnRunner.Flee(Session, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendFlee(CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamFlee(Session, cancellationToken);
+    public Task<ActionResult> SendRespawn() =>
+        Result(gameTurnRunner.Respawn(Session, Context.ConnectionAborted));
 
-    public IAsyncEnumerable<string> SendRespawn(CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamRespawn(Session, cancellationToken);
-
-    public IAsyncEnumerable<string> SendCastAbility(
-        Guid targetId,
-        string abilityName,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamCastAbility(Session, targetId, abilityName, cancellationToken);
-
-    public IAsyncEnumerable<string> ResolveAttackEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamHostileEncounterAction(
-            Session,
-            new AttackEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> SendCastAbility(Guid targetId, string abilityName) =>
+        Result(
+            gameTurnRunner.CastAbility(Session, targetId, abilityName, Context.ConnectionAborted)
         );
 
-    public IAsyncEnumerable<string> ResolveFleeEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamHostileEncounterAction(
-            Session,
-            new FleeEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveAttackEncounterAction() =>
+        Result(
+            gameTurnRunner.HostileEncounterAction(
+                Session,
+                new AttackEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveIntimidateEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamShakedownEncounterAction(
-            Session,
-            new IntimidateEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveFleeEncounterAction() =>
+        Result(
+            gameTurnRunner.HostileEncounterAction(
+                Session,
+                new FleeEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolvePayTollEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamShakedownEncounterAction(
-            Session,
-            new PayTollEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveIntimidateEncounterAction() =>
+        Result(
+            gameTurnRunner.ShakedownEncounterAction(
+                Session,
+                new IntimidateEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveFightEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamShakedownEncounterAction(
-            Session,
-            new FightEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolvePayTollEncounterAction() =>
+        Result(
+            gameTurnRunner.ShakedownEncounterAction(
+                Session,
+                new PayTollEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveFleeShakedownEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamShakedownEncounterAction(
-            Session,
-            new FleeShakedownEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveFightEncounterAction() =>
+        Result(
+            gameTurnRunner.ShakedownEncounterAction(
+                Session,
+                new FightEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolvePayFineEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamGuardEncounterAction(
-            Session,
-            new PayFineEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveFleeShakedownEncounterAction() =>
+        Result(
+            gameTurnRunner.ShakedownEncounterAction(
+                Session,
+                new FleeShakedownEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveGoToJailEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamGuardEncounterAction(
-            Session,
-            new GoToJailEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolvePayFineEncounterAction() =>
+        Result(
+            gameTurnRunner.GuardEncounterAction(
+                Session,
+                new PayFineEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveResistArrestEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamGuardEncounterAction(
-            Session,
-            new ResistArrestEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveGoToJailEncounterAction() =>
+        Result(
+            gameTurnRunner.GuardEncounterAction(
+                Session,
+                new GoToJailEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveComplySuspicionAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamSuspicionEncounterAction(
-            Session,
-            new ComplySuspicionAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveResistArrestEncounterAction() =>
+        Result(
+            gameTurnRunner.GuardEncounterAction(
+                Session,
+                new ResistArrestEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveFleeSuspicionAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamSuspicionEncounterAction(
-            Session,
-            new FleeSuspicionAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveComplySuspicionAction() =>
+        Result(
+            gameTurnRunner.SuspicionEncounterAction(
+                Session,
+                new ComplySuspicionAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveAttemptTrapAction(CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamTrapEncounterAction(
-            Session,
-            new AttemptTrapAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveFleeSuspicionAction() =>
+        Result(
+            gameTurnRunner.SuspicionEncounterAction(
+                Session,
+                new FleeSuspicionAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveWithdrawTrapAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamTrapEncounterAction(
-            Session,
-            new WithdrawTrapAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveAttemptTrapAction() =>
+        Result(
+            gameTurnRunner.TrapEncounterAction(
+                Session,
+                new AttemptTrapAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveDisarmTrapAction(CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamTrapEncounterAction(
-            Session,
-            new DisarmTrapAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveWithdrawTrapAction() =>
+        Result(
+            gameTurnRunner.TrapEncounterAction(
+                Session,
+                new WithdrawTrapAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> StartTheftEncounterNarration(
-        Guid encounterId,
-        CancellationToken cancellationToken
-    ) => gameTurnRunner.StreamTheftEncounterNarration(Session, encounterId, cancellationToken);
-
-    public IAsyncEnumerable<string> ResolveApologizeTheftEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamTheftEncounterAction(
-            Session,
-            new ApologizeTheftEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> ResolveDisarmTrapAction() =>
+        Result(
+            gameTurnRunner.TrapEncounterAction(
+                Session,
+                new DisarmTrapAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveFleeTheftEncounterAction(
-        CancellationToken cancellationToken
-    ) =>
-        gameTurnRunner.StreamTheftEncounterAction(
-            Session,
-            new FleeTheftEncounterAction(),
-            cancellationToken
+    public Task<ActionResult> StartTheftEncounter(Guid encounterId) =>
+        Result(gameTurnRunner.StartTheftEncounter(Session, encounterId, Context.ConnectionAborted));
+
+    public Task<ActionResult> ResolveApologizeTheftEncounterAction() =>
+        Result(
+            gameTurnRunner.TheftEncounterAction(
+                Session,
+                new ApologizeTheftEncounterAction(),
+                Context.ConnectionAborted
+            )
         );
 
-    public IAsyncEnumerable<string> ResolveUseAbilityCombatAction(
-        Guid targetId,
-        string abilityName,
-        CancellationToken cancellationToken
-    ) => ResolveCombatAction(new UseAbilityAction(targetId, abilityName), cancellationToken);
+    public Task<ActionResult> ResolveFleeTheftEncounterAction() =>
+        Result(
+            gameTurnRunner.TheftEncounterAction(
+                Session,
+                new FleeTheftEncounterAction(),
+                Context.ConnectionAborted
+            )
+        );
 
-    public IAsyncEnumerable<string> ResolveUseItemCombatAction(
-        string itemName,
-        CancellationToken cancellationToken
-    ) => ResolveCombatAction(new UseItemAction(itemName), cancellationToken);
+    public Task<ActionResult> ResolveUseAbilityCombatAction(Guid targetId, string abilityName) =>
+        Result(
+            gameTurnRunner.CombatAction(
+                Session,
+                new UseAbilityAction(targetId, abilityName),
+                Context.ConnectionAborted
+            )
+        );
 
-    private async IAsyncEnumerable<string> ResolveCombatAction(
-        PlayerCombatAction action,
-        [EnumeratorCancellation] CancellationToken cancellationToken
-    )
-    {
-        await foreach (
-            var token in gameTurnRunner.StreamCombatAction(Session, action, cancellationToken)
-        )
-        {
-            yield return token;
-        }
+    public Task<ActionResult> ResolveUseItemCombatAction(string itemName) =>
+        Result(
+            gameTurnRunner.CombatAction(
+                Session,
+                new UseItemAction(itemName),
+                Context.ConnectionAborted
+            )
+        );
 
-        await eventDispatcher.FlushAsync(Session.WorldId, cancellationToken);
-    }
+    private static async Task<ActionResult> Result(Task<ActionOutcome> outcome) =>
+        ActionResult.From(await outcome);
 
     public Task AcknowledgeEvents(Guid flushId)
     {

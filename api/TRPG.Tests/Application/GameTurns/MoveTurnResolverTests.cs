@@ -70,6 +70,20 @@ public sealed class MoveTurnResolverTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Resolve_Fails_WhenTheMoveIsRejected()
+    {
+        // Act
+        var outcome = await _resolver.Resolve(
+            _session,
+            Guid.NewGuid(),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(outcome.Succeeded);
+    }
+
+    [Fact]
     public async Task Resolve_LeavesTheChatHistoryAlone_WhenTheMoveIsRejected()
     {
         // Act
@@ -84,20 +98,17 @@ public sealed class MoveTurnResolverTests(DatabaseFixture db)
     }
 
     [Theory]
-    [InlineData(EntryOutcome.NoEntrance, "no way in")]
-    [InlineData(EntryOutcome.Locked, "The door is locked.")]
-    [InlineData(EntryOutcome.DestinationNotFound, "nothing to enter")]
-    [InlineData(EntryOutcome.ExitNotFound, "nothing to enter")]
-    [InlineData(EntryOutcome.EncounterActive, "hostile encounter is already underway")]
-    public void BuildRejectionMessage_ExplainsWhyTheMoveWasRefused(
-        EntryOutcome outcome,
-        string expected
-    )
+    [InlineData(EntryOutcome.NoEntrance, ActionFailure.NoEntrance)]
+    [InlineData(EntryOutcome.Locked, ActionFailure.Locked)]
+    [InlineData(EntryOutcome.DestinationNotFound, ActionFailure.NothingToEnter)]
+    [InlineData(EntryOutcome.ExitNotFound, ActionFailure.NothingToEnter)]
+    [InlineData(EntryOutcome.EncounterActive, ActionFailure.EncounterActive)]
+    public void ToFailure_ExplainsWhyTheMoveWasRefused(EntryOutcome outcome, ActionFailure expected)
     {
         // Act
-        var message = MoveTurnResolver.BuildRejectionMessage(outcome);
+        var failure = MoveTurnResolver.ToFailure(outcome);
 
         // Assert
-        Assert.Contains(expected, message);
+        Assert.Equal(expected, failure);
     }
 }

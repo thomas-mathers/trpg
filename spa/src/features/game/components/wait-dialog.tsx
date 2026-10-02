@@ -12,9 +12,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { durationUntilNextTime } from '@/features/game/game-clock';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useGameTimeReader } from '@/features/game/hooks/use-game-clock';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { runAction } from '@/features/game/run-action';
 
 export interface WaitDialogProps {
   open: boolean;
@@ -37,7 +37,6 @@ function clamp(value: number, min: number, max: number): number {
 export function WaitDialog({ open, onClose }: WaitDialogProps) {
   const scene = useScene();
   const chatHub = useChatHub();
-  const { submitNarratedTurn } = useGameChat();
   const readGameTime = useGameTimeReader();
   const [targetTime, setTargetTime] = useState('08:00');
 
@@ -86,7 +85,7 @@ export function WaitDialog({ open, onClose }: WaitDialogProps) {
     const { hour: targetHour, minute: targetMinute } = parseTime(targetTime);
     const { hours, minutes } = durationUntilNextTime(gameTime, targetHour, targetMinute);
 
-    submitNarratedTurn(`Wait until ${targetTime}`, chatHub.sendWait(hours, minutes));
+    void runAction(chatHub.sendWait(hours, minutes));
     onClose();
   };
 

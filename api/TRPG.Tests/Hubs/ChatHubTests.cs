@@ -184,6 +184,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         fixture.ChatClient.PendingToolCallArguments = null;
     }
 
+    private static Task<ActionResult> Act(HubConnection hub, string method, params object[] args) =>
+        hub.InvokeCoreAsync<ActionResult>(method, args, TestContext.Current.CancellationToken);
+
     private static async Task<string> Drain(IAsyncEnumerable<string> tokens)
     {
         var builder = new StringBuilder();
@@ -464,7 +467,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendWait_AdvancesTimeAndNarrates()
+    public async Task SendWait_AdvancesTime()
     {
         // Arrange
         await SetPlayerPosture(DataCreaturePosture.Sitting);
@@ -472,12 +475,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendWait", 3, 0, TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendWait", 3, 0);
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var world = await GetWorld();
         Assert.True(world.GameTime > GameClock.Epoch);
     }
@@ -491,12 +492,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendWait", 0, 30, TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendWait", 0, 30);
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var world = await GetWorld();
         Assert.True(world.GameTime > GameClock.Epoch);
     }
@@ -510,12 +509,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await CheckpointRunningClock();
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendWait", 0, 0, TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendWait", 0, 0);
 
         // Assert
-        Assert.Equal("The wait duration must be positive.", narration);
+        Assert.Equal(ActionFailureReason.InvalidDuration, result.Reason);
         var world = await GetWorld();
         AssertOnlyClockDriftElapsed(world);
     }
@@ -538,15 +535,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
-        var narration = await Drain(
-            gameHub.StreamAsync<string>(
-                "SendActivateTrigger",
-                trigger.Id,
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(gameHub, "SendActivateTrigger", trigger.Id);
 
-        Assert.Equal("There is nothing here to activate.", narration);
+        Assert.Equal(ActionFailureReason.NothingToActivate, result.Reason);
         await using var verifyScope = fixture.CreateScope();
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var stored = await verifyContext
@@ -561,11 +552,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendWait", 1, 0, TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendWait", 1, 0);
 
-        Assert.Equal("You need to sit down before waiting.", narration);
+        Assert.Equal(ActionFailureReason.NotSitting, result.Reason);
         var world = await GetWorld();
         AssertOnlyClockDriftElapsed(world);
     }
@@ -577,11 +566,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendWait", 24, 1, TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendWait", 24, 1);
 
-        Assert.Equal("You can wait for at most 24 hours at a time.", narration);
+        Assert.Equal(ActionFailureReason.InvalidDuration, result.Reason);
         var world = await GetWorld();
         AssertOnlyClockDriftElapsed(world);
     }
@@ -601,15 +588,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, snapshots);
         await using var gameHub = connected.Connection;
 
-        var sitReply = await Drain(
-            gameHub.StreamAsync<string>(
-                "SendSitDown",
-                seat.Id,
-                TestContext.Current.CancellationToken
-            )
-        );
+        var sitResult = await Act(gameHub, "SendSitDown", seat.Id);
 
-        Assert.Empty(sitReply);
+        Assert.True(sitResult.Succeeded);
         var seated = Assert.Single(snapshots);
         Assert.Equal(ResponseCreaturePosture.Sitting, seated.PlayerStatus.Posture);
         var seatedProp = Assert.Single(seated.NearbyProps, prop => prop.Id == seat.Id);
@@ -617,11 +598,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.True(seatedProp.IsOccupiedByPlayer);
 
         snapshots.Clear();
-        var standReply = await Drain(
-            gameHub.StreamAsync<string>("SendStandUp", TestContext.Current.CancellationToken)
-        );
+        var standResult = await Act(gameHub, "SendStandUp");
 
-        Assert.Empty(standReply);
+        Assert.True(standResult.Succeeded);
         var standing = Assert.Single(snapshots);
         Assert.Equal(ResponseCreaturePosture.Standing, standing.PlayerStatus.Posture);
         var standingProp = Assert.Single(standing.NearbyProps, prop => prop.Id == seat.Id);
@@ -631,7 +610,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendSleep_AdvancesTimeAndNarrates_WhenTheBedIsRentedToThePlayer()
+    public async Task SendSleep_AdvancesTime_WhenTheBedIsRentedToThePlayer()
     {
         // Arrange
         await using (var scope = fixture.CreateScope())
@@ -646,12 +625,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendSleep", 8, 0, TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendSleep", 8, 0);
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var world = await GetWorld();
         Assert.True(world.GameTime > GameClock.Epoch);
     }
@@ -662,11 +639,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendSleep", 25, 0, TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendSleep", 25, 0);
 
-        Assert.Equal("You can sleep for at most 24 hours at a time.", narration);
+        Assert.Equal(ActionFailureReason.InvalidDuration, result.Reason);
         var world = await GetWorld();
         AssertOnlyClockDriftElapsed(world);
     }
@@ -760,7 +735,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendFlee_EndsTheFight_AndNarratesTheEscape()
+    public async Task SendFlee_EndsTheFight_AndSucceeds()
     {
         // Arrange
         var enemy = await SeedHostileCreature();
@@ -769,12 +744,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendFlee");
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var fight = await GetFight();
         Assert.Equal(CombatOutcome.Fled, fight.Outcome);
         Assert.NotNull(fight.CompletedAt);
@@ -799,7 +772,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = connection;
 
         // Act
-        await Drain(gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken));
+        await Act(gameHub, "SendFlee");
 
         // Assert
         var updated = await combatUpdatedReceived.Task.WaitAsync(
@@ -811,7 +784,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendFlee_StreamsNoNarration_WhenTheFleeAttemptFails()
+    public async Task SendFlee_Succeeds_WhenTheFleeAttemptFails()
     {
         // Arrange — EndpointTestFixture pins Flee:MinimumCatchChance/MaximumCatchChance to 0
         // (guaranteed success) for every other test, so this one spins up its own factory
@@ -853,12 +826,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await gameHub.StartAsync(TestContext.Current.CancellationToken);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendFlee");
 
         // Assert
-        Assert.Empty(narration);
+        Assert.True(result.Succeeded);
         return;
 
         static HubConnection ConnectHub(WebApplicationFactory<Program> factory, Guid sessionId)
@@ -928,14 +899,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = connection;
 
         // Act
-        await Drain(
-            gameHub.StreamAsync<string>(
-                "ResolveUseAbilityCombatAction",
-                enemy.Id,
-                "Strike",
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(gameHub, "ResolveUseAbilityCombatAction", enemy.Id, "Strike");
 
         // Assert
         var updated = await combatUpdatedReceived.Task.WaitAsync(
@@ -994,13 +958,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = connected.Connection;
 
         // Act
-        await Drain(
-            gameHub.StreamAsync<string>(
-                "SendMove",
-                connector.Id,
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(gameHub, "SendMove", connector.Id);
 
         // Assert
         Assert.Single(sceneSnapshots);
@@ -1047,13 +1005,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await Drain(
-            connection.StreamAsync<string>(
-                "SendMove",
-                connector.Id,
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(connection, "SendMove", connector.Id);
 
         Assert.Single(order);
         var player = await context
@@ -1072,12 +1024,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await Drain(
-            connection.StreamAsync<string>(
-                "ResolveFleeEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(connection, "ResolveFleeEncounterAction");
 
         var movedPlayer = await context
             .Creatures.AsNoTracking()
@@ -1098,14 +1045,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
-            Drain(
-                gameHub.StreamAsync<string>(
-                    "ResolveUseAbilityCombatAction",
-                    Guid.NewGuid(),
-                    "Strike",
-                    TestContext.Current.CancellationToken
-                )
-            )
+            Act(gameHub, "ResolveUseAbilityCombatAction", Guid.NewGuid(), "Strike")
         );
         Assert.Contains(
             "There's no fight to act in right now.",
@@ -1125,14 +1065,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HubException>(() =>
-            Drain(
-                gameHub.StreamAsync<string>(
-                    "ResolveUseAbilityCombatAction",
-                    enemy.Id,
-                    "Nonexistent Move",
-                    TestContext.Current.CancellationToken
-                )
-            )
+            Act(gameHub, "ResolveUseAbilityCombatAction", enemy.Id, "Nonexistent Move")
         );
         Assert.Contains(
             "Ability Nonexistent Move not found",
@@ -1149,12 +1082,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendFlee");
 
         // Assert
-        Assert.Equal("There's no fight to flee from right now.", narration);
+        Assert.Equal(ActionFailureReason.NoFight, result.Reason);
     }
 
     [Fact]
@@ -1198,7 +1129,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = connected.Connection;
 
         // Act
-        await Drain(gameHub.StreamAsync<string>("SendFlee", TestContext.Current.CancellationToken));
+        await Act(gameHub, "SendFlee");
 
         // Assert
         var scene = Assert.Single(sceneSnapshots);
@@ -1206,7 +1137,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendRespawn_RelocatesPlayerAndDropsCorpse_WithoutNarration()
+    public async Task SendRespawn_RelocatesPlayerAndDropsCorpse()
     {
         // Arrange - the corpse must keep at least one item, or MovePlayerCommand cleans up the
         // now-empty corpse as part of relocating the player away from the death location.
@@ -1225,12 +1156,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendRespawn", TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendRespawn");
 
         // Assert
-        Assert.Equal("", narration);
+        Assert.True(result.Succeeded);
         await using var scope2 = fixture.CreateScope();
         var context2 = scope2.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var player = await context2.Creatures.SingleAsync(
@@ -1254,12 +1183,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("SendRespawn", TestContext.Current.CancellationToken)
-        );
+        var result = await Act(gameHub, "SendRespawn");
 
         // Assert
-        Assert.Equal("There's nothing to respawn from right now.", narration);
+        Assert.Equal(ActionFailureReason.NotDead, result.Reason);
     }
 
     [Fact]
@@ -1301,7 +1228,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task StartTheftEncounterNarration_NarratesAndPublishesTheEncounter()
+    public async Task StartTheftEncounter_PublishesTheEncounter()
     {
         // Arrange
         var sessionId = await StartSession();
@@ -1313,16 +1240,10 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var (encounter, owner) = await SeedActiveTheftEncounter();
 
         // Act
-        var narration = await Drain(
-            connection.StreamAsync<string>(
-                "StartTheftEncounterNarration",
-                encounter.Id,
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(connection, "StartTheftEncounter", encounter.Id);
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var state = await encounterStarted.Task.WaitAsync(
             PushTimeout,
             TestContext.Current.CancellationToken
@@ -1472,12 +1393,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = connected.Connection;
 
         // Act
-        await Drain(
-            gameHub.StreamAsync<string>(
-                "ResolveFleeEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(gameHub, "ResolveFleeEncounterAction");
 
         // Assert
         Assert.NotEmpty(sceneSnapshots);
@@ -1519,12 +1435,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await using var gameHub = connected.Connection;
 
         // Act
-        await Drain(
-            gameHub.StreamAsync<string>(
-                "ResolvePayFineEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(gameHub, "ResolvePayFineEncounterAction");
 
         // Assert - paying the fine deducts gold, which the scene diff must catch
         var scene = Assert.Single(sceneSnapshots);

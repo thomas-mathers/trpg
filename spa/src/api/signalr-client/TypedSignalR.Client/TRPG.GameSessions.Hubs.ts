@@ -3,7 +3,7 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
-import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -23,198 +23,154 @@ export type IChatHub = {
     /**
     * @param hours Transpiled from int
     * @param minutes Transpiled from int
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendWait(hours: number, minutes: number): IStreamResult<string>;
+    sendWait(hours: number, minutes: number): Promise<ActionResult>;
     /**
     * @param seatId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendSitDown(seatId: string): IStreamResult<string>;
+    sendSitDown(seatId: string): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendStandUp(): IStreamResult<string>;
+    sendStandUp(): Promise<ActionResult>;
     /**
     * @param hours Transpiled from int
     * @param minutes Transpiled from int
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendSleep(hours: number, minutes: number): IStreamResult<string>;
+    sendSleep(hours: number, minutes: number): Promise<ActionResult>;
     /**
     * @param triggerId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendActivateTrigger(triggerId: string): IStreamResult<string>;
+    sendActivateTrigger(triggerId: string): Promise<ActionResult>;
     /**
     * @param questId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendAcceptQuest(questId: string): IStreamResult<string>;
+    sendAcceptQuest(questId: string): Promise<ActionResult>;
     /**
     * @param questId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendDeclineQuest(questId: string): IStreamResult<string>;
-    /**
-    * @param questId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
-    */
-    sendCompleteQuest(questId: string): IStreamResult<string>;
+    sendCompleteQuest(questId: string): Promise<ActionResult>;
     /**
     * @param recipientId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendDeliverItem(recipientId: string): IStreamResult<string>;
+    sendDeliverItem(recipientId: string): Promise<ActionResult>;
     /**
     * @param caravanId Transpiled from System.Guid
     * @param destinationLocationId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendPurchaseCaravanTicket(caravanId: string, destinationLocationId: string): IStreamResult<string>;
-    /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
-    */
-    sendDeclineCaravanTicket(): IStreamResult<string>;
+    sendPurchaseCaravanTicket(caravanId: string, destinationLocationId: string): Promise<ActionResult>;
     /**
     * @param caravanId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendBoardCaravan(caravanId: string): IStreamResult<string>;
+    sendBoardCaravan(caravanId: string): Promise<ActionResult>;
     /**
     * @param connectorId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendMove(connectorId: string): IStreamResult<string>;
+    sendMove(connectorId: string): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendFlee(): IStreamResult<string>;
+    sendFlee(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendRespawn(): IStreamResult<string>;
+    sendRespawn(): Promise<ActionResult>;
     /**
     * @param targetId Transpiled from System.Guid
     * @param abilityName Transpiled from string
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendCastAbility(targetId: string, abilityName: string): IStreamResult<string>;
+    sendCastAbility(targetId: string, abilityName: string): Promise<ActionResult>;
     /**
     * @param targetId Transpiled from System.Guid
     * @param abilityName Transpiled from string
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveUseAbilityCombatAction(targetId: string, abilityName: string): IStreamResult<string>;
+    resolveUseAbilityCombatAction(targetId: string, abilityName: string): Promise<ActionResult>;
     /**
     * @param itemName Transpiled from string
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveUseItemCombatAction(itemName: string): IStreamResult<string>;
+    resolveUseItemCombatAction(itemName: string): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveAttackEncounterAction(): IStreamResult<string>;
+    resolveAttackEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveFleeEncounterAction(): IStreamResult<string>;
+    resolveFleeEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveIntimidateEncounterAction(): IStreamResult<string>;
+    resolveIntimidateEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolvePayTollEncounterAction(): IStreamResult<string>;
+    resolvePayTollEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveFightEncounterAction(): IStreamResult<string>;
+    resolveFightEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveFleeShakedownEncounterAction(): IStreamResult<string>;
+    resolveFleeShakedownEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolvePayFineEncounterAction(): IStreamResult<string>;
+    resolvePayFineEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveGoToJailEncounterAction(): IStreamResult<string>;
+    resolveGoToJailEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveResistArrestEncounterAction(): IStreamResult<string>;
+    resolveResistArrestEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveComplySuspicionAction(): IStreamResult<string>;
+    resolveComplySuspicionAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveFleeSuspicionAction(): IStreamResult<string>;
+    resolveFleeSuspicionAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveAttemptTrapAction(): IStreamResult<string>;
+    resolveAttemptTrapAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveWithdrawTrapAction(): IStreamResult<string>;
+    resolveWithdrawTrapAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveDisarmTrapAction(): IStreamResult<string>;
+    resolveDisarmTrapAction(): Promise<ActionResult>;
     /**
     * @param encounterId Transpiled from System.Guid
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    startTheftEncounterNarration(encounterId: string): IStreamResult<string>;
+    startTheftEncounter(encounterId: string): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveApologizeTheftEncounterAction(): IStreamResult<string>;
+    resolveApologizeTheftEncounterAction(): Promise<ActionResult>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    resolveFleeTheftEncounterAction(): IStreamResult<string>;
+    resolveFleeTheftEncounterAction(): Promise<ActionResult>;
     /**
     * @param flushId Transpiled from System.Guid
     * @returns Transpiled from System.Threading.Tasks.Task

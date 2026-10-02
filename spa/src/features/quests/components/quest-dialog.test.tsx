@@ -2,8 +2,8 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -50,24 +50,18 @@ const stealOfferQuest: QuestDialogState = {
   ],
 };
 
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
+}
+
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendAcceptQuest: vi.fn(),
-    sendDeclineQuest: vi.fn(),
-    sendCompleteQuest: vi.fn(),
+    sendAcceptQuest: vi.fn(succeeded),
+    sendCompleteQuest: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
-}
-
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
 }
 
 function renderDialog(
@@ -76,11 +70,12 @@ function renderDialog(
   chatHubOverrides: Partial<IChatHub> = {},
 ) {
   const interactions = recordInteractions();
-  const chatHub = buildChatHub(chatHubOverrides);
-  const gameChat = buildGameChat({
-    submitNarratedTurn: vi.fn(() => {
-      interactions.calls.push('turn');
+  const chatHub = buildChatHub({
+    sendAcceptQuest: vi.fn(() => {
+      interactions.calls.push('accept');
+      return succeeded();
     }),
+    ...chatHubOverrides,
   });
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
@@ -90,75 +85,47 @@ function renderDialog(
 
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
-      <GameChatContext.Provider value={gameChat}>
-        <QuestDialog playerId="player-id" quest={quest} onClose={onClose} />
-      </GameChatContext.Provider>
+      <QuestDialog playerId="player-id" quest={quest} onClose={onClose} />
     </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat, interactions };
+  return { ...result, chatHub, interactions };
 }
 
 describe('QuestDialog', () => {
-  it('starts a narrated accept turn and closes', async () => {
+  it('accepts the quest and closes', async () => {
     const onClose = vi.fn();
-    const fakeStream = {} as ReturnType<IChatHub['sendAcceptQuest']>;
-    const sendAcceptQuest = vi.fn().mockReturnValue(fakeStream);
-    const { user, chatHub, gameChat } = renderDialog(offerQuest, onClose, { sendAcceptQuest });
+    const { user, chatHub } = renderDialog(offerQuest, onClose);
 
     await user.click(screen.getByRole('button', { name: 'Accept quest' }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
 
     expect(chatHub.sendAcceptQuest).toHaveBeenCalledWith('quest-id');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Accept “A Dangerous Delivery”',
-      fakeStream,
-      undefined,
-      expect.any(Function),
-    );
-    expect(onClose).toHaveBeenCalled();
   });
 
-  it('starts a narrated decline turn and closes', async () => {
+  it('closes without a server call when the offer is declined', async () => {
     const onClose = vi.fn();
-    const fakeStream = {} as ReturnType<IChatHub['sendDeclineQuest']>;
-    const sendDeclineQuest = vi.fn().mockReturnValue(fakeStream);
-    const { user, chatHub, gameChat } = renderDialog(offerQuest, onClose, { sendDeclineQuest });
+    const { user, chatHub } = renderDialog(offerQuest, onClose);
 
     await user.click(screen.getByRole('button', { name: 'Not now' }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
 
-    expect(chatHub.sendDeclineQuest).toHaveBeenCalledWith('quest-id');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Decline “A Dangerous Delivery”',
-      fakeStream,
-    );
-    expect(onClose).toHaveBeenCalled();
+    expect(chatHub.sendAcceptQuest).not.toHaveBeenCalled();
+    expect(chatHub.sendCompleteQuest).not.toHaveBeenCalled();
   });
 
-  it('starts a narrated complete turn and closes', async () => {
+  it('completes the quest and closes', async () => {
     const onClose = vi.fn();
-    const fakeStream = {} as ReturnType<IChatHub['sendCompleteQuest']>;
-    const sendCompleteQuest = vi.fn().mockReturnValue(fakeStream);
-    const { user, chatHub, gameChat } = renderDialog(turnInQuest, onClose, { sendCompleteQuest });
+    const { user, chatHub } = renderDialog(turnInQuest, onClose);
 
     await user.click(screen.getByRole('button', { name: 'Complete quest' }));
     await waitFor(() => expect(onClose).toHaveBeenCalled());
 
     expect(chatHub.sendCompleteQuest).toHaveBeenCalledWith('quest-id');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Complete “A Dangerous Delivery”',
-      fakeStream,
-      undefined,
-      expect.any(Function),
-    );
-    expect(onClose).toHaveBeenCalled();
   });
 
-  it('engages the giver while open and releases them before the accept turn starts', async () => {
-    const { user, interactions } = renderDialog(offerQuest, vi.fn(), {
-      sendAcceptQuest: vi.fn(),
-    });
+  it('engages the giver while open and releases them before the accept starts', async () => {
+    const { user, interactions } = renderDialog(offerQuest, vi.fn());
     await waitFor(() => expect(interactions.calls).toEqual(['begin:creature:giver-id']));
 
     await user.click(screen.getByRole('button', { name: 'Accept quest' }));
@@ -167,7 +134,7 @@ describe('QuestDialog', () => {
       expect(interactions.calls).toEqual([
         'begin:creature:giver-id',
         'end:creature:giver-id',
-        'turn',
+        'accept',
       ]),
     );
   });

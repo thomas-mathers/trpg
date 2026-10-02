@@ -11,9 +11,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useCreatureInteraction } from '@/features/game/hooks/use-interaction-lifecycle';
+import { useAction } from '@/features/game/run-action';
 import { ITEM_TYPE_LABEL } from '@/features/inventory/display-names';
 import { RARITY_COLOR, TYPE_ICON } from '@/features/inventory/item-visuals';
 
@@ -31,7 +31,7 @@ interface DeliverItemDialogProps {
 export function DeliverItemDialog({ playerId, deliverable, onClose }: DeliverItemDialogProps) {
   const queryClient = useQueryClient();
   const chatHub = useChatHub();
-  const { submitNarratedTurn, isStreaming } = useGameChat();
+  const { pending, run } = useAction();
   const { release } = useCreatureInteraction({
     playerId,
     worldId: deliverable?.worldId ?? '',
@@ -52,12 +52,10 @@ export function DeliverItemDialog({ playerId, deliverable, onClose }: DeliverIte
 
   const handleGive = async () => {
     await release();
-    submitNarratedTurn(
-      `Give the ${deliverable.item.name}`,
-      chatHub.sendDeliverItem(deliverable.recipientId),
-      undefined,
-      invalidateJournal,
-    );
+    const result = await run(chatHub.sendDeliverItem(deliverable.recipientId));
+    if (result.succeeded) {
+      await invalidateJournal();
+    }
     onClose();
   };
 
@@ -76,10 +74,10 @@ export function DeliverItemDialog({ playerId, deliverable, onClose }: DeliverIte
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isStreaming}>
+          <Button variant="outline" onClick={onClose} disabled={pending}>
             Not now
           </Button>
-          <Button onClick={() => void handleGive()} disabled={isStreaming}>
+          <Button onClick={() => void handleGive()} disabled={pending}>
             Give
           </Button>
         </DialogFooter>

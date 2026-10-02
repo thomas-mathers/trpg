@@ -11,10 +11,9 @@ import {
   handleGetSignText,
   handleGetWorkstationInventory,
 } from '@/api/client/msw.gen';
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { SceneContext } from '@/features/game/contexts/scene-context';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -57,27 +56,22 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
 
 const emptyJournal: QuestJournalEntrySnapshot[] = [];
 
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
+}
+
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendWait: vi.fn(),
-    sendSitDown: vi.fn(),
-    sendStandUp: vi.fn(),
-    sendSleep: vi.fn(),
-    sendActivateTrigger: vi.fn(),
-    sendFlee: vi.fn(),
+    sendWait: vi.fn(succeeded),
+    sendSitDown: vi.fn(succeeded),
+    sendStandUp: vi.fn(succeeded),
+    sendSleep: vi.fn(succeeded),
+    sendActivateTrigger: vi.fn(succeeded),
+    sendFlee: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
-}
-
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
 }
 
 function renderPanel(
@@ -85,7 +79,6 @@ function renderPanel(
   onQuestDialogRequested: (dialog: unknown) => void = () => {},
 ) {
   const chatHub = buildChatHub();
-  const gameChat = buildGameChat();
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
     connectionError: false,
@@ -95,19 +88,17 @@ function renderPanel(
   const result = renderWithProviders(
     <SceneContext.Provider value={sceneSnapshot}>
       <GameHubConnectionContext.Provider value={hubConnection}>
-        <GameChatContext.Provider value={gameChat}>
-          <NearbyPanel
-            scene={sceneSnapshot}
-            onOpenQuestJournal={() => {}}
-            onQuestDialogRequested={onQuestDialogRequested}
-            onDeliverItemDialogRequested={() => {}}
-          />
-        </GameChatContext.Provider>
+        <NearbyPanel
+          scene={sceneSnapshot}
+          onOpenQuestJournal={() => {}}
+          onQuestDialogRequested={onQuestDialogRequested}
+          onDeliverItemDialogRequested={() => {}}
+        />
       </GameHubConnectionContext.Provider>
     </SceneContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat };
+  return { ...result, chatHub };
 }
 
 describe('NearbyPanel', () => {
@@ -245,14 +236,13 @@ describe('NearbyPanel', () => {
         },
       ],
     };
-    const { user, chatHub, gameChat } = renderPanel(sceneWithTrigger);
+    const { user, chatHub } = renderPanel(sceneWithTrigger);
     const fakeStream = {};
     vi.mocked(chatHub.sendActivateTrigger).mockReturnValue(fakeStream as never);
 
     await user.click(screen.getByRole('button', { name: 'Activate' }));
 
     expect(chatHub.sendActivateTrigger).toHaveBeenCalledWith('lever-id');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith('Activate Rusty Lever', fakeStream);
   });
 
   it('opens a nearby trade workstation inventory when clicked', async () => {

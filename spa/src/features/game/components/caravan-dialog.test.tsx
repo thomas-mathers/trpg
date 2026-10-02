@@ -3,10 +3,9 @@ import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { NearbyCaravanSnapshot } from '@/api/client';
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { SceneContext } from '@/features/game/contexts/scene-context';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -38,38 +37,30 @@ const caravan: NearbyCaravanSnapshot = {
   ],
 };
 
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
+}
+
 const scene = { worldId: 'world-id', playerStatus: { id: 'player-id' } } as SceneSnapshot;
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendPurchaseCaravanTicket: vi.fn(),
-    sendBoardCaravan: vi.fn(),
-    sendDeclineCaravanTicket: vi.fn(),
+    sendPurchaseCaravanTicket: vi.fn(succeeded),
+    sendBoardCaravan: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
-}
-
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
 }
 
 function renderDialog(
   onClose: () => void,
   chatHubOverrides: Partial<IChatHub> = {},
-  gameChatOverrides: Partial<GameChat> = {},
   selectedCaravan: NearbyCaravanSnapshot = caravan,
   interactionOptions?: { refuseBegin: boolean },
 ) {
   const interactions = recordInteractions(interactionOptions);
   const chatHub = buildChatHub(chatHubOverrides);
-  const gameChat = buildGameChat(gameChatOverrides);
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
     connectionError: false,
@@ -79,14 +70,12 @@ function renderDialog(
   const result = renderWithProviders(
     <SceneContext.Provider value={scene}>
       <GameHubConnectionContext.Provider value={hubConnection}>
-        <GameChatContext.Provider value={gameChat}>
-          <CaravanDialog caravan={selectedCaravan} onClose={onClose} />
-        </GameChatContext.Provider>
+        <CaravanDialog caravan={selectedCaravan} onClose={onClose} />
       </GameHubConnectionContext.Provider>
     </SceneContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat, interactions };
+  return { ...result, chatHub, interactions };
 }
 
 describe('CaravanDialog', () => {
@@ -102,7 +91,7 @@ describe('CaravanDialog', () => {
   });
 
   it('stays usable and never releases when the caravan cannot be engaged', async () => {
-    const { interactions, unmount } = renderDialog(vi.fn(), {}, {}, caravan, {
+    const { interactions, unmount } = renderDialog(vi.fn(), {}, caravan, {
       refuseBegin: true,
     });
 
@@ -114,11 +103,9 @@ describe('CaravanDialog', () => {
     expect(interactions.calls).toEqual(['begin:caravan:caravan-id']);
   });
 
-  it('starts a narrated purchase turn and leaves the dialog open', async () => {
+  it('buys a ticket and leaves the dialog open', async () => {
     const onClose = vi.fn();
-    const fakeStream = {} as ReturnType<IChatHub['sendPurchaseCaravanTicket']>;
-    const sendPurchaseCaravanTicket = vi.fn().mockReturnValue(fakeStream);
-    const { user, chatHub, gameChat } = renderDialog(onClose, { sendPurchaseCaravanTicket });
+    const { user, chatHub } = renderDialog(onClose);
 
     await user.click(screen.getByRole('button', { name: 'Buy ticket' }));
 
@@ -126,61 +113,48 @@ describe('CaravanDialog', () => {
       'caravan-id',
       'without-ticket-id',
     );
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Buy a caravan ticket to Stonebridge',
-      fakeStream,
-    );
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('starts a narrated board turn and closes', async () => {
+  it('boards and closes once boarding succeeds', async () => {
     const onClose = vi.fn();
-    const fakeStream = {} as ReturnType<IChatHub['sendBoardCaravan']>;
-    const sendBoardCaravan = vi.fn().mockReturnValue(fakeStream);
-    const { user, chatHub, gameChat } = renderDialog(onClose, { sendBoardCaravan });
+    const { user, chatHub } = renderDialog(onClose);
 
     await user.click(screen.getByRole('button', { name: 'Board' }));
 
     expect(chatHub.sendBoardCaravan).toHaveBeenCalledWith('caravan-id');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Board the caravan to Ravenhollow',
-      fakeStream,
-    );
-    expect(onClose).toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
-  it('starts a narrated decline turn and closes', async () => {
+  it('stays open when boarding is refused', async () => {
     const onClose = vi.fn();
-    const fakeStream = {} as ReturnType<IChatHub['sendDeclineCaravanTicket']>;
-    const sendDeclineCaravanTicket = vi.fn().mockReturnValue(fakeStream);
-    const { user, chatHub, gameChat } = renderDialog(onClose, { sendDeclineCaravanTicket });
+    const sendBoardCaravan = vi
+      .fn()
+      .mockResolvedValue({ succeeded: false, reason: 'CaravanNotPresent' });
+    const { user } = renderDialog(onClose, { sendBoardCaravan });
+
+    await user.click(screen.getByRole('button', { name: 'Board' }));
+
+    await waitFor(() => expect(sendBoardCaravan).toHaveBeenCalled());
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes without a server call when declining', async () => {
+    const onClose = vi.fn();
+    const { user } = renderDialog(onClose);
 
     await user.click(screen.getByRole('button', { name: 'No thanks' }));
 
-    expect(chatHub.sendDeclineCaravanTicket).toHaveBeenCalledWith();
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Decline the caravan ticket',
-      fakeStream,
-    );
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('disables every action button while a turn is streaming', () => {
-    renderDialog(vi.fn(), {}, { isStreaming: true });
+  it('disables ticket buttons while a request is in flight', async () => {
+    const sendPurchaseCaravanTicket = vi.fn(() => new Promise<ActionResult>(() => undefined));
+    const { user } = renderDialog(vi.fn(), { sendPurchaseCaravanTicket });
+
+    await user.click(screen.getByRole('button', { name: 'Buy ticket' }));
 
     expect(screen.getByRole('button', { name: 'Buy ticket' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Board' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'No thanks' })).toBeDisabled();
-  });
-
-  it('disables purchase and boarding while passenger service is suspended', () => {
-    renderDialog(vi.fn(), {}, {}, { ...caravan, passengerServiceAvailable: false });
-
-    expect(
-      screen.getByText('Passenger service is suspended until the weather improves.'),
-    ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Buy ticket' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Board' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'No thanks' })).toBeEnabled();
   });
 });

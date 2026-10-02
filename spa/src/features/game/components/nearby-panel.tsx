@@ -87,9 +87,9 @@ import { ExitFamiliarity } from '@/features/game/components/exit-familiarity';
 import { SignDialog } from '@/features/game/components/sign-dialog';
 import { SleepDialog } from '@/features/game/components/sleep-dialog';
 import { useCastTargeting } from '@/features/game/hooks/use-cast-targeting';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { ROOM_ROLE_ICONS } from '@/features/game/room-role-icons';
+import { runAction } from '@/features/game/run-action';
 import { TransferItemDialog } from '@/features/inventory/components/transfer-item-dialog';
 import type { DeliverItemDialogState } from '@/features/quests/components/deliver-item-dialog';
 import type { QuestDialogState } from '@/features/quests/components/quest-dialog';
@@ -167,7 +167,6 @@ interface NearbyPanelProps {
 
 export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: NearbyPanelProps) {
   const chatHub = useChatHub();
-  const { submitNarratedTurn } = useGameChat();
   const { pendingAbility, castOn } = useCastTargeting();
   const [inventoryTarget, setInventoryTarget] = useState<{
     id: string;
@@ -271,12 +270,7 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
                 variant="outline"
                 size="xs"
                 className="border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground"
-                onClick={() =>
-                  submitNarratedTurn(
-                    `Activate ${trigger.name}`,
-                    chatHub.sendActivateTrigger(trigger.id),
-                  )
-                }
+                onClick={() => void runAction(chatHub.sendActivateTrigger(trigger.id))}
               >
                 Activate
               </Button>

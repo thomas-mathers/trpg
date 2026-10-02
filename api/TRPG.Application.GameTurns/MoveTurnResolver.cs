@@ -11,7 +11,7 @@ internal class MoveTurnResolver(
     ICommandHandler<AppendChatMessagesCommand, int> appendChatMessages
 )
 {
-    public async Task<GameTurnPrompt> Resolve(
+    public async Task<ActionOutcome> Resolve(
         GameTurnSession session,
         Guid connectorId,
         CancellationToken cancellationToken = default
@@ -31,27 +31,26 @@ internal class MoveTurnResolver(
         switch (result)
         {
             case MoveRejectedResult rejected:
-                return new GameTurnPrompt.Reply(BuildRejectionMessage(rejected.Outcome));
+                return ActionOutcome.Failed(ToFailure(rejected.Outcome));
             case MoveInterruptedResult:
-                return new GameTurnPrompt.None();
+                return ActionOutcome.Success;
             case MoveCompletedResult completed:
                 turnContext.PlayerMoved = true;
                 await RecordArrival(session, completed, cancellationToken);
-                return new GameTurnPrompt.None();
+                return ActionOutcome.Success;
             default:
                 throw new ArgumentOutOfRangeException(nameof(result));
         }
     }
 
-    internal static string BuildRejectionMessage(EntryOutcome outcome) =>
+    internal static ActionFailure ToFailure(EntryOutcome outcome) =>
         outcome switch
         {
-            EntryOutcome.NoEntrance => "There is no way in.",
-            EntryOutcome.Locked => "The door is locked.",
+            EntryOutcome.NoEntrance => ActionFailure.NoEntrance,
+            EntryOutcome.Locked => ActionFailure.Locked,
             EntryOutcome.DestinationNotFound or EntryOutcome.ExitNotFound =>
-                "There is nothing to enter there.",
-            EntryOutcome.EncounterActive =>
-                "A hostile encounter is already underway. Resolve it before moving.",
+                ActionFailure.NothingToEnter,
+            EntryOutcome.EncounterActive => ActionFailure.EncounterActive,
             _ => throw new ArgumentOutOfRangeException(nameof(outcome)),
         };
 

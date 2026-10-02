@@ -9,8 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import type { EncounterActionName, HostileEncounterState } from '@/features/encounters/encounter';
 import { useHostileEncounterState } from '@/features/encounters/hooks/use-hostile-encounter-state';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useAction } from '@/features/game/run-action';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
 const ACTION_NAMES: readonly EncounterActionName[] = ['Attack', 'Flee'];
@@ -21,25 +21,23 @@ function isEncounterActionName(name: string): name is EncounterActionName {
 
 export function HostileEncounterDialog() {
   const encounter = useHostileEncounterState();
-  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const { pending, run } = useAction();
   const chatHub = useChatHub();
-  const isRevealed = useDelayedReveal(!!encounter && !isStreaming);
+  const isRevealed = useDelayedReveal(!!encounter);
 
   const actionDetails: Record<
     EncounterActionName,
-    { description: string; icon: typeof Swords; submit: (displayText: string) => void }
+    { description: string; icon: typeof Swords; submit: () => void }
   > = {
     Attack: {
       description: 'Meet the threat head-on.',
       icon: Swords,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveAttackEncounterAction()),
+      submit: () => void run(chatHub.resolveAttackEncounterAction()),
     },
     Flee: {
       description: 'Try to get away.',
       icon: Footprints,
-      submit: (displayText) =>
-        submitNarratedTurn(displayText, chatHub.resolveFleeEncounterAction()),
+      submit: () => void run(chatHub.resolveFleeEncounterAction()),
     },
   };
 
@@ -77,8 +75,8 @@ export function HostileEncounterDialog() {
                 <button
                   key={actionName}
                   type="button"
-                  disabled={isStreaming}
-                  onClick={() => details.submit(actionName)}
+                  disabled={pending}
+                  onClick={() => details.submit()}
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Icon className="text-stamina h-5 w-5" />

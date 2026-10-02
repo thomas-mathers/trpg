@@ -127,11 +127,7 @@ internal class CloseLingeringNpcConversationsCommandHandler(
     {
         var prompt =
             $"Before continuing, call end_conversation for {npcName} to save a summary of your conversation.";
-        var reply = await llmConversationClient.StreamReply(
-            prompt,
-            includeTools: true,
-            cancellationToken
-        );
+        var reply = await llmConversationClient.StreamReply(prompt, cancellationToken);
 
         await foreach (var _ in reply.Tokens.WithCancellation(cancellationToken)) { }
     }

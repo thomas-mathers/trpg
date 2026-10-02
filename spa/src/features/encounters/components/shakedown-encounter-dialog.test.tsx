@@ -2,9 +2,9 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { configure, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import type { ShakedownEncounterState } from '@/features/encounters/encounter';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -27,27 +27,21 @@ const encounter: ShakedownEncounterState = {
   canAffordToll: true,
 };
 
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
 }
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
-    resolveIntimidateEncounterAction: vi.fn(),
-    resolvePayTollEncounterAction: vi.fn(),
-    resolveFightEncounterAction: vi.fn(),
-    resolveFleeShakedownEncounterAction: vi.fn(),
+    resolveIntimidateEncounterAction: vi.fn(succeeded),
+    resolvePayTollEncounterAction: vi.fn(succeeded),
+    resolveFightEncounterAction: vi.fn(succeeded),
+    resolveFleeShakedownEncounterAction: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
 }
 
-function renderDialog(overrides: Partial<GameChat> = {}) {
-  const gameChat = buildGameChat(overrides);
+function renderDialog() {
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
     connectionError: false,
@@ -55,13 +49,11 @@ function renderDialog(overrides: Partial<GameChat> = {}) {
   };
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
-      <GameChatContext.Provider value={gameChat}>
-        <ShakedownEncounterDialog />
-      </GameChatContext.Provider>
+      <ShakedownEncounterDialog />
     </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, gameChat, chatHub: hubConnection.chatHub! };
+  return { ...result, chatHub: hubConnection.chatHub! };
 }
 
 beforeAll(() => configure({ asyncUtilTimeout: 2000 }));
@@ -81,7 +73,7 @@ describe('ShakedownEncounterDialog', () => {
   });
 
   it('sends each selected shakedown action through its typed hub method', async () => {
-    const { user, gameChat, chatHub } = renderDialog();
+    const { user, chatHub } = renderDialog();
 
     gameEventBus.emit('ShakedownEncounterStarted', encounter);
     await user.click(await screen.findByRole('button', { name: /intimidate/i }));
@@ -93,7 +85,6 @@ describe('ShakedownEncounterDialog', () => {
     expect(chatHub.resolvePayTollEncounterAction).toHaveBeenCalledOnce();
     expect(chatHub.resolveFightEncounterAction).toHaveBeenCalledOnce();
     expect(chatHub.resolveFleeShakedownEncounterAction).toHaveBeenCalledOnce();
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledTimes(4);
   });
 
   it('disables paying when the player cannot afford the toll', async () => {

@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useScene } from '@/features/game/contexts/scene-context';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useCaravanInteraction } from '@/features/game/hooks/use-interaction-lifecycle';
+import { useAction } from '@/features/game/run-action';
 
 interface CaravanDialogProps {
   caravan: NearbyCaravanSnapshot | null;
@@ -20,7 +20,7 @@ interface CaravanDialogProps {
 
 export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
   const chatHub = useChatHub();
-  const { submitNarratedTurn, isStreaming } = useGameChat();
+  const { pending, run } = useAction();
   const scene = useScene();
   useCaravanInteraction({
     playerId: scene?.playerStatus.id ?? '',
@@ -32,24 +32,14 @@ export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
     return null;
   }
 
-  const handlePurchase = (destination: CaravanDestinationSnapshot) => {
-    submitNarratedTurn(
-      `Buy a caravan ticket to ${destination.locationName}`,
-      chatHub.sendPurchaseCaravanTicket(caravan.caravanId, destination.locationId),
-    );
-  };
+  const handlePurchase = (destination: CaravanDestinationSnapshot) =>
+    void run(chatHub.sendPurchaseCaravanTicket(caravan.caravanId, destination.locationId));
 
-  const handleBoard = (destination: CaravanDestinationSnapshot) => {
-    submitNarratedTurn(
-      `Board the caravan to ${destination.locationName}`,
-      chatHub.sendBoardCaravan(caravan.caravanId),
-    );
-    onClose();
-  };
-
-  const handleDecline = () => {
-    submitNarratedTurn('Decline the caravan ticket', chatHub.sendDeclineCaravanTicket());
-    onClose();
+  const handleBoard = async () => {
+    const result = await run(chatHub.sendBoardCaravan(caravan.caravanId));
+    if (result.succeeded) {
+      onClose();
+    }
   };
 
   return (
@@ -79,9 +69,9 @@ export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
               <Button
                 size="xs"
                 variant={destination.hasTicket ? 'default' : 'outline'}
-                disabled={isStreaming || !caravan.passengerServiceAvailable}
+                disabled={pending || !caravan.passengerServiceAvailable}
                 onClick={() =>
-                  destination.hasTicket ? handleBoard(destination) : handlePurchase(destination)
+                  destination.hasTicket ? void handleBoard() : handlePurchase(destination)
                 }
               >
                 {destination.hasTicket ? 'Board' : 'Buy ticket'}
@@ -91,7 +81,7 @@ export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleDecline} disabled={isStreaming}>
+          <Button variant="outline" onClick={onClose}>
             No thanks
           </Button>
         </DialogFooter>

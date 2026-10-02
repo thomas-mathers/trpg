@@ -9,8 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import type { GuardEncounterActionName } from '@/features/encounters/encounter';
 import { useGuardEncounterState } from '@/features/encounters/hooks/use-guard-encounter-state';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useAction } from '@/features/game/run-action';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
 const ACTION_NAMES: readonly GuardEncounterActionName[] = ['PayFine', 'GoToJail', 'ResistArrest'];
@@ -21,9 +21,9 @@ function isGuardEncounterActionName(name: string): name is GuardEncounterActionN
 
 export function GuardEncounterDialog() {
   const encounter = useGuardEncounterState();
-  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const { pending, run } = useAction();
   const chatHub = useChatHub();
-  const isRevealed = useDelayedReveal(!!encounter && !isStreaming);
+  const isRevealed = useDelayedReveal(!!encounter);
 
   const actionDetails: Record<
     GuardEncounterActionName,
@@ -38,20 +38,19 @@ export function GuardEncounterDialog() {
       label: `Pay ${encounter?.fineAmount ?? 0} gold`,
       description: 'Settle the matter and clear your name.',
       icon: Coins,
-      submit: () => submitNarratedTurn('Pay the fine', chatHub.resolvePayFineEncounterAction()),
+      submit: () => void run(chatHub.resolvePayFineEncounterAction()),
     },
     GoToJail: {
       label: `Serve ${encounter?.jailHours ?? 0} hours`,
       description: 'Surrender and serve your sentence.',
       icon: Lock,
-      submit: () => submitNarratedTurn('Go to jail', chatHub.resolveGoToJailEncounterAction()),
+      submit: () => void run(chatHub.resolveGoToJailEncounterAction()),
     },
     ResistArrest: {
       label: 'Resist arrest',
       description: 'Fight your way free.',
       icon: Swords,
-      submit: () =>
-        submitNarratedTurn('Resist arrest', chatHub.resolveResistArrestEncounterAction()),
+      submit: () => void run(chatHub.resolveResistArrestEncounterAction()),
     },
   };
 
@@ -99,8 +98,7 @@ export function GuardEncounterDialog() {
                 return null;
               }
               const details = actionDetails[actionName];
-              const isDisabled =
-                isStreaming || (actionName === 'PayFine' && !encounter.canAffordFine);
+              const isDisabled = pending || (actionName === 'PayFine' && !encounter.canAffordFine);
 
               const Icon = details.icon;
               return (

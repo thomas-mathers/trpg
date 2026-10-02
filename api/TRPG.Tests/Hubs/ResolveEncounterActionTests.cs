@@ -90,33 +90,21 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         return connection;
     }
 
-    private static async Task<string> Drain(IAsyncEnumerable<string> tokens)
-    {
-        var builder = new StringBuilder();
-        await foreach (var token in tokens)
-        {
-            builder.Append(token);
-        }
-        return builder.ToString();
-    }
+    private static Task<ActionResult> Act(HubConnection hub, string method, params object[] args) =>
+        hub.InvokeCoreAsync<ActionResult>(method, args, TestContext.Current.CancellationToken);
 
     [Fact]
-    public async Task ResolveEncounterAction_ReturnsAMessage_WhenNoEncounterIsActive()
+    public async Task ResolveEncounterAction_Fails_WhenNoEncounterIsActive()
     {
         // Arrange
         var sessionId = await StartSession();
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>(
-                "ResolveAttackEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(gameHub, "ResolveAttackEncounterAction");
 
         // Assert
-        Assert.Equal("There's no encounter to resolve right now.", narration);
+        Assert.Equal(ActionFailureReason.NoEncounter, result.Reason);
     }
 
     private async Task<(Faction Faction, Creature Monster)> SeedHostileGroup()
@@ -277,15 +265,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         await using var gameHub = await Connect(sessionId);
 
         // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>(
-                "ResolveAttackEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(gameHub, "ResolveAttackEncounterAction");
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
 
         var persistedEncounter = await GetEncounter(encounter.Id);
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);
@@ -324,12 +307,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         await using var gameHub = await Connect(sessionId);
 
         // Act — the flee roll is random, so this asserts the invariants that hold either way
-        await Drain(
-            gameHub.StreamAsync<string>(
-                "ResolveFleeEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(gameHub, "ResolveFleeEncounterAction");
 
         // Assert
         var persistedEncounter = await GetEncounter(encounter.Id);
@@ -417,15 +395,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         );
 
         // Act
-        var narration = await Drain(
-            connection.StreamAsync<string>(
-                "ResolvePayTollEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(connection, "ResolvePayTollEncounterAction");
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var resolution = await encounterResolved.Task.WaitAsync(
             PushTimeout,
             TestContext.Current.CancellationToken
@@ -445,7 +418,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
     }
 
     [Fact]
-    public async Task StartTheftEncounterNarration_NarratesThenPublishesTheEncounter()
+    public async Task StartTheftEncounter_PublishesTheEncounter()
     {
         // Arrange
         var (encounter, owner) = await SeedActiveTheftEncounter();
@@ -463,16 +436,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         );
 
         // Act
-        var narration = await Drain(
-            connection.StreamAsync<string>(
-                "StartTheftEncounterNarration",
-                encounter.Id,
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(connection, "StartTheftEncounter", encounter.Id);
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var state = await encounterStarted.Task.WaitAsync(
             PushTimeout,
             TestContext.Current.CancellationToken
@@ -484,7 +451,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
     }
 
     [Fact]
-    public async Task StartTheftEncounterNarration_ReturnsAMessageWithoutPublishing_WhenEncounterDoesNotMatch()
+    public async Task StartTheftEncounter_FailsWithoutPublishing_WhenEncounterDoesNotMatch()
     {
         // Arrange
         await SeedActiveTheftEncounter();
@@ -512,16 +479,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         Interlocked.Exchange(ref started, 0);
 
         // Act
-        var narration = await Drain(
-            connection.StreamAsync<string>(
-                "StartTheftEncounterNarration",
-                Guid.NewGuid(),
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(connection, "StartTheftEncounter", Guid.NewGuid());
 
         // Assert
-        Assert.Equal("There's no theft encounter to resolve right now.", narration);
+        Assert.Equal(ActionFailureReason.NoEncounter, result.Reason);
         Assert.Equal(0, started);
     }
 
@@ -574,15 +535,10 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         );
 
         // Act
-        var narration = await Drain(
-            connection.StreamAsync<string>(
-                "ResolveApologizeTheftEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        var result = await Act(connection, "ResolveApologizeTheftEncounterAction");
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.True(result.Succeeded);
         var resolution = await encounterResolved.Task.WaitAsync(
             PushTimeout,
             TestContext.Current.CancellationToken
@@ -614,12 +570,7 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         );
 
         // Act
-        await Drain(
-            connection.StreamAsync<string>(
-                "ResolveFleeTheftEncounterAction",
-                TestContext.Current.CancellationToken
-            )
-        );
+        await Act(connection, "ResolveFleeTheftEncounterAction");
 
         // Assert
         var resolution = await encounterResolved.Task.WaitAsync(

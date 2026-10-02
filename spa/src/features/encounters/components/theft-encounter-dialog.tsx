@@ -9,8 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import type { TheftEncounterActionName } from '@/features/encounters/encounter';
 import { useTheftEncounterState } from '@/features/encounters/hooks/use-theft-encounter-state';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useAction } from '@/features/game/run-action';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
 const ACTION_NAMES: readonly TheftEncounterActionName[] = ['Apologize', 'Flee'];
@@ -21,9 +21,9 @@ function isTheftEncounterActionName(name: string): name is TheftEncounterActionN
 
 export function TheftEncounterDialog() {
   const encounter = useTheftEncounterState();
-  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const { pending, run } = useAction();
   const chatHub = useChatHub();
-  const isRevealed = useDelayedReveal(!!encounter && !isStreaming);
+  const isRevealed = useDelayedReveal(!!encounter);
 
   const actionDetails: Record<
     TheftEncounterActionName,
@@ -33,13 +33,13 @@ export function TheftEncounterDialog() {
       label: 'Apologize',
       description: 'Accept responsibility and try to make amends.',
       icon: Handshake,
-      submit: () => submitNarratedTurn('Apologize', chatHub.resolveApologizeTheftEncounterAction()),
+      submit: () => void run(chatHub.resolveApologizeTheftEncounterAction()),
     },
     Flee: {
       label: 'Flee',
       description: 'Slip away before they can stop you.',
       icon: Footprints,
-      submit: () => submitNarratedTurn('Flee', chatHub.resolveFleeTheftEncounterAction()),
+      submit: () => void run(chatHub.resolveFleeTheftEncounterAction()),
     },
   };
 
@@ -93,7 +93,7 @@ export function TheftEncounterDialog() {
                 <button
                   key={actionName}
                   type="button"
-                  disabled={isStreaming}
+                  disabled={pending}
                   onClick={() => details.submit()}
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >

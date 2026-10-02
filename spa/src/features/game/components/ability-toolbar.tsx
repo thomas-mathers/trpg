@@ -11,14 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useScene } from '@/features/game/contexts/scene-context';
 import { useCastTargeting } from '@/features/game/hooks/use-cast-targeting';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { getAbilityIcon } from '@/features/skills/ability-visuals';
 import { cn } from '@/lib/utils';
 
 export function AbilityToolbar() {
   const scene = useScene();
   const playerId = scene?.playerStatus.id;
-  const { isStreaming } = useGameChat();
   const { pendingAbility, selectAbility, cancel, castOn } = useCastTargeting();
   const queryClient = useQueryClient();
 
@@ -68,7 +66,7 @@ export function AbilityToolbar() {
                       size="icon"
                       aria-label={ability.name}
                       aria-pressed={pending}
-                      disabled={!usable || isStreaming}
+                      disabled={!usable}
                       className={cn('size-9', pending && 'border-primary bg-accent')}
                       onClick={() => selectAbility(ability)}
                     >

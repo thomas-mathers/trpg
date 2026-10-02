@@ -8,10 +8,9 @@ import {
   handleGetPlayerAbilityAvailability,
   handleGetQuestJournal,
 } from '@/api/client/msw.gen';
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { SceneContext } from '@/features/game/contexts/scene-context';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -22,6 +21,10 @@ import { renderWithProviders } from '@/test/test-utils';
 import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { AbilityToolbar } from './ability-toolbar';
 import { NearbyPanel } from './nearby-panel';
+
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
+}
 
 function ability(name: string, overrides: Partial<AbilitySummary> = {}): AbilitySummary {
   return {
@@ -75,12 +78,7 @@ function renderToolbar(
     handleGetCreatureAbilities({ body: abilities }),
     handleGetPlayerAbilityAvailability({ body: availability }),
   );
-  const chatHub = { sendCastAbility: vi.fn() } as unknown as IChatHub;
-  const gameChat: GameChat = {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-  };
+  const chatHub = { sendCastAbility: vi.fn(succeeded) } as unknown as IChatHub;
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
     connectionError: false,
@@ -90,38 +88,30 @@ function renderToolbar(
   const result = renderWithProviders(
     <SceneContext.Provider value={scene}>
       <GameHubConnectionContext.Provider value={hubConnection}>
-        <GameChatContext.Provider value={gameChat}>
-          <CastTargetingProvider>
-            <AbilityToolbar />
-            <NearbyPanel
-              scene={scene}
-              onOpenQuestJournal={() => {}}
-              onQuestDialogRequested={() => {}}
-              onDeliverItemDialogRequested={() => {}}
-            />
-          </CastTargetingProvider>
-        </GameChatContext.Provider>
+        <CastTargetingProvider>
+          <AbilityToolbar />
+          <NearbyPanel
+            scene={scene}
+            onOpenQuestJournal={() => {}}
+            onQuestDialogRequested={() => {}}
+            onDeliverItemDialogRequested={() => {}}
+          />
+        </CastTargetingProvider>
       </GameHubConnectionContext.Provider>
     </SceneContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat };
+  return { ...result, chatHub };
 }
 
 describe('AbilityToolbar', () => {
   it('casts a targeted ability on the clicked creature', async () => {
-    const { user, chatHub, gameChat } = renderToolbar([ability('Mend')]);
+    const { user, chatHub } = renderToolbar([ability('Mend')]);
 
     await user.click(await screen.findByRole('button', { name: 'Mend' }));
     await user.click(screen.getByText('Tessa'));
 
     expect(chatHub.sendCastAbility).toHaveBeenCalledWith('tessa-id', 'Mend');
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Cast Mend on Tessa',
-      vi.mocked(chatHub.sendCastAbility).mock.results[0]?.value,
-      undefined,
-      expect.any(Function),
-    );
   });
 
   it('casts a targeted ability on the player from the Yourself button', async () => {

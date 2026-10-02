@@ -9,10 +9,9 @@ import {
   type CreatureInteractionPanelProps,
 } from '../components/creature-interaction-panel';
 import { useScene } from '../contexts/scene-context';
-import { useGameChat } from '../hooks/use-game-chat';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
-import { toastReply } from '../reply-toast';
+import { runAction } from '../run-action';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
@@ -37,7 +36,6 @@ export function LocationViewport({
   };
 
   const chatHub = useChatHub();
-  const { isStreaming, submitNarratedTurn } = useGameChat();
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
   const selectedCreature = scene?.nearbyCreatures.find((creature) => creature.id === focus?.id);
@@ -48,7 +46,7 @@ export function LocationViewport({
     }
   }, [focus, selectedCreature, isInCombat, hasActiveEncounter]);
   const seated = scene?.playerStatus.posture === 'Sitting';
-  const canInteract = !isStreaming && (seated || (!isInCombat && !hasActiveEncounter));
+  const canInteract = seated || (!isInCombat && !hasActiveEncounter);
   const handleSeatInteraction = useSeatInteraction(seated, canInteract);
   const [nearbySeat, setNearbySeat] = useState<ViewportSeat>();
   const [locked, setLocked] = useState(false);
@@ -83,7 +81,7 @@ export function LocationViewport({
     if (!canTravel) {
       return;
     }
-    submitNarratedTurn(null, toastReply(chatHub.sendMove(connectorId)));
+    void runAction(chatHub.sendMove(connectorId));
   };
 
   const targetCreature = scene.nearbyCreatures.find((creature) => creature.id === targetId);
@@ -128,7 +126,7 @@ export function LocationViewport({
             focus={focus}
             creatures={creatures}
             statuses={scene.nearbyCreatures}
-            enabled={!isStreaming && !isInCombat && !hasActiveEncounter && !restoring}
+            enabled={!isInCombat && !hasActiveEncounter && !restoring}
             onTarget={setTargetId}
             onFocus={setFocus}
             onRestored={() => setRestoring(false)}

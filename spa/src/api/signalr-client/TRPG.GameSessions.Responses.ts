@@ -3,6 +3,17 @@
 /* tslint:disable */
 import type { ActiveConditions, ActiveDot, ActiveHot, ActiveBuff } from './TRPG.Combat.Responses';
 
+/** Transpiled from TRPG.GameSessions.Responses.ActionFailureReason */
+export type ActionFailureReason = "NoEntrance" | "Locked" | "NothingToEnter" | "EncounterActive" | "SeatOccupied" | "SeatNotNearby" | "PlayerNotIdle" | "NotSitting" | "InvalidDuration" | "Afflicted" | "NotYourRoom" | "NothingToActivate" | "AlreadyActivated" | "QuestUnavailable" | "NothingToDeliver" | "NoFight" | "NotDead" | "NoTicket" | "CaravanNotPresent" | "TravelSuspended" | "InsufficientGold" | "AlreadyHoldsTicket" | "InvalidDestination" | "NoEncounter" | "AbilityNotFound" | "AbilityUnavailable";
+
+/** Transpiled from TRPG.GameSessions.Responses.ActionResult */
+export type ActionResult = {
+    /** Transpiled from bool */
+    succeeded: boolean;
+    /** Transpiled from TRPG.GameSessions.Responses.ActionFailureReason */
+    reason?: ActionFailureReason;
+}
+
 /** Transpiled from TRPG.GameSessions.Responses.CrimeNotification */
 export type CrimeNotification = {
     /** Transpiled from string */
