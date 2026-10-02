@@ -55,9 +55,7 @@ internal class ReturnRoomKeyTool(
         var npc = await FindNpc(npcName, player!.LocationId, cancellationToken);
         if (npc == null)
         {
-            return new ToolError(
-                $"No one named '{npcName}' found nearby. Call look to see who's around."
-            );
+            return new ToolError($"No one named '{npcName}' found nearby.");
         }
 
         var gameTime = await getGameTime.Handle(

@@ -55,13 +55,17 @@ internal class StreamSleepTurnHandler(
             new GetCreatureByIdQuery { Id = session.PlayerId },
             cancellationToken
         );
+        if (player!.HasActiveDots)
+        {
+            return new GameTurnPrompt.Reply(AfflictedMessage.For("sleep"));
+        }
 
         var outcome = await sleepInRoom.Handle(
             new SleepInRoomCommand
             {
                 PlayerId = session.PlayerId,
                 WorldId = session.WorldId,
-                LocationId = player!.LocationId,
+                LocationId = player.LocationId,
                 Delta = delta,
             },
             cancellationToken
@@ -69,7 +73,7 @@ internal class StreamSleepTurnHandler(
 
         if (outcome.GameTime is { } gameTime)
         {
-            var effectVitals = await advanceCreatureEffects.Handle(
+            await advanceCreatureEffects.Handle(
                 new AdvanceCreatureEffectsCommand
                 {
                     WorldId = session.WorldId,
@@ -78,13 +82,6 @@ internal class StreamSleepTurnHandler(
                 },
                 cancellationToken
             );
-            if (effectVitals.HasDied(session.PlayerId))
-            {
-                return new GameTurnPrompt.Narrate(
-                    "The player died from a lingering effect in their sleep. Narrate their death in two or three sentences.",
-                    IncludeTools: false
-                );
-            }
             await refreshScene.Handle(
                 new RefreshSceneCommand
                 {
@@ -102,7 +99,7 @@ internal class StreamSleepTurnHandler(
                 "There's no bed here that's rented to the player."
             ),
             _ => new GameTurnPrompt.Narrate(
-                "A night's rest has passed. Narrate the player waking up refreshed and well-rested in their rented room, then call look now to describe their surroundings."
+                "A night's rest has passed. Narrate the player waking up refreshed and well-rested in their rented room in a sentence or two, without describing any specific person or place beyond the room."
             ),
         };
     }

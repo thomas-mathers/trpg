@@ -15,11 +15,6 @@ export type IChatHub = {
     */
     endSession(): Promise<void>;
     /**
-    * @param cancellationToken Transpiled from System.Threading.CancellationToken
-    * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>
-    */
-    receiveOpening(): IStreamResult<string>;
-    /**
     * @param message Transpiled from string
     * @param cancellationToken Transpiled from System.Threading.CancellationToken
     * @returns Transpiled from System.Collections.Generic.IAsyncEnumerable<string>

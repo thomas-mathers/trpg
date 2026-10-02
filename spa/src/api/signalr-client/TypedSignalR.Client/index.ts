@@ -88,10 +88,6 @@ class IChatHub_HubProxy implements IChatHub {
         return await this.connection.invoke("EndSession");
     }
 
-    public readonly receiveOpening = (): IStreamResult<string> => {
-        return this.connection.stream("ReceiveOpening");
-    }
-
     public readonly sendChat = (message: string): IStreamResult<string> => {
         return this.connection.stream("SendChat", message);
     }

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
@@ -11,7 +13,8 @@ namespace TRPG.Application.Creatures.EventHandlers;
 
 internal sealed class CreatureEquipmentChangedEventHandler(
     ICreaturesDbContext context,
-    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner
+    IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> getInventoryItemsByOwner,
+    IOptionsSnapshot<CreatureGeneratorOptions> optionsSnapshot
 ) : IDomainEventConsumer<CreatureEquipmentChangedEvent>
 {
     public async Task Handle(
@@ -33,6 +36,7 @@ internal sealed class CreatureEquipmentChangedEventHandler(
         );
         var equippedItems = ownedItems.Where(item => item.Ownership.EquippedSlot != null).ToList();
 
+        StatFormulas.RefreshMovementSpeed(creature, equippedItems, optionsSnapshot.Value);
         StatFormulas.Recalculate(creature, equippedItems);
 
         await context.SaveChangesAsync(cancellationToken);

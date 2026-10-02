@@ -24,7 +24,6 @@ namespace TRPG.GameSessions.Hubs;
 public interface IChatHub
 {
     Task EndSession();
-    IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendWait(int hours, int minutes, CancellationToken cancellationToken);
     IAsyncEnumerable<string> SendSitDown(Guid seatId, CancellationToken cancellationToken);
@@ -144,9 +143,6 @@ internal sealed class ChatHub(
     {
         await pendingSessionEnds.End(Session.SessionId);
     }
-
-    public IAsyncEnumerable<string> ReceiveOpening(CancellationToken cancellationToken) =>
-        gameTurnRunner.StreamOpening(Session, cancellationToken);
 
     public IAsyncEnumerable<string> SendChat(string message, CancellationToken cancellationToken) =>
         gameTurnRunner.StreamChat(Session, message, cancellationToken);

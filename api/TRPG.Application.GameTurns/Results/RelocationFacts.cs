@@ -34,7 +34,7 @@ internal static class RelocationFacts
         var payload = JsonSerializer.Serialize(scene.ToLlmScene(), TrpgJsonOptions.Default);
 
         return $"""
-            This is what they can observe, in the same shape the look tool returns:
+            This is what they can observe:
             {payload}
             {company} Describe nobody else as present, and never invent someone arriving to
             intervene. Any name passed to a tool later must be copied verbatim from this scene.

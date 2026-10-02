@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Configuration;
+using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -72,5 +74,32 @@ public sealed class SetSneakingCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.False(updatedCreature.IsSneaking);
+    }
+
+    [Fact]
+    public async Task Handle_HalvesMovementSpeed_WhenSneakingStarts()
+    {
+        // Arrange
+        var options = new CreatureGeneratorOptions();
+        var expected = StatFormulas.CalculateTravelSpeed(
+            _creature.BaseAttributes.Dexterity,
+            [],
+            true,
+            options
+        );
+
+        // Act
+        await _handler.Handle(
+            new SetSneakingCommand { CreatureId = _creature.Id, IsSneaking = true },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await using var verifyContext = db.CreateContext();
+        var updatedCreature = await verifyContext.Creatures.SingleAsync(
+            c => c.Id == _creature.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(expected, updatedCreature.MovementSpeed);
     }
 }

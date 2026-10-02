@@ -6,6 +6,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
@@ -28,7 +29,9 @@ internal class StreamBoardCaravanTurnHandler(
         ApplyPassiveRegenCommand,
         IReadOnlyDictionary<Guid, Creature>
     > applyPassiveRegen,
-    ICommandHandler<MovePlayerCommand> movePlayer
+    ICommandHandler<MovePlayerCommand> movePlayer,
+    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -48,6 +51,10 @@ internal class StreamBoardCaravanTurnHandler(
                 new GetCreatureByIdQuery { Id = session.PlayerId },
                 cancellationToken
             ) ?? throw new EntityNotFoundException(nameof(Creature), session.PlayerId);
+        if (player.HasActiveDots)
+        {
+            return new GameTurnPrompt.Reply(AfflictedMessage.For("board a caravan"));
+        }
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = session.SessionId },
             cancellationToken
@@ -88,7 +95,7 @@ internal class StreamBoardCaravanTurnHandler(
             cancellationToken
         );
 
-        var effectVitals = await advanceCreatureEffects.Handle(
+        await advanceCreatureEffects.Handle(
             new AdvanceCreatureEffectsCommand
             {
                 WorldId = session.WorldId,
@@ -97,13 +104,6 @@ internal class StreamBoardCaravanTurnHandler(
             },
             cancellationToken
         );
-        if (effectVitals.HasDied(session.PlayerId))
-        {
-            return new GameTurnPrompt.Narrate(
-                "The player died from a lingering effect during the caravan journey and never arrived. Narrate their death in two or three sentences.",
-                IncludeTools: false
-            );
-        }
 
         await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand
@@ -125,9 +125,21 @@ internal class StreamBoardCaravanTurnHandler(
         );
         turnContext.PlayerMoved = true;
 
-        return new GameTurnPrompt.Narrate(
-            "The player just boarded the caravan and traveled to their destination. Narrate a "
-                + "brief journey montage and the arrival in two or three sentences."
+        var startedEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
+            cancellationToken
         );
+
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = session.PlayerId,
+                Encounter = startedEncounter,
+                GameTime = arrivalGameTime,
+            },
+            cancellationToken
+        );
+
+        return new GameTurnPrompt.None();
     }
 }

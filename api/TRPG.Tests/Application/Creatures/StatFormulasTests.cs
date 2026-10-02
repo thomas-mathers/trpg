@@ -569,4 +569,19 @@ public class StatFormulasTests
         // Assert
         Assert.Equal(10f, speed);
     }
+
+    [Fact]
+    public void RefreshMovementSpeed_StoresTheTravelSpeed_OnTheBaseAttributes()
+    {
+        // Arrange
+        var options = new CreatureGeneratorOptions();
+        var creature = Builders.MakeCreature(baseAttributes: new Attributes { Dexterity = 8 });
+        creature.IsSneaking = true;
+
+        // Act
+        StatFormulas.RefreshMovementSpeed(creature, [], options);
+
+        // Assert
+        Assert.Equal(29f, creature.BaseAttributes.MovementSpeed);
+    }
 }

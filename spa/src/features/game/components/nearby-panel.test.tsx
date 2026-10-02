@@ -60,7 +60,6 @@ const emptyJournal: QuestJournalEntrySnapshot[] = [];
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
-    receiveOpening: vi.fn(),
     sendChat: vi.fn(),
     sendWait: vi.fn(),
     sendSitDown: vi.fn(),

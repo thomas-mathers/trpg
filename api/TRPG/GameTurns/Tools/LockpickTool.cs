@@ -17,8 +17,8 @@ namespace TRPG.GameTurns.Tools;
 
 internal record LockpickToolResult(
     bool Opened,
-    MoveToolGuardEncounter? GuardEncounter,
-    MoveToolHostileEncounter? HostileEncounter
+    GuardEncounterSummary? GuardEncounter,
+    HostileEncounterSummary? HostileEncounter
 );
 
 internal class LockpickTool(
@@ -35,11 +35,11 @@ internal class LockpickTool(
 
     [DisplayName("pick_lock")]
     [Description(
-        "Attempts to pick the lock on a nearby locked door by exact name — a building's front door, or an interior door within a building the player is already inside. Picking a lock is a crime if witnessed, with real consequences (fines, jail, hostile confrontation). Call this ONLY after the player explicitly says they want to pick, force, or break into the lock or door — never call it automatically as a fallback when a move fails because a door is locked, and never call it merely because a door is known or described as locked. A locked door encountered during ordinary movement should just be narrated as locked; the player must explicitly choose to attempt lockpicking as its own action. Opening the lock does NOT move the player through the door — narrate only the lock itself (it opening or resisting); never describe the player entering, stepping through, or being inside as part of this result, even if Opened is true. The player is still standing where they were and must issue a separate move to actually go through. The name must be copied verbatim from the most recent look or move result — never invented, guessed, or paraphrased. Whenever the player asks to pick a lock, call this and narrate what it returns: never decide yourself that the attempt succeeded or failed, and never refuse because an earlier attempt failed. Opened false means only that this attempt failed — the lock is unchanged and the player may try again as often as they like, so never describe it as unpickable, beyond their skill, or hopeless. Never invent anyone arriving to interrupt, warn or stop the attempt; only creatures the scene actually lists are present."
+        "Attempts to pick the lock on a nearby locked door by exact name — a building's front door, or an interior door within a building the player is already inside. Picking a lock is a crime if witnessed, with real consequences (fines, jail, hostile confrontation). Call this ONLY after the player explicitly says they want to pick, force, or break into the lock or door — never call it merely because a door is known or described as locked. Opening the lock does NOT move the player through the door — narrate only the lock itself (it opening or resisting); never describe the player entering, stepping through, or being inside as part of this result, even if Opened is true. The player is still standing where they were. The name must be copied verbatim from the player's message or an earlier tool result — never invented, guessed, or paraphrased. Whenever the player asks to pick a lock, call this and narrate what it returns: never decide yourself that the attempt succeeded or failed, and never refuse because an earlier attempt failed. Opened false means only that this attempt failed — the lock is unchanged and the player may try again as often as they like, so never describe it as unpickable, beyond their skill, or hopeless. Never invent anyone arriving to interrupt, warn or stop the attempt; only creatures the scene actually lists are present."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a nearby building, or the exact DestinationName of an exit, copied verbatim from the most recent look or move result."
+            "The exact Name of a nearby building, or the exact DestinationName of an exit, copied verbatim from the player's message or an earlier tool result."
         )]
             string destinationName,
         CancellationToken cancellationToken
@@ -113,8 +113,8 @@ internal class LockpickTool(
 
         return new LockpickToolResult(
             result.Outcome == LockpickAttemptOutcome.Opened,
-            (result.Encounter as GuardEncounter)?.ToMoveToolSummary(),
-            (result.Encounter as HostileEncounter)?.ToMoveToolSummary()
+            (result.Encounter as GuardEncounter)?.ToToolSummary(),
+            (result.Encounter as HostileEncounter)?.ToToolSummary()
         );
     }
 }

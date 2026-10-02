@@ -53,7 +53,7 @@ public sealed class RelocationFactsTests
     [Fact]
     public void Describe_CarriesTheWayOut_SoTheNarratorCanPassItToATool()
     {
-        // Arrange — jail relocates the player without a look or move, the tools' only name source.
+        // Arrange — jail relocates the player without any walk, so the model has no other source for names.
         var scene = MakeScene(
             room: "Cells",
             building: "The Iron Gate",

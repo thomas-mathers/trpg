@@ -17,55 +17,18 @@ public class StreamFleeTurnHandlerTests
         new Dictionary<ConditionType, GameInstant>()
     );
 
-    private static CombatResult MakeCombatResult(CombatOutcome outcome) =>
-        new(outcome, PlayerState, [], []);
-
     [Fact]
-    public void BuildNarrationPrompt_DescribesArrivingAtTheDestination_WhenTheFleeAttemptSucceeded()
+    public void BuildNarrationPrompt_DescribesStayingInPlace_WhenTheFleeAttemptHasNoDestination()
     {
         // Arrange
         var result = new FleeCombatResult(
-            MakeCombatResult(CombatOutcome.Fled),
-            Guid.NewGuid(),
-            "The Market Square"
+            new CombatResult(CombatOutcome.Fled, PlayerState, [], []),
+            null,
+            null
         );
 
         // Act
-        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result, didMove: true);
-
-        // Assert
-        Assert.Contains(
-            "carried the player to The Market Square",
-            prompt,
-            StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
-    public void BuildNarrationPrompt_DescribesStayingInPlace_WhenTheFleeAttemptSucceededWithNoDestination()
-    {
-        // Arrange
-        var result = new FleeCombatResult(MakeCombatResult(CombatOutcome.Fled), null, null);
-
-        // Act
-        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result, didMove: false);
-
-        // Assert
-        Assert.Contains("Fleeing only ends the fight", prompt, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void BuildNarrationPrompt_DescribesStayingInPlace_WhenMovementWasBlockedByAConfrontation()
-    {
-        // Arrange
-        var result = new FleeCombatResult(
-            MakeCombatResult(CombatOutcome.Fled),
-            Guid.NewGuid(),
-            "The Market Square"
-        );
-
-        // Act
-        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result, didMove: false);
+        var prompt = StreamFleeTurnHandler.BuildNarrationPrompt(result);
 
         // Assert
         Assert.Contains("Fleeing only ends the fight", prompt, StringComparison.Ordinal);

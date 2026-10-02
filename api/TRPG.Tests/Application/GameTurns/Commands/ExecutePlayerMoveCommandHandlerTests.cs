@@ -149,33 +149,6 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ReturnsTravelDeathWithoutMovingThePlayer()
-    {
-        _context.TravelConnectors.Add(
-            Builders.MakeTravelConnector(_connector.Id, distance: 116, worldId: _worldId)
-        );
-        _player.ActiveDots =
-        [
-            new ActiveDot
-            {
-                AbilityName = "Ignite",
-                Amount = _player.MaximumHp,
-                DamageType = nameof(DamageType.Fire),
-                NextTickAt = GameClock.Epoch + TimeSpan.FromSeconds(6),
-                ExpiresAt = GameClock.Epoch + TimeSpan.FromDays(1),
-            },
-        ];
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        Assert.IsType<MoveTravelDeathResult>(await Execute(_connector.Id));
-
-        await using var verifyContext = db.CreateContext();
-        var player = await GetPlayer(verifyContext);
-        Assert.Equal(CreatureCondition.Dead, player.Condition);
-        Assert.Equal(_origin.Id, player.LocationId);
-    }
-
-    [Fact]
     public async Task Handle_ReturnsTheArrivalEncounterAfterRelocation()
     {
         var trap = Builders.MakeTrap(
@@ -236,30 +209,24 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_UsesTheArrivalInstantForTravelReconciliationAndScene()
+    public async Task Handle_LeavesTheWorldClockAlone_WhenTheConnectorHasATravelDistance()
     {
+        // Arrange
         _context.TravelConnectors.Add(
             Builders.MakeTravelConnector(_connector.Id, distance: 116, worldId: _worldId)
         );
-        _player.CurrentHp = 1;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var result = Assert.IsType<MoveCompletedResult>(await Execute(_connector.Id));
+        // Act
+        await Execute(_connector.Id);
 
-        var expectedArrival = GameClock.Epoch + TimeSpan.FromHours(2);
-        Assert.Equal(2, result.TravelTimeHours);
-        Assert.Equal(
-            GameClock.GetCurrentInGameDate(expectedArrival).Hour,
-            result.Scene.CurrentDate.Hour
-        );
+        // Assert
         await using var verifyContext = db.CreateContext();
-        var player = await GetPlayer(verifyContext);
         var world = await verifyContext.Worlds.SingleAsync(
             world => world.Id == _worldId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(expectedArrival, world.GameTime);
-        Assert.Equal(expectedArrival, player.LastRegenGameTime);
+        Assert.Equal(GameClock.Epoch, world.GameTime);
     }
 
     private Task<ExecutePlayerMoveResult> Execute(Guid connectorId) =>

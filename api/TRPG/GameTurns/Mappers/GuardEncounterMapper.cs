@@ -6,14 +6,14 @@ namespace TRPG.GameTurns.Mappers;
 
 internal static class GuardEncounterMapper
 {
-    public static MoveToolGuardEncounter ToMoveToolSummary(this GuardEncounter encounter) =>
+    public static GuardEncounterSummary ToToolSummary(this GuardEncounter encounter) =>
         new(
             encounter.GuardName,
             encounter.LocationName!,
             encounter.FineAmount,
             encounter.JailHours,
             encounter
-                .RecentOffenses.Select(offense => new MoveToolGuardOffense(
+                .RecentOffenses.Select(offense => new GuardOffenseSummary(
                     offense.ToText(),
                     offense.SubjectIsTheGuard
                 ))

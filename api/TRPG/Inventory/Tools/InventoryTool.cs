@@ -32,11 +32,11 @@ internal class InventoryTool(
 
     [DisplayName("inventory")]
     [Description(
-        "Returns the items someone is carrying. Omit targetName to check the player's own inventory, or pass the exact Name of a person from NearbyCreatures to check theirs."
+        "Returns the items someone is carrying. Omit targetName to check the player's own inventory, or pass the exact Name of a person to check theirs."
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a person from NearbyCreatures, copied verbatim from the most recent look or move result. Omit to check the player's own inventory."
+            "The exact Name of a person, copied verbatim from the player's message or an earlier tool result. Omit to check the player's own inventory."
         )]
             string? targetName,
         CancellationToken cancellationToken
@@ -69,9 +69,7 @@ internal class InventoryTool(
 
             if (target == null)
             {
-                return new ToolError(
-                    $"No one named '{targetName}' found nearby. Call look to see who's around."
-                );
+                return new ToolError($"No one named '{targetName}' found nearby.");
             }
         }
 

@@ -43,7 +43,6 @@ const scene = { worldId: 'world-id', playerStatus: { id: 'player-id' } } as Scen
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
-    receiveOpening: vi.fn(),
     sendChat: vi.fn(),
     sendPurchaseCaravanTicket: vi.fn(),
     sendBoardCaravan: vi.fn(),

@@ -10,7 +10,6 @@ public static class GameTurnsServiceCollectionExtensions
         serviceCollection
             .AddTransient<LlmConversationClient>()
             .AddTransient<GameTurnStreamer>()
-            .AddTransient<StreamOpeningTurnHandler>()
             .AddTransient<StreamWaitTurnHandler>()
             .AddTransient<StreamSitDownTurnHandler>()
             .AddTransient<StreamStandUpTurnHandler>()
@@ -22,6 +21,7 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<StreamDeliverItemTurnHandler>()
             .AddTransient<StreamChatTurnHandler>()
             .AddTransient<StreamFleeTurnHandler>()
+            .AddTransient<PlayerRespawner>()
             .AddTransient<StreamRespawnTurnHandler>()
             .AddTransient<StreamHostileEncounterActionTurnHandler>()
             .AddTransient<StreamShakedownEncounterActionTurnHandler>()
@@ -39,7 +39,6 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<StreamBoardCaravanTurnHandler>()
             .AddTransient<StreamMoveTurnHandler>()
             .AddTransient<GameTurnRunner>(serviceProvider => new GameTurnRunner(
-                serviceProvider.GetRequiredService<StreamOpeningTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamChatTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamWaitTurnHandler>(),
                 serviceProvider.GetRequiredService<StreamSitDownTurnHandler>(),

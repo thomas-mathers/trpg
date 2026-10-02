@@ -464,28 +464,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ReceiveOpening_NarratesTheOpeningScene_AndPersistsTheReply()
-    {
-        // Arrange
-        var sessionId = await StartSession();
-        await using var gameHub = await Connect(sessionId);
-
-        // Act
-        var narration = await Drain(
-            gameHub.StreamAsync<string>("ReceiveOpening", TestContext.Current.CancellationToken)
-        );
-
-        // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
-        var persisted = await GetChatMessage(sessionId, "assistant");
-        Assert.Contains(
-            fixture.ChatClient.ChatResponseText,
-            persisted.MessageJson,
-            StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
     public async Task SendWait_AdvancesTimeAndNarrates()
     {
         // Arrange
@@ -978,7 +956,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendChat_PublishesExactlyOneSceneSnapshot_WhenMovingTriggersCatchUp()
+    public async Task SendMove_PublishesExactlyOneSceneSnapshot_WhenMovingTriggersCatchUp()
     {
         // Arrange
         await using var scope = fixture.CreateScope();
@@ -1015,17 +993,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, sceneSnapshots);
         await using var gameHub = connected.Connection;
 
-        fixture.ChatClient.PendingToolCallName = "move";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
-        {
-            ["destinationName"] = destinationDistrict.Name,
-        };
-
         // Act
         await Drain(
             gameHub.StreamAsync<string>(
-                "SendChat",
-                $"I head to {destinationDistrict.Name}",
+                "SendMove",
+                connector.Id,
                 TestContext.Current.CancellationToken
             )
         );
@@ -1035,80 +1007,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendChat_PublishesSceneSnapshotBeforeNarrationToken_WhenMovingTriggersCatchUp()
-    {
-        // Arrange
-        await using var scope = fixture.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
-        var destinationDistrictId = Guid.NewGuid();
-        var destinationLocation = Builders.MakeLocation(
-            _worldId,
-            _stateId,
-            districtId: destinationDistrictId
-        );
-        var destinationDistrict = Builders.MakeDistrict(
-            _cityId,
-            DataDistrictType.Residential,
-            worldId: _worldId,
-            name: "Market Row",
-            id: destinationDistrictId,
-            locationId: destinationLocation.Id
-        );
-        var connector = Builders.MakeLocationConnector(
-            _locationId,
-            destinationLocationId: destinationDistrict.LocationId,
-            worldId: _worldId,
-            name: "Path",
-            description: "A path leading to Market Row.",
-            destinationLabel: destinationDistrict.Name
-        );
-        context.Districts.Add(destinationDistrict);
-        context.Locations.Add(destinationLocation);
-        context.LocationConnectors.Add(connector);
-        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var sessionId = await StartSession();
-        var order = new ConcurrentQueue<string>();
-        var connected = await ConnectAndAwaitInitialSnapshot(sessionId, []);
-        await using var gameHub = connected.Connection;
-
-        var movedSnapshotReceived = new TaskCompletionSource();
-        connected.Client.OnSceneSnapshot = _ =>
-        {
-            order.Enqueue("scene");
-            movedSnapshotReceived.TrySetResult();
-        };
-
-        fixture.ChatClient.PendingToolCallName = "move";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
-        {
-            ["destinationName"] = destinationDistrict.Name,
-        };
-
-        // Act
-        var tokens = gameHub.StreamAsync<string>(
-            "SendChat",
-            $"I head to {destinationDistrict.Name}",
-            TestContext.Current.CancellationToken
-        );
-        await foreach (var _ in tokens)
-        {
-            order.Enqueue("token");
-        }
-
-        // Assert - the scene change must arrive before any narration token, however many there are
-        var received = order.ToArray();
-        Assert.NotEmpty(received);
-        Assert.Equal("scene", received[0]);
-        Assert.All(received.Skip(1), item => Assert.Equal("token", item));
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("You turn toward the passage. ")]
-    public async Task SendChat_DeliversDepartureEncounterBeforeOutcomeNarration_WhenMoveIsIntercepted(
-        string? preamble
-    )
+    public async Task SendMove_DeliversDepartureEncounter_WhenMoveIsIntercepted()
     {
         var sessionId = await StartSession();
         await using var connection = fixture.CreateHubConnection(sessionId);
@@ -1132,15 +1031,14 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var faction = Builders.MakeFaction(_worldId, aggression: 150);
         var monster = Builders.MakeCreature(_worldId, locationId: _locationId);
         var group = Builders.MakeEncounterGroup(_worldId, _locationId, faction.Id);
-        context.Locations.Add(destination);
-        context.LocationConnectors.Add(
-            Builders.MakeLocationConnector(
-                _locationId,
-                destinationLocationId: destination.Id,
-                worldId: _worldId,
-                destinationLabel: "Elsewhere"
-            )
+        var connector = Builders.MakeLocationConnector(
+            _locationId,
+            destinationLocationId: destination.Id,
+            worldId: _worldId,
+            destinationLabel: "Elsewhere"
         );
+        context.Locations.Add(destination);
+        context.LocationConnectors.Add(connector);
         context.Factions.Add(faction);
         context.Creatures.Add(monster);
         context.EncounterGroups.Add(group);
@@ -1149,31 +1047,15 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        fixture.ChatClient.PendingToolCallName = "move";
-        fixture.ChatClient.PendingToolCallArguments = new Dictionary<string, object?>
-        {
-            ["destinationName"] = "Elsewhere",
-        };
-        fixture.ChatClient.TextBeforeToolCall = preamble;
-        fixture.ChatClient.ChatResponseText = "The hostile creature blocks your departure.";
-        var narration = new StringBuilder();
-        await foreach (
-            var token in connection.StreamAsync<string>(
-                "SendChat",
-                "Go to Elsewhere",
+        await Drain(
+            connection.StreamAsync<string>(
+                "SendMove",
+                connector.Id,
                 TestContext.Current.CancellationToken
             )
-        )
-        {
-            narration.Append(token);
-            if (narration.ToString().Contains("blocks your departure", StringComparison.Ordinal))
-            {
-                Assert.Contains("encounter", order);
-            }
-        }
+        );
 
         Assert.Single(order);
-        Assert.Contains("blocks your departure", narration.ToString());
         var player = await context
             .Creatures.AsNoTracking()
             .SingleAsync(
@@ -1181,7 +1063,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
                 TestContext.Current.CancellationToken
             );
         Assert.Equal(_locationId, player.LocationId);
-        fixture.ChatClient.PendingToolCallName = null;
         var arrivalEnemy = Builders.MakeCreature(_worldId, locationId: destination.Id);
         var arrivalGroup = Builders.MakeEncounterGroup(_worldId, destination.Id, faction.Id);
         context.Creatures.Add(arrivalEnemy);
@@ -1325,7 +1206,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendRespawn_RelocatesPlayerAndDropsCorpse_AndNarratesTheRespawn()
+    public async Task SendRespawn_RelocatesPlayerAndDropsCorpse_WithoutNarration()
     {
         // Arrange - the corpse must keep at least one item, or MovePlayerCommand cleans up the
         // now-empty corpse as part of relocating the player away from the death location.
@@ -1349,7 +1230,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
 
         // Assert
-        Assert.Equal(fixture.ChatClient.ChatResponseText, narration);
+        Assert.Equal("", narration);
         await using var scope2 = fixture.CreateScope();
         var context2 = scope2.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var player = await context2.Creatures.SingleAsync(

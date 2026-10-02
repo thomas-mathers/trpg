@@ -34,7 +34,7 @@ internal class OfferBribeForFactTool(
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of the person being bribed, copied verbatim from the most recent look or move result."
+            "The exact Name of the person being bribed, copied verbatim from the player's message or an earlier tool result."
         )]
             string npcName,
         [Description("The amount of gold offered, as stated by the player.")] int goldOffered,
@@ -72,9 +72,7 @@ internal class OfferBribeForFactTool(
         );
         if (npc == null)
         {
-            return new ToolError(
-                $"No one named '{npcName}' found nearby. Call look to see who's around."
-            );
+            return new ToolError($"No one named '{npcName}' found nearby.");
         }
 
         var objective = await getActiveObjectiveForNpc.Handle(
