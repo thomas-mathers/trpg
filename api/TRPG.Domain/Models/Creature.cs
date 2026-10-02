@@ -180,6 +180,8 @@ public class Creature
     public List<ActiveHot> ActiveHots { get; set; } = [];
     public List<ActiveBuff> ActiveBuffs { get; set; } = [];
 
+    public bool HasActiveDots => ActiveDots.Count > 0;
+
     public bool HasActiveEffects =>
         ActiveConditions.Count > 0
         || CooldownReadyAtByAbility.Count > 0

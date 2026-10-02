@@ -15,7 +15,7 @@ using TRPG.Tools;
 
 namespace TRPG.GameTurns.Tools;
 
-internal record UnlockCellToolResult(bool Opened, MoveToolHostileEncounter? HostileEncounter);
+internal record UnlockCellToolResult(bool Opened, HostileEncounterSummary? HostileEncounter);
 
 internal class UnlockCellTool(
     GameTurnContext turnContext,
@@ -35,7 +35,7 @@ internal class UnlockCellTool(
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of a nearby cell, copied verbatim from the most recent look result."
+            "The exact Name of a nearby cell, copied verbatim from the player's message or an earlier tool result."
         )]
             string cellName,
         CancellationToken cancellationToken
@@ -102,7 +102,7 @@ internal class UnlockCellTool(
 
         return new UnlockCellToolResult(
             result.Outcome == CellUnlockOutcome.Opened,
-            result.Encounter?.ToMoveToolSummary()
+            result.Encounter?.ToToolSummary()
         );
     }
 }

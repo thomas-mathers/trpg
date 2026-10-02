@@ -6,7 +6,6 @@ import { loadStoredMessages, saveMessages } from '@/lib/session-storage';
 import type { ChatMessage } from '../components/chat-history';
 import { appendTokenToNarrationSegments } from '../narration-markup';
 import { useChatMarkers } from './use-chat-markers';
-import { useChatHub } from './use-game-hub-connection';
 
 export interface GameChat {
   messages: ChatMessage[];
@@ -30,7 +29,6 @@ export function useGameChat(): GameChat {
 }
 
 export function useGameChatBuilder(sessionId: string): GameChat {
-  const chatHub = useChatHub();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const hasStarted = useRef(false);
@@ -94,22 +92,8 @@ export function useGameChatBuilder(sessionId: string): GameChat {
 
     if (stored && stored.length > 0) {
       setMessages(stored);
-      return;
     }
-
-    const narratorMessageId = crypto.randomUUID();
-    setMessages([{ id: narratorMessageId, role: 'narrator', segments: [] }]);
-
-    activeNarratorMessageId.current = narratorMessageId;
-
-    subscribeToStream(
-      chatHub.receiveOpening(),
-      (token) => appendTokenToActiveNarrationMessage(narratorMessageId, token),
-      () => {
-        activeNarratorMessageId.current = null;
-      },
-    );
-  }, [chatHub, sessionId, subscribeToStream]);
+  }, [sessionId]);
 
   useEffect(() => {
     if (messages.length > 0) {

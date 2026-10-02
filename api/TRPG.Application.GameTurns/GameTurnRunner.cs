@@ -5,7 +5,6 @@ namespace TRPG.Application.GameTurns;
 
 public class GameTurnRunner
 {
-    private readonly StreamOpeningTurnHandler _streamOpeningTurn;
     private readonly StreamChatTurnHandler _streamChatTurn;
     private readonly StreamWaitTurnHandler _streamWaitTurn;
     private readonly StreamSitDownTurnHandler _streamSitDownTurn;
@@ -33,7 +32,6 @@ public class GameTurnRunner
     private readonly StreamMoveTurnHandler _streamMoveTurn;
 
     internal GameTurnRunner(
-        StreamOpeningTurnHandler streamOpeningTurn,
         StreamChatTurnHandler streamChatTurn,
         StreamWaitTurnHandler streamWaitTurn,
         StreamSitDownTurnHandler streamSitDownTurn,
@@ -61,7 +59,6 @@ public class GameTurnRunner
         StreamMoveTurnHandler streamMoveTurn
     )
     {
-        _streamOpeningTurn = streamOpeningTurn;
         _streamChatTurn = streamChatTurn;
         _streamWaitTurn = streamWaitTurn;
         _streamSitDownTurn = streamSitDownTurn;
@@ -88,11 +85,6 @@ public class GameTurnRunner
         _streamBoardCaravanTurn = streamBoardCaravanTurn;
         _streamMoveTurn = streamMoveTurn;
     }
-
-    public IAsyncEnumerable<string> StreamOpening(
-        GameTurnSession session,
-        CancellationToken cancellationToken = default
-    ) => _streamOpeningTurn.Handle(session, cancellationToken);
 
     public IAsyncEnumerable<string> StreamChat(
         GameTurnSession session,

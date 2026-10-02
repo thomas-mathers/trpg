@@ -31,7 +31,7 @@ internal class EndConversationTool(
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of the person you spoke with, copied verbatim from the most recent look or move result."
+            "The exact Name of the person you spoke with, copied verbatim from the player's message or an earlier tool result."
         )]
             string npcName,
         [Description("A concise, third-person, factual summary of this conversation only.")]

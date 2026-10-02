@@ -42,7 +42,7 @@ internal class StartConversationTool(
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of the person you're speaking with, copied verbatim from the most recent look or move result."
+            "The exact Name of the person you're speaking with, copied verbatim from the player's message or an earlier tool result."
         )]
             string npcName,
         CancellationToken cancellationToken
@@ -79,9 +79,7 @@ internal class StartConversationTool(
 
         if (npc == null)
         {
-            return new ToolError(
-                $"No one named '{npcName}' found nearby. Call look to see who's around."
-            );
+            return new ToolError($"No one named '{npcName}' found nearby.");
         }
         if (npc.IsEngaged)
         {

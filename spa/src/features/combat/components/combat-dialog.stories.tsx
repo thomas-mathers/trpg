@@ -297,7 +297,6 @@ function WorkbenchProviders({
 
   const chatHub: IChatHub = {
     endSession: async () => undefined,
-    receiveOpening: noopStream,
     sendChat: noopStream,
     sendWait: noopStream,
     sendSitDown: noopStream,

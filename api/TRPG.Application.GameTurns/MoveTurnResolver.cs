@@ -32,11 +32,6 @@ internal class MoveTurnResolver(
         {
             case MoveRejectedResult rejected:
                 return new GameTurnPrompt.Reply(BuildRejectionMessage(rejected.Outcome));
-            case MoveTravelDeathResult:
-                return new GameTurnPrompt.Narrate(
-                    "The player died from a lingering effect during the journey and never arrived. Narrate their death in two or three sentences.",
-                    IncludeTools: false
-                );
             case MoveInterruptedResult:
                 return new GameTurnPrompt.None();
             case MoveCompletedResult completed:

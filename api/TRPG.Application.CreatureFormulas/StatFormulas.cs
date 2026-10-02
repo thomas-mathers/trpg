@@ -238,6 +238,18 @@ public static class StatFormulas
         return current + (int)Math.Min(missing, Math.Max(amount, minimumAmount));
     }
 
+    public static void RefreshMovementSpeed(
+        Creature creature,
+        IReadOnlyCollection<Item> equippedItems,
+        CreatureGeneratorOptions options
+    ) =>
+        creature.BaseAttributes.MovementSpeed = CalculateTravelSpeed(
+            creature.BaseAttributes.Dexterity,
+            equippedItems,
+            creature.IsSneaking,
+            options
+        );
+
     public static float CalculateTravelSpeed(
         int dexterity,
         IReadOnlyCollection<Item> equippedItems,

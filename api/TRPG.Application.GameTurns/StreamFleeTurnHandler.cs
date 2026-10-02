@@ -55,51 +55,46 @@ internal class StreamFleeTurnHandler(
             return new GameTurnPrompt.None();
         }
 
-        var didMove = result.DestinationLocationId != null;
-
-        if (didMove)
+        if (result.DestinationLocationId is not { } destinationLocationId)
         {
-            await movePlayer.Handle(
-                new MovePlayerCommand
-                {
-                    PlayerId = session.PlayerId,
-                    DestinationLocationId = result.DestinationLocationId!.Value,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
-
-            var startedEncounter = await getActiveEncounter.Handle(
-                new GetActiveEncounterQuery { PlayerId = session.PlayerId },
-                cancellationToken
-            );
-
-            await publishEncounterStarted.Handle(
-                new PublishEncounterStartedCommand
-                {
-                    PlayerId = session.PlayerId,
-                    Encounter = startedEncounter,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
+            return new GameTurnPrompt.Narrate(BuildNarrationPrompt(result), IncludeTools: false);
         }
 
-        return new GameTurnPrompt.Narrate(
-            BuildNarrationPrompt(result, didMove),
-            IncludeTools: false
+        await movePlayer.Handle(
+            new MovePlayerCommand
+            {
+                PlayerId = session.PlayerId,
+                DestinationLocationId = destinationLocationId,
+                GameTime = gameTime,
+            },
+            cancellationToken
         );
+
+        var startedEncounter = await getActiveEncounter.Handle(
+            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
+            cancellationToken
+        );
+
+        await publishEncounterStarted.Handle(
+            new PublishEncounterStartedCommand
+            {
+                PlayerId = session.PlayerId,
+                Encounter = startedEncounter,
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
+
+        return new GameTurnPrompt.None();
     }
 
-    internal static string BuildNarrationPrompt(FleeCombatResult result, bool didMove)
+    internal static string BuildNarrationPrompt(FleeCombatResult result)
     {
         var serializedResult = JsonSerializer.Serialize(
             result.CombatResult,
             TRPG.Application.Common.Serialization.TrpgJsonOptions.Default
         );
 
-        return result.DestinationLocationName != null && didMove
-            ? $"The player attempted to flee combat. Result: {serializedResult}. Fleeing broke off the fight and carried the player to {result.DestinationLocationName}. Narrate them breaking away from their attacker, putting distance between themselves and the danger, and arriving there. Do not call any tools."
-            : $"The player attempted to flee combat. Result: {serializedResult}. Fleeing only ends the fight — the player has not moved and is still in the same location as the enemy. Narrate them breaking away from the immediate danger (putting distance from their attacker, taking cover, ending the confrontation) without describing them as having left the building, room, or area. Do not call any tools.";
+        return $"The player attempted to flee combat. Result: {serializedResult}. Fleeing only ends the fight — the player has not moved and is still in the same location as the enemy. Narrate them breaking away from the immediate danger (putting distance from their attacker, taking cover, ending the confrontation) without describing them as having left the building, room, or area. Do not call any tools.";
     }
 }

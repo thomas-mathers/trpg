@@ -1,14 +1,5 @@
-using System.Text.Json;
-using System.Transactions;
-using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Encounters.Commands;
-using TRPG.Application.Encounters.Queries;
-using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.GameTurns.Commands;
-using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -16,13 +7,7 @@ namespace TRPG.Application.GameTurns;
 internal class StreamRespawnTurnHandler(
     GameTurnStreamer streamer,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
-    ICommandHandler<ResolvePlayerRespawnCommand, PlayerRespawnFact> resolvePlayerRespawn,
-    ICommandHandler<RestoreCreatureResourcesCommand> restoreCreatureResources,
-    ICommandHandler<ReviveCreaturesCommand> reviveCreatures,
-    ICommandHandler<MovePlayerCommand> movePlayer,
-    IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
-    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime
+    PlayerRespawner playerRespawner
 )
 {
     public IAsyncEnumerable<string> Handle(
@@ -45,81 +30,8 @@ internal class StreamRespawnTurnHandler(
             return new GameTurnPrompt.Reply("There's nothing to respawn from right now.");
         }
 
-        PlayerRespawnFact fact;
+        await playerRespawner.Respawn(session, cancellationToken);
 
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = session.SessionId },
-            cancellationToken
-        );
-
-        using (
-            var transaction = new TransactionScope(
-                TransactionScopeOption.Required,
-                TransactionScopeAsyncFlowOption.Enabled
-            )
-        )
-        {
-            fact = await resolvePlayerRespawn.Handle(
-                new ResolvePlayerRespawnCommand
-                {
-                    WorldId = session.WorldId,
-                    PlayerId = session.PlayerId,
-                },
-                cancellationToken
-            );
-
-            await restoreCreatureResources.Handle(
-                new RestoreCreatureResourcesCommand { CreatureIds = [session.PlayerId] },
-                cancellationToken
-            );
-
-            await reviveCreatures.Handle(
-                new ReviveCreaturesCommand { CreatureIds = [session.PlayerId] },
-                cancellationToken
-            );
-
-            await movePlayer.Handle(
-                new MovePlayerCommand
-                {
-                    PlayerId = session.PlayerId,
-                    DestinationLocationId = fact.SanctuaryLocationId,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
-
-            transaction.Complete();
-        }
-
-        var startedEncounter = await getActiveEncounter.Handle(
-            new GetActiveEncounterQuery { PlayerId = session.PlayerId },
-            cancellationToken
-        );
-
-        await publishEncounterStarted.Handle(
-            new PublishEncounterStartedCommand
-            {
-                PlayerId = session.PlayerId,
-                Encounter = startedEncounter,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        return new GameTurnPrompt.Narrate(BuildNarrationPrompt(fact), IncludeTools: false);
-    }
-
-    private static string BuildNarrationPrompt(PlayerRespawnFact fact)
-    {
-        var json = JsonSerializer.Serialize(fact, Common.Serialization.TrpgJsonOptions.Default);
-
-        return $"""
-            The player died and has been revived at a temple in {fact.TempleCityName}. Result: {json}.
-            Narrate the player waking in the temple's Sanctuary, healed of their wounds. Only describe
-            a cleric tending to them if IsClericPresent is true (in which case ClericName is who) —
-            otherwise describe the Sanctuary as quiet and unattended. Briefly acknowledge that their
-            belongings were left behind at {fact.DeathLocationName} and must be recovered. Do not call
-            any tools.
-            """;
+        return new GameTurnPrompt.None();
     }
 }

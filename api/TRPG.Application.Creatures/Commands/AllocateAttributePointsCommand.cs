@@ -87,6 +87,7 @@ internal class AllocateAttributePointsCommandHandler(
             cancellationToken
         );
         var equippedItems = items.Where(i => i.Ownership.EquippedSlot != null).ToArray();
+        StatFormulas.RefreshMovementSpeed(creature, equippedItems, optionsSnapshot.Value);
         StatFormulas.Recalculate(creature, equippedItems);
 
         await context.SaveChangesAsync(cancellationToken);

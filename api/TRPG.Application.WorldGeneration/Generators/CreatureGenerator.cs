@@ -1231,12 +1231,7 @@ public class CreatureGenerator(
         }
         var equippedItems = items.Where(item => item.Ownership.EquippedSlot != null).ToArray();
 
-        creature.BaseAttributes.MovementSpeed = StatFormulas.CalculateTravelSpeed(
-            creature.BaseAttributes.Dexterity,
-            equippedItems,
-            creature.IsSneaking,
-            optionsSnapshot.Value
-        );
+        StatFormulas.RefreshMovementSpeed(creature, equippedItems, optionsSnapshot.Value);
 
         StatFormulas.Recalculate(creature, equippedItems);
 

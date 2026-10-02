@@ -11,13 +11,13 @@ import type {
 import {
   EYE_HEIGHT,
   type Obstacle,
-  WALK_SPEED,
   clampToBounds,
   computeMovement,
   findConnectorInRange,
   headingToYaw,
   pushOutOfObstacles,
   toScenePosition,
+  walkSpeedFor,
   yawToHeading,
 } from './layout-math';
 import { findSeatInRange, type ViewportSeat } from './seat-interaction';
@@ -32,6 +32,7 @@ const RIGHT_KEYS = ['KeyD', 'ArrowRight'];
 const INTERACT_KEY = 'KeyE';
 
 interface FpsControllerProps {
+  movementSpeed: number;
   movementLocked?: boolean;
   seats: ViewportSeat[];
   seated: boolean;
@@ -52,6 +53,7 @@ const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
   Number(positive.some((key) => keys.has(key))) - Number(negative.some((key) => keys.has(key)));
 
 export function FpsController({
+  movementSpeed,
   movementLocked = false,
   seats,
   seated,
@@ -130,7 +132,7 @@ export function FpsController({
       heading: yawToHeading(camera.rotation.y),
       forward: axis(keys, FORWARD_KEYS, BACKWARD_KEYS),
       strafe: axis(keys, RIGHT_KEYS, LEFT_KEYS),
-      speed: WALK_SPEED,
+      speed: walkSpeedFor(movementSpeed),
       deltaSeconds: Math.min(deltaSeconds, MAX_FRAME_SECONDS),
     });
     const attempted = { x: camera.position.x + delta.x, y: camera.position.z + delta.y };

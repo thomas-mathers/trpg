@@ -5,12 +5,12 @@ namespace TRPG.GameTurns.Mappers;
 
 internal static class HostileEncounterMapper
 {
-    public static MoveToolHostileEncounter ToMoveToolSummary(this HostileEncounter encounter) =>
+    public static HostileEncounterSummary ToToolSummary(this HostileEncounter encounter) =>
         new(
             encounter.FactionName,
             encounter.LocationName!,
             encounter
-                .Members.Select(member => new MoveToolEncounterMember(
+                .Members.Select(member => new EncounterMemberSummary(
                     member.Name,
                     member.CreatureType,
                     member.Level

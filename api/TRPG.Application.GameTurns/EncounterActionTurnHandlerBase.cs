@@ -96,6 +96,11 @@ internal abstract class EncounterActionTurnHandlerBase<TEncounter, TAction, TRes
             cancellationToken
         );
 
+        if (refreshed.Scene.LocationId != typedEncounter.LocationId)
+        {
+            return new GameTurnPrompt.None();
+        }
+
         return new GameTurnPrompt.Narrate(
             $"""
             {BuildNarrationPrompt(action, resolution)}

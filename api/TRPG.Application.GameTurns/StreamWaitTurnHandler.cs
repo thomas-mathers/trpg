@@ -63,13 +63,17 @@ internal class StreamWaitTurnHandler(
         {
             return new GameTurnPrompt.Reply("You need to sit down before waiting.");
         }
+        if (player.HasActiveDots)
+        {
+            return new GameTurnPrompt.Reply(AfflictedMessage.For("wait"));
+        }
 
         var gameTime = await advanceTime.Handle(
             new AdvanceTimeCommand { WorldId = session.WorldId, Delta = delta },
             cancellationToken
         );
 
-        var effectVitals = await advanceCreatureEffects.Handle(
+        await advanceCreatureEffects.Handle(
             new AdvanceCreatureEffectsCommand
             {
                 WorldId = session.WorldId,
@@ -78,14 +82,6 @@ internal class StreamWaitTurnHandler(
             },
             cancellationToken
         );
-        if (effectVitals.HasDied(session.PlayerId))
-        {
-            return new GameTurnPrompt.Narrate(
-                "The player died from a lingering effect while waiting. Narrate their death in two or three sentences.",
-                IncludeTools: false
-            );
-        }
-
         await applyPassiveRegen.Handle(
             new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [session.PlayerId] },
             cancellationToken
@@ -111,7 +107,7 @@ internal class StreamWaitTurnHandler(
         );
 
         return new GameTurnPrompt.Narrate(
-            $"{elapsed} have passed. Call look now, then narrate the passage of time and the player's surroundings based on what it returns."
+            $"{elapsed} have passed. Narrate the passage of time in a sentence or two, without describing any specific person, building, or place."
         );
     }
 }

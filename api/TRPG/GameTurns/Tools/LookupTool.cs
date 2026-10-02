@@ -30,7 +30,7 @@ internal class LookupTool(
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact Name of the NPC whose knowledge this represents — the character who would be recalling or sharing this information, copied verbatim from the most recent look or move result."
+            "The exact Name of the NPC whose knowledge this represents — the character who would be recalling or sharing this information, copied verbatim from the player's message or an earlier tool result."
         )]
             string askingPersonName,
         [Description(
@@ -62,9 +62,7 @@ internal class LookupTool(
         );
         if (askingPerson == null)
         {
-            return new ToolError(
-                $"No one named '{askingPersonName}' found nearby. Call look to see who's around."
-            );
+            return new ToolError($"No one named '{askingPersonName}' found nearby.");
         }
 
         var gameTime = await getGameTime.Handle(

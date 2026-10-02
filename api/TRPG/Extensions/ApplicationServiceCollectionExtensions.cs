@@ -90,8 +90,6 @@ public static class ApplicationServiceCollectionExtensions
             .AddCombatServices()
             .AddScenesServices()
             .AddGameTurnsServices()
-            .AddGameTool<LookTool>()
-            .AddGameTool<MoveTool>()
             .AddGameTool<LockpickTool>()
             .AddGameTool<UnlockCellTool>()
             .AddGameTool<CreatureInspectTool>()

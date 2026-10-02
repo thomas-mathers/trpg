@@ -64,6 +64,27 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_RaisesMovementSpeed_WhenDexterityIsAllocated()
+    {
+        // Act
+        await _handler.Handle(
+            new AllocateAttributePointsCommand
+            {
+                CreatureId = _creature.Id,
+                Deltas = new Dictionary<AllocatableAttributeName, int>
+                {
+                    [AllocatableAttributeName.Dexterity] = 3,
+                },
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var creature = await ReloadCreature();
+        Assert.Equal(54f, creature.MovementSpeed);
+    }
+
+    [Fact]
     public async Task Handle_AppliesDeltas_ToBaseAttributes()
     {
         // Arrange — well within the available unallocated points (see

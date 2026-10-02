@@ -13,12 +13,14 @@ export interface CreatureFocus {
   facing: number;
 }
 
+const screenCenter = new Vector2();
+
 export function pickCreature(
   camera: Camera,
   scene: Scene,
   raycaster: Raycaster,
 ): string | undefined {
-  raycaster.setFromCamera(new Vector2(), camera);
+  raycaster.setFromCamera(screenCenter, camera);
   const hit = raycaster
     .intersectObjects(scene.children, true)
     .find(({ object }) => object instanceof Mesh);

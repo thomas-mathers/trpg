@@ -27,16 +27,11 @@ public abstract record ExecutePlayerMoveResult;
 
 public sealed record MoveRejectedResult(EntryOutcome Outcome) : ExecutePlayerMoveResult;
 
-public sealed record MoveTravelDeathResult : ExecutePlayerMoveResult;
-
 public sealed record MoveInterruptedResult(SceneResult Scene, Encounter Encounter)
     : ExecutePlayerMoveResult;
 
-public sealed record MoveCompletedResult(
-    SceneResult Scene,
-    Encounter? Encounter,
-    double TravelTimeHours
-) : ExecutePlayerMoveResult;
+public sealed record MoveCompletedResult(SceneResult Scene, Encounter? Encounter)
+    : ExecutePlayerMoveResult;
 
 internal class ExecutePlayerMoveCommandHandler(
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
@@ -49,15 +44,6 @@ internal class ExecutePlayerMoveCommandHandler(
         EncounterEvaluationResult
     > evaluateMoveInterception,
     ICommandHandler<MovePlayerCommand> movePlayer,
-    ICommandHandler<AdvanceTimeCommand, GameInstant> advanceTime,
-    ICommandHandler<
-        AdvanceCreatureEffectsCommand,
-        IReadOnlyCollection<CreatureVitals>
-    > advanceCreatureEffects,
-    ICommandHandler<
-        ApplyPassiveRegenCommand,
-        IReadOnlyDictionary<Guid, Creature>
-    > applyPassiveRegen,
     ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     IQueryHandler<GetSceneQuery, SceneResult> getScene,
@@ -97,13 +83,7 @@ internal class ExecutePlayerMoveCommandHandler(
             return interruption;
         }
 
-        return await CompleteMove(
-            command,
-            destinationLocationId,
-            destination.TravelTimeHours,
-            gameTime,
-            cancellationToken
-        );
+        return await CompleteMove(command, destinationLocationId, gameTime, cancellationToken);
     }
 
     private async Task<MoveInterruptedResult?> InterceptMove(
@@ -135,66 +115,24 @@ internal class ExecutePlayerMoveCommandHandler(
     private async Task<ExecutePlayerMoveResult> CompleteMove(
         ExecutePlayerMoveCommand command,
         Guid destinationLocationId,
-        double travelTimeHours,
         GameInstant gameTime,
         CancellationToken cancellationToken
     )
     {
-        var travel = await AdvanceTravel(command, travelTimeHours, gameTime, cancellationToken);
-        if (travel.PlayerDied)
-        {
-            return new MoveTravelDeathResult();
-        }
-
         await movePlayer.Handle(
             new MovePlayerCommand
             {
                 PlayerId = command.PlayerId,
                 DestinationLocationId = destinationLocationId,
-                GameTime = travel.ArrivalGameTime,
+                GameTime = gameTime,
             },
             cancellationToken
         );
 
         var encounter = await GetActiveEncounter(command.PlayerId, cancellationToken);
-        await PublishEncounter(
-            command.PlayerId,
-            encounter,
-            travel.ArrivalGameTime,
-            cancellationToken
-        );
-        var scene = await GetScene(command, travel.ArrivalGameTime, cancellationToken);
-        return new MoveCompletedResult(scene, encounter, travelTimeHours);
-    }
-
-    private async Task<TravelProgress> AdvanceTravel(
-        ExecutePlayerMoveCommand command,
-        double travelTimeHours,
-        GameInstant gameTime,
-        CancellationToken cancellationToken
-    )
-    {
-        if (travelTimeHours <= 0)
-        {
-            return new TravelProgress(gameTime, false);
-        }
-
-        var arrivalGameTime = await advanceTime.Handle(
-            new AdvanceTimeCommand
-            {
-                WorldId = command.WorldId,
-                Delta = TimeSpan.FromHours(1) * travelTimeHours,
-            },
-            cancellationToken
-        );
-        var effectVitals = await AdvanceEffects(command, arrivalGameTime, cancellationToken);
-        if (effectVitals.HasDied(command.PlayerId))
-        {
-            return new TravelProgress(arrivalGameTime, true);
-        }
-
-        await ApplyRegen(command.PlayerId, arrivalGameTime, cancellationToken);
-        return new TravelProgress(arrivalGameTime, false);
+        await PublishEncounter(command.PlayerId, encounter, gameTime, cancellationToken);
+        var scene = await GetScene(command, gameTime, cancellationToken);
+        return new MoveCompletedResult(scene, encounter);
     }
 
     private Task RefreshOrigin(
@@ -233,31 +171,6 @@ internal class ExecutePlayerMoveCommandHandler(
         );
         return result.Encounter;
     }
-
-    private Task<IReadOnlyCollection<CreatureVitals>> AdvanceEffects(
-        ExecutePlayerMoveCommand command,
-        GameInstant gameTime,
-        CancellationToken cancellationToken
-    ) =>
-        advanceCreatureEffects.Handle(
-            new AdvanceCreatureEffectsCommand
-            {
-                WorldId = command.WorldId,
-                CreatureIds = [command.PlayerId],
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-    private Task<IReadOnlyDictionary<Guid, Creature>> ApplyRegen(
-        Guid playerId,
-        GameInstant gameTime,
-        CancellationToken cancellationToken
-    ) =>
-        applyPassiveRegen.Handle(
-            new ApplyPassiveRegenCommand { GameTime = gameTime, CreatureIds = [playerId] },
-            cancellationToken
-        );
 
     private Task<ResolveMoveDestinationResult> ResolveDestination(
         ExecutePlayerMoveCommand command,
@@ -321,6 +234,4 @@ internal class ExecutePlayerMoveCommandHandler(
             },
             cancellationToken
         );
-
-    private sealed record TravelProgress(GameInstant ArrivalGameTime, bool PlayerDied);
 }

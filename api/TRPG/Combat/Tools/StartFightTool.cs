@@ -33,7 +33,7 @@ internal class StartFightTool(
     )]
     private async Task<object?> InvokeAsync(
         [Description(
-            "The exact name of the creature to attack, copied verbatim from the most recent look result or combat result."
+            "The exact name of the creature to attack, copied verbatim from the player's message or an earlier tool result."
         )]
             string targetName,
         CancellationToken cancellationToken
@@ -71,9 +71,7 @@ internal class StartFightTool(
 
         if (target == null || target.Condition == CreatureCondition.Dead)
         {
-            return new ToolError(
-                $"No '{targetName}' found nearby to attack. Call look to see what's around."
-            );
+            return new ToolError($"No '{targetName}' found nearby to attack.");
         }
 
         if (target.IsRestrained)
