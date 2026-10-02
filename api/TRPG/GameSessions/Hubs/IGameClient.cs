@@ -11,7 +11,6 @@ namespace TRPG.GameSessions.Hubs;
 public interface IGameClient
 {
     Task SceneSnapshot(SceneSnapshot snapshot);
-    Task CreaturesMoved(CreaturesMoved movement);
     Task CombatStarted(CombatStarted payload);
     Task CombatUpdated(CombatUpdated update);
     Task HostileEncounterStarted(HostileEncounterState encounter);

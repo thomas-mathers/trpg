@@ -524,7 +524,7 @@ public class StatFormulasTests
     }
 
     [Fact]
-    public void CalculateTravelSpeed_SubtractsArmorPenalty_ByArmorClass()
+    public void CalculateTravelSpeed_SubtractsAQuarterOfTheClassPenalty_PerArmorPiece()
     {
         // Arrange
         var options = new CreatureGeneratorOptions();
@@ -532,6 +532,24 @@ public class StatFormulasTests
 
         // Act
         var speed = StatFormulas.CalculateTravelSpeed(0, plateArmor, false, options);
+
+        // Assert
+        Assert.Equal(47.5f, speed);
+    }
+
+    [Fact]
+    public void CalculateTravelSpeed_AppliesTheFullClassPenaltyOnce_WhenAWholeSetIsWorn()
+    {
+        // Arrange
+        var options = new CreatureGeneratorOptions();
+        Item[] plateSet =
+        [
+            .. Enum.GetValues<ArmorType>()
+                .Select(type => Builders.MakeArmor(type: type, armorClass: ArmorClass.Plate)),
+        ];
+
+        // Act
+        var speed = StatFormulas.CalculateTravelSpeed(0, plateSet, false, options);
 
         // Assert
         Assert.Equal(40f, speed);

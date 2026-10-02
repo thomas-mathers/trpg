@@ -12,6 +12,7 @@ import { useScene } from '../contexts/scene-context';
 import { useGameChat } from '../hooks/use-game-chat';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
+import { toastReply } from '../reply-toast';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
@@ -82,7 +83,7 @@ export function LocationViewport({
     if (!canTravel) {
       return;
     }
-    submitNarratedTurn(null, chatHub.sendMove(connectorId));
+    submitNarratedTurn(null, toastReply(chatHub.sendMove(connectorId)));
   };
 
   const targetCreature = scene.nearbyCreatures.find((creature) => creature.id === targetId);

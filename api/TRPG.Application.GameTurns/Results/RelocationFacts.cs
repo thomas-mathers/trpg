@@ -12,9 +12,9 @@ internal static class RelocationFacts
     public static string Describe(SceneResult scene) =>
         $"The player is now in {Place(scene)}, without having looked or moved to get here.\n{Observation(scene)}";
 
-    // A walk the player made on their own is never narrated, so the model only learns of it here.
+    // The player already sees the place they walked to, so this is for the model's bookkeeping only.
     public static string DescribeArrival(SceneResult scene) =>
-        $"The player walked to {Place(scene)} on their own, so nothing has been narrated yet.\n{Observation(scene)}";
+        $"The player walked to {Place(scene)} on their own and can already see it. Do not describe the place or their arrival.\n{Observation(scene)}";
 
     private static string Place(SceneResult scene)
     {

@@ -201,20 +201,6 @@ public enum WeatherCondition
 }
 
 [TranspilationSource]
-public enum CreatureMovementDirection
-{
-    Arrived,
-    Departed,
-}
-
-[TranspilationSource]
-public record CreaturesMoved(
-    CreatureMovementDirection Direction,
-    IReadOnlyCollection<string> Names,
-    string? PlaceName
-);
-
-[TranspilationSource]
 public record SceneSnapshot(
     Guid WorldId,
     string StateName,
