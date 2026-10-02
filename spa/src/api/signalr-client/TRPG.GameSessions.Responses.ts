@@ -124,19 +124,6 @@ export type BuildingType = "ArcaneShop" | "Apothecary" | "Bakery" | "Barracks" |
 /** Transpiled from TRPG.GameSessions.Responses.WeatherCondition */
 export type WeatherCondition = "Clear" | "Cloudy" | "Rain" | "Storm" | "Snow" | "Fog";
 
-/** Transpiled from TRPG.GameSessions.Responses.CreatureMovementDirection */
-export type CreatureMovementDirection = "Arrived" | "Departed";
-
-/** Transpiled from TRPG.GameSessions.Responses.CreaturesMoved */
-export type CreaturesMoved = {
-    /** Transpiled from TRPG.GameSessions.Responses.CreatureMovementDirection */
-    direction: CreatureMovementDirection;
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<string> */
-    names: string[];
-    /** Transpiled from string? */
-    placeName?: string;
-}
-
 /** Transpiled from TRPG.GameSessions.Responses.SceneSnapshot */
 export type SceneSnapshot = {
     /** Transpiled from System.Guid */

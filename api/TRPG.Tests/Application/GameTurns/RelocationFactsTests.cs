@@ -51,6 +51,21 @@ public sealed class RelocationFactsTests
     }
 
     [Fact]
+    public void DescribeArrival_TellsTheModelNotToNarrateTheWalk()
+    {
+        // Arrange
+        var scene = MakeScene(room: "Shop", building: "The Fine Filigree", others: []);
+
+        // Act
+        var text = RelocationFacts.DescribeArrival(scene);
+
+        // Assert
+        Assert.Contains("walked to Shop in The Fine Filigree", text);
+        Assert.Contains("Do not describe", text);
+        Assert.DoesNotContain("nothing has been narrated", text);
+    }
+
+    [Fact]
     public void Describe_CarriesTheWayOut_SoTheNarratorCanPassItToATool()
     {
         // Arrange — jail relocates the player without any walk, so the model has no other source for names.

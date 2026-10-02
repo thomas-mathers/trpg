@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
-import type { SceneSnapshot, CreaturesMoved, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -250,7 +250,6 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
     public readonly register = (connection: HubConnection, receiver: IGameClient): Disposable => {
 
         const __sceneSnapshot = (...args: [SceneSnapshot]) => receiver.sceneSnapshot(...args);
-        const __creaturesMoved = (...args: [CreaturesMoved]) => receiver.creaturesMoved(...args);
         const __combatStarted = (...args: [CombatStarted]) => receiver.combatStarted(...args);
         const __combatUpdated = (...args: [CombatUpdated]) => receiver.combatUpdated(...args);
         const __hostileEncounterStarted = (...args: [HostileEncounterState]) => receiver.hostileEncounterStarted(...args);
@@ -275,7 +274,6 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __requestAck = (...args: [string]) => receiver.requestAck(...args);
 
         connection.on("SceneSnapshot", __sceneSnapshot);
-        connection.on("CreaturesMoved", __creaturesMoved);
         connection.on("CombatStarted", __combatStarted);
         connection.on("CombatUpdated", __combatUpdated);
         connection.on("HostileEncounterStarted", __hostileEncounterStarted);
@@ -301,7 +299,6 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
 
         const methodList: ReceiverMethod[] = [
             { methodName: "SceneSnapshot", method: __sceneSnapshot },
-            { methodName: "CreaturesMoved", method: __creaturesMoved },
             { methodName: "CombatStarted", method: __combatStarted },
             { methodName: "CombatUpdated", method: __combatUpdated },
             { methodName: "HostileEncounterStarted", method: __hostileEncounterStarted },

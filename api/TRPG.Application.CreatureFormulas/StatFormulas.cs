@@ -276,6 +276,11 @@ public static class StatFormulas
     private static float ArmorMovementPenalty(
         ArmorClass armorClass,
         CreatureGeneratorOptions options
+    ) => FullSetMovementPenalty(armorClass, options) / Enum.GetValues<ArmorType>().Length;
+
+    private static float FullSetMovementPenalty(
+        ArmorClass armorClass,
+        CreatureGeneratorOptions options
     ) =>
         armorClass switch
         {

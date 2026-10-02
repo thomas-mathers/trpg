@@ -19,7 +19,6 @@ import type {
   TrapEncounterState,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
 import type {
-  CreaturesMoved,
   CrimeNotification,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -32,7 +31,6 @@ export type { CharacterLevelUp, QuestObjectiveCompleted, SkillLevelUp };
 
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
-  CreaturesMoved: CreaturesMoved;
   CombatStarted: CombatStarted;
   CombatUpdated: CombatUpdated;
   // Fires once the round's animation finishes, so the combat UI, toasts, and respawn flow don't jump ahead of what's on screen.

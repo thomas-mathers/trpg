@@ -41,10 +41,15 @@ function setup(seated = false, seat: ViewportSeat | undefined = chair, canIntera
 }
 describe('seat turn handoff', () => {
   it('submits the selected chair once until the turn settles', async () => {
-    const { user, hub, stream, submit } = setup();
+    const { user, hub, submit } = setup();
     await user.dblClick(screen.getByRole('button', { name: 'Interact' }));
     expect(hub.sendSitDown).toHaveBeenCalledExactlyOnceWith('chair');
-    expect(submit).toHaveBeenCalledWith(null, stream, expect.any(Function), expect.any(Function));
+    expect(submit).toHaveBeenCalledWith(
+      null,
+      expect.objectContaining({ subscribe: expect.any(Function) }),
+      expect.any(Function),
+      expect.any(Function),
+    );
     act(() => submit.mock.calls[0][3]?.());
     await user.click(screen.getByRole('button', { name: 'Interact' }));
     expect(hub.sendSitDown).toHaveBeenCalledTimes(2);
