@@ -6,84 +6,78 @@ namespace TRPG.Application.GameTurns;
 public class GameTurnRunner
 {
     private readonly StreamChatTurnHandler _streamChatTurn;
-    private readonly StreamWaitTurnHandler _streamWaitTurn;
-    private readonly StreamSitDownTurnHandler _streamSitDownTurn;
-    private readonly StreamStandUpTurnHandler _streamStandUpTurn;
-    private readonly StreamSleepTurnHandler _streamSleepTurn;
-    private readonly StreamActivateTriggerTurnHandler _streamActivateTriggerTurn;
-    private readonly StreamAcceptQuestTurnHandler _streamAcceptQuestTurn;
-    private readonly StreamDeclineQuestTurnHandler _streamDeclineQuestTurn;
-    private readonly StreamCompleteQuestTurnHandler _streamCompleteQuestTurn;
-    private readonly StreamDeliverItemTurnHandler _streamDeliverItemTurn;
-    private readonly StreamFleeTurnHandler _streamFleeTurn;
-    private readonly StreamRespawnTurnHandler _streamRespawnTurn;
-    private readonly StreamHostileEncounterActionTurnHandler _streamHostileEncounterActionTurn;
-    private readonly StreamShakedownEncounterActionTurnHandler _streamShakedownEncounterActionTurn;
-    private readonly StreamGuardEncounterActionTurnHandler _streamGuardEncounterActionTurn;
-    private readonly StreamSuspicionEncounterActionTurnHandler _streamSuspicionEncounterActionTurn;
-    private readonly StreamTrapEncounterActionTurnHandler _streamTrapEncounterActionTurn;
-    private readonly StreamTheftEncounterNarrationTurnHandler _streamTheftEncounterNarrationTurn;
-    private readonly StreamTheftEncounterActionTurnHandler _streamTheftEncounterActionTurn;
-    private readonly StreamCombatActionTurnHandler _streamCombatActionTurn;
-    private readonly StreamCastAbilityTurnHandler _streamCastAbilityTurn;
-    private readonly StreamPurchaseCaravanTicketTurnHandler _streamPurchaseCaravanTicketTurn;
-    private readonly StreamDeclineCaravanTicketTurnHandler _streamDeclineCaravanTicketTurn;
-    private readonly StreamBoardCaravanTurnHandler _streamBoardCaravanTurn;
-    private readonly StreamMoveTurnHandler _streamMoveTurn;
+    private readonly WaitActionHandler _waitActionHandler;
+    private readonly SitDownActionHandler _sitDownActionHandler;
+    private readonly StandUpActionHandler _standUpActionHandler;
+    private readonly SleepActionHandler _sleepActionHandler;
+    private readonly ActivateTriggerActionHandler _activateTriggerActionHandler;
+    private readonly AcceptQuestActionHandler _acceptQuestActionHandler;
+    private readonly CompleteQuestActionHandler _completeQuestActionHandler;
+    private readonly DeliverItemActionHandler _deliverItemActionHandler;
+    private readonly FleeActionHandler _fleeActionHandler;
+    private readonly RespawnActionHandler _respawnActionHandler;
+    private readonly HostileEncounterActionHandler _hostileEncounterActionHandler;
+    private readonly ShakedownEncounterActionHandler _shakedownEncounterActionHandler;
+    private readonly GuardEncounterActionHandler _guardEncounterActionHandler;
+    private readonly SuspicionEncounterActionHandler _suspicionEncounterActionHandler;
+    private readonly TrapEncounterActionHandler _trapEncounterActionHandler;
+    private readonly StartTheftEncounterActionHandler _startTheftEncounterActionHandler;
+    private readonly TheftEncounterActionHandler _theftEncounterActionHandler;
+    private readonly CombatActionHandler _combatActionHandler;
+    private readonly CastAbilityActionHandler _castAbilityActionHandler;
+    private readonly PurchaseCaravanTicketActionHandler _purchaseCaravanTicketActionHandler;
+    private readonly BoardCaravanActionHandler _boardCaravanActionHandler;
+    private readonly MoveActionHandler _moveActionHandler;
 
     internal GameTurnRunner(
         StreamChatTurnHandler streamChatTurn,
-        StreamWaitTurnHandler streamWaitTurn,
-        StreamSitDownTurnHandler streamSitDownTurn,
-        StreamStandUpTurnHandler streamStandUpTurn,
-        StreamSleepTurnHandler streamSleepTurn,
-        StreamActivateTriggerTurnHandler streamActivateTriggerTurn,
-        StreamAcceptQuestTurnHandler streamAcceptQuestTurn,
-        StreamDeclineQuestTurnHandler streamDeclineQuestTurn,
-        StreamCompleteQuestTurnHandler streamCompleteQuestTurn,
-        StreamDeliverItemTurnHandler streamDeliverItemTurn,
-        StreamFleeTurnHandler streamFleeTurn,
-        StreamRespawnTurnHandler streamRespawnTurn,
-        StreamHostileEncounterActionTurnHandler streamHostileEncounterActionTurn,
-        StreamShakedownEncounterActionTurnHandler streamShakedownEncounterActionTurn,
-        StreamGuardEncounterActionTurnHandler streamGuardEncounterActionTurn,
-        StreamSuspicionEncounterActionTurnHandler streamSuspicionEncounterActionTurn,
-        StreamTrapEncounterActionTurnHandler streamTrapEncounterActionTurn,
-        StreamTheftEncounterNarrationTurnHandler streamTheftEncounterNarrationTurn,
-        StreamTheftEncounterActionTurnHandler streamTheftEncounterActionTurn,
-        StreamCombatActionTurnHandler streamCombatActionTurn,
-        StreamCastAbilityTurnHandler streamCastAbilityTurn,
-        StreamPurchaseCaravanTicketTurnHandler streamPurchaseCaravanTicketTurn,
-        StreamDeclineCaravanTicketTurnHandler streamDeclineCaravanTicketTurn,
-        StreamBoardCaravanTurnHandler streamBoardCaravanTurn,
-        StreamMoveTurnHandler streamMoveTurn
+        WaitActionHandler waitActionHandler,
+        SitDownActionHandler sitDownActionHandler,
+        StandUpActionHandler standUpActionHandler,
+        SleepActionHandler sleepActionHandler,
+        ActivateTriggerActionHandler activateTriggerActionHandler,
+        AcceptQuestActionHandler acceptQuestActionHandler,
+        CompleteQuestActionHandler completeQuestActionHandler,
+        DeliverItemActionHandler deliverItemActionHandler,
+        FleeActionHandler fleeActionHandler,
+        RespawnActionHandler respawnActionHandler,
+        HostileEncounterActionHandler hostileEncounterActionHandler,
+        ShakedownEncounterActionHandler shakedownEncounterActionHandler,
+        GuardEncounterActionHandler guardEncounterActionHandler,
+        SuspicionEncounterActionHandler suspicionEncounterActionHandler,
+        TrapEncounterActionHandler trapEncounterActionHandler,
+        StartTheftEncounterActionHandler startTheftEncounterActionHandler,
+        TheftEncounterActionHandler theftEncounterActionHandler,
+        CombatActionHandler combatActionHandler,
+        CastAbilityActionHandler castAbilityActionHandler,
+        PurchaseCaravanTicketActionHandler purchaseCaravanTicketActionHandler,
+        BoardCaravanActionHandler boardCaravanActionHandler,
+        MoveActionHandler moveActionHandler
     )
     {
         _streamChatTurn = streamChatTurn;
-        _streamWaitTurn = streamWaitTurn;
-        _streamSitDownTurn = streamSitDownTurn;
-        _streamStandUpTurn = streamStandUpTurn;
-        _streamSleepTurn = streamSleepTurn;
-        _streamActivateTriggerTurn = streamActivateTriggerTurn;
-        _streamAcceptQuestTurn = streamAcceptQuestTurn;
-        _streamDeclineQuestTurn = streamDeclineQuestTurn;
-        _streamCompleteQuestTurn = streamCompleteQuestTurn;
-        _streamDeliverItemTurn = streamDeliverItemTurn;
-        _streamFleeTurn = streamFleeTurn;
-        _streamRespawnTurn = streamRespawnTurn;
-        _streamHostileEncounterActionTurn = streamHostileEncounterActionTurn;
-        _streamShakedownEncounterActionTurn = streamShakedownEncounterActionTurn;
-        _streamGuardEncounterActionTurn = streamGuardEncounterActionTurn;
-        _streamSuspicionEncounterActionTurn = streamSuspicionEncounterActionTurn;
-        _streamTrapEncounterActionTurn = streamTrapEncounterActionTurn;
-        _streamTheftEncounterNarrationTurn = streamTheftEncounterNarrationTurn;
-        _streamTheftEncounterActionTurn = streamTheftEncounterActionTurn;
-        _streamCombatActionTurn = streamCombatActionTurn;
-        _streamCastAbilityTurn = streamCastAbilityTurn;
-        _streamPurchaseCaravanTicketTurn = streamPurchaseCaravanTicketTurn;
-        _streamDeclineCaravanTicketTurn = streamDeclineCaravanTicketTurn;
-        _streamBoardCaravanTurn = streamBoardCaravanTurn;
-        _streamMoveTurn = streamMoveTurn;
+        _waitActionHandler = waitActionHandler;
+        _sitDownActionHandler = sitDownActionHandler;
+        _standUpActionHandler = standUpActionHandler;
+        _sleepActionHandler = sleepActionHandler;
+        _activateTriggerActionHandler = activateTriggerActionHandler;
+        _acceptQuestActionHandler = acceptQuestActionHandler;
+        _completeQuestActionHandler = completeQuestActionHandler;
+        _deliverItemActionHandler = deliverItemActionHandler;
+        _fleeActionHandler = fleeActionHandler;
+        _respawnActionHandler = respawnActionHandler;
+        _hostileEncounterActionHandler = hostileEncounterActionHandler;
+        _shakedownEncounterActionHandler = shakedownEncounterActionHandler;
+        _guardEncounterActionHandler = guardEncounterActionHandler;
+        _suspicionEncounterActionHandler = suspicionEncounterActionHandler;
+        _trapEncounterActionHandler = trapEncounterActionHandler;
+        _startTheftEncounterActionHandler = startTheftEncounterActionHandler;
+        _theftEncounterActionHandler = theftEncounterActionHandler;
+        _combatActionHandler = combatActionHandler;
+        _castAbilityActionHandler = castAbilityActionHandler;
+        _purchaseCaravanTicketActionHandler = purchaseCaravanTicketActionHandler;
+        _boardCaravanActionHandler = boardCaravanActionHandler;
+        _moveActionHandler = moveActionHandler;
     }
 
     public IAsyncEnumerable<string> StreamChat(
@@ -92,153 +86,142 @@ public class GameTurnRunner
         CancellationToken cancellationToken = default
     ) => _streamChatTurn.Handle(session, message, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamWait(
+    public Task<ActionOutcome> Wait(
         GameTurnSession session,
         int hours,
         int minutes,
         CancellationToken cancellationToken = default
-    ) => _streamWaitTurn.Handle(session, hours, minutes, cancellationToken);
+    ) => _waitActionHandler.Handle(session, hours, minutes, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamSitDown(
+    public Task<ActionOutcome> SitDown(
         GameTurnSession session,
         Guid seatId,
         CancellationToken cancellationToken = default
-    ) => _streamSitDownTurn.Handle(session, seatId, cancellationToken);
+    ) => _sitDownActionHandler.Handle(session, seatId, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamStandUp(
+    public Task<ActionOutcome> StandUp(
         GameTurnSession session,
         CancellationToken cancellationToken = default
-    ) => _streamStandUpTurn.Handle(session, cancellationToken);
+    ) => _standUpActionHandler.Handle(session, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamSleep(
+    public Task<ActionOutcome> Sleep(
         GameTurnSession session,
         int hours,
         int minutes,
         CancellationToken cancellationToken = default
-    ) => _streamSleepTurn.Handle(session, hours, minutes, cancellationToken);
+    ) => _sleepActionHandler.Handle(session, hours, minutes, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamActivateTrigger(
+    public Task<ActionOutcome> ActivateTrigger(
         GameTurnSession session,
         Guid triggerId,
         CancellationToken cancellationToken = default
-    ) => _streamActivateTriggerTurn.Handle(session, triggerId, cancellationToken);
+    ) => _activateTriggerActionHandler.Handle(session, triggerId, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamAcceptQuest(
+    public Task<ActionOutcome> AcceptQuest(
         GameTurnSession session,
         Guid questId,
         CancellationToken cancellationToken = default
-    ) => _streamAcceptQuestTurn.Handle(session, questId, cancellationToken);
+    ) => _acceptQuestActionHandler.Handle(session, questId, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamDeclineQuest(
+    public Task<ActionOutcome> CompleteQuest(
         GameTurnSession session,
         Guid questId,
         CancellationToken cancellationToken = default
-    ) => _streamDeclineQuestTurn.Handle(session, questId, cancellationToken);
+    ) => _completeQuestActionHandler.Handle(session, questId, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamCompleteQuest(
-        GameTurnSession session,
-        Guid questId,
-        CancellationToken cancellationToken = default
-    ) => _streamCompleteQuestTurn.Handle(session, questId, cancellationToken);
-
-    public IAsyncEnumerable<string> StreamDeliverItem(
+    public Task<ActionOutcome> DeliverItem(
         GameTurnSession session,
         Guid recipientId,
         CancellationToken cancellationToken = default
-    ) => _streamDeliverItemTurn.Handle(session, recipientId, cancellationToken);
+    ) => _deliverItemActionHandler.Handle(session, recipientId, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamFlee(
+    public Task<ActionOutcome> Flee(
         GameTurnSession session,
         CancellationToken cancellationToken = default
-    ) => _streamFleeTurn.Handle(session, cancellationToken);
+    ) => _fleeActionHandler.Handle(session, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamRespawn(
+    public Task<ActionOutcome> Respawn(
         GameTurnSession session,
         CancellationToken cancellationToken = default
-    ) => _streamRespawnTurn.Handle(session, cancellationToken);
+    ) => _respawnActionHandler.Handle(session, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamHostileEncounterAction(
+    public Task<ActionOutcome> HostileEncounterAction(
         GameTurnSession session,
         HostileEncounterAction action,
         CancellationToken cancellationToken = default
-    ) => _streamHostileEncounterActionTurn.Handle(session, action, cancellationToken);
+    ) => _hostileEncounterActionHandler.Handle(session, action, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamShakedownEncounterAction(
+    public Task<ActionOutcome> ShakedownEncounterAction(
         GameTurnSession session,
         ShakedownEncounterAction action,
         CancellationToken cancellationToken = default
-    ) => _streamShakedownEncounterActionTurn.Handle(session, action, cancellationToken);
+    ) => _shakedownEncounterActionHandler.Handle(session, action, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamGuardEncounterAction(
+    public Task<ActionOutcome> GuardEncounterAction(
         GameTurnSession session,
         GuardEncounterAction action,
         CancellationToken cancellationToken = default
-    ) => _streamGuardEncounterActionTurn.Handle(session, action, cancellationToken);
+    ) => _guardEncounterActionHandler.Handle(session, action, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamSuspicionEncounterAction(
+    public Task<ActionOutcome> SuspicionEncounterAction(
         GameTurnSession session,
         SuspicionEncounterAction action,
         CancellationToken cancellationToken = default
-    ) => _streamSuspicionEncounterActionTurn.Handle(session, action, cancellationToken);
+    ) => _suspicionEncounterActionHandler.Handle(session, action, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamTrapEncounterAction(
+    public Task<ActionOutcome> TrapEncounterAction(
         GameTurnSession session,
         TrapEncounterAction action,
         CancellationToken cancellationToken = default
-    ) => _streamTrapEncounterActionTurn.Handle(session, action, cancellationToken);
+    ) => _trapEncounterActionHandler.Handle(session, action, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamTheftEncounterNarration(
+    public Task<ActionOutcome> StartTheftEncounter(
         GameTurnSession session,
         Guid encounterId,
         CancellationToken cancellationToken = default
-    ) => _streamTheftEncounterNarrationTurn.Handle(session, encounterId, cancellationToken);
+    ) => _startTheftEncounterActionHandler.Handle(session, encounterId, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamTheftEncounterAction(
+    public Task<ActionOutcome> TheftEncounterAction(
         GameTurnSession session,
         TheftEncounterAction action,
         CancellationToken cancellationToken = default
-    ) => _streamTheftEncounterActionTurn.Handle(session, action, cancellationToken);
+    ) => _theftEncounterActionHandler.Handle(session, action, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamCombatAction(
+    public Task<ActionOutcome> CombatAction(
         GameTurnSession session,
         PlayerCombatAction action,
         CancellationToken cancellationToken = default
-    ) => _streamCombatActionTurn.Handle(session, action, cancellationToken);
+    ) => _combatActionHandler.Handle(session, action, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamCastAbility(
+    public Task<ActionOutcome> CastAbility(
         GameTurnSession session,
         Guid targetId,
         string abilityName,
         CancellationToken cancellationToken = default
-    ) => _streamCastAbilityTurn.Handle(session, targetId, abilityName, cancellationToken);
+    ) => _castAbilityActionHandler.Handle(session, targetId, abilityName, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamPurchaseCaravanTicket(
+    public Task<ActionOutcome> PurchaseCaravanTicket(
         GameTurnSession session,
         Guid caravanId,
         Guid destinationLocationId,
         CancellationToken cancellationToken = default
     ) =>
-        _streamPurchaseCaravanTicketTurn.Handle(
+        _purchaseCaravanTicketActionHandler.Handle(
             session,
             caravanId,
             destinationLocationId,
             cancellationToken
         );
 
-    public IAsyncEnumerable<string> StreamDeclineCaravanTicket(
-        GameTurnSession session,
-        CancellationToken cancellationToken = default
-    ) => _streamDeclineCaravanTicketTurn.Handle(session, cancellationToken);
-
-    public IAsyncEnumerable<string> StreamBoardCaravan(
+    public Task<ActionOutcome> BoardCaravan(
         GameTurnSession session,
         Guid caravanId,
         CancellationToken cancellationToken = default
-    ) => _streamBoardCaravanTurn.Handle(session, caravanId, cancellationToken);
+    ) => _boardCaravanActionHandler.Handle(session, caravanId, cancellationToken);
 
-    public IAsyncEnumerable<string> StreamMove(
+    public Task<ActionOutcome> Move(
         GameTurnSession session,
         Guid connectorId,
         CancellationToken cancellationToken = default
-    ) => _streamMoveTurn.Handle(session, connectorId, cancellationToken);
+    ) => _moveActionHandler.Handle(session, connectorId, cancellationToken);
 }

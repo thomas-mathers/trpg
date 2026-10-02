@@ -4,8 +4,8 @@ import { useState, type ReactNode } from 'react';
 import type { AbilitySummary } from '@/api/client';
 import { getPlayerAbilityAvailabilityQueryKey } from '@/api/client';
 import { useScene } from '@/features/game/contexts/scene-context';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useAction } from '@/features/game/run-action';
 
 import {
   CastTargetingContext,
@@ -17,29 +17,21 @@ export function CastTargetingProvider({ children }: { children: ReactNode }) {
   const scene = useScene();
   const chatHub = useChatHub();
   const queryClient = useQueryClient();
-  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const { pending, run } = useAction();
   const [pendingAbility, setPendingAbility] = useState<AbilitySummary | null>(null);
 
   const playerId = scene?.playerStatus.id;
 
-  const castOn = (ability: AbilitySummary, target: CastTarget) => {
-    if (!playerId || isStreaming) {
+  const castOn = async (ability: AbilitySummary, target: CastTarget) => {
+    if (!playerId || pending) {
       return;
     }
 
     setPendingAbility(null);
-    const displayText =
-      target.id === playerId ? `Cast ${ability.name}` : `Cast ${ability.name} on ${target.name}`;
-    submitNarratedTurn(
-      displayText,
-      chatHub.sendCastAbility(target.id, ability.name),
-      undefined,
-      () => {
-        void queryClient.invalidateQueries({
-          queryKey: getPlayerAbilityAvailabilityQueryKey({ path: { playerId } }),
-        });
-      },
-    );
+    await run(chatHub.sendCastAbility(target.id, ability.name));
+    void queryClient.invalidateQueries({
+      queryKey: getPlayerAbilityAvailabilityQueryKey({ path: { playerId } }),
+    });
   };
 
   const value: CastTargeting = {
@@ -47,14 +39,14 @@ export function CastTargetingProvider({ children }: { children: ReactNode }) {
     cancel: () => setPendingAbility(null),
     selectAbility: (ability) => {
       if (!ability.requiresTarget && playerId) {
-        castOn(ability, { id: playerId, name: 'yourself' });
+        void castOn(ability, { id: playerId, name: 'yourself' });
         return;
       }
       setPendingAbility((current) => (current?.name === ability.name ? null : ability));
     },
     castOn: (target) => {
       if (pendingAbility) {
-        castOn(pendingAbility, target);
+        void castOn(pendingAbility, target);
       }
     },
   };

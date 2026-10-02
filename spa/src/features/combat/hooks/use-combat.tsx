@@ -1,7 +1,4 @@
-import type { IStreamResult } from '@microsoft/signalr';
-import { ShieldAlert } from 'lucide-react';
-import { useEffect, useReducer, useState } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useReducer } from 'react';
 
 import type {
   CombatActionResult,
@@ -10,10 +7,10 @@ import type {
   CombatantState,
   CombatUpdated,
 } from '@/api/signalr-client/TRPG.Combat.Responses';
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { TerminalCombatOutcome } from '@/features/combat/terminal-combat-outcome';
-import { GameToast } from '@/features/game/components/game-toast';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useAction } from '@/features/game/run-action';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 import { gameEventBus } from '@/lib/game-event-bus';
 
@@ -368,11 +365,9 @@ function prefersReducedMotion() {
 
 export function useCombat() {
   const [state, dispatch] = useReducer(combatReducer, initialState);
-  const { isStreaming, submitNarratedTurn } = useGameChat();
   const chatHub = useChatHub();
-  const [isActionPending, setIsActionPending] = useState(false);
-  // Exclude our own combat action's isStreaming flip so an ordinary round doesn't hide the dialog; a concluding fight closes it via state.fight going null instead.
-  const isRevealed = useDelayedReveal(!!state.fight && !(isStreaming && !isActionPending));
+  const { pending: isActionPending, run } = useAction();
+  const isRevealed = useDelayedReveal(!!state.fight);
 
   useEffect(() => {
     if (state.queue.length === 0) {
@@ -417,26 +412,7 @@ export function useCombat() {
     dispatch({ type: 'RESOLVED' });
   }, [state.combatOutcome]);
 
-  const submitCombatAction = (stream: IStreamResult<string>) => {
-    setIsActionPending(true);
-    submitNarratedTurn(
-      null,
-      stream,
-      (error) => {
-        const description =
-          error instanceof Error ? error.message : 'Combat action could not be resolved.';
-        toast.custom((toastId) => (
-          <GameToast
-            toastId={toastId}
-            icon={ShieldAlert}
-            title="Action rejected"
-            description={description}
-          />
-        ));
-      },
-      () => setIsActionPending(false),
-    );
-  };
+  const submitCombatAction = (action: Promise<ActionResult>) => void run(action);
 
   const submitUseAbilityCombatAction = (targetId: string, abilityName: string) =>
     submitCombatAction(chatHub.resolveUseAbilityCombatAction(targetId, abilityName));
@@ -446,7 +422,7 @@ export function useCombat() {
 
   const submitFlee = () => submitCombatAction(chatHub.sendFlee());
 
-  const disabled = state.isPlayingBack || isActionPending || isStreaming;
+  const disabled = state.isPlayingBack || isActionPending;
 
   return {
     fight: state.fight,

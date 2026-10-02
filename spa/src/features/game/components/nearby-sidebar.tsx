@@ -1,8 +1,8 @@
 import { Sidebar, SidebarContent, useSidebar } from '@/components/ui/sidebar';
 import { NearbyPanel } from '@/features/game/components/nearby-panel';
 import { useScene } from '@/features/game/contexts/scene-context';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { runAction } from '@/features/game/run-action';
 import type { DeliverItemDialogState } from '@/features/quests/components/deliver-item-dialog';
 import type { QuestDialogState } from '@/features/quests/components/quest-dialog';
 import { cn } from '@/lib/utils';
@@ -20,11 +20,10 @@ export function NearbySidebar({
 }: NearbySidebarProps) {
   const scene = useScene();
   const { open, isMobile } = useSidebar();
-  const { submitNarratedTurn } = useGameChat();
   const chatHub = useChatHub();
 
   const handleTheftEncounter = (encounterId: string) => {
-    submitNarratedTurn(null, chatHub.startTheftEncounterNarration(encounterId));
+    void runAction(chatHub.startTheftEncounter(encounterId));
   };
 
   const panel = scene && (

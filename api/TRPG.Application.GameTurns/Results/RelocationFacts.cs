@@ -5,13 +5,8 @@ using TRPG.Application.Scenes.Results;
 
 namespace TRPG.Application.GameTurns;
 
-// An encounter that moves the player leaves the narrator describing a place it was never told
-// about, so it furnishes one: an escape route that does not exist, a guard in an empty cell.
 internal static class RelocationFacts
 {
-    public static string Describe(SceneResult scene) =>
-        $"The player is now in {Place(scene)}, without having looked or moved to get here.\n{Observation(scene)}";
-
     // The player already sees the place they walked to, so this is for the model's bookkeeping only.
     public static string DescribeArrival(SceneResult scene) =>
         $"The player walked to {Place(scene)} on their own and can already see it. Do not describe the place or their arrival.\n{Observation(scene)}";

@@ -2,9 +2,9 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { cleanup, configure, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import type { SuspicionEncounterState } from '@/features/encounters/encounter';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -22,25 +22,20 @@ const encounter: SuspicionEncounterState = {
   allowedActions: ['Comply', 'Flee'],
 };
 
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
 }
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendWait: vi.fn(),
-    sendFlee: vi.fn(),
+    sendWait: vi.fn(succeeded),
+    sendFlee: vi.fn(succeeded),
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
-    resolveComplySuspicionAction: vi.fn(),
-    resolveFleeSuspicionAction: vi.fn(),
+    resolveComplySuspicionAction: vi.fn(succeeded),
+    resolveFleeSuspicionAction: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
 }
@@ -54,18 +49,15 @@ function buildGameHubConnection(overrides: Partial<GameHubConnection> = {}): Gam
   };
 }
 
-function renderDialog(overrides: Partial<GameChat> = {}) {
-  const gameChat = buildGameChat(overrides);
+function renderDialog() {
   const hubConnection = buildGameHubConnection();
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
-      <GameChatContext.Provider value={gameChat}>
-        <SuspicionEncounterDialog />
-      </GameChatContext.Provider>
+      <SuspicionEncounterDialog />
     </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, gameChat, chatHub: hubConnection.chatHub! };
+  return { ...result, chatHub: hubConnection.chatHub! };
 }
 
 beforeAll(() => configure({ asyncUtilTimeout: 2000 }));
@@ -90,7 +82,7 @@ async function resolveEncounter() {
 
 describe('SuspicionEncounterDialog', () => {
   it('shows a received suspicion encounter and sends the selected comply action', async () => {
-    const { user, gameChat, chatHub } = renderDialog();
+    const { user, chatHub } = renderDialog();
 
     gameEventBus.emit('SuspicionEncounterStarted', encounter);
 
@@ -99,33 +91,17 @@ describe('SuspicionEncounterDialog', () => {
     await user.click(screen.getByRole('button', { name: /Comply/ }));
 
     expect(chatHub.resolveComplySuspicionAction).toHaveBeenCalledOnce();
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Comply',
-      vi.mocked(chatHub.resolveComplySuspicionAction).mock.results[0]?.value,
-    );
     await resolveEncounter();
   });
 
   it('sends the selected flee action', async () => {
-    const { user, gameChat, chatHub } = renderDialog();
+    const { user, chatHub } = renderDialog();
 
     gameEventBus.emit('SuspicionEncounterStarted', encounter);
 
     await user.click(await screen.findByRole('button', { name: /Flee/ }));
 
     expect(chatHub.resolveFleeSuspicionAction).toHaveBeenCalledOnce();
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Flee',
-      vi.mocked(chatHub.resolveFleeSuspicionAction).mock.results[0]?.value,
-    );
     await resolveEncounter();
-  });
-
-  it('stays hidden while narration is still streaming', async () => {
-    renderDialog({ isStreaming: true });
-
-    gameEventBus.emit('SuspicionEncounterStarted', encounter);
-
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });

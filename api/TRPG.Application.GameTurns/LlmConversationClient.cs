@@ -34,15 +34,11 @@ internal class LlmConversationClient(
 {
     internal async Task<StreamedReply> StreamReply(
         string input,
-        bool includeTools,
         CancellationToken cancellationToken
     )
     {
         var inputOrdinal = await AppendUserMessage(input, cancellationToken);
-        return new StreamedReply(
-            inputOrdinal,
-            StreamCompletionTokens(includeTools, cancellationToken)
-        );
+        return new StreamedReply(inputOrdinal, StreamCompletionTokens(cancellationToken));
     }
 
     private async Task<int> AppendUserMessage(string input, CancellationToken cancellationToken)
@@ -69,7 +65,6 @@ internal class LlmConversationClient(
     }
 
     private async IAsyncEnumerable<string> StreamCompletionTokens(
-        bool includeTools,
         [EnumeratorCancellation] CancellationToken cancellationToken
     )
     {
@@ -84,7 +79,7 @@ internal class LlmConversationClient(
 
         var chatOptions = new ChatOptions
         {
-            Tools = includeTools ? tools.Cast<AITool>().ToList() : [],
+            Tools = tools.Cast<AITool>().ToList(),
             Temperature = gameplayOptions.Temperature,
             AdditionalProperties = additionalProperties,
             Reasoning = gameplayOptions is { Provider: LlmProvider.Anthropic, Think: false }

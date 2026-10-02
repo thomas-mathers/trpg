@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
-import type { SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -92,144 +92,136 @@ class IChatHub_HubProxy implements IChatHub {
         return this.connection.stream("SendChat", message);
     }
 
-    public readonly sendWait = (hours: number, minutes: number): IStreamResult<string> => {
-        return this.connection.stream("SendWait", hours, minutes);
+    public readonly sendWait = async (hours: number, minutes: number): Promise<ActionResult> => {
+        return await this.connection.invoke("SendWait", hours, minutes);
     }
 
-    public readonly sendSitDown = (seatId: string): IStreamResult<string> => {
-        return this.connection.stream("SendSitDown", seatId);
+    public readonly sendSitDown = async (seatId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendSitDown", seatId);
     }
 
-    public readonly sendStandUp = (): IStreamResult<string> => {
-        return this.connection.stream("SendStandUp");
+    public readonly sendStandUp = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("SendStandUp");
     }
 
-    public readonly sendSleep = (hours: number, minutes: number): IStreamResult<string> => {
-        return this.connection.stream("SendSleep", hours, minutes);
+    public readonly sendSleep = async (hours: number, minutes: number): Promise<ActionResult> => {
+        return await this.connection.invoke("SendSleep", hours, minutes);
     }
 
-    public readonly sendActivateTrigger = (triggerId: string): IStreamResult<string> => {
-        return this.connection.stream("SendActivateTrigger", triggerId);
+    public readonly sendActivateTrigger = async (triggerId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendActivateTrigger", triggerId);
     }
 
-    public readonly sendAcceptQuest = (questId: string): IStreamResult<string> => {
-        return this.connection.stream("SendAcceptQuest", questId);
+    public readonly sendAcceptQuest = async (questId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendAcceptQuest", questId);
     }
 
-    public readonly sendDeclineQuest = (questId: string): IStreamResult<string> => {
-        return this.connection.stream("SendDeclineQuest", questId);
+    public readonly sendCompleteQuest = async (questId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendCompleteQuest", questId);
     }
 
-    public readonly sendCompleteQuest = (questId: string): IStreamResult<string> => {
-        return this.connection.stream("SendCompleteQuest", questId);
+    public readonly sendDeliverItem = async (recipientId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendDeliverItem", recipientId);
     }
 
-    public readonly sendDeliverItem = (recipientId: string): IStreamResult<string> => {
-        return this.connection.stream("SendDeliverItem", recipientId);
+    public readonly sendPurchaseCaravanTicket = async (caravanId: string, destinationLocationId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendPurchaseCaravanTicket", caravanId, destinationLocationId);
     }
 
-    public readonly sendPurchaseCaravanTicket = (caravanId: string, destinationLocationId: string): IStreamResult<string> => {
-        return this.connection.stream("SendPurchaseCaravanTicket", caravanId, destinationLocationId);
+    public readonly sendBoardCaravan = async (caravanId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendBoardCaravan", caravanId);
     }
 
-    public readonly sendDeclineCaravanTicket = (): IStreamResult<string> => {
-        return this.connection.stream("SendDeclineCaravanTicket");
+    public readonly sendMove = async (connectorId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendMove", connectorId);
     }
 
-    public readonly sendBoardCaravan = (caravanId: string): IStreamResult<string> => {
-        return this.connection.stream("SendBoardCaravan", caravanId);
+    public readonly sendFlee = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("SendFlee");
     }
 
-    public readonly sendMove = (connectorId: string): IStreamResult<string> => {
-        return this.connection.stream("SendMove", connectorId);
+    public readonly sendRespawn = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("SendRespawn");
     }
 
-    public readonly sendFlee = (): IStreamResult<string> => {
-        return this.connection.stream("SendFlee");
+    public readonly sendCastAbility = async (targetId: string, abilityName: string): Promise<ActionResult> => {
+        return await this.connection.invoke("SendCastAbility", targetId, abilityName);
     }
 
-    public readonly sendRespawn = (): IStreamResult<string> => {
-        return this.connection.stream("SendRespawn");
+    public readonly resolveUseAbilityCombatAction = async (targetId: string, abilityName: string): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveUseAbilityCombatAction", targetId, abilityName);
     }
 
-    public readonly sendCastAbility = (targetId: string, abilityName: string): IStreamResult<string> => {
-        return this.connection.stream("SendCastAbility", targetId, abilityName);
+    public readonly resolveUseItemCombatAction = async (itemName: string): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveUseItemCombatAction", itemName);
     }
 
-    public readonly resolveUseAbilityCombatAction = (targetId: string, abilityName: string): IStreamResult<string> => {
-        return this.connection.stream("ResolveUseAbilityCombatAction", targetId, abilityName);
+    public readonly resolveAttackEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveAttackEncounterAction");
     }
 
-    public readonly resolveUseItemCombatAction = (itemName: string): IStreamResult<string> => {
-        return this.connection.stream("ResolveUseItemCombatAction", itemName);
+    public readonly resolveFleeEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveFleeEncounterAction");
     }
 
-    public readonly resolveAttackEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveAttackEncounterAction");
+    public readonly resolveIntimidateEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveIntimidateEncounterAction");
     }
 
-    public readonly resolveFleeEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveFleeEncounterAction");
+    public readonly resolvePayTollEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolvePayTollEncounterAction");
     }
 
-    public readonly resolveIntimidateEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveIntimidateEncounterAction");
+    public readonly resolveFightEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveFightEncounterAction");
     }
 
-    public readonly resolvePayTollEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolvePayTollEncounterAction");
+    public readonly resolveFleeShakedownEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveFleeShakedownEncounterAction");
     }
 
-    public readonly resolveFightEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveFightEncounterAction");
+    public readonly resolvePayFineEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolvePayFineEncounterAction");
     }
 
-    public readonly resolveFleeShakedownEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveFleeShakedownEncounterAction");
+    public readonly resolveGoToJailEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveGoToJailEncounterAction");
     }
 
-    public readonly resolvePayFineEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolvePayFineEncounterAction");
+    public readonly resolveResistArrestEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveResistArrestEncounterAction");
     }
 
-    public readonly resolveGoToJailEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveGoToJailEncounterAction");
+    public readonly resolveComplySuspicionAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveComplySuspicionAction");
     }
 
-    public readonly resolveResistArrestEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveResistArrestEncounterAction");
+    public readonly resolveFleeSuspicionAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveFleeSuspicionAction");
     }
 
-    public readonly resolveComplySuspicionAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveComplySuspicionAction");
+    public readonly resolveAttemptTrapAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveAttemptTrapAction");
     }
 
-    public readonly resolveFleeSuspicionAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveFleeSuspicionAction");
+    public readonly resolveWithdrawTrapAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveWithdrawTrapAction");
     }
 
-    public readonly resolveAttemptTrapAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveAttemptTrapAction");
+    public readonly resolveDisarmTrapAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveDisarmTrapAction");
     }
 
-    public readonly resolveWithdrawTrapAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveWithdrawTrapAction");
+    public readonly startTheftEncounter = async (encounterId: string): Promise<ActionResult> => {
+        return await this.connection.invoke("StartTheftEncounter", encounterId);
     }
 
-    public readonly resolveDisarmTrapAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveDisarmTrapAction");
+    public readonly resolveApologizeTheftEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveApologizeTheftEncounterAction");
     }
 
-    public readonly startTheftEncounterNarration = (encounterId: string): IStreamResult<string> => {
-        return this.connection.stream("StartTheftEncounterNarration", encounterId);
-    }
-
-    public readonly resolveApologizeTheftEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveApologizeTheftEncounterAction");
-    }
-
-    public readonly resolveFleeTheftEncounterAction = (): IStreamResult<string> => {
-        return this.connection.stream("ResolveFleeTheftEncounterAction");
+    public readonly resolveFleeTheftEncounterAction = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("ResolveFleeTheftEncounterAction");
     }
 
     public readonly acknowledgeEvents = async (flushId: string): Promise<void> => {

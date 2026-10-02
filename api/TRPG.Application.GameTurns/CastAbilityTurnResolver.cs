@@ -1,6 +1,4 @@
-using System.Text.Json;
 using TRPG.Application.Abilities;
-using TRPG.Application.Combat;
 using TRPG.Application.Combat.Commands;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
@@ -13,13 +11,6 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
 
-internal record AbilityCastFact(
-    string AbilityName,
-    string AbilityDescription,
-    string TargetName,
-    bool TargetIsPlayer
-);
-
 internal class CastAbilityTurnResolver(
     IQueryHandler<GetCreatureAbilitiesQuery, IReadOnlyList<Ability>> getCreatureAbilities,
     ICommandHandler<CastAbilityCommand, CastAbilityResult> castAbility,
@@ -28,7 +19,7 @@ internal class CastAbilityTurnResolver(
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime
 )
 {
-    public async Task<GameTurnPrompt> Resolve(
+    public async Task<ActionOutcome> Resolve(
         GameTurnSession session,
         Guid targetId,
         string abilityName,
@@ -47,30 +38,35 @@ internal class CastAbilityTurnResolver(
         var ability = abilities.FirstOrDefault(a => a.Name == abilityName);
         if (ability is null)
         {
-            return new GameTurnPrompt.Reply($"Ability {abilityName} not found");
+            return ActionOutcome.Failed(ActionFailure.AbilityNotFound);
         }
 
         try
         {
-            return ability is AttackAbility
-                ? await OpenFight(session, targetId, abilityName, gameTime, cancellationToken)
-                : await CastSupport(session, targetId, abilityName, gameTime, cancellationToken);
+            await (
+                ability is AttackAbility
+                    ? OpenFight(session, targetId, abilityName, gameTime, cancellationToken)
+                    : CastSupport(session, targetId, abilityName, gameTime, cancellationToken)
+            );
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return new GameTurnPrompt.Reply(ex.Message);
+            return ActionOutcome.Failed(ActionFailure.AbilityUnavailable);
         }
+
+        await RefreshScene(session, gameTime, cancellationToken);
+
+        return ActionOutcome.Success;
     }
 
-    private async Task<GameTurnPrompt> CastSupport(
+    private async Task CastSupport(
         GameTurnSession session,
         Guid targetId,
         string abilityName,
         GameInstant gameTime,
         CancellationToken cancellationToken
-    )
-    {
-        var result = await castAbility.Handle(
+    ) =>
+        await castAbility.Handle(
             new CastAbilityCommand
             {
                 WorldId = session.WorldId,
@@ -82,35 +78,14 @@ internal class CastAbilityTurnResolver(
             cancellationToken
         );
 
-        await refreshScene.Handle(
-            new RefreshSceneCommand
-            {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        var fact = new AbilityCastFact(
-            result.AbilityName,
-            result.AbilityDescription,
-            result.TargetName,
-            result.TargetIsPlayer
-        );
-
-        return new GameTurnPrompt.Narrate(BuildNarrationPrompt(fact), IncludeTools: false);
-    }
-
-    private async Task<GameTurnPrompt> OpenFight(
+    private async Task OpenFight(
         GameTurnSession session,
         Guid targetId,
         string abilityName,
         GameInstant gameTime,
         CancellationToken cancellationToken
-    )
-    {
-        var result = await openFightWithAbility.Handle(
+    ) =>
+        await openFightWithAbility.Handle(
             new OpenFightWithAbilityCommand
             {
                 SessionId = session.SessionId,
@@ -123,6 +98,11 @@ internal class CastAbilityTurnResolver(
             cancellationToken
         );
 
+    private async Task RefreshScene(
+        GameTurnSession session,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    ) =>
         await refreshScene.Handle(
             new RefreshSceneCommand
             {
@@ -132,27 +112,4 @@ internal class CastAbilityTurnResolver(
             },
             cancellationToken
         );
-
-        if (result.CombatResult.Outcome == CombatOutcome.Ongoing)
-        {
-            return new GameTurnPrompt.None();
-        }
-
-        var fact = new CombatConclusionFact(result.CombatResult.Outcome, result.OpponentNames);
-        return new GameTurnPrompt.Narrate(
-            StreamCombatActionTurnHandler.BuildNarrationPrompt(fact),
-            IncludeTools: false
-        );
-    }
-
-    internal static string BuildNarrationPrompt(AbilityCastFact fact)
-    {
-        var json = JsonSerializer.Serialize(fact, Common.Serialization.TrpgJsonOptions.Default);
-
-        return $"""
-            The player has just cast a support ability. Result: {json}.
-            The ability has already taken effect; narrate the casting and its visible effect in a
-            sentence or two. Do not invent effects beyond the description. Do not call any tools.
-            """;
-    }
 }

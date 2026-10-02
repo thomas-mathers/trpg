@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getDeliverItemDialog, getQuestDialog } from '@/api/client';
 
 import type { CreatureInteractionPanelProps } from '../components/creature-interaction-panel';
+import { runAction } from '../run-action';
 import { useGameChat } from './use-game-chat';
 import { useChatHub } from './use-game-hub-connection';
 import { useCreatureInteraction } from './use-interaction-lifecycle';
@@ -84,7 +85,7 @@ export function useCreaturePanel(props: CreatureInteractionPanelProps) {
     deliver: () => deliver(context),
     beginAction: (next: Mode) => beginAction(context, next),
     theft: (encounterId: string) => {
-      context.submitNarratedTurn(null, context.chatHub.startTheftEncounterNarration(encounterId));
+      void runAction(context.chatHub.startTheftEncounter(encounterId));
       context.onClose();
     },
   };

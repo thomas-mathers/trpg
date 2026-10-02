@@ -30,6 +30,7 @@ import type {
   CombatantState,
   DamageType,
 } from '@/api/signalr-client/TRPG.Combat.Responses';
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -231,11 +232,7 @@ const handlers = [
   handleGetCreatureConsumables({ body: consumables }),
 ];
 
-function WorkbenchProviders({
-  children,
-  initialFight,
-  initiallyStreaming,
-}: WorkbenchProvidersProps) {
+function WorkbenchProviders({ children, initialFight }: WorkbenchProvidersProps) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -246,7 +243,6 @@ function WorkbenchProviders({
       }),
   );
   const [, setFight] = useState(initialFight);
-  const [isStreaming, setIsStreaming] = useState(initiallyStreaming);
 
   useEffect(() => {
     setFight(initialFight);
@@ -257,25 +253,23 @@ function WorkbenchProviders({
   }, [initialFight]);
 
   const resolveAction = useCallback(
-    (action: SimulatedCombatAction): IStreamResult<string> => ({
-      subscribe: (subscriber) => {
+    (action: SimulatedCombatAction): Promise<ActionResult> =>
+      new Promise((resolve) => {
         window.setTimeout(() => {
           setFight((current) => {
             const round = simulateRound(current, action);
             gameEventBus.emit('CombatUpdated', round);
             return round.combatants;
           });
-          subscriber.complete();
+          resolve({ succeeded: true });
         }, 650);
-        return { dispose: () => undefined };
-      },
-    }),
+      }),
     [],
   );
 
   const resolveFlee = useCallback(
-    (): IStreamResult<string> => ({
-      subscribe: (subscriber) => {
+    (): Promise<ActionResult> =>
+      new Promise((resolve) => {
         window.setTimeout(() => {
           setFight((current) => {
             gameEventBus.emit('CombatUpdated', {
@@ -287,53 +281,49 @@ function WorkbenchProviders({
             });
             return current;
           });
-          subscriber.complete();
+          resolve({ succeeded: true });
         }, 650);
-        return { dispose: () => undefined };
-      },
-    }),
+      }),
     [],
   );
 
   const chatHub: IChatHub = {
     endSession: async () => undefined,
     sendChat: noopStream,
-    sendWait: noopStream,
-    sendSitDown: noopStream,
-    sendStandUp: noopStream,
-    sendSleep: noopStream,
-    sendActivateTrigger: noopStream,
-    sendCastAbility: noopStream,
-    sendAcceptQuest: noopStream,
-    sendDeclineQuest: noopStream,
-    sendCompleteQuest: noopStream,
-    sendDeliverItem: noopStream,
-    sendPurchaseCaravanTicket: noopStream,
-    sendDeclineCaravanTicket: noopStream,
-    sendBoardCaravan: noopStream,
-    sendMove: noopStream,
+    sendWait: noopAction,
+    sendSitDown: noopAction,
+    sendStandUp: noopAction,
+    sendSleep: noopAction,
+    sendActivateTrigger: noopAction,
+    sendCastAbility: noopAction,
+    sendAcceptQuest: noopAction,
+    sendCompleteQuest: noopAction,
+    sendDeliverItem: noopAction,
+    sendPurchaseCaravanTicket: noopAction,
+    sendBoardCaravan: noopAction,
+    sendMove: noopAction,
     sendFlee: resolveFlee,
-    sendRespawn: noopStream,
+    sendRespawn: noopAction,
     resolveUseAbilityCombatAction: (targetId, abilityName) =>
       resolveAction({ type: 'UseAbilityAction', targetId, abilityName }),
     resolveUseItemCombatAction: (itemName) => resolveAction({ type: 'UseItemAction', itemName }),
-    resolveAttackEncounterAction: noopStream,
-    resolveFleeEncounterAction: noopStream,
-    resolveIntimidateEncounterAction: noopStream,
-    resolvePayTollEncounterAction: noopStream,
-    resolveFightEncounterAction: noopStream,
-    resolveFleeShakedownEncounterAction: noopStream,
-    resolvePayFineEncounterAction: noopStream,
-    resolveGoToJailEncounterAction: noopStream,
-    resolveResistArrestEncounterAction: noopStream,
-    resolveComplySuspicionAction: noopStream,
-    resolveFleeSuspicionAction: noopStream,
-    resolveAttemptTrapAction: noopStream,
-    resolveWithdrawTrapAction: noopStream,
-    resolveDisarmTrapAction: noopStream,
-    startTheftEncounterNarration: noopStream,
-    resolveApologizeTheftEncounterAction: noopStream,
-    resolveFleeTheftEncounterAction: noopStream,
+    resolveAttackEncounterAction: noopAction,
+    resolveFleeEncounterAction: noopAction,
+    resolveIntimidateEncounterAction: noopAction,
+    resolvePayTollEncounterAction: noopAction,
+    resolveFightEncounterAction: noopAction,
+    resolveFleeShakedownEncounterAction: noopAction,
+    resolvePayFineEncounterAction: noopAction,
+    resolveGoToJailEncounterAction: noopAction,
+    resolveResistArrestEncounterAction: noopAction,
+    resolveComplySuspicionAction: noopAction,
+    resolveFleeSuspicionAction: noopAction,
+    resolveAttemptTrapAction: noopAction,
+    resolveWithdrawTrapAction: noopAction,
+    resolveDisarmTrapAction: noopAction,
+    startTheftEncounter: noopAction,
+    resolveApologizeTheftEncounterAction: noopAction,
+    resolveFleeTheftEncounterAction: noopAction,
     acknowledgeEvents: async () => undefined,
   };
 
@@ -345,21 +335,8 @@ function WorkbenchProviders({
 
   const gameChat: GameChat = {
     messages: [],
-    isStreaming,
-    submitNarratedTurn: (_displayText, stream, _onError, onSettle) => {
-      setIsStreaming(true);
-      stream.subscribe({
-        next: () => undefined,
-        complete: () => {
-          setIsStreaming(false);
-          onSettle?.();
-        },
-        error: () => {
-          setIsStreaming(false);
-          onSettle?.();
-        },
-      });
-    },
+    isStreaming: false,
+    submitNarratedTurn: () => undefined,
   };
 
   return (
@@ -380,17 +357,15 @@ function WorkbenchProviders({
 interface WorkbenchProvidersProps {
   children: ReactNode;
   initialFight: CombatantState[];
-  initiallyStreaming: boolean;
 }
 
 interface CombatDialogStoryProps {
   fight: CombatantState[];
-  isStreaming?: boolean;
 }
 
-function CombatDialogStory({ fight, isStreaming = false }: CombatDialogStoryProps) {
+function CombatDialogStory({ fight }: CombatDialogStoryProps) {
   return (
-    <WorkbenchProviders initialFight={fight} initiallyStreaming={isStreaming}>
+    <WorkbenchProviders initialFight={fight}>
       <CombatDialog />
     </WorkbenchProviders>
   );
@@ -402,6 +377,10 @@ type SimulatedCombatAction =
 
 function noopStream(): IStreamResult<string> {
   return { subscribe: () => ({ dispose: () => undefined }) };
+}
+
+async function noopAction(): Promise<ActionResult> {
+  return { succeeded: true };
 }
 
 function simulateRound(fight: CombatantState[], action: SimulatedCombatAction) {
@@ -622,14 +601,10 @@ export const Standard: Story = { args: { fight: standardFight } };
 
 export const CrowdedAndEffected: Story = { args: { fight: crowdedFight } };
 
-export const Resolving: Story = {
-  args: { fight: standardFight, isStreaming: true },
-};
-
 export const NarrationToastPreview: Story = {
   args: { fight: crowdedFight },
   render: () => (
-    <WorkbenchProviders initialFight={crowdedFight} initiallyStreaming={false}>
+    <WorkbenchProviders initialFight={crowdedFight}>
       <div className="relative">
         <CombatDialog />
         <NarrationToastMock
@@ -646,7 +621,7 @@ export const EncounterDialogPreview: Story = {
   args: { fight: crowdedFight },
   parameters: { layout: 'fullscreen' },
   render: () => (
-    <WorkbenchProviders initialFight={crowdedFight} initiallyStreaming={false}>
+    <WorkbenchProviders initialFight={crowdedFight}>
       <TooltipProvider>
         <CombatEncounterDialogMock fight={crowdedFight} />
       </TooltipProvider>
@@ -688,7 +663,7 @@ export const FullRoundSequence: Story = {
   args: { fight: crowdedFight },
   parameters: { layout: 'fullscreen' },
   render: () => (
-    <WorkbenchProviders initialFight={crowdedFight} initiallyStreaming={false}>
+    <WorkbenchProviders initialFight={crowdedFight}>
       <TooltipProvider>
         <FullRoundDialogMock fight={crowdedFight} />
       </TooltipProvider>

@@ -9,60 +9,58 @@ public static class GameTurnsServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddTransient<LlmConversationClient>()
+            .AddTransient<TurnSceneDiffer>()
             .AddTransient<GameTurnStreamer>()
-            .AddTransient<StreamWaitTurnHandler>()
-            .AddTransient<StreamSitDownTurnHandler>()
-            .AddTransient<StreamStandUpTurnHandler>()
-            .AddTransient<StreamSleepTurnHandler>()
-            .AddTransient<StreamActivateTriggerTurnHandler>()
-            .AddTransient<StreamAcceptQuestTurnHandler>()
-            .AddTransient<StreamDeclineQuestTurnHandler>()
-            .AddTransient<StreamCompleteQuestTurnHandler>()
-            .AddTransient<StreamDeliverItemTurnHandler>()
+            .AddTransient<GameActionRunner>()
             .AddTransient<StreamChatTurnHandler>()
-            .AddTransient<StreamFleeTurnHandler>()
             .AddTransient<PlayerRespawner>()
-            .AddTransient<StreamRespawnTurnHandler>()
-            .AddTransient<StreamHostileEncounterActionTurnHandler>()
-            .AddTransient<StreamShakedownEncounterActionTurnHandler>()
-            .AddTransient<StreamGuardEncounterActionTurnHandler>()
-            .AddTransient<StreamSuspicionEncounterActionTurnHandler>()
-            .AddTransient<StreamTrapEncounterActionTurnHandler>()
-            .AddTransient<StreamTheftEncounterNarrationTurnHandler>()
-            .AddTransient<StreamTheftEncounterActionTurnHandler>()
-            .AddTransient<StreamCombatActionTurnHandler>()
             .AddTransient<CastAbilityTurnResolver>()
             .AddTransient<MoveTurnResolver>()
-            .AddTransient<StreamCastAbilityTurnHandler>()
-            .AddTransient<StreamPurchaseCaravanTicketTurnHandler>()
-            .AddTransient<StreamDeclineCaravanTicketTurnHandler>()
-            .AddTransient<StreamBoardCaravanTurnHandler>()
-            .AddTransient<StreamMoveTurnHandler>()
+            .AddTransient<WaitActionHandler>()
+            .AddTransient<SitDownActionHandler>()
+            .AddTransient<StandUpActionHandler>()
+            .AddTransient<SleepActionHandler>()
+            .AddTransient<ActivateTriggerActionHandler>()
+            .AddTransient<AcceptQuestActionHandler>()
+            .AddTransient<CompleteQuestActionHandler>()
+            .AddTransient<DeliverItemActionHandler>()
+            .AddTransient<FleeActionHandler>()
+            .AddTransient<RespawnActionHandler>()
+            .AddTransient<HostileEncounterActionHandler>()
+            .AddTransient<ShakedownEncounterActionHandler>()
+            .AddTransient<GuardEncounterActionHandler>()
+            .AddTransient<SuspicionEncounterActionHandler>()
+            .AddTransient<TrapEncounterActionHandler>()
+            .AddTransient<StartTheftEncounterActionHandler>()
+            .AddTransient<TheftEncounterActionHandler>()
+            .AddTransient<CombatActionHandler>()
+            .AddTransient<CastAbilityActionHandler>()
+            .AddTransient<PurchaseCaravanTicketActionHandler>()
+            .AddTransient<BoardCaravanActionHandler>()
+            .AddTransient<MoveActionHandler>()
             .AddTransient<GameTurnRunner>(serviceProvider => new GameTurnRunner(
                 serviceProvider.GetRequiredService<StreamChatTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamWaitTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamSitDownTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamStandUpTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamSleepTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamActivateTriggerTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamAcceptQuestTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamDeclineQuestTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamCompleteQuestTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamDeliverItemTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamFleeTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamRespawnTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamHostileEncounterActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamShakedownEncounterActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamGuardEncounterActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamSuspicionEncounterActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamTrapEncounterActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamTheftEncounterNarrationTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamTheftEncounterActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamCombatActionTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamCastAbilityTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamPurchaseCaravanTicketTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamDeclineCaravanTicketTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamBoardCaravanTurnHandler>(),
-                serviceProvider.GetRequiredService<StreamMoveTurnHandler>()
+                serviceProvider.GetRequiredService<WaitActionHandler>(),
+                serviceProvider.GetRequiredService<SitDownActionHandler>(),
+                serviceProvider.GetRequiredService<StandUpActionHandler>(),
+                serviceProvider.GetRequiredService<SleepActionHandler>(),
+                serviceProvider.GetRequiredService<ActivateTriggerActionHandler>(),
+                serviceProvider.GetRequiredService<AcceptQuestActionHandler>(),
+                serviceProvider.GetRequiredService<CompleteQuestActionHandler>(),
+                serviceProvider.GetRequiredService<DeliverItemActionHandler>(),
+                serviceProvider.GetRequiredService<FleeActionHandler>(),
+                serviceProvider.GetRequiredService<RespawnActionHandler>(),
+                serviceProvider.GetRequiredService<HostileEncounterActionHandler>(),
+                serviceProvider.GetRequiredService<ShakedownEncounterActionHandler>(),
+                serviceProvider.GetRequiredService<GuardEncounterActionHandler>(),
+                serviceProvider.GetRequiredService<SuspicionEncounterActionHandler>(),
+                serviceProvider.GetRequiredService<TrapEncounterActionHandler>(),
+                serviceProvider.GetRequiredService<StartTheftEncounterActionHandler>(),
+                serviceProvider.GetRequiredService<TheftEncounterActionHandler>(),
+                serviceProvider.GetRequiredService<CombatActionHandler>(),
+                serviceProvider.GetRequiredService<CastAbilityActionHandler>(),
+                serviceProvider.GetRequiredService<PurchaseCaravanTicketActionHandler>(),
+                serviceProvider.GetRequiredService<BoardCaravanActionHandler>(),
+                serviceProvider.GetRequiredService<MoveActionHandler>()
             ));
 }

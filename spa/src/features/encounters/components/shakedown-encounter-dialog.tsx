@@ -12,8 +12,8 @@ import type {
   ShakedownEncounterState,
 } from '@/features/encounters/encounter';
 import { useShakedownEncounterState } from '@/features/encounters/hooks/use-shakedown-encounter-state';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useAction } from '@/features/game/run-action';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
 const ACTION_NAMES: readonly ShakedownEncounterActionName[] = [
@@ -29,9 +29,9 @@ function isShakedownEncounterActionName(name: string): name is ShakedownEncounte
 
 export function ShakedownEncounterDialog() {
   const encounter = useShakedownEncounterState();
-  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const { pending, run } = useAction();
   const chatHub = useChatHub();
-  const isRevealed = useDelayedReveal(!!encounter && !isStreaming);
+  const isRevealed = useDelayedReveal(!!encounter);
 
   const actionDetails: Record<
     ShakedownEncounterActionName,
@@ -41,27 +41,25 @@ export function ShakedownEncounterDialog() {
       label: 'Intimidate',
       description: 'Try to make the bandits back down.',
       icon: MessageSquareWarning,
-      submit: () =>
-        submitNarratedTurn('Intimidate the bandits', chatHub.resolveIntimidateEncounterAction()),
+      submit: () => void run(chatHub.resolveIntimidateEncounterAction()),
     },
     PayToll: {
       label: `Pay ${encounter?.tollAmount ?? 0} gold`,
       description: 'Pay their demand and continue on your way.',
       icon: Coins,
-      submit: () => submitNarratedTurn('Pay the toll', chatHub.resolvePayTollEncounterAction()),
+      submit: () => void run(chatHub.resolvePayTollEncounterAction()),
     },
     Fight: {
       label: 'Fight',
       description: 'Refuse their demand with steel.',
       icon: Swords,
-      submit: () => submitNarratedTurn('Fight the bandits', chatHub.resolveFightEncounterAction()),
+      submit: () => void run(chatHub.resolveFightEncounterAction()),
     },
     Flee: {
       label: 'Flee',
       description: 'Try to escape before they surround you.',
       icon: Footprints,
-      submit: () =>
-        submitNarratedTurn('Flee from the bandits', chatHub.resolveFleeShakedownEncounterAction()),
+      submit: () => void run(chatHub.resolveFleeShakedownEncounterAction()),
     },
   };
 
@@ -101,7 +99,7 @@ export function ShakedownEncounterDialog() {
                 <button
                   key={actionName}
                   type="button"
-                  disabled={isStreaming || cannotAffordToll}
+                  disabled={pending || cannotAffordToll}
                   onClick={details.submit}
                   title={
                     cannotAffordToll ? "You don't have enough gold to pay this toll." : undefined

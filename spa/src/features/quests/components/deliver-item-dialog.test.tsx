@@ -3,8 +3,8 @@ import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ItemDetail } from '@/api/client';
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -36,14 +36,12 @@ const deliverable = {
 
 function renderDialog(onClose: () => void) {
   const interactions = recordInteractions();
-  const chatHub = { sendDeliverItem: vi.fn() } as unknown as IChatHub;
-  const gameChat: GameChat = {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(() => {
-      interactions.calls.push('turn');
+  const chatHub = {
+    sendDeliverItem: vi.fn((): Promise<ActionResult> => {
+      interactions.calls.push('deliver');
+      return Promise.resolve({ succeeded: true });
     }),
-  };
+  } as unknown as IChatHub;
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
     connectionError: false,
@@ -52,13 +50,11 @@ function renderDialog(onClose: () => void) {
 
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
-      <GameChatContext.Provider value={gameChat}>
-        <DeliverItemDialog playerId="player-id" deliverable={deliverable} onClose={onClose} />
-      </GameChatContext.Provider>
+      <DeliverItemDialog playerId="player-id" deliverable={deliverable} onClose={onClose} />
     </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat, interactions };
+  return { ...result, chatHub, interactions };
 }
 
 describe('DeliverItemDialog', () => {
@@ -68,7 +64,7 @@ describe('DeliverItemDialog', () => {
     await waitFor(() => expect(interactions.calls).toEqual(['begin:creature:recipient-id']));
   });
 
-  it('releases the recipient before the delivery turn starts', async () => {
+  it('releases the recipient before the delivery starts', async () => {
     const onClose = vi.fn();
     const { user, chatHub, interactions } = renderDialog(onClose);
     await waitFor(() => expect(interactions.calls).toEqual(['begin:creature:recipient-id']));
@@ -80,7 +76,7 @@ describe('DeliverItemDialog', () => {
     expect(interactions.calls).toEqual([
       'begin:creature:recipient-id',
       'end:creature:recipient-id',
-      'turn',
+      'deliver',
     ]);
   });
 

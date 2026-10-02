@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { getQuestJournalQueryKey } from '@/api/client';
 import type { QuestDialogResponse } from '@/api/client';
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,10 +13,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { NarrationText } from '@/features/game/components/narration-text';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
 import { useCreatureInteraction } from '@/features/game/hooks/use-interaction-lifecycle';
 import { parseNarrationMarkup } from '@/features/game/narration-markup';
+import { useAction } from '@/features/game/run-action';
 
 export type QuestDialogState = QuestDialogResponse & { giverId: string; worldId: string };
 
@@ -28,7 +29,7 @@ interface QuestDialogProps {
 export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
   const queryClient = useQueryClient();
   const chatHub = useChatHub();
-  const { submitNarratedTurn, isStreaming } = useGameChat();
+  const { pending, run } = useAction();
   const { release } = useCreatureInteraction({
     playerId,
     worldId: quest?.worldId ?? '',
@@ -49,35 +50,28 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
       }),
     });
 
+  const resolve = async (action: Promise<ActionResult>) => {
+    const result = await run(action);
+    if (result.succeeded) {
+      await invalidateJournal();
+    }
+    onClose();
+  };
+
   const handleAccept = async () => {
     await release();
-    submitNarratedTurn(
-      `Accept “${quest.name}”`,
-      chatHub.sendAcceptQuest(quest.questId),
-      undefined,
-      invalidateJournal,
-    );
-    onClose();
+    await resolve(chatHub.sendAcceptQuest(quest.questId));
   };
 
   const handleDecline = async () => {
     await release();
-    submitNarratedTurn(`Decline “${quest.name}”`, chatHub.sendDeclineQuest(quest.questId));
     onClose();
   };
 
   const handleComplete = async () => {
     await release();
-    submitNarratedTurn(
-      `Complete “${quest.name}”`,
-      chatHub.sendCompleteQuest(quest.questId),
-      undefined,
-      invalidateJournal,
-    );
-    onClose();
+    await resolve(chatHub.sendCompleteQuest(quest.questId));
   };
-
-  const isBusy = isStreaming;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -123,13 +117,13 @@ export function QuestDialog({ playerId, quest, onClose }: QuestDialogProps) {
           <Button
             variant="outline"
             onClick={isOffer ? () => void handleDecline() : onClose}
-            disabled={isBusy}
+            disabled={pending}
           >
             Not now
           </Button>
           <Button
             onClick={() => void (isOffer ? handleAccept() : handleComplete())}
-            disabled={isBusy}
+            disabled={pending}
           >
             {isOffer ? 'Accept quest' : 'Complete quest'}
           </Button>

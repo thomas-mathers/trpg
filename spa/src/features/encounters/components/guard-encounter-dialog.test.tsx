@@ -2,9 +2,9 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { configure, screen, waitFor } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import type { ActionResult } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import type { GuardEncounterState } from '@/features/encounters/encounter';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -25,26 +25,21 @@ const encounter: GuardEncounterState = {
   canAffordFine: true,
 };
 
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
 }
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendWait: vi.fn(),
-    sendFlee: vi.fn(),
+    sendWait: vi.fn(succeeded),
+    sendFlee: vi.fn(succeeded),
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
-    resolvePayFineEncounterAction: vi.fn(),
-    resolveGoToJailEncounterAction: vi.fn(),
-    resolveResistArrestEncounterAction: vi.fn(),
+    resolvePayFineEncounterAction: vi.fn(succeeded),
+    resolveGoToJailEncounterAction: vi.fn(succeeded),
+    resolveResistArrestEncounterAction: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
 }
@@ -58,18 +53,15 @@ function buildGameHubConnection(overrides: Partial<GameHubConnection> = {}): Gam
   };
 }
 
-function renderDialog(overrides: Partial<GameChat> = {}) {
-  const gameChat = buildGameChat(overrides);
+function renderDialog() {
   const hubConnection = buildGameHubConnection();
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
-      <GameChatContext.Provider value={gameChat}>
-        <GuardEncounterDialog />
-      </GameChatContext.Provider>
+      <GuardEncounterDialog />
     </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, gameChat, chatHub: hubConnection.chatHub! };
+  return { ...result, chatHub: hubConnection.chatHub! };
 }
 
 // The dialog waits past its reveal delay before appearing, so give findBy/waitFor more time.
@@ -89,42 +81,13 @@ describe('GuardEncounterDialog', () => {
     expect(screen.getByText('Killed a guard')).toBeInTheDocument();
   });
 
-  it('stays hidden while narration is still streaming', async () => {
-    renderDialog({ isStreaming: true });
-
-    gameEventBus.emit('GuardEncounterStarted', encounter);
-
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  });
-
-  it('appears once narration finishes streaming', async () => {
-    const { rerender } = renderDialog({ isStreaming: true });
-
-    gameEventBus.emit('GuardEncounterStarted', encounter);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    rerender(
-      <GameHubConnectionContext.Provider value={buildGameHubConnection()}>
-        <GameChatContext.Provider value={buildGameChat({ isStreaming: false })}>
-          <GuardEncounterDialog />
-        </GameChatContext.Provider>
-      </GameHubConnectionContext.Provider>,
-    );
-
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Officer Brann');
-  });
-
   it('sends the selected typed encounter action', async () => {
-    const { user, gameChat, chatHub } = renderDialog();
+    const { user, chatHub } = renderDialog();
 
     gameEventBus.emit('GuardEncounterStarted', encounter);
     await user.click(await screen.findByRole('button', { name: /pay 120 gold/i }));
 
     expect(chatHub.resolvePayFineEncounterAction).toHaveBeenCalledOnce();
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Pay the fine',
-      vi.mocked(chatHub.resolvePayFineEncounterAction).mock.results[0]?.value,
-    );
   });
 
   it('disables paying the fine when the player cannot afford it', async () => {

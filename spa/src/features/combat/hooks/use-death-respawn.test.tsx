@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
-import { GameChatContext } from '@/features/game/hooks/use-game-chat';
 import { GameHubConnectionContext } from '@/features/game/hooks/use-game-hub-connection';
 import { gameEventBus } from '@/lib/game-event-bus';
 
@@ -20,23 +19,19 @@ function ResolveOnTick({ tick }: { tick: number }) {
 }
 
 function renderGame() {
-  const sendRespawn = vi.fn();
+  const sendRespawn = vi.fn(() => Promise.resolve({ succeeded: true }));
   const chatHub = { sendRespawn } as unknown as IChatHub;
   let bumpTick = () => {};
 
   function Game() {
     const [tick, setTick] = useState(0);
     bumpTick = () => setTick((current) => current + 1);
-    // A fresh submitNarratedTurn per render mirrors the real chat builder.
-    const chat = { messages: [], isStreaming: false, submitNarratedTurn: vi.fn() };
     return (
       <GameHubConnectionContext.Provider
         value={{ connectionStatus: HubConnectionState.Connected, connectionError: false, chatHub }}
       >
-        <GameChatContext.Provider value={chat}>
-          <ResolveOnTick tick={tick} />
-          <DeathRespawnEffect />
-        </GameChatContext.Provider>
+        <ResolveOnTick tick={tick} />
+        <DeathRespawnEffect />
       </GameHubConnectionContext.Provider>
     );
   }
@@ -46,7 +41,7 @@ function renderGame() {
 }
 
 describe('DeathRespawnEffect', () => {
-  it('requests a respawn when a defeat resolves in the same render the chat context changes', () => {
+  it('requests a respawn when a defeat resolves when it resolves during a re-render', () => {
     const { sendRespawn, resolveDuringRerender } = renderGame();
 
     resolveDuringRerender();

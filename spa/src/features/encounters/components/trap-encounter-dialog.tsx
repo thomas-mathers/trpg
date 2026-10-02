@@ -9,8 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import type { TrapEncounterActionName, TrapKind } from '@/features/encounters/encounter';
 import { useTrapEncounterState } from '@/features/encounters/hooks/use-trap-encounter-state';
-import { useGameChat } from '@/features/game/hooks/use-game-chat';
 import { useChatHub } from '@/features/game/hooks/use-game-hub-connection';
+import { useAction } from '@/features/game/run-action';
 import { useDelayedReveal } from '@/hooks/use-delayed-reveal';
 
 const ACTION_NAMES: readonly TrapEncounterActionName[] = ['Attempt', 'Withdraw', 'Disarm'];
@@ -28,9 +28,9 @@ const TRAP_KIND_DESCRIPTIONS: Record<TrapKind, string> = {
 
 export function TrapEncounterDialog() {
   const encounter = useTrapEncounterState();
-  const { isStreaming, submitNarratedTurn } = useGameChat();
+  const { pending, run } = useAction();
   const chatHub = useChatHub();
-  const isRevealed = useDelayedReveal(!!encounter && !isStreaming);
+  const isRevealed = useDelayedReveal(!!encounter);
 
   const actionDetails: Record<
     TrapEncounterActionName,
@@ -40,19 +40,19 @@ export function TrapEncounterDialog() {
       label: 'Attempt',
       description: 'Try to get past it carefully.',
       icon: Footprints,
-      submit: () => submitNarratedTurn('Attempt', chatHub.resolveAttemptTrapAction()),
+      submit: () => void run(chatHub.resolveAttemptTrapAction()),
     },
     Withdraw: {
       label: 'Withdraw',
       description: 'Step back and leave it alone.',
       icon: Undo2,
-      submit: () => submitNarratedTurn('Withdraw', chatHub.resolveWithdrawTrapAction()),
+      submit: () => void run(chatHub.resolveWithdrawTrapAction()),
     },
     Disarm: {
       label: 'Disarm',
       description: 'Carefully disable the mechanism.',
       icon: Wrench,
-      submit: () => submitNarratedTurn('Disarm', chatHub.resolveDisarmTrapAction()),
+      submit: () => void run(chatHub.resolveDisarmTrapAction()),
     },
   };
 
@@ -90,7 +90,7 @@ export function TrapEncounterDialog() {
                 <button
                   key={actionName}
                   type="button"
-                  disabled={isStreaming}
+                  disabled={pending}
                   onClick={() => details.submit()}
                   className="border-border bg-card hover:bg-accent focus-visible:ring-ring flex min-h-24 flex-col items-start gap-2 rounded-lg border p-3 text-left shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >

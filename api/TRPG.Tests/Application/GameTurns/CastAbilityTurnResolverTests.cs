@@ -121,28 +121,14 @@ public sealed class CastAbilityTurnResolverTests(DatabaseFixture db)
     }
 
     [Fact]
-    public void BuildNarrationPrompt_IncludesTheAbilityAndTarget()
-    {
-        // Arrange
-        var fact = new AbilityCastFact("Mend", "Restores health.", "Bystander", false);
-
-        // Act
-        var prompt = CastAbilityTurnResolver.BuildNarrationPrompt(fact);
-
-        // Assert
-        Assert.Contains("Mend", prompt, StringComparison.Ordinal);
-        Assert.Contains("Bystander", prompt, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Resolve_RepliesAbilityNotFound_WhenThePlayerLacksTheAbility()
+    public async Task Resolve_FailsAbilityNotFound_WhenThePlayerLacksTheAbility()
     {
         // Arrange
         var session = await SeedKnight();
         var target = await SeedTarget("Wolf");
 
         // Act
-        var prompt = await _handler.Resolve(
+        var outcome = await _handler.Resolve(
             session,
             target.Id,
             "Nonexistent",
@@ -150,19 +136,18 @@ public sealed class CastAbilityTurnResolverTests(DatabaseFixture db)
         );
 
         // Assert
-        var reply = Assert.IsType<GameTurnPrompt.Reply>(prompt);
-        Assert.Equal("Ability Nonexistent not found", reply.Text);
+        Assert.Equal(ActionFailure.AbilityNotFound, outcome.Failure);
     }
 
     [Fact]
-    public async Task Resolve_NarratesWithoutTools_WhenASupportAbilityIsCast()
+    public async Task Resolve_Succeeds_WhenASupportAbilityIsCast()
     {
         // Arrange
         var session = await SeedHealer();
         var target = await SeedTarget("Bystander", currentHp: 5);
 
         // Act
-        var prompt = await _handler.Resolve(
+        var outcome = await _handler.Resolve(
             session,
             target.Id,
             "Mend",
@@ -170,21 +155,18 @@ public sealed class CastAbilityTurnResolverTests(DatabaseFixture db)
         );
 
         // Assert
-        var narrate = Assert.IsType<GameTurnPrompt.Narrate>(prompt);
-        Assert.False(narrate.IncludeTools);
-        Assert.Contains("Mend", narrate.Text, StringComparison.Ordinal);
-        Assert.Contains("Bystander", narrate.Text, StringComparison.Ordinal);
+        Assert.True(outcome.Succeeded);
     }
 
     [Fact]
-    public async Task Resolve_ReturnsNone_WhenAnAttackAbilityOpensAnOngoingFight()
+    public async Task Resolve_Succeeds_WhenAnAttackAbilityOpensAFight()
     {
         // Arrange
         var session = await SeedKnight();
         var target = await SeedTarget("Wolf");
 
         // Act
-        var prompt = await _handler.Resolve(
+        var outcome = await _handler.Resolve(
             session,
             target.Id,
             "Strike",
@@ -192,18 +174,18 @@ public sealed class CastAbilityTurnResolverTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.IsType<GameTurnPrompt.None>(prompt);
+        Assert.True(outcome.Succeeded);
     }
 
     [Fact]
-    public async Task Resolve_NarratesTheConclusion_WhenAnAttackAbilityEndsTheFightInTheOpeningRound()
+    public async Task Resolve_Succeeds_WhenAnAttackAbilityEndsTheFightInTheOpeningRound()
     {
         // Arrange
         var session = await SeedKnight();
         var target = await SeedTarget("Wolf", currentHp: 1);
 
         // Act
-        var prompt = await _handler.Resolve(
+        var outcome = await _handler.Resolve(
             session,
             target.Id,
             "Strike",
@@ -211,20 +193,18 @@ public sealed class CastAbilityTurnResolverTests(DatabaseFixture db)
         );
 
         // Assert
-        var narrate = Assert.IsType<GameTurnPrompt.Narrate>(prompt);
-        Assert.False(narrate.IncludeTools);
-        Assert.Contains("Wolf", narrate.Text, StringComparison.Ordinal);
+        Assert.True(outcome.Succeeded);
     }
 
     [Fact]
-    public async Task Resolve_RepliesWithTheFailure_WhenTheTargetIsNotHere()
+    public async Task Resolve_FailsAbilityUnavailable_WhenTheTargetIsNotHere()
     {
         // Arrange
         var session = await SeedKnight();
         var faraway = await SeedTarget("Distant Wolf", locationId: Guid.NewGuid());
 
         // Act
-        var prompt = await _handler.Resolve(
+        var outcome = await _handler.Resolve(
             session,
             faraway.Id,
             "Strike",
@@ -232,7 +212,6 @@ public sealed class CastAbilityTurnResolverTests(DatabaseFixture db)
         );
 
         // Assert
-        var reply = Assert.IsType<GameTurnPrompt.Reply>(prompt);
-        Assert.NotEmpty(reply.Text);
+        Assert.Equal(ActionFailure.AbilityUnavailable, outcome.Failure);
     }
 }

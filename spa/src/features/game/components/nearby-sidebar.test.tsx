@@ -10,11 +10,10 @@ import {
   handleGetQuestJournal,
   handleTransferInventory,
 } from '@/api/client/msw.gen';
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { SceneContext } from '@/features/game/contexts/scene-context';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -50,26 +49,25 @@ const item = {
   isStackable: true,
 } as ItemDetail;
 
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
+}
+
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendWait: vi.fn(),
-    sendFlee: vi.fn(),
+    sendWait: vi.fn(succeeded),
+    sendFlee: vi.fn(succeeded),
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
-    startTheftEncounterNarration: vi.fn(),
+    startTheftEncounter: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
 }
 
 function renderSidebar() {
   const chatHub = buildChatHub();
-  const gameChat: GameChat = {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-  };
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
     connectionError: false,
@@ -77,21 +75,19 @@ function renderSidebar() {
   };
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
-      <GameChatContext.Provider value={gameChat}>
-        <SceneContext.Provider value={scene}>
-          <SidebarProvider>
-            <NearbySidebar
-              onOpenQuestJournal={() => {}}
-              onQuestDialogRequested={() => {}}
-              onDeliverItemDialogRequested={() => {}}
-            />
-          </SidebarProvider>
-        </SceneContext.Provider>
-      </GameChatContext.Provider>
+      <SceneContext.Provider value={scene}>
+        <SidebarProvider>
+          <NearbySidebar
+            onOpenQuestJournal={() => {}}
+            onQuestDialogRequested={() => {}}
+            onDeliverItemDialogRequested={() => {}}
+          />
+        </SidebarProvider>
+      </SceneContext.Provider>
     </GameHubConnectionContext.Provider>,
   );
 
-  return { ...result, chatHub, gameChat };
+  return { ...result, chatHub };
 }
 
 describe('NearbySidebar', () => {
@@ -116,7 +112,7 @@ describe('NearbySidebar', () => {
       }),
       handleTransferInventory(() => HttpResponse.json({ theftEncounterId: 'theft-encounter-id' })),
     );
-    const { chatHub, gameChat, user } = renderSidebar();
+    const { chatHub, user } = renderSidebar();
 
     await user.click(screen.getByRole('button', { name: 'Wooden Chest' }));
     await user.click(await screen.findByRole('checkbox', { name: 'Select Silver coins' }));
@@ -124,11 +120,7 @@ describe('NearbySidebar', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm Transfer' }));
 
     await waitFor(() =>
-      expect(chatHub.startTheftEncounterNarration).toHaveBeenCalledWith('theft-encounter-id'),
-    );
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      null,
-      vi.mocked(chatHub.startTheftEncounterNarration).mock.results[0]?.value,
+      expect(chatHub.startTheftEncounter).toHaveBeenCalledWith('theft-encounter-id'),
     );
   });
 });

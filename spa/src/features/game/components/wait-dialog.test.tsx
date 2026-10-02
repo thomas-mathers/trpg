@@ -2,10 +2,9 @@ import { HubConnectionState } from '@microsoft/signalr';
 import { screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { SceneContext } from '@/features/game/contexts/scene-context';
-import { GameChatContext, type GameChat } from '@/features/game/hooks/use-game-chat';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
@@ -31,25 +30,20 @@ function scene(hour: number, minute = 0): SceneSnapshot {
   } as unknown as SceneSnapshot;
 }
 
-function buildGameChat(overrides: Partial<GameChat> = {}): GameChat {
-  return {
-    messages: [],
-    isStreaming: false,
-    submitNarratedTurn: vi.fn(),
-    ...overrides,
-  };
+function succeeded(): Promise<ActionResult> {
+  return Promise.resolve({ succeeded: true });
 }
 
 function buildChatHub(overrides: Partial<IChatHub> = {}): IChatHub {
   return {
     endSession: vi.fn(),
     sendChat: vi.fn(),
-    sendWait: vi.fn(),
-    sendFlee: vi.fn(),
+    sendWait: vi.fn(succeeded),
+    sendFlee: vi.fn(succeeded),
     resolveUseAbilityCombatAction: vi.fn().mockResolvedValue(undefined),
     resolveUseItemCombatAction: vi.fn().mockResolvedValue(undefined),
-    resolveAttackEncounterAction: vi.fn(),
-    resolveFleeEncounterAction: vi.fn(),
+    resolveAttackEncounterAction: vi.fn(succeeded),
+    resolveFleeEncounterAction: vi.fn(succeeded),
     ...overrides,
   } as IChatHub;
 }
@@ -65,7 +59,6 @@ function renderDialog({
   open?: boolean;
   onClose?: () => void;
 } = {}) {
-  const gameChat = buildGameChat();
   const chatHub = buildChatHub();
   const hubConnection: GameHubConnection = {
     connectionStatus: HubConnectionState.Connected,
@@ -76,14 +69,12 @@ function renderDialog({
   const result = renderWithProviders(
     <SceneContext.Provider value={scene(hour, minute)}>
       <GameHubConnectionContext.Provider value={hubConnection}>
-        <GameChatContext.Provider value={gameChat}>
-          <WaitDialog open={open} onClose={onClose} />
-        </GameChatContext.Provider>
+        <WaitDialog open={open} onClose={onClose} />
       </GameHubConnectionContext.Provider>
     </SceneContext.Provider>,
   );
 
-  return { ...result, gameChat, chatHub, onClose };
+  return { ...result, chatHub, onClose };
 }
 
 describe('WaitDialog', () => {
@@ -95,7 +86,7 @@ describe('WaitDialog', () => {
   });
 
   it('sends the hour delta to the picked time later the same day', async () => {
-    const { user, gameChat, chatHub, onClose } = renderDialog({ hour: 8 });
+    const { user, chatHub, onClose } = renderDialog({ hour: 8 });
 
     await user.clear(screen.getByLabelText('Wait until'));
     await user.type(screen.getByLabelText('Wait until'), '14');
@@ -104,10 +95,6 @@ describe('WaitDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Wait' }));
 
     expect(chatHub.sendWait).toHaveBeenCalledWith(6, 30);
-    expect(gameChat.submitNarratedTurn).toHaveBeenCalledWith(
-      'Wait until 14:30',
-      vi.mocked(chatHub.sendWait).mock.results[0]?.value,
-    );
     expect(onClose).toHaveBeenCalledOnce();
   });
 
@@ -152,9 +139,7 @@ describe('WaitDialog', () => {
             chatHub: buildChatHub(),
           }}
         >
-          <GameChatContext.Provider value={buildGameChat()}>
-            <WaitDialog open onClose={() => {}} />
-          </GameChatContext.Provider>
+          <WaitDialog open onClose={() => {}} />
         </GameHubConnectionContext.Provider>
       </SceneContext.Provider>,
     );
@@ -178,9 +163,7 @@ describe('WaitDialog', () => {
             chatHub: buildChatHub(),
           }}
         >
-          <GameChatContext.Provider value={buildGameChat()}>
-            <WaitDialog open onClose={onClose} />
-          </GameChatContext.Provider>
+          <WaitDialog open onClose={onClose} />
         </GameHubConnectionContext.Provider>
       </SceneContext.Provider>,
     );
