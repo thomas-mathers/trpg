@@ -410,7 +410,7 @@ export function useCombat() {
 
     gameEventBus.emit('CombatResolved', state.combatOutcome);
     dispatch({ type: 'RESOLVED' });
-  }, [state.combatOutcome]);
+  }, [state.combatOutcome, state.fightId]);
 
   const submitCombatAction = (action: Promise<ActionResult>) => void run(action);
 

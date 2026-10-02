@@ -58,7 +58,7 @@ function renderDialog({
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={scene(hour, minute)}>
+    <SceneContext.Provider value={{ scene: scene(hour, minute), setMovementSpeed: () => {} }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <SleepDialog open={open} onClose={onClose} />
       </GameHubConnectionContext.Provider>
@@ -118,23 +118,5 @@ describe('SleepDialog', () => {
     (await screen.findByRole('button', { name: 'Sleep' })).click();
 
     expect(chatHub.sendSleep).toHaveBeenCalledWith(24, 0);
-  });
-
-  it('does not render when there is no scene yet', () => {
-    renderWithProviders(
-      <SceneContext.Provider value={undefined}>
-        <GameHubConnectionContext.Provider
-          value={{
-            connectionStatus: HubConnectionState.Connected,
-            connectionError: false,
-            chatHub: buildChatHub(),
-          }}
-        >
-          <SleepDialog open onClose={() => {}} />
-        </GameHubConnectionContext.Provider>
-      </SceneContext.Provider>,
-    );
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

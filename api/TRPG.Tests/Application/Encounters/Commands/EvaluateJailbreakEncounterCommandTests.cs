@@ -118,8 +118,8 @@ public sealed class EvaluateJailbreakEncounterCommandTests(DatabaseFixture db)
         // Arrange
         await SeedJailer();
         var crime = SeedJailbreak();
+        _player.IsSneaking = true;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await StartSneaking();
         _chanceRoller.Result = false;
 
         // Act
@@ -164,14 +164,6 @@ public sealed class EvaluateJailbreakEncounterCommandTests(DatabaseFixture db)
             PlayerId = _player.Id,
             GameTime = TestTime.Start,
         };
-
-    private async Task StartSneaking() =>
-        await _serviceProvider
-            .GetRequiredService<ICommandHandler<SetSneakingCommand>>()
-            .Handle(
-                new SetSneakingCommand { CreatureId = _player.Id, IsSneaking = true },
-                TestContext.Current.CancellationToken
-            );
 
     private async Task<Creature> SeedJailer()
     {

@@ -2,12 +2,14 @@ import { PointerLockControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 
+import { toggleCreatureSneaking } from '@/api/client';
 import type {
   ConnectorLayoutWire,
   FootprintWire,
   PlacementWire,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
+import { useScene } from '../contexts/scene-context';
 import {
   EYE_HEIGHT,
   type Obstacle,
@@ -30,6 +32,7 @@ const BACKWARD_KEYS = ['KeyS', 'ArrowDown'];
 const LEFT_KEYS = ['KeyA', 'ArrowLeft'];
 const RIGHT_KEYS = ['KeyD', 'ArrowRight'];
 const INTERACT_KEY = 'KeyE';
+const SNEAK_KEYS = ['ControlLeft', 'ControlRight'];
 
 interface FpsControllerProps {
   movementSpeed: number;
@@ -81,6 +84,8 @@ export function FpsController({
   });
   const { x, y, angle } = start;
 
+  const { scene, setMovementSpeed } = useScene();
+
   useEffect(() => {
     handlers.current = {
       onEnterConnector,
@@ -101,10 +106,12 @@ export function FpsController({
 
   useEffect(() => {
     const keys = pressed.current;
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (!document.pointerLockElement || handlers.current.movementLocked) {
         return;
       }
+
       if (event.code === INTERACT_KEY && !event.repeat) {
         if (handlers.current.seated || nearbySeat.current) {
           handlers.current.onSeatInteraction(nearbySeat.current);
@@ -113,17 +120,32 @@ export function FpsController({
         }
         return;
       }
+
+      if (SNEAK_KEYS.includes(event.code)) {
+        toggleCreatureSneaking({ path: { creatureId: scene.playerStatus.id } }).then((response) => {
+          if (!response.data) {
+            return;
+          }
+
+          const { movementSpeed } = response.data;
+
+          setMovementSpeed(movementSpeed);
+        });
+      }
+
       keys.add(event.code);
     };
+
     const onKeyUp = (event: KeyboardEvent) => keys.delete(event.code);
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, []);
+  }, [scene.playerStatus.id, setMovementSpeed]);
 
   useFrame((_, deltaSeconds) => {
     if (seated || movementLocked) return;

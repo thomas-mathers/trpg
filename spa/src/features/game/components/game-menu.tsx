@@ -29,7 +29,7 @@ export function GameMenu({
   onOpenMapDialog,
   onQuit,
 }: GameMenuProps) {
-  const scene = useScene();
+  const { scene } = useScene();
 
   return (
     <DropdownMenu>

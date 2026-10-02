@@ -920,10 +920,6 @@ export type SetQuestTrackingRequest = {
     isTracked: boolean;
 };
 
-export type SetSneakingRequest = {
-    isSneaking: boolean;
-};
-
 export type SignTextResponse = {
     text: string;
 };
@@ -955,6 +951,12 @@ export type TheftDetectionChanceRequest = {
 
 export type TheftDetectionChanceResponse = {
     successChance: null | number;
+};
+
+export type ToggleSneakingResponse = {
+    creatureId: string;
+    isSneaking: boolean;
+    movementSpeed: number;
 };
 
 export type TradeProposalResponse = {
@@ -1292,8 +1294,8 @@ export type UnequipCreatureItemResponses = {
 
 export type UnequipCreatureItemResponse = UnequipCreatureItemResponses[keyof UnequipCreatureItemResponses];
 
-export type SetCreatureSneakingData = {
-    body: SetSneakingRequest;
+export type ToggleCreatureSneakingData = {
+    body?: never;
     path: {
         creatureId: string;
     };
@@ -1301,14 +1303,14 @@ export type SetCreatureSneakingData = {
     url: '/creatures/{creatureId}/sneaking';
 };
 
-export type SetCreatureSneakingResponses = {
+export type ToggleCreatureSneakingResponses = {
     /**
-     * No Content
+     * OK
      */
-    204: void;
+    200: ToggleSneakingResponse;
 };
 
-export type SetCreatureSneakingResponse = SetCreatureSneakingResponses[keyof SetCreatureSneakingResponses];
+export type ToggleCreatureSneakingResponse = ToggleCreatureSneakingResponses[keyof ToggleCreatureSneakingResponses];
 
 export type PreviewCreatureEquipmentData = {
     body?: never;

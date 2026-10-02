@@ -21,7 +21,7 @@ interface CaravanDialogProps {
 export function CaravanDialog({ caravan, onClose }: CaravanDialogProps) {
   const chatHub = useChatHub();
   const { pending, run } = useAction();
-  const scene = useScene();
+  const { scene } = useScene();
   useCaravanInteraction({
     playerId: scene?.playerStatus.id ?? '',
     worldId: scene?.worldId ?? '',

@@ -36,7 +36,6 @@ import { GameMenu } from './game-menu';
 import { GameNotifications } from './game-notifications';
 import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
-import { SneakToggleButton } from './sneak-toggle-button';
 import { StatusBar } from './status-bar';
 import { WaitDialog } from './wait-dialog';
 
@@ -136,7 +135,7 @@ function GameScreenContent({
   const { connectionStatus } = useGameHubConnection();
   const gameChat = useGameChatBuilder(sessionId);
   const playerId = usePlayerId();
-  const scene = useScene();
+  const { scene } = useScene();
   const queryClient = useQueryClient();
   const [questDialog, setQuestDialog] = useState<QuestDialogState | null>(null);
   const [deliverItemDialog, setDeliverItemDialog] = useState<DeliverItemDialogState | null>(null);
@@ -181,7 +180,6 @@ function GameScreenContent({
               controls={
                 <>
                   {!isInCombat && <NearbyToggleButton />}
-                  {!isInCombat && <SneakToggleButton />}
                   <GameMenu
                     onOpenCharacterDialog={() => onOpenDialog('character')}
                     onOpenInventoryDialog={() => onOpenDialog('inventory')}

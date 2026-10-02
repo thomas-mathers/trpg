@@ -14,7 +14,7 @@ import {
 } from '../hooks/use-cast-targeting';
 
 export function CastTargetingProvider({ children }: { children: ReactNode }) {
-  const scene = useScene();
+  const { scene } = useScene();
   const chatHub = useChatHub();
   const queryClient = useQueryClient();
   const { pending, run } = useAction();

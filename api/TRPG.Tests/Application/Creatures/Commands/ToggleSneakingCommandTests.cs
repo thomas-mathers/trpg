@@ -1,3 +1,4 @@
+using Anthropic.Models.Beta.Sessions.Events;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Configuration;
@@ -9,13 +10,13 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
-public sealed class SetSneakingCommandTests(DatabaseFixture db)
+public sealed class ToggleSneakingCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private SetSneakingCommandHandler _handler = null!;
+    private ToggleSneakingCommandHandler _handler = null!;
     private readonly Creature _creature = Builders.MakeCreature();
 
     public async ValueTask InitializeAsync()
@@ -24,7 +25,7 @@ public sealed class SetSneakingCommandTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<SetSneakingCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<ToggleSneakingCommandHandler>();
 
         _context.Creatures.Add(_creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -40,12 +41,15 @@ public sealed class SetSneakingCommandTests(DatabaseFixture db)
     public async Task Handle_SetsIsSneakingToTrue()
     {
         // Act
-        await _handler.Handle(
-            new SetSneakingCommand { CreatureId = _creature.Id, IsSneaking = true },
+        var result = await _handler.Handle(
+            new ToggleSneakingCommand { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
+        Assert.Equal(_creature.Id, result.CreatureId);
+        Assert.True(result.IsSneaking);
+
         await using var verifyContext = db.CreateContext();
         var updatedCreature = await verifyContext.Creatures.SingleAsync(
             c => c.Id == _creature.Id,
@@ -62,12 +66,15 @@ public sealed class SetSneakingCommandTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _handler.Handle(
-            new SetSneakingCommand { CreatureId = _creature.Id, IsSneaking = false },
+        var result = await _handler.Handle(
+            new ToggleSneakingCommand { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
+        Assert.Equal(_creature.Id, result.CreatureId);
+        Assert.False(result.IsSneaking);
+
         await using var verifyContext = db.CreateContext();
         var updatedCreature = await verifyContext.Creatures.SingleAsync(
             c => c.Id == _creature.Id,
@@ -87,14 +94,20 @@ public sealed class SetSneakingCommandTests(DatabaseFixture db)
             true,
             options
         );
+        _creature.IsSneaking = false;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
-        await _handler.Handle(
-            new SetSneakingCommand { CreatureId = _creature.Id, IsSneaking = true },
+        var result = await _handler.Handle(
+            new ToggleSneakingCommand { CreatureId = _creature.Id },
             TestContext.Current.CancellationToken
         );
 
         // Assert
+        Assert.Equal(_creature.Id, result.CreatureId);
+        Assert.True(result.IsSneaking);
+        Assert.Equal(expected, result.MovementSpeed);
+
         await using var verifyContext = db.CreateContext();
         var updatedCreature = await verifyContext.Creatures.SingleAsync(
             c => c.Id == _creature.Id,

@@ -26,7 +26,7 @@ export function LocationViewport({
   onQuestDialogRequested,
   onDeliverItemDialogRequested,
 }: Pick<CreatureInteractionPanelProps, 'onQuestDialogRequested' | 'onDeliverItemDialogRequested'>) {
-  const scene = useScene();
+  const { scene } = useScene();
   const [focus, setFocus] = useState<CreatureFocus | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [targetId, setTargetId] = useState<string>();
@@ -38,30 +38,35 @@ export function LocationViewport({
   const chatHub = useChatHub();
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
-  const selectedCreature = scene?.nearbyCreatures.find((creature) => creature.id === focus?.id);
+  const selectedCreature = scene?.scene.nearbyCreatures.find(
+    (creature) => creature.id === focus?.id,
+  );
   useEffect(() => {
     if (focus && (!selectedCreature || isInCombat || hasActiveEncounter)) {
       setFocus(null);
       setRestoring(true);
     }
   }, [focus, selectedCreature, isInCombat, hasActiveEncounter]);
-  const seated = scene?.playerStatus.posture === 'Sitting';
+  const seated = scene?.scene.playerStatus.posture === 'Sitting';
   const canInteract = seated || (!isInCombat && !hasActiveEncounter);
   const handleSeatInteraction = useSeatInteraction(seated, canInteract);
   const [nearbySeat, setNearbySeat] = useState<ViewportSeat>();
   const [locked, setLocked] = useState(false);
   const [nearbyConnectorId, setNearbyConnectorId] = useState<string>();
   const names = useMemo(
-    () => (scene ? buildEntityNames(scene) : new Map<string, string>()),
+    () => (scene ? buildEntityNames(scene.scene) : new Map<string, string>()),
     [scene],
   );
   const obstacles = useMemo(
-    () => (scene ? buildObstacles(scene.layout.props, scene.layout.buildings) : []),
+    () => (scene ? buildObstacles(scene.scene.layout.props, scene.scene.layout.buildings) : []),
     [scene],
   );
 
   const walls = useMemo(
-    () => (scene?.roomName ? buildWalls(scene.layout.size, scene.layout.connectors) : []),
+    () =>
+      scene?.scene?.roomName
+        ? buildWalls(scene.scene.layout.size, scene.scene.layout.connectors)
+        : [],
     [scene],
   );
 
@@ -69,10 +74,14 @@ export function LocationViewport({
     return null;
   }
 
-  const { layout, playerStatus } = scene;
+  const { layout, playerStatus } = scene.scene;
   const { size, props, buildings, creatures, connectors } = layout;
-  const start = findPlayerPlacement(scene) ?? { x: size.width / 2, y: size.depth / 2, angle: 0 };
-  const seats = buildSeats(props, scene.nearbyProps);
+  const start = findPlayerPlacement(scene.scene) ?? {
+    x: size.width / 2,
+    y: size.depth / 2,
+    angle: 0,
+  };
+  const seats = buildSeats(props, scene.scene.nearbyProps);
   const occupiedSeat = seats.find((seat) => seat.isOccupiedByPlayer);
   const canTravel = !seated && canInteract;
   const nearbyName = nearbyConnectorId ? names.get(nearbyConnectorId) : undefined;
@@ -84,7 +93,7 @@ export function LocationViewport({
     void runAction(chatHub.sendMove(connectorId));
   };
 
-  const targetCreature = scene.nearbyCreatures.find((creature) => creature.id === targetId);
+  const targetCreature = scene.scene.nearbyCreatures.find((creature) => creature.id === targetId);
   const interactionPrompt = targetCreature
     ? `E: Interact with ${targetCreature.name}`
     : seated
@@ -117,7 +126,7 @@ export function LocationViewport({
             creatures={creatures}
             playerId={playerStatus.id}
             names={names}
-            statuses={[playerStatus, ...scene.nearbyCreatures]}
+            statuses={[playerStatus, ...scene.scene.nearbyCreatures]}
             playerSeat={occupiedSeat}
             focus={focus}
           />
@@ -125,7 +134,7 @@ export function LocationViewport({
           <CreatureFocusController
             focus={focus}
             creatures={creatures}
-            statuses={scene.nearbyCreatures}
+            statuses={scene.scene.nearbyCreatures}
             enabled={!isInCombat && !hasActiveEncounter && !restoring}
             onTarget={setTargetId}
             onFocus={setFocus}
@@ -164,7 +173,7 @@ export function LocationViewport({
       {focus && selectedCreature && (
         <CreatureInteractionPanel
           key={selectedCreature.id}
-          scene={scene}
+          scene={scene.scene}
           creature={selectedCreature}
           onClose={closeInteraction}
           onQuestDialogRequested={onQuestDialogRequested}

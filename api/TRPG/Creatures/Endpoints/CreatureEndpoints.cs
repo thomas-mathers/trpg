@@ -57,8 +57,8 @@ internal static class CreatureEndpoints
             .WithName("EquipCreatureItem");
         app.MapDelete("/creatures/{creatureId:guid}/equipment/{slot}", UnequipItem)
             .WithName("UnequipCreatureItem");
-        app.MapPut("/creatures/{creatureId:guid}/sneaking", SetSneaking)
-            .WithName("SetCreatureSneaking");
+        app.MapPut("/creatures/{creatureId:guid}/sneaking", ToggleSneaking)
+            .WithName("ToggleCreatureSneaking");
         app.MapGet("/creatures/{creatureId:guid}/equipment/preview", GetEquipItemStats)
             .WithName("PreviewCreatureEquipment");
         app.MapGet(
@@ -310,19 +310,25 @@ internal static class CreatureEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<NoContent> SetSneaking(
+    private static async Task<Ok<ToggleSneakingResponse>> ToggleSneaking(
         Guid creatureId,
-        SetSneakingRequest request,
-        [FromServices] ICommandHandler<SetSneakingCommand> setSneaking,
+        [FromServices]
+            ICommandHandler<ToggleSneakingCommand, ToggleSneakingCommandResult> toggleSneaking,
         CancellationToken cancellationToken
     )
     {
-        await setSneaking.Handle(
-            new SetSneakingCommand { CreatureId = creatureId, IsSneaking = request.IsSneaking },
+        var result = await toggleSneaking.Handle(
+            new ToggleSneakingCommand { CreatureId = creatureId },
             cancellationToken
         );
 
-        return TypedResults.NoContent();
+        return TypedResults.Ok(
+            new ToggleSneakingResponse(
+                CreatureId: result.CreatureId,
+                IsSneaking: result.IsSneaking,
+                MovementSpeed: result.MovementSpeed
+            )
+        );
     }
 
     private static async Task<Ok<BaseAttributesResponse>> GetBaseAttributes(
