@@ -18,7 +18,7 @@ export function NearbySidebar({
   onQuestDialogRequested,
   onDeliverItemDialogRequested,
 }: NearbySidebarProps) {
-  const scene = useScene();
+  const { scene } = useScene();
   const { open, isMobile } = useSidebar();
   const chatHub = useChatHub();
 

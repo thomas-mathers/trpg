@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { prefetchDungeonPremises, type BuildingType } from '@/api/client';
 import type { PlayerVitalsUpdated } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import {
+  createSceneSnapshot,
   PlayerIdContext,
   SceneContext,
   SessionContext,
@@ -41,7 +42,7 @@ function withVitals(scene: SceneSnapshot, vitals: PlayerVitalsUpdated): SceneSna
 }
 
 export function SceneProvider({ sessionId, children }: SceneProviderProps) {
-  const [scene, setScene] = useState<SceneSnapshot>();
+  const [scene, setScene] = useState<SceneSnapshot>(createSceneSnapshot());
   const playerId = scene?.playerStatus.id;
   const prefetchedBuildingIds = useRef(new Set<string>());
   const latestSnapshotVersion = useRef(-Infinity);
@@ -130,10 +131,20 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
     [],
   );
 
+  const setMovementSpeed = useCallback(
+    (movementSpeed: number) =>
+      setScene((current) => {
+        return { ...current, playerStatus: { ...current.playerStatus, movementSpeed } };
+      }),
+    [],
+  );
+
   return (
     <SessionContext.Provider value={sessionId}>
       <PlayerIdContext.Provider value={playerId}>
-        <SceneContext.Provider value={scene}>{children}</SceneContext.Provider>
+        <SceneContext.Provider value={{ scene, setMovementSpeed }}>
+          {children}
+        </SceneContext.Provider>
       </PlayerIdContext.Provider>
     </SessionContext.Provider>
   );

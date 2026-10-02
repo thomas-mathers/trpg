@@ -26,7 +26,7 @@ export function LocationViewport({
   onQuestDialogRequested,
   onDeliverItemDialogRequested,
 }: Pick<CreatureInteractionPanelProps, 'onQuestDialogRequested' | 'onDeliverItemDialogRequested'>) {
-  const scene = useScene();
+  const { scene } = useScene();
   const [focus, setFocus] = useState<CreatureFocus | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [targetId, setTargetId] = useState<string>();
@@ -38,14 +38,14 @@ export function LocationViewport({
   const chatHub = useChatHub();
   const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
-  const selectedCreature = scene?.nearbyCreatures.find((creature) => creature.id === focus?.id);
+  const selectedCreature = scene.nearbyCreatures.find((creature) => creature.id === focus?.id);
   useEffect(() => {
     if (focus && (!selectedCreature || isInCombat || hasActiveEncounter)) {
       setFocus(null);
       setRestoring(true);
     }
   }, [focus, selectedCreature, isInCombat, hasActiveEncounter]);
-  const seated = scene?.playerStatus.posture === 'Sitting';
+  const seated = scene.playerStatus.posture === 'Sitting';
   const canInteract = seated || (!isInCombat && !hasActiveEncounter);
   const handleSeatInteraction = useSeatInteraction(seated, canInteract);
   const [nearbySeat, setNearbySeat] = useState<ViewportSeat>();
@@ -61,7 +61,7 @@ export function LocationViewport({
   );
 
   const walls = useMemo(
-    () => (scene?.roomName ? buildWalls(scene.layout.size, scene.layout.connectors) : []),
+    () => (scene.roomName ? buildWalls(scene.layout.size, scene.layout.connectors) : []),
     [scene],
   );
 
@@ -71,7 +71,11 @@ export function LocationViewport({
 
   const { layout, playerStatus } = scene;
   const { size, props, buildings, creatures, connectors } = layout;
-  const start = findPlayerPlacement(scene) ?? { x: size.width / 2, y: size.depth / 2, angle: 0 };
+  const start = findPlayerPlacement(scene) ?? {
+    x: size.width / 2,
+    y: size.depth / 2,
+    angle: 0,
+  };
   const seats = buildSeats(props, scene.nearbyProps);
   const occupiedSeat = seats.find((seat) => seat.isOccupiedByPlayer);
   const canTravel = !seated && canInteract;

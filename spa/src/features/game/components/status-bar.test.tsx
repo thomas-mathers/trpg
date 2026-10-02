@@ -38,9 +38,9 @@ function scene(gameTimeMilliseconds: number): SceneSnapshot {
   } as unknown as SceneSnapshot;
 }
 
-function renderStatusBar(current: SceneSnapshot | undefined) {
+function renderStatusBar(current: SceneSnapshot) {
   return renderWithProviders(
-    <SceneContext.Provider value={current}>
+    <SceneContext.Provider value={{ scene: current, setMovementSpeed: () => {} }}>
       <StatusBar connectionStatus={HubConnectionState.Connected} controls={null} />
     </SceneContext.Provider>,
   );
@@ -82,12 +82,6 @@ describe('StatusBar clock', () => {
     });
 
     expect(screen.getByText('Ashday, Frostwane 2 - 00:00')).toBeVisible();
-  });
-
-  it('shows no time before the first scene', () => {
-    renderStatusBar(undefined);
-
-    expect(screen.queryByText(/Frostwane/)).not.toBeInTheDocument();
   });
 });
 

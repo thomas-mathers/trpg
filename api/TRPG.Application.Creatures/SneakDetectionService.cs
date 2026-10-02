@@ -9,7 +9,7 @@ namespace TRPG.Application.Creatures;
 public class SneakDetectionService(
     SkillCheckService skillCheckService,
     ICommandHandler<AdjustCreatureSkillsCommand> adjustCreatureSkills,
-    ICommandHandler<SetSneakingCommand> setSneaking
+    ICommandHandler<ToggleSneakingCommand, ToggleSneakingCommandResult> toggleSneaking
 )
 {
     public async Task<bool> RollDetection(
@@ -35,8 +35,8 @@ public class SneakDetectionService(
 
         if (isDetected)
         {
-            await setSneaking.Handle(
-                new SetSneakingCommand { CreatureId = creatureId, IsSneaking = false },
+            await toggleSneaking.Handle(
+                new ToggleSneakingCommand { CreatureId = creatureId },
                 cancellationToken
             );
         }

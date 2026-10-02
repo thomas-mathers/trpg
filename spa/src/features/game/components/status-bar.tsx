@@ -30,7 +30,7 @@ const connectionStatusStyles: Record<HubConnectionState, { className: string; la
 };
 
 export function StatusBar({ isInCombat = false, connectionStatus, controls }: StatusBarProps) {
-  const scene = useScene();
+  const { scene } = useScene();
   const gameTime = useGameClock();
 
   return (

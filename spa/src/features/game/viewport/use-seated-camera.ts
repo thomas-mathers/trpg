@@ -38,5 +38,5 @@ export function useSeatedCamera(
       camera.position.set(next.x, EYE_HEIGHT, next.y);
       standingPosition.current = undefined;
     }
-  }, [camera, x, y, angle, seated, seatedPlacement?.x, seatedPlacement?.y, seatedPlacement?.angle]);
+  }, [camera, x, y, angle, seated, seatedPlacement, size, obstacles]);
 }

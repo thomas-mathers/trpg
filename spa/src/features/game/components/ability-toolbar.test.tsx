@@ -86,7 +86,7 @@ function renderToolbar(
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={scene}>
+    <SceneContext.Provider value={{ scene: scene, setMovementSpeed: () => {} }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <CastTargetingProvider>
           <AbilityToolbar />

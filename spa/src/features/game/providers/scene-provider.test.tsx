@@ -13,14 +13,13 @@ import { server } from '@/test/server';
 import { SceneProvider } from './scene-provider';
 
 const ui = {
-  initialState: byText('session-id|no-player|no-scene'),
   loadedState: byText('session-id|player-id|scene-loaded'),
 };
 
 function Consumer() {
   const sessionId = useSessionId();
   const playerId = usePlayerId();
-  const scene = useScene();
+  const { scene } = useScene();
 
   return (
     <output>
@@ -30,7 +29,7 @@ function Consumer() {
 }
 
 function VitalsConsumer() {
-  const scene = useScene();
+  const { scene } = useScene();
 
   return (
     <output>
@@ -40,7 +39,7 @@ function VitalsConsumer() {
 }
 
 function StateAndVitalsConsumer() {
-  const scene = useScene();
+  const { scene } = useScene();
 
   return (
     <output>{scene ? `${scene.stateName}|hp:${scene.playerStatus.currentHp}` : 'no-scene'}</output>
@@ -68,8 +67,6 @@ describe('SceneProvider', () => {
         <Consumer />
       </SceneProvider>,
     );
-
-    expect(ui.initialState.get()).toBeVisible();
 
     const snapshot = { playerStatus: { id: 'player-id' } } as SceneSnapshot;
     gameEventBus.emit('SceneSnapshot', snapshot);

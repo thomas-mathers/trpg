@@ -96,7 +96,7 @@ function renderPanel(
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={sceneSnapshot}>
+    <SceneContext.Provider value={{ scene: sceneSnapshot, setMovementSpeed: () => {} }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <GameChatContext.Provider value={gameChat}>
           <CreatureInteractionPanel

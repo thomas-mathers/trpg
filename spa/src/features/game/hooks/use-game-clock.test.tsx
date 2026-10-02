@@ -15,9 +15,11 @@ function scene(gameTimeMilliseconds: number, anchoredAtUnixMilliseconds: number)
   return { gameTimeMilliseconds, anchoredAtUnixMilliseconds, timeScale: 1 } as SceneSnapshot;
 }
 
-function sceneWrapper(current: SceneSnapshot | undefined) {
+function sceneWrapper(current: SceneSnapshot) {
   return ({ children }: { children: ReactNode }) => (
-    <SceneContext.Provider value={current}>{children}</SceneContext.Provider>
+    <SceneContext.Provider value={{ scene: current, setMovementSpeed: () => {} }}>
+      {children}
+    </SceneContext.Provider>
   );
 }
 
@@ -29,12 +31,6 @@ describe('useGameClock', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-  });
-
-  it('has no time before the first scene arrives', () => {
-    const { result } = renderHook(() => useGameClock(), { wrapper: sceneWrapper(undefined) });
-
-    expect(result.current).toBeUndefined();
   });
 
   it('derives the time from the scene anchor and advances once per second', () => {
@@ -105,11 +101,5 @@ describe('useGameTimeReader', () => {
 
     expect(result.current).toBe(firstReader);
     expect(formatGameClockTime(result.current()!)).toBe('09:00');
-  });
-
-  it('has no time without a scene', () => {
-    const { result } = renderHook(() => useGameTimeReader(), { wrapper: sceneWrapper(undefined) });
-
-    expect(result.current()).toBeUndefined();
   });
 });

@@ -100,7 +100,7 @@ function InteractionPreview({ focused = false }: { focused?: boolean }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SceneContext.Provider value={scene}>
+        <SceneContext.Provider value={{ scene, setMovementSpeed: () => {} }}>
           <GameHubConnectionContext.Provider
             value={{
               chatHub,

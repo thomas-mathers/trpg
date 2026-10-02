@@ -67,7 +67,7 @@ function renderDialog({
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={scene(hour, minute)}>
+    <SceneContext.Provider value={{ scene: scene(hour, minute), setMovementSpeed: () => {} }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <WaitDialog open={open} onClose={onClose} />
       </GameHubConnectionContext.Provider>
@@ -129,24 +129,6 @@ describe('WaitDialog', () => {
     expect(chatHub.sendWait).toHaveBeenCalledWith(24, 0);
   });
 
-  it('does not render when there is no scene yet', () => {
-    renderWithProviders(
-      <SceneContext.Provider value={undefined}>
-        <GameHubConnectionContext.Provider
-          value={{
-            connectionStatus: HubConnectionState.Connected,
-            connectionError: false,
-            chatHub: buildChatHub(),
-          }}
-        >
-          <WaitDialog open onClose={() => {}} />
-        </GameHubConnectionContext.Provider>
-      </SceneContext.Provider>,
-    );
-
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
   it('closes and does not render when the player is not sitting', () => {
     const onClose = vi.fn();
     const notSitting = {
@@ -155,7 +137,7 @@ describe('WaitDialog', () => {
     };
 
     renderWithProviders(
-      <SceneContext.Provider value={notSitting}>
+      <SceneContext.Provider value={{ scene: notSitting, setMovementSpeed: () => {} }}>
         <GameHubConnectionContext.Provider
           value={{
             connectionStatus: HubConnectionState.Connected,

@@ -142,7 +142,7 @@ export function CombatDialog() {
     submitFlee,
   } = useCombat();
   const playerId = usePlayerId();
-  const scene = useScene();
+  const { scene } = useScene();
   const [mode, setMode] = useState<Mode>('topmenu');
   const [pendingAbility, setPendingAbility] = useState<AbilitySummary | null>(null);
   const [openMenu, setOpenMenu] = useState<'attack' | 'defend' | 'item' | null>(null);

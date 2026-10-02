@@ -75,7 +75,7 @@ function renderSidebar() {
   };
   const result = renderWithProviders(
     <GameHubConnectionContext.Provider value={hubConnection}>
-      <SceneContext.Provider value={scene}>
+      <SceneContext.Provider value={{ scene: scene, setMovementSpeed: () => {} }}>
         <SidebarProvider>
           <NearbySidebar
             onOpenQuestJournal={() => {}}

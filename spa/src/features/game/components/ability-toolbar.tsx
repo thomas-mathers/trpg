@@ -15,8 +15,8 @@ import { getAbilityIcon } from '@/features/skills/ability-visuals';
 import { cn } from '@/lib/utils';
 
 export function AbilityToolbar() {
-  const scene = useScene();
-  const playerId = scene?.playerStatus.id;
+  const { scene } = useScene();
+  const playerId = scene.playerStatus.id;
   const { pendingAbility, selectAbility, cancel, castOn } = useCastTargeting();
   const queryClient = useQueryClient();
 

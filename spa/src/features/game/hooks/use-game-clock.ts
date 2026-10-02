@@ -11,7 +11,7 @@ import {
 const TICK_MILLISECONDS = 1000;
 
 function useClockAnchor(): GameClockAnchor | undefined {
-  const scene = useScene();
+  const { scene } = useScene();
   if (!scene) return undefined;
 
   return {

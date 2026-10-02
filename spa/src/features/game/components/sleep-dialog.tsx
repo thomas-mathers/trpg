@@ -35,7 +35,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function SleepDialog({ open, onClose }: SleepDialogProps) {
-  const scene = useScene();
+  const { scene } = useScene();
   const chatHub = useChatHub();
   const readGameTime = useGameTimeReader();
   const [targetTime, setTargetTime] = useState('08:00');
