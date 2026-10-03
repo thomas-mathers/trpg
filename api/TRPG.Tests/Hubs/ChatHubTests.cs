@@ -146,6 +146,22 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
     private sealed record ConnectedClient(HubConnection Connection, TestGameClient Client);
 
+    private static Task<SceneSnapshot> CaptureNextSnapshot(
+        ConnectedClient connected,
+        List<SceneSnapshot> snapshots
+    )
+    {
+        var received = new TaskCompletionSource<SceneSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        connected.Client.OnSceneSnapshot = snapshot =>
+        {
+            snapshots.Add(snapshot);
+            received.TrySetResult(snapshot);
+        };
+        return received.Task;
+    }
+
     private async Task<Creature> SeedHostileCreature()
     {
         await using var scope = fixture.CreateScope();
@@ -587,10 +603,12 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var snapshots = new List<SceneSnapshot>();
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, snapshots);
         await using var gameHub = connected.Connection;
+        var seatedReceived = CaptureNextSnapshot(connected, snapshots);
 
         var sitResult = await Act(gameHub, "SendSitDown", seat.Id);
 
         Assert.True(sitResult.Succeeded);
+        await seatedReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         var seated = Assert.Single(snapshots);
         Assert.Equal(ResponseCreaturePosture.Sitting, seated.PlayerStatus.Posture);
         var seatedProp = Assert.Single(seated.NearbyProps, prop => prop.Id == seat.Id);
@@ -598,9 +616,11 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.True(seatedProp.IsOccupiedByPlayer);
 
         snapshots.Clear();
+        var standingReceived = CaptureNextSnapshot(connected, snapshots);
         var standResult = await Act(gameHub, "SendStandUp");
 
         Assert.True(standResult.Succeeded);
+        await standingReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         var standing = Assert.Single(snapshots);
         Assert.Equal(ResponseCreaturePosture.Standing, standing.PlayerStatus.Posture);
         var standingProp = Assert.Single(standing.NearbyProps, prop => prop.Id == seat.Id);
@@ -956,11 +976,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, sceneSnapshots);
         await using var gameHub = connected.Connection;
+        var snapshotReceived = CaptureNextSnapshot(connected, sceneSnapshots);
 
         // Act
         await Act(gameHub, "SendMove", connector.Id);
 
         // Assert
+        await snapshotReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         Assert.Single(sceneSnapshots);
     }
 
@@ -1127,11 +1149,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sceneSnapshots = new List<SceneSnapshot>();
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, sceneSnapshots);
         await using var gameHub = connected.Connection;
+        var snapshotReceived = CaptureNextSnapshot(connected, sceneSnapshots);
 
         // Act
         await Act(gameHub, "SendFlee");
 
         // Assert
+        await snapshotReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         var scene = Assert.Single(sceneSnapshots);
         Assert.Equal(destinationDistrict.Name, scene.DistrictName);
     }
@@ -1391,11 +1415,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sceneSnapshots = new List<SceneSnapshot>();
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, sceneSnapshots);
         await using var gameHub = connected.Connection;
+        var snapshotReceived = CaptureNextSnapshot(connected, sceneSnapshots);
 
         // Act
         await Act(gameHub, "ResolveFleeEncounterAction");
 
         // Assert
+        await snapshotReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         Assert.NotEmpty(sceneSnapshots);
     }
 
@@ -1431,13 +1457,14 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sessionId = await StartSession();
         var sceneSnapshots = new List<SceneSnapshot>();
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, sceneSnapshots);
-        var gameClient = connected.Client;
         await using var gameHub = connected.Connection;
+        var snapshotReceived = CaptureNextSnapshot(connected, sceneSnapshots);
 
         // Act
         await Act(gameHub, "ResolvePayFineEncounterAction");
 
         // Assert - paying the fine deducts gold, which the scene diff must catch
+        await snapshotReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         var scene = Assert.Single(sceneSnapshots);
         Assert.Equal(50, scene.PlayerStatus.Gold);
 

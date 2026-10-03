@@ -58,6 +58,7 @@ internal class TheftEncounterActionHandler(
         );
 
     protected override GameClientEvent BuildResolvedEvent(
+        Guid WorldId,
         TheftEncounterResolutionFact resolution
-    ) => new TheftEncounterResolvedEvent(resolution);
+    ) => new TheftEncounterResolvedEvent(WorldId, resolution);
 }

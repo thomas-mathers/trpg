@@ -4,4 +4,5 @@ using TRPG.Application.Worlds.Commands;
 
 namespace TRPG.Application.Scenes.Events;
 
-public record SceneUpdatedEvent(SceneResult Scene, WorldStateStamp Stamp) : GameClientEvent;
+public record SceneUpdatedEvent(Guid WorldId, SceneResult Scene, WorldStateStamp Stamp)
+    : GameClientEvent(WorldId);

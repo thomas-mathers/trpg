@@ -27,8 +27,8 @@ public class SceneSemanticComparerTests
         var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
         var scene = MakeScene();
 
-        publisher.PublishIfChanged(PlayerId, scene, MakeStamp(1));
-        publisher.PublishIfChanged(PlayerId, scene, MakeStamp(2));
+        publisher.PublishIfChanged(WorldId, PlayerId, scene, MakeStamp(1));
+        publisher.PublishIfChanged(WorldId, PlayerId, scene, MakeStamp(2));
 
         Assert.Single(events.Events);
     }

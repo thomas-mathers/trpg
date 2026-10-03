@@ -79,6 +79,7 @@ internal class StartFightCommandHandler(
 
         gameEvents.Enqueue(
             new CombatStartedEvent(
+                command.WorldId,
                 fight.Id,
                 combatants
                     .OrderByDescending(combatant => combatant.TurnOrder)

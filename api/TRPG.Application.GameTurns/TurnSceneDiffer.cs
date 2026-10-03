@@ -53,7 +53,7 @@ internal class TurnSceneDiffer(
 
         if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
         {
-            scenePublisher.PublishIfChanged(session.PlayerId, after, stamp);
+            scenePublisher.PublishIfChanged(session.WorldId, session.PlayerId, after, stamp);
         }
 
         return after;

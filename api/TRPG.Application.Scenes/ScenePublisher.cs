@@ -47,20 +47,25 @@ public sealed class ScenePublisher(
     PublishedSceneRegistry publishedScenes
 )
 {
-    public void Publish(Guid playerId, SceneResult scene, WorldStateStamp stamp)
+    public void Publish(Guid worldId, Guid playerId, SceneResult scene, WorldStateStamp stamp)
     {
         publishedScenes.Record(playerId, scene);
-        gameEvents.Enqueue(new SceneUpdatedEvent(scene, stamp));
+        gameEvents.Enqueue(new SceneUpdatedEvent(worldId, scene, stamp));
     }
 
-    public bool PublishIfChanged(Guid playerId, SceneResult scene, WorldStateStamp stamp)
+    public bool PublishIfChanged(
+        Guid worldId,
+        Guid playerId,
+        SceneResult scene,
+        WorldStateStamp stamp
+    )
     {
         if (!publishedScenes.RecordIfChanged(playerId, scene))
         {
             return false;
         }
 
-        gameEvents.Enqueue(new SceneUpdatedEvent(scene, stamp));
+        gameEvents.Enqueue(new SceneUpdatedEvent(worldId, scene, stamp));
         return true;
     }
 }

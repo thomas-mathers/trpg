@@ -5,7 +5,7 @@ namespace TRPG.Application.GameTurns;
 
 internal class GameActionRunner(
     TurnSceneDiffer sceneDiffer,
-    IGameClientEventAckGate eventAckGate,
+    IGameClientEventDispatcher eventDispatcher,
     IWorldMutationGate mutationGate
 )
 {
@@ -17,7 +17,7 @@ internal class GameActionRunner(
     {
         var outcome = await RunUnderGate(session, action, cancellationToken);
 
-        await eventAckGate.FlushAndAwaitAckAsync(session.WorldId, cancellationToken);
+        await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
 
         return outcome;
     }

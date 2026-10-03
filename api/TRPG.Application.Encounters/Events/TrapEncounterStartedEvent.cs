@@ -3,4 +3,5 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Events;
 
-public record TrapEncounterStartedEvent(TrapEncounter Encounter) : GameClientEvent;
+public record TrapEncounterStartedEvent(Guid WorldId, TrapEncounter Encounter)
+    : GameClientEvent(WorldId);

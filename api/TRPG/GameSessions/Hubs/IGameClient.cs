@@ -32,5 +32,4 @@ public interface IGameClient
     Task QuestJournalUpdated(QuestJournalUpdated questJournal);
     Task CrimeWitnessed(CrimeNotification notification);
     Task CrimeWitnessesRemoved(CrimeNotification notification);
-    Task RequestAck(Guid flushId);
 }

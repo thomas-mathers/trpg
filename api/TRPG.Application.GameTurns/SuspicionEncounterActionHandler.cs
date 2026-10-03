@@ -58,6 +58,7 @@ internal class SuspicionEncounterActionHandler(
         );
 
     protected override GameClientEvent BuildResolvedEvent(
+        Guid WorldId,
         SuspicionEncounterResolutionFact resolution
-    ) => new SuspicionEncounterResolvedEvent(resolution);
+    ) => new SuspicionEncounterResolvedEvent(WorldId, resolution);
 }

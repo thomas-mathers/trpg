@@ -498,7 +498,7 @@ public sealed class AttemptTheftCommandHandlerTests(DatabaseFixture db)
         Assert.Contains(bystander.Id, witnessIds);
         Assert.Contains(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Theft)
+            gameEvent => gameEvent == new CrimeWitnessedEvent(WorldId, CrimeKind.Theft)
         );
     }
 

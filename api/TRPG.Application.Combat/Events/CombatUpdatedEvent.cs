@@ -5,7 +5,8 @@ using TRPG.Domain.Models;
 namespace TRPG.Application.Combat.Events;
 
 public record CombatUpdatedEvent(
+    Guid WorldId,
     IReadOnlyCollection<CombatantResult> Combatants,
     IReadOnlyList<CombatResolution> Events,
     CombatOutcome Outcome
-) : GameClientEvent { }
+) : GameClientEvent(WorldId);

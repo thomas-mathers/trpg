@@ -77,7 +77,7 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
         Assert.Equal(CrimeWitnessResolution.Dead, persistedWitness.Resolution);
         Assert.Contains(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(CrimeKind.Theft)
+            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(WorldId, CrimeKind.Theft)
         );
     }
 
@@ -122,7 +122,7 @@ public sealed class CreatureKilledCrimeWitnessEventHandlerTests(DatabaseFixture 
         Assert.Equal(CrimeResolution.Unreported, persistedCrime!.Resolution);
         Assert.Contains(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(CrimeKind.Killing)
+            gameEvent => gameEvent == new CrimeWitnessesRemovedEvent(WorldId, CrimeKind.Killing)
         );
     }
 

@@ -104,7 +104,7 @@ public sealed class CreatureKilledQuestGiverEventHandlerTests(DatabaseFixture db
         Assert.DoesNotContain(itemId, activeItemIds);
         Assert.Contains(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new QuestJournalUpdatedEvent("Recover the Ledger")
+            gameEvent => gameEvent == new QuestJournalUpdatedEvent(WorldId, "Recover the Ledger")
         );
     }
 

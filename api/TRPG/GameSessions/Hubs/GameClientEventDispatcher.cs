@@ -5,7 +5,7 @@ using TRPG.Application.Common.Events;
 namespace TRPG.GameSessions.Hubs;
 
 internal sealed class GameClientEventDispatcher(
-    IGameClientEventBuffer eventBuffer,
+    IGameClientEventDrain gameClientEventDrain,
     IHubContext<ChatHub, IGameClient> hubContext,
     IEnumerable<IGameClientEventMapper> eventMappers,
     ILogger<GameClientEventDispatcher> logger
@@ -16,13 +16,29 @@ internal sealed class GameClientEventDispatcher(
 
     public async Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default)
     {
-        var pendingEvents = eventBuffer.Drain();
+        var sendGate = gameClientEventDrain.GetSendGate(worldId);
+        await sendGate.WaitAsync(cancellationToken);
+        try
+        {
+            return await SendPendingAsync(worldId);
+        }
+        finally
+        {
+            sendGate.Release();
+        }
+    }
+
+    private async Task<bool> SendPendingAsync(Guid worldId)
+    {
+        var pendingEvents = gameClientEventDrain.Drain(worldId);
+
         if (pendingEvents.Count == 0)
         {
             return false;
         }
 
         var client = hubContext.Clients.Group(GameClientGroups.ForWorld(worldId));
+
         foreach (var gameEvent in pendingEvents)
         {
             var mapper =

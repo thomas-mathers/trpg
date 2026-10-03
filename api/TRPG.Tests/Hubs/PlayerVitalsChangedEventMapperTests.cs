@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Creatures.Results;
 using TRPG.Creatures.Responses;
+using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
 using TRPG.Tests.Helpers;
 
@@ -13,8 +14,10 @@ public sealed class PlayerVitalsChangedEventMapperTests
     public async Task Map_CallsPlayerVitalsUpdated_WithVitalsAndStateVersion()
     {
         // Arrange
+        var worldId = Guid.NewGuid();
         var playerId = Guid.NewGuid();
         var gameEvent = new PlayerVitalsChangedEvent(
+            worldId,
             new CreatureVitals(
                 CreatureId: playerId,
                 CurrentHp: 12,

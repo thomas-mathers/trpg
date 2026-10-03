@@ -29,7 +29,9 @@ internal class ApplyCombatRoundOutcomeCommandHandler(
     {
         var state = command.State;
 
-        gameEvents.Enqueue(new CombatUpdatedEvent(state.Combatants, state.Events, state.Outcome));
+        gameEvents.Enqueue(
+            new CombatUpdatedEvent(command.WorldId, state.Combatants, state.Events, state.Outcome)
+        );
 
         await applyCombatUsage.Handle(
             new ApplyCombatUsageCommand

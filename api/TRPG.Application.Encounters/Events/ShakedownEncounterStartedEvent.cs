@@ -3,5 +3,8 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Events;
 
-public record ShakedownEncounterStartedEvent(ShakedownEncounter Encounter, bool CanAffordToll)
-    : GameClientEvent;
+public record ShakedownEncounterStartedEvent(
+    Guid WorldId,
+    ShakedownEncounter Encounter,
+    bool CanAffordToll
+) : GameClientEvent(WorldId);

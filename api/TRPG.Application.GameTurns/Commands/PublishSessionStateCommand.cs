@@ -56,7 +56,7 @@ internal class PublishSessionStateCommandHandler(
             },
             cancellationToken
         );
-        scenePublisher.Publish(command.PlayerId, scene, stamp);
+        scenePublisher.Publish(command.WorldId, command.PlayerId, scene, stamp);
 
         await publishCombatState.Handle(
             new PublishCombatStateCommand { PlayerId = command.PlayerId },

@@ -316,7 +316,7 @@ internal class AttemptTheftCommandHandler(
                 ? await StartTheftEncounter(theft, confrontingCreature, cancellationToken)
                 : await CompleteDetectedTheftWithoutEncounter(theft, cancellationToken);
 
-        gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Theft));
+        gameEvents.Enqueue(new CrimeWitnessedEvent(theft.Command.WorldId, CrimeKind.Theft));
 
         return result;
     }

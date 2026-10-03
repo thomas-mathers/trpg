@@ -8,7 +8,7 @@ internal sealed class FactLearnedQuestEventHandler(IGameClientEventSink gameEven
 {
     public Task Handle(FactLearnedEvent domainEvent, CancellationToken cancellationToken = default)
     {
-        gameEvents.Enqueue(new QuestJournalUpdatedEvent());
+        gameEvents.Enqueue(new QuestJournalUpdatedEvent(domainEvent.WorldId));
         return Task.CompletedTask;
     }
 }

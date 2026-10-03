@@ -204,7 +204,7 @@ internal class EndFightCommandHandler(
                 new AlertCreaturesCommand { CreatureIds = witnesses },
                 cancellationToken
             );
-            gameEvents.Enqueue(new CrimeWitnessedEvent(CrimeKind.Killing));
+            gameEvents.Enqueue(new CrimeWitnessedEvent(worldId, CrimeKind.Killing));
         }
     }
 

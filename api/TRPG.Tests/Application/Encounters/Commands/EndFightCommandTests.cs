@@ -103,7 +103,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         Assert.Equal(crime.Id, witness.CrimeId);
         Assert.Contains(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Killing)
+            gameEvent => gameEvent == new CrimeWitnessedEvent(WorldId, CrimeKind.Killing)
         );
     }
 
@@ -282,7 +282,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         );
         Assert.DoesNotContain(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Killing)
+            gameEvent => gameEvent == new CrimeWitnessedEvent(WorldId, CrimeKind.Killing)
         );
     }
 
@@ -315,7 +315,7 @@ public sealed class EndFightCommandTests(DatabaseFixture db)
         );
         Assert.DoesNotContain(
             _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents,
-            gameEvent => gameEvent == new CrimeWitnessedEvent(CrimeKind.Killing)
+            gameEvent => gameEvent == new CrimeWitnessedEvent(WorldId, CrimeKind.Killing)
         );
     }
 

@@ -38,7 +38,7 @@ internal class GameTurnStreamer(
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     TurnSceneDiffer sceneDiffer,
-    IGameClientEventAckGate eventAckGate,
+    IGameClientEventDispatcher eventDispatcher,
     IWorldMutationGate mutationGate,
     ILogger<GameTurnStreamer> logger
 )
@@ -153,7 +153,7 @@ internal class GameTurnStreamer(
     )
     {
         var after = await sceneDiffer.EnqueueChange(before, session, cancellationToken);
-        await eventAckGate.FlushAndAwaitAckAsync(session.WorldId, cancellationToken);
+        await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
         return after;
     }
 

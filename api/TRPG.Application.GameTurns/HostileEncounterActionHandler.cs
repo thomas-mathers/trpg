@@ -58,6 +58,7 @@ internal class HostileEncounterActionHandler(
         );
 
     protected override GameClientEvent BuildResolvedEvent(
+        Guid WorldId,
         HostileEncounterResolutionFact resolution
-    ) => new HostileEncounterResolvedEvent(resolution);
+    ) => new HostileEncounterResolvedEvent(WorldId, resolution);
 }

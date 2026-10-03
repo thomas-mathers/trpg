@@ -38,7 +38,7 @@ internal class StartTheftEncounterActionHandler(
             return ActionOutcome.Failed(ActionFailure.NoEncounter);
         }
 
-        gameEvents.Enqueue(new TheftEncounterStartedEvent(theftEncounter));
+        gameEvents.Enqueue(new TheftEncounterStartedEvent(session.WorldId, theftEncounter));
 
         return ActionOutcome.Success;
     }

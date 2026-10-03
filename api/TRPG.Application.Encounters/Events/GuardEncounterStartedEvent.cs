@@ -3,5 +3,5 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Events;
 
-public record GuardEncounterStartedEvent(GuardEncounter Encounter, bool CanAffordFine)
-    : GameClientEvent;
+public record GuardEncounterStartedEvent(Guid WorldId, GuardEncounter Encounter, bool CanAffordFine)
+    : GameClientEvent(WorldId);

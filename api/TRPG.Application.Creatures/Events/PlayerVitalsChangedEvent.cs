@@ -3,4 +3,5 @@ using TRPG.Application.Creatures.Results;
 
 namespace TRPG.Application.Creatures.Events;
 
-public record PlayerVitalsChangedEvent(CreatureVitals Vitals, long Version) : GameClientEvent;
+public record PlayerVitalsChangedEvent(Guid WorldId, CreatureVitals Vitals, long Version)
+    : GameClientEvent(WorldId);

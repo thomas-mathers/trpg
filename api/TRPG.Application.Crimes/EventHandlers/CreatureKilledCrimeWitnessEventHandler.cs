@@ -38,12 +38,16 @@ internal sealed class CreatureKilledCrimeWitnessEventHandler(
 
         if (crimesWithNoLivingWitnesses.OfType<TheftCrime>().Any())
         {
-            gameEvents.Enqueue(new CrimeWitnessesRemovedEvent(CrimeKind.Theft));
+            gameEvents.Enqueue(
+                new CrimeWitnessesRemovedEvent(domainEvent.WorldId, CrimeKind.Theft)
+            );
         }
 
         if (crimesWithNoLivingWitnesses.OfType<KillCrime>().Any())
         {
-            gameEvents.Enqueue(new CrimeWitnessesRemovedEvent(CrimeKind.Killing));
+            gameEvents.Enqueue(
+                new CrimeWitnessesRemovedEvent(domainEvent.WorldId, CrimeKind.Killing)
+            );
         }
     }
 

@@ -35,7 +35,9 @@ internal class PublishEncounterStartedCommandHandler(
         switch (command.Encounter)
         {
             case HostileEncounter hostileEncounter:
-                gameEvents.Enqueue(new HostileEncounterStartedEvent(hostileEncounter));
+                gameEvents.Enqueue(
+                    new HostileEncounterStartedEvent(hostileEncounter.WorldId, hostileEncounter)
+                );
                 break;
             case ShakedownEncounter shakedownEncounter:
                 var goldForToll = await getGoldQuantity.Handle(
@@ -47,6 +49,7 @@ internal class PublishEncounterStartedCommandHandler(
                 );
                 gameEvents.Enqueue(
                     new ShakedownEncounterStartedEvent(
+                        shakedownEncounter.WorldId,
                         shakedownEncounter,
                         goldForToll >= shakedownEncounter.TollAmount
                     )
@@ -62,19 +65,29 @@ internal class PublishEncounterStartedCommandHandler(
                 );
                 gameEvents.Enqueue(
                     new GuardEncounterStartedEvent(
+                        guardEncounter.WorldId,
                         guardEncounter,
                         playerGold >= guardEncounter.FineAmount
                     )
                 );
                 break;
             case TheftEncounter theftEncounter:
-                gameEvents.Enqueue(new TheftEncounterStartedEvent(theftEncounter));
+                gameEvents.Enqueue(
+                    new TheftEncounterStartedEvent(theftEncounter.WorldId, theftEncounter)
+                );
                 break;
             case SuspicionEncounter suspicionEncounter:
-                gameEvents.Enqueue(new SuspicionEncounterStartedEvent(suspicionEncounter));
+                gameEvents.Enqueue(
+                    new SuspicionEncounterStartedEvent(
+                        suspicionEncounter.WorldId,
+                        suspicionEncounter
+                    )
+                );
                 break;
             case TrapEncounter trapEncounter:
-                gameEvents.Enqueue(new TrapEncounterStartedEvent(trapEncounter));
+                gameEvents.Enqueue(
+                    new TrapEncounterStartedEvent(trapEncounter.WorldId, trapEncounter)
+                );
                 break;
         }
     }

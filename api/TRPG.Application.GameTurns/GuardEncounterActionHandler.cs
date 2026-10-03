@@ -58,6 +58,7 @@ internal class GuardEncounterActionHandler(
         );
 
     protected override GameClientEvent BuildResolvedEvent(
+        Guid WorldId,
         GuardEncounterResolutionFact resolution
-    ) => new GuardEncounterResolvedEvent(resolution);
+    ) => new GuardEncounterResolvedEvent(WorldId, resolution);
 }

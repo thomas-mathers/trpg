@@ -244,19 +244,18 @@ internal static class ServiceCollectionExtensions
                     .AsImplementedInterfaces()
                     .WithScopedLifetime()
             )
-            .AddScoped<GameClientEventBuffer>()
-            .AddScoped<IGameClientEventSink>(sp => sp.GetRequiredService<GameClientEventBuffer>())
-            .AddScoped<IGameClientEventBuffer>(sp => sp.GetRequiredService<GameClientEventBuffer>())
+            .AddSingleton<GameClientEventQueueRegistry>()
+            .AddSingleton<IGameClientEventSink>(sp =>
+                sp.GetRequiredService<GameClientEventQueueRegistry>()
+            )
+            .AddSingleton<IGameClientEventDrain>(sp =>
+                sp.GetRequiredService<GameClientEventQueueRegistry>()
+            )
             .AddScoped<GameClientEventDispatcher>()
             .AddScoped<IGameClientEventDispatcher>(sp =>
                 sp.GetRequiredService<GameClientEventDispatcher>()
             )
-            .AddScoped<GameClientEventAckGate>()
-            .AddScoped<IGameClientEventAckGate>(sp =>
-                sp.GetRequiredService<GameClientEventAckGate>()
-            )
-            .AddSingleton<PendingSessionEndRegistry>()
-            .AddSingleton<PendingEventAckRegistry>();
+            .AddSingleton<PendingSessionEndRegistry>();
     }
 
     public static IServiceCollection AddTrpgJobs(
