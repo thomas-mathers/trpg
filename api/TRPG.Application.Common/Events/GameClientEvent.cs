@@ -1,6 +1,6 @@
 namespace TRPG.Application.Common.Events;
 
-public abstract record GameClientEvent;
+public abstract record GameClientEvent(Guid WorldId);
 
 public interface IGameClientEventSink
 {
@@ -11,9 +11,4 @@ public interface IGameClientEventDispatcher
 {
     // Returns whether anything was actually sent.
     Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default);
-}
-
-public interface IGameClientEventAckGate
-{
-    Task FlushAndAwaitAckAsync(Guid worldId, CancellationToken cancellationToken = default);
 }

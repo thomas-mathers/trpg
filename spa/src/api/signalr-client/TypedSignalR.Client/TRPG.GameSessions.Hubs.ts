@@ -3,7 +3,7 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
-import type { ActionResult, SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -171,11 +171,6 @@ export type IChatHub = {
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
     resolveFleeTheftEncounterAction(): Promise<ActionResult>;
-    /**
-    * @param flushId Transpiled from System.Guid
-    * @returns Transpiled from System.Threading.Tasks.Task
-    */
-    acknowledgeEvents(flushId: string): Promise<void>;
 }
 
 export type IGameClient = {
@@ -184,6 +179,51 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     sceneSnapshot(snapshot: SceneSnapshot): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.CreaturesArrivedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    creaturesArrived(payload: CreaturesArrivedPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.CreaturesLeftPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    creaturesLeft(payload: CreaturesLeftPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.CreaturesMovedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    creaturesMoved(payload: CreaturesMovedPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.CreaturesUpdatedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    creaturesUpdated(payload: CreaturesUpdatedPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.CaravansArrivedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    caravansArrived(payload: CaravansArrivedPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.CaravansLeftPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    caravansLeft(payload: CaravansLeftPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.CaravansUpdatedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    caravansUpdated(payload: CaravansUpdatedPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.WeatherChangedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    weatherChanged(payload: WeatherChangedPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.ClockReanchoredPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    clockReanchored(payload: ClockReanchoredPayload): Promise<void>;
     /**
     * @param payload Transpiled from TRPG.Combat.Responses.CombatStarted
     * @returns Transpiled from System.Threading.Tasks.Task
@@ -289,10 +329,5 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     crimeWitnessesRemoved(notification: CrimeNotification): Promise<void>;
-    /**
-    * @param flushId Transpiled from System.Guid
-    * @returns Transpiled from System.Threading.Tasks.Task
-    */
-    requestAck(flushId: string): Promise<void>;
 }
 

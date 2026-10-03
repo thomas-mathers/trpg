@@ -378,17 +378,21 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         await connection.StartAsync(TestContext.Current.CancellationToken);
 
         var encounterResolved = new TaskCompletionSource<ShakedownEncounterResolutionFact>();
-        var sceneUpdated = new TaskCompletionSource<SceneSnapshot>();
+        var creaturesUpdated = new TaskCompletionSource<CreaturesUpdatedPayload>();
         connection.Register<IGameClient>(
             new TestGameClient
             {
                 Connection = connection,
                 OnShakedownEncounterResolved = fact => encounterResolved.TrySetResult(fact),
-                OnSceneSnapshot = scene =>
+                OnCreaturesUpdated = payload =>
                 {
-                    if (scene.PlayerStatus.Gold == 75)
+                    if (
+                        payload.Creatures.Any(creature =>
+                            creature.Id == _playerId && creature.Gold == 75
+                        )
+                    )
                     {
-                        sceneUpdated.TrySetResult(scene);
+                        creaturesUpdated.TrySetResult(payload);
                     }
                 },
             }
@@ -407,11 +411,14 @@ public sealed class ResolveEncounterActionTests(EndpointTestFixture fixture) : I
         Assert.Equal(ShakedownEncounterResolutionOutcome.PaidToll, resolution.Outcome);
         Assert.Equal(25, resolution.TollAmount);
 
-        var scene = await sceneUpdated.Task.WaitAsync(
+        var update = await creaturesUpdated.Task.WaitAsync(
             PushTimeout,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(75, scene.PlayerStatus.Gold);
+        Assert.Equal(
+            75,
+            Assert.Single(update.Creatures, creature => creature.Id == _playerId).Gold
+        );
 
         var persistedEncounter = await GetEncounter(encounter.Id);
         Assert.Equal(EncounterState.Completed, persistedEncounter.State);

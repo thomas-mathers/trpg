@@ -675,38 +675,22 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(new Footprint(40, 30), result.Layout.Size);
-        Assert.Equal(
-            new ScenePropLayout(
-                chest.Id,
-                PropModel.ContainerBasic,
-                new Placement(10, 12, 0),
-                new Footprint(2, 1)
-            ),
-            Assert.Single(result.Layout.Props)
-        );
-        Assert.Equal(
-            new SceneBuildingLayout(
-                house.Id,
-                BuildingType.House,
-                new Placement(20, 8, 0),
-                new Footprint(6, 4)
-            ),
-            Assert.Single(result.Layout.Buildings)
-        );
-        Assert.Equal(
-            new SceneConnectorLayout(
-                connector.Id,
-                connector.DestinationLocationId,
-                ExitX: 39,
-                ExitY: 15
-            ),
-            Assert.Single(result.Layout.Connectors)
-        );
-        Assert.Equal(
-            new Placement(5, 6, 0.5),
-            result.Layout.Creatures.Single(c => c.Id == player.Id).Placement
-        );
+        Assert.Equal(new Footprint(40, 30), result.Size);
+        var prop = Assert.Single(result.NearbyProps);
+        Assert.Equal(chest.Id, prop.Id);
+        Assert.Equal(PropModel.ContainerBasic, prop.Model);
+        Assert.Equal(new Placement(10, 12, 0), prop.Placement);
+        Assert.Equal(new Footprint(2, 1), prop.Footprint);
+        var building = Assert.Single(result.NearbyBuildings);
+        Assert.Equal(house.Id, building.Id);
+        Assert.Equal(BuildingType.House, building.Type);
+        Assert.Equal(new Placement(20, 8, 0), building.Placement);
+        Assert.Equal(new Footprint(6, 4), building.Footprint);
+        var exit = Assert.Single(result.Exits);
+        Assert.Equal(connector.Id, exit.ConnectorId);
+        Assert.Equal(connector.DestinationLocationId, exit.DestinationLocationId);
+        Assert.Equal(new Placement(39, 15, connector.ExitAngle), exit.Placement);
+        Assert.Equal(new Placement(5, 6, 0.5), result.Player.Placement);
     }
 
     [Fact]
@@ -743,10 +727,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        var layout = result.Layout.Creatures.Single(c => c.Id == visitor.Id);
-        Assert.Equal(new Placement(stored.X, stored.Y, stored.Angle), layout.Placement);
-        Assert.InRange(layout.Placement.X, 0, 40);
-        Assert.InRange(layout.Placement.Y, 0, 30);
+        var nearby = result.NearbyCreatures.Single(c => c.Id == visitor.Id);
+        Assert.Equal(new Placement(stored.X, stored.Y, stored.Angle), nearby.Placement);
+        Assert.InRange(nearby.Placement.X, 0, 40);
+        Assert.InRange(nearby.Placement.Y, 0, 30);
     }
 
     [Fact]
@@ -776,7 +760,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(sign.Id, Assert.Single(result.Layout.Props).Id);
+        Assert.Equal(sign.Id, Assert.Single(result.NearbyProps).Id);
     }
 
     [Fact]
@@ -853,7 +837,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_ExcludesBuildingEntranceFromExits_WhenOutdoors()
+    public async Task Handle_IncludesBuildingEntranceInExits_WhenOutdoors()
     {
         // Arrange
         var building = Builders.MakeBuilding(
@@ -895,7 +879,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
 
         // Assert
         Assert.Contains(result.NearbyBuildings, b => b.Name == building.Name);
-        Assert.Empty(result.Exits);
+        var exit = Assert.Single(result.Exits);
+        Assert.Equal(connector.Id, exit.ConnectorId);
+        Assert.Equal(connector.DestinationLocationId, exit.DestinationLocationId);
+        Assert.Equal(
+            new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle),
+            exit.Placement
+        );
     }
 
     [Fact]

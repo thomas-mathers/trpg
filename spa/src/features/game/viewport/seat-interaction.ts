@@ -1,35 +1,13 @@
-import type {
-  NearbyPropSnapshot,
-  PropLayoutWire,
-} from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { NearbyPropSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import type { PlanarPoint } from './layout-math';
 
 export const SEATED_EYE_HEIGHT = 1.25;
 export const SEAT_REACH = 1.5;
-export type ViewportSeat = PropLayoutWire & {
-  name: string;
-  isOccupied: boolean;
-  isOccupiedByPlayer: boolean;
-};
+export type ViewportSeat = NearbyPropSnapshot;
 
-export function buildSeats(
-  props: PropLayoutWire[],
-  nearbyProps: NearbyPropSnapshot[],
-): ViewportSeat[] {
-  return props.flatMap((prop) => {
-    const seat = nearbyProps.find(({ id, type }) => id === prop.id && type === 'Seat');
-    return seat
-      ? [
-          {
-            ...prop,
-            name: seat.name,
-            isOccupied: seat.isOccupied,
-            isOccupiedByPlayer: seat.isOccupiedByPlayer,
-          },
-        ]
-      : [];
-  });
+export function buildSeats(props: NearbyPropSnapshot[]): ViewportSeat[] {
+  return props.filter(({ type }) => type === 'Seat');
 }
 
 export function findSeatInRange(

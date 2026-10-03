@@ -92,6 +92,6 @@ internal class WaitActionHandler(
             cancellationToken
         );
 
-        return ActionOutcome.Success;
+        return ActionOutcome.TimeAdvanced(gameTime);
     }
 }

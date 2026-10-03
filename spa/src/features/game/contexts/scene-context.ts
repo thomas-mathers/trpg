@@ -12,6 +12,7 @@ export interface SceneContextType {
 
 export const createSceneSnapshot = (): SceneSnapshot => ({
   worldId: '',
+  locationId: '',
   stateName: '',
   playerStatus: {
     id: '',
@@ -55,22 +56,14 @@ export const createSceneSnapshot = (): SceneSnapshot => ({
     activeDots: [],
     activeHots: [],
     activeBuffs: [],
+    placement: { x: 0, y: 0, angle: 0 },
   },
   nearbyCreatures: [],
   nearbyBuildings: [],
   nearbyProps: [],
   exits: [],
   nearbyCaravans: [],
-  layout: {
-    size: {
-      width: 0,
-      depth: 0,
-    },
-    props: [],
-    buildings: [],
-    connectors: [],
-    creatures: [],
-  },
+  size: { width: 0, depth: 0 },
   version: 0,
   gameTimeMilliseconds: 0,
   anchoredAtUnixMilliseconds: 0,

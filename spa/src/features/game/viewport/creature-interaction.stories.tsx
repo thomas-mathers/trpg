@@ -26,7 +26,7 @@ import { Ground, Creatures } from './viewport-scene';
 
 const scene = {
   worldId: 'world',
-  playerStatus: { id: 'player', posture: 'Standing' },
+  playerStatus: { id: 'player', posture: 'Standing', placement: { x: 5, y: 6, angle: 0 } },
   nearbyCreatures: [
     {
       id: 'npc',
@@ -36,21 +36,13 @@ const scene = {
       posture: 'Standing',
       tradeWorkstationId: 'shop',
       questMarkers: [],
+      placement: { x: 5, y: 3.8, angle: 0 },
     },
   ],
   nearbyBuildings: [],
   nearbyProps: [],
   exits: [],
-  layout: {
-    size: { width: 10, depth: 10 },
-    props: [],
-    buildings: [],
-    connectors: [],
-    creatures: [
-      { id: 'player', placement: { x: 5, y: 6, angle: 0 } },
-      { id: 'npc', placement: { x: 5, y: 3.8, angle: 0 } },
-    ],
-  },
+  size: { width: 10, depth: 10 },
 } as unknown as SceneSnapshot;
 const inventory = { gold: 128, items: [], weight: 0, carryingCapacity: null };
 function reply(message: string): IStreamResult<string> {
@@ -155,9 +147,9 @@ function FocusedStage() {
           <color attach="background" args={['#9bb7d4']} />
           <ambientLight intensity={0.8} />
           <directionalLight position={[2, 6, 8]} intensity={1.2} />
-          <Ground size={scene.layout.size} />
+          <Ground size={scene.size} />
           <Creatures
-            creatures={scene.layout.creatures}
+            creatures={[scene.playerStatus, ...scene.nearbyCreatures]}
             playerId="player"
             names={new Map([['npc', 'Tessa']])}
             statuses={scene.nearbyCreatures}
@@ -165,7 +157,7 @@ function FocusedStage() {
           />
           <CreatureFocusController
             focus={focus}
-            creatures={scene.layout.creatures}
+            creatures={[scene.playerStatus, ...scene.nearbyCreatures]}
             statuses={scene.nearbyCreatures}
             enabled={false}
             onTarget={() => {}}

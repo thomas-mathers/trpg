@@ -83,7 +83,7 @@ internal class AdjustCreatureSkillsCommandHandler(
             creature.Level = SkillFormulas.CalculateLevelFromSkillLevels(skillLevels);
             for (var level = previousLevel + 1; level <= creature.Level; level++)
             {
-                characterLevelUps.Add(new CharacterLevelUpEvent(level));
+                characterLevelUps.Add(new CharacterLevelUpEvent(command.WorldId, level));
             }
         }
 
@@ -108,6 +108,7 @@ internal class AdjustCreatureSkillsCommandHandler(
         {
             gameEvents.Enqueue(
                 new SkillLevelUpEvent(
+                    command.WorldId,
                     skill,
                     level,
                     characterExperience.Current,

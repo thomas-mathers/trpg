@@ -25,7 +25,6 @@ public sealed class SleepActionHandlerTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
-            .AddScoped<IGameClientEventAckGate, NoOpGameClientEventAckGate>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<SleepActionHandler>();
 
@@ -81,13 +80,5 @@ public sealed class SleepActionHandlerTests(DatabaseFixture db)
     {
         public Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default) =>
             Task.FromResult(false);
-    }
-
-    private sealed class NoOpGameClientEventAckGate : IGameClientEventAckGate
-    {
-        public Task FlushAndAwaitAckAsync(
-            Guid worldId,
-            CancellationToken cancellationToken = default
-        ) => Task.CompletedTask;
     }
 }

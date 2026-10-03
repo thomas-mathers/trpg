@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 
 import { toggleCreatureSneaking } from '@/api/client';
 import type {
-  ConnectorLayoutWire,
   FootprintWire,
+  NearbyExitSnapshot,
   PlacementWire,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
@@ -45,11 +45,11 @@ interface FpsControllerProps {
   size: FootprintWire;
   start: PlacementWire;
   obstacles: Obstacle[];
-  connectors: ConnectorLayoutWire[];
+  connectors: NearbyExitSnapshot[];
   lockSelector: string;
   onLockChange: (locked: boolean) => void;
-  onNearbyConnectorChange: (connector: ConnectorLayoutWire | undefined) => void;
-  onEnterConnector: (connector: ConnectorLayoutWire) => void;
+  onNearbyConnectorChange: (connector: NearbyExitSnapshot | undefined) => void;
+  onEnterConnector: (connector: NearbyExitSnapshot) => void;
 }
 
 const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
@@ -74,7 +74,7 @@ export function FpsController({
 }: FpsControllerProps) {
   const camera = useThree((state) => state.camera);
   const pressed = useRef(new Set<string>());
-  const nearbyConnector = useRef<ConnectorLayoutWire | undefined>(undefined);
+  const nearbyConnector = useRef<NearbyExitSnapshot | undefined>(undefined);
   const nearbySeat = useRef<ViewportSeat | undefined>(undefined);
   const handlers = useRef({
     onEnterConnector,

@@ -1,9 +1,6 @@
 import { Mesh, Object3D, Raycaster, Vector2, type Camera, type Scene } from 'three';
 
-import type {
-  CreatureLayoutWire,
-  CreatureStatusSnapshot,
-} from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { CreatureStatusSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 export interface CreatureFocus {
   id: string;
@@ -33,8 +30,7 @@ export function pickCreature(
 }
 
 export function focusCreature(
-  creature: CreatureLayoutWire,
-  status: CreatureStatusSnapshot,
+  creature: CreatureStatusSnapshot,
   player: { x: number; z: number },
 ): CreatureFocus {
   const { x, y } = creature.placement;
@@ -42,7 +38,7 @@ export function focusCreature(
     id: creature.id,
     x,
     y,
-    headHeight: status.posture === 'Sitting' ? 1.36 : 1.63,
+    headHeight: creature.posture === 'Sitting' ? 1.36 : 1.63,
     facing: Math.atan2(-(player.x - x), -(player.z - y)),
   };
 }

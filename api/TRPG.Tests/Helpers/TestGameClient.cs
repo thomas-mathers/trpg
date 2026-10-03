@@ -12,6 +12,15 @@ internal sealed class TestGameClient : IGameClient
 {
     public required HubConnection Connection { get; init; }
     public Action<SceneSnapshot>? OnSceneSnapshot { get; set; }
+    public Action<CreaturesArrivedPayload>? OnCreaturesArrived { get; set; }
+    public Action<CreaturesLeftPayload>? OnCreaturesLeft { get; set; }
+    public Action<CreaturesMovedPayload>? OnCreaturesMoved { get; set; }
+    public Action<CreaturesUpdatedPayload>? OnCreaturesUpdated { get; set; }
+    public Action<CaravansArrivedPayload>? OnCaravansArrived { get; set; }
+    public Action<CaravansLeftPayload>? OnCaravansLeft { get; set; }
+    public Action<CaravansUpdatedPayload>? OnCaravansUpdated { get; set; }
+    public Action<WeatherChangedPayload>? OnWeatherChanged { get; set; }
+    public Action<ClockReanchoredPayload>? OnClockReanchored { get; set; }
     public Action<CombatStarted>? OnCombatStarted { get; set; }
     public Action<CombatUpdated>? OnCombatUpdated { get; set; }
     public Action<HostileEncounterState>? OnHostileEncounterStarted { get; set; }
@@ -37,6 +46,60 @@ internal sealed class TestGameClient : IGameClient
     public Task SceneSnapshot(SceneSnapshot snapshot)
     {
         OnSceneSnapshot?.Invoke(snapshot);
+        return Task.CompletedTask;
+    }
+
+    public Task CreaturesArrived(CreaturesArrivedPayload payload)
+    {
+        OnCreaturesArrived?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task CreaturesLeft(CreaturesLeftPayload payload)
+    {
+        OnCreaturesLeft?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task CreaturesMoved(CreaturesMovedPayload payload)
+    {
+        OnCreaturesMoved?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task CreaturesUpdated(CreaturesUpdatedPayload payload)
+    {
+        OnCreaturesUpdated?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task CaravansArrived(CaravansArrivedPayload payload)
+    {
+        OnCaravansArrived?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task CaravansLeft(CaravansLeftPayload payload)
+    {
+        OnCaravansLeft?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task CaravansUpdated(CaravansUpdatedPayload payload)
+    {
+        OnCaravansUpdated?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task WeatherChanged(WeatherChangedPayload payload)
+    {
+        OnWeatherChanged?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task ClockReanchored(ClockReanchoredPayload payload)
+    {
+        OnClockReanchored?.Invoke(payload);
         return Task.CompletedTask;
     }
 

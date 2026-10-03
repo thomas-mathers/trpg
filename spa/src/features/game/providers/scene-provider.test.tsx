@@ -6,7 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { handlePrefetchDungeonPremises } from '@/api/client/msw.gen';
 import type { PlayerVitalsUpdated } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
-import { usePlayerId, useScene, useSessionId } from '@/features/game/contexts/scene-context';
+import {
+  createSceneSnapshot,
+  usePlayerId,
+  useScene,
+  useSessionId,
+} from '@/features/game/contexts/scene-context';
 import { gameEventBus } from '@/lib/game-event-bus';
 import { server } from '@/test/server';
 
@@ -46,6 +51,13 @@ function StateAndVitalsConsumer() {
   );
 }
 
+function SceneDeltaConsumer() {
+  const { scene } = useScene();
+  return (
+    <output>{`${scene.weather ?? 'none'}|${scene.nearbyCreatures.length}|${scene.version}`}</output>
+  );
+}
+
 function makeVitals(overrides: Partial<PlayerVitalsUpdated>): PlayerVitalsUpdated {
   return {
     playerId: 'player-id',
@@ -61,6 +73,30 @@ function makeVitals(overrides: Partial<PlayerVitalsUpdated>): PlayerVitalsUpdate
 }
 
 describe('SceneProvider', () => {
+  it('routes scene deltas from the event bus into the current scene', async () => {
+    render(
+      <SceneProvider sessionId="session-id">
+        <SceneDeltaConsumer />
+      </SceneProvider>,
+    );
+    const base = createSceneSnapshot();
+    const scope = { worldId: 'world', locationId: 'location' };
+    gameEventBus.emit('SceneSnapshot', {
+      ...base,
+      ...scope,
+      version: 1,
+      playerStatus: { ...base.playerStatus, id: 'player' },
+    });
+    gameEventBus.emit('WeatherChanged', { ...scope, version: 2, weather: 'Rain' });
+    gameEventBus.emit('CreaturesArrived', {
+      ...scope,
+      version: 2,
+      creatures: [{ ...base.playerStatus, id: 'npc' }],
+    });
+
+    expect(await byText('Rain|1|2').find()).toBeVisible();
+  });
+
   it('provides the session and updates scene/player state from snapshots', async () => {
     render(
       <SceneProvider sessionId="session-id">
@@ -254,7 +290,7 @@ describe('SceneProvider', () => {
       expect(await byText('hp:3/40').find()).toBeVisible();
     });
 
-    it('shows a late snapshot but keeps the newer vitals that arrived before it', async () => {
+    it('ignores a snapshot older than the current scene version', async () => {
       render(
         <SceneProvider sessionId="session-id">
           <StateAndVitalsConsumer />
@@ -270,7 +306,8 @@ describe('SceneProvider', () => {
         version: 5,
       } as SceneSnapshot);
 
-      expect(await byText('After|hp:25').find()).toBeVisible();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(byText('Before|hp:25').get()).toBeVisible();
     });
 
     it('ignores a vitals update for a different creature', async () => {
@@ -285,6 +322,36 @@ describe('SceneProvider', () => {
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(byText('hp:1/40').get()).toBeVisible();
+    });
+
+    it('does not let another creature’s version block the player’s vitals', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <VitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
+
+      gameEventBus.emit(
+        'PlayerVitalsUpdated',
+        makeVitals({ playerId: 'someone-else', version: 10 }),
+      );
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12, version: 5 }));
+
+      expect(await byText('hp:12/40').find()).toBeVisible();
+    });
+
+    it('ignores player vitals that arrive before the first snapshot', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <VitalsConsumer />
+        </SceneProvider>,
+      );
+
+      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12, version: 5 }));
+      gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, version: 4 });
+
+      expect(await byText('hp:1/40').find()).toBeVisible();
     });
   });
 });

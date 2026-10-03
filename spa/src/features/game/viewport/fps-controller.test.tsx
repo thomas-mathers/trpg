@@ -28,6 +28,8 @@ const chair: ViewportSeat = {
   footprint: { width: 0.6, depth: 0.6 },
   isOccupied: false,
   isOccupiedByPlayer: false,
+  description: '',
+  type: 'Seat',
 };
 function setup() {
   const props = {

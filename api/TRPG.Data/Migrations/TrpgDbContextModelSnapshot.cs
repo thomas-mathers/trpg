@@ -2091,6 +2091,10 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("direction");
 
+                    b.Property<double>("ExitAngle")
+                        .HasColumnType("double precision")
+                        .HasColumnName("exit_angle");
+
                     b.Property<double>("ExitX")
                         .HasColumnType("double precision")
                         .HasColumnName("exit_x");

@@ -20,83 +20,124 @@ export type CrimeNotification = {
     crimeName: string;
 }
 
-/** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
-export type PlacementWire = {
-    /** Transpiled from double */
-    x: number;
-    /** Transpiled from double */
-    y: number;
-    /** Transpiled from double */
-    angle: number;
+/** Transpiled from TRPG.GameSessions.Responses.CreaturesArrivedPayload */
+export type CreaturesArrivedPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureStatusSnapshot> */
+    creatures: CreatureStatusSnapshot[];
 }
 
-/** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
-export type FootprintWire = {
-    /** Transpiled from double */
-    width: number;
-    /** Transpiled from double */
-    depth: number;
+/** Transpiled from TRPG.GameSessions.Responses.CreaturesLeftPayload */
+export type CreaturesLeftPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<System.Guid> */
+    creatureIds: string[];
 }
 
-/** Transpiled from TRPG.GameSessions.Responses.PropModel */
-export type PropModel = "Bed" | "Cell" | "Sign" | "ContainerBasic" | "ContainerBarrel" | "ContainerChest" | "ContainerCrate" | "ContainerFootlocker" | "ContainerStrongbox" | "ContainerWeaponRack" | "SeatBasic" | "SeatChair" | "SeatPew" | "SeatThrone" | "SeatBench" | "SeatStoneBench" | "SeatLowWall" | "TrapMechanical" | "TrapCollapse" | "TrapSlope" | "TrapWater" | "TriggerBasic" | "TriggerLever" | "WorkstationAlchemy" | "WorkstationArmorsmithing" | "WorkstationCarpentry" | "WorkstationCooking" | "WorkstationEnchanting" | "WorkstationJewelcrafting" | "WorkstationPrayer" | "WorkstationReading" | "WorkstationTailoring" | "WorkstationTrade" | "WorkstationWeaponsmithing";
-
-/** Transpiled from TRPG.GameSessions.Responses.PropLayoutWire */
-export type PropLayoutWire = {
+/** Transpiled from TRPG.GameSessions.Responses.CreaturePlacementSnapshot */
+export type CreaturePlacementSnapshot = {
     /** Transpiled from System.Guid */
-    id: string;
-    /** Transpiled from TRPG.GameSessions.Responses.PropModel */
-    model: PropModel;
-    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
-    placement: PlacementWire;
-    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
-    footprint: FootprintWire;
-}
-
-/** Transpiled from TRPG.GameSessions.Responses.BuildingLayoutWire */
-export type BuildingLayoutWire = {
-    /** Transpiled from System.Guid */
-    id: string;
-    /** Transpiled from TRPG.GameSessions.Responses.BuildingType */
-    type: BuildingType;
-    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
-    placement: PlacementWire;
-    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
-    footprint: FootprintWire;
-}
-
-/** Transpiled from TRPG.GameSessions.Responses.ConnectorLayoutWire */
-export type ConnectorLayoutWire = {
-    /** Transpiled from System.Guid */
-    connectorId: string;
-    /** Transpiled from System.Guid */
-    destinationLocationId: string;
-    /** Transpiled from double */
-    exitX: number;
-    /** Transpiled from double */
-    exitY: number;
-}
-
-/** Transpiled from TRPG.GameSessions.Responses.CreatureLayoutWire */
-export type CreatureLayoutWire = {
-    /** Transpiled from System.Guid */
-    id: string;
+    creatureId: string;
     /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
     placement: PlacementWire;
 }
 
-/** Transpiled from TRPG.GameSessions.Responses.LocationLayoutWire */
-export type LocationLayoutWire = {
-    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
-    size: FootprintWire;
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.PropLayoutWire> */
-    props: PropLayoutWire[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BuildingLayoutWire> */
-    buildings: BuildingLayoutWire[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.ConnectorLayoutWire> */
-    connectors: ConnectorLayoutWire[];
-    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureLayoutWire> */
-    creatures: CreatureLayoutWire[];
+/** Transpiled from TRPG.GameSessions.Responses.CreaturesMovedPayload */
+export type CreaturesMovedPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreaturePlacementSnapshot> */
+    placements: CreaturePlacementSnapshot[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.CreaturesUpdatedPayload */
+export type CreaturesUpdatedPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CreatureStatusSnapshot> */
+    creatures: CreatureStatusSnapshot[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.CaravansArrivedPayload */
+export type CaravansArrivedPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyCaravanSnapshot> */
+    caravans: NearbyCaravanSnapshot[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.CaravansLeftPayload */
+export type CaravansLeftPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<System.Guid> */
+    caravanIds: string[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.CaravansUpdatedPayload */
+export type CaravansUpdatedPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyCaravanSnapshot> */
+    caravans: NearbyCaravanSnapshot[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.WeatherChangedPayload */
+export type WeatherChangedPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from TRPG.GameSessions.Responses.WeatherCondition */
+    weather?: WeatherCondition;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.ClockReanchoredPayload */
+export type ClockReanchoredPayload = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from long */
+    version: number;
+    /** Transpiled from long */
+    gameTimeMilliseconds: number;
+    /** Transpiled from long */
+    anchoredAtUnixMilliseconds: number;
+    /** Transpiled from double */
+    timeScale: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureType */
@@ -139,6 +180,8 @@ export type WeatherCondition = "Clear" | "Cloudy" | "Rain" | "Storm" | "Snow" | 
 export type SceneSnapshot = {
     /** Transpiled from System.Guid */
     worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
     /** Transpiled from string */
     stateName: string;
     /** Transpiled from string? */
@@ -163,8 +206,8 @@ export type SceneSnapshot = {
     exits: NearbyExitSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyCaravanSnapshot> */
     nearbyCaravans: NearbyCaravanSnapshot[];
-    /** Transpiled from TRPG.GameSessions.Responses.LocationLayoutWire */
-    layout: LocationLayoutWire;
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    size: FootprintWire;
     /** Transpiled from long */
     version: number;
     /** Transpiled from long */
@@ -269,6 +312,8 @@ export type CreatureStatusSnapshot = {
     activeHots: ActiveHot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Combat.Responses.ActiveBuff> */
     activeBuffs: ActiveBuff[];
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.QuestMarkerEntry */
@@ -294,6 +339,10 @@ export type NearbyBuildingSnapshot = {
     type: BuildingType;
     /** Transpiled from string */
     typeDescription: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    footprint: FootprintWire;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyPropSnapshot */
@@ -310,6 +359,12 @@ export type NearbyPropSnapshot = {
     isOccupied: boolean;
     /** Transpiled from bool */
     isOccupiedByPlayer: boolean;
+    /** Transpiled from TRPG.GameSessions.Responses.PropModel */
+    model: PropModel;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    footprint: FootprintWire;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyExitDestination */
@@ -356,6 +411,10 @@ export type NearbyExitSnapshot = {
     isVisited: boolean;
     /** Transpiled from bool */
     isWayBack: boolean;
+    /** Transpiled from System.Guid */
+    destinationLocationId: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CaravanDestinationSnapshot */
@@ -385,4 +444,25 @@ export type NearbyCaravanSnapshot = {
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CaravanDestinationSnapshot> */
     destinations: CaravanDestinationSnapshot[];
 }
+
+/** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+export type PlacementWire = {
+    /** Transpiled from double */
+    x: number;
+    /** Transpiled from double */
+    y: number;
+    /** Transpiled from double */
+    angle: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+export type FootprintWire = {
+    /** Transpiled from double */
+    width: number;
+    /** Transpiled from double */
+    depth: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.PropModel */
+export type PropModel = "Bed" | "Cell" | "Sign" | "ContainerBasic" | "ContainerBarrel" | "ContainerChest" | "ContainerCrate" | "ContainerFootlocker" | "ContainerStrongbox" | "ContainerWeaponRack" | "SeatBasic" | "SeatChair" | "SeatPew" | "SeatThrone" | "SeatBench" | "SeatStoneBench" | "SeatLowWall" | "TrapMechanical" | "TrapCollapse" | "TrapSlope" | "TrapWater" | "TriggerBasic" | "TriggerLever" | "WorkstationAlchemy" | "WorkstationArmorsmithing" | "WorkstationCarpentry" | "WorkstationCooking" | "WorkstationEnchanting" | "WorkstationJewelcrafting" | "WorkstationPrayer" | "WorkstationReading" | "WorkstationTailoring" | "WorkstationTrade" | "WorkstationWeaponsmithing";
 

@@ -34,7 +34,7 @@ internal abstract class EncounterActionHandlerBase<TEncounter, TAction, TResolut
         CancellationToken cancellationToken
     );
 
-    protected abstract GameClientEvent BuildResolvedEvent(TResolution resolution);
+    protected abstract GameClientEvent BuildResolvedEvent(Guid WorldId, TResolution resolution);
 
     private async Task<ActionOutcome> Resolve(
         GameTurnSession session,
@@ -65,7 +65,7 @@ internal abstract class EncounterActionHandlerBase<TEncounter, TAction, TResolut
             cancellationToken
         );
 
-        gameEvents.Enqueue(BuildResolvedEvent(resolution));
+        gameEvents.Enqueue(BuildResolvedEvent(session.WorldId, resolution));
 
         // A resolution that relocates the player can start a fresh encounter on arrival; announce it
         // only after the resolved event so the client never sees the new one before the old one closes.

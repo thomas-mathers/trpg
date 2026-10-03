@@ -36,7 +36,6 @@ public sealed class BoardCaravanActionHandlerTests(DatabaseFixture db)
                 )
             )
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
-            .AddScoped<IGameClientEventAckGate, NoOpGameClientEventAckGate>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<BoardCaravanActionHandler>();
 
@@ -179,13 +178,5 @@ public sealed class BoardCaravanActionHandlerTests(DatabaseFixture db)
     {
         public Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default) =>
             Task.FromResult(false);
-    }
-
-    private sealed class NoOpGameClientEventAckGate : IGameClientEventAckGate
-    {
-        public Task FlushAndAwaitAckAsync(
-            Guid worldId,
-            CancellationToken cancellationToken = default
-        ) => Task.CompletedTask;
     }
 }

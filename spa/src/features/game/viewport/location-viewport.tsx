@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useMemo, useState } from 'react';
 
-import type { ConnectorLayoutWire } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
 import {
@@ -56,32 +56,35 @@ export function LocationViewport({
     [scene],
   );
   const obstacles = useMemo(
-    () => (scene ? buildObstacles(scene.layout.props, scene.layout.buildings) : []),
+    () => buildObstacles(scene.nearbyProps, scene.nearbyBuildings),
     [scene],
   );
 
-  const walls = useMemo(
-    () => (scene.roomName ? buildWalls(scene.layout.size, scene.layout.connectors) : []),
-    [scene],
-  );
+  const walls = useMemo(() => (scene.roomName ? buildWalls(scene.size, scene.exits) : []), [scene]);
 
   if (!scene) {
     return null;
   }
 
-  const { layout, playerStatus } = scene;
-  const { size, props, buildings, creatures, connectors } = layout;
+  const {
+    size,
+    playerStatus,
+    nearbyProps: props,
+    nearbyBuildings: buildings,
+    exits: connectors,
+  } = scene;
+  const creatures = [playerStatus, ...scene.nearbyCreatures];
   const start = findPlayerPlacement(scene) ?? {
     x: size.width / 2,
     y: size.depth / 2,
     angle: 0,
   };
-  const seats = buildSeats(props, scene.nearbyProps);
+  const seats = buildSeats(props);
   const occupiedSeat = seats.find((seat) => seat.isOccupiedByPlayer);
   const canTravel = !seated && canInteract;
   const nearbyName = nearbyConnectorId ? names.get(nearbyConnectorId) : undefined;
 
-  const handleEnterConnector = ({ connectorId }: ConnectorLayoutWire) => {
+  const handleEnterConnector = ({ connectorId }: NearbyExitSnapshot) => {
     if (!canTravel) {
       return;
     }
@@ -125,7 +128,7 @@ export function LocationViewport({
             playerSeat={occupiedSeat}
             focus={focus}
           />
-          <Connectors connectors={connectors} size={size} buildings={buildings} />
+          <Connectors connectors={connectors} />
           <CreatureFocusController
             focus={focus}
             creatures={creatures}

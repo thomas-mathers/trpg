@@ -34,6 +34,7 @@ internal static class LocationLayoutGenerator
 
             connector.ExitX = exit.Point.X;
             connector.ExitY = exit.Point.Y;
+            connector.ExitAngle = exit.FacingAngle;
             connector.ArrivalX = arrival.X;
             connector.ArrivalY = arrival.Y;
             connector.ArrivalAngle = arrival.Angle;

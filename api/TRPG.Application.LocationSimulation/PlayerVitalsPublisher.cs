@@ -33,7 +33,7 @@ internal class PlayerVitalsPublisher(
         );
         foreach (var vitals in playerVitals)
         {
-            gameEvents.Enqueue(new PlayerVitalsChangedEvent(vitals, stamp.Version));
+            gameEvents.Enqueue(new PlayerVitalsChangedEvent(worldId, vitals, stamp.Version));
         }
     }
 }

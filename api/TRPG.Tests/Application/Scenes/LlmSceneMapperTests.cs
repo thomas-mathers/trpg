@@ -113,7 +113,9 @@ public sealed class LlmSceneMapperTests
                     IsLocked: false,
                     Direction: null,
                     IsVisited: false,
-                    IsWayBack: false
+                    IsWayBack: false,
+                    DestinationLocationId: Guid.NewGuid(),
+                    Placement: new Placement(0, 0, 0)
                 ),
             ],
             [
@@ -123,14 +125,25 @@ public sealed class LlmSceneMapperTests
                     "A wooden chair.",
                     "Seat",
                     IsOccupied: false,
-                    IsOccupiedByPlayer: false
+                    IsOccupiedByPlayer: false,
+                    Model: PropModel.SeatChair,
+                    Placement: new Placement(0, 0, 0),
+                    Footprint: new Footprint(1, 1)
                 ),
             ],
             [MakeCreature("Cora", gold: 1449, profession: Profession.Guard, level: 49)],
-            [new SceneNearbyBuildingInfo(Guid.NewGuid(), "The Trading Post", BuildingType.Inn)],
+            [
+                new SceneNearbyBuildingInfo(
+                    Guid.NewGuid(),
+                    "The Trading Post",
+                    BuildingType.Inn,
+                    new Placement(0, 0, 0),
+                    new Footprint(1, 1)
+                ),
+            ],
             WeatherCondition.Storm,
             [],
-            new SceneLayoutInfo(new Footprint(10, 10), [], [], [], [])
+            new Footprint(10, 10)
         );
 
     private static SceneCreatureInfo MakeCreature(
@@ -185,6 +198,7 @@ public sealed class LlmSceneMapperTests
             Effects: CreatureEffects.None,
             Journey: name == "Cora"
                 ? new SceneJourneyInfo("Making a pilgrimage.", "Westmere")
-                : null
+                : null,
+            Placement: new Placement(0, 0, 0)
         );
 }

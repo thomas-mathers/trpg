@@ -3,4 +3,5 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Events;
 
-public record SuspicionEncounterStartedEvent(SuspicionEncounter Encounter) : GameClientEvent;
+public record SuspicionEncounterStartedEvent(Guid WorldId, SuspicionEncounter Encounter)
+    : GameClientEvent(WorldId);

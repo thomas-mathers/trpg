@@ -58,15 +58,13 @@ public interface IChatHub
     Task<ActionResult> StartTheftEncounter(Guid encounterId);
     Task<ActionResult> ResolveApologizeTheftEncounterAction();
     Task<ActionResult> ResolveFleeTheftEncounterAction();
-    Task AcknowledgeEvents(Guid flushId);
 }
 
 internal sealed class ChatHub(
     GameTurnRunner gameTurnRunner,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-    PendingSessionEndRegistry pendingSessionEnds,
-    PendingEventAckRegistry pendingEventAcks
+    PendingSessionEndRegistry pendingSessionEnds
 ) : Hub<IGameClient>, IChatHub
 {
     private const string SessionKey = "Session";
@@ -338,12 +336,6 @@ internal sealed class ChatHub(
 
     private static async Task<ActionResult> Result(Task<ActionOutcome> outcome) =>
         ActionResult.From(await outcome);
-
-    public Task AcknowledgeEvents(Guid flushId)
-    {
-        pendingEventAcks.Acknowledge(flushId);
-        return Task.CompletedTask;
-    }
 
     private GameTurnSession Session => (GameTurnSession)Context.Items[SessionKey]!;
 

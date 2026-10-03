@@ -117,8 +117,8 @@ public sealed class PublishAmbientSceneCommandTests(DatabaseFixture db)
         await _handler.Handle(MakeCommand(), TestContext.Current.CancellationToken);
 
         // Assert
-        var published = Assert.Single(_events.EnqueuedEvents.OfType<SceneUpdatedEvent>());
+        var published = Assert.Single(_events.EnqueuedEvents.OfType<CreaturesArrivedEvent>());
         Assert.Equal(2, published.Stamp.Version);
-        Assert.Single(published.Scene.NearbyCreatures);
+        Assert.Single(published.Creatures);
     }
 }

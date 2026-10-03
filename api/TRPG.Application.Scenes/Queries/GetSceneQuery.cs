@@ -9,9 +9,9 @@ using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
-using TRPG.Application.Scenes.Mappers;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Weather.Queries;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.Worlds.Results;
 using TRPG.Domain;
@@ -32,9 +32,7 @@ internal record SceneLocationData(
     SceneRoomInfo? Room,
     string? RegionDescription,
     IReadOnlyCollection<ScenePropInfo> NearbyProps,
-    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
-    IReadOnlyCollection<ScenePropLayout> PropLayouts,
-    IReadOnlyCollection<SceneBuildingLayout> BuildingLayouts
+    IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings
 );
 
 internal class GetSceneQueryHandler(
@@ -163,13 +161,7 @@ internal class GetSceneQueryHandler(
             weather,
             cancellationToken
         );
-        var layout = await BuildLayout(
-            player.LocationId,
-            details,
-            connectors,
-            creaturesHere,
-            cancellationToken
-        );
+        var size = await GetSceneSize(player.LocationId, cancellationToken);
 
         return new SceneResult(
             query.WorldId,
@@ -193,17 +185,11 @@ internal class GetSceneQueryHandler(
             details.NearbyBuildings,
             weather,
             nearbyCaravans,
-            layout
+            size
         );
     }
 
-    private async Task<SceneLayoutInfo> BuildLayout(
-        Guid locationId,
-        SceneLocationData details,
-        IReadOnlyCollection<LocationConnector> connectors,
-        IReadOnlyCollection<CreatureResult> creatures,
-        CancellationToken cancellationToken
-    )
+    private async Task<Footprint> GetSceneSize(Guid locationId, CancellationToken cancellationToken)
     {
         var locations = await getLocationsByIds.Handle(
             new GetLocationsByIdsQuery { Ids = [locationId] },
@@ -211,13 +197,7 @@ internal class GetSceneQueryHandler(
         );
         var location = locations[locationId];
 
-        return new SceneLayoutInfo(
-            new Footprint(location.Width, location.Depth),
-            details.PropLayouts,
-            details.BuildingLayouts,
-            connectors.Select(connector => connector.ToLayout()).ToArray(),
-            creatures.Select(creature => creature.ToLayout()).ToArray()
-        );
+        return new Footprint(location.Width, location.Depth);
     }
 
     private async Task<IReadOnlyCollection<SceneCaravanInfo>> BuildNearbyCaravans(
@@ -544,7 +524,8 @@ internal class GetSceneQueryHandler(
             questMarkers ?? [],
             readyToDeliver,
             creature.Effects,
-            journey
+            journey,
+            new Placement(creature.X, creature.Y, creature.Angle)
         );
     }
 
@@ -635,15 +616,7 @@ internal class GetSceneQueryHandler(
         var visibleProps = await ExcludeHiddenProps(props, worldId, player.Id, cancellationToken);
         var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
-        return new SceneLocationData(
-            buildingInfo,
-            roomInfo,
-            null,
-            nearbyProps,
-            [],
-            visibleProps.Select(prop => prop.ToLayout()).ToArray(),
-            []
-        );
+        return new SceneLocationData(buildingInfo, roomInfo, null, nearbyProps, []);
     }
 
     private async Task<IReadOnlyCollection<Prop>> ExcludeHiddenProps(
@@ -732,7 +705,13 @@ internal class GetSceneQueryHandler(
         );
 
         var nearbyBuildings = buildings
-            .Select(b => new SceneNearbyBuildingInfo(b.Id, b.Name, b.BuildingType))
+            .Select(b => new SceneNearbyBuildingInfo(
+                b.Id,
+                b.Name,
+                b.BuildingType,
+                new Placement(b.X, b.Y, b.Angle),
+                new Footprint(b.Width, b.Depth)
+            ))
             .ToArray();
 
         var props = await getAllPropsByLocationId.Handle(
@@ -742,15 +721,7 @@ internal class GetSceneQueryHandler(
         var visibleProps = await ExcludeHiddenProps(props, worldId, player.Id, cancellationToken);
         var nearbyProps = await BuildNearbyProps(visibleProps, player.Id, cancellationToken);
 
-        return new SceneLocationData(
-            null,
-            null,
-            state?.Description,
-            nearbyProps,
-            nearbyBuildings,
-            visibleProps.Select(prop => prop.ToLayout()).ToArray(),
-            buildings.Select(building => building.ToLayout()).ToArray()
-        );
+        return new SceneLocationData(null, null, state?.Description, nearbyProps, nearbyBuildings);
     }
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
@@ -909,12 +880,6 @@ internal class GetSceneQueryHandler(
         );
 
         return connectors
-            // Outdoors, a building's front door duplicates its NearbyBuildings entry.
-            .Where(connector =>
-                sourceIsRoom
-                || destinations.GetValueOrDefault(connector.DestinationLocationId)?.Kind
-                    != LocationKind.Room
-            )
             .Select(connector => new SceneExitInfo(
                 connector.Id,
                 connector.Description,
@@ -929,7 +894,9 @@ internal class GetSceneQueryHandler(
                 lockedConnectorIds.Contains(connector.Id),
                 connector.Direction,
                 visited.Contains(connector.DestinationLocationId),
-                connector.DestinationLocationId == player.PreviousLocationId
+                connector.DestinationLocationId == player.PreviousLocationId,
+                connector.DestinationLocationId,
+                new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle)
             ))
             .ToArray();
     }
@@ -1015,7 +982,10 @@ internal class GetSceneQueryHandler(
                     prop.Description,
                     GetPropType(prop),
                     IsOccupied: occupantId != null,
-                    IsOccupiedByPlayer: occupantId == playerId
+                    IsOccupiedByPlayer: occupantId == playerId,
+                    Model: PropModelResolver.Resolve(prop),
+                    Placement: new Placement(prop.X, prop.Y, prop.Angle),
+                    Footprint: new Footprint(prop.Width, prop.Depth)
                 );
             })
             .ToArray();

@@ -69,10 +69,10 @@ internal sealed class QuestObjectiveAdvancer(
             )
         )
         {
-            gameEvents.Enqueue(new QuestObjectiveCompletedEvent(objective.Objective.Name));
+            gameEvents.Enqueue(new QuestObjectiveCompletedEvent(worldId, objective.Objective.Name));
         }
 
-        gameEvents.Enqueue(new QuestJournalUpdatedEvent());
+        gameEvents.Enqueue(new QuestJournalUpdatedEvent(worldId));
     }
 
     private static bool CanAdvance(CreatureQuestObjective objective) =>

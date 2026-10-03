@@ -29,7 +29,6 @@ public sealed class GuardEncounterActionHandlerTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .Configure<GuardEncounterOptions>(new ConfigurationBuilder().Build())
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
-            .AddScoped<IGameClientEventAckGate, NoOpGameClientEventAckGate>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<GuardEncounterActionHandler>();
 
@@ -131,13 +130,5 @@ public sealed class GuardEncounterActionHandlerTests(DatabaseFixture db)
     {
         public Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default) =>
             Task.FromResult(false);
-    }
-
-    private sealed class NoOpGameClientEventAckGate : IGameClientEventAckGate
-    {
-        public Task FlushAndAwaitAckAsync(
-            Guid worldId,
-            CancellationToken cancellationToken = default
-        ) => Task.CompletedTask;
     }
 }

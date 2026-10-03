@@ -154,6 +154,7 @@ public class LocationLayoutGeneratorTests
         var doorY = building.Y - building.Depth / 2 * Math.Cos(building.Angle);
         Assert.Equal(doorX, entrance.ExitX, Tolerance);
         Assert.Equal(doorY, entrance.ExitY, Tolerance);
+        Assert.Equal(building.Angle, entrance.ExitAngle, Tolerance);
         Assert.Equal(doorX + Math.Sin(building.Angle), leaving.ArrivalX, Tolerance);
         Assert.Equal(doorY - Math.Cos(building.Angle), leaving.ArrivalY, Tolerance);
         Assert.Equal(building.Angle, leaving.ArrivalAngle, Tolerance);

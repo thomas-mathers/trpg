@@ -53,6 +53,7 @@ internal static class SceneCreatureInfoMapper
             creature.Effects.Conditions.ToContract(),
             creature.Effects.Dots.Select(dot => dot.ToContract()).ToArray(),
             creature.Effects.Hots.Select(hot => hot.ToContract()).ToArray(),
-            creature.Effects.Buffs.Select(buff => buff.ToContract()).ToArray()
+            creature.Effects.Buffs.Select(buff => buff.ToContract()).ToArray(),
+            creature.Placement.ToWire()
         );
 }

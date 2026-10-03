@@ -3,4 +3,5 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Events;
 
-public record HostileEncounterStartedEvent(HostileEncounter Encounter) : GameClientEvent;
+public record HostileEncounterStartedEvent(Guid WorldId, HostileEncounter Encounter)
+    : GameClientEvent(WorldId);

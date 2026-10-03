@@ -58,7 +58,7 @@ internal sealed class CreatureKilledQuestGiverEventHandler(
 
         foreach (var quest in quests)
         {
-            gameEvents.Enqueue(new QuestJournalUpdatedEvent(quest.Quest.Name));
+            gameEvents.Enqueue(new QuestJournalUpdatedEvent(domainEvent.WorldId, quest.Quest.Name));
         }
     }
 }

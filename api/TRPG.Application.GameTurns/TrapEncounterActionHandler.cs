@@ -53,6 +53,8 @@ internal class TrapEncounterActionHandler(
             cancellationToken
         );
 
-    protected override GameClientEvent BuildResolvedEvent(TrapEncounterResolutionFact resolution) =>
-        new TrapEncounterResolvedEvent(resolution);
+    protected override GameClientEvent BuildResolvedEvent(
+        Guid WorldId,
+        TrapEncounterResolutionFact resolution
+    ) => new TrapEncounterResolvedEvent(WorldId, resolution);
 }

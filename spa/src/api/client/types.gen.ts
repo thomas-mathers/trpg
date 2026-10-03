@@ -103,13 +103,6 @@ export type BookPageResponse = {
     revealedFact: boolean;
 };
 
-export type BuildingLayoutWire = {
-    id: string;
-    type: BuildingType;
-    placement: PlacementWire;
-    footprint: FootprintWire;
-};
-
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
 export type CaravanDestinationSnapshot = {
@@ -147,13 +140,6 @@ export type CombatantState = {
 export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'FasterHitRecovery';
 
 export type CompassDirection = 'North' | 'Northeast' | 'East' | 'Southeast' | 'South' | 'Southwest' | 'West' | 'Northwest';
-
-export type ConnectorLayoutWire = {
-    connectorId: string;
-    destinationLocationId: string;
-    exitX: number;
-    exitY: number;
-};
 
 export type ConsumableSummary = {
     itemId: string;
@@ -206,11 +192,6 @@ export type CreatureCondition = 'Awake' | 'Sleeping' | 'Dead';
 export type CreatureGenerationOptionsResponse = {
     pointsPerLevel: number;
     baseAttributes: BaseAttributesResponse;
-};
-
-export type CreatureLayoutWire = {
-    id: string;
-    placement: PlacementWire;
 };
 
 export type CreatureLevelResponse = {
@@ -268,6 +249,7 @@ export type CreatureStatusSnapshot = {
     activeDots: Array<ActiveDot>;
     activeHots: Array<ActiveHot>;
     activeBuffs: Array<ActiveBuff>;
+    placement: PlacementWire;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
@@ -669,14 +651,6 @@ export type LocalMapRoomResponse = {
     markers: Array<LocalMapMarkerResponse>;
 };
 
-export type LocationLayoutWire = {
-    size: FootprintWire;
-    props: Array<PropLayoutWire>;
-    buildings: Array<BuildingLayoutWire>;
-    connectors: Array<ConnectorLayoutWire>;
-    creatures: Array<CreatureLayoutWire>;
-};
-
 export type LoreAnchor = {
     id: string;
     name: string;
@@ -690,6 +664,8 @@ export type NearbyBuildingSnapshot = {
     name: string;
     type: BuildingType;
     typeDescription: string;
+    placement: PlacementWire;
+    footprint: FootprintWire;
 };
 
 export type NearbyCaravanSnapshot = {
@@ -748,6 +724,8 @@ export type NearbyExitSnapshot = {
     direction: null | CompassDirection;
     isVisited: boolean;
     isWayBack: boolean;
+    destinationLocationId: string;
+    placement: PlacementWire;
 };
 
 export type NearbyPropSnapshot = {
@@ -757,6 +735,9 @@ export type NearbyPropSnapshot = {
     type: string;
     isOccupied: boolean;
     isOccupiedByPlayer: boolean;
+    model: PropModel;
+    placement: PlacementWire;
+    footprint: FootprintWire;
 };
 
 export type OwnerReferenceRequest = {
@@ -796,13 +777,6 @@ export type ProblemDetails = {
 export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
 
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
-
-export type PropLayoutWire = {
-    id: string;
-    model: PropModel;
-    placement: PlacementWire;
-    footprint: FootprintWire;
-};
 
 export type PropModel = 'Bed' | 'Cell' | 'Sign' | 'ContainerBasic' | 'ContainerBarrel' | 'ContainerChest' | 'ContainerCrate' | 'ContainerFootlocker' | 'ContainerStrongbox' | 'ContainerWeaponRack' | 'SeatBasic' | 'SeatChair' | 'SeatPew' | 'SeatThrone' | 'SeatBench' | 'SeatStoneBench' | 'SeatLowWall' | 'TrapMechanical' | 'TrapCollapse' | 'TrapSlope' | 'TrapWater' | 'TriggerBasic' | 'TriggerLever' | 'WorkstationAlchemy' | 'WorkstationArmorsmithing' | 'WorkstationCarpentry' | 'WorkstationCooking' | 'WorkstationEnchanting' | 'WorkstationJewelcrafting' | 'WorkstationPrayer' | 'WorkstationReading' | 'WorkstationTailoring' | 'WorkstationTrade' | 'WorkstationWeaponsmithing';
 
@@ -892,6 +866,7 @@ export type RoomRole = 'Entrance' | 'BossChamber' | 'Passage' | 'GuardPost' | 'S
 
 export type SceneSnapshot = {
     worldId: string;
+    locationId: string;
     stateName: string;
     cityName: null | string;
     districtName: null | string;
@@ -904,7 +879,7 @@ export type SceneSnapshot = {
     nearbyProps: Array<NearbyPropSnapshot>;
     exits: Array<NearbyExitSnapshot>;
     nearbyCaravans: Array<NearbyCaravanSnapshot>;
-    layout: LocationLayoutWire;
+    size: FootprintWire;
     version: number;
     gameTimeMilliseconds: number;
     anchoredAtUnixMilliseconds: number;

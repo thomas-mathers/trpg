@@ -58,6 +58,7 @@ internal class ShakedownEncounterActionHandler(
         );
 
     protected override GameClientEvent BuildResolvedEvent(
+        Guid WorldId,
         ShakedownEncounterResolutionFact resolution
-    ) => new ShakedownEncounterResolvedEvent(resolution);
+    ) => new ShakedownEncounterResolvedEvent(WorldId, resolution);
 }

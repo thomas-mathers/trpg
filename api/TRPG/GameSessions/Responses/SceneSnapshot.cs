@@ -203,6 +203,7 @@ public enum WeatherCondition
 [TranspilationSource]
 public record SceneSnapshot(
     Guid WorldId,
+    Guid LocationId,
     string StateName,
     string? CityName,
     string? DistrictName,
@@ -215,7 +216,7 @@ public record SceneSnapshot(
     IReadOnlyCollection<NearbyPropSnapshot> NearbyProps,
     IReadOnlyCollection<NearbyExitSnapshot> Exits,
     IReadOnlyCollection<NearbyCaravanSnapshot> NearbyCaravans,
-    LocationLayoutWire Layout,
+    FootprintWire Size,
     long Version,
     long GameTimeMilliseconds,
     long AnchoredAtUnixMilliseconds,
@@ -269,7 +270,8 @@ public record CreatureStatusSnapshot(
     ActiveConditions ActiveConditions,
     IReadOnlyCollection<ActiveDot> ActiveDots,
     IReadOnlyCollection<ActiveHot> ActiveHots,
-    IReadOnlyCollection<ActiveBuff> ActiveBuffs
+    IReadOnlyCollection<ActiveBuff> ActiveBuffs,
+    PlacementWire Placement
 );
 
 [TranspilationSource]
@@ -287,7 +289,9 @@ public record NearbyBuildingSnapshot(
     Guid Id,
     string Name,
     BuildingType Type,
-    string TypeDescription
+    string TypeDescription,
+    PlacementWire Placement,
+    FootprintWire Footprint
 );
 
 [TranspilationSource]
@@ -297,7 +301,10 @@ public record NearbyPropSnapshot(
     string Description,
     string Type,
     bool IsOccupied,
-    bool IsOccupiedByPlayer
+    bool IsOccupiedByPlayer,
+    PropModel Model,
+    PlacementWire Placement,
+    FootprintWire Footprint
 );
 
 [TranspilationSource]
@@ -330,7 +337,9 @@ public record NearbyExitSnapshot(
     NearbyExitDestination Destination,
     CompassDirection? Direction,
     bool IsVisited,
-    bool IsWayBack
+    bool IsWayBack,
+    Guid DestinationLocationId,
+    PlacementWire Placement
 );
 
 [TranspilationSource]

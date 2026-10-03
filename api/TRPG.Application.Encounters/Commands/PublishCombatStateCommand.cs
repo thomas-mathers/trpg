@@ -38,6 +38,6 @@ internal class PublishCombatStateCommandHandler(
             cancellationToken
         );
         if (combatants.Count > 0)
-            gameEvents.Enqueue(new CombatStartedEvent(fight.Id, combatants));
+            gameEvents.Enqueue(new CombatStartedEvent(fight.WorldId, fight.Id, combatants));
     }
 }

@@ -19,8 +19,17 @@ import type {
   TrapEncounterState,
 } from '@/api/signalr-client/TRPG.Encounters.Responses';
 import type {
+  CaravansArrivedPayload,
+  CaravansLeftPayload,
+  CaravansUpdatedPayload,
+  ClockReanchoredPayload,
+  CreaturesArrivedPayload,
+  CreaturesLeftPayload,
+  CreaturesMovedPayload,
+  CreaturesUpdatedPayload,
   CrimeNotification,
   SceneSnapshot,
+  WeatherChangedPayload,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { QuestObjectiveCompleted } from '@/api/signalr-client/TRPG.Quests.Responses';
 import type { TerminalCombatOutcome } from '@/features/combat/terminal-combat-outcome';
@@ -31,6 +40,15 @@ export type { CharacterLevelUp, QuestObjectiveCompleted, SkillLevelUp };
 
 interface GameEventMap {
   SceneSnapshot: SceneSnapshot;
+  CreaturesArrived: CreaturesArrivedPayload;
+  CreaturesLeft: CreaturesLeftPayload;
+  CreaturesMoved: CreaturesMovedPayload;
+  CreaturesUpdated: CreaturesUpdatedPayload;
+  CaravansArrived: CaravansArrivedPayload;
+  CaravansLeft: CaravansLeftPayload;
+  CaravansUpdated: CaravansUpdatedPayload;
+  WeatherChanged: WeatherChangedPayload;
+  ClockReanchored: ClockReanchoredPayload;
   CombatStarted: CombatStarted;
   CombatUpdated: CombatUpdated;
   // Fires once the round's animation finishes, so the combat UI, toasts, and respawn flow don't jump ahead of what's on screen.

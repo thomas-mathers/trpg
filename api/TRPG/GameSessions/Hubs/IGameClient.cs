@@ -11,6 +11,15 @@ namespace TRPG.GameSessions.Hubs;
 public interface IGameClient
 {
     Task SceneSnapshot(SceneSnapshot snapshot);
+    Task CreaturesArrived(CreaturesArrivedPayload payload);
+    Task CreaturesLeft(CreaturesLeftPayload payload);
+    Task CreaturesMoved(CreaturesMovedPayload payload);
+    Task CreaturesUpdated(CreaturesUpdatedPayload payload);
+    Task CaravansArrived(CaravansArrivedPayload payload);
+    Task CaravansLeft(CaravansLeftPayload payload);
+    Task CaravansUpdated(CaravansUpdatedPayload payload);
+    Task WeatherChanged(WeatherChangedPayload payload);
+    Task ClockReanchored(ClockReanchoredPayload payload);
     Task CombatStarted(CombatStarted payload);
     Task CombatUpdated(CombatUpdated update);
     Task HostileEncounterStarted(HostileEncounterState encounter);
@@ -32,5 +41,4 @@ public interface IGameClient
     Task QuestJournalUpdated(QuestJournalUpdated questJournal);
     Task CrimeWitnessed(CrimeNotification notification);
     Task CrimeWitnessesRemoved(CrimeNotification notification);
-    Task RequestAck(Guid flushId);
 }
