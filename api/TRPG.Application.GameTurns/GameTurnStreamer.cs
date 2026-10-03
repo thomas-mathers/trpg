@@ -81,13 +81,12 @@ internal class GameTurnStreamer(
 
         // The state change already happened, so the client must learn of it before the narration describing it.
         var flushed = false;
-        var lastScene = before;
         var narration = new StringBuilder();
 
         await foreach (var token in linkedTokens)
         {
             // A tool can enqueue events after the model has already emitted introductory text.
-            lastScene = await FlushSceneChange(lastScene, session, cancellationToken);
+            await FlushSceneChange(session, cancellationToken);
             flushed = true;
 
             narration.Append(token);
@@ -96,7 +95,7 @@ internal class GameTurnStreamer(
 
         if (!flushed)
         {
-            await FlushSceneChange(lastScene, session, cancellationToken);
+            await FlushSceneChange(session, cancellationToken);
         }
 
         await LogUnbriefedNpcMentions(before, narration.ToString(), session, cancellationToken);
@@ -146,15 +145,16 @@ internal class GameTurnStreamer(
         return await sceneDiffer.Capture(session, cancellationToken);
     }
 
-    private async Task<SceneResult> FlushSceneChange(
-        SceneResult before,
+    private async Task FlushSceneChange(
         GameTurnSession session,
         CancellationToken cancellationToken
     )
     {
-        var after = await sceneDiffer.EnqueueChange(before, session, cancellationToken);
+        await using (await mutationGate.Acquire(session.WorldId, cancellationToken))
+        {
+            await sceneDiffer.EnqueueChange(session, cancellationToken);
+        }
         await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
-        return after;
     }
 
     private async Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)

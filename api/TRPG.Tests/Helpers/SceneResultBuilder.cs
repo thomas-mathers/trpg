@@ -30,7 +30,7 @@ public static class SceneResultBuilder
             [],
             null,
             [],
-            new SceneLayoutInfo(new Footprint(10, 10), [], [], [], [])
+            new Footprint(10, 10)
         );
 
     public static SceneExitInfo MakeExit(string destinationName, bool isLocked) =>
@@ -41,7 +41,9 @@ public static class SceneResultBuilder
             isLocked,
             Direction: null,
             IsVisited: false,
-            IsWayBack: false
+            IsWayBack: false,
+            DestinationLocationId: Guid.NewGuid(),
+            Placement: new Placement(0, 0, 0)
         );
 
     public static SceneCreatureInfo MakeCreature(string name) =>
@@ -88,6 +90,8 @@ public static class SceneResultBuilder
             TradeWorkstationId: null,
             QuestMarkers: [],
             ReadyToDeliver: false,
-            Effects: CreatureEffects.None
+            Effects: CreatureEffects.None,
+            Journey: null,
+            Placement: new Placement(0, 0, 0)
         );
 }

@@ -4,9 +4,9 @@ using TRPG.Application.Worlds.Commands;
 
 namespace TRPG.Application.Scenes.Events;
 
-public record CaravansArrivedEvent(
+public record CreaturesUpdatedEvent(
     Guid WorldId,
     Guid LocationId,
     WorldStateStamp Stamp,
-    IReadOnlyCollection<SceneCaravanInfo> Caravans
+    IReadOnlyCollection<SceneCreatureInfo> Creatures
 ) : GameClientEvent(WorldId);

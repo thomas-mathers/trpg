@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns;
+using TRPG.Application.Scenes.Commands;
+using TRPG.Application.Scenes.Events;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -18,6 +20,7 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private WaitActionHandler _handler = null!;
     private GameTurnSession _session = null!;
+    private TestGameClientEventSink _events = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -27,6 +30,7 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<WaitActionHandler>();
+        _events = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
         var location = Builders.MakeLocation(_worldId, state.Id);
@@ -74,6 +78,33 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
         );
         Assert.Equal(ActionFailure.Afflicted, outcome.Failure);
         Assert.Equal(GameClock.Epoch, world.GameTime);
+    }
+
+    [Fact]
+    public async Task Handle_PublishesClockReanchor_WhenTimeAdvancesAtTheSameLocation()
+    {
+        var player = await _context.Creatures.SingleAsync(
+            creature => creature.Id == _session.PlayerId,
+            TestContext.Current.CancellationToken
+        );
+        player.ActiveDots = [];
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var publishScene = _serviceProvider.GetRequiredService<PublishAmbientSceneCommandHandler>();
+        await publishScene.Handle(
+            new PublishAmbientSceneCommand
+            {
+                WorldId = _worldId,
+                PlayerId = player.Id,
+                GameTime = GameClock.Epoch,
+            },
+            TestContext.Current.CancellationToken
+        );
+        _events.EnqueuedEvents.Clear();
+
+        var outcome = await _handler.Handle(_session, 0, 1, TestContext.Current.CancellationToken);
+
+        Assert.True(outcome.Succeeded);
+        Assert.Contains(_events.EnqueuedEvents, gameEvent => gameEvent is ClockReanchoredEvent);
     }
 
     private sealed class NoOpGameClientEventDispatcher : IGameClientEventDispatcher

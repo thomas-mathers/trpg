@@ -222,9 +222,9 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Assert
-        var sceneUpdated = Assert.Single(_flushedEvents.OfType<SceneUpdatedEvent>());
-        Assert.Equal(2, sceneUpdated.Stamp.Version);
-        Assert.Equal(2, sceneUpdated.Scene.NearbyCreatures.Count);
+        var creaturesArrived = Assert.Single(_flushedEvents.OfType<CreaturesArrivedEvent>());
+        Assert.Equal(2, creaturesArrived.Stamp.Version);
+        Assert.Single(creaturesArrived.Creatures);
     }
 
     [Fact]

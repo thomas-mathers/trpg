@@ -18,21 +18,6 @@ public sealed class PublishedSceneRegistry
         }
     }
 
-    public bool RecordIfChanged(Guid playerId, SceneResult scene)
-    {
-        lock (_gate)
-        {
-            var previous = _scenes.GetValueOrDefault(playerId);
-            if (previous != null && !SceneSemanticComparer.HasPlayerVisibleChange(previous, scene))
-            {
-                return false;
-            }
-
-            _scenes[playerId] = scene;
-            return true;
-        }
-    }
-
     public SceneResult? Find(Guid playerId)
     {
         lock (_gate)
@@ -60,12 +45,40 @@ public sealed class ScenePublisher(
         WorldStateStamp stamp
     )
     {
-        if (!publishedScenes.RecordIfChanged(playerId, scene))
+        var previous = publishedScenes.Find(playerId);
+        return PublishPlan(playerId, scene, stamp, SceneChangePlanner.Plan(previous, scene, stamp));
+    }
+
+    public bool PublishAfterTimeAdvance(Guid playerId, SceneResult scene, WorldStateStamp stamp)
+    {
+        var previous = publishedScenes.Find(playerId);
+        return PublishPlan(
+            playerId,
+            scene,
+            stamp,
+            SceneChangePlanner.PlanAfterTimeAdvance(previous, scene, stamp)
+        );
+    }
+
+    private bool PublishPlan(
+        Guid playerId,
+        SceneResult scene,
+        WorldStateStamp stamp,
+        SceneChangePlan plan
+    )
+    {
+        publishedScenes.Record(playerId, scene);
+        if (plan.RequiresSnapshot)
         {
-            return false;
+            gameEvents.Enqueue(new SceneUpdatedEvent(scene.WorldId, scene, stamp));
+            return true;
         }
 
-        gameEvents.Enqueue(new SceneUpdatedEvent(worldId, scene, stamp));
-        return true;
+        foreach (var gameEvent in plan.Events)
+        {
+            gameEvents.Enqueue(gameEvent);
+        }
+
+        return plan.Events.Count > 0;
     }
 }

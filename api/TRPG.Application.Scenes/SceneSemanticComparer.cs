@@ -6,30 +6,52 @@ namespace TRPG.Application.Scenes;
 
 public static class SceneSemanticComparer
 {
-    // The clock, vital meters, and departure countdowns tick continuously and have their own
-    // delivery paths, so they never make a scene worth re-sending on their own.
     public static bool HasPlayerVisibleChange(SceneResult previous, SceneResult current) =>
+        HasStaticChange(previous, current)
+        || previous.Weather != current.Weather
+        || !PlayerStatusEquivalent(previous.Player, current.Player)
+        || previous.Player.Placement != current.Player.Placement
+        || !CreaturesAreEquivalent(previous.NearbyCreatures, current.NearbyCreatures)
+        || !CaravansAreEquivalent(previous.NearbyCaravans, current.NearbyCaravans);
+
+    internal static bool HasStaticChange(SceneResult previous, SceneResult current) =>
         previous.WorldId != current.WorldId
+        || previous.LocationId != current.LocationId
+        || previous.Player.Id != current.Player.Id
         || previous.State != current.State
         || previous.City != current.City
         || previous.District != current.District
         || previous.Building != current.Building
         || previous.Room != current.Room
-        || previous.Weather != current.Weather
-        || !AreEquivalent(previous.Player, current.Player)
         || !SetEquals(previous.Exits, current.Exits)
         || !SetEquals(previous.NearbyProps, current.NearbyProps)
         || !SetEquals(previous.NearbyBuildings, current.NearbyBuildings)
-        || !CreaturesAreEquivalent(previous.NearbyCreatures, current.NearbyCreatures)
-        || !CaravansAreEquivalent(previous.NearbyCaravans, current.NearbyCaravans)
-        || !LayoutsAreEquivalent(previous.Layout, current.Layout);
+        || previous.Size != current.Size;
 
-    private static bool LayoutsAreEquivalent(SceneLayoutInfo previous, SceneLayoutInfo current) =>
-        previous.Size == current.Size
-        && SetEquals(previous.Props, current.Props)
-        && SetEquals(previous.Buildings, current.Buildings)
-        && SetEquals(previous.Connectors, current.Connectors)
-        && SetEquals(previous.Creatures, current.Creatures);
+    internal static bool PlayerStatusEquivalent(
+        SceneCreatureInfo previous,
+        SceneCreatureInfo current
+    ) =>
+        Normalize(previous) == Normalize(current)
+        && previous.FactionNames.Order().SequenceEqual(current.FactionNames.Order())
+        && SetEquals(previous.QuestMarkers, current.QuestMarkers)
+        && EffectsAreEquivalent(previous.Effects, current.Effects);
+
+    internal static bool NearbyCreatureStatusEquivalent(
+        SceneCreatureInfo previous,
+        SceneCreatureInfo current
+    ) =>
+        PlayerStatusEquivalent(previous, current)
+        && previous.CurrentHp == current.CurrentHp
+        && previous.CurrentAp == current.CurrentAp
+        && previous.CurrentMp == current.CurrentMp;
+
+    internal static bool CaravanStatusEquivalent(
+        SceneCaravanInfo previous,
+        SceneCaravanInfo current
+    ) =>
+        Normalize(previous) == Normalize(current)
+        && SetEquals(previous.Destinations, current.Destinations);
 
     private static bool CreaturesAreEquivalent(
         IReadOnlyCollection<SceneCreatureInfo> previous,
@@ -40,32 +62,10 @@ public static class SceneSemanticComparer
         return previous.Count == current.Count
             && previous.All(creature =>
                 currentById.TryGetValue(creature.Id, out var counterpart)
-                && AreEquivalent(creature, counterpart)
+                && NearbyCreatureStatusEquivalent(creature, counterpart)
+                && creature.Placement == counterpart.Placement
             );
     }
-
-    private static bool AreEquivalent(SceneCreatureInfo previous, SceneCreatureInfo current) =>
-        Normalize(previous) == Normalize(current)
-        && previous.FactionNames.Order().SequenceEqual(current.FactionNames.Order())
-        && SetEquals(previous.QuestMarkers, current.QuestMarkers)
-        && EffectsAreEquivalent(previous.Effects, current.Effects);
-
-    private static SceneCreatureInfo Normalize(SceneCreatureInfo creature) =>
-        creature with
-        {
-            CurrentHp = 0,
-            CurrentAp = 0,
-            CurrentMp = 0,
-            FactionNames = Array.Empty<string>(),
-            QuestMarkers = Array.Empty<QuestMarkerEntry>(),
-            Effects = CreatureEffects.None,
-        };
-
-    private static bool EffectsAreEquivalent(CreatureEffects previous, CreatureEffects current) =>
-        SetEquals(previous.Conditions, current.Conditions)
-        && SetEquals(previous.Dots, current.Dots)
-        && SetEquals(previous.Hots, current.Hots)
-        && SetEquals(previous.Buffs, current.Buffs);
 
     private static bool CaravansAreEquivalent(
         IReadOnlyCollection<SceneCaravanInfo> previous,
@@ -76,10 +76,21 @@ public static class SceneSemanticComparer
         return previous.Count == current.Count
             && previous.All(caravan =>
                 currentById.TryGetValue(caravan.CaravanId, out var counterpart)
-                && Normalize(caravan) == Normalize(counterpart)
-                && SetEquals(caravan.Destinations, counterpart.Destinations)
+                && CaravanStatusEquivalent(caravan, counterpart)
             );
     }
+
+    private static SceneCreatureInfo Normalize(SceneCreatureInfo creature) =>
+        creature with
+        {
+            CurrentHp = 0,
+            CurrentAp = 0,
+            CurrentMp = 0,
+            FactionNames = Array.Empty<string>(),
+            QuestMarkers = Array.Empty<QuestMarkerEntry>(),
+            Effects = CreatureEffects.None,
+            Placement = new(0, 0, 0),
+        };
 
     private static SceneCaravanInfo Normalize(SceneCaravanInfo caravan) =>
         caravan with
@@ -87,6 +98,12 @@ public static class SceneSemanticComparer
             MinutesUntilDeparture = 0,
             Destinations = Array.Empty<SceneCaravanDestination>(),
         };
+
+    private static bool EffectsAreEquivalent(CreatureEffects previous, CreatureEffects current) =>
+        SetEquals(previous.Conditions, current.Conditions)
+        && SetEquals(previous.Dots, current.Dots)
+        && SetEquals(previous.Hots, current.Hots)
+        && SetEquals(previous.Buffs, current.Buffs);
 
     private static bool SetEquals<T>(
         IReadOnlyCollection<T> previous,

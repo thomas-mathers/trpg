@@ -1,3 +1,5 @@
+using TRPG.Domain;
+
 namespace TRPG.Application.GameTurns;
 
 public enum ActionFailure
@@ -30,11 +32,13 @@ public enum ActionFailure
     AbilityUnavailable,
 }
 
-public sealed record ActionOutcome(ActionFailure? Failure)
+public sealed record ActionOutcome(ActionFailure? Failure, GameInstant? AdvancedGameTime = null)
 {
     public static ActionOutcome Success { get; } = new((ActionFailure?)null);
 
     public bool Succeeded => Failure is null;
 
     public static ActionOutcome Failed(ActionFailure failure) => new(failure);
+
+    public static ActionOutcome TimeAdvanced(GameInstant gameTime) => new(null, gameTime);
 }

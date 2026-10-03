@@ -4,7 +4,7 @@ using TRPG.Application.Worlds.Commands;
 
 namespace TRPG.Application.Scenes.Events;
 
-public record CaravansArrivedEvent(
+public record CaravansUpdatedEvent(
     Guid WorldId,
     Guid LocationId,
     WorldStateStamp Stamp,

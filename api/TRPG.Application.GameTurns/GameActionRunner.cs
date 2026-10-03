@@ -30,14 +30,18 @@ internal class GameActionRunner(
     {
         await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
 
-        // Captured before the action runs so the diff catches every mutation it makes.
-        var before = await sceneDiffer.Capture(session, cancellationToken);
-
         var outcome = await action(cancellationToken);
 
         if (outcome.Succeeded)
         {
-            await sceneDiffer.EnqueueChange(before, session, cancellationToken);
+            if (outcome.AdvancedGameTime is not null)
+            {
+                await sceneDiffer.EnqueueTimeAdvance(session, cancellationToken);
+            }
+            else
+            {
+                await sceneDiffer.EnqueueChange(session, cancellationToken);
+            }
         }
 
         return outcome;

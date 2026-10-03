@@ -1,4 +1,3 @@
-using System.Text.Json;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameSessions.Queries;
@@ -38,11 +37,7 @@ internal class TurnSceneDiffer(
         );
     }
 
-    public async Task<SceneResult> EnqueueChange(
-        SceneResult before,
-        GameTurnSession session,
-        CancellationToken cancellationToken
-    )
+    public async Task EnqueueChange(GameTurnSession session, CancellationToken cancellationToken)
     {
         // Stamped before the scene is read so a later-numbered snapshot never describes older state.
         var stamp = await stampWorldState.Handle(
@@ -51,11 +46,19 @@ internal class TurnSceneDiffer(
         );
         var after = await Capture(session, cancellationToken);
 
-        if (JsonSerializer.Serialize(before) != JsonSerializer.Serialize(after))
-        {
-            scenePublisher.PublishIfChanged(session.WorldId, session.PlayerId, after, stamp);
-        }
+        scenePublisher.PublishIfChanged(session.WorldId, session.PlayerId, after, stamp);
+    }
 
-        return after;
+    public async Task EnqueueTimeAdvance(
+        GameTurnSession session,
+        CancellationToken cancellationToken
+    )
+    {
+        var stamp = await stampWorldState.Handle(
+            new StampWorldStateCommand { WorldId = session.WorldId },
+            cancellationToken
+        );
+        var after = await Capture(session, cancellationToken);
+        scenePublisher.PublishAfterTimeAdvance(session.PlayerId, after, stamp);
     }
 }

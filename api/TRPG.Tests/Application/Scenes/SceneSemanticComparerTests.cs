@@ -3,6 +3,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.GameTurns;
 using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Events;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Domain;
@@ -34,6 +35,154 @@ public class SceneSemanticComparerTests
     }
 
     [Fact]
+    public void ScenePublisher_EmitsGranularEventsForSameLocationChanges()
+    {
+        var events = new RecordingGameClientEventSink();
+        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
+        publisher.Publish(
+            WorldId,
+            PlayerId,
+            MakeScene(weather: WeatherCondition.Clear),
+            MakeStamp(1)
+        );
+        events.Events.Clear();
+
+        publisher.PublishIfChanged(
+            WorldId,
+            PlayerId,
+            MakeScene(
+                creatures: [MakeCreature(VillagerId)],
+                caravans: [MakeCaravan(minutesUntilDeparture: 30)],
+                weather: WeatherCondition.Rain
+            ),
+            MakeStamp(2)
+        );
+
+        var arrival = Assert.IsType<CreaturesArrivedEvent>(events.Events[0]);
+        Assert.Equal(VillagerId, Assert.Single(arrival.Creatures).Id);
+        Assert.Equal(2, arrival.Stamp.Version);
+        Assert.IsType<CaravansArrivedEvent>(events.Events[1]);
+        Assert.IsType<WeatherChangedEvent>(events.Events[2]);
+        Assert.Equal(3, events.Events.Count);
+    }
+
+    [Fact]
+    public void ScenePublisher_UpdatesStatusWithPlacementWithoutAlsoSendingMovement()
+    {
+        var events = new RecordingGameClientEventSink();
+        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
+        publisher.Publish(
+            WorldId,
+            PlayerId,
+            MakeScene(creatures: [MakeCreature(VillagerId)]),
+            MakeStamp(1)
+        );
+        events.Events.Clear();
+
+        publisher.PublishIfChanged(
+            WorldId,
+            PlayerId,
+            MakeScene(
+                creatures:
+                [
+                    MakeCreature(
+                        VillagerId,
+                        activity: CreatureActivity.Working,
+                        placement: new Placement(6, 4, 0)
+                    ),
+                ]
+            ),
+            MakeStamp(2)
+        );
+
+        var update = Assert.IsType<CreaturesUpdatedEvent>(Assert.Single(events.Events));
+        Assert.Equal(6, Assert.Single(update.Creatures).Placement.X);
+    }
+
+    [Fact]
+    public void ScenePublisher_SendsMovementWithoutResendingUnchangedStatus()
+    {
+        var events = new RecordingGameClientEventSink();
+        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
+        publisher.Publish(
+            WorldId,
+            PlayerId,
+            MakeScene(creatures: [MakeCreature(VillagerId)]),
+            MakeStamp(1)
+        );
+        events.Events.Clear();
+
+        publisher.PublishIfChanged(
+            WorldId,
+            PlayerId,
+            MakeScene(creatures: [MakeCreature(VillagerId, placement: new Placement(6, 4, 0))]),
+            MakeStamp(2)
+        );
+
+        var moved = Assert.IsType<CreaturesMovedEvent>(Assert.Single(events.Events));
+        Assert.Equal(new Placement(6, 4, 0), moved.CreaturePlacements[VillagerId]);
+    }
+
+    [Fact]
+    public void ScenePublisher_SendsFullSnapshotWhenLocationChanges()
+    {
+        var events = new RecordingGameClientEventSink();
+        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
+        var scene = MakeScene();
+        publisher.Publish(WorldId, PlayerId, scene, MakeStamp(1));
+        events.Events.Clear();
+
+        publisher.PublishIfChanged(
+            WorldId,
+            PlayerId,
+            scene with
+            {
+                LocationId = Guid.NewGuid(),
+            },
+            MakeStamp(2)
+        );
+
+        Assert.IsType<SceneUpdatedEvent>(Assert.Single(events.Events));
+    }
+
+    [Fact]
+    public void ScenePublisher_SendsOnlyFullSnapshotWhenUnsupportedAndSupportedFieldsChange()
+    {
+        var events = new RecordingGameClientEventSink();
+        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
+        publisher.Publish(
+            WorldId,
+            PlayerId,
+            MakeScene(weather: WeatherCondition.Clear),
+            MakeStamp(1)
+        );
+        events.Events.Clear();
+
+        publisher.PublishIfChanged(
+            WorldId,
+            PlayerId,
+            MakeScene(weather: WeatherCondition.Rain, exits: [MakeExit(isLocked: false)]),
+            MakeStamp(2)
+        );
+
+        Assert.IsType<SceneUpdatedEvent>(Assert.Single(events.Events));
+    }
+
+    [Fact]
+    public void ScenePublisher_ReanchorsClockAfterTimeAdvanceWithoutOtherChanges()
+    {
+        var events = new RecordingGameClientEventSink();
+        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
+        var scene = MakeScene();
+        publisher.Publish(WorldId, PlayerId, scene, MakeStamp(1));
+        events.Events.Clear();
+
+        publisher.PublishAfterTimeAdvance(PlayerId, scene, MakeStamp(2));
+
+        Assert.IsType<ClockReanchoredEvent>(Assert.Single(events.Events));
+    }
+
+    [Fact]
     public void HasPlayerVisibleChange_ReturnsFalse_WhenTheScenesAreIdentical()
     {
         // Arrange
@@ -62,7 +211,7 @@ public class SceneSemanticComparerTests
     }
 
     [Fact]
-    public void HasPlayerVisibleChange_ReturnsFalse_WhenOnlyVitalMetersRegenerate()
+    public void HasPlayerVisibleChange_ReturnsTrue_WhenNearbyCreatureVitalsChange()
     {
         // Arrange
         var previous = MakeScene(
@@ -78,7 +227,7 @@ public class SceneSemanticComparerTests
         var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
 
         // Assert
-        Assert.False(changed);
+        Assert.True(changed);
     }
 
     [Fact]
@@ -289,8 +438,10 @@ public class SceneSemanticComparerTests
     public void HasPlayerVisibleChange_ReturnsTrue_WhenACreatureMovesWithinTheLocation()
     {
         // Arrange
-        var previous = MakeScene(layout: MakeLayout(creatureX: 2));
-        var current = MakeScene(layout: MakeLayout(creatureX: 6));
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId)]);
+        var current = MakeScene(
+            creatures: [MakeCreature(VillagerId, placement: new Placement(6, 4, 0))]
+        );
 
         // Act
         var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
@@ -300,11 +451,11 @@ public class SceneSemanticComparerTests
     }
 
     [Fact]
-    public void HasPlayerVisibleChange_ReturnsFalse_WhenTheLayoutIsIdentical()
+    public void HasPlayerVisibleChange_ReturnsFalse_WhenPlacementIsIdentical()
     {
         // Arrange
-        var previous = MakeScene(layout: MakeLayout(creatureX: 2));
-        var current = MakeScene(layout: MakeLayout(creatureX: 2));
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId)]);
+        var current = MakeScene(creatures: [MakeCreature(VillagerId)]);
 
         // Act
         var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
@@ -317,8 +468,8 @@ public class SceneSemanticComparerTests
     public void HasPlayerVisibleChange_ReturnsTrue_WhenThePlayerArrivesAtAnotherPoint()
     {
         // Arrange
-        var previous = MakeScene(layout: MakeLayout(playerX: 1));
-        var current = MakeScene(layout: MakeLayout(playerX: 9));
+        var previous = MakeScene(player: MakeCreature(PlayerId));
+        var current = MakeScene(player: MakeCreature(PlayerId, placement: new Placement(9, 3, 0)));
 
         // Act
         var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
@@ -327,26 +478,13 @@ public class SceneSemanticComparerTests
         Assert.True(changed);
     }
 
-    private static SceneLayoutInfo MakeLayout(double playerX = 1, double creatureX = 2) =>
-        new(
-            new Footprint(10, 10),
-            [],
-            [],
-            [],
-            [
-                new SceneCreatureLayout(PlayerId, new Placement(playerX, 3, 0)),
-                new SceneCreatureLayout(VillagerId, new Placement(creatureX, 4, 0)),
-            ]
-        );
-
     private static SceneResult MakeScene(
         int hour = 8,
         SceneCreatureInfo? player = null,
         IReadOnlyCollection<SceneCreatureInfo>? creatures = null,
         IReadOnlyCollection<SceneExitInfo>? exits = null,
         IReadOnlyCollection<SceneCaravanInfo>? caravans = null,
-        WeatherCondition? weather = null,
-        SceneLayoutInfo? layout = null
+        WeatherCondition? weather = null
     ) =>
         new(
             WorldId,
@@ -364,7 +502,7 @@ public class SceneSemanticComparerTests
             [],
             weather,
             caravans ?? [],
-            layout ?? MakeLayout()
+            new Footprint(10, 10)
         );
 
     private static WorldStateStamp MakeStamp(long version) =>
@@ -382,7 +520,8 @@ public class SceneSemanticComparerTests
         CreatureActivity? activity = null,
         int currentHp = 10,
         SceneJourneyInfo? journey = null,
-        CreatureEffects? effects = null
+        CreatureEffects? effects = null,
+        Placement? placement = null
     ) =>
         new(
             Id: id,
@@ -428,7 +567,8 @@ public class SceneSemanticComparerTests
             QuestMarkers: [],
             ReadyToDeliver: false,
             Effects: effects ?? CreatureEffects.None,
-            Journey: journey
+            Journey: journey,
+            Placement: placement ?? new Placement(id == PlayerId ? 1 : 2, id == PlayerId ? 3 : 4, 0)
         );
 
     private static CreatureDotEffect MakeDot(string abilityName, int expiresAtSecond) =>
@@ -463,7 +603,9 @@ public class SceneSemanticComparerTests
             IsLocked: isLocked,
             Direction: null,
             IsVisited: false,
-            IsWayBack: false
+            IsWayBack: false,
+            DestinationLocationId: DestinationId,
+            Placement: new Placement(0, 0, 0)
         );
 
     private static SceneCaravanInfo MakeCaravan(int minutesUntilDeparture) =>

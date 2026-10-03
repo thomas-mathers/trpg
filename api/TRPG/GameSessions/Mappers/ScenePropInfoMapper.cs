@@ -12,6 +12,9 @@ internal static class ScenePropInfoMapper
             prop.Description,
             prop.Type,
             prop.IsOccupied,
-            prop.IsOccupiedByPlayer
+            prop.IsOccupiedByPlayer,
+            prop.Model.ToResponse(),
+            prop.Placement.ToWire(),
+            prop.Footprint.ToWire()
         );
 }

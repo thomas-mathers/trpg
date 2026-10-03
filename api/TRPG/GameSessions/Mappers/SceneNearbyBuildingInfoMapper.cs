@@ -9,6 +9,13 @@ internal static class SceneNearbyBuildingInfoMapper
     public static NearbyBuildingSnapshot ToSnapshot(this SceneNearbyBuildingInfo building)
     {
         var type = building.Type.ToResponse();
-        return new NearbyBuildingSnapshot(building.Id, building.Name, type, type.ToDisplayName());
+        return new NearbyBuildingSnapshot(
+            building.Id,
+            building.Name,
+            type,
+            type.ToDisplayName(),
+            building.Placement.ToWire(),
+            building.Footprint.ToWire()
+        );
     }
 }

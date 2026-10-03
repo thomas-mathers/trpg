@@ -642,13 +642,21 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         var sessionId = await StartSession();
-        await using var gameHub = await Connect(sessionId);
+        var connected = await ConnectAndAwaitInitialSnapshot(sessionId, []);
+        await using var gameHub = connected.Connection;
+        var clockReceived = new TaskCompletionSource<ClockReanchoredPayload>();
+        connected.Client.OnClockReanchored = payload => clockReceived.TrySetResult(payload);
 
         // Act
         var result = await Act(gameHub, "SendSleep", 8, 0);
 
         // Assert
         Assert.True(result.Succeeded);
+        var clock = await clockReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(_locationId, clock.LocationId);
         var world = await GetWorld();
         Assert.True(world.GameTime > GameClock.Epoch);
     }
@@ -887,7 +895,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ResolveCombatAction_PublishesCombatUpdatedAndSceneSnapshot_WhenTheAttackChangesNearbyCreatureState()
+    public async Task ResolveCombatAction_PublishesCombatAndCreatureUpdates_WhenTheAttackChangesNearbyCreatureState()
     {
         // Arrange
         var enemy = await SeedHostileCreature();
@@ -897,11 +905,13 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var combatUpdatedReceived = new TaskCompletionSource<TRPG.Combat.Responses.CombatUpdated>();
         var snapshotReceived =
             new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
+        var creaturesUpdatedReceived = new TaskCompletionSource<CreaturesUpdatedPayload>();
         var sceneSnapshots = new List<TRPG.GameSessions.Responses.SceneSnapshot>();
         var gameClient = new TestGameClient
         {
             Connection = connection,
             OnCombatUpdated = payload => combatUpdatedReceived.TrySetResult(payload),
+            OnCreaturesUpdated = payload => creaturesUpdatedReceived.TrySetResult(payload),
             OnSceneSnapshot = snapshot =>
             {
                 sceneSnapshots.Add(snapshot);
@@ -912,10 +922,6 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         await connection.StartAsync(TestContext.Current.CancellationToken);
         await snapshotReceived.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         sceneSnapshots.Clear();
-        // CombatUpdated and SceneSnapshot are pushed as two separate, sequentially-dispatched
-        // messages after the combat action resolves; awaiting only the first doesn't guarantee
-        // the second's client-side callback has already run, so this is reset to wait for it too.
-        snapshotReceived = new TaskCompletionSource<TRPG.GameSessions.Responses.SceneSnapshot>();
         await using var gameHub = connection;
 
         // Act
@@ -927,15 +933,17 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             TestContext.Current.CancellationToken
         );
         Assert.Equal(enemy.Name, Assert.Single(updated.Combatants, c => !c.IsPlayer).Name);
-        await snapshotReceived.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
+        var creatureUpdate = await creaturesUpdatedReceived.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
         await using var scope = fixture.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<TrpgDbContext>();
         var freshEnemy = await context.Creatures.SingleAsync(
             c => c.Id == enemy.Id,
             TestContext.Current.CancellationToken
         );
-        var scene = Assert.Single(sceneSnapshots);
-        var updatedEnemy = Assert.Single(scene.NearbyCreatures, c => c.Id == enemy.Id);
+        var updatedEnemy = Assert.Single(creatureUpdate.Creatures, c => c.Id == enemy.Id);
         Assert.Equal(freshEnemy.CurrentHp, updatedEnemy.CurrentHp);
     }
 
@@ -1426,7 +1434,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task ResolvePayFineEncounterAction_PublishesSceneSnapshot_WhenEncounterResolves()
+    public async Task ResolvePayFineEncounterAction_PublishesCreatureUpdate_WhenEncounterResolves()
     {
         // Arrange
         await using var scope = fixture.CreateScope();
@@ -1458,15 +1466,18 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         var sceneSnapshots = new List<SceneSnapshot>();
         var connected = await ConnectAndAwaitInitialSnapshot(sessionId, sceneSnapshots);
         await using var gameHub = connected.Connection;
-        var snapshotReceived = CaptureNextSnapshot(connected, sceneSnapshots);
+        var creaturesUpdated = new TaskCompletionSource<CreaturesUpdatedPayload>();
+        connected.Client.OnCreaturesUpdated = payload => creaturesUpdated.TrySetResult(payload);
 
         // Act
         await Act(gameHub, "ResolvePayFineEncounterAction");
 
-        // Assert - paying the fine deducts gold, which the scene diff must catch
-        await snapshotReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
-        var scene = Assert.Single(sceneSnapshots);
-        Assert.Equal(50, scene.PlayerStatus.Gold);
+        // Assert
+        var update = await creaturesUpdated.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(50, Assert.Single(update.Creatures, c => c.Id == _playerId).Gold);
 
         await using var verifyScope = fixture.CreateScope();
         var verifyContext = verifyScope.ServiceProvider.GetRequiredService<TrpgDbContext>();

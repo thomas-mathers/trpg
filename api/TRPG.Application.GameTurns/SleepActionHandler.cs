@@ -88,8 +88,13 @@ internal class SleepActionHandler(
             );
         }
 
-        return outcome.Outcome == SleepOutcome.NotYourRoom
-            ? ActionOutcome.Failed(ActionFailure.NotYourRoom)
+        if (outcome.Outcome == SleepOutcome.NotYourRoom)
+        {
+            return ActionOutcome.Failed(ActionFailure.NotYourRoom);
+        }
+
+        return outcome.GameTime is { } advancedGameTime
+            ? ActionOutcome.TimeAdvanced(advancedGameTime)
             : ActionOutcome.Success;
     }
 }

@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
@@ -28,12 +29,26 @@ internal class PublishSessionStateCommandHandler(
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
-    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted
+    ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
+    IWorldMutationGate mutationGate
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
         PublishSessionStateCommand command,
         CancellationToken cancellationToken = default
+    )
+    {
+        await using (await mutationGate.Acquire(command.WorldId, cancellationToken))
+        {
+            await EnqueueSessionState(command, cancellationToken);
+        }
+
+        await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
+    }
+
+    private async Task EnqueueSessionState(
+        PublishSessionStateCommand command,
+        CancellationToken cancellationToken
     )
     {
         // Stamped before the scene is read so a later-numbered snapshot never describes older state.
@@ -76,7 +91,5 @@ internal class PublishSessionStateCommandHandler(
             },
             cancellationToken
         );
-
-        await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
     }
 }

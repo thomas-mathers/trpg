@@ -44,7 +44,9 @@ public record SceneExitInfo(
     bool IsLocked,
     CompassDirection? Direction,
     bool IsVisited,
-    bool IsWayBack
+    bool IsWayBack,
+    Guid DestinationLocationId,
+    Placement Placement
 );
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);
@@ -55,7 +57,10 @@ public record ScenePropInfo(
     string Description,
     string Type,
     bool IsOccupied,
-    bool IsOccupiedByPlayer
+    bool IsOccupiedByPlayer,
+    PropModel Model,
+    Placement Placement,
+    Footprint Footprint
 );
 
 public record SceneJourneyInfo(string Purpose, string NextDestination);
@@ -104,10 +109,17 @@ public record SceneCreatureInfo(
     IReadOnlyCollection<QuestMarkerEntry> QuestMarkers,
     bool ReadyToDeliver,
     CreatureEffects Effects,
-    SceneJourneyInfo? Journey = null
+    SceneJourneyInfo? Journey,
+    Placement Placement
 );
 
-public record SceneNearbyBuildingInfo(Guid Id, string Name, BuildingType Type);
+public record SceneNearbyBuildingInfo(
+    Guid Id,
+    string Name,
+    BuildingType Type,
+    Placement Placement,
+    Footprint Footprint
+);
 
 public record SceneCaravanDestination(
     Guid LocationId,
@@ -123,32 +135,6 @@ public record SceneCaravanInfo(
     int MinutesUntilDeparture,
     bool PassengerServiceAvailable,
     IReadOnlyCollection<SceneCaravanDestination> Destinations
-);
-
-public record ScenePropLayout(Guid Id, PropModel Model, Placement Placement, Footprint Footprint);
-
-public record SceneBuildingLayout(
-    Guid Id,
-    BuildingType Type,
-    Placement Placement,
-    Footprint Footprint
-);
-
-public record SceneConnectorLayout(
-    Guid ConnectorId,
-    Guid DestinationLocationId,
-    double ExitX,
-    double ExitY
-);
-
-public record SceneCreatureLayout(Guid Id, Placement Placement);
-
-public record SceneLayoutInfo(
-    Footprint Size,
-    IReadOnlyCollection<ScenePropLayout> Props,
-    IReadOnlyCollection<SceneBuildingLayout> Buildings,
-    IReadOnlyCollection<SceneConnectorLayout> Connectors,
-    IReadOnlyCollection<SceneCreatureLayout> Creatures
 );
 
 public record SceneResult(
@@ -167,5 +153,5 @@ public record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
     WeatherCondition? Weather,
     IReadOnlyCollection<SceneCaravanInfo> NearbyCaravans,
-    SceneLayoutInfo Layout
+    Footprint Size
 );
