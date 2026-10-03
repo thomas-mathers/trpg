@@ -1,9 +1,9 @@
 import type {
-  BuildingLayoutWire,
-  ConnectorLayoutWire,
   FootprintWire,
+  NearbyBuildingSnapshot,
+  NearbyExitSnapshot,
+  NearbyPropSnapshot,
   PlacementWire,
-  PropLayoutWire,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
@@ -45,7 +45,6 @@ export const WALL_HEIGHT = 3;
 const DOOR_WIDTH = 1.5;
 const DOOR_SNAP = 0.6;
 const MIN_WALL_SPAN = 0.1;
-const DOOR_BUILDING_REACH = 1.5;
 
 export function toScenePosition(x: number, y: number, height = 0): ScenePosition {
   return [x, height, y];
@@ -84,14 +83,14 @@ export function clampToBounds(point: PlanarPoint, size: FootprintWire): PlanarPo
 }
 
 export function buildObstacles(
-  props: PropLayoutWire[],
-  buildings: BuildingLayoutWire[],
+  props: NearbyPropSnapshot[],
+  buildings: NearbyBuildingSnapshot[],
 ): Obstacle[] {
   const solidProps = props.filter(({ model }) => PROP_STYLES[model].height >= WALKABLE_HEIGHT);
   return [...solidProps, ...buildings];
 }
 
-export function buildWalls(size: FootprintWire, connectors: ConnectorLayoutWire[]): Obstacle[] {
+export function buildWalls(size: FootprintWire, connectors: NearbyExitSnapshot[]): Obstacle[] {
   const { width, depth } = size;
   const sides = [
     { horizontal: true, line: 0, length: width, doors: doorsOnLine(connectors, 'y', 0) },
@@ -133,13 +132,16 @@ export function pushOutOfObstacles(
 
 export function findConnectorInRange(
   position: PlanarPoint,
-  connectors: ConnectorLayoutWire[],
+  connectors: NearbyExitSnapshot[],
   range = INTERACT_RANGE,
-): ConnectorLayoutWire | undefined {
-  let nearest: ConnectorLayoutWire | undefined;
+): NearbyExitSnapshot | undefined {
+  let nearest: NearbyExitSnapshot | undefined;
   let nearestDistance = range;
   for (const connector of connectors) {
-    const distance = Math.hypot(connector.exitX - position.x, connector.exitY - position.y);
+    const distance = Math.hypot(
+      connector.placement.x - position.x,
+      connector.placement.y - position.y,
+    );
     if (distance <= nearestDistance) {
       nearest = connector;
       nearestDistance = distance;
@@ -154,65 +156,20 @@ export function buildEntityNames(scene: SceneSnapshot): ReadonlyMap<string, stri
   scene.nearbyBuildings.forEach((building) => names.set(building.id, building.name));
   scene.nearbyProps.forEach((prop) => names.set(prop.id, prop.name));
   scene.exits.forEach((exit) => names.set(exit.connectorId, exit.destination.name));
-  nameBuildingDoors(scene, names);
   return names;
 }
 
-// Outdoors the server omits a building's front door from the exits, so its name comes from the building the door sits on.
-function nameBuildingDoors(scene: SceneSnapshot, names: Map<string, string>) {
-  for (const connector of scene.layout.connectors) {
-    if (names.has(connector.connectorId)) {
-      continue;
-    }
-    const building = nearestBuilding(connector, scene.layout.buildings);
-    const name = building && names.get(building.id);
-    if (name) {
-      names.set(connector.connectorId, name);
-    }
-  }
-}
-
-function nearestBuilding(
-  connector: ConnectorLayoutWire,
-  buildings: BuildingLayoutWire[],
-): BuildingLayoutWire | undefined {
-  const point = { x: connector.exitX, y: connector.exitY };
-  let nearest: BuildingLayoutWire | undefined;
-  let nearestDistance = DOOR_BUILDING_REACH;
-  for (const building of buildings) {
-    const distance = distanceToObstacle(point, building);
-    if (distance <= nearestDistance) {
-      nearest = building;
-      nearestDistance = distance;
-    }
-  }
-  return nearest;
-}
-
-function distanceToObstacle(point: PlanarPoint, { placement, footprint }: Obstacle): number {
-  const cos = Math.cos(placement.angle);
-  const sin = Math.sin(placement.angle);
-  const dx = point.x - placement.x;
-  const dy = point.y - placement.y;
-  const localX = dx * cos + dy * sin;
-  const localY = -dx * sin + dy * cos;
-  const gapX = Math.max(Math.abs(localX) - footprint.width / 2, 0);
-  const gapY = Math.max(Math.abs(localY) - footprint.depth / 2, 0);
-  return Math.hypot(gapX, gapY);
-}
-
 export function findPlayerPlacement(scene: SceneSnapshot) {
-  return scene.layout.creatures.find((creature) => creature.id === scene.playerStatus.id)
-    ?.placement;
+  return scene.playerStatus.placement;
 }
 
-function doorsOnLine(connectors: ConnectorLayoutWire[], axis: 'x' | 'y', line: number): number[] {
+function doorsOnLine(connectors: NearbyExitSnapshot[], axis: 'x' | 'y', line: number): number[] {
   return connectors
     .filter((connector) => {
-      const onAxis = axis === 'x' ? connector.exitX : connector.exitY;
+      const onAxis = connector.placement[axis];
       return Math.abs(onAxis - line) <= DOOR_SNAP;
     })
-    .map((connector) => (axis === 'x' ? connector.exitY : connector.exitX));
+    .map((connector) => connector.placement[axis === 'x' ? 'y' : 'x']);
 }
 
 function wallSpans(length: number, doorCentres: number[]): [start: number, end: number][] {

@@ -56,8 +56,11 @@ describe('NPC targeting', () => {
     [-2, 0, Math.PI / 2],
   ])('faces a player at (%s, %s)', (x, z, expected) => {
     const result = focusCreature(
-      { id: 'npc', placement: { x: 0, y: 0, angle: 0 } },
-      { posture: 'Sitting' } as CreatureStatusSnapshot,
+      {
+        id: 'npc',
+        posture: 'Sitting',
+        placement: { x: 0, y: 0, angle: 0 },
+      } as CreatureStatusSnapshot,
       { x, z },
     );
     expect(Math.cos(result.facing)).toBeCloseTo(Math.cos(expected));

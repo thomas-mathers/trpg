@@ -2,13 +2,12 @@ import { Grid, useGLTF } from '@react-three/drei';
 import { Suspense, useMemo } from 'react';
 
 import type {
-  BuildingLayoutWire,
-  ConnectorLayoutWire,
-  CreatureLayoutWire,
   CreatureStatusSnapshot,
   FootprintWire,
+  NearbyBuildingSnapshot,
+  NearbyExitSnapshot,
+  NearbyPropSnapshot,
   PlacementWire,
-  PropLayoutWire,
   PropModel,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
@@ -143,8 +142,8 @@ export function Boxes({
   buildings,
   names,
 }: {
-  props: PropLayoutWire[];
-  buildings: BuildingLayoutWire[];
+  props: NearbyPropSnapshot[];
+  buildings: NearbyBuildingSnapshot[];
   names: EntityNames;
 }) {
   return (
@@ -181,7 +180,7 @@ export function Creatures({
   playerSeat,
   focus,
 }: {
-  creatures: CreatureLayoutWire[];
+  creatures: CreatureStatusSnapshot[];
   playerId: string;
   names: EntityNames;
   statuses: (Pick<CreatureStatusSnapshot, 'id' | 'posture'> &
@@ -211,22 +210,14 @@ export function Creatures({
   );
 }
 
-export function Connectors({
-  connectors,
-  size,
-  buildings,
-}: {
-  connectors: ConnectorLayoutWire[];
-  size: FootprintWire;
-  buildings: BuildingLayoutWire[];
-}) {
+export function Connectors({ connectors }: { connectors: NearbyExitSnapshot[] }) {
   return (
     <>
       {connectors.map((connector) => (
         <group
           key={connector.connectorId}
-          position={toScenePosition(connector.exitX, connector.exitY)}
-          rotation={[0, connectorYaw(connector, size, buildings), 0]}
+          position={toScenePosition(connector.placement.x, connector.placement.y)}
+          rotation={[0, connectorYaw(connector), 0]}
         >
           <DoorConnector />
         </group>

@@ -97,6 +97,15 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
 
     const gameClient: IGameClient = {
       sceneSnapshot: async (snapshot) => gameEventBus.emit('SceneSnapshot', snapshot),
+      creaturesArrived: async (payload) => gameEventBus.emit('CreaturesArrived', payload),
+      creaturesLeft: async (payload) => gameEventBus.emit('CreaturesLeft', payload),
+      creaturesMoved: async (payload) => gameEventBus.emit('CreaturesMoved', payload),
+      creaturesUpdated: async (payload) => gameEventBus.emit('CreaturesUpdated', payload),
+      caravansArrived: async (payload) => gameEventBus.emit('CaravansArrived', payload),
+      caravansLeft: async (payload) => gameEventBus.emit('CaravansLeft', payload),
+      caravansUpdated: async (payload) => gameEventBus.emit('CaravansUpdated', payload),
+      weatherChanged: async (payload) => gameEventBus.emit('WeatherChanged', payload),
+      clockReanchored: async (payload) => gameEventBus.emit('ClockReanchored', payload),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
       combatUpdated: async (update) => gameEventBus.emit('CombatUpdated', update),
       hostileEncounterStarted: async (encounter) =>
@@ -130,9 +139,6 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       crimeWitnessed: async (notification) => gameEventBus.emit('CrimeWitnessed', notification),
       crimeWitnessesRemoved: async (notification) =>
         gameEventBus.emit('CrimeWitnessesRemoved', notification),
-      requestAck: async (flushId) => {
-        await chatHubProxy.acknowledgeEvents(flushId);
-      },
     };
     const receiverSubscription = getReceiverRegister('IGameClient').register(
       connection,

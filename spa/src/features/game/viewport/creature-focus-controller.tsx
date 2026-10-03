@@ -2,10 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { PerspectiveCamera, Quaternion, Raycaster } from 'three';
 
-import type {
-  CreatureLayoutWire,
-  CreatureStatusSnapshot,
-} from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { CreatureStatusSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import { focusCreature, pickCreature, type CreatureFocus } from './creature-focus';
 
@@ -19,7 +16,7 @@ export function CreatureFocusController({
   onRestored,
 }: {
   focus: CreatureFocus | null;
-  creatures: CreatureLayoutWire[];
+  creatures: Pick<CreatureStatusSnapshot, 'id' | 'placement'>[];
   statuses: CreatureStatusSnapshot[];
   enabled: boolean;
   onTarget: (id: string | undefined) => void;
@@ -46,7 +43,7 @@ export function CreatureFocusController({
       if (!creature || !status) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      onFocus(focusCreature(creature, status, camera.position));
+      onFocus(focusCreature(status, camera.position));
       document.exitPointerLock();
     };
     window.addEventListener('keydown', interact, true);

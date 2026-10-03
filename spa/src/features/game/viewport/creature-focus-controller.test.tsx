@@ -38,7 +38,7 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: false }));
 });
 const creatures = [{ id: 'npc', placement: { x: 0, y: -2, angle: 0 } }];
-const statuses = [{ id: 'npc', posture: 'Standing' }] as CreatureStatusSnapshot[];
+const statuses = [{ ...creatures[0], posture: 'Standing' }] as CreatureStatusSnapshot[];
 function props() {
   return {
     focus: null as CreatureFocus | null,

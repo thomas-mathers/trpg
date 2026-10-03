@@ -55,6 +55,11 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
 }
 
 const emptyJournal: QuestJournalEntrySnapshot[] = [];
+const propSpatial = {
+  model: 'ContainerBasic' as const,
+  placement: { x: 0, y: 0, angle: 0 },
+  footprint: { width: 1, depth: 1 },
+};
 
 function succeeded(): Promise<ActionResult> {
   return Promise.resolve({ succeeded: true });
@@ -122,6 +127,7 @@ describe('NearbyPanel', () => {
           type: 'Seat',
           isOccupied: false,
           isOccupiedByPlayer: false,
+          ...propSpatial,
           description: '',
         },
       ],
@@ -211,6 +217,7 @@ describe('NearbyPanel', () => {
           type: 'Container',
           isOccupied: false,
           isOccupiedByPlayer: false,
+          ...propSpatial,
         },
       ],
     };
@@ -233,6 +240,7 @@ describe('NearbyPanel', () => {
           type: 'Trigger',
           isOccupied: false,
           isOccupiedByPlayer: false,
+          ...propSpatial,
         },
       ],
     };
@@ -264,6 +272,7 @@ describe('NearbyPanel', () => {
           type: 'Trade',
           isOccupied: false,
           isOccupiedByPlayer: false,
+          ...propSpatial,
         },
       ],
     };
@@ -308,6 +317,7 @@ describe('NearbyPanel', () => {
           type: 'Bed',
           isOccupied: false,
           isOccupiedByPlayer: false,
+          ...propSpatial,
         },
       ],
     };
@@ -338,6 +348,7 @@ describe('NearbyPanel', () => {
           type: 'Sign',
           isOccupied: false,
           isOccupiedByPlayer: false,
+          ...propSpatial,
         },
       ],
     };

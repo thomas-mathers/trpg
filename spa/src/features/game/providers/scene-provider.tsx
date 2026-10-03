@@ -1,18 +1,15 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useReducer, useRef, type ReactNode } from 'react';
 
 import { prefetchDungeonPremises, type BuildingType } from '@/api/client';
-import type { PlayerVitalsUpdated } from '@/api/signalr-client/TRPG.Creatures.Responses';
-import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import {
-  createSceneSnapshot,
   PlayerIdContext,
   SceneContext,
   SessionContext,
 } from '@/features/game/contexts/scene-context';
 import { gameEventBus } from '@/lib/game-event-bus';
 
-// Mirrors TRPG.Domain.Models.BuildingTypes.Dungeon — the server already no-ops a prefetch against
-// anything else, this just keeps the client from asking for buildings that can never need one.
+import { initialSceneState, reduceSceneState } from './scene-state';
+
 const DUNGEON_BUILDING_TYPES: ReadonlySet<BuildingType> = new Set([
   'Cave',
   'Crypt',
@@ -26,122 +23,69 @@ interface SceneProviderProps {
   children: ReactNode;
 }
 
-function withVitals(scene: SceneSnapshot, vitals: PlayerVitalsUpdated): SceneSnapshot {
-  return {
-    ...scene,
-    playerStatus: {
-      ...scene.playerStatus,
-      currentHp: vitals.currentHp,
-      maximumHp: vitals.maximumHp,
-      currentAp: vitals.currentAp,
-      maximumAp: vitals.maximumAp,
-      currentMp: vitals.currentMp,
-      maximumMp: vitals.maximumMp,
-    },
-  };
-}
-
 export function SceneProvider({ sessionId, children }: SceneProviderProps) {
-  const [scene, setScene] = useState<SceneSnapshot>(createSceneSnapshot());
-  const playerId = scene?.playerStatus.id;
+  const [state, dispatch] = useReducer(reduceSceneState, undefined, initialSceneState);
+  const { scene } = state;
   const prefetchedBuildingIds = useRef(new Set<string>());
-  const latestSnapshotVersion = useRef(-Infinity);
-  const latestVitals = useRef<PlayerVitalsUpdated | undefined>(undefined);
 
   useEffect(() => {
-    latestSnapshotVersion.current = -Infinity;
-    latestVitals.current = undefined;
+    dispatch({ type: 'Reset' });
+    prefetchedBuildingIds.current.clear();
   }, [sessionId]);
 
-  // A snapshot is only rolled back by a newer snapshot, but vitals stamped after it may reach the
-  // client first, so a snapshot that arrives late keeps the newer vitals instead of being dropped.
-  useEffect(
-    () =>
-      gameEventBus.on('SceneSnapshot', (snapshot) => {
-        if (snapshot.version <= latestSnapshotVersion.current) return;
-        latestSnapshotVersion.current = snapshot.version;
-
-        const newerVitals = latestVitals.current;
-        const keepsVitals =
-          newerVitals !== undefined &&
-          newerVitals.version > snapshot.version &&
-          newerVitals.playerId === snapshot.playerStatus.id;
-        if (!keepsVitals) latestVitals.current = undefined;
-
-        setScene(keepsVitals ? withVitals(snapshot, newerVitals) : snapshot);
-      }),
-    [],
-  );
+  useEffect(() => {
+    const unsubscribers = [
+      gameEventBus.on('SceneSnapshot', (payload) => dispatch({ type: 'SceneSnapshot', payload })),
+      gameEventBus.on('CreaturesArrived', (payload) =>
+        dispatch({ type: 'CreaturesArrived', payload }),
+      ),
+      gameEventBus.on('CreaturesLeft', (payload) => dispatch({ type: 'CreaturesLeft', payload })),
+      gameEventBus.on('CreaturesMoved', (payload) => dispatch({ type: 'CreaturesMoved', payload })),
+      gameEventBus.on('CreaturesUpdated', (payload) =>
+        dispatch({ type: 'CreaturesUpdated', payload }),
+      ),
+      gameEventBus.on('CaravansArrived', (payload) =>
+        dispatch({ type: 'CaravansArrived', payload }),
+      ),
+      gameEventBus.on('CaravansLeft', (payload) => dispatch({ type: 'CaravansLeft', payload })),
+      gameEventBus.on('CaravansUpdated', (payload) =>
+        dispatch({ type: 'CaravansUpdated', payload }),
+      ),
+      gameEventBus.on('WeatherChanged', (payload) => dispatch({ type: 'WeatherChanged', payload })),
+      gameEventBus.on('ClockReanchored', (payload) =>
+        dispatch({ type: 'ClockReanchored', payload }),
+      ),
+      gameEventBus.on('PlayerVitalsUpdated', (payload) =>
+        dispatch({ type: 'PlayerVitalsUpdated', payload }),
+      ),
+      gameEventBus.on('SkillLevelUp', (payload) => dispatch({ type: 'SkillLevelUp', payload })),
+      gameEventBus.on('CharacterLevelUp', (payload) =>
+        dispatch({ type: 'CharacterLevelUp', payload }),
+      ),
+    ];
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, []);
 
   useEffect(() => {
-    const buildingIds = (scene?.nearbyBuildings ?? [])
+    const buildingIds = (scene.nearbyBuildings ?? [])
       .filter((building) => DUNGEON_BUILDING_TYPES.has(building.type))
       .map((dungeon) => dungeon.id)
       .filter((buildingId) => !prefetchedBuildingIds.current.has(buildingId));
+
     if (buildingIds.length === 0) return;
 
     buildingIds.forEach((buildingId) => prefetchedBuildingIds.current.add(buildingId));
-
-    // Warms every unentered nearby dungeon's history in one request, ahead of the player actually
-    // walking into any of them; a failed warm-up costs nothing, since walking in writes it the
-    // same way if it is still missing.
     void prefetchDungeonPremises({ body: { buildingIds } }).catch(() => {});
-  }, [scene?.nearbyBuildings]);
-
-  useEffect(
-    () =>
-      gameEventBus.on('PlayerVitalsUpdated', (vitals) => {
-        const staleAgainstVitals = vitals.version <= (latestVitals.current?.version ?? -Infinity);
-        if (staleAgainstVitals || vitals.version <= latestSnapshotVersion.current) return;
-        latestVitals.current = vitals;
-
-        setScene((current) =>
-          current?.playerStatus.id === vitals.playerId ? withVitals(current, vitals) : current,
-        );
-      }),
-    [],
-  );
-
-  useEffect(
-    () =>
-      gameEventBus.on('SkillLevelUp', (progress) => {
-        setScene((current) =>
-          current
-            ? {
-                ...current,
-                playerStatus: {
-                  ...current.playerStatus,
-                  experienceCurrent: progress.characterExperienceCurrent,
-                  experienceToNextLevel: progress.characterExperienceToNextLevel,
-                },
-              }
-            : current,
-        );
-      }),
-    [],
-  );
-
-  useEffect(
-    () =>
-      gameEventBus.on('CharacterLevelUp', ({ level }) => {
-        setScene((current) =>
-          current ? { ...current, playerStatus: { ...current.playerStatus, level } } : current,
-        );
-      }),
-    [],
-  );
+  }, [scene.nearbyBuildings]);
 
   const setMovementSpeed = useCallback(
-    (movementSpeed: number) =>
-      setScene((current) => {
-        return { ...current, playerStatus: { ...current.playerStatus, movementSpeed } };
-      }),
+    (movementSpeed: number) => dispatch({ type: 'MovementSpeedChanged', movementSpeed }),
     [],
   );
 
   return (
     <SessionContext.Provider value={sessionId}>
-      <PlayerIdContext.Provider value={playerId}>
+      <PlayerIdContext.Provider value={scene.playerStatus.id}>
         <SceneContext.Provider value={{ scene, setMovementSpeed }}>
           {children}
         </SceneContext.Provider>

@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
-import type { ActionResult, SceneSnapshot, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -223,10 +223,6 @@ class IChatHub_HubProxy implements IChatHub {
     public readonly resolveFleeTheftEncounterAction = async (): Promise<ActionResult> => {
         return await this.connection.invoke("ResolveFleeTheftEncounterAction");
     }
-
-    public readonly acknowledgeEvents = async (flushId: string): Promise<void> => {
-        return await this.connection.invoke("AcknowledgeEvents", flushId);
-    }
 }
 
 
@@ -242,6 +238,15 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
     public readonly register = (connection: HubConnection, receiver: IGameClient): Disposable => {
 
         const __sceneSnapshot = (...args: [SceneSnapshot]) => receiver.sceneSnapshot(...args);
+        const __creaturesArrived = (...args: [CreaturesArrivedPayload]) => receiver.creaturesArrived(...args);
+        const __creaturesLeft = (...args: [CreaturesLeftPayload]) => receiver.creaturesLeft(...args);
+        const __creaturesMoved = (...args: [CreaturesMovedPayload]) => receiver.creaturesMoved(...args);
+        const __creaturesUpdated = (...args: [CreaturesUpdatedPayload]) => receiver.creaturesUpdated(...args);
+        const __caravansArrived = (...args: [CaravansArrivedPayload]) => receiver.caravansArrived(...args);
+        const __caravansLeft = (...args: [CaravansLeftPayload]) => receiver.caravansLeft(...args);
+        const __caravansUpdated = (...args: [CaravansUpdatedPayload]) => receiver.caravansUpdated(...args);
+        const __weatherChanged = (...args: [WeatherChangedPayload]) => receiver.weatherChanged(...args);
+        const __clockReanchored = (...args: [ClockReanchoredPayload]) => receiver.clockReanchored(...args);
         const __combatStarted = (...args: [CombatStarted]) => receiver.combatStarted(...args);
         const __combatUpdated = (...args: [CombatUpdated]) => receiver.combatUpdated(...args);
         const __hostileEncounterStarted = (...args: [HostileEncounterState]) => receiver.hostileEncounterStarted(...args);
@@ -263,9 +268,17 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __questJournalUpdated = (...args: [QuestJournalUpdated]) => receiver.questJournalUpdated(...args);
         const __crimeWitnessed = (...args: [CrimeNotification]) => receiver.crimeWitnessed(...args);
         const __crimeWitnessesRemoved = (...args: [CrimeNotification]) => receiver.crimeWitnessesRemoved(...args);
-        const __requestAck = (...args: [string]) => receiver.requestAck(...args);
 
         connection.on("SceneSnapshot", __sceneSnapshot);
+        connection.on("CreaturesArrived", __creaturesArrived);
+        connection.on("CreaturesLeft", __creaturesLeft);
+        connection.on("CreaturesMoved", __creaturesMoved);
+        connection.on("CreaturesUpdated", __creaturesUpdated);
+        connection.on("CaravansArrived", __caravansArrived);
+        connection.on("CaravansLeft", __caravansLeft);
+        connection.on("CaravansUpdated", __caravansUpdated);
+        connection.on("WeatherChanged", __weatherChanged);
+        connection.on("ClockReanchored", __clockReanchored);
         connection.on("CombatStarted", __combatStarted);
         connection.on("CombatUpdated", __combatUpdated);
         connection.on("HostileEncounterStarted", __hostileEncounterStarted);
@@ -287,10 +300,18 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("QuestJournalUpdated", __questJournalUpdated);
         connection.on("CrimeWitnessed", __crimeWitnessed);
         connection.on("CrimeWitnessesRemoved", __crimeWitnessesRemoved);
-        connection.on("RequestAck", __requestAck);
 
         const methodList: ReceiverMethod[] = [
             { methodName: "SceneSnapshot", method: __sceneSnapshot },
+            { methodName: "CreaturesArrived", method: __creaturesArrived },
+            { methodName: "CreaturesLeft", method: __creaturesLeft },
+            { methodName: "CreaturesMoved", method: __creaturesMoved },
+            { methodName: "CreaturesUpdated", method: __creaturesUpdated },
+            { methodName: "CaravansArrived", method: __caravansArrived },
+            { methodName: "CaravansLeft", method: __caravansLeft },
+            { methodName: "CaravansUpdated", method: __caravansUpdated },
+            { methodName: "WeatherChanged", method: __weatherChanged },
+            { methodName: "ClockReanchored", method: __clockReanchored },
             { methodName: "CombatStarted", method: __combatStarted },
             { methodName: "CombatUpdated", method: __combatUpdated },
             { methodName: "HostileEncounterStarted", method: __hostileEncounterStarted },
@@ -311,8 +332,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "QuestObjectiveCompleted", method: __questObjectiveCompleted },
             { methodName: "QuestJournalUpdated", method: __questJournalUpdated },
             { methodName: "CrimeWitnessed", method: __crimeWitnessed },
-            { methodName: "CrimeWitnessesRemoved", method: __crimeWitnessesRemoved },
-            { methodName: "RequestAck", method: __requestAck }
+            { methodName: "CrimeWitnessesRemoved", method: __crimeWitnessesRemoved }
         ]
 
         return new ReceiverMethodSubscription(connection, methodList);

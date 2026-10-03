@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type {
-  BuildingLayoutWire,
-  PropLayoutWire,
+  NearbyBuildingSnapshot,
+  NearbyExitSnapshot,
+  NearbyPropSnapshot,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
@@ -193,8 +194,10 @@ describe('buildObstacles', () => {
     const props = [
       { id: 'chair', model: 'SeatChair', placement, footprint },
       { id: 'trap', model: 'TrapMechanical', placement, footprint },
-    ] as PropLayoutWire[];
-    const buildings = [{ id: 'inn', type: 'Inn', placement, footprint }] as BuildingLayoutWire[];
+    ] as NearbyPropSnapshot[];
+    const buildings = [
+      { id: 'inn', type: 'Inn', placement, footprint },
+    ] as NearbyBuildingSnapshot[];
 
     // Act
     const obstacles = buildObstacles(props, buildings);
@@ -206,12 +209,12 @@ describe('buildObstacles', () => {
 
 describe('buildWalls', () => {
   const size = { width: 10, depth: 8 };
-  const door = (exitX: number, exitY: number) => ({
-    connectorId: 'door',
-    destinationLocationId: 'a',
-    exitX,
-    exitY,
-  });
+  const door = (x: number, y: number) =>
+    ({
+      connectorId: 'door',
+      destinationLocationId: 'a',
+      placement: { x, y, angle: 0 },
+    }) as NearbyExitSnapshot;
   const northWalls = (walls: ReturnType<typeof buildWalls>) =>
     walls
       .filter(({ placement }) => placement.y === 0)
@@ -265,8 +268,16 @@ describe('buildWalls', () => {
 });
 
 describe('findConnectorInRange', () => {
-  const near = { connectorId: 'near', destinationLocationId: 'a', exitX: 4, exitY: 0 };
-  const far = { connectorId: 'far', destinationLocationId: 'b', exitX: 40, exitY: 0 };
+  const near = {
+    connectorId: 'near',
+    destinationLocationId: 'a',
+    placement: { x: 4, y: 0, angle: 0 },
+  } as NearbyExitSnapshot;
+  const far = {
+    connectorId: 'far',
+    destinationLocationId: 'b',
+    placement: { x: 40, y: 0, angle: 0 },
+  } as NearbyExitSnapshot;
 
   it('returns nothing when every connector is out of range', () => {
     // Act
@@ -278,7 +289,7 @@ describe('findConnectorInRange', () => {
 
   it('returns the closest connector within range', () => {
     // Arrange
-    const closer = { ...near, connectorId: 'closer', exitX: 2 };
+    const closer = { ...near, connectorId: 'closer', placement: { ...near.placement, x: 2 } };
 
     // Act
     const found = findConnectorInRange({ x: 0, y: 0 }, [near, closer, far], 5);
@@ -290,16 +301,11 @@ describe('findConnectorInRange', () => {
 
 describe('buildEntityNames', () => {
   const scene = {
-    playerStatus: { id: 'player' },
+    playerStatus: { id: 'player', placement: { x: 1, y: 2, angle: 0.5 } },
     nearbyCreatures: [{ id: 'c1', name: 'Mira' }],
     nearbyBuildings: [{ id: 'b1', name: 'The Cold Rest' }],
     nearbyProps: [{ id: 'p1', name: 'Well' }],
     exits: [{ connectorId: 'x1', destination: { name: 'Old Road' } }],
-    layout: {
-      creatures: [{ id: 'player', placement: { x: 1, y: 2, angle: 0.5 } }],
-      buildings: [],
-      connectors: [],
-    },
   } as unknown as SceneSnapshot;
 
   it('names creatures, buildings, props and exits by id', () => {
@@ -315,7 +321,7 @@ describe('buildEntityNames', () => {
     });
   });
 
-  it('names a building door after the building it sits on', () => {
+  it('names a building entrance from its exit destination', () => {
     // Arrange
     const outdoors = {
       ...scene,
@@ -323,15 +329,7 @@ describe('buildEntityNames', () => {
         { id: 'b1', name: 'The Cold Rest' },
         { id: 'b2', name: 'The Far Forge' },
       ],
-      exits: [],
-      layout: {
-        creatures: [],
-        buildings: [
-          { id: 'b1', placement: { x: 10, y: 10, angle: 0 }, footprint: { width: 6, depth: 6 } },
-          { id: 'b2', placement: { x: 30, y: 10, angle: 0 }, footprint: { width: 6, depth: 6 } },
-        ],
-        connectors: [{ connectorId: 'door', exitX: 10, exitY: 13.2 }],
-      },
+      exits: [{ connectorId: 'door', destination: { name: 'The Cold Rest' } }],
     } as unknown as SceneSnapshot;
 
     // Act
@@ -341,7 +339,7 @@ describe('buildEntityNames', () => {
     expect(names.get('door')).toBe('The Cold Rest');
   });
 
-  it('finds the player placement in the layout', () => {
+  it('finds the player placement on the player status', () => {
     // Act
     const placement = findPlayerPlacement(scene);
 
