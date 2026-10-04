@@ -16,6 +16,8 @@ import { CreatureFigure } from './creature-figure';
 import type { CreatureFocus } from './creature-focus';
 import { DoorConnector } from './door-connector';
 import { EntityLabel } from './entity-label';
+import { FurnitureMesh } from './furniture-mesh';
+import { isFurnitureModel } from './furniture-parts';
 import { headingToYaw, type Obstacle, toScenePosition, WALL_HEIGHT } from './layout-math';
 import {
   BUILDING_MODEL_URLS,
@@ -96,6 +98,16 @@ function BoxMesh({ footprint, style }: { footprint: FootprintWire; style: BoxSty
   );
 }
 
+function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropModel) {
+  if (model?.startsWith('Seat')) {
+    return <SeatMesh footprint={footprint} style={style} model={model} />;
+  }
+  if (model && isFurnitureModel(model)) {
+    return <FurnitureMesh footprint={footprint} style={style} model={model} />;
+  }
+  return <BoxMesh footprint={footprint} style={style} />;
+}
+
 function Box({
   label,
   placement,
@@ -112,11 +124,7 @@ function Box({
   propModel?: PropModel;
 }) {
   const { height } = style;
-  const fallback = propModel?.startsWith('Seat') ? (
-    <SeatMesh footprint={footprint} style={style} model={propModel} />
-  ) : (
-    <BoxMesh footprint={footprint} style={style} />
-  );
+  const fallback = propFallback(footprint, style, propModel);
 
   return (
     <group

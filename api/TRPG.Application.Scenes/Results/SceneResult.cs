@@ -61,7 +61,10 @@ public record ScenePropInfo(
     PropModel Model,
     Placement Placement,
     Footprint Footprint
-);
+)
+{
+    public const string FurnitureType = "Furniture";
+}
 
 public record SceneJourneyInfo(string Purpose, string NextDestination);
 

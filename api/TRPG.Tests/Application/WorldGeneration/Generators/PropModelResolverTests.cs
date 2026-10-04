@@ -137,4 +137,17 @@ public class PropModelResolverTests
         // Assert
         Assert.Equal(PropModel.WorkstationWeaponsmithing, model);
     }
+
+    [Fact]
+    public void Resolve_ReturnsThePersistedModel_ForFurniture()
+    {
+        // Arrange
+        var furniture = new Furniture { Model = PropModel.FurnitureRug };
+
+        // Act
+        var model = PropModelResolver.Resolve(furniture);
+
+        // Assert
+        Assert.Equal(PropModel.FurnitureRug, model);
+    }
 }

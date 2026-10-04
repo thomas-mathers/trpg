@@ -568,6 +568,7 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasValue<Trigger>("Trigger")
                 .HasValue<Cell>("Cell")
                 .HasValue<Sign>("Sign")
+                .HasValue<Furniture>("Furniture")
                 .HasValue<CaravanScheduleSign>("CaravanScheduleSign");
             entity.Property<string>("behavior_type").HasColumnType("text");
             entity.HasIndex(p => p.LocationId);

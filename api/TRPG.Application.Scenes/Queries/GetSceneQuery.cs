@@ -956,6 +956,7 @@ internal class GetSceneQueryHandler(
             Trap => "Trap",
             Trigger => "Trigger",
             Sign => "Sign",
+            Furniture => ScenePropInfo.FurnitureType,
             _ => prop.GetType().Name,
         };
     }

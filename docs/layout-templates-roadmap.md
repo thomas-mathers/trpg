@@ -31,7 +31,7 @@ Working rules for every milestone:
 ## Milestone tracker
 
 - [x] L00 Checklist and workshop
-- [ ] L01 Furniture models and SPA meshes
+- [x] L01 Furniture models and SPA meshes
 - [ ] L02 Templates and fixed sizing
 - [ ] L03 Recipe engine and room recipes
 - [ ] L04 House variants and household bedrooms
@@ -90,20 +90,20 @@ Verification:
 
 - [x] `pnpm` type check passes in `spa`.
 
-### [ ] L01 Furniture models and SPA meshes
+### [x] L01 Furniture models and SPA meshes
 
 Scope:
 
-- [ ] Read `PropModel`, `PropModelResolver`, `PropFootprintCatalog`, the SPA `model-styles.ts` and `viewport-scene.tsx` first.
-- [ ] Add the `Furniture : Prop` subtype and any new `PropModel` values the workshop needs, in the domain and wire.
-- [ ] Exclude `Furniture` from interaction listings.
-- [ ] Add a primitive mesh and style entry in the SPA for every `PropModel` value.
-- [ ] Migration if the new subtype needs one.
+- [x] Read `PropModel`, `PropModelResolver`, `PropFootprintCatalog`, the SPA `model-styles.ts` and `viewport-scene.tsx` first.
+- [x] Add the `Furniture : Prop` subtype and any new `PropModel` values the workshop needs, in the domain and wire.
+- [x] Exclude `Furniture` from interaction listings.
+- [x] Add a primitive mesh and style entry in the SPA for every `PropModel` value.
+- [x] Migration if the new subtype needs one.
 
 Verification:
 
-- [ ] Coverage tests: every `PropModel` resolves to a footprint and an SPA style.
-- [ ] `scripts/build.sh` and SPA type check pass.
+- [x] Coverage tests: every `PropModel` resolves to a footprint and an SPA style.
+- [x] `scripts/build.sh` and SPA type check pass.
 
 ### [ ] L02 Templates and fixed sizing
 

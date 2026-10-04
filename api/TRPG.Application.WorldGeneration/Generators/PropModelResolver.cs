@@ -50,6 +50,7 @@ public static class PropModelResolver
             Bed => PropModel.Bed,
             Cell => PropModel.Cell,
             Sign => PropModel.Sign,
+            Furniture furniture => furniture.Model,
             _ => throw new InvalidOperationException($"{prop.GetType().Name} has no prop model."),
         };
 

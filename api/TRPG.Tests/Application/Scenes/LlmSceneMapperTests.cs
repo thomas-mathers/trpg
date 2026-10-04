@@ -94,6 +94,32 @@ public sealed class LlmSceneMapperTests
         Assert.Equal(WeatherCondition.Storm, result.Weather);
     }
 
+    [Fact]
+    public void ToLlmScene_OmitsFurnitureTheNarratorHasNoToolsFor()
+    {
+        // Arrange
+        var scene = MakeScene();
+        var furniture = new ScenePropInfo(
+            Guid.NewGuid(),
+            "Rug",
+            "A woven rug.",
+            ScenePropInfo.FurnitureType,
+            IsOccupied: false,
+            IsOccupiedByPlayer: false,
+            Model: PropModel.FurnitureRug,
+            Placement: new Placement(0, 0, 0),
+            Footprint: new Footprint(1.6f, 2.4f)
+        );
+        var sceneWithFurniture = scene with { NearbyProps = [.. scene.NearbyProps, furniture] };
+
+        // Act
+        var result = sceneWithFurniture.ToLlmScene();
+
+        // Assert
+        var prop = Assert.Single(result.NearbyProps);
+        Assert.Equal("Chair", prop.Name);
+    }
+
     private static SceneResult MakeScene() =>
         new(
             Guid.NewGuid(),
