@@ -37,7 +37,7 @@ Working rules for every milestone:
 - [x] L04 House variants and household bedrooms
 - [x] L05 Stair and connector alignment
 - [x] L06 District generator and outdoor furnishing
-- [ ] L07 Docs and final verification
+- [x] L07 Docs and final verification
 
 ## Design reference
 
@@ -174,14 +174,14 @@ Verification:
 
 Note: Residential districts are a seeded grid of blocks around one village square (houses face the surrounding streets, 3 m alleys, block count derived from a guaranteed per-block capacity so no retry loop is needed). CityCenter, Encampment, Scientific and Governmental use a fixed precinct layout (roster-ordered buildings around a court, 7 m margin, avenue to the south); other kinds use the same precinct layout with whatever buildings they hold. The square gets a centrepiece per district type and a notice board; the three public bench props bind to bench slots. Decorative crates, barrels and extra benches from the workshop are not ported.
 
-### [ ] L07 Docs and final verification
+### [x] L07 Docs and final verification
 
 Scope:
 
-- [ ] Update the structure section of `api/AGENTS.md` and delete dead code (grow-and-retry, old sizing).
-- [ ] Run the full API and SPA suites once and fix regressions.
+- [x] Update the structure section of `api/AGENTS.md` and delete dead code. Grow-and-retry and `LocationSizer` room sizing stay for dungeons and recipe-less rooms; only the district sizing was dead.
+- [x] Run the full API and SPA suites once and fix regressions.
 
 Verification:
 
-- [ ] `scripts/build.sh` and the full suites pass.
-- [ ] Every milestone above is checked.
+- [x] `scripts/build.sh` and the full suites pass.
+- [x] Every milestone above is checked.
