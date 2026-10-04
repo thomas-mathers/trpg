@@ -98,6 +98,13 @@ export const BUILDING_STYLES: Record<BuildingType, BoxStyle> = {
   Tower: { color: '#8a8a92', height: 10 },
 };
 
+const STOREY_HEIGHT = 3;
+
+export function buildingStyle(type: BuildingType, floorCount: number): BoxStyle {
+  const style = BUILDING_STYLES[type];
+  return { ...style, height: Math.max(style.height, floorCount * STOREY_HEIGHT) };
+}
+
 export const PROP_MODEL_URLS: Partial<Record<PropModel, string>> = {};
 
 export const BUILDING_MODEL_URLS: Partial<Record<BuildingType, string>> = {};

@@ -8,7 +8,7 @@ public class LocationSizerTests
     private static readonly PropModel[] BedModels = [PropModel.Bed];
 
     private static RoomSizingRequest Request(
-        BuildingType buildingType = BuildingType.House,
+        BuildingType buildingType = BuildingType.Crypt,
         RoomRole? role = null,
         IReadOnlyCollection<PropModel>? propModels = null,
         int capacity = 1
@@ -30,7 +30,7 @@ public class LocationSizerTests
         // Assert
         Assert.True(
             footprint.Width * footprint.Depth
-                >= RoomSizeCatalog.Get(BuildingType.House, null).MinimumArea
+                >= RoomSizeCatalog.Get(BuildingType.Crypt, null).MinimumArea
         );
     }
 
@@ -49,7 +49,7 @@ public class LocationSizerTests
         // Assert
         Assert.True(
             footprint.Width * footprint.Depth
-                <= RoomSizeCatalog.Get(BuildingType.House, null).MaximumArea
+                <= RoomSizeCatalog.Get(BuildingType.Crypt, null).MaximumArea
         );
     }
 
@@ -57,9 +57,9 @@ public class LocationSizerTests
     public void SizeRoom_GrowsWithPropFootprints_WhenAboveTheMinimum()
     {
         // Arrange
-        var small = Request(buildingType: BuildingType.Inn, propModels: [PropModel.Bed]);
+        var small = Request(buildingType: BuildingType.Cave, propModels: [PropModel.Bed]);
         var large = Request(
-            buildingType: BuildingType.Inn,
+            buildingType: BuildingType.Cave,
             propModels: Enumerable.Repeat(PropModel.Bed, 10).ToArray()
         );
 
@@ -89,7 +89,7 @@ public class LocationSizerTests
     public void SizeRoom_ReturnsTheSameFootprint_ForTheSameSeed()
     {
         // Arrange
-        var request = Request(buildingType: BuildingType.Tavern);
+        var request = Request(buildingType: BuildingType.Mine);
 
         // Act
         var first = LocationSizer.SizeRoom(request, new Random(42));
@@ -119,27 +119,11 @@ public class LocationSizerTests
         );
     }
 
-    [Theory]
-    [InlineData(1, 3.5)]
-    [InlineData(2, 5)]
-    [InlineData(6, 11)]
-    public void SizeHallway_IsTwoMetersWideAndScalesDepthWithRoomCount(
-        int roomCount,
-        double expectedDepth
-    )
-    {
-        // Act
-        var footprint = LocationSizer.SizeHallway(roomCount);
-
-        // Assert
-        Assert.Equal(new Footprint(Width: 2, Depth: expectedDepth), footprint);
-    }
-
     [Fact]
     public void SizeBuilding_AddsCirculationToTheGroundFloorArea()
     {
         // Act
-        var footprint = LocationSizer.SizeBuilding(BuildingType.House, 100, new Random(1));
+        var footprint = LocationSizer.SizeBuilding(BuildingType.Ruins, 100, new Random(1));
 
         // Assert
         Assert.True(footprint.Width * footprint.Depth >= 115);
@@ -149,12 +133,12 @@ public class LocationSizerTests
     public void SizeBuilding_UsesTheCatalogMinimum_ForSmallGroundFloors()
     {
         // Act
-        var footprint = LocationSizer.SizeBuilding(BuildingType.Castle, 20, new Random(1));
+        var footprint = LocationSizer.SizeBuilding(BuildingType.Tower, 20, new Random(1));
 
         // Assert
         Assert.True(
             footprint.Width * footprint.Depth
-                >= BuildingFootprintCatalog.GetMinimumArea(BuildingType.Castle)
+                >= BuildingFootprintCatalog.GetMinimumArea(BuildingType.Tower)
         );
     }
 
@@ -162,8 +146,8 @@ public class LocationSizerTests
     public void SizeBuilding_ReturnsTheSameFootprint_ForTheSameSeed()
     {
         // Act
-        var first = LocationSizer.SizeBuilding(BuildingType.Inn, 120, new Random(5));
-        var second = LocationSizer.SizeBuilding(BuildingType.Inn, 120, new Random(5));
+        var first = LocationSizer.SizeBuilding(BuildingType.Cave, 120, new Random(5));
+        var second = LocationSizer.SizeBuilding(BuildingType.Cave, 120, new Random(5));
 
         // Assert
         Assert.Equal(first, second);

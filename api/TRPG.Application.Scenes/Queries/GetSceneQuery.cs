@@ -710,7 +710,8 @@ internal class GetSceneQueryHandler(
                 b.Name,
                 b.BuildingType,
                 new Placement(b.X, b.Y, b.Angle),
-                new Footprint(b.Width, b.Depth)
+                new Footprint(b.Width, b.Depth),
+                b.FloorCount
             ))
             .ToArray();
 

@@ -343,6 +343,8 @@ export type NearbyBuildingSnapshot = {
     placement: PlacementWire;
     /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
     footprint: FootprintWire;
+    /** Transpiled from int */
+    floorCount: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyPropSnapshot */

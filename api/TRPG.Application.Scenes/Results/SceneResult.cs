@@ -121,7 +121,8 @@ public record SceneNearbyBuildingInfo(
     string Name,
     BuildingType Type,
     Placement Placement,
-    Footprint Footprint
+    Footprint Footprint,
+    int FloorCount
 );
 
 public record SceneCaravanDestination(

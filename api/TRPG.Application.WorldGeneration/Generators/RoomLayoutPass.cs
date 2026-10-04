@@ -57,27 +57,24 @@ internal static class RoomLayoutPass
         Random random
     )
     {
-        if (LocationLayoutContext.IsHallway(room))
+        var building = context.BuildingById[room.BuildingId];
+
+        if (BuildingTypes.Dungeon.Contains(building.BuildingType))
         {
-            return LocationSizer.SizeHallway(
-                context
-                    .RoomsByBuilding[room.BuildingId]
-                    .Count(other =>
-                        other.FloorNumber == room.FloorNumber
-                        && !LocationLayoutContext.IsHallway(other)
-                    )
+            return LocationSizer.SizeRoom(
+                new RoomSizingRequest(
+                    building.BuildingType,
+                    room.Role,
+                    inputs.Select(input => input.Model).ToArray(),
+                    room.Capacity
+                ),
+                random
             );
         }
 
-        return LocationSizer.SizeRoom(
-            new RoomSizingRequest(
-                context.BuildingById[room.BuildingId].BuildingType,
-                room.Role,
-                inputs.Select(input => input.Model).ToArray(),
-                room.Capacity
-            ),
-            random
-        );
+        return BuildingTemplateCatalog
+            .Resolve(building.BuildingType, context.RoomsByBuilding[building.Id].ToArray())
+            .RoomSize(room);
     }
 
     private static void ApplyProps(Prop[] props, IReadOnlyList<PlacedProp> placed)

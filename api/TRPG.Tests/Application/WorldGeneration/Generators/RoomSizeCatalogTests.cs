@@ -5,13 +5,13 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
 public class RoomSizeCatalogTests
 {
-    public static TheoryData<BuildingType> BuildingTypes => new(Enum.GetValues<BuildingType>());
+    public static TheoryData<BuildingType> DungeonTypes => new(BuildingTypes.Dungeon);
 
     public static TheoryData<RoomRole> RoomRoles => new(Enum.GetValues<RoomRole>());
 
     [Theory]
-    [MemberData(nameof(BuildingTypes))]
-    public void Get_ReturnsAPositiveRange_ForEveryBuildingType(BuildingType buildingType)
+    [MemberData(nameof(DungeonTypes))]
+    public void Get_ReturnsAPositiveRange_ForEveryDungeonType(BuildingType buildingType)
     {
         // Act
         var limits = RoomSizeCatalog.Get(buildingType, null);
@@ -34,20 +34,10 @@ public class RoomSizeCatalogTests
     }
 
     [Fact]
-    public void Get_ReturnsRoomyTavernMinimum()
-    {
-        // Act
-        var limits = RoomSizeCatalog.Get(BuildingType.Tavern, null);
-
-        // Assert
-        Assert.Equal(60, limits.MinimumArea);
-    }
-
-    [Fact]
     public void Get_PrefersTheRoomRole_WhenOneIsGiven()
     {
         // Act
-        var limits = RoomSizeCatalog.Get(BuildingType.House, RoomRole.BossChamber);
+        var limits = RoomSizeCatalog.Get(BuildingType.Cave, RoomRole.BossChamber);
 
         // Assert
         Assert.Equal(80, limits.MinimumArea);

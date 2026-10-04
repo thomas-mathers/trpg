@@ -44,6 +44,7 @@ public class Building
     public BuildingType BuildingType { get; init; }
     public string Description { get; init; } = "";
     public Guid ExteriorLocationId { get; init; }
+    public int FloorCount { get; init; } = 1;
     public Guid? FactionId { get; set; }
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; } = "";

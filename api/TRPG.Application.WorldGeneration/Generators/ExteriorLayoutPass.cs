@@ -117,6 +117,18 @@ internal static class ExteriorLayoutPass
     private static Footprint SizeBuilding(LocationLayoutContext context, Building building)
     {
         var rooms = context.RoomsByBuilding[building.Id].ToArray();
+
+        return BuildingTypes.Dungeon.Contains(building.BuildingType)
+            ? SizeDungeon(context, building, rooms)
+            : BuildingTemplateCatalog.Resolve(building.BuildingType, rooms).Footprint;
+    }
+
+    private static Footprint SizeDungeon(
+        LocationLayoutContext context,
+        Building building,
+        Room[] rooms
+    )
+    {
         var groundFloor = rooms.Where(room => room.FloorNumber == 0).ToArray();
         var groundFloorArea = (groundFloor.Length > 0 ? groundFloor : rooms).Sum(room =>
         {

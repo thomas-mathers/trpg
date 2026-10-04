@@ -32,7 +32,7 @@ Working rules for every milestone:
 
 - [x] L00 Checklist and workshop
 - [x] L01 Furniture models and SPA meshes
-- [ ] L02 Templates and fixed sizing
+- [x] L02 Templates and fixed sizing
 - [ ] L03 Recipe engine and room recipes
 - [ ] L04 House variants and household bedrooms
 - [ ] L05 Stair and connector alignment
@@ -105,18 +105,18 @@ Verification:
 - [x] Coverage tests: every `PropModel` resolves to a footprint and an SPA style.
 - [x] `scripts/build.sh` and SPA type check pass.
 
-### [ ] L02 Templates and fixed sizing
+### [x] L02 Templates and fixed sizing
 
 Scope:
 
-- [ ] Add data-driven building templates (floors, rooms, role, fixed width and depth) for every non-dungeon `BuildingType`, with one template per type.
-- [ ] Replace `LocationSizer`'s area formulas, `SizeHallway`, the 1.15 building factor and aspect jitter with template sizes.
-- [ ] Add floor count to `Building` and the layout wire.
+- [x] Add data-driven building templates (floors, rooms, role, fixed width and depth) for every non-dungeon `BuildingType`, with one template per type.
+- [x] (Dungeons keep the old sizing.) Replace `LocationSizer`'s area formulas, `SizeHallway`, the 1.15 building factor and aspect jitter with template sizes.
+- [x] Add floor count to `Building` and the layout wire.
 
 Verification:
 
-- [ ] Tests: every building type has a template, sizes are grid-snapped, buildings fit their template rooms.
-- [ ] `scripts/build.sh` passes.
+- [x] Tests: every building type has a template, sizes are grid-snapped, buildings fit their template rooms.
+- [x] `scripts/build.sh` passes.
 
 ### [ ] L03 Recipe engine and room recipes
 

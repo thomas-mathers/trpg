@@ -12,7 +12,6 @@ internal record RoomSizingRequest(
 internal static class LocationSizer
 {
     internal const double GridSize = 0.25;
-    internal const double HallwayWidth = 2;
     internal const double StreetWidth = 6;
     internal const double BuildingGap = 3;
     internal const double DistrictBuildingMargin = 6;
@@ -22,8 +21,6 @@ internal static class LocationSizer
     private const double BuildingCirculationFactor = 1.15;
     private const double DistrictSlackFactor = 2;
     private const double MinimumDistrictSide = 20;
-    private const double HallwayBaseDepth = 2;
-    private const double HallwayDepthPerRoom = 1.5;
 
     internal static Footprint SizeRoom(RoomSizingRequest request, Random random)
     {
@@ -39,9 +36,6 @@ internal static class LocationSizer
 
         return FromAreaAndAspect(Math.Min(area, limits.MaximumArea), aspect, limits.MaximumArea);
     }
-
-    internal static Footprint SizeHallway(int roomCount) =>
-        new(Width: HallwayWidth, Depth: SnapUp(HallwayBaseDepth + HallwayDepthPerRoom * roomCount));
 
     internal static Footprint SizeBuilding(
         BuildingType buildingType,

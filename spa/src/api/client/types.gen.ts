@@ -666,6 +666,7 @@ export type NearbyBuildingSnapshot = {
     typeDescription: string;
     placement: PlacementWire;
     footprint: FootprintWire;
+    floorCount: number;
 };
 
 export type NearbyCaravanSnapshot = {

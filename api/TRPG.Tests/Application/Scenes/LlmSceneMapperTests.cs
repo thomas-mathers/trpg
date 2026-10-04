@@ -164,7 +164,8 @@ public sealed class LlmSceneMapperTests
                     "The Trading Post",
                     BuildingType.Inn,
                     new Placement(0, 0, 0),
-                    new Footprint(1, 1)
+                    new Footprint(1, 1),
+                    FloorCount: 2
                 ),
             ],
             WeatherCondition.Storm,

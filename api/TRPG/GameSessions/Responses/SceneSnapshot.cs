@@ -291,7 +291,8 @@ public record NearbyBuildingSnapshot(
     BuildingType Type,
     string TypeDescription,
     PlacementWire Placement,
-    FootprintWire Footprint
+    FootprintWire Footprint,
+    int FloorCount
 );
 
 [TranspilationSource]

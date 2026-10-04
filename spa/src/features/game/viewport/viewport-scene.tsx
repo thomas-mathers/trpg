@@ -21,7 +21,7 @@ import { isFurnitureModel } from './furniture-parts';
 import { headingToYaw, type Obstacle, toScenePosition, WALL_HEIGHT } from './layout-math';
 import {
   BUILDING_MODEL_URLS,
-  BUILDING_STYLES,
+  buildingStyle,
   type BoxStyle,
   PROP_MODEL_URLS,
   PROP_STYLES,
@@ -167,12 +167,12 @@ export function Boxes({
           modelUrl={PROP_MODEL_URLS[model]}
         />
       ))}
-      {buildings.map(({ id, type, placement, footprint }) => (
+      {buildings.map(({ id, type, placement, footprint, floorCount }) => (
         <Box
           key={id}
           placement={placement}
           footprint={footprint}
-          style={BUILDING_STYLES[type]}
+          style={buildingStyle(type, floorCount)}
           modelUrl={BUILDING_MODEL_URLS[type]}
         />
       ))}
