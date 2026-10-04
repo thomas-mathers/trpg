@@ -190,6 +190,29 @@ public class RoomRecipeLayoutTests
     }
 
     [Theory]
+    [InlineData(BuildingType.Tavern, "Common Room", PropModel.ContainerBarrel)]
+    [InlineData(BuildingType.Stable, "Stable", PropModel.ContainerCrate)]
+    public void Expand_StacksStorageAgainstTheSouthWall_ForTheRoom(
+        BuildingType type,
+        string roomName,
+        PropModel expected
+    )
+    {
+        // Arrange
+        var room = new Footprint(14, 12);
+        var recipe = RoomRecipeCatalog.Find(type, roomName)!;
+
+        // Act
+        var items = recipe.Expand(room);
+
+        // Assert
+        Assert.Contains(
+            items,
+            item => item.Model == expected && item.Bounds.Top + item.Bounds.Depth > room.Depth - 1
+        );
+    }
+
+    [Theory]
     [MemberData(nameof(RecipeBuildingTypes))]
     public void Generate_CreatesSittableSeatsInsteadOfChairDecor_ForRecipeBuildings(
         BuildingType type

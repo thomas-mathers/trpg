@@ -1,6 +1,8 @@
 import type { PropModel } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-export type FurnitureModel = Extract<PropModel, `Furniture${string}`>;
+export type FurnitureModel =
+  | Extract<PropModel, `Furniture${string}`>
+  | Extract<PropModel, 'ContainerBarrel' | 'ContainerCrate'>;
 
 type Vector = [number, number, number];
 
@@ -251,6 +253,38 @@ function sacks({ width, depth, height, color }: FurnitureSize): FurniturePart[] 
   ];
 }
 
+function barrel({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
+  const radius = Math.min(width, depth) / 2;
+  const half = height / 2;
+  const hoop = radius * 0.93;
+  return [
+    cylinder([0, 0, 0], [radius, radius * 0.85, half], color),
+    cylinder([0, half, 0], [radius * 0.85, radius, half - 0.03], color),
+    cylinder([0, height - 0.03, 0], [radius * 0.8, radius * 0.8, 0.03], DARK_WOOD),
+    cylinder([0, height * 0.2, 0], [hoop, hoop, 0.06], DARK_STONE),
+    cylinder([0, height * 0.75, 0], [hoop, hoop, 0.06], DARK_STONE),
+  ];
+}
+
+function crate({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
+  return [
+    box([0, 0, 0], [width - 0.04, height - 0.05, depth - 0.04], color),
+    box([0, height - 0.05, 0], [width, 0.05, depth], DARK_WOOD),
+    ...[-1, 1].flatMap((x) =>
+      [-1, 1].map((z) =>
+        box(
+          [x * (width / 2 - 0.035), 0, z * (depth / 2 - 0.035)],
+          [0.07, height - 0.05, 0.07],
+          DARK_WOOD,
+        ),
+      ),
+    ),
+    ...[-1, 1].map((z) =>
+      box([0, height * 0.4, z * (depth / 2 - 0.01)], [width - 0.14, 0.07, 0.02], DARK_WOOD),
+    ),
+  ];
+}
+
 function waystone({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
   return [
     box([0, 0, 0], [width * 0.8, height * 0.15, depth * 0.8], DARK_STONE),
@@ -276,6 +310,8 @@ function firePit({ width, height, color }: FurnitureSize): FurniturePart[] {
 
 export const FURNITURE_BUILDERS: Record<FurnitureModel, (size: FurnitureSize) => FurniturePart[]> =
   {
+    ContainerBarrel: barrel,
+    ContainerCrate: crate,
     FurnitureTable: tableOf,
     FurnitureWorkTable: tableOf,
     FurnitureFireplace: fireplace,
