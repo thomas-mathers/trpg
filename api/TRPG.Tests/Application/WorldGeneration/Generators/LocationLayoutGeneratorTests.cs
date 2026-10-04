@@ -180,6 +180,33 @@ public class LocationLayoutGeneratorTests
     }
 
     [Fact]
+    public void Generate_ReturnsDistrictCenterpiecesInsideTheirDistrict()
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
+
+        // Act
+        var furniture = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        var districtIds = world
+            .Input.Locations.Where(location => location.Kind == LocationKind.District)
+            .Select(location => location.Id)
+            .ToHashSet();
+        var centerpieces = furniture
+            .OfType<Furniture>()
+            .Where(item =>
+                districtIds.Contains(item.LocationId) && item.Model == PropModel.FurnitureFountain
+            )
+            .ToArray();
+        Assert.NotEmpty(centerpieces);
+        Assert.All(
+            centerpieces,
+            item => Assert.True(IsInside(item.X, item.Y, world.LocationById(item.LocationId)))
+        );
+    }
+
+    [Fact]
     public void Generate_ProducesTheSameLayout_WhenRunTwice()
     {
         // Arrange

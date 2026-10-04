@@ -78,6 +78,7 @@ internal static class MiniLayoutWorldBuilder
         return new MiniLayoutWorld(
             new LocationLayoutInput(
                 locations,
+                districts.Select(district => district.District).ToArray(),
                 props,
                 buildings,
                 rooms,
@@ -110,6 +111,7 @@ internal static class MiniLayoutWorldBuilder
         return new MiniLayoutWorld(
             new LocationLayoutInput(
                 [district.Location, .. result.Locations],
+                [district.District],
                 [.. district.Seats, .. result.Props],
                 [result.Building],
                 [.. result.Rooms],

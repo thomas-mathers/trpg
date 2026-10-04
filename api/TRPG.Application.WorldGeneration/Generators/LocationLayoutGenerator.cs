@@ -9,11 +9,11 @@ internal static class LocationLayoutGenerator
         var context = new LocationLayoutContext(input);
         var exitByConnectorId = new Dictionary<Guid, ConnectorExit>();
 
-        var furniture = RoomLayoutPass.Run(context, exitByConnectorId);
-        ExteriorLayoutPass.Run(context, exitByConnectorId);
+        var roomFurniture = RoomLayoutPass.Run(context, exitByConnectorId);
+        var exteriorFurniture = ExteriorLayoutPass.Run(context, exitByConnectorId);
         ApplyConnectorPoints(context, exitByConnectorId);
 
-        return furniture;
+        return [.. roomFurniture, .. exteriorFurniture];
     }
 
     private static void ApplyConnectorPoints(

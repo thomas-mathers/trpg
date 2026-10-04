@@ -641,6 +641,7 @@ public class WorldGenerator(
         var furniture = LocationLayoutGenerator.Generate(
             new LocationLayoutInput(
                 anchoredLocations,
+                geography.Districts,
                 props,
                 buildings,
                 rooms,

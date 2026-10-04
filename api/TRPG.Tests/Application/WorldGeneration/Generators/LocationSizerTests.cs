@@ -154,43 +154,6 @@ public class LocationSizerTests
     }
 
     [Fact]
-    public void SizeDistrict_CoversTheBuildingsWithMarginAndSlack()
-    {
-        // Arrange
-        var buildings = Enumerable.Repeat(new Footprint(Width: 10, Depth: 8), 10).ToArray();
-
-        // Act
-        var footprint = LocationSizer.SizeDistrict(buildings, 0);
-
-        // Assert
-        Assert.True(footprint.Width * footprint.Depth >= 2 * 10 * (16 * 14));
-    }
-
-    [Fact]
-    public void SizeDistrict_FitsTheWidestAndDeepestBuilding_WhenOneIsLarge()
-    {
-        // Arrange
-        var buildings = new[] { new Footprint(Width: 40, Depth: 30) };
-
-        // Act
-        var footprint = LocationSizer.SizeDistrict(buildings, 0);
-
-        // Assert
-        Assert.True(footprint.Width >= 46);
-        Assert.True(footprint.Depth >= 6 + 2 * 33);
-    }
-
-    [Fact]
-    public void SizeDistrict_ReturnsAMinimumSize_WhenThereAreNoBuildings()
-    {
-        // Act
-        var footprint = LocationSizer.SizeDistrict([], 0);
-
-        // Assert
-        Assert.Equal(new Footprint(Width: 20, Depth: 20), footprint);
-    }
-
-    [Fact]
     public void SizeWilderness_Returns300By300_RegardlessOfInput()
     {
         // Act

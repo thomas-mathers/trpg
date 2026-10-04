@@ -12,15 +12,10 @@ internal record RoomSizingRequest(
 internal static class LocationSizer
 {
     internal const double GridSize = 0.25;
-    internal const double StreetWidth = 6;
-    internal const double BuildingGap = 3;
-    internal const double DistrictBuildingMargin = 6;
 
     private const double PropAreaFactor = 1.5;
     private const double AreaPerOccupant = 1.2;
     private const double BuildingCirculationFactor = 1.15;
-    private const double DistrictSlackFactor = 2;
-    private const double MinimumDistrictSide = 20;
 
     internal static Footprint SizeRoom(RoomSizingRequest request, Random random)
     {
@@ -50,33 +45,6 @@ internal static class LocationSizer
         var aspect = 1.2 + random.NextDouble() * 0.2;
 
         return FromAreaAndAspect(area, aspect, double.MaxValue);
-    }
-
-    internal static Footprint SizeDistrict(
-        IReadOnlyCollection<Footprint> buildingFootprints,
-        double seatArea
-    )
-    {
-        var buildingArea = buildingFootprints.Sum(footprint =>
-            (footprint.Width + DistrictBuildingMargin) * (footprint.Depth + DistrictBuildingMargin)
-        );
-        var side = Math.Max(
-            MinimumDistrictSide,
-            Math.Sqrt(DistrictSlackFactor * (buildingArea + seatArea))
-        );
-        var widestBuilding = buildingFootprints
-            .Select(footprint => footprint.Width)
-            .DefaultIfEmpty(0)
-            .Max();
-        var deepestBuilding = buildingFootprints
-            .Select(footprint => footprint.Depth)
-            .DefaultIfEmpty(0)
-            .Max();
-
-        return new Footprint(
-            Width: SnapUp(Math.Max(side, widestBuilding + 2 * BuildingGap)),
-            Depth: SnapUp(Math.Max(side, StreetWidth + 2 * (deepestBuilding + BuildingGap)))
-        );
     }
 
     internal static Footprint SizeWilderness() => WildernessCatalog.Size;

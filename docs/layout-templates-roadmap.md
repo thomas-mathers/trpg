@@ -36,7 +36,7 @@ Working rules for every milestone:
 - [x] L03 Recipe engine and room recipes
 - [x] L04 House variants and household bedrooms
 - [x] L05 Stair and connector alignment
-- [ ] L06 District generator and outdoor furnishing
+- [x] L06 District generator and outdoor furnishing
 - [ ] L07 Docs and final verification
 
 ## Design reference
@@ -161,16 +161,18 @@ Verification:
 
 Note: stairs sit on the north wall (the workshop puts them south, but the ground-floor front door is on the south wall center). Each flight has its own column, 1.2 m apart, so a middle-floor hallway can hold both flights. Hallway doors are centered on their rooms with even gaps, as in the workshop.
 
-### [ ] L06 District generator and outdoor furnishing
+### [x] L06 District generator and outdoor furnishing
 
 Scope:
 
-- [ ] Port the district generator (squares, courts, street network) with a seeded step for jitter.
-- [ ] Port outdoor furnishing (centrepieces, benches, notice boards).
+- [x] Port the district generator (squares, courts, street network) with a seeded step for jitter.
+- [x] Port outdoor furnishing (centrepieces, benches, notice boards).
 
 Verification:
 
-- [ ] Tests: no overlap, everything in bounds, door approaches clear, determinism.
+- [x] Tests: no overlap, everything in bounds, door approaches clear, determinism.
+
+Note: Residential districts are a seeded grid of blocks around one village square (houses face the surrounding streets, 3 m alleys, block count derived from a guaranteed per-block capacity so no retry loop is needed). CityCenter, Encampment, Scientific and Governmental use a fixed precinct layout (roster-ordered buildings around a court, 7 m margin, avenue to the south); other kinds use the same precinct layout with whatever buildings they hold. The square gets a centrepiece per district type and a notice board; the three public bench props bind to bench slots. Decorative crates, barrels and extra benches from the workshop are not ported.
 
 ### [ ] L07 Docs and final verification
 
