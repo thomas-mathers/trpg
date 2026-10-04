@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useMemo, useState } from 'react';
+import { PCFShadowMap } from 'three/webgpu';
 
 import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
@@ -15,6 +16,7 @@ import { runAction } from '../run-action';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
+import { IndoorLighting } from './indoor-lighting';
 import {
   buildDoorHeaders,
   buildEntityNames,
@@ -24,6 +26,9 @@ import {
   findPlayerPlacement,
   isWalledScene,
 } from './layout-math';
+import { buildingStyle } from './model-styles';
+import { OutdoorLighting } from './outdoor-lighting';
+import { OutdoorSky } from './outdoor-sky';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
 import { useSeatInteraction } from './use-seat-interaction';
 import {
@@ -35,6 +40,7 @@ import {
   ROOM_FLOOR_COLOR,
   Walls,
 } from './viewport-scene';
+import { createWebGpuRenderer } from './webgpu-renderer';
 
 const CANVAS_ID = 'location-viewport-canvas';
 
@@ -138,10 +144,13 @@ export function LocationViewport({
         className={focus ? 'h-[40%] w-full md:h-full md:w-[calc(100%-28rem)]' : 'size-full'}
         style={{ pointerEvents: focus || restoring ? 'none' : undefined }}
       >
-        <Canvas camera={{ fov: 75, near: 0.1, far: 500 }}>
+        <Canvas
+          key="webgpu"
+          gl={createWebGpuRenderer}
+          shadows={{ type: PCFShadowMap }}
+          camera={{ fov: 75, near: 0.1, far: 500 }}
+        >
           <color attach="background" args={['#9bb7d4']} />
-          <ambientLight intensity={0.8} />
-          <directionalLight position={[size.width, 40, -size.depth]} intensity={1.2} />
           <Ground
             size={size}
             wells={wells}
@@ -185,6 +194,22 @@ export function LocationViewport({
             onNearbyConnectorChange={(connector) => setNearbyConnectorId(connector?.connectorId)}
             onEnterConnector={handleEnterConnector}
           />
+          {isRoomScene(scene) ? (
+            <IndoorLighting size={size} props={props} />
+          ) : (
+            <>
+              <OutdoorSky />
+              <OutdoorLighting
+                size={size}
+                height={Math.max(
+                  3,
+                  ...buildings.map(
+                    ({ type, floorCount }) => buildingStyle(type, floorCount).height,
+                  ),
+                )}
+              />
+            </>
+          )}
         </Canvas>
       </div>
       {locked && !focus && (

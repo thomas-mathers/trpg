@@ -192,10 +192,17 @@ function stall({ width, depth, height, color }: FurnitureSize): FurniturePart[] 
 }
 
 function fireplace({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
+  const openingWidth = width * 0.55;
+  const openingHeight = height * 0.45;
+  const jambWidth = (width - openingWidth) / 2;
+  const backZ = depth / 2 - 0.04;
   return [
-    box([0, 0, 0], [width, height, depth], color),
-    box([0, 0, -depth / 2 + 0.02], [width * 0.55, height * 0.45, 0.04], '#2e2a26'),
-    box([0, 0.04, -depth / 2 + 0.03], [width * 0.3, height * 0.2, 0.04], GLOW),
+    ...[-1, 1].map((side) =>
+      box([side * (width / 2 - jambWidth / 2), 0, 0], [jambWidth, height, depth], color),
+    ),
+    box([0, openingHeight, 0], [openingWidth, height - openingHeight, depth], color),
+    box([0, 0, backZ], [openingWidth, openingHeight, 0.04], '#2e2a26'),
+    box([0, 0.04, backZ - 0.06], [width * 0.3, height * 0.2, 0.03], GLOW),
   ];
 }
 

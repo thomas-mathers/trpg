@@ -23,6 +23,7 @@ import { GameHubConnectionContext } from '../hooks/use-game-hub-connection';
 import { CreatureFocusController } from './creature-focus-controller';
 import { LocationViewport } from './location-viewport';
 import { Ground, Creatures } from './viewport-scene';
+import { createWebGpuRenderer } from './webgpu-renderer';
 
 const scene = {
   worldId: 'world',
@@ -143,7 +144,7 @@ function FocusedStage() {
   return (
     <>
       <div className="h-[40%] w-full md:h-full md:w-[calc(100%-28rem)]">
-        <Canvas camera={{ position: [5, 1.7, 6], fov: 75 }}>
+        <Canvas gl={createWebGpuRenderer} camera={{ position: [5, 1.7, 6], fov: 75 }}>
           <color attach="background" args={['#9bb7d4']} />
           <ambientLight intensity={0.8} />
           <directionalLight position={[2, 6, 8]} intensity={1.2} />

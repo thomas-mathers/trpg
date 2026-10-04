@@ -48,6 +48,26 @@ function extent({ shape, size }: FurniturePart): [number, number, number] {
 const MODELS = Object.keys(FURNITURE_BUILDERS) as FurnitureModel[];
 
 describe('furniture parts', () => {
+  it('leaves the fireplace opening clear and puts the fire in front of its back panel', () => {
+    const model = 'FurnitureFireplace';
+    const [width, depth] = FOOTPRINTS[model];
+    const { height, color } = PROP_STYLES[model];
+    const parts = FURNITURE_BUILDERS[model]({ width, depth, height, color });
+    const middleOfOpening = [0, height * 0.2, -depth / 2 + 0.1];
+    const stoneAtOpening = parts
+      .filter((part) => part.color === color)
+      .some(({ position, size }) =>
+        position.every(
+          (coordinate, axis) => Math.abs(coordinate - middleOfOpening[axis]) < size[axis] / 2,
+        ),
+      );
+    const back = parts.find((part) => part.color === '#2e2a26')!;
+    const fire = parts.find((part) => part.color === '#e19c51')!;
+
+    expect(stoneAtOpening).toBe(false);
+    expect(fire.position[2] + fire.size[2] / 2).toBeLessThan(back.position[2] - back.size[2] / 2);
+  });
+
   it('lists a footprint for every furniture model', () => {
     expect(Object.keys(FOOTPRINTS).sort()).toEqual([...MODELS].sort());
   });

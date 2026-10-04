@@ -16,14 +16,23 @@ const CURB_COLOR = '#65503a';
 function RisingSteps() {
   return (
     <>
-      <mesh position={[0, WALL_HEIGHT + SHAFT_HEIGHT / 2, STAIR_DEPTH / 2]}>
+      <mesh
+        castShadow
+        receiveShadow
+        position={[0, WALL_HEIGHT + SHAFT_HEIGHT / 2, STAIR_DEPTH / 2]}
+      >
         <boxGeometry args={[STAIR_WIDTH, SHAFT_HEIGHT, STAIR_DEPTH]} />
         <meshStandardMaterial color="#14110e" roughness={1} side={BackSide} />
       </mesh>
       {Array.from({ length: STEP_COUNT }, (_, index) => {
         const height = (index + 1) * CLIMB_RISE;
         return (
-          <mesh key={index} position={[0, height / 2, STAIR_DEPTH - (index + 0.5) * STEP_RUN]}>
+          <mesh
+            castShadow
+            receiveShadow
+            key={index}
+            position={[0, height / 2, STAIR_DEPTH - (index + 0.5) * STEP_RUN]}
+          >
             <boxGeometry args={[STAIR_WIDTH, height, STEP_RUN]} />
             <meshStandardMaterial color={STAIR_COLOR} roughness={1} />
           </mesh>
@@ -36,7 +45,7 @@ function RisingSteps() {
 function DescendingSteps() {
   return (
     <>
-      <mesh position={[0, -WELL_DEPTH / 2, STAIR_DEPTH / 2]}>
+      <mesh castShadow receiveShadow position={[0, -WELL_DEPTH / 2, STAIR_DEPTH / 2]}>
         <boxGeometry args={[STAIR_WIDTH, WELL_DEPTH, STAIR_DEPTH]} />
         <meshStandardMaterial color="#14110e" roughness={1} side={BackSide} />
       </mesh>
@@ -45,6 +54,8 @@ function DescendingSteps() {
         const height = WELL_DEPTH + top;
         return (
           <mesh
+            castShadow
+            receiveShadow
             key={index}
             position={[0, top - height / 2, STAIR_DEPTH - (index + 0.5) * STEP_RUN]}
           >
@@ -61,7 +72,12 @@ function Curbs() {
   return (
     <>
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[side * (STAIR_WIDTH / 2 + 0.04), 0.06, STAIR_DEPTH / 2]}>
+        <mesh
+          castShadow
+          receiveShadow
+          key={side}
+          position={[side * (STAIR_WIDTH / 2 + 0.04), 0.06, STAIR_DEPTH / 2]}
+        >
           <boxGeometry args={[0.08, 0.12, STAIR_DEPTH]} />
           <meshStandardMaterial color={CURB_COLOR} roughness={0.9} />
         </mesh>

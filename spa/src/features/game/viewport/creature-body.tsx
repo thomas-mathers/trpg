@@ -20,7 +20,7 @@ function BodySegment({ from, to, radius, color }: Limb & { color: string }) {
     };
   }, [from, to]);
   return (
-    <mesh position={position} quaternion={rotation}>
+    <mesh castShadow receiveShadow position={position} quaternion={rotation}>
       <capsuleGeometry args={[radius, length, 6, 12]} />
       <meshStandardMaterial color={color} roughness={0.85} />
     </mesh>
@@ -33,7 +33,7 @@ function BodyLegs({ pose, color }: { pose: BodyPose; color: string }) {
       {pose.legs.map((limb, index) => (
         <BodySegment key={index} {...limb} color={color} />
       ))}
-      <mesh position={pose.foot}>
+      <mesh castShadow receiveShadow position={pose.foot}>
         <boxGeometry args={[0.19, 0.14, 0.3]} />
         <meshStandardMaterial color={color} roughness={0.85} />
       </mesh>
@@ -67,7 +67,7 @@ export function CreatureBody({
       <group rotation={[0, upperBodyYaw, 0]}>
         <BodySegment {...pose.torso} color={color} />
         {perspective === 'third-person' && (
-          <mesh position={pose.head}>
+          <mesh castShadow receiveShadow position={pose.head}>
             <sphereGeometry args={[0.18, 16, 12]} />
             <meshStandardMaterial color={color} roughness={0.85} />
           </mesh>
