@@ -1,0 +1,198 @@
+.district-preview {
+  min-height: 100dvh;
+  background: #182824;
+  color: #e7e5d8;
+  padding: clamp(14px, 3vw, 32px);
+  font-family: 'Geist Variable', sans-serif;
+}
+.district-preview > * {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.district-preview h1 {
+  font-family: 'Im Fell English', Georgia, serif;
+  font-size: clamp(28px, 5vw, 42px);
+  margin: 6px 0;
+}
+.district-preview h2 {
+  font-size: 24px;
+  margin: 6px 0;
+}
+.district-preview p {
+  color: #c1c9bb;
+  margin: 8px 0 16px;
+  font-size: 14px;
+}
+.layout-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  color: #d2c499;
+}
+.layout-controls {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  padding: 16px 0;
+}
+.layout-controls label {
+  font-size: 11px;
+  color: #c1c9bb;
+  display: grid;
+  gap: 6px;
+}
+.district-preview button,
+.district-preview select,
+.district-preview input {
+  min-height: 44px;
+  border: 1px solid #526257;
+  border-radius: 6px;
+  background: #293d35;
+  color: #f0efdf;
+  font: inherit;
+  font-size: 13px;
+  padding: 10px;
+  width: 100%;
+}
+.district-preview button {
+  cursor: pointer;
+}
+.district-preview button:hover {
+  background: #3a5143;
+}
+.district-preview :focus-visible {
+  outline: 2px solid #efcb79;
+  outline-offset: 3px;
+}
+.layout-status,
+.layout-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 12px;
+  padding: 10px 0;
+  color: #c1c9bb;
+}
+.layout-status strong {
+  color: #f0efdf;
+}
+.layout-map {
+  position: relative;
+  height: min(65dvh, 680px);
+  min-height: 340px;
+  background: #aaa58d;
+  border: 1px solid #75816b;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.layout-map svg {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+}
+.layout-map g[role='button'] {
+  cursor: pointer;
+}
+.layout-map-tools {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+}
+.layout-map-tools button {
+  width: 44px;
+  box-shadow: 0 2px 8px #0003;
+}
+.layout-inspector {
+  margin-top: 14px;
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  background: #23382f;
+  border: 1px solid #526257;
+  border-radius: 8px;
+}
+.layout-inspector button {
+  width: auto;
+}
+.interior-map {
+  width: 100%;
+  height: 300px;
+  background: #ddd1b9;
+  border-radius: 6px;
+}
+.district-preview footer {
+  color: #96a99a;
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 20px 0 4px;
+}
+@media (max-width: 650px) {
+  .layout-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .layout-inspector {
+    grid-template-columns: 1fr;
+  }
+  .layout-map {
+    height: 52dvh;
+  }
+}
+
+.district-choice {
+  display: flex;
+  gap: 12px;
+  padding-top: 8px;
+}
+.district-choice label {
+  flex: 1;
+  font-size: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.population-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #d5dfcf;
+}
+.population-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.district-preview .population-controls input {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  accent-color: #e0c891;
+}
+.population-controls span {
+  flex-basis: 100%;
+  font-size: 11px;
+  color: #b6c5b5;
+}
+
+.prop-inventory {
+  width: 100%;
+  font-size: 12px;
+}
+.prop-inventory summary {
+  cursor: pointer;
+  padding: 8px 0;
+}
+.prop-inventory span {
+  display: inline-block;
+  margin: 4px 16px 4px 0;
+}
