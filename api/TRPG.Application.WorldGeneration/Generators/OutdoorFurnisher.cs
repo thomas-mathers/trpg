@@ -136,7 +136,7 @@ internal static class OutdoorFurnisher
             .ToArray();
     }
 
-    private static OrientedBox Approach(DistrictBuildingLayout layout)
+    internal static OrientedBox Approach(DistrictBuildingLayout layout)
     {
         var angle = layout.Placement.Angle;
         var center = new Placement(

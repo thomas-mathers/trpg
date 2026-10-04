@@ -12,6 +12,7 @@ import type {
   PropModel,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
+import { OUTDOOR_FLOOR_COLOR } from './boundary-scene';
 import { connectorYaw } from './connector-placement';
 import { CreatureFigure } from './creature-figure';
 import type { CreatureFocus } from './creature-focus';
@@ -35,11 +36,11 @@ import {
 } from './model-styles';
 import type { ViewportSeat } from './seat-interaction';
 import { SeatMesh } from './seat-mesh';
+import { SignMesh } from './sign-mesh';
 import { StairConnector } from './stair-connector';
 
 type EntityNames = ReadonlyMap<string, string>;
 
-const OUTDOOR_FLOOR_COLOR = '#6f6350';
 export const ROOM_FLOOR_COLOR = '#6e5338';
 
 export function Ground({
@@ -78,7 +79,17 @@ export function Ceiling({
 
 const HEADER_HEIGHT = WALL_HEIGHT - DOOR_HEIGHT;
 
-export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle[] }) {
+const TOWER_HEIGHT = WALL_HEIGHT * 1.7;
+
+export function Walls({
+  walls,
+  headers = [],
+  towers = [],
+}: {
+  walls: Obstacle[];
+  headers?: Obstacle[];
+  towers?: Obstacle[];
+}) {
   return (
     <>
       {walls.map(({ placement, footprint }) => (
@@ -87,9 +98,22 @@ export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle
           receiveShadow
           key={`${placement.x}:${placement.y}`}
           position={toScenePosition(placement.x, placement.y, WALL_HEIGHT / 2)}
+          rotation={[0, headingToYaw(placement.angle), 0]}
         >
           <boxGeometry args={[footprint.width, WALL_HEIGHT, footprint.depth]} />
           <meshLambertMaterial color="#8a7b66" />
+        </mesh>
+      ))}
+      {towers.map(({ placement, footprint }) => (
+        <mesh
+          castShadow
+          receiveShadow
+          key={`tower:${placement.x}:${placement.y}`}
+          position={toScenePosition(placement.x, placement.y, TOWER_HEIGHT / 2)}
+          rotation={[0, headingToYaw(placement.angle), 0]}
+        >
+          <boxGeometry args={[footprint.width, TOWER_HEIGHT, footprint.depth]} />
+          <meshLambertMaterial color="#756853" />
         </mesh>
       ))}
       {headers.map(({ placement, footprint }) => (
@@ -144,7 +168,10 @@ function BoxMesh({ footprint, style }: { footprint: FootprintWire; style: BoxSty
   );
 }
 
-function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropModel) {
+function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropModel, text?: string) {
+  if (model === 'Sign' && text) {
+    return <SignMesh footprint={footprint} style={style} text={text} />;
+  }
   if (model?.startsWith('Seat')) {
     return <SeatMesh footprint={footprint} style={style} model={model} />;
   }
@@ -160,15 +187,17 @@ function Box({
   style,
   modelUrl,
   propModel,
+  text,
 }: {
   placement: PlacementWire;
   footprint: FootprintWire;
   style: BoxStyle;
   modelUrl?: string;
   propModel?: PropModel;
+  text?: string;
 }) {
   const { height } = style;
-  const fallback = propFallback(footprint, style, propModel);
+  const fallback = propFallback(footprint, style, propModel, text);
 
   return (
     <group
@@ -195,13 +224,14 @@ export function Boxes({
 }) {
   return (
     <>
-      {props.map(({ id, model, placement, footprint }) => (
+      {props.map(({ id, model, placement, footprint, description }) => (
         <Box
           key={id}
           placement={placement}
           footprint={footprint}
           style={PROP_STYLES[model]}
           propModel={model}
+          text={description}
           modelUrl={PROP_MODEL_URLS[model]}
         />
       ))}

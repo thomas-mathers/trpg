@@ -13,18 +13,20 @@ import { useScene } from '../contexts/scene-context';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { runAction } from '../run-action';
+import { OpenEdgeFades, OpenEdgeGatePosts, RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
 import { IndoorLighting } from './indoor-lighting';
 import {
+  boundaryTowers,
+  boundaryWalls,
   buildDoorHeaders,
   buildEntityNames,
   buildObstacles,
   buildWalls,
   isRoomScene,
   findPlayerPlacement,
-  isWalledScene,
 } from './layout-math';
 import { buildingStyle } from './model-styles';
 import { OutdoorLighting } from './outdoor-lighting';
@@ -85,11 +87,13 @@ export function LocationViewport({
   const wells = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Down'), [scene]);
   const shafts = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Up'), [scene]);
   const walls = useMemo(
-    () => (isWalledScene(scene) ? buildWalls(scene.size, scene.exits) : []),
+    () =>
+      isRoomScene(scene) ? buildWalls(scene.size, scene.exits) : boundaryWalls(scene.boundary),
     [scene],
   );
+  const towers = useMemo(() => boundaryTowers(scene.boundary), [scene]);
   const headers = useMemo(
-    () => (isWalledScene(scene) ? buildDoorHeaders(scene.size, scene.exits) : []),
+    () => (isRoomScene(scene) ? buildDoorHeaders(scene.size, scene.exits) : []),
     [scene],
   );
 
@@ -156,7 +160,13 @@ export function LocationViewport({
             wells={wells}
             color={isRoomScene(scene) ? ROOM_FLOOR_COLOR : undefined}
           />
-          <Walls walls={walls} headers={headers} />
+          <Walls walls={walls} headers={headers} towers={towers} />
+          {scene.roads && <Roads roads={scene.roads} />}
+          {scene.roads && <RoadAprons roads={scene.roads} size={size} />}
+          {scene.boundary && <OpenEdgeFades boundary={scene.boundary} size={size} />}
+          {scene.boundary && (
+            <OpenEdgeGatePosts exits={connectors} boundary={scene.boundary} size={size} />
+          )}
           {isRoomScene(scene) && <Ceiling size={size} openings={shafts} />}
           <Boxes props={props} buildings={buildings} />
           <Creatures

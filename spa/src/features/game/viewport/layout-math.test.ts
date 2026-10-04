@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type {
+  BoundarySegmentSnapshot,
+  LocationBoundarySnapshot,
   NearbyBuildingSnapshot,
   NearbyExitSnapshot,
   NearbyPropSnapshot,
@@ -9,6 +11,8 @@ import type {
 
 import {
   buildEntityNames,
+  boundaryTowers,
+  boundaryWalls,
   buildObstacles,
   buildDoorHeaders,
   buildWalls,
@@ -18,7 +22,6 @@ import {
   findPlayerPlacement,
   headingToYaw,
   isRoomScene,
-  isWalledScene,
   PLAYER_RADIUS,
   pushOutOfObstacles,
   STAIR_DEPTH,
@@ -480,31 +483,55 @@ describe('walkSpeedFor', () => {
   });
 });
 
-describe('isWalledScene', () => {
-  const scene = (parts: Partial<SceneSnapshot>) => parts as SceneSnapshot;
-
-  it('walls in a room', () => {
-    // Act
-    const walled = isWalledScene(scene({ districtName: 'Old Town', roomName: 'Lobby' }));
-
-    // Assert
-    expect(walled).toBe(true);
+describe('boundaryWalls', () => {
+  const boundary = (segments: BoundarySegmentSnapshot[]): LocationBoundarySnapshot => ({
+    segments,
+    gates: [],
+    openEdges: [],
+  });
+  const segment = (kind: BoundarySegmentSnapshot['kind'], x: number): BoundarySegmentSnapshot => ({
+    kind,
+    placement: { x, y: 0, angle: 0 },
+    footprint: { width: 2, depth: 0.2 },
   });
 
-  it('walls in a district so its edge exits stand in a gate', () => {
+  it('has no walls without a boundary', () => {
     // Act
-    const walled = isWalledScene(scene({ districtName: 'Grand Bazaar' }));
+    const walls = boundaryWalls(undefined);
 
     // Assert
-    expect(walled).toBe(true);
+    expect(walls).toEqual([]);
   });
 
-  it('leaves open ground without walls', () => {
+  it('keeps only the wall segments', () => {
+    // Arrange
+    const scene = boundary([segment('Wall', 1), segment('Tower', 2), segment('Wall', 3)]);
+
     // Act
-    const walled = isWalledScene(scene({ cityName: undefined, districtName: undefined }));
+    const walls = boundaryWalls(scene);
 
     // Assert
-    expect(walled).toBe(false);
+    expect(walls.map(({ placement }) => placement.x)).toEqual([1, 3]);
+  });
+});
+
+describe('boundaryTowers', () => {
+  it('keeps only the tower segments', () => {
+    // Arrange
+    const scene: LocationBoundarySnapshot = {
+      segments: [
+        { kind: 'Wall', placement: { x: 1, y: 0, angle: 0 }, footprint: { width: 2, depth: 1 } },
+        { kind: 'Tower', placement: { x: 2, y: 0, angle: 0 }, footprint: { width: 2, depth: 1 } },
+      ],
+      gates: [],
+      openEdges: [],
+    };
+
+    // Act
+    const towers = boundaryTowers(scene);
+
+    // Assert
+    expect(towers.map(({ placement }) => placement.x)).toEqual([2]);
   });
 });
 

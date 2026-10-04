@@ -219,6 +219,51 @@ export type SceneSnapshot = {
     anchoredAtUnixMilliseconds: number;
     /** Transpiled from double */
     timeScale: number;
+    /** Transpiled from TRPG.GameSessions.Responses.LocationBoundarySnapshot? */
+    boundary?: LocationBoundarySnapshot;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.RoadSnapshot>? */
+    roads?: RoadSnapshot[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.RoadSnapshot */
+export type RoadSnapshot = {
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.PointWire> */
+    points: PointWire[];
+    /** Transpiled from double */
+    width: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.BoundarySegmentKind */
+export type BoundarySegmentKind = "Wall" | "Tower";
+
+/** Transpiled from TRPG.GameSessions.Responses.BoundarySegmentSnapshot */
+export type BoundarySegmentSnapshot = {
+    /** Transpiled from TRPG.GameSessions.Responses.BoundarySegmentKind */
+    kind: BoundarySegmentKind;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    footprint: FootprintWire;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.BoundaryGateSnapshot */
+export type BoundaryGateSnapshot = {
+    /** Transpiled from System.Guid */
+    connectorId: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+    /** Transpiled from double */
+    width: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.LocationBoundarySnapshot */
+export type LocationBoundarySnapshot = {
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoundarySegmentSnapshot> */
+    segments: BoundarySegmentSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoundaryGateSnapshot> */
+    gates: BoundaryGateSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CompassDirection> */
+    openEdges: CompassDirection[];
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureStatusSnapshot */
@@ -450,6 +495,14 @@ export type NearbyCaravanSnapshot = {
     passengerServiceAvailable: boolean;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.CaravanDestinationSnapshot> */
     destinations: CaravanDestinationSnapshot[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.PointWire */
+export type PointWire = {
+    /** Transpiled from double */
+    x: number;
+    /** Transpiled from double */
+    y: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */

@@ -103,6 +103,20 @@ export type BookPageResponse = {
     revealedFact: boolean;
 };
 
+export type BoundaryGateSnapshot = {
+    connectorId: string;
+    placement: PlacementWire;
+    width: number;
+};
+
+export type BoundarySegmentKind = 'Wall' | 'Tower';
+
+export type BoundarySegmentSnapshot = {
+    kind: BoundarySegmentKind;
+    placement: PlacementWire;
+    footprint: FootprintWire;
+};
+
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
 export type CaravanDestinationSnapshot = {
@@ -651,6 +665,12 @@ export type LocalMapRoomResponse = {
     markers: Array<LocalMapMarkerResponse>;
 };
 
+export type LocationBoundarySnapshot = {
+    segments: Array<BoundarySegmentSnapshot>;
+    gates: Array<BoundaryGateSnapshot>;
+    openEdges: Array<CompassDirection>;
+};
+
 export type LoreAnchor = {
     id: string;
     name: string;
@@ -764,6 +784,11 @@ export type PointResponse = {
     y: number;
 };
 
+export type PointWire = {
+    x: number;
+    y: number;
+};
+
 export type PrefetchDungeonPremisesRequest = {
     buildingIds: Array<string>;
 };
@@ -857,6 +882,11 @@ export type RoadMapResponse = {
     destinationStateId: string;
 };
 
+export type RoadSnapshot = {
+    points: Array<PointWire>;
+    width: number;
+};
+
 export type RoomBoundsResponse = {
     left: number;
     top: number;
@@ -886,6 +916,8 @@ export type SceneSnapshot = {
     gameTimeMilliseconds: number;
     anchoredAtUnixMilliseconds: number;
     timeScale: number;
+    boundary?: null | LocationBoundarySnapshot;
+    roads?: null | Array<RoadSnapshot>;
 };
 
 export type SessionCreatedResponse = {

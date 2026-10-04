@@ -1,5 +1,7 @@
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.Scenes.Boundaries;
+using TRPG.Application.Scenes.Roads;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Results;
@@ -158,5 +160,7 @@ public record SceneResult(
     IReadOnlyCollection<SceneNearbyBuildingInfo> NearbyBuildings,
     WeatherCondition? Weather,
     IReadOnlyCollection<SceneCaravanInfo> NearbyCaravans,
-    Footprint Size
+    Footprint Size,
+    DistrictBoundary? Boundary = null,
+    IReadOnlyCollection<DistrictRoad>? Roads = null
 );

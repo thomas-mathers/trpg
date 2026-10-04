@@ -44,4 +44,23 @@ public class WildernessConnectorGeneratorTests
                 )
         );
     }
+
+    [Fact]
+    public void Generate_PutsTheGateOnTheEntranceSouthEdge()
+    {
+        // Arrange
+        var worldId = Guid.NewGuid();
+        var city = Builders.MakeCity(Guid.NewGuid(), Guid.NewGuid(), name: "Brightwater");
+        var cityEntrance = Builders.MakeDistrict(city.Id, DistrictType.CityEntrance);
+        var wilderness = Builders.MakeLocation(worldId);
+
+        // Act
+        var result = WildernessConnectorGenerator.Generate(city, cityEntrance, wilderness, worldId);
+
+        // Assert
+        var gate = result.LocationConnectors.Single(connector =>
+            connector.OriginLocationId == cityEntrance.LocationId
+        );
+        Assert.Equal(CompassDirection.South, gate.Direction);
+    }
 }

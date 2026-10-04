@@ -19,21 +19,45 @@ internal static class ExteriorLayoutPass
         foreach (var location in context.Locations.Where(l => l.Kind != LocationKind.Room))
         {
             var exterior = LayOut(context, location);
+            var exits = ResolveExits(context, location, exterior);
             furniture.AddRange(exterior.Decor.Select(item => CreateFurniture(location, item)));
-            var classifier = new ConnectorExitClassifier(context, exterior.Buildings);
-            var requests = context
-                .ConnectorsByOrigin[location.Id]
-                .Select(classifier.Classify)
-                .ToArray();
-            var frame = new Footprint(Width: location.Width, Depth: location.Depth);
 
-            foreach (var exit in ConnectorPointResolver.ResolveExits(frame, requests))
+            foreach (var exit in exits)
             {
                 exitByConnectorId[exit.ConnectorId] = exit;
+            }
+
+            if (location.Kind == LocationKind.District)
+            {
+                furniture.AddRange(
+                    OutdoorSignPlacer.Place(
+                        context,
+                        location,
+                        exterior.Buildings,
+                        exterior.Decor,
+                        exits
+                    )
+                );
             }
         }
 
         return furniture;
+    }
+
+    private static IReadOnlyList<ConnectorExit> ResolveExits(
+        LocationLayoutContext context,
+        Location location,
+        ExteriorLayout exterior
+    )
+    {
+        var classifier = new ConnectorExitClassifier(context, exterior.Buildings);
+        var requests = context
+            .ConnectorsByOrigin[location.Id]
+            .Select(classifier.Classify)
+            .ToArray();
+        var frame = new Footprint(Width: location.Width, Depth: location.Depth);
+
+        return ConnectorPointResolver.ResolveExits(frame, requests);
     }
 
     private static Furniture CreateFurniture(Location location, DistrictDecor item) =>

@@ -20,6 +20,7 @@ internal static class WildernessConnectorGenerator
                 Name = "Path",
                 Description = "A path leading into the wilderness.",
                 DestinationLabel = "Wilderness",
+                Direction = CompassDirection.South,
                 WorldId = worldId,
             },
             new LocationConnector

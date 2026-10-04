@@ -3,6 +3,9 @@ using Tapper;
 namespace TRPG.GameSessions.Responses;
 
 [TranspilationSource]
+public record PointWire(double X, double Y);
+
+[TranspilationSource]
 public record PlacementWire(double X, double Y, double Angle);
 
 [TranspilationSource]
