@@ -33,7 +33,7 @@ Working rules for every milestone:
 - [x] L00 Checklist and workshop
 - [x] L01 Furniture models and SPA meshes
 - [x] L02 Templates and fixed sizing
-- [ ] L03 Recipe engine and room recipes
+- [x] L03 Recipe engine and room recipes
 - [ ] L04 House variants and household bedrooms
 - [ ] L05 Stair and connector alignment
 - [ ] L06 District generator and outdoor furnishing
@@ -118,19 +118,21 @@ Verification:
 - [x] Tests: every building type has a template, sizes are grid-snapped, buildings fit their template rooms.
 - [x] `scripts/build.sh` passes.
 
-### [ ] L03 Recipe engine and room recipes
+### [x] L03 Recipe engine and room recipes
 
 Scope:
 
-- [ ] Read `BuildingGenerator` and `BuildingSpecCatalog` first, and settle where props get created.
-- [ ] Add the recipe engine and port the workshop room plans, replacing `RoomPropPlacer`.
-- [ ] Wire recipes into building generation so required props come from templates.
-- [ ] First slice: the inn and the blacksmith, end to end.
+- [x] Read `BuildingGenerator` and `BuildingSpecCatalog` first, and settle where props get created.
+- [x] Add the recipe engine and port the workshop room plans, replacing `RoomPropPlacer`.
+- [x] Wire recipes into building generation so required props come from templates.
+- [x] First slice: the inn and the blacksmith, end to end.
 
 Verification:
 
-- [ ] Tests (ported from the TS invariants): everything in bounds, no solid overlaps, nothing blocks doors or stairs, required props always placed, determinism.
-- [ ] Generated-world test for the inn and the blacksmith.
+- [x] Tests (ported from the TS invariants): everything in bounds, no solid overlaps, nothing blocks doors or stairs, required props always placed, determinism.
+- [x] Generated-world test for the inn and the blacksmith.
+
+Follow-up: only the inn and blacksmith have recipes. Other building types and rooms fall back to `RoomPropPlacer` until their recipes are added to `RoomRecipeCatalog`. Seat and chest slots beyond the spec props are dropped, so lobby tables have no extra chairs yet.
 
 ### [ ] L04 House variants and household bedrooms
 

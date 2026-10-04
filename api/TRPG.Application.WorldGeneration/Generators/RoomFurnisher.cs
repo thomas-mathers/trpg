@@ -1,0 +1,73 @@
+using TRPG.Domain.Models;
+
+namespace TRPG.Application.WorldGeneration.Generators;
+
+internal record FurnishedRoom(IReadOnlyList<PlacedProp> Bound, IReadOnlyList<RecipeItem> Decor);
+
+internal static class RoomFurnisher
+{
+    private const double Clearance = 0.12;
+    private const double KeepOutSize = 1.5;
+
+    internal static RoomRect KeepOut(ConnectorExit exit)
+    {
+        var centerX = exit.Point.X + KeepOutSize / 2 * Math.Sin(exit.FacingAngle);
+        var centerY = exit.Point.Y - KeepOutSize / 2 * Math.Cos(exit.FacingAngle);
+
+        return new RoomRect(
+            centerX - KeepOutSize / 2,
+            centerY - KeepOutSize / 2,
+            KeepOutSize,
+            KeepOutSize
+        );
+    }
+
+    internal static FurnishedRoom Furnish(
+        Footprint room,
+        RoomRecipe recipe,
+        IReadOnlyCollection<RoomPropInput> props,
+        IReadOnlyCollection<RoomRect> blocked
+    )
+    {
+        var items = recipe.Expand(room).Where(item => item.Bounds.IsInside(room)).ToArray();
+        var decor = items
+            .Where(item => item.Model == PropModel.FurnitureRug && IsFree(item.Bounds, blocked))
+            .ToList();
+        var unplaced = props.ToList();
+        var bound = new List<PlacedProp>();
+        var obstacles = blocked.ToList();
+
+        foreach (var item in items.Where(item => item.Model != PropModel.FurnitureRug))
+        {
+            var prop = unplaced.Find(candidate => candidate.Model == item.Model);
+
+            if ((prop is null && !IsFurniture(item.Model)) || !IsFree(item.Bounds, obstacles))
+            {
+                continue;
+            }
+
+            obstacles.Add(item.Bounds);
+
+            if (prop is null)
+            {
+                decor.Add(item);
+                continue;
+            }
+
+            unplaced.Remove(prop);
+            bound.Add(new PlacedProp(prop.Id, prop.Model, item.Placement, item.Footprint));
+        }
+
+        return unplaced.Count == 0
+            ? new FurnishedRoom(bound, decor)
+            : throw new InvalidOperationException(
+                $"The recipe has no slot for {unplaced[0].Model} in a {room.Width}x{room.Depth} room."
+            );
+    }
+
+    private static bool IsFurniture(PropModel model) =>
+        model.ToString().StartsWith(nameof(Furniture), StringComparison.Ordinal);
+
+    private static bool IsFree(RoomRect rect, IEnumerable<RoomRect> others) =>
+        !others.Any(other => other.Width > 0 && other.Depth > 0 && rect.IsWithin(other, Clearance));
+}

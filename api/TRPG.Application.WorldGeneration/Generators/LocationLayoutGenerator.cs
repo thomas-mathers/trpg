@@ -4,14 +4,16 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class LocationLayoutGenerator
 {
-    internal static void Generate(LocationLayoutInput input)
+    internal static IReadOnlyList<Prop> Generate(LocationLayoutInput input)
     {
         var context = new LocationLayoutContext(input);
         var exitByConnectorId = new Dictionary<Guid, ConnectorExit>();
 
-        RoomLayoutPass.Run(context, exitByConnectorId);
+        var furniture = RoomLayoutPass.Run(context, exitByConnectorId);
         ExteriorLayoutPass.Run(context, exitByConnectorId);
         ApplyConnectorPoints(context, exitByConnectorId);
+
+        return furniture;
     }
 
     private static void ApplyConnectorPoints(

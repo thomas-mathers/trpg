@@ -321,8 +321,8 @@ internal static class PropFootprintCatalog
             FrontClearance: 0.8
         ),
         [PropModel.WorkstationArmorsmithing] = new(
-            Width: 0.8,
-            Depth: 0.8,
+            Width: 1.4,
+            Depth: 1.2,
             PropPlacementRule.Center,
             FrontClearance: 0.8
         ),

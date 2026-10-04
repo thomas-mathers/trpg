@@ -638,7 +638,7 @@ public class WorldGenerator(
             wildernessLocationByStateId
         );
 
-        LocationLayoutGenerator.Generate(
+        var furniture = LocationLayoutGenerator.Generate(
             new LocationLayoutInput(
                 anchoredLocations,
                 props,
@@ -648,6 +648,7 @@ public class WorldGenerator(
                 geography.States
             )
         );
+        props.AddRange(furniture);
 
         var knowledge = KnowledgeGenerator.Generate(
             new KnowledgeGeneratorInput
