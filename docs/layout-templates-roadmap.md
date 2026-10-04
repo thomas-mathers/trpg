@@ -38,6 +38,7 @@ Working rules for every milestone:
 - [x] L05 Stair and connector alignment
 - [x] L06 District generator and outdoor furnishing
 - [x] L07 Docs and final verification
+- [x] L08 Remaining room recipes
 
 ## Design reference
 
@@ -132,7 +133,7 @@ Verification:
 - [x] Tests (ported from the TS invariants): everything in bounds, no solid overlaps, nothing blocks doors or stairs, required props always placed, determinism.
 - [x] Generated-world test for the inn and the blacksmith.
 
-Follow-up: only the inn and blacksmith have recipes. Other building types and rooms fall back to `RoomPropPlacer` until their recipes are added to `RoomRecipeCatalog`. Seat and chest slots beyond the spec props are dropped, so lobby tables have no extra chairs yet.
+Note: this milestone shipped the inn and blacksmith recipes only. L08 adds the rest.
 
 ### [x] L04 House variants and household bedrooms
 
@@ -185,3 +186,19 @@ Verification:
 
 - [x] `scripts/build.sh` and the full suites pass.
 - [x] Every milestone above is checked.
+
+### [x] L08 Remaining room recipes
+
+Scope:
+
+- [x] Add a recipe for every non-dungeon building room: shops (one shared station, counter and display-shelf layout), living and owner quarters, tavern, guild hall, library, temple, stable, barracks, castle and jail. Dungeons keep `LocationSizer` and `RoomPropPlacer`.
+- [x] Extend the recipe engine with table sets, centred and rug-runner steps, pew rows, reading tables, back-to-back book stacks and south stock rows.
+- [x] Add decor stand-ins (chair, pew, bench, bookcase, staff rack) so a seat, workstation or weapon rack slot with no bound prop still furnishes the room. Add the matching `PropModel` values, footprints and low-fidelity SPA meshes.
+
+Verification:
+
+- [x] Every non-dungeon building type passes the in-bounds, no-overlap, door-clearance and determinism tests.
+- [x] A fully staffed barracks (7 guards) and guild hall (6 members) furnish without overlap.
+- [x] Stand-in decor is emitted for each stand-in model.
+
+Note: not ported are the jail cell gameplay prop (the slots exist, so a `Cell` binds if present), extra containers beyond the spec props, extra counters, and the workshop's hay bales and anvils. `Furniture.Model` is stored as text, so the new enum values need no migration.

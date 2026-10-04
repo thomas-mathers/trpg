@@ -194,6 +194,30 @@ internal static class PropFootprintCatalog
             PropPlacementRule.Wall,
             FrontClearance: 0.4
         ),
+        [PropModel.FurnitureBookcase] = new(
+            Width: 1.0,
+            Depth: 0.7,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureChair] = new(
+            Width: 0.5,
+            Depth: 0.5,
+            PropPlacementRule.Free,
+            FrontClearance: 0.3
+        ),
+        [PropModel.FurnitureBench] = new(
+            Width: 1.5,
+            Depth: 0.5,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.4
+        ),
+        [PropModel.FurniturePew] = new(
+            Width: 2.0,
+            Depth: 0.6,
+            PropPlacementRule.Free,
+            FrontClearance: 0.5
+        ),
         [PropModel.FurnitureFountain] = new(
             Width: 3.2,
             Depth: 3.2,

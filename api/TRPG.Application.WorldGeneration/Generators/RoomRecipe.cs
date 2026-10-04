@@ -12,6 +12,23 @@ internal enum RecipeWall
 
 internal record RecipeItem(PropModel Model, RoomRect Bounds, RecipeWall Wall)
 {
+    private static readonly IReadOnlyDictionary<PropModel, PropModel> StandIns = new Dictionary<
+        PropModel,
+        PropModel
+    >
+    {
+        [PropModel.SeatChair] = PropModel.FurnitureChair,
+        [PropModel.SeatPew] = PropModel.FurniturePew,
+        [PropModel.SeatBench] = PropModel.FurnitureBench,
+        [PropModel.WorkstationReading] = PropModel.FurnitureBookcase,
+        [PropModel.ContainerWeaponRack] = PropModel.FurnitureStaffRack,
+    };
+
+    internal PropModel? DecorModel =>
+        StandIns.TryGetValue(Model, out var standIn) ? standIn
+        : Model.ToString().StartsWith(nameof(Furniture), StringComparison.Ordinal) ? Model
+        : null;
+
     internal Placement Placement =>
         new(Bounds.CenterX, Bounds.CenterY, RecipeGeometry.Facing(Wall));
 
@@ -120,4 +137,178 @@ internal record RugBeside(RecipeWall Wall, double Width, double Depth) : RecipeS
                 Depth
             ),
         ];
+}
+
+internal record TableSetAt(double FractionX, double FractionY) : RecipeStep
+{
+    internal override IEnumerable<RecipeItem> Expand(Footprint room) =>
+        RecipeGeometry.TableSet(FractionX * room.Width, FractionY * room.Depth);
+}
+
+internal record CenteredAt(
+    PropModel Model,
+    double FractionX,
+    double FractionY,
+    RecipeWall Wall = RecipeWall.North
+) : RecipeStep
+{
+    internal override IEnumerable<RecipeItem> Expand(Footprint room) =>
+        [RecipeGeometry.Around(Model, FractionX * room.Width, FractionY * room.Depth, Wall)];
+}
+
+internal record CenteredFromSouth(PropModel Model, double Distance, RecipeWall Wall) : RecipeStep
+{
+    internal override IEnumerable<RecipeItem> Expand(Footprint room) =>
+        [RecipeGeometry.Around(Model, room.Width / 2, room.Depth - Distance, Wall)];
+}
+
+internal record RugRunner(double Width, double Top, double BottomInset) : RecipeStep
+{
+    internal override IEnumerable<RecipeItem> Expand(Footprint room) =>
+        [
+            RecipeGeometry.Rug(
+                room.Width / 2,
+                (Top + room.Depth - BottomInset) / 2,
+                Width,
+                room.Depth - BottomInset - Top
+            ),
+        ];
+}
+
+internal record PewRows : RecipeStep
+{
+    private const double RowSpacing = 1.8;
+    private const double FirstRow = 4.5;
+    private const double ChancelDepth = 12;
+    private const double AisleMargin = 1.5;
+
+    private static readonly double[] Offsets = [2.2, 4.4, 6.6];
+
+    internal override IEnumerable<RecipeItem> Expand(Footprint room)
+    {
+        var rows = Math.Max(0, (int)Math.Floor((room.Depth - ChancelDepth) / RowSpacing));
+
+        return Offsets
+            .Where(offset => offset < room.Width / 2 - AisleMargin)
+            .SelectMany(offset =>
+                Enumerable
+                    .Range(0, rows)
+                    .SelectMany(row =>
+                        new[] { -1, 1 }.Select(side =>
+                            RecipeGeometry.Around(
+                                PropModel.SeatPew,
+                                room.Width / 2 + side * offset,
+                                FirstRow + row * RowSpacing,
+                                RecipeWall.North
+                            )
+                        )
+                    )
+            );
+    }
+}
+
+internal record ReadingTables(double[] Columns) : RecipeStep
+{
+    private const double Spacing = 3.6;
+    private const double FirstRow = 4.5;
+    private const double SouthReserve = 5.2;
+
+    internal override IEnumerable<RecipeItem> Expand(Footprint room)
+    {
+        var rows = Math.Max(
+            1,
+            (int)Math.Floor((room.Depth - SouthReserve - FirstRow) / Spacing) + 1
+        );
+
+        return Columns.SelectMany(fraction =>
+            Enumerable
+                .Range(0, rows)
+                .SelectMany(row =>
+                    RecipeGeometry.TableSet(
+                        room.Width * fraction,
+                        rows == 1 ? room.Depth * 0.4 : FirstRow + row * Spacing
+                    )
+                )
+        );
+    }
+}
+
+internal record BookStacks(double[] Columns) : RecipeStep
+{
+    private const double RowSpacing = 1.15;
+    private const double PairOffset = 0.425;
+
+    internal override IEnumerable<RecipeItem> Expand(Footprint room)
+    {
+        var count = Math.Max(1, (int)Math.Floor(room.Depth * 0.5 / RowSpacing));
+
+        return Columns.SelectMany(fraction =>
+            Enumerable
+                .Range(0, count)
+                .SelectMany(index =>
+                {
+                    var centerX = room.Width * fraction;
+                    var centerY = room.Depth * 0.25 + room.Depth * 0.5 * (index + 0.5) / count;
+
+                    return new[]
+                    {
+                        RecipeGeometry.Around(
+                            PropModel.WorkstationReading,
+                            centerX - PairOffset,
+                            centerY,
+                            RecipeWall.East
+                        ),
+                        RecipeGeometry.Around(
+                            PropModel.WorkstationReading,
+                            centerX + PairOffset,
+                            centerY,
+                            RecipeWall.West
+                        ),
+                    };
+                })
+        );
+    }
+}
+
+internal record SouthStock(PropModel? Left, PropModel Right) : RecipeStep
+{
+    private const double LeftInset = 2;
+    private const int RightSlots = 3;
+
+    internal override IEnumerable<RecipeItem> Expand(Footprint room)
+    {
+        var right = PropFootprintCatalog.Get(Right).Footprint;
+        var rights = Enumerable
+            .Range(0, RightSlots)
+            .Select(slot =>
+                AlongSouth(
+                    room,
+                    Right,
+                    room.Width
+                        - RecipeGeometry.Margin
+                        - right.Width / 2
+                        - slot * (right.Width + RecipeGeometry.RunGap)
+                )
+            );
+
+        return Left is { } left
+            ? rights.Prepend(
+                AlongSouth(
+                    room,
+                    left,
+                    LeftInset + PropFootprintCatalog.Get(left).Footprint.Width / 2
+                )
+            )
+            : rights;
+    }
+
+    private static RecipeItem AlongSouth(Footprint room, PropModel model, double centerX) =>
+        RecipeGeometry.Around(
+            model,
+            centerX,
+            room.Depth
+                - RecipeGeometry.Margin
+                - PropFootprintCatalog.Get(model).Footprint.Depth / 2,
+            RecipeWall.South
+        );
 }

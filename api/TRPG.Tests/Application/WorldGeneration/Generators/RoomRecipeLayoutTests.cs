@@ -7,7 +7,39 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 public class RoomRecipeLayoutTests
 {
     public static TheoryData<BuildingType> RecipeBuildingTypes =>
-        new(BuildingType.Inn, BuildingType.Blacksmith);
+        new(Enum.GetValues<BuildingType>().Where(type => !BuildingTypes.Dungeon.Contains(type)));
+
+    public static TheoryData<BuildingType, int> StaffedBuildings =>
+        new() { { BuildingType.Barracks, 7 }, { BuildingType.GuildHall, 6 } };
+
+    [Theory]
+    [MemberData(nameof(StaffedBuildings))]
+    public void Generate_FurnishesEveryRoomWithoutOverlap_WhenTheBuildingIsFullyStaffed(
+        BuildingType type,
+        int memberCount
+    )
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildBuildingWorld(
+            type,
+            Enumerable.Range(0, memberCount).Select(_ => Guid.NewGuid()).ToArray()
+        );
+
+        // Act
+        var furniture = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        Assert.All(
+            RecipeRooms(world, type),
+            room =>
+            {
+                var boxes = Solids(world, furniture, room).Select(BoxOf).ToArray();
+                Assert.Empty(
+                    boxes.SelectMany((box, index) => boxes.Skip(index + 1).Where(box.Overlaps))
+                );
+            }
+        );
+    }
 
     [Theory]
     [MemberData(nameof(RecipeBuildingTypes))]

@@ -71,6 +71,18 @@ function legs({ width, depth }: FurnitureSize, legHeight: number, color: string)
   );
 }
 
+function seatOf(size: FurnitureSize, hasBack: boolean): FurniturePart[] {
+  const { width, depth, height, color } = size;
+  const seatTop = hasBack ? 0.5 : height;
+  return [
+    box([0, seatTop - 0.1, 0], [width, 0.1, depth], color),
+    ...legs(size, seatTop - 0.1, DARK_WOOD),
+    ...(hasBack
+      ? [box([0, seatTop, depth / 2 - 0.04], [width, height - seatTop, 0.08], color)]
+      : []),
+  ];
+}
+
 function tableOf(size: FurnitureSize): FurniturePart[] {
   const { width, depth, height, color } = size;
   return [
@@ -279,6 +291,10 @@ export const FURNITURE_BUILDERS: Record<FurnitureModel, (size: FurnitureSize) =>
     FurnitureBreadRack: (size) => shelving(size, 3, '#c19a5a'),
     FurnitureLumberStack: (size) => stackOf(size, 3, size.height / 3, size.color),
     FurnitureTimberRack: (size) => shelving(size, 3, '#a58355'),
+    FurnitureBookcase: (size) => shelving(size, 4, '#8a6a45'),
+    FurnitureChair: (size) => seatOf(size, true),
+    FurnitureBench: (size) => seatOf(size, false),
+    FurniturePew: (size) => seatOf(size, true),
     FurnitureFountain: fountain,
     FurnitureWell: well,
     FurnitureFirePit: firePit,

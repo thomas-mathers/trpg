@@ -41,7 +41,9 @@ internal static class RoomFurnisher
         {
             var prop = unplaced.Find(candidate => candidate.Model == item.Model);
 
-            if ((prop is null && !IsFurniture(item.Model)) || !IsFree(item.Bounds, obstacles))
+            var decorModel = item.DecorModel;
+
+            if ((prop is null && decorModel is null) || !IsFree(item.Bounds, obstacles))
             {
                 continue;
             }
@@ -50,7 +52,7 @@ internal static class RoomFurnisher
 
             if (prop is null)
             {
-                decor.Add(item);
+                decor.Add(item with { Model = decorModel!.Value });
                 continue;
             }
 
@@ -64,9 +66,6 @@ internal static class RoomFurnisher
                 $"The recipe has no slot for {unplaced[0].Model} in a {room.Width}x{room.Depth} room."
             );
     }
-
-    private static bool IsFurniture(PropModel model) =>
-        model.ToString().StartsWith(nameof(Furniture), StringComparison.Ordinal);
 
     private static bool IsFree(RoomRect rect, IEnumerable<RoomRect> others) =>
         !others.Any(other => other.Width > 0 && other.Depth > 0 && rect.IsWithin(other, Clearance));

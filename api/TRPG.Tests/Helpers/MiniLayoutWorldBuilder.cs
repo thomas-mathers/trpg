@@ -88,7 +88,14 @@ internal static class MiniLayoutWorldBuilder
         );
     }
 
-    internal static MiniLayoutWorld BuildHouseWorld(IReadOnlyList<Guid> memberIds)
+    internal static MiniLayoutWorld BuildHouseWorld(IReadOnlyList<Guid> memberIds) =>
+        BuildBuildingWorld(BuildingType.House, memberIds, HouseholdBedroomGroups(memberIds));
+
+    internal static MiniLayoutWorld BuildBuildingWorld(
+        BuildingType type,
+        IReadOnlyList<Guid> memberIds,
+        IReadOnlyList<IReadOnlyList<Guid>>? bedroomGroups = null
+    )
     {
         var worldId = Guid.NewGuid();
         var state = MakeState(worldId, new Point(10, 10));
@@ -98,14 +105,9 @@ internal static class MiniLayoutWorldBuilder
             state.Id,
             worldId
         );
-        var spec = BuildingSpecCatalog.GetSpecs(
-            BuildingType.House,
-            memberIds[0],
-            memberIds,
-            HouseholdBedroomGroups(memberIds)
-        );
+        var spec = BuildingSpecCatalog.GetSpecs(type, memberIds[0], memberIds, bedroomGroups);
         var result = new BuildingGenerator().Generate(
-            new BuildingGeneratorInput(district.Location, spec) { Name = "House" }
+            new BuildingGeneratorInput(district.Location, spec) { Name = type.ToString() }
         );
 
         return new MiniLayoutWorld(

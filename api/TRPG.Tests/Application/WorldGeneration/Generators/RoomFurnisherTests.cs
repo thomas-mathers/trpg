@@ -63,6 +63,27 @@ public class RoomFurnisherTests
         Assert.Contains(result.Decor, item => item.Model == PropModel.FurnitureFireplace);
     }
 
+    [Theory]
+    [InlineData(PropModel.SeatChair, PropModel.FurnitureChair)]
+    [InlineData(PropModel.SeatPew, PropModel.FurniturePew)]
+    [InlineData(PropModel.SeatBench, PropModel.FurnitureBench)]
+    [InlineData(PropModel.WorkstationReading, PropModel.FurnitureBookcase)]
+    [InlineData(PropModel.ContainerWeaponRack, PropModel.FurnitureStaffRack)]
+    public void Furnish_SpawnsAStandInDecor_WhenNoPropFillsAGameplaySlot(
+        PropModel slotModel,
+        PropModel standIn
+    )
+    {
+        // Arrange
+        var recipe = new RoomRecipe([new Anchored(slotModel, 0.5, 0.5)]);
+
+        // Act
+        var result = RoomFurnisher.Furnish(Room, recipe, [], []);
+
+        // Assert
+        Assert.Equal(standIn, Assert.Single(result.Decor).Model);
+    }
+
     [Fact]
     public void Furnish_DropsAGameplaySlot_WhenNoPropFillsIt()
     {
