@@ -16,6 +16,27 @@ internal static class OutdoorFurnisher
     private const double ApproachWidth = 2;
     private const double ApproachDepth = 1.5;
 
+    private const double ClutterEdgeOffset = 1;
+    private const double ClutterSpacing = 1.25;
+    private const double ClutterDistance = 0.9;
+
+    private static readonly PropModel[] DoorClutterModels =
+    [
+        PropModel.ContainerCrate,
+        PropModel.ContainerBarrel,
+    ];
+
+    private static readonly BuildingType[] ClutteredFronts =
+    [
+        BuildingType.GeneralGoods,
+        BuildingType.Bakery,
+        BuildingType.Carpenter,
+        BuildingType.Blacksmith,
+        BuildingType.Stable,
+        BuildingType.Inn,
+        BuildingType.Tavern,
+    ];
+
     private static readonly double[] FrontFractions = [-0.3, 0.3, -0.4, 0.4];
     private static readonly double[] BenchFractions = [0.2, 0.5, 0.8, 0.35, 0.65];
     private static readonly double[] BoardFractions = [0.5, 0.25, 0.75, 0.1, 0.9];
@@ -46,9 +67,52 @@ internal static class OutdoorFurnisher
         PlaceOptional(decor, occupied, BoardCandidates(plan.Square));
 
         var fronts = FrontBoxes(plan, buildings);
+        var placedSeats = PlaceSeats(seats, plan.Square, occupied, fronts);
 
-        return new OutdoorFurnishing(PlaceSeats(seats, plan.Square, occupied, fronts), decor);
+        foreach (var candidate in DoorClutter(plan, buildings))
+        {
+            PlaceOptional(decor, occupied, [candidate]);
+        }
+
+        return new OutdoorFurnishing(placedSeats, decor);
     }
+
+    private static IEnumerable<DistrictDecor> DoorClutter(
+        DistrictPlan plan,
+        IReadOnlyCollection<DistrictBuildingInput> buildings
+    )
+    {
+        var footprintById = buildings.ToDictionary(
+            building => building.Id,
+            building => building.Footprint
+        );
+        var typeById = buildings.ToDictionary(building => building.Id, building => building.Type);
+
+        return plan
+            .Buildings.Where(layout => ClutteredFronts.Contains(typeById[layout.Id]))
+            .SelectMany(layout => ClutterAt(layout, footprintById[layout.Id]));
+    }
+
+    private static IEnumerable<DistrictDecor> ClutterAt(
+        DistrictBuildingLayout layout,
+        Footprint footprint
+    ) =>
+        DoorClutterModels.Select(
+            (model, index) =>
+            {
+                var angle = layout.Placement.Angle;
+                var (sin, cos) = Math.SinCos(angle);
+                var along = -footprint.Width / 2 + ClutterEdgeOffset + index * ClutterSpacing;
+                var ahead = footprint.Depth / 2 + ClutterDistance;
+
+                return Decor(
+                    model,
+                    layout.Placement.X + along * cos + ahead * sin,
+                    layout.Placement.Y + along * sin - ahead * cos,
+                    angle
+                );
+            }
+        );
 
     private static List<OrientedBox> Blocked(
         DistrictPlan plan,

@@ -4,6 +4,8 @@ import { FURNITURE_BUILDERS, type FurnitureModel, type FurniturePart } from './f
 import { PROP_STYLES } from './model-styles';
 
 const FOOTPRINTS: Record<FurnitureModel, [number, number]> = {
+  ContainerBarrel: [0.6, 0.6],
+  ContainerCrate: [0.7, 0.7],
   FurnitureTable: [1.8, 1],
   FurnitureWorkTable: [2.4, 1.2],
   FurnitureFireplace: [1.4, 0.8],

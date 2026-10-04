@@ -17,6 +17,7 @@ internal static class RoomRecipeCatalog
         new RugBeside(RecipeWall.West, 1.6, 2.4),
         new CounterAt(0.3, RecipeWall.East),
         new TableGrid(Top: 3.5, Bottom: 4.5),
+        new WallRun(PropModel.ContainerBarrel, RecipeWall.South, From: 0.65, To: 0.95),
     ]);
 
     private static readonly RoomRecipe LivingRoom = new([
@@ -84,6 +85,7 @@ internal static class RoomRecipeCatalog
         new WallRun(PropModel.FurnitureStall, RecipeWall.West, From: 0.1, To: 0.95),
         new WallRun(PropModel.FurnitureStall, RecipeWall.East, From: 0.1, To: 0.95),
         new WallRun(PropModel.ContainerBarrel, RecipeWall.South, From: 0.1, To: 0.3),
+        new WallRun(PropModel.ContainerCrate, RecipeWall.South, From: 0.7, To: 0.9),
     ]);
 
     private static readonly RoomRecipe Sanctuary = new([
