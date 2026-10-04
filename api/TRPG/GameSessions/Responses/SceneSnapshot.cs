@@ -139,6 +139,13 @@ public enum CompassDirection
 }
 
 [TranspilationSource]
+public enum StairDirection
+{
+    Up,
+    Down,
+}
+
+[TranspilationSource]
 public enum DistrictType
 {
     Residential,
@@ -340,7 +347,8 @@ public record NearbyExitSnapshot(
     bool IsVisited,
     bool IsWayBack,
     Guid DestinationLocationId,
-    PlacementWire Placement
+    PlacementWire Placement,
+    StairDirection? Stairs
 );
 
 [TranspilationSource]

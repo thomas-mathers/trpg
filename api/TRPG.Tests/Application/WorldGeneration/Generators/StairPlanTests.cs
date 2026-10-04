@@ -1,4 +1,5 @@
 using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Domain.Models;
 
 namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
@@ -11,7 +12,12 @@ public class StairPlanTests
         var connectorId = Guid.NewGuid();
 
         // Act
-        var exit = StairPlan.Exit(connectorId, roomWidth: 10, lowerFloorNumber: 0);
+        var exit = StairPlan.Exit(
+            connectorId,
+            roomWidth: 10,
+            lowerFloorNumber: 0,
+            StairDirection.Up
+        );
 
         // Assert
         Assert.Equal(0, exit.Point.Y);
@@ -25,10 +31,15 @@ public class StairPlanTests
     public void Exit_PutsTheSameFlightAtTheSamePlanOffset_InRoomsOfDifferentWidths(double width)
     {
         // Arrange
-        var narrow = StairPlan.Exit(Guid.NewGuid(), roomWidth: 2.5, lowerFloorNumber: 0);
+        var narrow = StairPlan.Exit(
+            Guid.NewGuid(),
+            roomWidth: 2.5,
+            lowerFloorNumber: 0,
+            StairDirection.Up
+        );
 
         // Act
-        var exit = StairPlan.Exit(Guid.NewGuid(), width, lowerFloorNumber: 0);
+        var exit = StairPlan.Exit(Guid.NewGuid(), width, lowerFloorNumber: 0, StairDirection.Up);
 
         // Assert
         Assert.Equal(narrow.Point.X - 2.5 / 2, exit.Point.X - width / 2, precision: 6);
@@ -38,10 +49,20 @@ public class StairPlanTests
     public void Exit_SeparatesTheFlightsOfConsecutiveFloors()
     {
         // Arrange
-        var first = StairPlan.Exit(Guid.NewGuid(), roomWidth: 2.5, lowerFloorNumber: 0);
+        var first = StairPlan.Exit(
+            Guid.NewGuid(),
+            roomWidth: 2.5,
+            lowerFloorNumber: 0,
+            StairDirection.Up
+        );
 
         // Act
-        var second = StairPlan.Exit(Guid.NewGuid(), roomWidth: 2.5, lowerFloorNumber: 1);
+        var second = StairPlan.Exit(
+            Guid.NewGuid(),
+            roomWidth: 2.5,
+            lowerFloorNumber: 1,
+            StairDirection.Up
+        );
 
         // Assert
         Assert.Equal(StairPlan.FlightSpacing, second.Point.X - first.Point.X, precision: 6);

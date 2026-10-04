@@ -1,29 +1,50 @@
+using TRPG.Domain.Models;
+
 namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class StairPlan
 {
     internal const double FlightSpacing = 1.2;
-    private const double DoorClearance = 0.75;
+    internal const double Width = 1.2;
+    internal const double Depth = 2;
+    internal const double ArrivalInset = Depth + 0.5;
 
-    internal static ConnectorExit Exit(Guid connectorId, double roomWidth, int lowerFloorNumber) =>
-        new(connectorId, new PlanarPoint(FlightX(roomWidth, lowerFloorNumber), 0), Math.PI);
-
-    internal static ConnectorExit FarExit(
+    internal static ConnectorExit Exit(
         Guid connectorId,
         double roomWidth,
-        double roomDepth,
-        int lowerFloorNumber
+        int lowerFloorNumber,
+        StairDirection direction
+    ) =>
+        new(
+            connectorId,
+            new PlanarPoint(
+                roomWidth / 2
+                    + (lowerFloorNumber % 2 == 0 ? -FlightSpacing / 2 : FlightSpacing / 2),
+                0
+            ),
+            Math.PI
+        )
+        {
+            Stairs = direction,
+        };
+
+    internal static ConnectorExit ThroughExit(
+        Guid connectorId,
+        Footprint frame,
+        StairDirection direction,
+        int slot,
+        int slotCount
     )
     {
-        var x = Math.Clamp(
-            FlightX(roomWidth, lowerFloorNumber),
-            Math.Min(DoorClearance, roomWidth / 2),
-            Math.Max(roomWidth - DoorClearance, roomWidth / 2)
-        );
+        var x = frame.Width * (slot + 1) / (slotCount + 1);
+        var exit =
+            direction == StairDirection.Up
+                ? new ConnectorExit(connectorId, new PlanarPoint(x, frame.Depth), 0)
+                : new ConnectorExit(connectorId, new PlanarPoint(x, 0), Math.PI);
 
-        return new ConnectorExit(connectorId, new PlanarPoint(x, roomDepth), 0);
+        return exit with
+        {
+            Stairs = direction,
+        };
     }
-
-    private static double FlightX(double roomWidth, int lowerFloorNumber) =>
-        roomWidth / 2 + (lowerFloorNumber % 2 == 0 ? -FlightSpacing / 2 : FlightSpacing / 2);
 }

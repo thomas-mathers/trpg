@@ -40,6 +40,8 @@ internal sealed class ConnectorExitClassifier(
             return Request(connector, ConnectorExitKind.Stairs) with
             {
                 LowerFloorNumber = Math.Min(room.FloorNumber, other.FloorNumber),
+                Flight =
+                    other.FloorNumber > room.FloorNumber ? StairDirection.Up : StairDirection.Down,
             };
         }
         if (LocationLayoutContext.IsHallway(room))

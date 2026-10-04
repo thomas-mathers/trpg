@@ -897,7 +897,8 @@ internal class GetSceneQueryHandler(
                 visited.Contains(connector.DestinationLocationId),
                 connector.DestinationLocationId == player.PreviousLocationId,
                 connector.DestinationLocationId,
-                new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle)
+                new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle),
+                connector.StairDirection
             ))
             .ToArray();
     }

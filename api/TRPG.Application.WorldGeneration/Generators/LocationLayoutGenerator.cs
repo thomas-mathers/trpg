@@ -30,13 +30,18 @@ internal static class LocationLayoutGenerator
         {
             var exit = exitByConnectorId[connector.Id];
             var reverse = FindReverse(connectorsByPair, connector);
+            var frame = DestinationFrame(context, connector);
             var arrival = reverse is null
-                ? ConnectorPointResolver.ResolveDefaultArrival(DestinationFrame(context, connector))
-                : ConnectorPointResolver.ResolveArrival(exitByConnectorId[reverse.Id]);
+                ? ConnectorPointResolver.ResolveDefaultArrival(frame)
+                : ConnectorPointResolver.KeepInside(
+                    ConnectorPointResolver.ResolveArrival(exitByConnectorId[reverse.Id]),
+                    frame
+                );
 
             connector.ExitX = exit.Point.X;
             connector.ExitY = exit.Point.Y;
             connector.ExitAngle = exit.FacingAngle;
+            connector.StairDirection = exit.Stairs;
             connector.ArrivalX = arrival.X;
             connector.ArrivalY = arrival.Y;
             connector.ArrivalAngle = arrival.Angle;

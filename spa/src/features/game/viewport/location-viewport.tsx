@@ -20,12 +20,21 @@ import {
   buildEntityNames,
   buildObstacles,
   buildWalls,
+  isRoomScene,
   findPlayerPlacement,
   isWalledScene,
 } from './layout-math';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
 import { useSeatInteraction } from './use-seat-interaction';
-import { Boxes, Connectors, Creatures, Ground, Walls } from './viewport-scene';
+import {
+  Boxes,
+  Ceiling,
+  Connectors,
+  Creatures,
+  Ground,
+  ROOM_FLOOR_COLOR,
+  Walls,
+} from './viewport-scene';
 
 const CANVAS_ID = 'location-viewport-canvas';
 
@@ -63,10 +72,12 @@ export function LocationViewport({
     [scene],
   );
   const obstacles = useMemo(
-    () => buildObstacles(scene.nearbyProps, scene.nearbyBuildings),
+    () => buildObstacles(scene.nearbyProps, scene.nearbyBuildings, scene.exits),
     [scene],
   );
 
+  const wells = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Down'), [scene]);
+  const shafts = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Up'), [scene]);
   const walls = useMemo(
     () => (isWalledScene(scene) ? buildWalls(scene.size, scene.exits) : []),
     [scene],
@@ -131,9 +142,14 @@ export function LocationViewport({
           <color attach="background" args={['#9bb7d4']} />
           <ambientLight intensity={0.8} />
           <directionalLight position={[size.width, 40, -size.depth]} intensity={1.2} />
-          <Ground size={size} />
+          <Ground
+            size={size}
+            wells={wells}
+            color={isRoomScene(scene) ? ROOM_FLOOR_COLOR : undefined}
+          />
           <Walls walls={walls} headers={headers} />
-          <Boxes props={props} buildings={buildings} names={names} />
+          {isRoomScene(scene) && <Ceiling size={size} openings={shafts} />}
+          <Boxes props={props} buildings={buildings} />
           <Creatures
             creatures={creatures}
             playerId={playerStatus.id}

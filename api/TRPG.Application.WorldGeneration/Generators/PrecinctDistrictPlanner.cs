@@ -12,6 +12,7 @@ internal static class PrecinctDistrictPlanner
     private const double MinimumSideDepth = 8;
     private const double AvenueWidth = 8;
     private const double AvenueDepth = 14;
+    private const int MaximumCityCenterTopRow = 2;
 
     private static readonly IReadOnlyDictionary<DistrictType, BuildingType[]> Rosters =
         new Dictionary<DistrictType, BuildingType[]>
@@ -84,7 +85,10 @@ internal static class PrecinctDistrictPlanner
 
     private static int TopRowCount(DistrictType type, DistrictBuildingInput[] ordered) =>
         type == DistrictType.CityCenter
-            ? ordered.Count(building => CityCenterTopRow.Contains(building.Type))
+            ? Math.Min(
+                MaximumCityCenterTopRow,
+                ordered.Count(building => CityCenterTopRow.Contains(building.Type))
+            )
             : Math.Min(1, ordered.Length);
 
     private static DistrictPlan Arrange(

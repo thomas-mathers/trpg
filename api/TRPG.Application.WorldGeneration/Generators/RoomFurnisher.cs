@@ -7,18 +7,16 @@ internal record FurnishedRoom(IReadOnlyList<PlacedProp> Bound, IReadOnlyList<Rec
 internal static class RoomFurnisher
 {
     private const double Clearance = 0.12;
-    private const double KeepOutSize = 1.5;
 
     internal static RoomRect KeepOut(ConnectorExit exit)
     {
-        var centerX = exit.Point.X + KeepOutSize / 2 * Math.Sin(exit.FacingAngle);
-        var centerY = exit.Point.Y - KeepOutSize / 2 * Math.Cos(exit.FacingAngle);
+        var box = ExitKeepOut.Of(exit);
 
         return new RoomRect(
-            centerX - KeepOutSize / 2,
-            centerY - KeepOutSize / 2,
-            KeepOutSize,
-            KeepOutSize
+            box.CenterX - box.Width / 2,
+            box.CenterY - box.Depth / 2,
+            box.Width,
+            box.Depth
         );
     }
 

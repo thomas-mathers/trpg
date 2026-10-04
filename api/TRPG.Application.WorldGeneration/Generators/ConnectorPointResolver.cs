@@ -20,6 +20,7 @@ internal record ConnectorExitRequest(
 {
     internal CompassDirection Direction { get; init; }
     internal int LowerFloorNumber { get; init; }
+    internal StairDirection Flight { get; init; }
     internal int SideIndex { get; init; }
     internal double DestinationDepth { get; init; }
     internal double BearingRadians { get; init; }
@@ -27,11 +28,15 @@ internal record ConnectorExitRequest(
     internal double FixedFacingAngle { get; init; }
 }
 
-internal record ConnectorExit(Guid ConnectorId, PlanarPoint Point, double FacingAngle);
+internal record ConnectorExit(Guid ConnectorId, PlanarPoint Point, double FacingAngle)
+{
+    internal StairDirection? Stairs { get; init; }
+}
 
 internal static class ConnectorPointResolver
 {
     internal const double ArrivalInset = 1;
+    private const double ArrivalWallMargin = 0.5;
     internal const double MinimumBearingSeparation = 6;
     internal const double CornerInset = 0.5;
     private const double EdgeEndInset = 1;
@@ -66,33 +71,45 @@ internal static class ConnectorPointResolver
 
         exits.AddRange(PlaceHallwayDoors(frame, requests));
 
-        var upFlightId = TopFlightOfAStack(requests);
+        var flights = requests.Where(request => request.Kind == ConnectorExitKind.Stairs).ToArray();
+        var hasSeveralFlights = flights.Length > 1;
         exits.AddRange(
             requests
-                .Where(request => IsDirectlyPlaced(request))
-                .Select(request =>
-                    request.ConnectorId == upFlightId
-                        ? StairPlan.FarExit(
-                            request.ConnectorId,
-                            frame.Width,
-                            frame.Depth,
-                            request.LowerFloorNumber
-                        )
-                        : PlaceDirectly(frame, request)
+                .Where(request =>
+                    IsDirectlyPlaced(request) && request.Kind != ConnectorExitKind.Stairs
                 )
+                .Select(request => PlaceDirectly(frame, request))
+        );
+        exits.AddRange(
+            hasSeveralFlights
+                ? PlaceThroughFlights(frame, flights)
+                : flights.Select(request => PlaceDirectly(frame, request))
         );
 
         return exits;
     }
 
-    private static Guid? TopFlightOfAStack(IReadOnlyCollection<ConnectorExitRequest> requests)
-    {
-        var flights = requests.Where(request => request.Kind == ConnectorExitKind.Stairs).ToArray();
+    private static IEnumerable<ConnectorExit> PlaceThroughFlights(
+        Footprint frame,
+        IReadOnlyCollection<ConnectorExitRequest> flights
+    ) =>
+        flights
+            .GroupBy(flight => flight.Flight)
+            .SelectMany(group =>
+            {
+                var ordered = group.OrderBy(flight => flight.DestinationLocationId).ToArray();
 
-        return flights.Length > 1
-            ? flights.MaxBy(request => request.LowerFloorNumber)!.ConnectorId
-            : null;
-    }
+                return ordered.Select(
+                    (flight, slot) =>
+                        StairPlan.ThroughExit(
+                            flight.ConnectorId,
+                            frame,
+                            flight.Flight,
+                            slot,
+                            ordered.Length
+                        )
+                );
+            });
 
     private static IReadOnlyList<ConnectorExit> PlaceHallwayDoors(
         Footprint frame,
@@ -111,12 +128,23 @@ internal static class ConnectorPointResolver
         );
     }
 
-    internal static Placement ResolveArrival(ConnectorExit reverseExit) =>
-        new(
-            X: reverseExit.Point.X + ArrivalInset * Math.Sin(reverseExit.FacingAngle),
-            Y: reverseExit.Point.Y - ArrivalInset * Math.Cos(reverseExit.FacingAngle),
+    internal static Placement ResolveArrival(ConnectorExit reverseExit)
+    {
+        var inset = reverseExit.Stairs is null ? ArrivalInset : StairPlan.ArrivalInset;
+
+        return new Placement(
+            X: reverseExit.Point.X + inset * Math.Sin(reverseExit.FacingAngle),
+            Y: reverseExit.Point.Y - inset * Math.Cos(reverseExit.FacingAngle),
             Angle: reverseExit.FacingAngle
         );
+    }
+
+    internal static Placement KeepInside(Placement arrival, Footprint frame) =>
+        arrival with
+        {
+            X = Math.Clamp(arrival.X, ArrivalWallMargin, frame.Width - ArrivalWallMargin),
+            Y = Math.Clamp(arrival.Y, ArrivalWallMargin, frame.Depth - ArrivalWallMargin),
+        };
 
     internal static Placement ResolveDefaultArrival(Footprint frame) =>
         new(X: frame.Width / 2, Y: frame.Depth - ArrivalInset, Angle: 0);
@@ -248,7 +276,8 @@ internal static class ConnectorPointResolver
             ConnectorExitKind.Stairs => StairPlan.Exit(
                 request.ConnectorId,
                 frame.Width,
-                request.LowerFloorNumber
+                request.LowerFloorNumber,
+                request.Flight
             ),
             ConnectorExitKind.Fixed => new ConnectorExit(
                 request.ConnectorId,

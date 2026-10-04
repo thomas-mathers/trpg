@@ -727,6 +727,7 @@ export type NearbyExitSnapshot = {
     isWayBack: boolean;
     destinationLocationId: string;
     placement: PlacementWire;
+    stairs: null | StairDirection;
 };
 
 export type NearbyPropSnapshot = {
@@ -910,6 +911,8 @@ export type SkillProgressSummary = {
 };
 
 export type SpecialHitType = 'CrushingBlow' | 'DeadlyStrike' | 'OpenWounds';
+
+export type StairDirection = 'Up' | 'Down';
 
 export type StateMapResponse = {
     id: string;

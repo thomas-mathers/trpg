@@ -351,6 +351,19 @@ public class DistrictLayoutGeneratorTests
     }
 
     [Fact]
+    public void Generate_PutsAtMostTwoBuildingsOnTheNorthRow_OfACityCenter()
+    {
+        // Arrange
+        var inputs = RosterOnce(DistrictType.CityCenter);
+
+        // Act
+        var layout = DistrictLayoutGenerator.Generate(DistrictType.CityCenter, inputs, [], 3);
+
+        // Assert
+        Assert.Equal(2, layout.Buildings.Count(building => building.Placement.Angle == Math.PI));
+    }
+
+    [Fact]
     public void Generate_PlacesANoticeBoardInTheSquare()
     {
         // Arrange

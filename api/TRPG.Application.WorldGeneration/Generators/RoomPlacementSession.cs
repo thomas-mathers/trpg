@@ -12,7 +12,6 @@ internal sealed class RoomPlacementSession
     private const double InteriorMargin = 1;
     private const double AnchorGap = 0.05;
     private const double SeatedLegReach = 0.6;
-    private const double DoorKeepOutSize = 1.5;
     private const int SamplingTries = 50;
     private const double FreeAngleStep = Math.PI / 12;
     private const double RelaxedStep = 0.5;
@@ -63,17 +62,8 @@ internal sealed class RoomPlacementSession
         Commit(prop, spec, FirstUnobstructedPose(spec));
     }
 
-    private static Obstacle DoorKeepOut(ConnectorExit exit)
-    {
-        var centerX = exit.Point.X + DoorKeepOutSize / 2 * Math.Sin(exit.FacingAngle);
-        var centerY = exit.Point.Y - DoorKeepOutSize / 2 * Math.Cos(exit.FacingAngle);
-
-        return new Obstacle(
-            new OrientedBox(centerX, centerY, DoorKeepOutSize, DoorKeepOutSize, 0),
-            Clearance: 0,
-            IsPlacedProp: false
-        );
-    }
+    private static Obstacle DoorKeepOut(ConnectorExit exit) =>
+        new(ExitKeepOut.Of(exit), Clearance: 0, IsPlacedProp: false);
 
     private static PropPlacementRule[] RuleChain(PropPlacementRule rule) =>
         rule switch

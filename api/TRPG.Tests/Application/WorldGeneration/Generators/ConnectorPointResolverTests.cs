@@ -194,8 +194,8 @@ public class ConnectorPointResolverTests
     {
         // Arrange
         var hallway = new Footprint(Width: 2.5, Depth: 24);
-        var down = StairsRequest(lowerFloorNumber: 0);
-        var up = StairsRequest(lowerFloorNumber: 1);
+        var down = StairsRequest(lowerFloorNumber: 0, StairDirection.Down);
+        var up = StairsRequest(lowerFloorNumber: 1, StairDirection.Up);
 
         // Act
         var exits = ConnectorPointResolver.ResolveExits(hallway, [down, up]);
@@ -209,27 +209,89 @@ public class ConnectorPointResolverTests
     }
 
     [Fact]
-    public void ResolveExits_KeepsTheUpFlightDoorInsideTheWall_InANarrowRoom()
+    public void ResolveExits_AlignsBothFlightDoorsOnTheCenterLine_WhenARoomHasFlightsBothWays()
     {
         // Arrange
-        var hallway = new Footprint(Width: 2.5, Depth: 24);
-        var up = StairsRequest(lowerFloorNumber: 1);
+        var hallway = new Footprint(Width: 3, Depth: 24);
+        var down = StairsRequest(lowerFloorNumber: 0, StairDirection.Down);
+        var up = StairsRequest(lowerFloorNumber: 1, StairDirection.Up);
 
         // Act
-        var exits = ConnectorPointResolver.ResolveExits(
-            hallway,
-            [StairsRequest(lowerFloorNumber: 0), up]
-        );
+        var exits = ConnectorPointResolver.ResolveExits(hallway, [down, up]);
 
         // Assert
+        var downExit = exits.Single(exit => exit.ConnectorId == down.ConnectorId);
         var upExit = exits.Single(exit => exit.ConnectorId == up.ConnectorId);
-        Assert.InRange(upExit.Point.X, 0.75, hallway.Width - 0.75);
+        Assert.Equal(hallway.Width / 2, downExit.Point.X);
+        Assert.Equal(hallway.Width / 2, upExit.Point.X);
     }
 
-    private static ConnectorExitRequest StairsRequest(int lowerFloorNumber) =>
+    [Theory]
+    [InlineData(StairDirection.Up)]
+    [InlineData(StairDirection.Down)]
+    public void ResolveExits_MarksAStairsExitWithItsDirection(StairDirection direction)
+    {
+        // Arrange
+        var request = StairsRequest(lowerFloorNumber: 0, direction);
+
+        // Act
+        var exit = ExitFor(Frame, request);
+
+        // Assert
+        Assert.Equal(direction, exit.Stairs);
+    }
+
+    [Fact]
+    public void ResolveExits_LeavesDoorsWithoutAStairDirection()
+    {
+        // Arrange
+        var request = Request(ConnectorExitKind.SouthDoor);
+
+        // Act
+        var exit = ExitFor(Frame, request);
+
+        // Assert
+        Assert.Null(exit.Stairs);
+    }
+
+    [Fact]
+    public void ResolveArrival_LandsPastTheFrontOfTheStairs_ForAStairsExit()
+    {
+        // Arrange
+        var exit = new ConnectorExit(Guid.NewGuid(), new PlanarPoint(5, 0), Math.PI)
+        {
+            Stairs = StairDirection.Down,
+        };
+
+        // Act
+        var arrival = ConnectorPointResolver.ResolveArrival(exit);
+
+        // Assert
+        Assert.True(arrival.Y >= StairPlan.Depth + 0.35);
+        Assert.Equal(5, arrival.X, 6);
+    }
+
+    [Fact]
+    public void ResolveArrival_LandsOneMeterAheadOfADoor()
+    {
+        // Arrange
+        var exit = new ConnectorExit(Guid.NewGuid(), new PlanarPoint(5, 0), Math.PI);
+
+        // Act
+        var arrival = ConnectorPointResolver.ResolveArrival(exit);
+
+        // Assert
+        Assert.Equal(ConnectorPointResolver.ArrivalInset, arrival.Y, 6);
+    }
+
+    private static ConnectorExitRequest StairsRequest(
+        int lowerFloorNumber,
+        StairDirection direction
+    ) =>
         new(Guid.NewGuid(), Guid.NewGuid(), ConnectorExitKind.Stairs)
         {
             LowerFloorNumber = lowerFloorNumber,
+            Flight = direction,
         };
 
     [Fact]

@@ -1,5 +1,11 @@
 namespace TRPG.Domain.Models;
 
+public enum StairDirection
+{
+    Up,
+    Down,
+}
+
 public class LocationConnector
 {
     public Guid DestinationLocationId { get; init; }
@@ -15,6 +21,7 @@ public class LocationConnector
     public double ExitX { get; set; }
     public double ExitY { get; set; }
     public double ExitAngle { get; set; }
+    public StairDirection? StairDirection { get; set; }
     public double ArrivalX { get; set; }
     public double ArrivalY { get; set; }
     public double ArrivalAngle { get; set; }

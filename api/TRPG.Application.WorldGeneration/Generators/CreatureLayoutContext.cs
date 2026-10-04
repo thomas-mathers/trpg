@@ -15,8 +15,6 @@ public record CreatureLayoutInput(
 
 internal sealed class CreatureLayoutContext
 {
-    private const double DoorKeepOut = 1.5;
-
     private readonly ILookup<Guid, Prop> _propsByLocation;
     private readonly ILookup<Guid, Building> _buildingsByExterior;
     private readonly ILookup<Guid, LocationConnector> _connectorsByOrigin;
@@ -41,11 +39,7 @@ internal sealed class CreatureLayoutContext
 
     internal PlacementObstacle[] ObstaclesAt(Guid locationId, Guid? excludedPropId)
     {
-        var doors = _connectorsByOrigin[locationId]
-            .Select(connector => new PlacementObstacle(
-                new Placement(connector.ExitX, connector.ExitY, 0),
-                new Footprint(DoorKeepOut, DoorKeepOut)
-            ));
+        var doors = _connectorsByOrigin[locationId].Select(DoorObstacle);
 
         return [.. SolidsAt(locationId, excludedPropId), .. doors];
     }
@@ -92,6 +86,20 @@ internal sealed class CreatureLayoutContext
     }
 
     internal static Placement PoseOf(Prop prop) => new(prop.X, prop.Y, prop.Angle);
+
+    private static PlacementObstacle DoorObstacle(LocationConnector connector)
+    {
+        var box = ExitKeepOut.Of(
+            new PlanarPoint(connector.ExitX, connector.ExitY),
+            connector.ExitAngle,
+            connector.StairDirection
+        );
+
+        return new PlacementObstacle(
+            new Placement(box.CenterX, box.CenterY, 0),
+            new Footprint(box.Width, box.Depth)
+        );
+    }
 
     private static PlacementObstacle PropObstacle(Prop prop) =>
         new(PoseOf(prop), new Footprint(prop.Width, prop.Depth));

@@ -167,6 +167,9 @@ export type RoomRole = "Entrance" | "BossChamber" | "Passage" | "GuardPost" | "S
 /** Transpiled from TRPG.GameSessions.Responses.CompassDirection */
 export type CompassDirection = "North" | "Northeast" | "East" | "Southeast" | "South" | "Southwest" | "West" | "Northwest";
 
+/** Transpiled from TRPG.GameSessions.Responses.StairDirection */
+export type StairDirection = "Up" | "Down";
+
 /** Transpiled from TRPG.GameSessions.Responses.DistrictType */
 export type DistrictType = "Residential" | "Scientific" | "CityCenter" | "CityEntrance" | "Governmental" | "HolySite" | "Encampment";
 
@@ -417,6 +420,8 @@ export type NearbyExitSnapshot = {
     destinationLocationId: string;
     /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
     placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.StairDirection */
+    stairs?: StairDirection;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CaravanDestinationSnapshot */

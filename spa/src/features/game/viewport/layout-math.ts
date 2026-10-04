@@ -46,6 +46,8 @@ export const DOOR_HEIGHT = 2.64;
 const DOOR_WIDTH = 1.5;
 const DOOR_SNAP = 0.6;
 const MIN_WALL_SPAN = 0.1;
+export const STAIR_WIDTH = 1.2;
+export const STAIR_DEPTH = 2;
 
 export function toScenePosition(x: number, y: number, height = 0): ScenePosition {
   return [x, height, y];
@@ -86,13 +88,30 @@ export function clampToBounds(point: PlanarPoint, size: FootprintWire): PlanarPo
 export function buildObstacles(
   props: NearbyPropSnapshot[],
   buildings: NearbyBuildingSnapshot[],
+  connectors: NearbyExitSnapshot[],
 ): Obstacle[] {
   const solidProps = props.filter(({ model }) => PROP_STYLES[model].height >= WALKABLE_HEIGHT);
-  return [...solidProps, ...buildings];
+  return [...solidProps, ...buildings, ...connectors.filter(isStairs).map(stairObstacle)];
+}
+
+export function isStairs({ stairs }: NearbyExitSnapshot): boolean {
+  return stairs !== undefined;
+}
+
+export function stairObstacle({ placement }: NearbyExitSnapshot): Obstacle {
+  const { x, y } = pointAhead(placement, STAIR_DEPTH / 2);
+  return {
+    placement: { x, y, angle: placement.angle },
+    footprint: { width: STAIR_WIDTH, depth: STAIR_DEPTH },
+  };
 }
 
 export function isWalledScene({ roomName, districtName }: SceneSnapshot): boolean {
   return Boolean(roomName ?? districtName);
+}
+
+export function isRoomScene({ roomName }: SceneSnapshot): boolean {
+  return Boolean(roomName);
 }
 
 export function buildWalls(size: FootprintWire, connectors: NearbyExitSnapshot[]): Obstacle[] {
@@ -134,10 +153,8 @@ export function findConnectorInRange(
   let nearest: NearbyExitSnapshot | undefined;
   let nearestDistance = range;
   for (const connector of connectors) {
-    const distance = Math.hypot(
-      connector.placement.x - position.x,
-      connector.placement.y - position.y,
-    );
+    const reach = interactPoint(connector);
+    const distance = Math.hypot(reach.x - position.x, reach.y - position.y);
     if (distance <= nearestDistance) {
       nearest = connector;
       nearestDistance = distance;
@@ -159,8 +176,31 @@ export function findPlayerPlacement(scene: SceneSnapshot) {
   return scene.playerStatus.placement;
 }
 
-function wallSides(size: FootprintWire, connectors: NearbyExitSnapshot[]) {
+export function stairCorners({ placement }: NearbyExitSnapshot): PlanarPoint[] {
+  const { x, y } = pointAhead(placement, STAIR_DEPTH / 2);
+  const acrossX = Math.cos(placement.angle) * (STAIR_WIDTH / 2);
+  const acrossY = Math.sin(placement.angle) * (STAIR_WIDTH / 2);
+  const alongX = Math.sin(placement.angle) * (STAIR_DEPTH / 2);
+  const alongY = -Math.cos(placement.angle) * (STAIR_DEPTH / 2);
+  return [
+    { x: x - acrossX - alongX, y: y - acrossY - alongY },
+    { x: x + acrossX - alongX, y: y + acrossY - alongY },
+    { x: x + acrossX + alongX, y: y + acrossY + alongY },
+    { x: x - acrossX + alongX, y: y - acrossY + alongY },
+  ];
+}
+
+function interactPoint(connector: NearbyExitSnapshot): PlanarPoint {
+  return isStairs(connector) ? pointAhead(connector.placement, STAIR_DEPTH) : connector.placement;
+}
+
+function pointAhead({ x, y, angle }: PlacementWire, distance: number): PlanarPoint {
+  return { x: x + Math.sin(angle) * distance, y: y - Math.cos(angle) * distance };
+}
+
+function wallSides(size: FootprintWire, exits: NearbyExitSnapshot[]) {
   const { width, depth } = size;
+  const connectors = exits.filter((exit) => !isStairs(exit));
   return [
     { horizontal: true, line: 0, length: width, doors: doorsOnLine(connectors, 'y', 0) },
     { horizontal: true, line: depth, length: width, doors: doorsOnLine(connectors, 'y', depth) },

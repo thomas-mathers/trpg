@@ -1,5 +1,6 @@
-import { Grid, useGLTF } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
 import { Suspense, useMemo } from 'react';
+import { BackSide } from 'three';
 
 import type {
   CreatureStatusSnapshot,
@@ -15,7 +16,7 @@ import { connectorYaw } from './connector-placement';
 import { CreatureFigure } from './creature-figure';
 import type { CreatureFocus } from './creature-focus';
 import { DoorConnector } from './door-connector';
-import { EntityLabel } from './entity-label';
+import { floorGeometry } from './floor-geometry';
 import { FurnitureMesh } from './furniture-mesh';
 import { isFurnitureModel } from './furniture-parts';
 import {
@@ -34,29 +35,44 @@ import {
 } from './model-styles';
 import type { ViewportSeat } from './seat-interaction';
 import { SeatMesh } from './seat-mesh';
+import { StairConnector } from './stair-connector';
 
 type EntityNames = ReadonlyMap<string, string>;
 
-export function Ground({ size }: { size: FootprintWire }) {
-  const { width, depth } = size;
+const OUTDOOR_FLOOR_COLOR = '#6f6350';
+export const ROOM_FLOOR_COLOR = '#6e5338';
+
+export function Ground({
+  size,
+  wells = [],
+  color = OUTDOOR_FLOOR_COLOR,
+}: {
+  size: FootprintWire;
+  wells?: NearbyExitSnapshot[];
+  color?: string;
+}) {
+  const floor = useMemo(() => floorGeometry(size, wells), [size, wells]);
 
   return (
-    <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[width / 2, 0, depth / 2]}>
-        <planeGeometry args={[width, depth]} />
-        <meshStandardMaterial color="#3b4a32" />
-      </mesh>
-      <Grid
-        position={[width / 2, 0.01, depth / 2]}
-        args={[width, depth]}
-        cellSize={1}
-        sectionSize={5}
-        cellColor="#4d5e42"
-        sectionColor="#6f8460"
-        fadeDistance={60}
-        infiniteGrid={false}
-      />
-    </>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor}>
+      <meshLambertMaterial color={color} />
+    </mesh>
+  );
+}
+
+export function Ceiling({
+  size,
+  openings,
+}: {
+  size: FootprintWire;
+  openings: NearbyExitSnapshot[];
+}) {
+  const ceiling = useMemo(() => floorGeometry(size, openings), [size, openings]);
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WALL_HEIGHT, 0]} geometry={ceiling}>
+      <meshLambertMaterial color="#6b6254" side={BackSide} />
+    </mesh>
   );
 }
 
@@ -71,7 +87,7 @@ export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle
           position={toScenePosition(placement.x, placement.y, WALL_HEIGHT / 2)}
         >
           <boxGeometry args={[footprint.width, WALL_HEIGHT, footprint.depth]} />
-          <meshStandardMaterial color="#8a7b66" />
+          <meshLambertMaterial color="#8a7b66" />
         </mesh>
       ))}
       {headers.map(({ placement, footprint }) => (
@@ -80,7 +96,7 @@ export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle
           position={toScenePosition(placement.x, placement.y, DOOR_HEIGHT + HEADER_HEIGHT / 2)}
         >
           <boxGeometry args={[footprint.width, HEADER_HEIGHT, footprint.depth]} />
-          <meshStandardMaterial color="#8a7b66" />
+          <meshLambertMaterial color="#8a7b66" />
         </mesh>
       ))}
     </>
@@ -126,14 +142,12 @@ function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropMod
 }
 
 function Box({
-  label,
   placement,
   footprint,
   style,
   modelUrl,
   propModel,
 }: {
-  label?: string;
   placement: PlacementWire;
   footprint: FootprintWire;
   style: BoxStyle;
@@ -155,9 +169,6 @@ function Box({
       ) : (
         fallback
       )}
-      <group position={[0, height / 2 + 0.4, 0]}>
-        <EntityLabel text={label} />
-      </group>
     </group>
   );
 }
@@ -165,18 +176,15 @@ function Box({
 export function Boxes({
   props,
   buildings,
-  names,
 }: {
   props: NearbyPropSnapshot[];
   buildings: NearbyBuildingSnapshot[];
-  names: EntityNames;
 }) {
   return (
     <>
       {props.map(({ id, model, placement, footprint }) => (
         <Box
           key={id}
-          label={names.get(id)}
           placement={placement}
           footprint={footprint}
           style={PROP_STYLES[model]}
@@ -244,7 +252,7 @@ export function Connectors({ connectors }: { connectors: NearbyExitSnapshot[] })
           position={toScenePosition(connector.placement.x, connector.placement.y)}
           rotation={[0, connectorYaw(connector), 0]}
         >
-          <DoorConnector />
+          {connector.stairs ? <StairConnector direction={connector.stairs} /> : <DoorConnector />}
         </group>
       ))}
     </>

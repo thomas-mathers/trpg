@@ -46,7 +46,8 @@ public record SceneExitInfo(
     bool IsVisited,
     bool IsWayBack,
     Guid DestinationLocationId,
-    Placement Placement
+    Placement Placement,
+    StairDirection? Stairs = null
 );
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);

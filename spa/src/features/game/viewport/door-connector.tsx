@@ -1,5 +1,3 @@
-import { DoubleSide } from 'three';
-
 function DoorFrame() {
   return (
     <group>
@@ -52,16 +50,6 @@ export function DoorConnector() {
       <mesh position={[0, 2.53, 0.19]}>
         <boxGeometry args={[0.38, 0.045, 0.015]} />
         <meshStandardMaterial color="#f5d88e" emissive="#e7b756" emissiveIntensity={0.65} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 0.55]}>
-        <ringGeometry args={[0.32, 0.37, 32, 1, 0, Math.PI]} />
-        <meshBasicMaterial
-          color="#e7c15a"
-          transparent
-          opacity={0.65}
-          side={DoubleSide}
-          depthWrite={false}
-        />
       </mesh>
     </group>
   );
