@@ -6,10 +6,8 @@ internal enum ConnectorExitKind
 {
     Compass,
     SouthDoor,
-    NorthStairs,
-    NorthEastStairs,
-    NorthWestStairs,
-    SideDoor,
+    Stairs,
+    HallwayDoor,
     Bearing,
     Fixed,
 }
@@ -21,7 +19,9 @@ internal record ConnectorExitRequest(
 )
 {
     internal CompassDirection Direction { get; init; }
+    internal int LowerFloorNumber { get; init; }
     internal int SideIndex { get; init; }
+    internal double DestinationDepth { get; init; }
     internal double BearingRadians { get; init; }
     internal PlanarPoint FixedPoint { get; init; }
     internal double FixedFacingAngle { get; init; }
@@ -33,7 +33,6 @@ internal static class ConnectorPointResolver
 {
     internal const double ArrivalInset = 1;
     internal const double MinimumBearingSeparation = 6;
-    internal const double SideDoorSpacing = 1.5;
     internal const double CornerInset = 0.5;
     private const double EdgeEndInset = 1;
 
@@ -65,6 +64,8 @@ internal static class ConnectorPointResolver
             exits.AddRange(SpreadByBearing(frame, group.Key, group.ToArray()));
         }
 
+        exits.AddRange(PlaceHallwayDoors(frame, requests));
+
         exits.AddRange(
             requests
                 .Where(request => IsDirectlyPlaced(request))
@@ -72,6 +73,23 @@ internal static class ConnectorPointResolver
         );
 
         return exits;
+    }
+
+    private static IReadOnlyList<ConnectorExit> PlaceHallwayDoors(
+        Footprint frame,
+        IReadOnlyCollection<ConnectorExitRequest> requests
+    )
+    {
+        var doors = requests
+            .Where(request => request.Kind == ConnectorExitKind.HallwayDoor)
+            .OrderBy(request => request.SideIndex)
+            .ToArray();
+
+        return HallwayDoorPlan.Place(
+            frame,
+            doors.Select(door => door.ConnectorId).ToArray(),
+            doors.Select(door => door.DestinationDepth).ToArray()
+        );
     }
 
     internal static Placement ResolveArrival(ConnectorExit reverseExit) =>
@@ -85,15 +103,11 @@ internal static class ConnectorPointResolver
         new(X: frame.Width / 2, Y: frame.Depth - ArrivalInset, Angle: 0);
 
     private static bool IsEvenlySpacedOnEdge(ConnectorExitRequest request) =>
-        request.Kind is ConnectorExitKind.SouthDoor or ConnectorExitKind.NorthStairs
+        request.Kind == ConnectorExitKind.SouthDoor
         || (request.Kind == ConnectorExitKind.Compass && IsCardinal(request.Direction));
 
     private static bool IsDirectlyPlaced(ConnectorExitRequest request) =>
-        request.Kind
-            is ConnectorExitKind.NorthEastStairs
-                or ConnectorExitKind.NorthWestStairs
-                or ConnectorExitKind.SideDoor
-                or ConnectorExitKind.Fixed
+        request.Kind is ConnectorExitKind.Fixed or ConnectorExitKind.Stairs
         || (request.Kind == ConnectorExitKind.Compass && !IsCardinal(request.Direction));
 
     private static bool IsCardinal(CompassDirection direction) =>
@@ -107,7 +121,6 @@ internal static class ConnectorPointResolver
         request.Kind switch
         {
             ConnectorExitKind.SouthDoor => FrameEdge.South,
-            ConnectorExitKind.NorthStairs => FrameEdge.North,
             _ => request.Direction switch
             {
                 CompassDirection.North => FrameEdge.North,
@@ -213,28 +226,18 @@ internal static class ConnectorPointResolver
     private static ConnectorExit PlaceDirectly(Footprint frame, ConnectorExitRequest request) =>
         request.Kind switch
         {
+            ConnectorExitKind.Stairs => StairPlan.Exit(
+                request.ConnectorId,
+                frame.Width,
+                request.LowerFloorNumber
+            ),
             ConnectorExitKind.Fixed => new ConnectorExit(
                 request.ConnectorId,
                 request.FixedPoint,
                 request.FixedFacingAngle
             ),
-            ConnectorExitKind.SideDoor => SideDoor(frame, request),
-            ConnectorExitKind.NorthEastStairs => Corner(frame, request, FrameCorner.NorthEast),
-            ConnectorExitKind.NorthWestStairs => Corner(frame, request, FrameCorner.NorthWest),
             _ => Corner(frame, request, CornerOf(request.Direction)),
         };
-
-    private static ConnectorExit SideDoor(Footprint frame, ConnectorExitRequest request)
-    {
-        var edge = request.SideIndex % 2 == 0 ? FrameEdge.East : FrameEdge.West;
-        var position = SideDoorSpacing + SideDoorSpacing * (request.SideIndex / 2);
-
-        return new ConnectorExit(
-            request.ConnectorId,
-            PointOnEdge(frame, edge, Math.Min(position, frame.Depth - EdgeEndInset)),
-            FacingInward(edge)
-        );
-    }
 
     private static FrameCorner CornerOf(CompassDirection direction) =>
         direction switch

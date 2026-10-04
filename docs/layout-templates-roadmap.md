@@ -35,7 +35,7 @@ Working rules for every milestone:
 - [x] L02 Templates and fixed sizing
 - [x] L03 Recipe engine and room recipes
 - [x] L04 House variants and household bedrooms
-- [ ] L05 Stair and connector alignment
+- [x] L05 Stair and connector alignment
 - [ ] L06 District generator and outdoor furnishing
 - [ ] L07 Docs and final verification
 
@@ -148,16 +148,18 @@ Verification:
 
 Note: house bedroom recipes use ordered fallback slots, so the same recipe fits all three variants. The new-world dialog caps household size at the largest house capacity (6).
 
-### [ ] L05 Stair and connector alignment
+### [x] L05 Stair and connector alignment
 
 Scope:
 
-- [ ] Align stair connector points across floors.
-- [ ] Adjust hallway connector points to the templates.
+- [x] Align stair connector points across floors.
+- [x] Adjust hallway connector points to the templates.
 
 Verification:
 
-- [ ] Tests: the stair exit on one floor matches the arrival on the next.
+- [x] Tests: the stair exit on one floor matches the arrival on the next.
+
+Note: stairs sit on the north wall (the workshop puts them south, but the ground-floor front door is on the south wall center). Each flight has its own column, 1.2 m apart, so a middle-floor hallway can hold both flights. Hallway doors are centered on their rooms with even gaps, as in the workshop.
 
 ### [ ] L06 District generator and outdoor furnishing
 

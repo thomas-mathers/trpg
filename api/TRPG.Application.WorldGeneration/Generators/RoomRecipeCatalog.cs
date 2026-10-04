@@ -56,7 +56,10 @@ internal static class RoomRecipeCatalog
         new([
             new RugAt(0.5, 0.38, 1.5, 1.5),
             new Anchored(PropModel.Bed, bedFraction, 0),
+            new Anchored(PropModel.Bed, bedFraction, 1),
             new Anchored(PropModel.ContainerChest, bedFraction, 1),
+            new Anchored(PropModel.ContainerChest, 1 - bedFraction, 1),
             new Anchored(PropModel.SeatChair, 1 - bedFraction, 0),
+            new Anchored(PropModel.SeatChair, 1 - bedFraction, 1),
         ]);
 }
