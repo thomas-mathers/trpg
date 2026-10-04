@@ -3,11 +3,12 @@ import { Canvas } from '@react-three/fiber';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { DoorConnector } from './door-connector';
+import { createWebGpuRenderer } from './webgpu-renderer';
 
 function DoorPreview() {
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <Canvas camera={{ position: [3, 2.6, 5], fov: 42 }}>
+      <Canvas gl={createWebGpuRenderer} camera={{ position: [3, 2.6, 5], fov: 42 }}>
         <color attach="background" args={['#9bb7d4']} />
         <ambientLight intensity={0.8} />
         <directionalLight position={[3, 7, 5]} intensity={1.4} />

@@ -1,6 +1,6 @@
 import { useGLTF } from '@react-three/drei';
 import { Suspense, useMemo } from 'react';
-import { BackSide } from 'three';
+import { BackSide, Mesh } from 'three';
 
 import type {
   CreatureStatusSnapshot,
@@ -54,7 +54,7 @@ export function Ground({
   const floor = useMemo(() => floorGeometry(size, wells), [size, wells]);
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor}>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor} receiveShadow>
       <meshLambertMaterial color={color} />
     </mesh>
   );
@@ -83,6 +83,8 @@ export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle
     <>
       {walls.map(({ placement, footprint }) => (
         <mesh
+          castShadow
+          receiveShadow
           key={`${placement.x}:${placement.y}`}
           position={toScenePosition(placement.x, placement.y, WALL_HEIGHT / 2)}
         >
@@ -92,6 +94,8 @@ export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle
       ))}
       {headers.map(({ placement, footprint }) => (
         <mesh
+          castShadow
+          receiveShadow
           key={`header:${placement.x}:${placement.y}`}
           position={toScenePosition(placement.x, placement.y, DOOR_HEIGHT + HEADER_HEIGHT / 2)}
         >
@@ -113,7 +117,16 @@ function GltfModel({
   height: number;
 }) {
   const { scene } = useGLTF(url);
-  const model = useMemo(() => scene.clone(), [scene]);
+  const model = useMemo(() => {
+    const clone = scene.clone();
+    clone.traverse((object) => {
+      if (object instanceof Mesh) {
+        object.castShadow = true;
+        object.receiveShadow = true;
+      }
+    });
+    return clone;
+  }, [scene]);
 
   return (
     <group scale={[footprint.width, height, footprint.depth]} position={[0, -height / 2, 0]}>
@@ -124,7 +137,7 @@ function GltfModel({
 
 function BoxMesh({ footprint, style }: { footprint: FootprintWire; style: BoxStyle }) {
   return (
-    <mesh>
+    <mesh castShadow receiveShadow>
       <boxGeometry args={[footprint.width, style.height, footprint.depth]} />
       <meshStandardMaterial color={style.color} />
     </mesh>
