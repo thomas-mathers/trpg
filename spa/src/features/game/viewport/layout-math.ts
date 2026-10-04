@@ -42,6 +42,7 @@ const WALKABLE_HEIGHT = 0.3;
 const RESOLVE_PASSES = 2;
 const WALL_THICKNESS = 0.2;
 export const WALL_HEIGHT = 3;
+export const DOOR_HEIGHT = 2.64;
 const DOOR_WIDTH = 1.5;
 const DOOR_SNAP = 0.6;
 const MIN_WALL_SPAN = 0.1;
@@ -90,29 +91,24 @@ export function buildObstacles(
   return [...solidProps, ...buildings];
 }
 
-export function buildWalls(size: FootprintWire, connectors: NearbyExitSnapshot[]): Obstacle[] {
-  const { width, depth } = size;
-  const sides = [
-    { horizontal: true, line: 0, length: width, doors: doorsOnLine(connectors, 'y', 0) },
-    { horizontal: true, line: depth, length: width, doors: doorsOnLine(connectors, 'y', depth) },
-    { horizontal: false, line: 0, length: depth, doors: doorsOnLine(connectors, 'x', 0) },
-    { horizontal: false, line: width, length: depth, doors: doorsOnLine(connectors, 'x', width) },
-  ];
+export function isWalledScene({ roomName, districtName }: SceneSnapshot): boolean {
+  return Boolean(roomName ?? districtName);
+}
 
-  return sides.flatMap(({ horizontal, line, length, doors }) =>
-    wallSpans(length, doors).map(([start, end]) => {
-      const middle = (start + end) / 2;
-      const span = end - start;
-      return horizontal
-        ? {
-            placement: { x: middle, y: line, angle: 0 },
-            footprint: { width: span, depth: WALL_THICKNESS },
-          }
-        : {
-            placement: { x: line, y: middle, angle: 0 },
-            footprint: { width: WALL_THICKNESS, depth: span },
-          };
-    }),
+export function buildWalls(size: FootprintWire, connectors: NearbyExitSnapshot[]): Obstacle[] {
+  return wallSides(size, connectors).flatMap(({ horizontal, line, length, doors }) =>
+    wallSpans(length, doors).map(([start, end]) =>
+      wallSegment(horizontal, line, (start + end) / 2, end - start),
+    ),
+  );
+}
+
+export function buildDoorHeaders(
+  size: FootprintWire,
+  connectors: NearbyExitSnapshot[],
+): Obstacle[] {
+  return wallSides(size, connectors).flatMap(({ horizontal, line, doors }) =>
+    doors.map((centre) => wallSegment(horizontal, line, centre, DOOR_WIDTH)),
   );
 }
 
@@ -161,6 +157,28 @@ export function buildEntityNames(scene: SceneSnapshot): ReadonlyMap<string, stri
 
 export function findPlayerPlacement(scene: SceneSnapshot) {
   return scene.playerStatus.placement;
+}
+
+function wallSides(size: FootprintWire, connectors: NearbyExitSnapshot[]) {
+  const { width, depth } = size;
+  return [
+    { horizontal: true, line: 0, length: width, doors: doorsOnLine(connectors, 'y', 0) },
+    { horizontal: true, line: depth, length: width, doors: doorsOnLine(connectors, 'y', depth) },
+    { horizontal: false, line: 0, length: depth, doors: doorsOnLine(connectors, 'x', 0) },
+    { horizontal: false, line: width, length: depth, doors: doorsOnLine(connectors, 'x', width) },
+  ];
+}
+
+function wallSegment(horizontal: boolean, line: number, middle: number, span: number): Obstacle {
+  return horizontal
+    ? {
+        placement: { x: middle, y: line, angle: 0 },
+        footprint: { width: span, depth: WALL_THICKNESS },
+      }
+    : {
+        placement: { x: line, y: middle, angle: 0 },
+        footprint: { width: WALL_THICKNESS, depth: span },
+      };
 }
 
 function doorsOnLine(connectors: NearbyExitSnapshot[], axis: 'x' | 'y', line: number): number[] {

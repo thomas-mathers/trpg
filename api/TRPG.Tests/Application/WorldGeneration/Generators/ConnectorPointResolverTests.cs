@@ -190,6 +190,49 @@ public class ConnectorPointResolverTests
     }
 
     [Fact]
+    public void ResolveExits_PutsTheUpFlightOnTheOppositeWall_WhenARoomHasFlightsBothWays()
+    {
+        // Arrange
+        var hallway = new Footprint(Width: 2.5, Depth: 24);
+        var down = StairsRequest(lowerFloorNumber: 0);
+        var up = StairsRequest(lowerFloorNumber: 1);
+
+        // Act
+        var exits = ConnectorPointResolver.ResolveExits(hallway, [down, up]);
+
+        // Assert
+        var downExit = exits.Single(exit => exit.ConnectorId == down.ConnectorId);
+        var upExit = exits.Single(exit => exit.ConnectorId == up.ConnectorId);
+        Assert.Equal(0, downExit.Point.Y);
+        Assert.Equal(hallway.Depth, upExit.Point.Y);
+        Assert.Equal(0, upExit.FacingAngle);
+    }
+
+    [Fact]
+    public void ResolveExits_KeepsTheUpFlightDoorInsideTheWall_InANarrowRoom()
+    {
+        // Arrange
+        var hallway = new Footprint(Width: 2.5, Depth: 24);
+        var up = StairsRequest(lowerFloorNumber: 1);
+
+        // Act
+        var exits = ConnectorPointResolver.ResolveExits(
+            hallway,
+            [StairsRequest(lowerFloorNumber: 0), up]
+        );
+
+        // Assert
+        var upExit = exits.Single(exit => exit.ConnectorId == up.ConnectorId);
+        Assert.InRange(upExit.Point.X, 0.75, hallway.Width - 0.75);
+    }
+
+    private static ConnectorExitRequest StairsRequest(int lowerFloorNumber) =>
+        new(Guid.NewGuid(), Guid.NewGuid(), ConnectorExitKind.Stairs)
+        {
+            LowerFloorNumber = lowerFloorNumber,
+        };
+
+    [Fact]
     public void ResolveExits_PlacesHallwayDoorsAlongTheSideWallsByRoomDepth()
     {
         // Arrange

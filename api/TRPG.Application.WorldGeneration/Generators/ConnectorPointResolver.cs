@@ -66,13 +66,32 @@ internal static class ConnectorPointResolver
 
         exits.AddRange(PlaceHallwayDoors(frame, requests));
 
+        var upFlightId = TopFlightOfAStack(requests);
         exits.AddRange(
             requests
                 .Where(request => IsDirectlyPlaced(request))
-                .Select(request => PlaceDirectly(frame, request))
+                .Select(request =>
+                    request.ConnectorId == upFlightId
+                        ? StairPlan.FarExit(
+                            request.ConnectorId,
+                            frame.Width,
+                            frame.Depth,
+                            request.LowerFloorNumber
+                        )
+                        : PlaceDirectly(frame, request)
+                )
         );
 
         return exits;
+    }
+
+    private static Guid? TopFlightOfAStack(IReadOnlyCollection<ConnectorExitRequest> requests)
+    {
+        var flights = requests.Where(request => request.Kind == ConnectorExitKind.Stairs).ToArray();
+
+        return flights.Length > 1
+            ? flights.MaxBy(request => request.LowerFloorNumber)!.ConnectorId
+            : null;
     }
 
     private static IReadOnlyList<ConnectorExit> PlaceHallwayDoors(

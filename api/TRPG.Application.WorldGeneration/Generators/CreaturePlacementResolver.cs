@@ -9,6 +9,7 @@ public static class CreaturePlacementResolver
     public static readonly Footprint Body = new(Width: 0.6, Depth: 0.6);
 
     private const double Clearance = 0.1;
+    private const double BehindOffset = 0.45;
     private const double SearchStep = 0.5;
     private const double SearchRadius = 10;
     private const int FreeSpotTries = 50;
@@ -43,6 +44,23 @@ public static class CreaturePlacementResolver
         {
             Angle = FacingAngle(nearAnchor, anchor),
         };
+    }
+
+    public static Placement? PlaceBehind(
+        Footprint frame,
+        IReadOnlyList<PlacementObstacle> obstacles,
+        Placement counter,
+        Footprint counterSize
+    )
+    {
+        var distance = (counterSize.Depth / 2) + BehindOffset;
+        var candidate = counter with
+        {
+            X = counter.X - (Math.Sin(counter.Angle) * distance),
+            Y = counter.Y + (Math.Cos(counter.Angle) * distance),
+        };
+
+        return IsFree(frame, obstacles.Select(ObstacleBox).ToArray(), candidate) ? candidate : null;
     }
 
     public static Placement PlaceFree(

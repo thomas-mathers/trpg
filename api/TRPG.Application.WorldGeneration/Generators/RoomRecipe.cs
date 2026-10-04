@@ -17,15 +17,22 @@ internal record RecipeItem(PropModel Model, RoomRect Bounds, RecipeWall Wall)
         PropModel
     >
     {
-        [PropModel.SeatChair] = PropModel.FurnitureChair,
-        [PropModel.SeatPew] = PropModel.FurniturePew,
-        [PropModel.SeatBench] = PropModel.FurnitureBench,
         [PropModel.WorkstationReading] = PropModel.FurnitureBookcase,
         [PropModel.ContainerWeaponRack] = PropModel.FurnitureStaffRack,
     };
 
+    private static readonly IReadOnlySet<PropModel> SittableDecor = new HashSet<PropModel>
+    {
+        PropModel.SeatChair,
+        PropModel.SeatPew,
+        PropModel.SeatBench,
+    };
+
+    internal bool IsSeat => SittableDecor.Contains(Model);
+
     internal PropModel? DecorModel =>
-        StandIns.TryGetValue(Model, out var standIn) ? standIn
+        SittableDecor.Contains(Model) ? Model
+        : StandIns.TryGetValue(Model, out var standIn) ? standIn
         : Model.ToString().StartsWith(nameof(Furniture), StringComparison.Ordinal) ? Model
         : null;
 
@@ -58,6 +65,41 @@ internal record Anchored(
 {
     internal override IEnumerable<RecipeItem> Expand(Footprint room) =>
         [RecipeGeometry.InsideRoom(room, Model, FractionX, FractionY, Wall)];
+}
+
+internal record CounterAt(double Fraction, RecipeWall Wall = RecipeWall.North) : RecipeStep
+{
+    internal const double Setback = 1.1;
+
+    internal override IEnumerable<RecipeItem> Expand(Footprint room)
+    {
+        var size = RecipeGeometry.Rotated(
+            PropFootprintCatalog.Get(PropModel.WorkstationTrade).Footprint,
+            Wall
+        );
+        var alongX = Wall is RecipeWall.North or RecipeWall.South;
+        var along = alongX ? AlongWall(room.Width, size.Width) : AlongWall(room.Depth, size.Depth);
+        var offset = Setback + (alongX ? size.Depth : size.Width) / 2;
+
+        return
+        [
+            Wall switch
+            {
+                RecipeWall.North => At(along, offset),
+                RecipeWall.East => At(room.Width - offset, along),
+                RecipeWall.South => At(along, room.Depth - offset),
+                _ => At(offset, along),
+            },
+        ];
+    }
+
+    private RecipeItem At(double centerX, double centerY) =>
+        RecipeGeometry.Around(PropModel.WorkstationTrade, centerX, centerY, Wall);
+
+    private double AlongWall(double length, double extent) =>
+        RecipeGeometry.Margin
+        + Fraction * (length - extent - 2 * RecipeGeometry.Margin)
+        + extent / 2;
 }
 
 internal record WallRun(

@@ -10,12 +10,14 @@ import type {
 import {
   buildEntityNames,
   buildObstacles,
+  buildDoorHeaders,
   buildWalls,
   clampToBounds,
   computeMovement,
   findConnectorInRange,
   findPlayerPlacement,
   headingToYaw,
+  isWalledScene,
   pushOutOfObstacles,
   toScenePosition,
   walkSpeedFor,
@@ -267,6 +269,44 @@ describe('buildWalls', () => {
   });
 });
 
+describe('buildDoorHeaders', () => {
+  const size = { width: 10, depth: 8 };
+  const door = (x: number, y: number) =>
+    ({
+      connectorId: 'door',
+      destinationLocationId: 'a',
+      placement: { x, y, angle: 0 },
+    }) as NearbyExitSnapshot;
+
+  it('closes the wall above a doorway on the north side', () => {
+    // Act
+    const headers = buildDoorHeaders(size, [door(4, 0)]);
+
+    // Assert
+    expect(headers).toEqual([
+      { placement: { x: 4, y: 0, angle: 0 }, footprint: { width: 1.5, depth: 0.2 } },
+    ]);
+  });
+
+  it('closes the wall above a doorway on the east side', () => {
+    // Act
+    const headers = buildDoorHeaders(size, [door(10, 3)]);
+
+    // Assert
+    expect(headers).toEqual([
+      { placement: { x: 10, y: 3, angle: 0 }, footprint: { width: 0.2, depth: 1.5 } },
+    ]);
+  });
+
+  it('adds nothing for a connector that is not on a wall', () => {
+    // Act
+    const headers = buildDoorHeaders(size, [door(5, 4)]);
+
+    // Assert
+    expect(headers).toEqual([]);
+  });
+});
+
 describe('findConnectorInRange', () => {
   const near = {
     connectorId: 'near',
@@ -363,5 +403,33 @@ describe('walkSpeedFor', () => {
 
     // Assert
     expect(speed).toBe(WALK_SPEED / 2);
+  });
+});
+
+describe('isWalledScene', () => {
+  const scene = (parts: Partial<SceneSnapshot>) => parts as SceneSnapshot;
+
+  it('walls in a room', () => {
+    // Act
+    const walled = isWalledScene(scene({ districtName: 'Old Town', roomName: 'Lobby' }));
+
+    // Assert
+    expect(walled).toBe(true);
+  });
+
+  it('walls in a district so its edge exits stand in a gate', () => {
+    // Act
+    const walled = isWalledScene(scene({ districtName: 'Grand Bazaar' }));
+
+    // Assert
+    expect(walled).toBe(true);
+  });
+
+  it('leaves open ground without walls', () => {
+    // Act
+    const walled = isWalledScene(scene({ cityName: undefined, districtName: undefined }));
+
+    // Assert
+    expect(walled).toBe(false);
   });
 });

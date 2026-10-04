@@ -116,7 +116,25 @@ internal static class RoomLayoutPass
         }
     }
 
-    private static Furniture CreateFurniture(Location location, RecipeItem item) =>
+    private static Prop CreateFurniture(Location location, RecipeItem item) =>
+        item.IsSeat ? CreateSeat(location, item) : CreateDecor(location, item);
+
+    private static Seat CreateSeat(Location location, RecipeItem item) =>
+        new()
+        {
+            LocationId = location.Id,
+            WorldId = location.WorldId,
+            Name = PropModelNames
+                .DisplayName(item.Model)
+                .Replace("Seat ", "", StringComparison.Ordinal),
+            X = item.Placement.X,
+            Y = item.Placement.Y,
+            Angle = item.Placement.Angle,
+            Width = item.Footprint.Width,
+            Depth = item.Footprint.Depth,
+        };
+
+    private static Furniture CreateDecor(Location location, RecipeItem item) =>
         new()
         {
             LocationId = location.Id,

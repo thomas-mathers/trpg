@@ -5,7 +5,7 @@ namespace TRPG.Application.WorldGeneration.Generators;
 internal static class RoomRecipeCatalog
 {
     private static readonly RoomRecipe InnLobby = new([
-        new Anchored(PropModel.WorkstationTrade, 0.8, 0),
+        new CounterAt(0.8),
         new Anchored(PropModel.FurnitureFireplace, 1, 0.5, RecipeWall.East),
         new RugBeside(RecipeWall.East, 1.6, 2.4),
         new WallRun(PropModel.SeatBench, RecipeWall.West, From: 0.15, To: 0.8),
@@ -15,7 +15,7 @@ internal static class RoomRecipeCatalog
     private static readonly RoomRecipe CommonRoom = new([
         new Anchored(PropModel.WorkstationCooking, 0, 0.5, RecipeWall.West),
         new RugBeside(RecipeWall.West, 1.6, 2.4),
-        new WallRun(PropModel.WorkstationTrade, RecipeWall.East, From: 0.05, To: 0.6),
+        new CounterAt(0.3, RecipeWall.East),
         new TableGrid(Top: 3.5, Bottom: 4.5),
     ]);
 
@@ -28,7 +28,7 @@ internal static class RoomRecipeCatalog
     ]);
 
     private static readonly RoomRecipe GuildHall = new([
-        new Anchored(PropModel.WorkstationTrade, 0.05, 0),
+        new CounterAt(0.05),
         new WallRun(PropModel.FurnitureNoticeBoard, RecipeWall.West, From: 0.2, To: 0.8, Count: 3),
         new WallRun(PropModel.SeatBench, RecipeWall.East, From: 0.2, To: 0.8, Count: 3),
         new TableGrid(Top: 4, Bottom: 5),
@@ -80,7 +80,7 @@ internal static class RoomRecipeCatalog
     ]);
 
     private static readonly RoomRecipe Stable = new([
-        new Anchored(PropModel.WorkstationTrade, 0.75, 0),
+        new CounterAt(0.75),
         new WallRun(PropModel.FurnitureStall, RecipeWall.West, From: 0.1, To: 0.95),
         new WallRun(PropModel.FurnitureStall, RecipeWall.East, From: 0.1, To: 0.95),
         new WallRun(PropModel.ContainerBarrel, RecipeWall.South, From: 0.1, To: 0.3),
@@ -95,9 +95,9 @@ internal static class RoomRecipeCatalog
     ]);
 
     private static readonly RoomRecipe LibraryRoom = new([
-        new Anchored(PropModel.WorkstationTrade, 0.5, 0),
-        new Anchored(PropModel.WorkstationTrade, 0.3, 0),
-        new Anchored(PropModel.WorkstationTrade, 0.7, 0),
+        new CounterAt(0.5),
+        new CounterAt(0.3),
+        new CounterAt(0.7),
         new Anchored(PropModel.WorkstationTrade, 0.5, 0.12),
         .. LibraryShelving(),
         new ReadingTables([0.15, 0.5, 0.85]),
@@ -236,14 +236,18 @@ internal static class RoomRecipeCatalog
             new BookStacks([0.3, 0.7]),
         ];
 
-    private static RoomRecipe Bedroom(double bedFraction) =>
-        new([
+    private static RoomRecipe Bedroom(double bedFraction)
+    {
+        var chairWall = bedFraction == 0 ? RecipeWall.East : RecipeWall.West;
+
+        return new([
             new RugAt(0.5, 0.38, 1.5, 1.5),
             new Anchored(PropModel.Bed, bedFraction, 0),
             new Anchored(PropModel.Bed, bedFraction, 1),
             new Anchored(PropModel.ContainerChest, bedFraction, 1),
             new Anchored(PropModel.ContainerChest, 1 - bedFraction, 1),
-            new Anchored(PropModel.SeatChair, 1 - bedFraction, 0),
-            new Anchored(PropModel.SeatChair, 1 - bedFraction, 1),
+            new Anchored(PropModel.SeatChair, 1 - bedFraction, 0.3, chairWall),
+            new Anchored(PropModel.SeatChair, 1 - bedFraction, 0.7, chairWall),
         ]);
+    }
 }

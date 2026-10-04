@@ -69,6 +69,24 @@ public static class CreatureLayoutGenerator
 
         var pose = CreatureLayoutContext.PoseOf(anchor.Prop);
 
+        if (IsTradeCounter(anchor.Prop))
+        {
+            var behind = CreaturePlacementResolver.PlaceBehind(
+                frame,
+                context.ObstaclesAt(
+                    location.Id,
+                    excludedPropId: anchor.IsOccupied ? anchor.Prop.Id : null
+                ),
+                pose,
+                new Footprint(anchor.Prop.Width, anchor.Prop.Depth)
+            );
+
+            if (behind is { } spot)
+            {
+                return spot;
+            }
+        }
+
         return anchor.IsOccupied
             ? CreaturePlacementResolver.PlaceAt(
                 frame,
@@ -82,6 +100,9 @@ public static class CreatureLayoutGenerator
                 seed
             );
     }
+
+    private static bool IsTradeCounter(Prop prop) =>
+        prop is Workstation { WorkstationType: WorkstationType.Trade, Width: > 0 };
 
     private static void Apply(Creature creature, Placement placement, CreatureLayoutContext context)
     {

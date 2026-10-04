@@ -16,7 +16,7 @@ public class StairAlignmentTests
         LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var pairs = StairPairs(world);
+        var pairs = StairPairs(world).Where(pair => !HasFlightsBothWays(world, pair)).ToArray();
         Assert.NotEmpty(pairs);
         Assert.All(
             pairs,
@@ -94,6 +94,14 @@ public class StairAlignmentTests
             pair => Assert.Equal(PlanOffset(world, pair.Up), PlanOffset(world, pair.Down), 6)
         );
     }
+
+    private static bool HasFlightsBothWays(
+        MiniLayoutWorldBuilder.MiniLayoutWorld world,
+        StairPair pair
+    ) =>
+        new[] { pair.Up.OriginLocationId, pair.Down.OriginLocationId }.Any(roomId =>
+            StairConnectors(world).Count(connector => connector.OriginLocationId == roomId) > 1
+        );
 
     private static double PlanOffset(
         MiniLayoutWorldBuilder.MiniLayoutWorld world,

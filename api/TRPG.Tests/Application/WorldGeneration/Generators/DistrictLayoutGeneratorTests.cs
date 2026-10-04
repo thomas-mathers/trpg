@@ -265,6 +265,43 @@ public class DistrictLayoutGeneratorTests
     }
 
     [Fact]
+    public void Generate_BacksEverySeatAgainstABuildingFront_InTheCityCenter()
+    {
+        // Arrange
+        var inputs = RosterOnce(DistrictType.CityCenter);
+
+        // Act
+        var layout = DistrictLayoutGenerator.Generate(
+            DistrictType.CityCenter,
+            inputs,
+            Seats(3),
+            seed: 4
+        );
+
+        // Assert
+        var buildings = BuildingBoxes(layout, inputs);
+        Assert.All(
+            layout.Seats,
+            seat =>
+            {
+                var (sin, cos) = Math.SinCos(seat.Placement.Angle);
+                var reach = SeatFootprint.Depth / 2 + 1.5;
+                var ends = new[] { -1, 1 }.Select(side => new OrientedBox(
+                    seat.Placement.X - reach * sin + side * SeatFootprint.Width / 2 * cos,
+                    seat.Placement.Y + reach * cos + side * SeatFootprint.Width / 2 * sin,
+                    0.05,
+                    0.05,
+                    0
+                ));
+                Assert.All(
+                    ends,
+                    end => Assert.Contains(buildings, building => building.Overlaps(end))
+                );
+            }
+        );
+    }
+
+    [Fact]
     public void Generate_ReturnsTheSameLayout_WhenTheSeedMatches()
     {
         // Arrange

@@ -64,9 +64,22 @@ public class RoomFurnisherTests
     }
 
     [Theory]
-    [InlineData(PropModel.SeatChair, PropModel.FurnitureChair)]
-    [InlineData(PropModel.SeatPew, PropModel.FurniturePew)]
-    [InlineData(PropModel.SeatBench, PropModel.FurnitureBench)]
+    [InlineData(PropModel.SeatChair)]
+    [InlineData(PropModel.SeatPew)]
+    [InlineData(PropModel.SeatBench)]
+    public void Furnish_KeepsASeatSlotAsASeat_WhenNoPropFillsIt(PropModel slotModel)
+    {
+        // Arrange
+        var recipe = new RoomRecipe([new Anchored(slotModel, 0.5, 0.5)]);
+
+        // Act
+        var result = RoomFurnisher.Furnish(Room, recipe, [], []);
+
+        // Assert
+        Assert.Equal(slotModel, Assert.Single(result.Decor).Model);
+    }
+
+    [Theory]
     [InlineData(PropModel.WorkstationReading, PropModel.FurnitureBookcase)]
     [InlineData(PropModel.ContainerWeaponRack, PropModel.FurnitureStaffRack)]
     public void Furnish_SpawnsAStandInDecor_WhenNoPropFillsAGameplaySlot(

@@ -18,7 +18,13 @@ import { DoorConnector } from './door-connector';
 import { EntityLabel } from './entity-label';
 import { FurnitureMesh } from './furniture-mesh';
 import { isFurnitureModel } from './furniture-parts';
-import { headingToYaw, type Obstacle, toScenePosition, WALL_HEIGHT } from './layout-math';
+import {
+  DOOR_HEIGHT,
+  headingToYaw,
+  type Obstacle,
+  toScenePosition,
+  WALL_HEIGHT,
+} from './layout-math';
 import {
   BUILDING_MODEL_URLS,
   buildingStyle,
@@ -54,7 +60,9 @@ export function Ground({ size }: { size: FootprintWire }) {
   );
 }
 
-export function Walls({ walls }: { walls: Obstacle[] }) {
+const HEADER_HEIGHT = WALL_HEIGHT - DOOR_HEIGHT;
+
+export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle[] }) {
   return (
     <>
       {walls.map(({ placement, footprint }) => (
@@ -63,6 +71,15 @@ export function Walls({ walls }: { walls: Obstacle[] }) {
           position={toScenePosition(placement.x, placement.y, WALL_HEIGHT / 2)}
         >
           <boxGeometry args={[footprint.width, WALL_HEIGHT, footprint.depth]} />
+          <meshStandardMaterial color="#8a7b66" />
+        </mesh>
+      ))}
+      {headers.map(({ placement, footprint }) => (
+        <mesh
+          key={`header:${placement.x}:${placement.y}`}
+          position={toScenePosition(placement.x, placement.y, DOOR_HEIGHT + HEADER_HEIGHT / 2)}
+        >
+          <boxGeometry args={[footprint.width, HEADER_HEIGHT, footprint.depth]} />
           <meshStandardMaterial color="#8a7b66" />
         </mesh>
       ))}

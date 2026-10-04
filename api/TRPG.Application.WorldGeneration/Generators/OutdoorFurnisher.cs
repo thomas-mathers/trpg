@@ -16,6 +16,7 @@ internal static class OutdoorFurnisher
     private const double ApproachWidth = 2;
     private const double ApproachDepth = 1.5;
 
+    private static readonly double[] FrontFractions = [-0.3, 0.3, -0.4, 0.4];
     private static readonly double[] BenchFractions = [0.2, 0.5, 0.8, 0.35, 0.65];
     private static readonly double[] BoardFractions = [0.5, 0.25, 0.75, 0.1, 0.9];
 
@@ -44,10 +45,17 @@ internal static class OutdoorFurnisher
         PlaceOptional(decor, occupied, Centerpiece(type, plan.Square));
         PlaceOptional(decor, occupied, BoardCandidates(plan.Square));
 
-        return new OutdoorFurnishing(PlaceSeats(seats, plan.Square, occupied), decor);
+        var fronts = FrontBoxes(plan, buildings);
+
+        return new OutdoorFurnishing(PlaceSeats(seats, plan.Square, occupied, fronts), decor);
     }
 
     private static List<OrientedBox> Blocked(
+        DistrictPlan plan,
+        IReadOnlyCollection<DistrictBuildingInput> buildings
+    ) => FrontBoxes(plan, buildings).Concat(plan.Buildings.Select(Approach)).ToList();
+
+    private static OrientedBox[] FrontBoxes(
         DistrictPlan plan,
         IReadOnlyCollection<DistrictBuildingInput> buildings
     )
@@ -56,15 +64,12 @@ internal static class OutdoorFurnisher
             building => building.Id,
             building => building.Footprint
         );
-        var blocked = new List<OrientedBox>();
 
-        foreach (var layout in plan.Buildings)
-        {
-            blocked.Add(OrientedBox.From(layout.Placement, footprintById[layout.Id]));
-            blocked.Add(Approach(layout));
-        }
-
-        return blocked;
+        return plan
+            .Buildings.Select(layout =>
+                OrientedBox.From(layout.Placement, footprintById[layout.Id])
+            )
+            .ToArray();
     }
 
     private static OrientedBox Approach(DistrictBuildingLayout layout)
@@ -123,7 +128,8 @@ internal static class OutdoorFurnisher
     private static List<DistrictSeatLayout> PlaceSeats(
         IReadOnlyCollection<DistrictSeatInput> seats,
         PlanRect square,
-        List<OrientedBox> occupied
+        List<OrientedBox> occupied,
+        IReadOnlyCollection<OrientedBox> buildings
     )
     {
         var layouts = new List<DistrictSeatLayout>();
@@ -131,7 +137,8 @@ internal static class OutdoorFurnisher
         foreach (var seat in seats.OrderBy(seat => seat.Id))
         {
             var placement =
-                BenchSlots(square, seat.Footprint)
+                FrontSlots(square, buildings, seat.Footprint)
+                    .Concat(BenchSlots(square, seat.Footprint))
                     .FirstOrDefault(slot => IsFree(slot, seat.Footprint, occupied))
                 ?? throw new InvalidOperationException(
                     $"The square has no free bench slot for seat {seat.Id}."
@@ -160,6 +167,28 @@ internal static class OutdoorFurnisher
                 ),
             }
         );
+
+    private static IEnumerable<Placement> FrontSlots(
+        PlanRect square,
+        IReadOnlyCollection<OrientedBox> buildings,
+        Footprint footprint
+    ) =>
+        FrontFractions
+            .SelectMany(fraction =>
+                buildings.Select(building =>
+                {
+                    var (sin, cos) = Math.SinCos(building.Angle);
+                    var ahead = building.Depth / 2 + SquareInset + footprint.Depth / 2;
+                    var along = fraction * building.Width;
+
+                    return new Placement(
+                        building.CenterX + ahead * sin + along * cos,
+                        building.CenterY - ahead * cos + along * sin,
+                        building.Angle
+                    );
+                })
+            )
+            .Where(slot => square.Contains(new PlanarPoint(slot.X, slot.Y)));
 
     private static bool IsFree(
         Placement placement,

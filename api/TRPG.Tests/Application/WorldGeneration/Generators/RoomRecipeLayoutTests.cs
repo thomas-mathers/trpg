@@ -136,6 +136,102 @@ public class RoomRecipeLayoutTests
         );
     }
 
+    [Theory]
+    [InlineData(BuildingType.Tavern, "Owner's Quarters")]
+    [InlineData(BuildingType.Inn, "North Guest Room")]
+    [InlineData(BuildingType.GuildHall, "Member Room 1")]
+    public void Expand_KeepsBedroomChairsOutOfTheCorners(BuildingType type, string roomName)
+    {
+        // Arrange
+        var room = new Footprint(6, 6);
+        var recipe = RoomRecipeCatalog.Find(type, roomName)!;
+
+        // Act
+        var items = recipe.Expand(room);
+
+        // Assert
+        var chairs = items.Where(item => item.Model == PropModel.SeatChair).ToArray();
+        Assert.NotEmpty(chairs);
+        Assert.All(
+            chairs,
+            chair =>
+            {
+                var nearSide =
+                    chair.Bounds.Left < 1
+                    || chair.Bounds.Left + chair.Bounds.Width > room.Width - 1;
+                var nearEnd =
+                    chair.Bounds.Top < 1 || chair.Bounds.Top + chair.Bounds.Depth > room.Depth - 1;
+                Assert.False(nearSide && nearEnd);
+            }
+        );
+    }
+
+    [Theory]
+    [InlineData(BuildingType.Inn, "Lobby", false)]
+    [InlineData(BuildingType.Tavern, "Common Room", true)]
+    [InlineData(BuildingType.GuildHall, "Hall", false)]
+    public void Expand_PullsTheTradeCounterOffItsWall_ForStaffedRooms(
+        BuildingType type,
+        string roomName,
+        bool againstEastWall
+    )
+    {
+        // Arrange
+        var room = new Footprint(14, 12);
+        var recipe = RoomRecipeCatalog.Find(type, roomName)!;
+
+        // Act
+        var items = recipe.Expand(room);
+
+        // Assert
+        var counter = items.First(item => item.Model == PropModel.WorkstationTrade).Bounds;
+        var wallGap = againstEastWall ? room.Width - counter.Left - counter.Width : counter.Top;
+        Assert.True(wallGap >= CounterAt.Setback - 1e-9, $"counter is {wallGap} m from its wall");
+    }
+
+    [Theory]
+    [MemberData(nameof(RecipeBuildingTypes))]
+    public void Generate_CreatesSittableSeatsInsteadOfChairDecor_ForRecipeBuildings(
+        BuildingType type
+    )
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
+
+        // Act
+        var furniture = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        var roomIds = RecipeRooms(world, type).Select(room => room.LocationId).ToHashSet();
+        var seatDecor = furniture
+            .OfType<Furniture>()
+            .Where(item => roomIds.Contains(item.LocationId))
+            .Where(item =>
+                item.Model
+                    is PropModel.FurnitureChair
+                        or PropModel.FurniturePew
+                        or PropModel.FurnitureBench
+            );
+        Assert.Empty(seatDecor);
+    }
+
+    [Fact]
+    public void Generate_NamesGeneratedSeatsSoTheyResolveToTheirModel()
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
+
+        // Act
+        var furniture = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        var lobby = RecipeRooms(world, BuildingType.Inn).Single(room => room.Name == "Lobby");
+        var seats = furniture.OfType<Seat>().Where(seat => seat.LocationId == lobby.LocationId);
+        var models = seats.Select(PropModelResolver.Resolve).ToArray();
+        Assert.Contains(PropModel.SeatChair, models);
+        Assert.DoesNotContain(PropModel.SeatBasic, models);
+    }
+
     [Fact]
     public void Generate_PlacesTheInnFireplaceAndTables_InTheLobby()
     {

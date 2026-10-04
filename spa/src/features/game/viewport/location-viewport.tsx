@@ -15,7 +15,14 @@ import { runAction } from '../run-action';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
-import { buildEntityNames, buildObstacles, buildWalls, findPlayerPlacement } from './layout-math';
+import {
+  buildDoorHeaders,
+  buildEntityNames,
+  buildObstacles,
+  buildWalls,
+  findPlayerPlacement,
+  isWalledScene,
+} from './layout-math';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
 import { useSeatInteraction } from './use-seat-interaction';
 import { Boxes, Connectors, Creatures, Ground, Walls } from './viewport-scene';
@@ -60,7 +67,14 @@ export function LocationViewport({
     [scene],
   );
 
-  const walls = useMemo(() => (scene.roomName ? buildWalls(scene.size, scene.exits) : []), [scene]);
+  const walls = useMemo(
+    () => (isWalledScene(scene) ? buildWalls(scene.size, scene.exits) : []),
+    [scene],
+  );
+  const headers = useMemo(
+    () => (isWalledScene(scene) ? buildDoorHeaders(scene.size, scene.exits) : []),
+    [scene],
+  );
 
   if (!scene) {
     return null;
@@ -118,7 +132,7 @@ export function LocationViewport({
           <ambientLight intensity={0.8} />
           <directionalLight position={[size.width, 40, -size.depth]} intensity={1.2} />
           <Ground size={size} />
-          <Walls walls={walls} />
+          <Walls walls={walls} headers={headers} />
           <Boxes props={props} buildings={buildings} names={names} />
           <Creatures
             creatures={creatures}
