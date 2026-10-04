@@ -36,7 +36,9 @@ internal static class BuildingSpecCatalog
         IReadOnlyList<RoomSpec> rooms = buildingType switch
         {
             BuildingType.House => GetHouseSpecs(
-                bedroomGroups ?? memberIds.Select(id => (IReadOnlyList<Guid>)[id]).ToArray()
+                HouseBedroomPacker.Pack(
+                    bedroomGroups ?? memberIds.Select(id => (IReadOnlyList<Guid>)[id]).ToArray()
+                )
             ),
             BuildingType.Tavern => GetTavernSpecs(ownerId),
             BuildingType.Inn => GetInnSpecs(ownerId),

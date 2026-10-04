@@ -80,6 +80,186 @@ internal static class PropFootprintCatalog
             PropPlacementRule.Wall,
             FrontClearance: 0.6
         ),
+        [PropModel.FurnitureTable] = new(
+            Width: 1.8,
+            Depth: 1.0,
+            PropPlacementRule.Free,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureWorkTable] = new(
+            Width: 2.4,
+            Depth: 1.2,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.8
+        ),
+        [PropModel.FurnitureFireplace] = new(
+            Width: 1.4,
+            Depth: 0.8,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.8
+        ),
+        [PropModel.FurnitureStall] = new(
+            Width: 2.4,
+            Depth: 2.4,
+            PropPlacementRule.Free,
+            FrontClearance: 0.8
+        ),
+        [PropModel.FurnitureNoticeBoard] = new(
+            Width: 2.0,
+            Depth: 0.25,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureDisplayShelf] = new(
+            Width: 1.2,
+            Depth: 0.5,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureTrainingDummy] = new(
+            Width: 0.7,
+            Depth: 0.7,
+            PropPlacementRule.Free,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureRug] = new(
+            Width: 1.6,
+            Depth: 2.4,
+            PropPlacementRule.Free,
+            FrontClearance: 0.0
+        ),
+        [PropModel.FurnitureCauldron] = new(
+            Width: 0.9,
+            Depth: 0.9,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureHerbRack] = new(
+            Width: 1.4,
+            Depth: 0.4,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureLectern] = new(
+            Width: 0.7,
+            Depth: 0.6,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureStaffRack] = new(
+            Width: 1.2,
+            Depth: 0.4,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureMannequin] = new(
+            Width: 0.5,
+            Depth: 0.5,
+            PropPlacementRule.Free,
+            FrontClearance: 0.4
+        ),
+        [PropModel.FurnitureClothShelf] = new(
+            Width: 1.4,
+            Depth: 0.5,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureDisplayCase] = new(
+            Width: 1.4,
+            Depth: 0.6,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureFlourSacks] = new(
+            Width: 0.8,
+            Depth: 0.6,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.3
+        ),
+        [PropModel.FurnitureBreadRack] = new(
+            Width: 1.4,
+            Depth: 0.5,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureLumberStack] = new(
+            Width: 1.8,
+            Depth: 0.7,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.4
+        ),
+        [PropModel.FurnitureTimberRack] = new(
+            Width: 1.4,
+            Depth: 0.4,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.4
+        ),
+        [PropModel.FurnitureBookcase] = new(
+            Width: 1.0,
+            Depth: 0.7,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureChair] = new(
+            Width: 0.5,
+            Depth: 0.5,
+            PropPlacementRule.Free,
+            FrontClearance: 0.3
+        ),
+        [PropModel.FurnitureBench] = new(
+            Width: 1.5,
+            Depth: 0.5,
+            PropPlacementRule.Wall,
+            FrontClearance: 0.4
+        ),
+        [PropModel.FurniturePew] = new(
+            Width: 2.0,
+            Depth: 0.6,
+            PropPlacementRule.Free,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureFountain] = new(
+            Width: 3.2,
+            Depth: 3.2,
+            PropPlacementRule.Center,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureWell] = new(
+            Width: 1.4,
+            Depth: 1.4,
+            PropPlacementRule.Center,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureFirePit] = new(
+            Width: 1.6,
+            Depth: 1.6,
+            PropPlacementRule.Center,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureStatue] = new(
+            Width: 1.2,
+            Depth: 1.2,
+            PropPlacementRule.Center,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureMonument] = new(
+            Width: 1.8,
+            Depth: 1.8,
+            PropPlacementRule.Center,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureShrine] = new(
+            Width: 1.4,
+            Depth: 1.4,
+            PropPlacementRule.Center,
+            FrontClearance: 0.5
+        ),
+        [PropModel.FurnitureWaystone] = new(
+            Width: 1.2,
+            Depth: 1.2,
+            PropPlacementRule.Center,
+            FrontClearance: 0.5
+        ),
         [PropModel.SeatBasic] = new(
             Width: 0.5,
             Depth: 0.5,
@@ -159,14 +339,14 @@ internal static class PropFootprintCatalog
             FrontClearance: 0.5
         ),
         [PropModel.WorkstationAlchemy] = new(
-            Width: 1.4,
-            Depth: 0.8,
+            Width: 1.2,
+            Depth: 0.7,
             PropPlacementRule.Wall,
             FrontClearance: 0.8
         ),
         [PropModel.WorkstationArmorsmithing] = new(
-            Width: 0.8,
-            Depth: 0.8,
+            Width: 1.4,
+            Depth: 1.2,
             PropPlacementRule.Center,
             FrontClearance: 0.8
         ),

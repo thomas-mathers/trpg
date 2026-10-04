@@ -543,7 +543,7 @@ export function NewWorldDialog() {
                           label="Household Size"
                           value={field.state.value}
                           onChange={field.handleChange}
-                          max={10}
+                          max={6}
                         />
                       )}
                     </form.Field>

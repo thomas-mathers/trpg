@@ -112,6 +112,32 @@ public class CreatureLayoutGeneratorTests
     }
 
     [Fact]
+    public void Place_PutsAWorkerBehindTheirTradeCounterFacingTheSameWay()
+    {
+        // Arrange
+        var world = LaidOutWorld(1);
+        var lobby = world.Input.Rooms.First(room => room.Name == "Lobby");
+        var counter = world
+            .Input.Props.OfType<Workstation>()
+            .First(candidate =>
+                candidate.LocationId == lobby.LocationId
+                && candidate.WorkstationType == WorkstationType.Trade
+            );
+        var worker = new Creature { LocationId = counter.LocationId, WorldId = counter.WorldId };
+        counter.AssignedCreatureId = worker.Id;
+
+        // Act
+        CreatureLayoutGenerator.Place(LayoutInput(world, [worker]));
+
+        // Assert
+        var towardFront =
+            ((worker.X - counter.X) * Math.Sin(counter.Angle))
+            - ((worker.Y - counter.Y) * Math.Cos(counter.Angle));
+        Assert.True(towardFront < 0, $"worker is in front of the counter: {towardFront}");
+        Assert.Equal(counter.Angle, worker.Angle, 1e-9);
+    }
+
+    [Fact]
     public void Place_PutsASeatedCreatureOnTheirSeat()
     {
         // Arrange

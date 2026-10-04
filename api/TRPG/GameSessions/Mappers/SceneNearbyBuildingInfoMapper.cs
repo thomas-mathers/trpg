@@ -15,7 +15,8 @@ internal static class SceneNearbyBuildingInfoMapper
             type,
             type.ToDisplayName(),
             building.Placement.ToWire(),
-            building.Footprint.ToWire()
+            building.Footprint.ToWire(),
+            building.FloorCount
         );
     }
 }

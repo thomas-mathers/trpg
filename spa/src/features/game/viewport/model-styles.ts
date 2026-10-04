@@ -20,6 +20,36 @@ export const PROP_STYLES: Record<PropModel, BoxStyle> = {
   ContainerFootlocker: { color: '#7d6a4a', height: 0.5 },
   ContainerStrongbox: { color: METAL, height: 0.5 },
   ContainerWeaponRack: { color: '#6b5236', height: 1.5 },
+  FurnitureTable: { color: WOOD, height: 0.8 },
+  FurnitureWorkTable: { color: WOOD, height: 0.9 },
+  FurnitureFireplace: { color: STONE, height: 1.4 },
+  FurnitureStall: { color: WOOD, height: 2.2 },
+  FurnitureNoticeBoard: { color: '#a58355', height: 1.8 },
+  FurnitureDisplayShelf: { color: WOOD, height: 1.2 },
+  FurnitureTrainingDummy: { color: '#b09060', height: 1.6 },
+  FurnitureRug: { color: '#8a4f52', height: 0.02 },
+  FurnitureCauldron: { color: '#3b3f45', height: 0.8 },
+  FurnitureHerbRack: { color: WOOD, height: 1.6 },
+  FurnitureLectern: { color: WOOD, height: 1.1 },
+  FurnitureStaffRack: { color: WOOD, height: 1.6 },
+  FurnitureMannequin: { color: '#d8c6a4', height: 1.7 },
+  FurnitureClothShelf: { color: WOOD, height: 1.6 },
+  FurnitureDisplayCase: { color: WOOD, height: 1.0 },
+  FurnitureFlourSacks: { color: '#d8cdb0', height: 0.6 },
+  FurnitureBreadRack: { color: WOOD, height: 1.5 },
+  FurnitureLumberStack: { color: '#b08a55', height: 0.9 },
+  FurnitureTimberRack: { color: WOOD, height: 1.5 },
+  FurnitureBookcase: { color: WOOD, height: 1.9 },
+  FurnitureChair: { color: WOOD, height: 0.9 },
+  FurnitureBench: { color: WOOD, height: 0.5 },
+  FurniturePew: { color: '#74502f', height: 0.9 },
+  FurnitureFountain: { color: STONE, height: 1.0 },
+  FurnitureWell: { color: STONE, height: 1.0 },
+  FurnitureFirePit: { color: '#6b625a', height: 0.4 },
+  FurnitureStatue: { color: '#b9b6ac', height: 2.2 },
+  FurnitureMonument: { color: '#b9b6ac', height: 3.0 },
+  FurnitureShrine: { color: '#d0cab4', height: 1.6 },
+  FurnitureWaystone: { color: '#8d8c86', height: 1.8 },
   SeatBasic: { color: WOOD, height: 0.5 },
   SeatChair: { color: WOOD, height: 0.9 },
   SeatPew: { color: '#74502f', height: 0.9 },
@@ -71,6 +101,13 @@ export const BUILDING_STYLES: Record<BuildingType, BoxStyle> = {
   Temple: { color: '#d0cab4', height: 7 },
   Tower: { color: '#8a8a92', height: 10 },
 };
+
+const STOREY_HEIGHT = 3;
+
+export function buildingStyle(type: BuildingType, floorCount: number): BoxStyle {
+  const style = BUILDING_STYLES[type];
+  return { ...style, height: Math.max(style.height, floorCount * STOREY_HEIGHT) };
+}
 
 export const PROP_MODEL_URLS: Partial<Record<PropModel, string>> = {};
 

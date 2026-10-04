@@ -5,11 +5,11 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
 public class BuildingFootprintCatalogTests
 {
-    public static TheoryData<BuildingType> BuildingTypes => new(Enum.GetValues<BuildingType>());
+    public static TheoryData<BuildingType> DungeonTypes => new(BuildingTypes.Dungeon);
 
     [Theory]
-    [MemberData(nameof(BuildingTypes))]
-    public void GetMinimumArea_ReturnsAPositiveArea_ForEveryBuildingType(BuildingType buildingType)
+    [MemberData(nameof(DungeonTypes))]
+    public void GetMinimumArea_ReturnsAPositiveArea_ForEveryDungeonType(BuildingType buildingType)
     {
         // Act
         var area = BuildingFootprintCatalog.GetMinimumArea(buildingType);

@@ -37,6 +37,35 @@ public class CreaturePlacementResolverTests
     }
 
     [Fact]
+    public void PlaceBehind_StandsOnTheFarSideOfTheCounterFacingTheSameWay_WhenTheSpotIsFree()
+    {
+        // Arrange
+        var counter = new Placement(4, 3, Math.PI);
+        var size = new Footprint(Width: 1.8, Depth: 0.8);
+
+        // Act
+        var placement = CreaturePlacementResolver.PlaceBehind(Frame, [], counter, size);
+
+        // Assert
+        Assert.Equal(new Placement(4, 2.15, Math.PI), placement);
+    }
+
+    [Fact]
+    public void PlaceBehind_ReturnsNull_WhenTheSpotIsBlocked()
+    {
+        // Arrange
+        var counter = new Placement(4, 3, Math.PI);
+        var size = new Footprint(Width: 1.8, Depth: 0.8);
+        var blocker = Obstacle(4, 2.15, 1, 1);
+
+        // Act
+        var placement = CreaturePlacementResolver.PlaceBehind(Frame, [blocker], counter, size);
+
+        // Assert
+        Assert.Null(placement);
+    }
+
+    [Fact]
     public void PlaceNear_StaysCloseToTheAnchorAndFacesIt()
     {
         // Arrange

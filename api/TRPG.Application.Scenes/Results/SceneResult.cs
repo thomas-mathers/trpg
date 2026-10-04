@@ -46,7 +46,8 @@ public record SceneExitInfo(
     bool IsVisited,
     bool IsWayBack,
     Guid DestinationLocationId,
-    Placement Placement
+    Placement Placement,
+    StairDirection? Stairs = null
 );
 
 public record SceneRoomInfo(string Name, string Description, int FloorNumber);
@@ -61,7 +62,10 @@ public record ScenePropInfo(
     PropModel Model,
     Placement Placement,
     Footprint Footprint
-);
+)
+{
+    public const string FurnitureType = "Furniture";
+}
 
 public record SceneJourneyInfo(string Purpose, string NextDestination);
 
@@ -118,7 +122,8 @@ public record SceneNearbyBuildingInfo(
     string Name,
     BuildingType Type,
     Placement Placement,
-    Footprint Footprint
+    Footprint Footprint,
+    int FloorCount
 );
 
 public record SceneCaravanDestination(

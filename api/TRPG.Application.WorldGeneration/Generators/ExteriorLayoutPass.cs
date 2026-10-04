@@ -4,15 +4,23 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class ExteriorLayoutPass
 {
-    internal static void Run(
+    private record ExteriorLayout(
+        Dictionary<Guid, DistrictBuildingLayout> Buildings,
+        IReadOnlyList<DistrictDecor> Decor
+    );
+
+    internal static IReadOnlyList<Prop> Run(
         LocationLayoutContext context,
         Dictionary<Guid, ConnectorExit> exitByConnectorId
     )
     {
+        var furniture = new List<Prop>();
+
         foreach (var location in context.Locations.Where(l => l.Kind != LocationKind.Room))
         {
-            var buildingLayouts = LayOut(context, location);
-            var classifier = new ConnectorExitClassifier(context, buildingLayouts);
+            var exterior = LayOut(context, location);
+            furniture.AddRange(exterior.Decor.Select(item => CreateFurniture(location, item)));
+            var classifier = new ConnectorExitClassifier(context, exterior.Buildings);
             var requests = context
                 .ConnectorsByOrigin[location.Id]
                 .Select(classifier.Classify)
@@ -24,12 +32,25 @@ internal static class ExteriorLayoutPass
                 exitByConnectorId[exit.ConnectorId] = exit;
             }
         }
+
+        return furniture;
     }
 
-    private static Dictionary<Guid, DistrictBuildingLayout> LayOut(
-        LocationLayoutContext context,
-        Location location
-    )
+    private static Furniture CreateFurniture(Location location, DistrictDecor item) =>
+        new()
+        {
+            LocationId = location.Id,
+            WorldId = location.WorldId,
+            Name = PropModelNames.DisplayName(item.Model),
+            Model = item.Model,
+            X = item.Placement.X,
+            Y = item.Placement.Y,
+            Angle = item.Placement.Angle,
+            Width = item.Footprint.Width,
+            Depth = item.Footprint.Depth,
+        };
+
+    private static ExteriorLayout LayOut(LocationLayoutContext context, Location location)
     {
         var buildings = context.BuildingsByExterior[location.Id].ToArray();
         var footprints = buildings.ToDictionary(
@@ -37,16 +58,20 @@ internal static class ExteriorLayoutPass
             building => SizeBuilding(context, building)
         );
         var inputs = buildings
-            .Select(building => new DistrictBuildingInput(building.Id, footprints[building.Id]))
+            .Select(building => new DistrictBuildingInput(
+                building.Id,
+                building.BuildingType,
+                footprints[building.Id]
+            ))
             .ToArray();
-        var layouts =
+        var exterior =
             location.Kind == LocationKind.District
                 ? LayOutDistrict(context, location, inputs)
                 : LayOutWilderness(location, inputs);
 
         foreach (var building in buildings)
         {
-            var layout = layouts[building.Id];
+            var layout = exterior.Buildings[building.Id];
             building.X = layout.Placement.X;
             building.Y = layout.Placement.Y;
             building.Angle = layout.Placement.Angle;
@@ -54,10 +79,10 @@ internal static class ExteriorLayoutPass
             building.Depth = footprints[building.Id].Depth;
         }
 
-        return layouts;
+        return exterior;
     }
 
-    private static Dictionary<Guid, DistrictBuildingLayout> LayOutDistrict(
+    private static ExteriorLayout LayOutDistrict(
         LocationLayoutContext context,
         Location location,
         DistrictBuildingInput[] buildings
@@ -71,16 +96,25 @@ internal static class ExteriorLayoutPass
             ))
             .ToArray();
 
-        var layout = DistrictLayoutGenerator.Generate(buildings, seats);
+        var districtType = context.DistrictByLocationId[location.Id].DistrictType;
+        var layout = DistrictLayoutGenerator.Generate(
+            districtType,
+            buildings,
+            seats,
+            LayoutSeed.From(location.Id)
+        );
 
         location.Width = layout.District.Width;
         location.Depth = layout.District.Depth;
         ApplySeats(props, seats, layout.Seats);
 
-        return layout.Buildings.ToDictionary(building => building.Id);
+        return new ExteriorLayout(
+            layout.Buildings.ToDictionary(building => building.Id),
+            layout.Decor
+        );
     }
 
-    private static Dictionary<Guid, DistrictBuildingLayout> LayOutWilderness(
+    private static ExteriorLayout LayOutWilderness(
         Location location,
         DistrictBuildingInput[] buildings
     )
@@ -89,9 +123,11 @@ internal static class ExteriorLayoutPass
         location.Width = size.Width;
         location.Depth = size.Depth;
 
-        return WildernessBuildingPlacer
+        var placed = WildernessBuildingPlacer
             .Place(size, buildings, new Random(LayoutSeed.From(location.Id)))
             .ToDictionary(building => building.Id);
+
+        return new ExteriorLayout(placed, []);
     }
 
     private static void ApplySeats(
@@ -117,6 +153,18 @@ internal static class ExteriorLayoutPass
     private static Footprint SizeBuilding(LocationLayoutContext context, Building building)
     {
         var rooms = context.RoomsByBuilding[building.Id].ToArray();
+
+        return BuildingTypes.Dungeon.Contains(building.BuildingType)
+            ? SizeDungeon(context, building, rooms)
+            : BuildingTemplateCatalog.Resolve(building.BuildingType, rooms).Footprint;
+    }
+
+    private static Footprint SizeDungeon(
+        LocationLayoutContext context,
+        Building building,
+        Room[] rooms
+    )
+    {
         var groundFloor = rooms.Where(room => room.FloorNumber == 0).ToArray();
         var groundFloorArea = (groundFloor.Length > 0 ? groundFloor : rooms).Sum(room =>
         {

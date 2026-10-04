@@ -4,14 +4,16 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class LocationLayoutGenerator
 {
-    internal static void Generate(LocationLayoutInput input)
+    internal static IReadOnlyList<Prop> Generate(LocationLayoutInput input)
     {
         var context = new LocationLayoutContext(input);
         var exitByConnectorId = new Dictionary<Guid, ConnectorExit>();
 
-        RoomLayoutPass.Run(context, exitByConnectorId);
-        ExteriorLayoutPass.Run(context, exitByConnectorId);
+        var roomFurniture = RoomLayoutPass.Run(context, exitByConnectorId);
+        var exteriorFurniture = ExteriorLayoutPass.Run(context, exitByConnectorId);
         ApplyConnectorPoints(context, exitByConnectorId);
+
+        return [.. roomFurniture, .. exteriorFurniture];
     }
 
     private static void ApplyConnectorPoints(
@@ -28,13 +30,18 @@ internal static class LocationLayoutGenerator
         {
             var exit = exitByConnectorId[connector.Id];
             var reverse = FindReverse(connectorsByPair, connector);
+            var frame = DestinationFrame(context, connector);
             var arrival = reverse is null
-                ? ConnectorPointResolver.ResolveDefaultArrival(DestinationFrame(context, connector))
-                : ConnectorPointResolver.ResolveArrival(exitByConnectorId[reverse.Id]);
+                ? ConnectorPointResolver.ResolveDefaultArrival(frame)
+                : ConnectorPointResolver.KeepInside(
+                    ConnectorPointResolver.ResolveArrival(exitByConnectorId[reverse.Id]),
+                    frame
+                );
 
             connector.ExitX = exit.Point.X;
             connector.ExitY = exit.Point.Y;
             connector.ExitAngle = exit.FacingAngle;
+            connector.StairDirection = exit.Stairs;
             connector.ArrivalX = arrival.X;
             connector.ArrivalY = arrival.Y;
             connector.ArrivalAngle = arrival.Angle;

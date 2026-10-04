@@ -710,7 +710,8 @@ internal class GetSceneQueryHandler(
                 b.Name,
                 b.BuildingType,
                 new Placement(b.X, b.Y, b.Angle),
-                new Footprint(b.Width, b.Depth)
+                new Footprint(b.Width, b.Depth),
+                b.FloorCount
             ))
             .ToArray();
 
@@ -896,7 +897,8 @@ internal class GetSceneQueryHandler(
                 visited.Contains(connector.DestinationLocationId),
                 connector.DestinationLocationId == player.PreviousLocationId,
                 connector.DestinationLocationId,
-                new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle)
+                new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle),
+                connector.StairDirection
             ))
             .ToArray();
     }
@@ -956,6 +958,7 @@ internal class GetSceneQueryHandler(
             Trap => "Trap",
             Trigger => "Trigger",
             Sign => "Sign",
+            Furniture => ScenePropInfo.FurnitureType,
             _ => prop.GetType().Name,
         };
     }

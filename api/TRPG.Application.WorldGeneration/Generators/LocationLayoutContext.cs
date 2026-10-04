@@ -4,6 +4,7 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal record LocationLayoutInput(
     IReadOnlyCollection<Location> Locations,
+    IReadOnlyCollection<District> Districts,
     IReadOnlyCollection<Prop> Props,
     IReadOnlyCollection<Building> Buildings,
     IReadOnlyCollection<Room> Rooms,
@@ -21,6 +22,9 @@ internal sealed class LocationLayoutContext(LocationLayoutInput input)
 
     internal IReadOnlyDictionary<Guid, Building> BuildingById { get; } =
         input.Buildings.ToDictionary(building => building.Id);
+
+    internal IReadOnlyDictionary<Guid, District> DistrictByLocationId { get; } =
+        input.Districts.ToDictionary(district => district.LocationId);
 
     internal IReadOnlyDictionary<Guid, State> StateById { get; } =
         input.States.ToDictionary(state => state.Id);

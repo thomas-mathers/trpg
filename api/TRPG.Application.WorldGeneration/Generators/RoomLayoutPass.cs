@@ -7,27 +7,33 @@ internal static class RoomLayoutPass
     private static readonly IReadOnlyDictionary<Guid, DistrictBuildingLayout> NoBuildingLayouts =
         new Dictionary<Guid, DistrictBuildingLayout>();
 
-    internal static void Run(
+    internal static IReadOnlyList<Prop> Run(
         LocationLayoutContext context,
         Dictionary<Guid, ConnectorExit> exitByConnectorId
     )
     {
         var classifier = new ConnectorExitClassifier(context, NoBuildingLayouts);
+        var furniture = new List<Prop>();
 
         foreach (var location in context.Locations.Where(l => l.Kind == LocationKind.Room))
         {
-            LayOutRoom(context, classifier, location, exitByConnectorId);
+            var layout = LayOutRoom(context, classifier, location);
+
+            ApplyResult(location, layout.Result, exitByConnectorId);
+            furniture.AddRange(layout.Furniture);
         }
+
+        return furniture;
     }
 
-    private static void LayOutRoom(
+    private static RoomLayout LayOutRoom(
         LocationLayoutContext context,
         ConnectorExitClassifier classifier,
-        Location location,
-        Dictionary<Guid, ConnectorExit> exitByConnectorId
+        Location location
     )
     {
-        var random = new Random(LayoutSeed.From(location.Id));
+        var room = context.RoomByLocationId[location.Id];
+        var building = context.BuildingById[room.BuildingId];
         var props = context.PropsByLocationId[location.Id].ToArray();
         var inputs = props
             .Select(prop => new RoomPropInput(prop.Id, PropModelResolver.Resolve(prop)))
@@ -36,13 +42,73 @@ internal static class RoomLayoutPass
             .ConnectorsByOrigin[location.Id]
             .Select(classifier.Classify)
             .ToArray();
-        var initial = InitialSize(context, context.RoomByLocationId[location.Id], inputs, random);
+        var recipe = RoomRecipeCatalog.Find(building.BuildingType, room.Name);
 
-        var result = RoomPropPlacer.Place(initial, inputs, requests, random);
+        if (recipe is null)
+        {
+            var scattered = PlaceScattered(context, room, building, inputs, requests);
+            ApplyProps(props, scattered.Props);
 
+            return new RoomLayout(scattered, []);
+        }
+
+        var size = TemplateSize(context, room, building);
+        var exits = ConnectorPointResolver.ResolveExits(size, requests);
+        var furnished = RoomFurnisher.Furnish(
+            size,
+            recipe,
+            inputs,
+            exits.Select(RoomFurnisher.KeepOut).ToArray()
+        );
+        ApplyProps(props, furnished.Bound);
+
+        return new RoomLayout(
+            new RoomPlacementResult(size, exits, furnished.Bound),
+            furnished.Decor.Select(item => CreateFurniture(location, item)).ToArray()
+        );
+    }
+
+    private static RoomPlacementResult PlaceScattered(
+        LocationLayoutContext context,
+        Room room,
+        Building building,
+        IReadOnlyCollection<RoomPropInput> inputs,
+        IReadOnlyCollection<ConnectorExitRequest> requests
+    )
+    {
+        var random = new Random(LayoutSeed.From(room.LocationId));
+        var initial = BuildingTypes.Dungeon.Contains(building.BuildingType)
+            ? LocationSizer.SizeRoom(
+                new RoomSizingRequest(
+                    building.BuildingType,
+                    room.Role,
+                    inputs.Select(input => input.Model).ToArray(),
+                    room.Capacity
+                ),
+                random
+            )
+            : TemplateSize(context, room, building);
+
+        return RoomPropPlacer.Place(initial, inputs, requests, random);
+    }
+
+    private static Footprint TemplateSize(
+        LocationLayoutContext context,
+        Room room,
+        Building building
+    ) =>
+        BuildingTemplateCatalog
+            .Resolve(building.BuildingType, context.RoomsByBuilding[building.Id].ToArray())
+            .RoomSize(room);
+
+    private static void ApplyResult(
+        Location location,
+        RoomPlacementResult result,
+        Dictionary<Guid, ConnectorExit> exitByConnectorId
+    )
+    {
         location.Width = result.Room.Width;
         location.Depth = result.Room.Depth;
-        ApplyProps(props, result.Props);
 
         foreach (var exit in result.Exits)
         {
@@ -50,35 +116,37 @@ internal static class RoomLayoutPass
         }
     }
 
-    private static Footprint InitialSize(
-        LocationLayoutContext context,
-        Room room,
-        IReadOnlyCollection<RoomPropInput> inputs,
-        Random random
-    )
-    {
-        if (LocationLayoutContext.IsHallway(room))
-        {
-            return LocationSizer.SizeHallway(
-                context
-                    .RoomsByBuilding[room.BuildingId]
-                    .Count(other =>
-                        other.FloorNumber == room.FloorNumber
-                        && !LocationLayoutContext.IsHallway(other)
-                    )
-            );
-        }
+    private static Prop CreateFurniture(Location location, RecipeItem item) =>
+        item.IsSeat ? CreateSeat(location, item) : CreateDecor(location, item);
 
-        return LocationSizer.SizeRoom(
-            new RoomSizingRequest(
-                context.BuildingById[room.BuildingId].BuildingType,
-                room.Role,
-                inputs.Select(input => input.Model).ToArray(),
-                room.Capacity
-            ),
-            random
-        );
-    }
+    private static Seat CreateSeat(Location location, RecipeItem item) =>
+        new()
+        {
+            LocationId = location.Id,
+            WorldId = location.WorldId,
+            Name = PropModelNames
+                .DisplayName(item.Model)
+                .Replace("Seat ", "", StringComparison.Ordinal),
+            X = item.Placement.X,
+            Y = item.Placement.Y,
+            Angle = item.Placement.Angle,
+            Width = item.Footprint.Width,
+            Depth = item.Footprint.Depth,
+        };
+
+    private static Furniture CreateDecor(Location location, RecipeItem item) =>
+        new()
+        {
+            LocationId = location.Id,
+            WorldId = location.WorldId,
+            Name = PropModelNames.DisplayName(item.Model),
+            Model = item.Model,
+            X = item.Placement.X,
+            Y = item.Placement.Y,
+            Angle = item.Placement.Angle,
+            Width = item.Footprint.Width,
+            Depth = item.Footprint.Depth,
+        };
 
     private static void ApplyProps(Prop[] props, IReadOnlyList<PlacedProp> placed)
     {
@@ -94,4 +162,6 @@ internal static class RoomLayoutPass
             prop.Depth = pose.Footprint.Depth;
         }
     }
+
+    private record RoomLayout(RoomPlacementResult Result, IReadOnlyList<Prop> Furniture);
 }

@@ -38,7 +38,8 @@ public sealed class SceneSnapshotMapperTests
                     "Inn",
                     BuildingType.Inn,
                     new Placement(20, 8, 1),
-                    new Footprint(6, 4)
+                    new Footprint(6, 4),
+                    FloorCount: 3
                 ),
             ],
             Exits = [SceneResultBuilder.MakeExit("Inn", isLocked: false)],
@@ -55,6 +56,7 @@ public sealed class SceneSnapshotMapperTests
         Assert.Equal(1.5, snapshot.PlayerStatus.Placement.Angle);
         Assert.Equal(0.5, Assert.Single(snapshot.NearbyProps).Placement.Angle);
         Assert.Equal(6, Assert.Single(snapshot.NearbyBuildings).Footprint.Width);
+        Assert.Equal(3, Assert.Single(snapshot.NearbyBuildings).FloorCount);
         Assert.Equal(
             scene.Exits.Single().Placement.Angle,
             Assert.Single(snapshot.Exits).Placement.Angle

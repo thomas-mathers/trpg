@@ -167,6 +167,9 @@ export type RoomRole = "Entrance" | "BossChamber" | "Passage" | "GuardPost" | "S
 /** Transpiled from TRPG.GameSessions.Responses.CompassDirection */
 export type CompassDirection = "North" | "Northeast" | "East" | "Southeast" | "South" | "Southwest" | "West" | "Northwest";
 
+/** Transpiled from TRPG.GameSessions.Responses.StairDirection */
+export type StairDirection = "Up" | "Down";
+
 /** Transpiled from TRPG.GameSessions.Responses.DistrictType */
 export type DistrictType = "Residential" | "Scientific" | "CityCenter" | "CityEntrance" | "Governmental" | "HolySite" | "Encampment";
 
@@ -343,6 +346,8 @@ export type NearbyBuildingSnapshot = {
     placement: PlacementWire;
     /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
     footprint: FootprintWire;
+    /** Transpiled from int */
+    floorCount: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyPropSnapshot */
@@ -415,6 +420,8 @@ export type NearbyExitSnapshot = {
     destinationLocationId: string;
     /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
     placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.StairDirection */
+    stairs?: StairDirection;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CaravanDestinationSnapshot */
@@ -464,5 +471,5 @@ export type FootprintWire = {
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.PropModel */
-export type PropModel = "Bed" | "Cell" | "Sign" | "ContainerBasic" | "ContainerBarrel" | "ContainerChest" | "ContainerCrate" | "ContainerFootlocker" | "ContainerStrongbox" | "ContainerWeaponRack" | "SeatBasic" | "SeatChair" | "SeatPew" | "SeatThrone" | "SeatBench" | "SeatStoneBench" | "SeatLowWall" | "TrapMechanical" | "TrapCollapse" | "TrapSlope" | "TrapWater" | "TriggerBasic" | "TriggerLever" | "WorkstationAlchemy" | "WorkstationArmorsmithing" | "WorkstationCarpentry" | "WorkstationCooking" | "WorkstationEnchanting" | "WorkstationJewelcrafting" | "WorkstationPrayer" | "WorkstationReading" | "WorkstationTailoring" | "WorkstationTrade" | "WorkstationWeaponsmithing";
+export type PropModel = "Bed" | "Cell" | "Sign" | "ContainerBasic" | "ContainerBarrel" | "ContainerChest" | "ContainerCrate" | "ContainerFootlocker" | "ContainerStrongbox" | "ContainerWeaponRack" | "FurnitureTable" | "FurnitureWorkTable" | "FurnitureFireplace" | "FurnitureStall" | "FurnitureNoticeBoard" | "FurnitureDisplayShelf" | "FurnitureTrainingDummy" | "FurnitureRug" | "FurnitureCauldron" | "FurnitureHerbRack" | "FurnitureLectern" | "FurnitureStaffRack" | "FurnitureMannequin" | "FurnitureClothShelf" | "FurnitureDisplayCase" | "FurnitureFlourSacks" | "FurnitureBreadRack" | "FurnitureLumberStack" | "FurnitureTimberRack" | "FurnitureBookcase" | "FurnitureChair" | "FurnitureBench" | "FurniturePew" | "FurnitureFountain" | "FurnitureWell" | "FurnitureFirePit" | "FurnitureStatue" | "FurnitureMonument" | "FurnitureShrine" | "FurnitureWaystone" | "SeatBasic" | "SeatChair" | "SeatPew" | "SeatThrone" | "SeatBench" | "SeatStoneBench" | "SeatLowWall" | "TrapMechanical" | "TrapCollapse" | "TrapSlope" | "TrapWater" | "TriggerBasic" | "TriggerLever" | "WorkstationAlchemy" | "WorkstationArmorsmithing" | "WorkstationCarpentry" | "WorkstationCooking" | "WorkstationEnchanting" | "WorkstationJewelcrafting" | "WorkstationPrayer" | "WorkstationReading" | "WorkstationTailoring" | "WorkstationTrade" | "WorkstationWeaponsmithing";
 

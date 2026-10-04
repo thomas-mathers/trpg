@@ -666,6 +666,7 @@ export type NearbyBuildingSnapshot = {
     typeDescription: string;
     placement: PlacementWire;
     footprint: FootprintWire;
+    floorCount: number;
 };
 
 export type NearbyCaravanSnapshot = {
@@ -726,6 +727,7 @@ export type NearbyExitSnapshot = {
     isWayBack: boolean;
     destinationLocationId: string;
     placement: PlacementWire;
+    stairs: null | StairDirection;
 };
 
 export type NearbyPropSnapshot = {
@@ -778,7 +780,7 @@ export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
 
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
 
-export type PropModel = 'Bed' | 'Cell' | 'Sign' | 'ContainerBasic' | 'ContainerBarrel' | 'ContainerChest' | 'ContainerCrate' | 'ContainerFootlocker' | 'ContainerStrongbox' | 'ContainerWeaponRack' | 'SeatBasic' | 'SeatChair' | 'SeatPew' | 'SeatThrone' | 'SeatBench' | 'SeatStoneBench' | 'SeatLowWall' | 'TrapMechanical' | 'TrapCollapse' | 'TrapSlope' | 'TrapWater' | 'TriggerBasic' | 'TriggerLever' | 'WorkstationAlchemy' | 'WorkstationArmorsmithing' | 'WorkstationCarpentry' | 'WorkstationCooking' | 'WorkstationEnchanting' | 'WorkstationJewelcrafting' | 'WorkstationPrayer' | 'WorkstationReading' | 'WorkstationTailoring' | 'WorkstationTrade' | 'WorkstationWeaponsmithing';
+export type PropModel = 'Bed' | 'Cell' | 'Sign' | 'ContainerBasic' | 'ContainerBarrel' | 'ContainerChest' | 'ContainerCrate' | 'ContainerFootlocker' | 'ContainerStrongbox' | 'ContainerWeaponRack' | 'FurnitureTable' | 'FurnitureWorkTable' | 'FurnitureFireplace' | 'FurnitureStall' | 'FurnitureNoticeBoard' | 'FurnitureDisplayShelf' | 'FurnitureTrainingDummy' | 'FurnitureRug' | 'FurnitureCauldron' | 'FurnitureHerbRack' | 'FurnitureLectern' | 'FurnitureStaffRack' | 'FurnitureMannequin' | 'FurnitureClothShelf' | 'FurnitureDisplayCase' | 'FurnitureFlourSacks' | 'FurnitureBreadRack' | 'FurnitureLumberStack' | 'FurnitureTimberRack' | 'FurnitureBookcase' | 'FurnitureChair' | 'FurnitureBench' | 'FurniturePew' | 'FurnitureFountain' | 'FurnitureWell' | 'FurnitureFirePit' | 'FurnitureStatue' | 'FurnitureMonument' | 'FurnitureShrine' | 'FurnitureWaystone' | 'SeatBasic' | 'SeatChair' | 'SeatPew' | 'SeatThrone' | 'SeatBench' | 'SeatStoneBench' | 'SeatLowWall' | 'TrapMechanical' | 'TrapCollapse' | 'TrapSlope' | 'TrapWater' | 'TriggerBasic' | 'TriggerLever' | 'WorkstationAlchemy' | 'WorkstationArmorsmithing' | 'WorkstationCarpentry' | 'WorkstationCooking' | 'WorkstationEnchanting' | 'WorkstationJewelcrafting' | 'WorkstationPrayer' | 'WorkstationReading' | 'WorkstationTailoring' | 'WorkstationTrade' | 'WorkstationWeaponsmithing';
 
 export type QuestDialogMode = 'Offer' | 'TurnIn';
 
@@ -909,6 +911,8 @@ export type SkillProgressSummary = {
 };
 
 export type SpecialHitType = 'CrushingBlow' | 'DeadlyStrike' | 'OpenWounds';
+
+export type StairDirection = 'Up' | 'Down';
 
 export type StateMapResponse = {
     id: string;

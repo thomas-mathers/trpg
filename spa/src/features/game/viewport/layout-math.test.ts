@@ -10,13 +10,20 @@ import type {
 import {
   buildEntityNames,
   buildObstacles,
+  buildDoorHeaders,
   buildWalls,
   clampToBounds,
   computeMovement,
   findConnectorInRange,
   findPlayerPlacement,
   headingToYaw,
+  isRoomScene,
+  isWalledScene,
+  PLAYER_RADIUS,
   pushOutOfObstacles,
+  STAIR_DEPTH,
+  STAIR_WIDTH,
+  stairCorners,
   toScenePosition,
   walkSpeedFor,
   WALK_SPEED,
@@ -200,10 +207,49 @@ describe('buildObstacles', () => {
     ] as NearbyBuildingSnapshot[];
 
     // Act
-    const obstacles = buildObstacles(props, buildings);
+    const obstacles = buildObstacles(props, buildings, []);
 
     // Assert
     expect(obstacles).toEqual([props[0], buildings[0]]);
+  });
+
+  it('adds the stair footprint ahead of a flight of stairs but not a door', () => {
+    // Arrange
+    const stairs = {
+      connectorId: 'stairs',
+      stairs: 'Up',
+      placement: { x: 5, y: 0, angle: Math.PI },
+    } as NearbyExitSnapshot;
+    const door = {
+      connectorId: 'door',
+      placement: { x: 1, y: 0, angle: Math.PI },
+    } as NearbyExitSnapshot;
+
+    // Act
+    const obstacles = buildObstacles([], [], [stairs, door]);
+
+    // Assert
+    expect(obstacles).toHaveLength(1);
+    expect(obstacles[0].placement.x).toBeCloseTo(5);
+    expect(obstacles[0].placement.y).toBeCloseTo(STAIR_DEPTH / 2);
+    expect(obstacles[0].footprint).toEqual({ width: STAIR_WIDTH, depth: STAIR_DEPTH });
+  });
+
+  it('stops the player short of the stair box', () => {
+    // Arrange
+    const stairs = {
+      connectorId: 'stairs',
+      stairs: 'Down',
+      placement: { x: 5, y: 0, angle: Math.PI },
+    } as NearbyExitSnapshot;
+    const obstacles = buildObstacles([], [], [stairs]);
+
+    // Act
+    const resolved = pushOutOfObstacles({ x: 5, y: STAIR_DEPTH - 0.1 }, obstacles);
+
+    // Assert
+    expect(resolved.x).toBeCloseTo(5);
+    expect(resolved.y).toBeCloseTo(STAIR_DEPTH + PLAYER_RADIUS);
   });
 });
 
@@ -267,6 +313,44 @@ describe('buildWalls', () => {
   });
 });
 
+describe('buildDoorHeaders', () => {
+  const size = { width: 10, depth: 8 };
+  const door = (x: number, y: number) =>
+    ({
+      connectorId: 'door',
+      destinationLocationId: 'a',
+      placement: { x, y, angle: 0 },
+    }) as NearbyExitSnapshot;
+
+  it('closes the wall above a doorway on the north side', () => {
+    // Act
+    const headers = buildDoorHeaders(size, [door(4, 0)]);
+
+    // Assert
+    expect(headers).toEqual([
+      { placement: { x: 4, y: 0, angle: 0 }, footprint: { width: 1.5, depth: 0.2 } },
+    ]);
+  });
+
+  it('closes the wall above a doorway on the east side', () => {
+    // Act
+    const headers = buildDoorHeaders(size, [door(10, 3)]);
+
+    // Assert
+    expect(headers).toEqual([
+      { placement: { x: 10, y: 3, angle: 0 }, footprint: { width: 0.2, depth: 1.5 } },
+    ]);
+  });
+
+  it('adds nothing for a connector that is not on a wall', () => {
+    // Act
+    const headers = buildDoorHeaders(size, [door(5, 4)]);
+
+    // Assert
+    expect(headers).toEqual([]);
+  });
+});
+
 describe('findConnectorInRange', () => {
   const near = {
     connectorId: 'near',
@@ -296,6 +380,36 @@ describe('findConnectorInRange', () => {
 
     // Assert
     expect(found?.connectorId).toBe('closer');
+  });
+
+  it('measures a flight of stairs from the front edge of its steps', () => {
+    // Arrange
+    const stairs = {
+      connectorId: 'stairs',
+      stairs: 'Up',
+      placement: { x: 5, y: 0, angle: Math.PI },
+    } as NearbyExitSnapshot;
+
+    // Act
+    const found = findConnectorInRange({ x: 5, y: STAIR_DEPTH + 1 }, [stairs], 1.5);
+
+    // Assert
+    expect(found?.connectorId).toBe('stairs');
+  });
+
+  it('ignores a flight of stairs the player is out of reach of', () => {
+    // Arrange
+    const stairs = {
+      connectorId: 'stairs',
+      stairs: 'Up',
+      placement: { x: 5, y: 0, angle: Math.PI },
+    } as NearbyExitSnapshot;
+
+    // Act
+    const found = findConnectorInRange({ x: 5, y: STAIR_DEPTH + 3 }, [stairs], 1.5);
+
+    // Assert
+    expect(found).toBeUndefined();
   });
 });
 
@@ -363,5 +477,95 @@ describe('walkSpeedFor', () => {
 
     // Assert
     expect(speed).toBe(WALK_SPEED / 2);
+  });
+});
+
+describe('isWalledScene', () => {
+  const scene = (parts: Partial<SceneSnapshot>) => parts as SceneSnapshot;
+
+  it('walls in a room', () => {
+    // Act
+    const walled = isWalledScene(scene({ districtName: 'Old Town', roomName: 'Lobby' }));
+
+    // Assert
+    expect(walled).toBe(true);
+  });
+
+  it('walls in a district so its edge exits stand in a gate', () => {
+    // Act
+    const walled = isWalledScene(scene({ districtName: 'Grand Bazaar' }));
+
+    // Assert
+    expect(walled).toBe(true);
+  });
+
+  it('leaves open ground without walls', () => {
+    // Act
+    const walled = isWalledScene(scene({ cityName: undefined, districtName: undefined }));
+
+    // Assert
+    expect(walled).toBe(false);
+  });
+});
+
+describe('stairCorners', () => {
+  it('outlines the stair box ahead of the exit', () => {
+    // Arrange
+    const stairs = { placement: { x: 5, y: 0, angle: Math.PI } } as NearbyExitSnapshot;
+
+    // Act
+    const corners = stairCorners(stairs);
+
+    // Assert
+    const xs = corners.map(({ x }) => x);
+    const ys = corners.map(({ y }) => y);
+    expect(Math.min(...xs)).toBeCloseTo(5 - STAIR_WIDTH / 2);
+    expect(Math.max(...xs)).toBeCloseTo(5 + STAIR_WIDTH / 2);
+    expect(Math.min(...ys)).toBeCloseTo(0);
+    expect(Math.max(...ys)).toBeCloseTo(STAIR_DEPTH);
+  });
+});
+
+describe('walls behind stairs', () => {
+  const size = { width: 10, depth: 8 };
+  const stairs = {
+    connectorId: 'stairs',
+    destinationLocationId: 'a',
+    placement: { x: 4, y: 0, angle: Math.PI },
+    stairs: 'Up',
+  } as NearbyExitSnapshot;
+
+  it('keeps the wall whole behind a flight of stairs', () => {
+    // Act
+    const walls = buildWalls(size, [stairs]);
+
+    // Assert
+    expect(walls).toHaveLength(4);
+  });
+
+  it('adds no door header above a flight of stairs', () => {
+    // Act
+    const headers = buildDoorHeaders(size, [stairs]);
+
+    // Assert
+    expect(headers).toHaveLength(0);
+  });
+});
+
+describe('isRoomScene', () => {
+  it('is true inside a room', () => {
+    // Act
+    const result = isRoomScene({ roomName: 'Lobby' } as SceneSnapshot);
+
+    // Assert
+    expect(result).toBe(true);
+  });
+
+  it('is false in a district', () => {
+    // Act
+    const result = isRoomScene({ districtName: 'Market' } as SceneSnapshot);
+
+    // Assert
+    expect(result).toBe(false);
   });
 });

@@ -37,14 +37,19 @@ internal sealed class ConnectorExitClassifier(
 
         if (other.FloorNumber != room.FloorNumber)
         {
-            return Request(connector, StairsKind(room, other));
+            return Request(connector, ConnectorExitKind.Stairs) with
+            {
+                LowerFloorNumber = Math.Min(room.FloorNumber, other.FloorNumber),
+                Flight =
+                    other.FloorNumber > room.FloorNumber ? StairDirection.Up : StairDirection.Down,
+            };
         }
-
         if (LocationLayoutContext.IsHallway(room))
         {
-            return Request(connector, ConnectorExitKind.SideDoor) with
+            return Request(connector, ConnectorExitKind.HallwayDoor) with
             {
-                SideIndex = SideDoorIndex(connector, room),
+                SideIndex = SideConnectors(connector, room).IndexOf(connector),
+                DestinationDepth = DestinationDepth(other),
             };
         }
 
@@ -116,9 +121,17 @@ internal sealed class ConnectorExitClassifier(
             ),
         };
 
-    private int SideDoorIndex(LocationConnector connector, Room hallway)
-    {
-        var sideConnectors = context
+    private double DestinationDepth(Room room) =>
+        BuildingTemplateCatalog
+            .Resolve(
+                context.BuildingById[room.BuildingId].BuildingType,
+                context.RoomsByBuilding[room.BuildingId].ToArray()
+            )
+            .RoomSize(room)
+            .Depth;
+
+    private List<LocationConnector> SideConnectors(LocationConnector connector, Room hallway) =>
+        context
             .ConnectorsByOrigin[connector.OriginLocationId]
             .Where(candidate =>
                 context.RoomByLocationId.TryGetValue(candidate.DestinationLocationId, out var other)
@@ -127,21 +140,6 @@ internal sealed class ConnectorExitClassifier(
             )
             .OrderBy(candidate => candidate.DestinationLocationId)
             .ToList();
-
-        return sideConnectors.IndexOf(connector);
-    }
-
-    private static ConnectorExitKind StairsKind(Room room, Room other)
-    {
-        if (LocationLayoutContext.IsHallway(room))
-        {
-            return ConnectorExitKind.NorthStairs;
-        }
-
-        return other.FloorNumber > room.FloorNumber
-            ? ConnectorExitKind.NorthEastStairs
-            : ConnectorExitKind.NorthWestStairs;
-    }
 
     private static ConnectorExitRequest Request(
         LocationConnector connector,

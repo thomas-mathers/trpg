@@ -290,6 +290,7 @@ public class BuildingGenerator
         {
             ExteriorLocationId = input.ExteriorLocation.Id,
             BuildingType = input.Spec.Type,
+            FloorCount = input.Spec.Rooms.Max(room => room.FloorNumber) + 1,
             Name = input.Name,
             WorldId = worldId,
         };

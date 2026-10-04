@@ -151,6 +151,10 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("faction_id");
 
+                    b.Property<int>("FloorCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("floor_count");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2112,6 +2116,10 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("origin_location_id");
 
+                    b.Property<string>("StairDirection")
+                        .HasColumnType("text")
+                        .HasColumnName("stair_direction");
+
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
@@ -3931,6 +3939,20 @@ namespace TRPG.Migrations
                     b.ToTable("props", (string)null);
 
                     b.HasDiscriminator().HasValue("Container");
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.Furniture", b =>
+                {
+                    b.HasBaseType("TRPG.Domain.Models.Prop");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("model");
+
+                    b.ToTable("props", (string)null);
+
+                    b.HasDiscriminator().HasValue("Furniture");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Seat", b =>

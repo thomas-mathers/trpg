@@ -18,7 +18,10 @@ public static class LlmSceneMapper
             scene.Room?.ToLlmSceneRoom(),
             scene.Player.ToLlmScenePlayer(),
             scene.Exits.Select(exit => exit.ToLlmSceneExit()).ToArray(),
-            scene.NearbyProps.Select(prop => prop.ToLlmSceneProp()).ToArray(),
+            scene
+                .NearbyProps.Where(prop => prop.Type != ScenePropInfo.FurnitureType)
+                .Select(prop => prop.ToLlmSceneProp())
+                .ToArray(),
             scene.NearbyCreatures.Select(creature => creature.ToLlmSceneCreature()).ToArray(),
             scene.NearbyBuildings.Select(building => building.ToLlmSceneNearbyBuilding()).ToArray(),
             scene.Weather,

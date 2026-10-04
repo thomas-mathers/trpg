@@ -14,6 +14,7 @@ internal static class SceneExitInfoMapper
             exit.IsVisited,
             exit.IsWayBack,
             exit.DestinationLocationId,
-            exit.Placement.ToWire()
+            exit.Placement.ToWire(),
+            exit.Stairs?.ToResponse()
         );
 }
