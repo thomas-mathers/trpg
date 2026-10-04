@@ -24,6 +24,20 @@ internal static class RoomRecipeCatalog
         new WallRun(PropModel.FurnitureDisplayShelf, RecipeWall.East, From: 0.35, To: 0.95),
     ]);
 
+    private static readonly RoomRecipe HouseBedroom = new([
+        new RugAt(0.5, 0.5, 1.2, 1.2),
+        new Anchored(PropModel.Bed, 0, 0),
+        new Anchored(PropModel.Bed, 1, 0),
+        new Anchored(PropModel.Bed, 0, 1),
+        new Anchored(PropModel.Bed, 1, 1),
+        new Anchored(PropModel.ContainerChest, 0, 1),
+        new Anchored(PropModel.ContainerChest, 1, 1),
+        new Anchored(PropModel.ContainerChest, 1, 1, RecipeWall.East),
+        new Anchored(PropModel.ContainerChest, 0, 1, RecipeWall.West),
+        new Anchored(PropModel.ContainerChest, 1, 0.5),
+        new Anchored(PropModel.ContainerChest, 0, 0.5),
+    ]);
+
     internal static RoomRecipe? Find(BuildingType buildingType, string roomName) =>
         (buildingType, roomName) switch
         {
@@ -33,6 +47,8 @@ internal static class RoomRecipeCatalog
                 WestBedroom,
             (BuildingType.Blacksmith, "Workshop") => BlacksmithWorkshop,
             (BuildingType.Blacksmith, "Living Quarters") => EastBedroom,
+            (BuildingType.House, _) when roomName.StartsWith("Bedroom", StringComparison.Ordinal) =>
+                HouseBedroom,
             _ => null,
         };
 

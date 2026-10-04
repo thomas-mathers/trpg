@@ -87,6 +87,52 @@ internal static class MiniLayoutWorldBuilder
         );
     }
 
+    internal static MiniLayoutWorld BuildHouseWorld(IReadOnlyList<Guid> memberIds)
+    {
+        var worldId = Guid.NewGuid();
+        var state = MakeState(worldId, new Point(10, 10));
+        var district = DistrictGenerator.Generate(
+            DistrictType.Residential,
+            Guid.NewGuid(),
+            state.Id,
+            worldId
+        );
+        var spec = BuildingSpecCatalog.GetSpecs(
+            BuildingType.House,
+            memberIds[0],
+            memberIds,
+            HouseholdBedroomGroups(memberIds)
+        );
+        var result = new BuildingGenerator().Generate(
+            new BuildingGeneratorInput(district.Location, spec) { Name = "House" }
+        );
+
+        return new MiniLayoutWorld(
+            new LocationLayoutInput(
+                [district.Location, .. result.Locations],
+                [.. district.Seats, .. result.Props],
+                [result.Building],
+                [.. result.Rooms],
+                [.. result.LocationConnectors],
+                [state]
+            )
+        );
+    }
+
+    internal static IReadOnlyList<IReadOnlyList<Guid>> HouseholdBedroomGroups(
+        IReadOnlyList<Guid> memberIds
+    ) =>
+        memberIds.Count == 1
+            ?
+            [
+                [memberIds[0]],
+            ]
+            :
+            [
+                [memberIds[0], memberIds[1]],
+                .. memberIds.Skip(2).Select(id => (IReadOnlyList<Guid>)[id]),
+            ];
+
     private static State MakeState(Guid worldId, Point center) =>
         new() { WorldId = worldId, Center = center };
 

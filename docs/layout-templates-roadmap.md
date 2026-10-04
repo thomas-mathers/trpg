@@ -34,7 +34,7 @@ Working rules for every milestone:
 - [x] L01 Furniture models and SPA meshes
 - [x] L02 Templates and fixed sizing
 - [x] L03 Recipe engine and room recipes
-- [ ] L04 House variants and household bedrooms
+- [x] L04 House variants and household bedrooms
 - [ ] L05 Stair and connector alignment
 - [ ] L06 District generator and outdoor furnishing
 - [ ] L07 Docs and final verification
@@ -134,17 +134,19 @@ Verification:
 
 Follow-up: only the inn and blacksmith have recipes. Other building types and rooms fall back to `RoomPropPlacer` until their recipes are added to `RoomRecipeCatalog`. Seat and chest slots beyond the spec props are dropped, so lobby tables have no extra chairs yet.
 
-### [ ] L04 House variants and household bedrooms
+### [x] L04 House variants and household bedrooms
 
 Scope:
 
-- [ ] Add Small, Medium and Large house templates with uniform bedrooms of up to 2 beds.
-- [ ] Pack the household into bedrooms (parents together, children alone, then doubled up) and pick the smallest covering template.
-- [ ] Build `GetHouseSpecs` from the chosen template's bedroom slots.
+- [x] Add Small, Medium and Large house templates with uniform bedrooms of up to 2 beds.
+- [x] Pack the household into bedrooms (parents together, children alone, then doubled up) and pick the smallest covering template.
+- [x] Build `GetHouseSpecs` from the chosen template's bedroom slots.
 
 Verification:
 
-- [ ] Tests: every household size from minimum to maximum gets a template and every member gets a bed; failure when the configured maximum exceeds capacity.
+- [x] Tests: every household size from minimum to maximum gets a template and every member gets a bed; failure when the configured maximum exceeds capacity.
+
+Note: house bedroom recipes use ordered fallback slots, so the same recipe fits all three variants. The new-world dialog caps household size at the largest house capacity (6).
 
 ### [ ] L05 Stair and connector alignment
 
