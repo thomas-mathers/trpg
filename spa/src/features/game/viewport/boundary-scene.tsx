@@ -8,18 +8,17 @@ import type {
   RoadSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-import { apronQuads, roadLift, roadRenderOrder, roadRibbon } from './boundary-geometry';
+import { apronQuads, roadRenderOrder, roadRibbon } from './boundary-geometry';
 import type { PlanarPoint } from './layout-math';
 
-export const OUTDOOR_FLOOR_COLOR = '#6f6350';
+export const OUTDOOR_FLOOR_COLOR = '#777c79';
 const ROAD_COLORS: Record<RoadClassSnapshot, string> = {
   Avenue: '#a89a82',
   Street: '#9a8b72',
   Lane: '#8a7c64',
 };
 const APRON_COLOR = ROAD_COLORS.Avenue;
-const ROAD_OFFSET_FACTOR: Record<RoadClassSnapshot, number> = { Lane: -4, Street: -5, Avenue: -6 };
-const APRON_LIFT = roadLift('Avenue');
+const ROAD_OFFSET_FACTOR: Record<RoadClassSnapshot, number> = { Lane: -1, Street: -2, Avenue: -3 };
 
 export function Roads({ roads }: { roads: RoadSnapshot[] }) {
   return (
@@ -39,7 +38,7 @@ function roadKey(points: RoadSnapshot['points']): string {
 
 function RoadMesh({ points, width, class: roadClass }: RoadSnapshot) {
   const geometry = useMemo(() => {
-    const { positions, indices } = roadRibbon(points, width, roadLift(roadClass));
+    const { positions, indices } = roadRibbon(points, width);
     const ribbon = new BufferGeometry();
     ribbon.setAttribute('position', new Float32BufferAttribute(positions, 3));
     ribbon.setIndex(indices);
@@ -66,7 +65,7 @@ function apronGeometry(corners: PlanarPoint[]): BufferGeometry {
   geometry.setAttribute(
     'position',
     new Float32BufferAttribute(
-      corners.flatMap(({ x, y }) => [x, APRON_LIFT, y]),
+      corners.flatMap(({ x, y }) => [x, 0, y]),
       3,
     ),
   );
@@ -94,8 +93,8 @@ function ApronMesh({ corners }: { corners: PlanarPoint[] }) {
         color={APRON_COLOR}
         depthWrite={false}
         polygonOffset
-        polygonOffsetFactor={-2}
-        polygonOffsetUnits={-2}
+        polygonOffsetFactor={-3}
+        polygonOffsetUnits={-3}
       />
     </mesh>
   );

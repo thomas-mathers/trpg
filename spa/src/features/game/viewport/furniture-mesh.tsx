@@ -3,10 +3,15 @@ import type { FootprintWire } from '@/api/signalr-client/TRPG.GameSessions.Respo
 import { type FurnitureModel, type FurniturePart, furnitureParts } from './furniture-parts';
 import type { BoxStyle } from './model-styles';
 
-function PartMesh({ shape, position, size, color, opacity }: FurniturePart) {
+function PartMesh({ shape, position, size, color, opacity, rotation }: FurniturePart) {
   const [first, second, third] = size;
   return (
-    <mesh position={position} castShadow={opacity === undefined || opacity === 1} receiveShadow>
+    <mesh
+      position={position}
+      rotation={rotation}
+      castShadow={opacity === undefined || opacity === 1}
+      receiveShadow
+    >
       {shape === 'box' && <boxGeometry args={[first, second, third]} />}
       {shape === 'cylinder' && <cylinderGeometry args={[first, second, third, 16]} />}
       {shape === 'sphere' && <sphereGeometry args={[first, 12, 8]} />}

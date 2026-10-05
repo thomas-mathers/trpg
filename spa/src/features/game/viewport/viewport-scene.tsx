@@ -57,7 +57,7 @@ export function Ground({
   const floor = useMemo(() => floorGeometry(size, wells), [size, wells]);
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor} receiveShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor} receiveShadow renderOrder={-10}>
       <meshLambertMaterial color={color} />
     </mesh>
   );
@@ -65,13 +65,18 @@ export function Ground({
 
 const TERRAIN_EXTENT = 600;
 const TERRAIN_OVERLAP = 0.3;
-const TERRAIN_DROP = 0.02;
+const TERRAIN_DROP = 0.002;
 
 export function Terrain({ size }: { size: FootprintWire }) {
   const terrain = useMemo(() => terrainGeometry(size, TERRAIN_EXTENT, TERRAIN_OVERLAP), [size]);
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -TERRAIN_DROP, 0]} geometry={terrain}>
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, -TERRAIN_DROP, 0]}
+      geometry={terrain}
+      renderOrder={-11}
+    >
       <meshLambertMaterial color={OUTDOOR_FLOOR_COLOR} />
     </mesh>
   );

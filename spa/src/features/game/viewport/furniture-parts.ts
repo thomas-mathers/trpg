@@ -7,9 +7,30 @@ export type FurnitureModel =
 type Vector = [number, number, number];
 
 export type FurniturePart =
-  | { shape: 'box'; position: Vector; size: Vector; color: string; opacity?: number }
-  | { shape: 'cylinder'; position: Vector; size: Vector; color: string; opacity?: number }
-  | { shape: 'sphere'; position: Vector; size: Vector; color: string; opacity?: number };
+  | {
+      shape: 'box';
+      position: Vector;
+      size: Vector;
+      color: string;
+      opacity?: number;
+      rotation?: Vector;
+    }
+  | {
+      shape: 'cylinder';
+      position: Vector;
+      size: Vector;
+      color: string;
+      opacity?: number;
+      rotation?: Vector;
+    }
+  | {
+      shape: 'sphere';
+      position: Vector;
+      size: Vector;
+      color: string;
+      opacity?: number;
+      rotation?: Vector;
+    };
 
 export interface FurnitureSize {
   width: number;
@@ -30,6 +51,7 @@ function box(
   [width, height, depth]: Vector,
   color: string,
   opacity?: number,
+  rotation?: Vector,
 ): FurniturePart {
   return {
     shape: 'box',
@@ -37,6 +59,7 @@ function box(
     size: [width, height, depth],
     color,
     opacity,
+    rotation,
   };
 }
 
@@ -46,6 +69,7 @@ function cylinder(
   [topRadius, bottomRadius, height]: Vector,
   color: string,
   opacity?: number,
+  rotation?: Vector,
 ): FurniturePart {
   return {
     shape: 'cylinder',
@@ -53,6 +77,7 @@ function cylinder(
     size: [topRadius, bottomRadius, height],
     color,
     opacity,
+    rotation,
   };
 }
 
@@ -182,14 +207,16 @@ function dummy({ width, height, color }: FurnitureSize): FurniturePart[] {
 
 function stall({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
   const counterDepth = depth * 0.3;
+  const canopyThickness = 0.12;
+  const postHeight = height - canopyThickness + 0.01;
   return [
     box([0, 0, -depth / 2 + counterDepth / 2], [width, 0.9, counterDepth], color),
     ...[-1, 1].flatMap((x) =>
       [-1, 1].map((z) =>
-        box([x * (width / 2 - 0.05), 0, z * (depth / 2 - 0.05)], [0.1, height, 0.1], DARK_WOOD),
+        box([x * (width / 2 - 0.08), 0, z * (depth / 2 - 0.08)], [0.1, postHeight, 0.1], DARK_WOOD),
       ),
     ),
-    box([0, height - 0.12, 0], [width, 0.12, depth], CLOTH),
+    box([0, height - canopyThickness, 0], [width, canopyThickness, depth], CLOTH),
   ];
 }
 
@@ -308,6 +335,90 @@ function firePit({ width, height, color }: FurnitureSize): FurniturePart[] {
   ];
 }
 
+function tree({ width, height, color }: FurnitureSize): FurniturePart[] {
+  return [
+    cylinder([0, 0, 0], [0.18, 0.25, height * 0.65], DARK_WOOD),
+    sphere([0, height * 0.43, 0], width * 0.42, color),
+    sphere([width * 0.12, height * 0.6, 0], width * 0.33, color),
+  ];
+}
+
+function shrub({ width, height, color }: FurnitureSize): FurniturePart[] {
+  return [
+    sphere([-width * 0.05, 0, 0], height * 0.45, color),
+    sphere([width * 0.05, 0, 0], height * 0.45, color),
+  ];
+}
+
+function flowerBed({ width, depth, height }: FurnitureSize): FurniturePart[] {
+  return [
+    box([0, 0, 0], [width, height * 0.35, depth], DARK_WOOD),
+    box([0, height * 0.35, 0], [width * 0.85, 0.08, depth * 0.7], '#48764b'),
+    ...[-1, 0, 1].map((x) => sphere([x * width * 0.26, height * 0.42, 0], 0.12, '#d79492')),
+  ];
+}
+
+function herbTub({ width, depth, height }: FurnitureSize): FurniturePart[] {
+  return [
+    box([0, 0, 0], [width, height * 0.45, depth], DARK_WOOD),
+    sphere([0, height * 0.4, 0], width * 0.22, '#528b5d'),
+  ];
+}
+
+function streetLantern({ height }: FurnitureSize): FurniturePart[] {
+  return [
+    cylinder([0, 0, 0], [0.12, 0.16, height * 0.82], DARK_STONE),
+    box([0, height * 0.8, 0], [0.38, 0.4, 0.38], GLOW),
+    box([0, height - 0.08, 0], [0.5, 0.08, 0.5], DARK_STONE),
+  ];
+}
+
+function wallLantern({ height }: FurnitureSize): FurniturePart[] {
+  return [
+    box([0, height * 0.65, 0], [0.12, 0.1, 0.4], DARK_STONE),
+    box([0, height * 0.68, -0.15], [0.3, 0.35, 0.3], GLOW),
+  ];
+}
+
+function hitchingRail({ width, height }: FurnitureSize): FurniturePart[] {
+  return [
+    ...[-1, 1].map((x) => box([x * width * 0.42, 0, 0], [0.12, height, 0.12], DARK_WOOD)),
+    box([0, height * 0.72, 0], [width, 0.15, 0.14], DARK_WOOD),
+  ];
+}
+
+function cart({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
+  const bedHeight = height * 0.2;
+  const railHeight = height * 0.1;
+  return [
+    box([0, height * 0.25, 0], [width * 0.82, bedHeight, depth * 0.78], color),
+    box([0, bedHeight + height * 0.2, -depth * 0.34], [width * 0.82, railHeight, 0.1], color),
+    box([0, bedHeight + height * 0.2, depth * 0.34], [width * 0.82, railHeight, 0.1], color),
+    ...[-1, 1].map((z) =>
+      cylinder([0, 0.24, z * depth * 0.42], [0.3, 0.3, 0.12], DARK_WOOD, undefined, [
+        Math.PI / 2,
+        0,
+        0,
+      ]),
+    ),
+  ];
+}
+
+function trough({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
+  const basinHeight = height * 0.72;
+  return [
+    box([0, 0, 0], [width, basinHeight, depth], color),
+    box([0, basinHeight, 0], [width * 0.78, 0.04, depth * 0.65], WATER),
+  ];
+}
+
+function banner({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
+  return [
+    cylinder([-width * 0.42, 0, 0], [0.05, 0.05, height], DARK_WOOD),
+    box([0, height * 0.42, 0], [width * 0.8, height * 0.5, depth * 0.5], color),
+  ];
+}
+
 export const FURNITURE_BUILDERS: Record<FurnitureModel, (size: FurnitureSize) => FurniturePart[]> =
   {
     ContainerBarrel: barrel,
@@ -345,6 +456,16 @@ export const FURNITURE_BUILDERS: Record<FurnitureModel, (size: FurnitureSize) =>
     FurnitureMonument: monument,
     FurnitureShrine: shrine,
     FurnitureWaystone: waystone,
+    FurnitureTree: tree,
+    FurnitureShrub: shrub,
+    FurnitureFlowerBed: flowerBed,
+    FurnitureHerbTub: herbTub,
+    FurnitureStreetLantern: streetLantern,
+    FurnitureWallLantern: wallLantern,
+    FurnitureHitchingRail: hitchingRail,
+    FurnitureCart: cart,
+    FurnitureTrough: trough,
+    FurnitureBanner: banner,
   };
 
 export function isFurnitureModel(model: PropModel): model is FurnitureModel {

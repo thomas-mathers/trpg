@@ -129,6 +129,8 @@ public record SceneNearbyBuildingInfo(
     int FloorCount
 );
 
+public record SceneGreenSpaceInfo(Guid Id, Placement Placement, Footprint Footprint);
+
 public record SceneCaravanDestination(
     Guid LocationId,
     string LocationName,
@@ -162,6 +164,7 @@ public record SceneResult(
     WeatherCondition? Weather,
     IReadOnlyCollection<SceneCaravanInfo> NearbyCaravans,
     Footprint Size,
+    IReadOnlyCollection<SceneGreenSpaceInfo>? GreenSpaces = null,
     DistrictBoundary? Boundary = null,
     IReadOnlyCollection<DistrictRoad>? Roads = null,
     IReadOnlyCollection<NeighborDistrict>? Neighbors = null

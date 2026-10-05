@@ -527,21 +527,6 @@ public class DistrictLayoutGeneratorTests
         Assert.Equal(2, layout.Buildings.Count(building => building.Placement.Angle == Math.PI));
     }
 
-    [Theory]
-    [InlineData(PropModel.ContainerCrate)]
-    [InlineData(PropModel.ContainerBarrel)]
-    public void Generate_StacksStorageBesideShopDoors_InTheCityCenter(PropModel expected)
-    {
-        // Arrange
-        var inputs = RosterOnce(DistrictType.CityCenter);
-
-        // Act
-        var layout = DistrictLayoutGenerator.Generate(DistrictType.CityCenter, inputs, [], 3);
-
-        // Assert
-        Assert.Contains(layout.Decor, item => item.Model == expected);
-    }
-
     [Fact]
     public void Generate_PlacesANoticeBoardInTheSquare()
     {

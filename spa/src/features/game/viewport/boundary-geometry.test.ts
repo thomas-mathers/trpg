@@ -6,7 +6,6 @@ import {
   isOnOpenEdge,
   openEdgeSegment,
   outwardNormal,
-  roadLift,
   roadRenderOrder,
   roadRibbon,
 } from './boundary-geometry';
@@ -165,17 +164,6 @@ describe('apronQuads', () => {
   });
 });
 
-describe('roadLift', () => {
-  it('lifts wider road classes above narrower ones so they cover where roads meet', () => {
-    // Act
-    const lifts = [roadLift('Lane'), roadLift('Street'), roadLift('Avenue')];
-
-    // Assert
-    expect(lifts[0]).toBeLessThan(lifts[1]);
-    expect(lifts[1]).toBeLessThan(lifts[2]);
-  });
-});
-
 describe('roadRenderOrder', () => {
   it('draws wider road classes after narrower ones so overlaps never depend on depth precision', () => {
     // Act
@@ -188,7 +176,7 @@ describe('roadRenderOrder', () => {
 });
 
 describe('roadRibbon', () => {
-  it('lays the ribbon at the requested lift', () => {
+  it('lays the ribbon flush with the ground', () => {
     // Act
     const ribbon = roadRibbon(
       [
@@ -196,12 +184,11 @@ describe('roadRibbon', () => {
         { x: 10, y: 0 },
       ],
       4,
-      0.07,
     );
 
     // Assert
     const ys = ribbon.positions.filter((_, index) => index % 3 === 1);
-    expect(new Set(ys)).toEqual(new Set([0.07]));
+    expect(new Set(ys)).toEqual(new Set([0]));
   });
 
   it('has no geometry for a single point', () => {

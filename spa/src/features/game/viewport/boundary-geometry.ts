@@ -14,8 +14,6 @@ export interface Ribbon {
 }
 
 const EDGE_SNAP = 0.8;
-const ROAD_LIFT = 0.03;
-const ROAD_CLASS_LIFT_STEP = 0.01;
 const ROAD_CLASS_RANK: Record<RoadClassSnapshot, number> = { Lane: 0, Street: 1, Avenue: 2 };
 const APRON_LENGTH = 150;
 const APRON_OVERLAP = 0.3;
@@ -110,15 +108,11 @@ export function apronQuads(
   );
 }
 
-export function roadLift(roadClass: RoadClassSnapshot): number {
-  return ROAD_LIFT + ROAD_CLASS_RANK[roadClass] * ROAD_CLASS_LIFT_STEP;
-}
-
 export function roadRenderOrder(roadClass: RoadClassSnapshot): number {
-  return 1 + ROAD_CLASS_RANK[roadClass];
+  return -9 + ROAD_CLASS_RANK[roadClass];
 }
 
-export function roadRibbon(points: PointWire[], width: number, lift = ROAD_LIFT): Ribbon {
+export function roadRibbon(points: PointWire[], width: number): Ribbon {
   const ribbon: Ribbon = { positions: [], indices: [] };
   const half = width / 2;
 
@@ -141,7 +135,7 @@ export function roadRibbon(points: PointWire[], width: number, lift = ROAD_LIFT)
       { x: end.x + across.x, y: end.y + across.y },
       { x: end.x - across.x, y: end.y - across.y },
     ]) {
-      ribbon.positions.push(corner.x, lift, corner.y);
+      ribbon.positions.push(corner.x, 0, corner.y);
     }
     ribbon.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }

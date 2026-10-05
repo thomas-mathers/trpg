@@ -36,6 +36,16 @@ const FOOTPRINTS: Record<FurnitureModel, [number, number]> = {
   FurnitureMonument: [1.8, 1.8],
   FurnitureShrine: [1.4, 1.4],
   FurnitureWaystone: [1.2, 1.2],
+  FurnitureTree: [2.4, 2.4],
+  FurnitureShrub: [1, 1],
+  FurnitureFlowerBed: [2.4, 1.2],
+  FurnitureHerbTub: [1, 1],
+  FurnitureStreetLantern: [0.6, 0.6],
+  FurnitureWallLantern: [0.6, 0.6],
+  FurnitureHitchingRail: [2, 0.4],
+  FurnitureCart: [2.4, 1.4],
+  FurnitureTrough: [1.8, 0.8],
+  FurnitureBanner: [0.9, 0.3],
 };
 
 const TOLERANCE = 1e-6;

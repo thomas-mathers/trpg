@@ -17,6 +17,7 @@ import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
+import { GreenSpaces } from './green-spaces';
 import { IndoorLighting } from './indoor-lighting';
 import {
   boundaryTowers,
@@ -164,6 +165,7 @@ export function LocationViewport({
             wells={wells}
             color={isRoomScene(scene) ? ROOM_FLOOR_COLOR : undefined}
           />
+          {!isRoomScene(scene) && <GreenSpaces spaces={scene.greenSpaces ?? []} />}
           <Walls walls={walls} headers={headers} towers={towers} />
           {scene.roads && <Roads roads={scene.roads} />}
           {scene.roads && (
@@ -221,6 +223,7 @@ export function LocationViewport({
               <OutdoorFog size={size} />
               <OutdoorLighting
                 size={size}
+                props={props}
                 height={Math.max(
                   3,
                   ...buildings.map(

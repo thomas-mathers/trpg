@@ -207,6 +207,29 @@ public class LocationLayoutGeneratorTests
     }
 
     [Fact]
+    public void Generate_ReturnsPlacedDistrictAmenitiesAsFurniture()
+    {
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
+
+        var layout = LocationLayoutGenerator.Generate(world.Input);
+        var districtIds = world
+            .Input.Locations.Where(location => location.Kind == LocationKind.District)
+            .Select(location => location.Id)
+            .ToHashSet();
+        var amenities = layout
+            .Props.OfType<Furniture>()
+            .Where(prop => districtIds.Contains(prop.LocationId))
+            .ToArray();
+
+        Assert.Contains(amenities, prop => prop.Model == PropModel.FurnitureStreetLantern);
+        Assert.Contains(amenities, prop => prop.Model == PropModel.FurnitureStall);
+        Assert.All(
+            amenities,
+            prop => Assert.True(IsInside(prop.X, prop.Y, world.LocationById(prop.LocationId)))
+        );
+    }
+
+    [Fact]
     public void Generate_ProducesTheSameLayout_WhenRunTwice()
     {
         // Arrange
