@@ -260,6 +260,16 @@ internal static class PropFootprintCatalog
             PropPlacementRule.Center,
             FrontClearance: 0.5
         ),
+        [PropModel.FurnitureTree] = new(2.4, 2.4, PropPlacementRule.Free, 0.5),
+        [PropModel.FurnitureShrub] = new(1.0, 1.0, PropPlacementRule.Free, 0.2),
+        [PropModel.FurnitureFlowerBed] = new(2.4, 1.2, PropPlacementRule.Free, 0.3),
+        [PropModel.FurnitureHerbTub] = new(1.0, 1.0, PropPlacementRule.Free, 0.3),
+        [PropModel.FurnitureStreetLantern] = new(0.6, 0.6, PropPlacementRule.Free, 0.2),
+        [PropModel.FurnitureWallLantern] = new(0.6, 0.6, PropPlacementRule.Wall, 0.1),
+        [PropModel.FurnitureHitchingRail] = new(2.0, 0.4, PropPlacementRule.Free, 0.5),
+        [PropModel.FurnitureCart] = new(2.4, 1.4, PropPlacementRule.Free, 0.6),
+        [PropModel.FurnitureTrough] = new(1.8, 0.8, PropPlacementRule.Free, 0.4),
+        [PropModel.FurnitureBanner] = new(0.9, 0.3, PropPlacementRule.Free, 0.3),
         [PropModel.SeatBasic] = new(
             Width: 0.5,
             Depth: 0.5,

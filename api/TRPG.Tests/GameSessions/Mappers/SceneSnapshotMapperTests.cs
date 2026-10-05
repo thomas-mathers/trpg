@@ -210,6 +210,7 @@ public sealed class SceneSnapshotMapperTests
                             Footprint: new Footprint(1, 1)
                         ),
                     ],
+                    [],
                     [
                         new BoundarySegment(
                             BoundarySegmentKind.Wall,

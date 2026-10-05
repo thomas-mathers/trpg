@@ -10,6 +10,7 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
 using TRPG.Application.Scenes.Boundaries;
+using TRPG.Application.Scenes.GreenSpaces;
 using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Scenes.Roads;
@@ -204,6 +205,7 @@ internal class GetSceneQueryHandler(
             weather,
             nearbyCaravans,
             size,
+            isDistrictOutdoors ? GreenSpacePlanner.Plan(details.NearbyProps) : null,
             isDistrictOutdoors
                 ? SceneBoundaryResolver.Resolve(size, exitInfos, neighbors ?? [])
                 : null,

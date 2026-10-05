@@ -26,6 +26,7 @@ public static class SceneSemanticComparer
         || !SetEquals(previous.Exits, current.Exits)
         || !SetEquals(previous.NearbyProps, current.NearbyProps)
         || !SetEquals(previous.NearbyBuildings, current.NearbyBuildings)
+        || !SetEquals(previous.GreenSpaces ?? [], current.GreenSpaces ?? [])
         || previous.Size != current.Size;
 
     internal static bool PlayerStatusEquivalent(

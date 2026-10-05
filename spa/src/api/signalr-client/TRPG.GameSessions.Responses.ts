@@ -219,6 +219,8 @@ export type SceneSnapshot = {
     anchoredAtUnixMilliseconds: number;
     /** Transpiled from double */
     timeScale: number;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.GreenSpaceSnapshot>? */
+    greenSpaces?: GreenSpaceSnapshot[];
     /** Transpiled from TRPG.GameSessions.Responses.LocationBoundarySnapshot? */
     boundary?: LocationBoundarySnapshot;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.RoadSnapshot>? */
@@ -248,10 +250,22 @@ export type NeighborSnapshot = {
     buildings: NearbyBuildingSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyPropSnapshot> */
     props: NearbyPropSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.GreenSpaceSnapshot> */
+    greenSpaces: GreenSpaceSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoundarySegmentSnapshot> */
     segments: BoundarySegmentSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.RoadSnapshot> */
     roads: RoadSnapshot[];
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.GreenSpaceSnapshot */
+export type GreenSpaceSnapshot = {
+    /** Transpiled from System.Guid */
+    id: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
+    placement: PlacementWire;
+    /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
+    footprint: FootprintWire;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.BoundarySegmentKind */
@@ -545,5 +559,5 @@ export type FootprintWire = {
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.PropModel */
-export type PropModel = "Bed" | "Cell" | "Sign" | "ContainerBasic" | "ContainerBarrel" | "ContainerChest" | "ContainerCrate" | "ContainerFootlocker" | "ContainerStrongbox" | "ContainerWeaponRack" | "FurnitureTable" | "FurnitureWorkTable" | "FurnitureFireplace" | "FurnitureStall" | "FurnitureNoticeBoard" | "FurnitureDisplayShelf" | "FurnitureTrainingDummy" | "FurnitureRug" | "FurnitureCauldron" | "FurnitureHerbRack" | "FurnitureLectern" | "FurnitureStaffRack" | "FurnitureMannequin" | "FurnitureClothShelf" | "FurnitureDisplayCase" | "FurnitureFlourSacks" | "FurnitureBreadRack" | "FurnitureLumberStack" | "FurnitureTimberRack" | "FurnitureBookcase" | "FurnitureChair" | "FurnitureBench" | "FurniturePew" | "FurnitureFountain" | "FurnitureWell" | "FurnitureFirePit" | "FurnitureStatue" | "FurnitureMonument" | "FurnitureShrine" | "FurnitureWaystone" | "SeatBasic" | "SeatChair" | "SeatPew" | "SeatThrone" | "SeatBench" | "SeatStoneBench" | "SeatLowWall" | "TrapMechanical" | "TrapCollapse" | "TrapSlope" | "TrapWater" | "TriggerBasic" | "TriggerLever" | "WorkstationAlchemy" | "WorkstationArmorsmithing" | "WorkstationCarpentry" | "WorkstationCooking" | "WorkstationEnchanting" | "WorkstationJewelcrafting" | "WorkstationPrayer" | "WorkstationReading" | "WorkstationTailoring" | "WorkstationTrade" | "WorkstationWeaponsmithing";
+export type PropModel = "Bed" | "Cell" | "Sign" | "ContainerBasic" | "ContainerBarrel" | "ContainerChest" | "ContainerCrate" | "ContainerFootlocker" | "ContainerStrongbox" | "ContainerWeaponRack" | "FurnitureTable" | "FurnitureWorkTable" | "FurnitureFireplace" | "FurnitureStall" | "FurnitureNoticeBoard" | "FurnitureDisplayShelf" | "FurnitureTrainingDummy" | "FurnitureRug" | "FurnitureCauldron" | "FurnitureHerbRack" | "FurnitureLectern" | "FurnitureStaffRack" | "FurnitureMannequin" | "FurnitureClothShelf" | "FurnitureDisplayCase" | "FurnitureFlourSacks" | "FurnitureBreadRack" | "FurnitureLumberStack" | "FurnitureTimberRack" | "FurnitureBookcase" | "FurnitureChair" | "FurnitureBench" | "FurniturePew" | "FurnitureFountain" | "FurnitureWell" | "FurnitureFirePit" | "FurnitureStatue" | "FurnitureMonument" | "FurnitureShrine" | "FurnitureWaystone" | "FurnitureTree" | "FurnitureShrub" | "FurnitureFlowerBed" | "FurnitureHerbTub" | "FurnitureStreetLantern" | "FurnitureWallLantern" | "FurnitureHitchingRail" | "FurnitureCart" | "FurnitureTrough" | "FurnitureBanner" | "SeatBasic" | "SeatChair" | "SeatPew" | "SeatThrone" | "SeatBench" | "SeatStoneBench" | "SeatLowWall" | "TrapMechanical" | "TrapCollapse" | "TrapSlope" | "TrapWater" | "TriggerBasic" | "TriggerLever" | "WorkstationAlchemy" | "WorkstationArmorsmithing" | "WorkstationCarpentry" | "WorkstationCooking" | "WorkstationEnchanting" | "WorkstationJewelcrafting" | "WorkstationPrayer" | "WorkstationReading" | "WorkstationTailoring" | "WorkstationTrade" | "WorkstationWeaponsmithing";
 

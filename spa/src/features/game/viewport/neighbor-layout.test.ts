@@ -20,6 +20,7 @@ function neighbor(
 ): NeighborSnapshot {
   return {
     locationId: crypto.randomUUID(),
+    greenSpaces: [],
     roads: Array.from({ length: roadCount }, () => ({
       points: [
         { x: 0, y: 0 },

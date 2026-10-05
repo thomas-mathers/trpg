@@ -7,7 +7,9 @@ internal static class ExteriorLayoutPass
     private record ExteriorLayout(
         Dictionary<Guid, DistrictBuildingLayout> Buildings,
         IReadOnlyList<DistrictDecor> Decor,
-        double? SideAxis = null
+        double? SideAxis = null,
+        DistrictPlan? Plan = null,
+        IReadOnlyList<OrientedBox>? Occupied = null
     );
 
     internal static LocationLayoutResult Run(
@@ -23,8 +25,6 @@ internal static class ExteriorLayoutPass
         {
             var exterior = LayOut(context, location);
             var exits = ResolveExits(context, location, exterior);
-            furniture.AddRange(exterior.Decor.Select(item => CreateFurniture(location, item)));
-
             foreach (var exit in exits)
             {
                 exitByConnectorId[exit.ConnectorId] = exit;
@@ -35,7 +35,25 @@ internal static class ExteriorLayoutPass
                 var roads = PlanRoads(context, location, exterior, exits);
                 roadNodes.AddRange(roads.Nodes);
                 roadEdges.AddRange(roads.Edges);
+                var amenities = OutdoorAmenityPlanner.Place(
+                    context.DistrictByLocationId[location.Id].DistrictType,
+                    new OutdoorAmenityInput(
+                        exterior.Plan!,
+                        context
+                            .BuildingsByExterior[location.Id]
+                            .ToDictionary(
+                                building => building.Id,
+                                building => building.BuildingType
+                            ),
+                        exterior.Decor,
+                        exterior.Occupied!,
+                        roads
+                    )
+                );
+                furniture.AddRange(amenities.Select(item => CreateFurniture(location, item)));
             }
+
+            furniture.AddRange(exterior.Decor.Select(item => CreateFurniture(location, item)));
         }
 
         return new LocationLayoutResult(furniture, roadNodes, roadEdges);
@@ -144,11 +162,22 @@ internal static class ExteriorLayoutPass
         location.Width = layout.District.Width;
         location.Depth = layout.District.Depth;
         ApplySeats(props, seats, layout.Seats);
+        var occupied = OutdoorFurnisher.Blocked(layout.Plan, buildings);
+        occupied.AddRange(
+            layout.Seats.Select(seat =>
+                CityGrid.CellBox(
+                    seat.Placement,
+                    seats.Single(input => input.Id == seat.Id).Footprint
+                )
+            )
+        );
 
         return new ExteriorLayout(
             layout.Buildings.ToDictionary(building => building.Id),
             layout.Decor,
-            layout.Plan.SideAxis
+            layout.Plan.SideAxis,
+            layout.Plan,
+            occupied
         );
     }
 

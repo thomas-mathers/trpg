@@ -33,6 +33,13 @@ internal static class SceneSnapshotMapper
             GameTimeMilliseconds: (long)(stamp.GameTime - GameClock.Epoch).TotalMilliseconds,
             AnchoredAtUnixMilliseconds: stamp.CapturedAt.ToUnixTimeMilliseconds(),
             TimeScale: stamp.TimeScale,
+            GreenSpaces: scene
+                .GreenSpaces?.Select(space => new GreenSpaceSnapshot(
+                    space.Id,
+                    new PlacementWire(space.Placement.X, space.Placement.Y, space.Placement.Angle),
+                    new FootprintWire(space.Footprint.Width, space.Footprint.Depth)
+                ))
+                .ToArray(),
             Boundary: scene.Boundary?.ToSnapshot(),
             Roads: scene.Roads?.Select(road => road.ToSnapshot()).ToArray(),
             Neighbors: scene.Neighbors?.Select(neighbor => neighbor.ToSnapshot()).ToArray()

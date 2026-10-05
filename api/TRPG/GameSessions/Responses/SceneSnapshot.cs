@@ -228,6 +228,7 @@ public record SceneSnapshot(
     long GameTimeMilliseconds,
     long AnchoredAtUnixMilliseconds,
     double TimeScale,
+    IReadOnlyCollection<GreenSpaceSnapshot>? GreenSpaces = null,
     LocationBoundarySnapshot? Boundary = null,
     IReadOnlyCollection<RoadSnapshot>? Roads = null,
     IReadOnlyCollection<NeighborSnapshot>? Neighbors = null
@@ -253,9 +254,13 @@ public record NeighborSnapshot(
     Guid LocationId,
     IReadOnlyCollection<NearbyBuildingSnapshot> Buildings,
     IReadOnlyCollection<NearbyPropSnapshot> Props,
+    IReadOnlyCollection<GreenSpaceSnapshot> GreenSpaces,
     IReadOnlyCollection<BoundarySegmentSnapshot> Segments,
     IReadOnlyCollection<RoadSnapshot> Roads
 );
+
+[TranspilationSource]
+public record GreenSpaceSnapshot(Guid Id, PlacementWire Placement, FootprintWire Footprint);
 
 [TranspilationSource]
 public enum BoundarySegmentKind
