@@ -248,6 +248,24 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         _context.Items.Add(item);
         _context.LocationConnectors.Add(locationConnector);
         _context.DoorConnectors.Add(doorConnector);
+        _context.RoadNodes.Add(
+            new RoadNode
+            {
+                WorldId = worldId,
+                LocationId = location.Id,
+                Kind = RoadNodeKind.Junction,
+            }
+        );
+        _context.RoadEdges.Add(
+            new RoadEdge
+            {
+                WorldId = worldId,
+                LocationId = location.Id,
+                FromNodeId = Guid.NewGuid(),
+                ToNodeId = Guid.NewGuid(),
+                Class = RoadClass.Lane,
+            }
+        );
         _context.TravelConnectors.Add(
             Builders.MakeTravelConnector(locationConnector.Id, worldId: worldId)
         );
@@ -596,6 +614,8 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         Assert.Equal(expected, await HasWorldData(verifyContext.QuestObjectives, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.Relationships, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.Reputations, worldId));
+        Assert.Equal(expected, await HasWorldData(verifyContext.RoadEdges, worldId));
+        Assert.Equal(expected, await HasWorldData(verifyContext.RoadNodes, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.RoomBookings, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.RouteTravelerMembers, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.States, worldId));

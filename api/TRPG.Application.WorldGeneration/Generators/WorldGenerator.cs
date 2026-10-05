@@ -28,6 +28,8 @@ public class WorldGeneratorResult
     public IReadOnlyList<DungeonExpedition> DungeonExpeditions { get; init; } = [];
     public IReadOnlyList<BookWork> BookWorks { get; init; } = [];
     public IReadOnlyList<Fact> Facts { get; init; } = [];
+    public IReadOnlyList<RoadEdge> RoadEdges { get; init; } = [];
+    public IReadOnlyList<RoadNode> RoadNodes { get; init; } = [];
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
@@ -638,7 +640,7 @@ public class WorldGenerator(
             wildernessLocationByStateId
         );
 
-        var furniture = LocationLayoutGenerator.Generate(
+        var layout = LocationLayoutGenerator.Generate(
             new LocationLayoutInput(
                 anchoredLocations,
                 geography.Districts,
@@ -649,7 +651,7 @@ public class WorldGenerator(
                 geography.States
             )
         );
-        props.AddRange(furniture);
+        props.AddRange(layout.Props);
 
         var knowledge = KnowledgeGenerator.Generate(
             new KnowledgeGeneratorInput
@@ -770,6 +772,8 @@ public class WorldGenerator(
 
         return new WorldGeneratorResult
         {
+            RoadNodes = layout.RoadNodes,
+            RoadEdges = layout.RoadEdges,
             DungeonExpeditions = expeditions.Select(expedition => expedition.Expedition).ToArray(),
             BookWorks = expeditions.Select(expedition => expedition.Work).ToArray(),
             Facts = expeditions.Select(expedition => expedition.Fact).ToArray(),

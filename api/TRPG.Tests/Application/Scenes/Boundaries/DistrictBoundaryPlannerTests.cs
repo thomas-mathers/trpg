@@ -147,8 +147,77 @@ public class DistrictBoundaryPlannerTests
         Assert.Equal(3, Assert.Single(boundary.Gates).Placement.X);
     }
 
-    private static BoundaryExit Exit(BoundaryExitKind kind, double x, double y, double angle) =>
-        new(Guid.NewGuid(), kind, new Placement(x, y, angle));
+    [Fact]
+    public void Plan_WallsTheEdgeOutsideTheOpening_WhenADistrictExitOnlyOpensPartOfIt()
+    {
+        // Arrange
+        BoundaryExit[] exits =
+        [
+            Exit(BoundaryExitKind.District, x: 20, y: 30, angle: Math.PI, opening: new(10, 25)),
+        ];
+
+        // Act
+        var boundary = DistrictBoundaryPlanner.Plan(Size, exits);
+
+        // Assert
+        Assert.Equal([CompassDirection.South], boundary.OpenEdges);
+        var spans = boundary
+            .Segments.Where(segment => segment.Placement.Y == 30)
+            .Select(segment => (Start: Left(segment), End: Right(segment)))
+            .OrderBy(span => span.Start)
+            .ToArray();
+        Assert.Equal(2, spans.Length);
+        Assert.True(spans[0].Start <= 0);
+        Assert.Equal(10, spans[0].End, precision: 6);
+        Assert.Equal(25, spans[1].Start, precision: 6);
+        Assert.True(spans[1].End >= 40);
+    }
+
+    [Fact]
+    public void Plan_WallsTheGapBetweenTwoOpenings_WhenTwoDistrictsShareAnEdge()
+    {
+        // Arrange
+        BoundaryExit[] exits =
+        [
+            Exit(BoundaryExitKind.District, x: 5, y: 30, angle: Math.PI, opening: new(0, 12)),
+            Exit(BoundaryExitKind.District, x: 30, y: 30, angle: Math.PI, opening: new(20, 40)),
+        ];
+
+        // Act
+        var boundary = DistrictBoundaryPlanner.Plan(Size, exits);
+
+        // Assert
+        var wall = Assert.Single(boundary.Segments, segment => segment.Placement.Y == 30);
+        Assert.Equal(12, Left(wall), precision: 6);
+        Assert.Equal(20, Right(wall), precision: 6);
+    }
+
+    [Fact]
+    public void Plan_ExtendsEveryOuterWallEndByHalfTheThickness_SoCornersHaveNoNotch()
+    {
+        // Act
+        var boundary = DistrictBoundaryPlanner.Plan(Size, []);
+
+        // Assert
+        var north = Assert.Single(boundary.Segments, segment => segment.Placement.Y == 0);
+        Assert.Equal(Size.Width + DistrictBoundaryPlanner.WallThickness, north.Footprint.Width, 6);
+        var west = Assert.Single(boundary.Segments, segment => segment.Placement.X == 0);
+        Assert.Equal(Size.Depth + DistrictBoundaryPlanner.WallThickness, west.Footprint.Depth, 6);
+    }
+
+    private static BoundaryExit Exit(
+        BoundaryExitKind kind,
+        double x,
+        double y,
+        double angle,
+        EdgeSpan? opening = null
+    ) => new(Guid.NewGuid(), kind, new Placement(x, y, angle), opening);
+
+    private static double Left(BoundarySegment segment) =>
+        segment.Placement.X - segment.Footprint.Width / 2;
+
+    private static double Right(BoundarySegment segment) =>
+        segment.Placement.X + segment.Footprint.Width / 2;
 
     private static bool Covers(BoundarySegment segment, double x, double y)
     {

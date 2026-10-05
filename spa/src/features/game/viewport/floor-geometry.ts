@@ -26,6 +26,15 @@ export function floorGeometry({ width, depth }: FootprintWire, wells: NearbyExit
   return toGeometry(floor);
 }
 
+export function terrainGeometry({ width, depth }: FootprintWire, extent: number, overlap: number) {
+  return toGeometry([
+    { minX: -extent, maxX: width + extent, minY: -extent, maxY: overlap },
+    { minX: -extent, maxX: width + extent, minY: depth - overlap, maxY: depth + extent },
+    { minX: -extent, maxX: overlap, minY: overlap, maxY: depth - overlap },
+    { minX: width - overlap, maxX: width + extent, minY: overlap, maxY: depth - overlap },
+  ]);
+}
+
 function wellRect(well: NearbyExitSnapshot): Rect {
   const corners = stairCorners(well);
   const xs = corners.map(({ x }) => x);

@@ -5,6 +5,7 @@ import { BackSide, Mesh } from 'three';
 import type {
   CreatureStatusSnapshot,
   FootprintWire,
+  LocationBoundarySnapshot,
   NearbyBuildingSnapshot,
   NearbyExitSnapshot,
   NearbyPropSnapshot,
@@ -14,10 +15,11 @@ import type {
 
 import { OUTDOOR_FLOOR_COLOR } from './boundary-scene';
 import { connectorYaw } from './connector-placement';
+import { buildingNameBoards, hasDoor } from './connector-visibility';
 import { CreatureFigure } from './creature-figure';
 import type { CreatureFocus } from './creature-focus';
 import { DoorConnector } from './door-connector';
-import { floorGeometry } from './floor-geometry';
+import { floorGeometry, terrainGeometry } from './floor-geometry';
 import { FurnitureMesh } from './furniture-mesh';
 import { isFurnitureModel } from './furniture-parts';
 import {
@@ -36,7 +38,7 @@ import {
 } from './model-styles';
 import type { ViewportSeat } from './seat-interaction';
 import { SeatMesh } from './seat-mesh';
-import { SignMesh } from './sign-mesh';
+import { NameBoard, SignMesh } from './sign-mesh';
 import { StairConnector } from './stair-connector';
 
 type EntityNames = ReadonlyMap<string, string>;
@@ -57,6 +59,20 @@ export function Ground({
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor} receiveShadow>
       <meshLambertMaterial color={color} />
+    </mesh>
+  );
+}
+
+const TERRAIN_EXTENT = 600;
+const TERRAIN_OVERLAP = 0.3;
+const TERRAIN_DROP = 0.02;
+
+export function Terrain({ size }: { size: FootprintWire }) {
+  const terrain = useMemo(() => terrainGeometry(size, TERRAIN_EXTENT, TERRAIN_OVERLAP), [size]);
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -TERRAIN_DROP, 0]} geometry={terrain}>
+      <meshLambertMaterial color={OUTDOOR_FLOOR_COLOR} />
     </mesh>
   );
 }
@@ -286,7 +302,15 @@ export function Creatures({
   );
 }
 
-export function Connectors({ connectors }: { connectors: NearbyExitSnapshot[] }) {
+export function Connectors({
+  connectors,
+  boundary,
+  size,
+}: {
+  connectors: NearbyExitSnapshot[];
+  boundary?: LocationBoundarySnapshot;
+  size: FootprintWire;
+}) {
   return (
     <>
       {connectors.map((connector) => (
@@ -295,7 +319,32 @@ export function Connectors({ connectors }: { connectors: NearbyExitSnapshot[] })
           position={toScenePosition(connector.placement.x, connector.placement.y)}
           rotation={[0, connectorYaw(connector), 0]}
         >
-          {connector.stairs ? <StairConnector direction={connector.stairs} /> : <DoorConnector />}
+          {connector.stairs ? (
+            <StairConnector direction={connector.stairs} />
+          ) : (
+            hasDoor(connector, boundary, size) && <DoorConnector />
+          )}
+        </group>
+      ))}
+    </>
+  );
+}
+
+const NAME_BOARD_HEIGHT = 0.3;
+const NAME_BOARD_CENTER = DOOR_HEIGHT + 0.03 + NAME_BOARD_HEIGHT / 2;
+
+export function BuildingNameBoards({ connectors }: { connectors: NearbyExitSnapshot[] }) {
+  const boards = useMemo(() => buildingNameBoards(connectors), [connectors]);
+
+  return (
+    <>
+      {boards.map(({ exit, text, width }) => (
+        <group
+          key={exit.connectorId}
+          position={toScenePosition(exit.placement.x, exit.placement.y, NAME_BOARD_CENTER)}
+          rotation={[0, connectorYaw(exit), 0]}
+        >
+          <NameBoard text={text} width={width} height={NAME_BOARD_HEIGHT} />
         </group>
       ))}
     </>

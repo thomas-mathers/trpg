@@ -111,6 +111,8 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<Encounter> Encounters => Set<Encounter>();
     public DbSet<EncounterGroup> EncounterGroups => Set<EncounterGroup>();
     public DbSet<EncounterGroupMember> EncounterGroupMembers => Set<EncounterGroupMember>();
+    public DbSet<RoadEdge> RoadEdges => Set<RoadEdge>();
+    public DbSet<RoadNode> RoadNodes => Set<RoadNode>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<State> States => Set<State>();
     public DbSet<TravelConnector> TravelConnectors => Set<TravelConnector>();
@@ -554,6 +556,27 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.HasIndex(c => c.ConnectorId).IsUnique();
             entity.HasIndex(c => c.WorldId);
+        });
+
+        modelBuilder.Entity<RoadNode>(entity =>
+        {
+            entity.HasIndex(n => n.LocationId);
+            entity.HasIndex(n => n.WorldId);
+            entity.HasIndex(n => n.ConnectorId).IsUnique().HasFilter("connector_id IS NOT NULL");
+        });
+
+        modelBuilder.Entity<RoadEdge>(entity =>
+        {
+            entity.HasIndex(e => e.LocationId);
+            entity.HasIndex(e => e.WorldId);
+            entity.OwnsOne(
+                e => e.Waypoints,
+                waypoints =>
+                {
+                    waypoints.ToJson();
+                    waypoints.OwnsMany(p => p.Points);
+                }
+            );
         });
 
         modelBuilder.Entity<Prop>(entity =>

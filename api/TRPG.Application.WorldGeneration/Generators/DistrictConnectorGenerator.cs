@@ -4,63 +4,41 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class DistrictConnectorGenerator
 {
-    private static readonly CompassDirection[] NonEntranceEdges =
-    [
-        CompassDirection.North,
-        CompassDirection.East,
-        CompassDirection.West,
-    ];
-
     public static IReadOnlyList<LocationConnector> Generate(
-        District cityCenterDistrict,
-        IReadOnlyList<District> otherDistricts,
+        IReadOnlyList<District> districts,
         Guid worldId
     )
     {
-        var connectors = new List<LocationConnector>();
-        var nextEdge = 0;
-        foreach (var district in otherDistricts)
-        {
-            var centerEdge =
-                district.DistrictType == DistrictType.CityEntrance
-                    ? CompassDirection.South
-                    : NonEntranceEdges[nextEdge++ % NonEntranceEdges.Length];
+        var cells = DistrictGrid.Assign(districts);
+        var byCell = districts.ToDictionary(district => cells[district.LocationId]);
 
-            connectors.Add(
-                new LocationConnector
-                {
-                    OriginLocationId = district.LocationId,
-                    DestinationLocationId = cityCenterDistrict.LocationId,
-                    Name = "Path",
-                    Description = $"A path leading to {cityCenterDistrict.Name}.",
-                    DestinationLabel = cityCenterDistrict.Name,
-                    Direction = Opposite(centerEdge),
-                    WorldId = worldId,
-                }
-            );
-            connectors.Add(
-                new LocationConnector
-                {
-                    OriginLocationId = cityCenterDistrict.LocationId,
-                    DestinationLocationId = district.LocationId,
-                    Name = "Path",
-                    Description = $"A path leading to {district.Name}.",
-                    DestinationLabel = district.Name,
-                    Direction = centerEdge,
-                    WorldId = worldId,
-                }
-            );
-        }
-        return connectors;
+        return districts
+            .SelectMany(origin =>
+                DistrictGrid
+                    .Edges.Select(edge =>
+                        byCell.TryGetValue(cells[origin.LocationId].Step(edge), out var neighbor)
+                            ? Connect(origin, neighbor, edge, worldId)
+                            : null
+                    )
+                    .OfType<LocationConnector>()
+            )
+            .ToArray();
     }
 
-    private static CompassDirection Opposite(CompassDirection direction) =>
-        direction switch
+    private static LocationConnector Connect(
+        District origin,
+        District destination,
+        CompassDirection direction,
+        Guid worldId
+    ) =>
+        new()
         {
-            CompassDirection.North => CompassDirection.South,
-            CompassDirection.South => CompassDirection.North,
-            CompassDirection.East => CompassDirection.West,
-            CompassDirection.West => CompassDirection.East,
-            _ => throw new ArgumentOutOfRangeException(nameof(direction)),
+            OriginLocationId = origin.LocationId,
+            DestinationLocationId = destination.LocationId,
+            Name = "Path",
+            Description = $"A path leading to {destination.Name}.",
+            DestinationLabel = destination.Name,
+            Direction = direction,
+            WorldId = worldId,
         };
 }

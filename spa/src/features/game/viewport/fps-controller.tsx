@@ -23,6 +23,7 @@ import {
   yawToHeading,
 } from './layout-math';
 import { findSeatInRange, type ViewportSeat } from './seat-interaction';
+import { useDebugTeleport } from './use-debug-teleport';
 import { useSeatedCamera } from './use-seated-camera';
 
 const MAX_FRAME_SECONDS = 0.1;
@@ -103,6 +104,7 @@ export function FpsController({
   }, [camera, x, y, angle, seated]);
 
   useSeatedCamera(camera, seated, seatedPlacement, start, obstacles, size);
+  const cameraHeld = useDebugTeleport();
 
   useEffect(() => {
     const keys = pressed.current;
@@ -148,7 +150,7 @@ export function FpsController({
   }, [scene.playerStatus.id, setMovementSpeed]);
 
   useFrame((_, deltaSeconds) => {
-    if (seated || movementLocked) return;
+    if (seated || movementLocked || cameraHeld.current) return;
     const keys = pressed.current;
     const delta = computeMovement({
       heading: yawToHeading(camera.rotation.y),

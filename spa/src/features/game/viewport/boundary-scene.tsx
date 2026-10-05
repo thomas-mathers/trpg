@@ -1,210 +1,122 @@
 import { useEffect, useMemo } from 'react';
-import { BufferGeometry, Color, Float32BufferAttribute } from 'three';
+import { BufferGeometry, Float32BufferAttribute } from 'three';
 
 import type {
+  CompassDirection,
   FootprintWire,
-  LocationBoundarySnapshot,
-  NearbyExitSnapshot,
+  RoadClassSnapshot,
   RoadSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-import {
-  extrudedQuad,
-  isOnOpenEdge,
-  openEdgeSegment,
-  outwardNormal,
-  roadRibbon,
-} from './boundary-geometry';
-import { toScenePosition, type PlanarPoint } from './layout-math';
+import { apronQuads, roadLift, roadRenderOrder, roadRibbon } from './boundary-geometry';
+import type { PlanarPoint } from './layout-math';
 
 export const OUTDOOR_FLOOR_COLOR = '#6f6350';
-const ROAD_COLOR = '#9a8b72';
-const HORIZON_COLOR = '#9bb7d4';
-const FADE_DEPTH = 10;
-const FADE_LIFT = 0.02;
-const POST_SIZE = 0.3;
-const POST_HEIGHT = 2.4;
-const POST_COLOR = '#5b4a36';
-const POST_HALF_SPAN = 1;
-
-interface FadedQuad {
-  corners: PlanarPoint[];
-  inner: string;
-  outer: string;
-  lift: number;
-}
-
-function fadedQuadGeometry({ corners, inner, outer, lift }: FadedQuad): BufferGeometry {
-  const geometry = new BufferGeometry();
-  const colors = [inner, inner, outer, outer].flatMap((hex) => new Color(hex).toArray());
-  geometry.setAttribute(
-    'position',
-    new Float32BufferAttribute(
-      corners.flatMap(({ x, y }) => [x, lift, y]),
-      3,
-    ),
-  );
-  geometry.setAttribute('color', new Float32BufferAttribute(colors, 3));
-  geometry.setIndex([0, 1, 2, 0, 2, 3]);
-  geometry.computeVertexNormals();
-  if (geometry.getAttribute('normal').getY(0) < 0) {
-    geometry.setIndex([0, 2, 1, 0, 3, 2]);
-    geometry.computeVertexNormals();
-  }
-  return geometry;
-}
-
-function FadedQuadMesh({ corners, inner, outer, lift }: FadedQuad) {
-  const geometry = useMemo(
-    () => fadedQuadGeometry({ corners, inner, outer, lift }),
-    [corners, inner, outer, lift],
-  );
-  useEffect(() => () => geometry.dispose(), [geometry]);
-
-  return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial vertexColors />
-    </mesh>
-  );
-}
+const ROAD_COLORS: Record<RoadClassSnapshot, string> = {
+  Avenue: '#a89a82',
+  Street: '#9a8b72',
+  Lane: '#8a7c64',
+};
+const APRON_COLOR = ROAD_COLORS.Avenue;
+const ROAD_OFFSET_FACTOR: Record<RoadClassSnapshot, number> = { Lane: -4, Street: -5, Avenue: -6 };
+const APRON_LIFT = roadLift('Avenue');
 
 export function Roads({ roads }: { roads: RoadSnapshot[] }) {
   return (
     <>
-      {roads.map(({ points, width }) => (
-        <RoadMesh key={`${points[0]?.x}:${points[0]?.y}`} points={points} width={width} />
+      {roads.map((road) => (
+        <RoadMesh key={roadKey(road.points)} {...road} />
       ))}
     </>
   );
 }
 
-function RoadMesh({ points, width }: RoadSnapshot) {
+function roadKey(points: RoadSnapshot['points']): string {
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${first?.x}:${first?.y}:${last?.x}:${last?.y}`;
+}
+
+function RoadMesh({ points, width, class: roadClass }: RoadSnapshot) {
   const geometry = useMemo(() => {
-    const { positions, indices } = roadRibbon(points, width);
+    const { positions, indices } = roadRibbon(points, width, roadLift(roadClass));
     const ribbon = new BufferGeometry();
     ribbon.setAttribute('position', new Float32BufferAttribute(positions, 3));
     ribbon.setIndex(indices);
     ribbon.computeVertexNormals();
     return ribbon;
-  }, [points, width]);
+  }, [points, width, roadClass]);
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   return (
-    <mesh geometry={geometry} receiveShadow>
-      <meshLambertMaterial color={ROAD_COLOR} />
+    <mesh geometry={geometry} receiveShadow renderOrder={roadRenderOrder(roadClass)}>
+      <meshLambertMaterial
+        color={ROAD_COLORS[roadClass]}
+        depthWrite={false}
+        polygonOffset
+        polygonOffsetFactor={ROAD_OFFSET_FACTOR[roadClass]}
+        polygonOffsetUnits={ROAD_OFFSET_FACTOR[roadClass]}
+      />
     </mesh>
   );
 }
 
-export function RoadAprons({ roads, size }: { roads: RoadSnapshot[]; size: FootprintWire }) {
-  const quads = useMemo(
-    () =>
-      roads.flatMap(({ points, width }) => {
-        const start = points[0];
-        const normal = start && outwardNormal(start, size);
-        if (!start || !normal) return [];
-        const half = width / 2;
-        const from = { x: start.x - normal.y * half, y: start.y + normal.x * half };
-        const to = { x: start.x + normal.y * half, y: start.y - normal.x * half };
-        return [
-          { key: `${start.x}:${start.y}`, corners: extrudedQuad(from, to, normal, FADE_DEPTH) },
-        ];
-      }),
-    [roads, size],
+function apronGeometry(corners: PlanarPoint[]): BufferGeometry {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new Float32BufferAttribute(
+      corners.flatMap(({ x, y }) => [x, APRON_LIFT, y]),
+      3,
+    ),
   );
+  geometry.setAttribute(
+    'normal',
+    new Float32BufferAttribute(
+      corners.flatMap(() => [0, 1, 0]),
+      3,
+    ),
+  );
+  geometry.setIndex([0, 1, 2, 0, 2, 3]);
+  const [from, to, , back] = corners;
+  const facesDown = (to.x - from.x) * (back.y - from.y) - (to.y - from.y) * (back.x - from.x) > 0;
+  if (facesDown) geometry.setIndex([0, 2, 1, 0, 3, 2]);
+  return geometry;
+}
+
+function ApronMesh({ corners }: { corners: PlanarPoint[] }) {
+  const geometry = useMemo(() => apronGeometry(corners), [corners]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  return (
+    <mesh geometry={geometry} receiveShadow renderOrder={roadRenderOrder('Avenue')}>
+      <meshLambertMaterial
+        color={APRON_COLOR}
+        depthWrite={false}
+        polygonOffset
+        polygonOffsetFactor={-2}
+        polygonOffsetUnits={-2}
+      />
+    </mesh>
+  );
+}
+
+export function RoadAprons({
+  roads,
+  size,
+  openEdges,
+}: {
+  roads: RoadSnapshot[];
+  size: FootprintWire;
+  openEdges: CompassDirection[];
+}) {
+  const quads = useMemo(() => apronQuads(roads, size, openEdges), [roads, size, openEdges]);
 
   return (
     <>
       {quads.map(({ key, corners }) => (
-        <FadedQuadMesh
-          key={key}
-          corners={corners}
-          inner={ROAD_COLOR}
-          outer={HORIZON_COLOR}
-          lift={FADE_LIFT * 2}
-        />
+        <ApronMesh key={key} corners={corners} />
       ))}
     </>
   );
-}
-
-export function OpenEdgeFades({
-  boundary,
-  size,
-}: {
-  boundary: LocationBoundarySnapshot;
-  size: FootprintWire;
-}) {
-  const { openEdges } = boundary;
-  const quads = useMemo(
-    () =>
-      openEdges.flatMap((direction) => {
-        const segment = openEdgeSegment(direction, size);
-        if (!segment) return [];
-        const [from, to] = segment;
-        const normal = outwardNormal(midpoint(from, to), size);
-        return normal ? [{ direction, corners: extrudedQuad(from, to, normal, FADE_DEPTH) }] : [];
-      }),
-    [openEdges, size],
-  );
-
-  return (
-    <>
-      {quads.map(({ direction, corners }) => (
-        <FadedQuadMesh
-          key={direction}
-          corners={corners}
-          inner={OUTDOOR_FLOOR_COLOR}
-          outer={HORIZON_COLOR}
-          lift={FADE_LIFT}
-        />
-      ))}
-    </>
-  );
-}
-
-export function OpenEdgeGatePosts({
-  exits,
-  boundary,
-  size,
-}: {
-  exits: NearbyExitSnapshot[];
-  boundary: LocationBoundarySnapshot;
-  size: FootprintWire;
-}) {
-  const gateIds = new Set(boundary.gates.map(({ connectorId }) => connectorId));
-  const open = exits.filter(
-    ({ connectorId, stairs, placement }) =>
-      !stairs && !gateIds.has(connectorId) && isOnOpenEdge(placement, size, boundary.openEdges),
-  );
-
-  return (
-    <>
-      {open.flatMap(({ connectorId, placement }) =>
-        [-POST_HALF_SPAN, POST_HALF_SPAN].map((offset) => {
-          const normal = outwardNormal(placement, size);
-          const across = normal ? { x: -normal.y, y: normal.x } : { x: 1, y: 0 };
-          return (
-            <mesh
-              castShadow
-              receiveShadow
-              key={`${connectorId}:${offset}`}
-              position={toScenePosition(
-                placement.x + across.x * offset,
-                placement.y + across.y * offset,
-                POST_HEIGHT / 2,
-              )}
-            >
-              <boxGeometry args={[POST_SIZE, POST_HEIGHT, POST_SIZE]} />
-              <meshLambertMaterial color={POST_COLOR} />
-            </mesh>
-          );
-        }),
-      )}
-    </>
-  );
-}
-
-function midpoint(from: PlanarPoint, to: PlanarPoint): PlanarPoint {
-  return { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
 }

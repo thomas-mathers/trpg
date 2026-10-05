@@ -223,6 +223,8 @@ export type SceneSnapshot = {
     boundary?: LocationBoundarySnapshot;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.RoadSnapshot>? */
     roads?: RoadSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NeighborSnapshot>? */
+    neighbors?: NeighborSnapshot[];
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.RoadSnapshot */
@@ -231,6 +233,25 @@ export type RoadSnapshot = {
     points: PointWire[];
     /** Transpiled from double */
     width: number;
+    /** Transpiled from TRPG.GameSessions.Responses.RoadClassSnapshot */
+    class: RoadClassSnapshot;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.RoadClassSnapshot */
+export type RoadClassSnapshot = "Avenue" | "Street" | "Lane";
+
+/** Transpiled from TRPG.GameSessions.Responses.NeighborSnapshot */
+export type NeighborSnapshot = {
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyBuildingSnapshot> */
+    buildings: NearbyBuildingSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NearbyPropSnapshot> */
+    props: NearbyPropSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.BoundarySegmentSnapshot> */
+    segments: BoundarySegmentSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.RoadSnapshot> */
+    roads: RoadSnapshot[];
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.BoundarySegmentKind */

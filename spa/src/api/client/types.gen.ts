@@ -762,6 +762,14 @@ export type NearbyPropSnapshot = {
     footprint: FootprintWire;
 };
 
+export type NeighborSnapshot = {
+    locationId: string;
+    buildings: Array<NearbyBuildingSnapshot>;
+    props: Array<NearbyPropSnapshot>;
+    segments: Array<BoundarySegmentSnapshot>;
+    roads: Array<RoadSnapshot>;
+};
+
 export type OwnerReferenceRequest = {
     id: string;
     type: OwnerType;
@@ -875,6 +883,8 @@ export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';
 
 export type ResourceType = 'Hp' | 'Ap' | 'Mp';
 
+export type RoadClassSnapshot = 'Avenue' | 'Street' | 'Lane';
+
 export type RoadMapResponse = {
     id: string;
     name: string;
@@ -885,6 +895,7 @@ export type RoadMapResponse = {
 export type RoadSnapshot = {
     points: Array<PointWire>;
     width: number;
+    class: RoadClassSnapshot;
 };
 
 export type RoomBoundsResponse = {
@@ -918,6 +929,7 @@ export type SceneSnapshot = {
     timeScale: number;
     boundary?: null | LocationBoundarySnapshot;
     roads?: null | Array<RoadSnapshot>;
+    neighbors?: null | Array<NeighborSnapshot>;
 };
 
 export type SessionCreatedResponse = {

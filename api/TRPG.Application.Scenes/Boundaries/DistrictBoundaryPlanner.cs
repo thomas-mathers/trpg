@@ -14,7 +14,14 @@ public enum BoundarySegmentKind
     Tower,
 }
 
-public record BoundaryExit(Guid ConnectorId, BoundaryExitKind Kind, Placement Placement);
+public record EdgeSpan(double Start, double End);
+
+public record BoundaryExit(
+    Guid ConnectorId,
+    BoundaryExitKind Kind,
+    Placement Placement,
+    EdgeSpan? Opening = null
+);
 
 public record BoundarySegment(BoundarySegmentKind Kind, Placement Placement, Footprint Footprint);
 
@@ -29,7 +36,7 @@ public record DistrictBoundary(
 public static class DistrictBoundaryPlanner
 {
     public const double WallThickness = 0.4;
-    public const double GateWidth = 4;
+    public const double GateWidth = 4.5;
     public const double TowerSize = 1.6;
 
     private const double EdgeSnap = 1;
@@ -44,11 +51,16 @@ public static class DistrictBoundaryPlanner
 
         foreach (var edge in EdgesOf(size))
         {
-            var onEdge = exits.Where(exit => ClosestEdge(size, exit) == edge.Side).ToArray();
+            var onEdge = exits.Where(exit => EdgeOf(size, exit.Placement) == edge.Side).ToArray();
 
-            if (onEdge.Any(exit => exit.Kind == BoundaryExitKind.District))
+            var openings = onEdge
+                .Where(exit => exit.Kind == BoundaryExitKind.District)
+                .Select(exit => exit.Opening ?? new EdgeSpan(0, edge.Length))
+                .ToArray();
+            if (openings.Length > 0)
             {
                 openEdges.Add(edge.Side);
+                segments.AddRange(WallOutside(edge, openings));
                 continue;
             }
 
@@ -68,10 +80,10 @@ public static class DistrictBoundaryPlanner
             new(CompassDirection.West, Horizontal: false, Line: 0, Length: size.Depth),
         ];
 
-    private static CompassDirection? ClosestEdge(Footprint size, BoundaryExit exit)
+    public static CompassDirection? EdgeOf(Footprint size, Placement placement)
     {
         var closest = EdgesOf(size)
-            .Select(edge => new { edge.Side, Gap = edge.DistanceTo(exit.Placement) })
+            .Select(edge => new { edge.Side, Gap = edge.DistanceTo(placement) })
             .Where(candidate => candidate.Gap <= EdgeSnap)
             .OrderBy(candidate => candidate.Gap)
             .FirstOrDefault();
@@ -115,6 +127,25 @@ public static class DistrictBoundaryPlanner
         return segments;
     }
 
+    private static IEnumerable<BoundarySegment> WallOutside(
+        Edge edge,
+        IEnumerable<EdgeSpan> openings
+    )
+    {
+        var segments = new List<BoundarySegment>();
+        var cursor = 0.0;
+
+        foreach (var opening in openings.OrderBy(opening => opening.Start))
+        {
+            segments.AddRange(Span(edge, cursor, opening.Start));
+            cursor = Math.Max(cursor, opening.End);
+        }
+
+        segments.AddRange(Span(edge, cursor, edge.Length));
+
+        return segments;
+    }
+
     private static IEnumerable<BoundarySegment> Span(Edge edge, double start, double end)
     {
         if (end - start < MinimumWallSpan)
@@ -122,8 +153,11 @@ public static class DistrictBoundaryPlanner
             return [];
         }
 
-        var middle = (start + end) / 2;
-        var span = end - start;
+        var corner = WallThickness / 2;
+        var from = start <= 0 ? start - corner : start;
+        var to = end >= edge.Length ? end + corner : end;
+        var middle = (from + to) / 2;
+        var span = to - from;
         var footprint = edge.Horizontal
             ? new Footprint(span, WallThickness)
             : new Footprint(WallThickness, span);

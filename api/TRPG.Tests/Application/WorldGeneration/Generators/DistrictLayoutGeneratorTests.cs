@@ -5,6 +5,9 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
 public class DistrictLayoutGeneratorTests
 {
+    private const double GateCorridor = 7.5;
+    private const double AvenueDepth = 9;
+
     private static readonly Footprint SeatFootprint = new(Width: 1.5, Depth: 0.5);
 
     private static readonly IReadOnlyDictionary<DistrictType, BuildingType[]> Rosters =
@@ -174,6 +177,101 @@ public class DistrictLayoutGeneratorTests
     }
 
     [Theory]
+    [InlineData(DistrictType.CityCenter)]
+    [InlineData(DistrictType.Encampment)]
+    [InlineData(DistrictType.Scientific)]
+    [InlineData(DistrictType.Governmental)]
+    [InlineData(DistrictType.HolySite)]
+    public void Generate_KeepsTheEastWestGateAxisFreeOfBuildings(DistrictType type)
+    {
+        for (var count = 1; count <= Rosters[type].Length * 3; count++)
+        {
+            // Arrange
+            var inputs = Buildings(type, count);
+
+            // Act
+            var layout = DistrictLayoutGenerator.Generate(type, inputs, Seats(3), seed: 1);
+
+            // Assert
+            var axis = new PlanRect(
+                0,
+                layout.Plan.SideAxis - GateCorridor / 2,
+                layout.District.Width,
+                GateCorridor
+            ).ToBox();
+            Assert.All(
+                BuildingBoxes(layout, inputs),
+                building => Assert.False(building.Overlaps(axis))
+            );
+        }
+    }
+
+    [Theory]
+    [InlineData(DistrictType.CityCenter)]
+    [InlineData(DistrictType.Encampment)]
+    [InlineData(DistrictType.Scientific)]
+    [InlineData(DistrictType.Governmental)]
+    public void Generate_EndsAPrecinctOneAvenueBelowItsSquare(DistrictType type)
+    {
+        // Arrange
+        var inputs = RosterOnce(type);
+
+        // Act
+        var layout = DistrictLayoutGenerator.Generate(type, inputs, Seats(3), seed: 1);
+
+        // Assert
+        Assert.InRange(layout.District.Depth - layout.Plan.Square.Bottom, 0, AvenueDepth + 1.5);
+    }
+
+    [Theory]
+    [InlineData(DistrictType.CityCenter)]
+    [InlineData(DistrictType.Encampment)]
+    [InlineData(DistrictType.Scientific)]
+    [InlineData(DistrictType.Governmental)]
+    public void Generate_PutsThePrecinctEastWestAxisOnTheSquare(DistrictType type)
+    {
+        // Arrange
+        var inputs = RosterOnce(type);
+
+        // Act
+        var layout = DistrictLayoutGenerator.Generate(type, inputs, Seats(3), seed: 1);
+
+        // Assert
+        Assert.InRange(
+            layout.Plan.SideAxis,
+            layout.Plan.Square.Y + GateCorridor / 2,
+            layout.Plan.Square.Bottom - GateCorridor / 2
+        );
+    }
+
+    [Fact]
+    public void Generate_KeepsTheNorthSouthGateAxisFreeOfBuildings_WhenCityCenterHasTwoNorthBuildings()
+    {
+        // Arrange
+        var inputs = Buildings(DistrictType.CityCenter, 8);
+
+        // Act
+        var layout = DistrictLayoutGenerator.Generate(
+            DistrictType.CityCenter,
+            inputs,
+            Seats(3),
+            seed: 1
+        );
+
+        // Assert
+        var axis = new PlanRect(
+            layout.District.Width / 2 - GateCorridor / 2,
+            0,
+            GateCorridor,
+            layout.District.Depth
+        ).ToBox();
+        Assert.All(
+            BuildingBoxes(layout, inputs),
+            building => Assert.False(building.Overlaps(axis))
+        );
+    }
+
+    [Theory]
     [MemberData(nameof(AllDistrictTypes))]
     public void Generate_PutsEveryDoorOnAStreetOrCourt(DistrictType type)
     {
@@ -236,6 +334,72 @@ public class DistrictLayoutGeneratorTests
             Assert.All(
                 FurnishingBoxes(layout),
                 box => Assert.All(approaches, approach => Assert.False(box.Overlaps(approach)))
+            );
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(AllDistrictTypes))]
+    public void Generate_SnapsFurnishingToTheCellLattice(DistrictType type)
+    {
+        for (var seed = 0; seed < 25; seed++)
+        {
+            // Arrange
+            var inputs = Buildings(type, Rosters[type].Length * 2);
+
+            // Act
+            var layout = DistrictLayoutGenerator.Generate(type, inputs, Seats(3), seed);
+
+            // Assert
+            var furnishing = layout
+                .Seats.Select(seat => (seat.Placement, Footprint: SeatFootprint))
+                .Concat(layout.Decor.Select(item => (item.Placement, item.Footprint)));
+            Assert.All(
+                furnishing,
+                item =>
+                {
+                    var cells = CityGrid.CellBox(item.Placement, item.Footprint);
+                    Assert.Equal(cells.CenterX, item.Placement.X, 1e-6);
+                    Assert.Equal(cells.CenterY, item.Placement.Y, 1e-6);
+                    Assert.Equal(0, (cells.CenterX - cells.Width / 2) % CityGrid.CellSize, 1e-6);
+                    Assert.Equal(0, (cells.CenterY - cells.Depth / 2) % CityGrid.CellSize, 1e-6);
+                }
+            );
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(AllDistrictTypes))]
+    public void Generate_KeepsFurnishingOffTheGateAxes(DistrictType type)
+    {
+        for (var seed = 0; seed < 25; seed++)
+        {
+            // Arrange
+            var inputs = Buildings(type, Rosters[type].Length * 2);
+
+            // Act
+            var layout = DistrictLayoutGenerator.Generate(type, inputs, Seats(3), seed);
+
+            // Assert
+            var district = layout.District;
+            var axes = new[]
+            {
+                new PlanRect(
+                    district.Width / 2 - GateCorridor / 2,
+                    0,
+                    GateCorridor,
+                    district.Depth
+                ).ToBox(),
+                new PlanRect(
+                    0,
+                    layout.Plan.SideAxis - GateCorridor / 2,
+                    district.Width,
+                    GateCorridor
+                ).ToBox(),
+            };
+            Assert.All(
+                FurnishingBoxes(layout),
+                box => Assert.All(axes, axis => Assert.False(box.Overlaps(axis)))
             );
         }
     }
@@ -470,6 +634,6 @@ public class DistrictLayoutGeneratorTests
             angle
         );
 
-        return OrientedBox.From(center, new Footprint(Width: 2, Depth: 1.5));
+        return OrientedBox.From(center, new Footprint(Width: 1.5, Depth: 1.5));
     }
 }

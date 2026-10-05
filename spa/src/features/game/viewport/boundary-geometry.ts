@@ -2,6 +2,8 @@ import type {
   CompassDirection,
   FootprintWire,
   PointWire,
+  RoadClassSnapshot,
+  RoadSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import type { PlanarPoint } from './layout-math';
@@ -13,6 +15,10 @@ export interface Ribbon {
 
 const EDGE_SNAP = 0.8;
 const ROAD_LIFT = 0.03;
+const ROAD_CLASS_LIFT_STEP = 0.01;
+const ROAD_CLASS_RANK: Record<RoadClassSnapshot, number> = { Lane: 0, Street: 1, Avenue: 2 };
+const APRON_LENGTH = 150;
+const APRON_OVERLAP = 0.3;
 
 export function outwardNormal(point: PlanarPoint, size: FootprintWire): PlanarPoint | undefined {
   const { width, depth } = size;
@@ -76,7 +82,43 @@ export function extrudedQuad(
   return [from, to, { x: to.x + dx, y: to.y + dy }, { x: from.x + dx, y: from.y + dy }];
 }
 
-export function roadRibbon(points: PointWire[], width: number): Ribbon {
+export interface ApronQuad {
+  key: string;
+  corners: PlanarPoint[];
+}
+
+export function apronQuads(
+  roads: RoadSnapshot[],
+  size: FootprintWire,
+  openEdges: CompassDirection[],
+): ApronQuad[] {
+  return roads.flatMap(({ points, width }) =>
+    [points[0], points[points.length - 1]].flatMap((end) => {
+      const normal = end && outwardNormal(end, size);
+      if (!end || !normal || isOnOpenEdge(end, size, openEdges)) return [];
+      const half = width / 2;
+      const origin = { x: end.x - normal.x * APRON_OVERLAP, y: end.y - normal.y * APRON_OVERLAP };
+      const from = { x: origin.x - normal.y * half, y: origin.y + normal.x * half };
+      const to = { x: origin.x + normal.y * half, y: origin.y - normal.x * half };
+      return [
+        {
+          key: `${end.x}:${end.y}`,
+          corners: extrudedQuad(from, to, normal, APRON_LENGTH + APRON_OVERLAP),
+        },
+      ];
+    }),
+  );
+}
+
+export function roadLift(roadClass: RoadClassSnapshot): number {
+  return ROAD_LIFT + ROAD_CLASS_RANK[roadClass] * ROAD_CLASS_LIFT_STEP;
+}
+
+export function roadRenderOrder(roadClass: RoadClassSnapshot): number {
+  return 1 + ROAD_CLASS_RANK[roadClass];
+}
+
+export function roadRibbon(points: PointWire[], width: number, lift = ROAD_LIFT): Ribbon {
   const ribbon: Ribbon = { positions: [], indices: [] };
   const half = width / 2;
 
@@ -88,7 +130,8 @@ export function roadRibbon(points: PointWire[], width: number): Ribbon {
 
     const along = { x: (to.x - from.x) / length, y: (to.y - from.y) / length };
     const across = { x: -along.y * half, y: along.x * half };
-    const start = { x: from.x - along.x * half, y: from.y - along.y * half };
+    const startReach = index > 1 ? half : 0;
+    const start = { x: from.x - along.x * startReach, y: from.y - along.y * startReach };
     const end = { x: to.x + along.x * half, y: to.y + along.y * half };
     const base = ribbon.positions.length / 3;
 
@@ -98,7 +141,7 @@ export function roadRibbon(points: PointWire[], width: number): Ribbon {
       { x: end.x + across.x, y: end.y + across.y },
       { x: end.x - across.x, y: end.y - across.y },
     ]) {
-      ribbon.positions.push(corner.x, ROAD_LIFT, corner.y);
+      ribbon.positions.push(corner.x, lift, corner.y);
     }
     ribbon.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }

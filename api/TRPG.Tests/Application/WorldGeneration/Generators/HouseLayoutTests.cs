@@ -41,7 +41,7 @@ public class HouseLayoutTests
         var world = MiniLayoutWorldBuilder.BuildHouseWorld(MakeMembers(householdSize));
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         Assert.All(
@@ -71,7 +71,7 @@ public class HouseLayoutTests
         var world = MiniLayoutWorldBuilder.BuildHouseWorld(MakeMembers(householdSize));
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         Assert.All(

@@ -229,11 +229,33 @@ public record SceneSnapshot(
     long AnchoredAtUnixMilliseconds,
     double TimeScale,
     LocationBoundarySnapshot? Boundary = null,
-    IReadOnlyCollection<RoadSnapshot>? Roads = null
+    IReadOnlyCollection<RoadSnapshot>? Roads = null,
+    IReadOnlyCollection<NeighborSnapshot>? Neighbors = null
 );
 
 [TranspilationSource]
-public record RoadSnapshot(IReadOnlyCollection<PointWire> Points, double Width);
+public record RoadSnapshot(
+    IReadOnlyCollection<PointWire> Points,
+    double Width,
+    RoadClassSnapshot Class
+);
+
+[TranspilationSource]
+public enum RoadClassSnapshot
+{
+    Avenue,
+    Street,
+    Lane,
+}
+
+[TranspilationSource]
+public record NeighborSnapshot(
+    Guid LocationId,
+    IReadOnlyCollection<NearbyBuildingSnapshot> Buildings,
+    IReadOnlyCollection<NearbyPropSnapshot> Props,
+    IReadOnlyCollection<BoundarySegmentSnapshot> Segments,
+    IReadOnlyCollection<RoadSnapshot> Roads
+);
 
 [TranspilationSource]
 public enum BoundarySegmentKind

@@ -7,7 +7,8 @@ internal record DistrictPlan(
     IReadOnlyList<DistrictBuildingLayout> Buildings,
     IReadOnlyList<PlanRect> Streets,
     IReadOnlyList<PlanRect> Courts,
-    PlanRect Square
+    PlanRect Square,
+    double SideAxis
 );
 
 internal static class DistrictFacing

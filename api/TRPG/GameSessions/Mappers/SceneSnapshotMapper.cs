@@ -34,7 +34,8 @@ internal static class SceneSnapshotMapper
             AnchoredAtUnixMilliseconds: stamp.CapturedAt.ToUnixTimeMilliseconds(),
             TimeScale: stamp.TimeScale,
             Boundary: scene.Boundary?.ToSnapshot(),
-            Roads: scene.Roads?.Select(road => road.ToSnapshot()).ToArray()
+            Roads: scene.Roads?.Select(road => road.ToSnapshot()).ToArray(),
+            Neighbors: scene.Neighbors?.Select(neighbor => neighbor.ToSnapshot()).ToArray()
         );
     }
 }

@@ -106,7 +106,7 @@ public class StairAlignmentTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         var stairs = StairConnectors(world);

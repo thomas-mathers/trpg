@@ -6,15 +6,18 @@ internal static class ExteriorLayoutPass
 {
     private record ExteriorLayout(
         Dictionary<Guid, DistrictBuildingLayout> Buildings,
-        IReadOnlyList<DistrictDecor> Decor
+        IReadOnlyList<DistrictDecor> Decor,
+        double? SideAxis = null
     );
 
-    internal static IReadOnlyList<Prop> Run(
+    internal static LocationLayoutResult Run(
         LocationLayoutContext context,
         Dictionary<Guid, ConnectorExit> exitByConnectorId
     )
     {
         var furniture = new List<Prop>();
+        var roadNodes = new List<RoadNode>();
+        var roadEdges = new List<RoadEdge>();
 
         foreach (var location in context.Locations.Where(l => l.Kind != LocationKind.Room))
         {
@@ -29,20 +32,26 @@ internal static class ExteriorLayoutPass
 
             if (location.Kind == LocationKind.District)
             {
-                furniture.AddRange(
-                    OutdoorSignPlacer.Place(
-                        context,
-                        location,
-                        exterior.Buildings,
-                        exterior.Decor,
-                        exits
-                    )
-                );
+                var roads = PlanRoads(context, location, exterior, exits);
+                roadNodes.AddRange(roads.Nodes);
+                roadEdges.AddRange(roads.Edges);
             }
         }
 
-        return furniture;
+        return new LocationLayoutResult(furniture, roadNodes, roadEdges);
     }
+
+    private static RoadNetwork PlanRoads(
+        LocationLayoutContext context,
+        Location district,
+        ExteriorLayout exterior,
+        IReadOnlyCollection<ConnectorExit> exits
+    ) =>
+        RoadNetworkPlanner.Plan(
+            district,
+            DistrictRoadInputs.Obstacles(context, district, exterior.Decor),
+            DistrictRoadInputs.Terminals(context, district, exits)
+        );
 
     private static IReadOnlyList<ConnectorExit> ResolveExits(
         LocationLayoutContext context,
@@ -57,7 +66,11 @@ internal static class ExteriorLayoutPass
             .ToArray();
         var frame = new Footprint(Width: location.Width, Depth: location.Depth);
 
-        return ConnectorPointResolver.ResolveExits(frame, requests);
+        var exits = ConnectorPointResolver.ResolveExits(frame, requests, exterior.SideAxis);
+
+        return location.Kind == LocationKind.District
+            ? DistrictExitSnapper.Snap(frame, exits)
+            : exits;
     }
 
     private static Furniture CreateFurniture(Location location, DistrictDecor item) =>
@@ -134,7 +147,8 @@ internal static class ExteriorLayoutPass
 
         return new ExteriorLayout(
             layout.Buildings.ToDictionary(building => building.Id),
-            layout.Decor
+            layout.Decor,
+            layout.Plan.SideAxis
         );
     }
 
@@ -178,9 +192,11 @@ internal static class ExteriorLayoutPass
     {
         var rooms = context.RoomsByBuilding[building.Id].ToArray();
 
-        return BuildingTypes.Dungeon.Contains(building.BuildingType)
+        var footprint = BuildingTypes.Dungeon.Contains(building.BuildingType)
             ? SizeDungeon(context, building, rooms)
             : BuildingTemplateCatalog.Resolve(building.BuildingType, rooms).Footprint;
+
+        return CityGrid.SnapBuilding(footprint);
     }
 
     private static Footprint SizeDungeon(

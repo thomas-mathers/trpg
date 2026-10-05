@@ -13,7 +13,7 @@ import { useScene } from '../contexts/scene-context';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { runAction } from '../run-action';
-import { OpenEdgeFades, OpenEdgeGatePosts, RoadAprons, Roads } from './boundary-scene';
+import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
@@ -29,6 +29,8 @@ import {
   findPlayerPlacement,
 } from './layout-math';
 import { buildingStyle } from './model-styles';
+import { NeighborDistricts } from './neighbor-scene';
+import { OutdoorFog } from './outdoor-fog';
 import { OutdoorLighting } from './outdoor-lighting';
 import { OutdoorSky } from './outdoor-sky';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
@@ -36,10 +38,12 @@ import { useSeatInteraction } from './use-seat-interaction';
 import {
   Boxes,
   Ceiling,
+  BuildingNameBoards,
   Connectors,
   Creatures,
   Ground,
   ROOM_FLOOR_COLOR,
+  Terrain,
   Walls,
 } from './viewport-scene';
 import { createWebGpuRenderer } from './webgpu-renderer';
@@ -162,11 +166,15 @@ export function LocationViewport({
           />
           <Walls walls={walls} headers={headers} towers={towers} />
           {scene.roads && <Roads roads={scene.roads} />}
-          {scene.roads && <RoadAprons roads={scene.roads} size={size} />}
-          {scene.boundary && <OpenEdgeFades boundary={scene.boundary} size={size} />}
-          {scene.boundary && (
-            <OpenEdgeGatePosts exits={connectors} boundary={scene.boundary} size={size} />
+          {scene.roads && (
+            <RoadAprons
+              roads={scene.roads}
+              size={size}
+              openEdges={scene.boundary?.openEdges ?? []}
+            />
           )}
+          {!isRoomScene(scene) && <Terrain size={size} />}
+          {scene.neighbors && <NeighborDistricts neighbors={scene.neighbors} />}
           {isRoomScene(scene) && <Ceiling size={size} openings={shafts} />}
           <Boxes props={props} buildings={buildings} />
           <Creatures
@@ -177,7 +185,8 @@ export function LocationViewport({
             playerSeat={occupiedSeat}
             focus={focus}
           />
-          <Connectors connectors={connectors} />
+          <Connectors connectors={connectors} boundary={scene.boundary} size={size} />
+          {!isRoomScene(scene) && <BuildingNameBoards connectors={connectors} />}
           <CreatureFocusController
             focus={focus}
             creatures={creatures}
@@ -209,6 +218,7 @@ export function LocationViewport({
           ) : (
             <>
               <OutdoorSky />
+              <OutdoorFog size={size} />
               <OutdoorLighting
                 size={size}
                 height={Math.max(

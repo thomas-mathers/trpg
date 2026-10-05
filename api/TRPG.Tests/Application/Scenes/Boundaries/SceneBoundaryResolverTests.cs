@@ -1,4 +1,5 @@
 using TRPG.Application.Scenes.Boundaries;
+using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
 using TRPG.Domain.Models;
 
@@ -18,7 +19,7 @@ public class SceneBoundaryResolverTests
         ];
 
         // Act
-        var boundary = SceneBoundaryResolver.Resolve(Size, exits);
+        var boundary = SceneBoundaryResolver.Resolve(Size, exits, []);
 
         // Assert
         Assert.Equal([CompassDirection.North], boundary.OpenEdges);
@@ -31,7 +32,7 @@ public class SceneBoundaryResolverTests
         var gate = ExitTo(new SceneWildernessExitDestination("Wilderness"), 20, 30);
 
         // Act
-        var boundary = SceneBoundaryResolver.Resolve(Size, [gate]);
+        var boundary = SceneBoundaryResolver.Resolve(Size, [gate], []);
 
         // Assert
         Assert.Equal(gate.ConnectorId, Assert.Single(boundary.Gates).ConnectorId);
@@ -47,14 +48,55 @@ public class SceneBoundaryResolverTests
         ];
 
         // Act
-        var boundary = SceneBoundaryResolver.Resolve(Size, exits);
+        var boundary = SceneBoundaryResolver.Resolve(Size, exits, []);
 
         // Assert
         Assert.Empty(boundary.OpenEdges);
         Assert.Empty(boundary.Gates);
     }
 
-    private static SceneExitInfo ExitTo(SceneExitDestination destination, double x, double y) =>
+    [Fact]
+    public void Resolve_WallsTheStretchOfTheEdgeTheNeighborDoesNotCover()
+    {
+        // Arrange
+        var forgeWardId = Guid.NewGuid();
+        var merchantQuarter = new Footprint(95, 75);
+        var toForgeWard = ExitTo(
+            new SceneDistrictExitDestination("Forge Ward", DistrictType.Residential),
+            0,
+            37.5,
+            forgeWardId
+        );
+        var forgeWard = new NeighborDistrict(
+            forgeWardId,
+            new Placement(-82, 4.5, 0),
+            new Footprint(82, 66),
+            [],
+            [],
+            [],
+            []
+        );
+
+        // Act
+        var boundary = SceneBoundaryResolver.Resolve(merchantQuarter, [toForgeWard], [forgeWard]);
+
+        // Assert
+        Assert.Equal([CompassDirection.West], boundary.OpenEdges);
+        var walls = boundary
+            .Segments.Where(segment => segment.Placement.X == 0)
+            .OrderBy(segment => segment.Placement.Y)
+            .ToArray();
+        Assert.Equal(2, walls.Length);
+        Assert.Equal(4.5, walls[0].Placement.Y + walls[0].Footprint.Depth / 2, 6);
+        Assert.Equal(70.5, walls[1].Placement.Y - walls[1].Footprint.Depth / 2, 6);
+    }
+
+    private static SceneExitInfo ExitTo(
+        SceneExitDestination destination,
+        double x,
+        double y,
+        Guid? destinationLocationId = null
+    ) =>
         new(
             Guid.NewGuid(),
             "A path.",
@@ -63,7 +105,7 @@ public class SceneBoundaryResolverTests
             Direction: null,
             IsVisited: false,
             IsWayBack: false,
-            DestinationLocationId: Guid.NewGuid(),
+            DestinationLocationId: destinationLocationId ?? Guid.NewGuid(),
             Placement: new Placement(x, y, 0)
         );
 }

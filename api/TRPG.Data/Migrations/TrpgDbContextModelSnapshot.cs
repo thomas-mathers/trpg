@@ -2753,6 +2753,99 @@ namespace TRPG.Migrations
                     b.ToTable("restock_policies", (string)null);
                 });
 
+            modelBuilder.Entity("TRPG.Domain.Models.RoadEdge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Class")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("class");
+
+                    b.Property<Guid>("FromNodeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("from_node_id");
+
+                    b.Property<double>("Length")
+                        .HasColumnType("double precision")
+                        .HasColumnName("length");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<Guid>("ToNodeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("to_node_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_road_edges");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_road_edges_location_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_road_edges_world_id");
+
+                    b.ToTable("road_edges", (string)null);
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.RoadNode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ConnectorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("connector_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("world_id");
+
+                    b.Property<double>("X")
+                        .HasColumnType("double precision")
+                        .HasColumnName("x");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("double precision")
+                        .HasColumnName("y");
+
+                    b.HasKey("Id")
+                        .HasName("pk_road_nodes");
+
+                    b.HasIndex("ConnectorId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_road_nodes_connector_id")
+                        .HasFilter("connector_id IS NOT NULL");
+
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_road_nodes_location_id");
+
+                    b.HasIndex("WorldId")
+                        .HasDatabaseName("ix_road_nodes_world_id");
+
+                    b.ToTable("road_nodes", (string)null);
+                });
+
             modelBuilder.Entity("TRPG.Domain.Models.Room", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4461,7 +4554,8 @@ namespace TRPG.Migrations
                         {
                             b1.Property<Guid>("LocationConnectorId");
 
-                            b1.HasKey("LocationConnectorId");
+                            b1.HasKey("LocationConnectorId")
+                                .HasName("pk_location_connectors");
 
                             b1.ToTable("location_connectors");
 
@@ -4471,7 +4565,7 @@ namespace TRPG.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("LocationConnectorId")
-                                .HasConstraintName("fk_location_connectors_location_connectors_id");
+                                .HasConstraintName("fk_location_connectors_location_connectors_location_connector_id");
 
                             b1.OwnsMany("TRPG.Domain.Models.Point", "Points", b2 =>
                                 {
@@ -4484,7 +4578,8 @@ namespace TRPG.Migrations
 
                                     b2.Property<double>("Y");
 
-                                    b2.HasKey("PolylineLocationConnectorId", "__synthesizedOrdinal");
+                                    b2.HasKey("PolylineLocationConnectorId", "__synthesizedOrdinal")
+                                        .HasName("pk_location_connectors");
 
                                     b2.ToTable("location_connectors");
 
@@ -4507,6 +4602,51 @@ namespace TRPG.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_quest_reputation_rewards_quests_quest_id");
+                });
+
+            modelBuilder.Entity("TRPG.Domain.Models.RoadEdge", b =>
+                {
+                    b.OwnsOne("TRPG.Domain.Models.Polyline", "Waypoints", b1 =>
+                        {
+                            b1.Property<Guid>("RoadEdgeId");
+
+                            b1.HasKey("RoadEdgeId");
+
+                            b1.ToTable("road_edges");
+
+                            b1
+                                .ToJson("waypoints")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RoadEdgeId")
+                                .HasConstraintName("fk_road_edges_road_edges_id");
+
+                            b1.OwnsMany("TRPG.Domain.Models.Point", "Points", b2 =>
+                                {
+                                    b2.Property<Guid>("PolylineRoadEdgeId");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAdd();
+
+                                    b2.Property<double>("X");
+
+                                    b2.Property<double>("Y");
+
+                                    b2.HasKey("PolylineRoadEdgeId", "__synthesizedOrdinal");
+
+                                    b2.ToTable("road_edges");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("PolylineRoadEdgeId")
+                                        .HasConstraintName("fk_road_edges_road_edges_polyline_road_edge_id");
+                                });
+
+                            b1.Navigation("Points");
+                        });
+
+                    b.Navigation("Waypoints")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.Room", b =>
