@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
-import type { WebGPURenderer } from 'three/webgpu';
+import { DoubleSide, MeshBasicMaterial, type Scene, type WebGPURenderer } from 'three/webgpu';
 
 interface RenderMetrics {
   fps: number;
@@ -77,21 +77,36 @@ function MetricsPanel({ metrics }: { metrics: RenderMetrics | undefined }) {
 
 export function RenderDiagnostics({
   rendererRef,
+  scene,
 }: {
   rendererRef: RefObject<WebGPURenderer | null>;
+  scene: Scene | null;
 }) {
   const [visible, setVisible] = useState(false);
+  const [wireframe, setWireframe] = useState(false);
   const metrics = useRenderMetrics(rendererRef, visible);
 
   useEffect(() => {
     const toggle = (event: KeyboardEvent) => {
-      if (event.key !== 'F3' || event.repeat) return;
+      if (event.repeat || (event.key !== 'F3' && event.key !== 'F4')) return;
       event.preventDefault();
-      setVisible((current) => !current);
+      if (event.key === 'F3') setVisible((current) => !current);
+      if (event.key === 'F4') setWireframe((current) => !current);
     };
     window.addEventListener('keydown', toggle);
     return () => window.removeEventListener('keydown', toggle);
   }, []);
+
+  useEffect(() => {
+    if (!scene || !wireframe) return;
+    const previous = scene.overrideMaterial;
+    const material = new MeshBasicMaterial({ color: '#b9f8ff', wireframe: true, side: DoubleSide });
+    scene.overrideMaterial = material;
+    return () => {
+      scene.overrideMaterial = previous;
+      material.dispose();
+    };
+  }, [scene, wireframe]);
 
   return (
     <div className="absolute right-3 bottom-3 z-20 flex flex-col items-end gap-2 text-xs">
@@ -101,14 +116,24 @@ export function RenderDiagnostics({
           <MetricsPanel metrics={metrics} />
         </div>
       )}
-      <button
-        type="button"
-        aria-pressed={visible}
-        onClick={() => setVisible((current) => !current)}
-        className="rounded bg-black/70 px-2 py-1 font-medium text-white hover:bg-black/90"
-      >
-        {visible ? 'Hide stats' : 'Stats · F3'}
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          aria-pressed={wireframe}
+          onClick={() => setWireframe((current) => !current)}
+          className="rounded bg-black/70 px-2 py-1 font-medium text-white hover:bg-black/90"
+        >
+          {wireframe ? 'Solid · F4' : 'Wireframe · F4'}
+        </button>
+        <button
+          type="button"
+          aria-pressed={visible}
+          onClick={() => setVisible((current) => !current)}
+          className="rounded bg-black/70 px-2 py-1 font-medium text-white hover:bg-black/90"
+        >
+          {visible ? 'Hide stats' : 'Stats · F3'}
+        </button>
+      </div>
     </div>
   );
 }

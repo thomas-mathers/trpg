@@ -14,6 +14,7 @@ export function createOutdoorSky() {
   mesh.turbidity.value = 3;
   mesh.rayleigh.value = 1.8;
   mesh.material.colorNode = mesh.material.colorNode!.mul(0.05);
+  mesh.material.allowOverride = false;
   return mesh;
 }
 

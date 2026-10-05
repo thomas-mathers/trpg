@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PCFShadowMap, type WebGPURenderer } from 'three/webgpu';
+import { PCFShadowMap, type Scene, type WebGPURenderer } from 'three/webgpu';
 
 import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
@@ -60,6 +60,7 @@ export function LocationViewport({
   const [focus, setFocus] = useState<CreatureFocus | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [targetId, setTargetId] = useState<string>();
+  const [renderScene, setRenderScene] = useState<Scene | null>(null);
   const rendererRef = useRef<WebGPURenderer | null>(null);
   const closeInteraction = () => {
     setFocus(null);
@@ -158,8 +159,9 @@ export function LocationViewport({
         <Canvas
           key="webgpu"
           gl={createWebGpuRenderer}
-          onCreated={({ gl }) => {
+          onCreated={({ gl, scene: canvasScene }) => {
             rendererRef.current = gl as unknown as WebGPURenderer;
+            setRenderScene(canvasScene);
           }}
           shadows={{ type: PCFShadowMap }}
           camera={{ fov: 75, near: 0.1, far: 500 }}
@@ -240,7 +242,7 @@ export function LocationViewport({
           )}
         </Canvas>
       </div>
-      <RenderDiagnostics rendererRef={rendererRef} />
+      <RenderDiagnostics rendererRef={rendererRef} scene={renderScene} />
       {locked && !focus && (
         <span
           aria-hidden="true"
