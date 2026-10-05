@@ -4,14 +4,14 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class PrecinctDistrictPlanner
 {
-    private const double Gap = 4;
-    private const double Margin = 7;
-    private const double CourtPadding = 8;
-    private const double MinimumCourtWidth = 28;
-    private const double MinimumCourtDepth = 26;
-    private const double MinimumSideDepth = 8;
-    private const double AvenueWidth = 8;
-    private const double AvenueDepth = 14;
+    private const double Gap = 3;
+    private const double Margin = 4.5;
+    private const double CourtPadding = 4.5;
+    private const double MinimumCourtWidth = 19.5;
+    private const double MinimumCourtDepth = 16.5;
+    private const double MinimumSideDepth = 9;
+    private const double GateCorridor = CityGrid.GateCorridor;
+    private const double AvenueDepth = 9;
     private const int MaximumCityCenterTopRow = 2;
 
     private static readonly IReadOnlyDictionary<DistrictType, BuildingType[]> Rosters =
@@ -102,30 +102,46 @@ internal static class PrecinctDistrictPlanner
             west.Concat(east).Select(building => building.Footprint.Depth).DefaultIfEmpty(0).Max()
         );
         var topDepth = north.Select(building => building.Footprint.Depth).DefaultIfEmpty(0).Max();
-        var courtWidth = LocationSizer.SnapUp(
-            Math.Max(MinimumCourtWidth, Extent(north) + CourtPadding)
+        var northSplit = Split(north, north.Length / 2);
+        var westSplit = Split(west, (west.Length + 1) / 2);
+        var eastSplit = Split(east, (east.Length + 1) / 2);
+        var northHalfSpan = north.Length >= 2 ? Reach(northSplit) : Extent(north) / 2;
+        var courtWidth = CityGrid.SnapUpToOddCells(
+            Math.Max(MinimumCourtWidth, 2 * northHalfSpan + CourtPadding)
         );
-        var courtDepth = LocationSizer.SnapUp(
-            Math.Max(MinimumCourtDepth, Math.Max(Extent(west), Extent(east)) + CourtPadding)
+        var axisOffset =
+            CityGrid.SnapUp(
+                Math.Max(ReachBefore(westSplit), ReachBefore(eastSplit))
+                    + CourtPadding / 2
+                    - CityGrid.HalfCell
+            ) + CityGrid.HalfCell;
+        var courtDepth = CityGrid.SnapUp(
+            Math.Max(
+                MinimumCourtDepth,
+                axisOffset
+                    + Math.Max(ReachAfter(westSplit), ReachAfter(eastSplit))
+                    + CourtPadding / 2
+            )
         );
         var square = new PlanRect(
-            LocationSizer.SnapUp(Margin + sideDepth),
-            LocationSizer.SnapUp(Margin + topDepth),
+            CityGrid.SnapUp(Margin + sideDepth),
+            CityGrid.SnapUp(Math.Max(AvenueDepth, Margin + topDepth)),
             courtWidth,
             courtDepth
         );
-        var buildings = PlaceNorth(north, square)
-            .Concat(PlaceFlank(west, square, square.X, facing: 1))
-            .Concat(PlaceFlank(east, square, square.Right, facing: 3))
-            .ToArray();
+        var sideAxis = square.Y + axisOffset;
         var size = new Footprint(
-            Width: LocationSizer.SnapUp(square.X + courtWidth + square.X),
-            Depth: LocationSizer.SnapUp(square.Bottom + AvenueDepth)
+            Width: square.X + courtWidth + square.X,
+            Depth: CityGrid.SnapUpToOddCells(square.Bottom + AvenueDepth)
         );
+        var buildings = PlaceNorth(north, northSplit, square)
+            .Concat(PlaceFlank(westSplit, sideAxis, square.X, facing: 1))
+            .Concat(PlaceFlank(eastSplit, sideAxis, square.Right, facing: 3))
+            .ToArray();
         var avenue = new PlanRect(
-            square.CenterX - AvenueWidth / 2,
+            square.CenterX - GateCorridor / 2,
             square.Bottom,
-            AvenueWidth,
+            GateCorridor,
             AvenueDepth
         );
         var sideCourts = new[]
@@ -134,20 +150,50 @@ internal static class PrecinctDistrictPlanner
             new PlanRect(square.Right, square.Y, square.X - Margin, courtDepth),
         };
 
-        return new DistrictPlan(size, buildings, [square, avenue], sideCourts, square);
+        return new DistrictPlan(size, buildings, [square, avenue], sideCourts, square, sideAxis);
     }
 
     private static double Extent(IReadOnlyCollection<DistrictBuildingInput> row) =>
         row.Sum(building => building.Footprint.Width) + Math.Max(0, row.Count - 1) * Gap;
 
+    private static BuildingRuns Split(DistrictBuildingInput[] row, int beforeCount) =>
+        new(row.Take(beforeCount).ToArray(), row.Skip(beforeCount).ToArray());
+
+    private static double Reach(BuildingRuns runs) => Math.Max(ReachBefore(runs), ReachAfter(runs));
+
+    private static double ReachBefore(BuildingRuns runs) => Extent(runs.Before) + GateCorridor / 2;
+
+    private static double ReachAfter(BuildingRuns runs) => Extent(runs.After) + GateCorridor / 2;
+
     private static IEnumerable<DistrictBuildingLayout> PlaceNorth(
         DistrictBuildingInput[] row,
+        BuildingRuns runs,
         PlanRect square
     )
     {
-        var cursor = LocationSizer.SnapDown(square.X + (square.Width - Extent(row)) / 2);
+        if (row.Length < 2)
+        {
+            var centred = CityGrid.SnapDown(square.X + (square.Width - Extent(row)) / 2);
 
-        foreach (var building in row)
+            return PlaceNorthRun(row, centred, square);
+        }
+
+        var before = square.CenterX - GateCorridor / 2 - Extent(runs.Before);
+        var after = square.CenterX + GateCorridor / 2;
+
+        return PlaceNorthRun(runs.Before, before, square)
+            .Concat(PlaceNorthRun(runs.After, after, square));
+    }
+
+    private static IEnumerable<DistrictBuildingLayout> PlaceNorthRun(
+        DistrictBuildingInput[] run,
+        double start,
+        PlanRect square
+    )
+    {
+        var cursor = start;
+
+        foreach (var building in run)
         {
             var top = square.Y - building.Footprint.Depth;
             yield return DistrictFacing.Place(building, cursor, top, facing: 2);
@@ -156,19 +202,38 @@ internal static class PrecinctDistrictPlanner
     }
 
     private static IEnumerable<DistrictBuildingLayout> PlaceFlank(
-        DistrictBuildingInput[] column,
-        PlanRect square,
+        BuildingRuns runs,
+        double axis,
         double edgeX,
         int facing
     )
     {
-        var cursor = LocationSizer.SnapDown(square.Y + (square.Depth - Extent(column)) / 2);
+        var before = axis - GateCorridor / 2 - Extent(runs.Before);
+        var after = axis + GateCorridor / 2;
 
-        foreach (var building in column)
+        return PlaceFlankRun(runs.Before, before, edgeX, facing)
+            .Concat(PlaceFlankRun(runs.After, after, edgeX, facing));
+    }
+
+    private static IEnumerable<DistrictBuildingLayout> PlaceFlankRun(
+        DistrictBuildingInput[] run,
+        double start,
+        double edgeX,
+        int facing
+    )
+    {
+        var cursor = start;
+
+        foreach (var building in run)
         {
             var left = facing == 1 ? edgeX - building.Footprint.Depth : edgeX;
             yield return DistrictFacing.Place(building, left, cursor, facing);
             cursor += building.Footprint.Width + Gap;
         }
     }
+
+    private sealed record BuildingRuns(
+        DistrictBuildingInput[] Before,
+        DistrictBuildingInput[] After
+    );
 }

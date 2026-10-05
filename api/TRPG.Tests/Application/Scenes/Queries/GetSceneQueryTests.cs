@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Scenes.Boundaries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Data;
@@ -691,6 +692,296 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         Assert.Equal(connector.DestinationLocationId, exit.DestinationLocationId);
         Assert.Equal(new Placement(39, 15, connector.ExitAngle), exit.Placement);
         Assert.Equal(new Placement(5, 6, 0.5), result.Player.Placement);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheDistrictBoundary_WhenOutdoorsInADistrict()
+    {
+        // Arrange
+        var districtId = Guid.NewGuid();
+        var location = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: districtId,
+            width: 40,
+            depth: 30
+        );
+        var district = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            id: districtId,
+            locationId: location.Id
+        );
+        var player = Builders.MakeCreature(WorldId, birthYear: 950, locationId: location.Id);
+        var neighbourId = Guid.NewGuid();
+        var neighbourLocation = Builders.MakeLocation(WorldId, _state.Id, districtId: neighbourId);
+        var neighbour = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            id: neighbourId,
+            locationId: neighbourLocation.Id
+        );
+        var connector = Builders.MakeLocationConnector(
+            location.Id,
+            destinationLocationId: neighbourLocation.Id,
+            worldId: WorldId,
+            exitX: 20,
+            exitY: 0
+        );
+        _context.Locations.AddRange(location, neighbourLocation);
+        _context.Districts.AddRange(district, neighbour);
+        _context.Creatures.Add(player);
+        _context.LocationConnectors.Add(connector);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var boundary = Assert.IsType<DistrictBoundary>(result.Boundary);
+        Assert.Equal([TRPG.Domain.Models.CompassDirection.North], boundary.OpenEdges);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsThePersistedRoadsOfTheDistrict_WhenOutdoorsInADistrict()
+    {
+        // Arrange
+        var districtId = Guid.NewGuid();
+        var location = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: districtId,
+            width: 40,
+            depth: 30
+        );
+        var district = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            id: districtId,
+            locationId: location.Id
+        );
+        var player = Builders.MakeCreature(WorldId, birthYear: 950, locationId: location.Id);
+        var port = new RoadNode
+        {
+            WorldId = WorldId,
+            LocationId = location.Id,
+            Kind = RoadNodeKind.Port,
+            ConnectorId = Guid.NewGuid(),
+            X = 20,
+            Y = 0,
+        };
+        var junction = new RoadNode
+        {
+            WorldId = WorldId,
+            LocationId = location.Id,
+            Kind = RoadNodeKind.Junction,
+            X = 20,
+            Y = 10,
+        };
+        var edge = new RoadEdge
+        {
+            WorldId = WorldId,
+            LocationId = location.Id,
+            FromNodeId = port.Id,
+            ToNodeId = junction.Id,
+            Class = RoadClass.Avenue,
+            Length = 10,
+            Waypoints = new Polyline { Points = [new Point(20, 5)] },
+        };
+        _context.Locations.Add(location);
+        _context.Districts.Add(district);
+        _context.Creatures.Add(player);
+        _context.RoadNodes.AddRange(port, junction);
+        _context.RoadEdges.Add(edge);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var road = Assert.Single(result.Roads!);
+        Assert.Equal([new Point(20, 0), new Point(20, 5), new Point(20, 10)], road.Points);
+        Assert.Equal(RoadClass.Avenue, road.Class);
+        Assert.Equal(RoadClassWidths.Of(RoadClass.Avenue), road.Width);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsTheNeighborBeyondTheOpenEdge_WhenOutdoorsInADistrict()
+    {
+        // Arrange
+        var districtId = Guid.NewGuid();
+        var location = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: districtId,
+            width: 40,
+            depth: 30
+        );
+        var district = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            id: districtId,
+            locationId: location.Id
+        );
+        var player = Builders.MakeCreature(WorldId, birthYear: 950, locationId: location.Id);
+        var neighbourId = Guid.NewGuid();
+        var neighbourLocation = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: neighbourId,
+            width: 20,
+            depth: 20
+        );
+        var neighbour = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            id: neighbourId,
+            locationId: neighbourLocation.Id
+        );
+        var neighbourBuilding = Builders.MakeBuilding(
+            neighbourLocation.Id,
+            WorldId,
+            x: 3,
+            y: 4,
+            width: 6,
+            depth: 5
+        );
+        var outbound = Builders.MakeLocationConnector(
+            location.Id,
+            destinationLocationId: neighbourLocation.Id,
+            worldId: WorldId,
+            exitX: 20,
+            exitY: 0
+        );
+        var inbound = Builders.MakeLocationConnector(
+            neighbourLocation.Id,
+            destinationLocationId: location.Id,
+            worldId: WorldId,
+            exitX: 10,
+            exitY: 20
+        );
+        _context.Locations.AddRange(location, neighbourLocation);
+        _context.Districts.AddRange(district, neighbour);
+        var neighbourSign = Builders.MakeSign(WorldId, neighbourLocation.Id, "Welcome");
+        neighbourSign.X = 2;
+        neighbourSign.Y = 3;
+        var neighbourTrap = Builders.MakeTrap(WorldId, neighbourLocation.Id);
+        _context.Buildings.Add(neighbourBuilding);
+        _context.Props.AddRange(neighbourSign, neighbourTrap);
+        _context.Creatures.Add(player);
+        _context.LocationConnectors.AddRange(outbound, inbound);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        var neighbor = Assert.Single(result.Neighbors!);
+        var building = Assert.Single(neighbor.Buildings);
+        Assert.Equal(new Placement(13, -16, building.Placement.Angle), building.Placement);
+        var prop = Assert.Single(neighbor.Props);
+        Assert.Equal(neighbourSign.Id, prop.Id);
+        Assert.Equal(12, prop.Placement.X);
+        Assert.Equal(-17, prop.Placement.Y);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsEveryNeighborOnAnEdge_WhenTheyDoNotOverlap()
+    {
+        // Arrange
+        var districtId = Guid.NewGuid();
+        var location = Builders.MakeLocation(
+            WorldId,
+            _state.Id,
+            districtId: districtId,
+            width: 100,
+            depth: 30
+        );
+        var district = Builders.MakeDistrict(
+            Guid.NewGuid(),
+            worldId: WorldId,
+            id: districtId,
+            locationId: location.Id
+        );
+        var player = Builders.MakeCreature(WorldId, birthYear: 950, locationId: location.Id);
+        _context.Locations.Add(location);
+        _context.Districts.Add(district);
+        _context.Creatures.Add(player);
+        foreach (var exitX in new[] { 10, 80 })
+        {
+            var neighbourId = Guid.NewGuid();
+            var neighbourLocation = Builders.MakeLocation(
+                WorldId,
+                _state.Id,
+                districtId: neighbourId,
+                width: 20,
+                depth: 20
+            );
+            _context.Locations.Add(neighbourLocation);
+            _context.Districts.Add(
+                Builders.MakeDistrict(
+                    Guid.NewGuid(),
+                    worldId: WorldId,
+                    id: neighbourId,
+                    locationId: neighbourLocation.Id
+                )
+            );
+            _context.LocationConnectors.AddRange(
+                Builders.MakeLocationConnector(
+                    location.Id,
+                    destinationLocationId: neighbourLocation.Id,
+                    worldId: WorldId,
+                    exitX: exitX,
+                    exitY: 0
+                ),
+                Builders.MakeLocationConnector(
+                    neighbourLocation.Id,
+                    destinationLocationId: location.Id,
+                    worldId: WorldId,
+                    exitX: 10,
+                    exitY: 20
+                )
+            );
+        }
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var query = new GetSceneQuery
+        {
+            WorldId = WorldId,
+            PlayerId = player.Id,
+            CurrentDate = new InGameDate(975, "Thawmoon", 1, "Stormday", DayOfWeek.Thursday, 14),
+            GameTime = GameClock.Epoch,
+        };
+
+        // Act
+        var result = await _handler.Handle(query, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(2, result.Neighbors!.Count);
     }
 
     [Fact]

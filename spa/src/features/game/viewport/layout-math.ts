@@ -1,5 +1,7 @@
 import type {
+  BoundarySegmentKind,
   FootprintWire,
+  LocationBoundarySnapshot,
   NearbyBuildingSnapshot,
   NearbyExitSnapshot,
   NearbyPropSnapshot,
@@ -106,8 +108,12 @@ export function stairObstacle({ placement }: NearbyExitSnapshot): Obstacle {
   };
 }
 
-export function isWalledScene({ roomName, districtName }: SceneSnapshot): boolean {
-  return Boolean(roomName ?? districtName);
+export function boundaryWalls(boundary: LocationBoundarySnapshot | undefined): Obstacle[] {
+  return boundarySegments(boundary, 'Wall');
+}
+
+export function boundaryTowers(boundary: LocationBoundarySnapshot | undefined): Obstacle[] {
+  return boundarySegments(boundary, 'Tower');
 }
 
 export function isRoomScene({ roomName }: SceneSnapshot): boolean {
@@ -196,6 +202,15 @@ function interactPoint(connector: NearbyExitSnapshot): PlanarPoint {
 
 function pointAhead({ x, y, angle }: PlacementWire, distance: number): PlanarPoint {
   return { x: x + Math.sin(angle) * distance, y: y - Math.cos(angle) * distance };
+}
+
+function boundarySegments(
+  boundary: LocationBoundarySnapshot | undefined,
+  kind: BoundarySegmentKind,
+): Obstacle[] {
+  return (boundary?.segments ?? [])
+    .filter((segment) => segment.kind === kind)
+    .map(({ placement, footprint }) => ({ placement, footprint }));
 }
 
 function wallSides(size: FootprintWire, exits: NearbyExitSnapshot[]) {

@@ -160,7 +160,7 @@ internal static class MiniLayoutWorldBuilder
             OriginLocationId = origin.Id,
             DestinationLocationId = destination.Id,
             Name = name,
-            DestinationLabel = name,
+            DestinationLabel = $"{name} {destination.Id:N}",
         };
 
     internal sealed record MiniLayoutWorld(LocationLayoutInput Input)

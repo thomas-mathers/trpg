@@ -9,7 +9,10 @@ using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
+using TRPG.Application.Scenes.Boundaries;
+using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
+using TRPG.Application.Scenes.Roads;
 using TRPG.Application.Weather.Queries;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
@@ -107,7 +110,9 @@ internal class GetSceneQueryHandler(
     IQueryHandler<
         GetRouteTravelerJourneysByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, RouteTravelerJourney>
-    > getRouteTravelerJourneysByCreatureIds
+    > getRouteTravelerJourneysByCreatureIds,
+    IQueryHandler<GetSceneNeighborsQuery, IReadOnlyCollection<NeighborDistrict>> getSceneNeighbors,
+    IQueryHandler<GetRoadNetworkByLocationIdQuery, LocationRoadNetwork> getRoadNetwork
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -162,6 +167,19 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
         var size = await GetSceneSize(player.LocationId, cancellationToken);
+        var isDistrictOutdoors = player.RoomId == null && districtInfo != null;
+        var neighbors = isDistrictOutdoors
+            ? await getSceneNeighbors.Handle(
+                new GetSceneNeighborsQuery
+                {
+                    LocationId = player.LocationId,
+                    Size = size,
+                    Exits = exitInfos,
+                    Buildings = details.NearbyBuildings,
+                },
+                cancellationToken
+            )
+            : null;
 
         return new SceneResult(
             query.WorldId,
@@ -185,7 +203,19 @@ internal class GetSceneQueryHandler(
             details.NearbyBuildings,
             weather,
             nearbyCaravans,
-            size
+            size,
+            isDistrictOutdoors
+                ? SceneBoundaryResolver.Resolve(size, exitInfos, neighbors ?? [])
+                : null,
+            isDistrictOutdoors
+                ? SceneRoadMapper.ToRoads(
+                    await getRoadNetwork.Handle(
+                        new GetRoadNetworkByLocationIdQuery { LocationId = player.LocationId },
+                        cancellationToken
+                    )
+                )
+                : null,
+            neighbors
         );
     }
 

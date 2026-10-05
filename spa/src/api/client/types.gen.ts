@@ -103,6 +103,20 @@ export type BookPageResponse = {
     revealedFact: boolean;
 };
 
+export type BoundaryGateSnapshot = {
+    connectorId: string;
+    placement: PlacementWire;
+    width: number;
+};
+
+export type BoundarySegmentKind = 'Wall' | 'Tower';
+
+export type BoundarySegmentSnapshot = {
+    kind: BoundarySegmentKind;
+    placement: PlacementWire;
+    footprint: FootprintWire;
+};
+
 export type BuildingType = 'ArcaneShop' | 'Apothecary' | 'Bakery' | 'Barracks' | 'Blacksmith' | 'Carpenter' | 'Castle' | 'Cave' | 'Crypt' | 'GeneralGoods' | 'GuildHall' | 'House' | 'Inn' | 'Jail' | 'Jeweler' | 'Library' | 'Mine' | 'Ruins' | 'Stable' | 'Tailor' | 'Tavern' | 'Temple' | 'Tower';
 
 export type CaravanDestinationSnapshot = {
@@ -651,6 +665,12 @@ export type LocalMapRoomResponse = {
     markers: Array<LocalMapMarkerResponse>;
 };
 
+export type LocationBoundarySnapshot = {
+    segments: Array<BoundarySegmentSnapshot>;
+    gates: Array<BoundaryGateSnapshot>;
+    openEdges: Array<CompassDirection>;
+};
+
 export type LoreAnchor = {
     id: string;
     name: string;
@@ -742,6 +762,14 @@ export type NearbyPropSnapshot = {
     footprint: FootprintWire;
 };
 
+export type NeighborSnapshot = {
+    locationId: string;
+    buildings: Array<NearbyBuildingSnapshot>;
+    props: Array<NearbyPropSnapshot>;
+    segments: Array<BoundarySegmentSnapshot>;
+    roads: Array<RoadSnapshot>;
+};
+
 export type OwnerReferenceRequest = {
     id: string;
     type: OwnerType;
@@ -760,6 +788,11 @@ export type PlayerClass = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric';
 export type PlayerGender = 'Male' | 'Female';
 
 export type PointResponse = {
+    x: number;
+    y: number;
+};
+
+export type PointWire = {
     x: number;
     y: number;
 };
@@ -850,11 +883,19 @@ export type Race = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome';
 
 export type ResourceType = 'Hp' | 'Ap' | 'Mp';
 
+export type RoadClassSnapshot = 'Avenue' | 'Street' | 'Lane';
+
 export type RoadMapResponse = {
     id: string;
     name: string;
     originStateId: string;
     destinationStateId: string;
+};
+
+export type RoadSnapshot = {
+    points: Array<PointWire>;
+    width: number;
+    class: RoadClassSnapshot;
 };
 
 export type RoomBoundsResponse = {
@@ -886,6 +927,9 @@ export type SceneSnapshot = {
     gameTimeMilliseconds: number;
     anchoredAtUnixMilliseconds: number;
     timeScale: number;
+    boundary?: null | LocationBoundarySnapshot;
+    roads?: null | Array<RoadSnapshot>;
+    neighbors?: null | Array<NeighborSnapshot>;
 };
 
 export type SessionCreatedResponse = {

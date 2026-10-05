@@ -13,20 +13,24 @@ import { useScene } from '../contexts/scene-context';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { runAction } from '../run-action';
+import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
 import { IndoorLighting } from './indoor-lighting';
 import {
+  boundaryTowers,
+  boundaryWalls,
   buildDoorHeaders,
   buildEntityNames,
   buildObstacles,
   buildWalls,
   isRoomScene,
   findPlayerPlacement,
-  isWalledScene,
 } from './layout-math';
 import { buildingStyle } from './model-styles';
+import { NeighborDistricts } from './neighbor-scene';
+import { OutdoorFog } from './outdoor-fog';
 import { OutdoorLighting } from './outdoor-lighting';
 import { OutdoorSky } from './outdoor-sky';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
@@ -34,10 +38,12 @@ import { useSeatInteraction } from './use-seat-interaction';
 import {
   Boxes,
   Ceiling,
+  BuildingNameBoards,
   Connectors,
   Creatures,
   Ground,
   ROOM_FLOOR_COLOR,
+  Terrain,
   Walls,
 } from './viewport-scene';
 import { createWebGpuRenderer } from './webgpu-renderer';
@@ -85,11 +91,13 @@ export function LocationViewport({
   const wells = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Down'), [scene]);
   const shafts = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Up'), [scene]);
   const walls = useMemo(
-    () => (isWalledScene(scene) ? buildWalls(scene.size, scene.exits) : []),
+    () =>
+      isRoomScene(scene) ? buildWalls(scene.size, scene.exits) : boundaryWalls(scene.boundary),
     [scene],
   );
+  const towers = useMemo(() => boundaryTowers(scene.boundary), [scene]);
   const headers = useMemo(
-    () => (isWalledScene(scene) ? buildDoorHeaders(scene.size, scene.exits) : []),
+    () => (isRoomScene(scene) ? buildDoorHeaders(scene.size, scene.exits) : []),
     [scene],
   );
 
@@ -156,7 +164,17 @@ export function LocationViewport({
             wells={wells}
             color={isRoomScene(scene) ? ROOM_FLOOR_COLOR : undefined}
           />
-          <Walls walls={walls} headers={headers} />
+          <Walls walls={walls} headers={headers} towers={towers} />
+          {scene.roads && <Roads roads={scene.roads} />}
+          {scene.roads && (
+            <RoadAprons
+              roads={scene.roads}
+              size={size}
+              openEdges={scene.boundary?.openEdges ?? []}
+            />
+          )}
+          {!isRoomScene(scene) && <Terrain size={size} />}
+          {scene.neighbors && <NeighborDistricts neighbors={scene.neighbors} />}
           {isRoomScene(scene) && <Ceiling size={size} openings={shafts} />}
           <Boxes props={props} buildings={buildings} />
           <Creatures
@@ -167,7 +185,8 @@ export function LocationViewport({
             playerSeat={occupiedSeat}
             focus={focus}
           />
-          <Connectors connectors={connectors} />
+          <Connectors connectors={connectors} boundary={scene.boundary} size={size} />
+          {!isRoomScene(scene) && <BuildingNameBoards connectors={connectors} />}
           <CreatureFocusController
             focus={focus}
             creatures={creatures}
@@ -199,6 +218,7 @@ export function LocationViewport({
           ) : (
             <>
               <OutdoorSky />
+              <OutdoorFog size={size} />
               <OutdoorLighting
                 size={size}
                 height={Math.max(

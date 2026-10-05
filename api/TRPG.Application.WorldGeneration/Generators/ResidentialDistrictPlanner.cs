@@ -4,11 +4,11 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class ResidentialDistrictPlanner
 {
-    internal const double StreetWidth = 7;
+    internal const double StreetWidth = 6;
     private const double Alley = 3;
-    private const double MinimumCourt = 20;
-    private const double MinimumBand = 8;
-    private const double BlockJitter = 20;
+    private const double MinimumCourt = 6;
+    private const double MinimumBand = 9;
+    private const double BlockJitter = 4.5;
     private const double MinimumWeight = 0.8;
     private const double WeightRange = 0.5;
     private const int StripCount = 4;
@@ -38,12 +38,15 @@ internal static class ResidentialDistrictPlanner
             courts.Add(Court(cell.Block, measure.Band));
         }
 
+        var size = grid.Size(StreetWidth);
+
         return new DistrictPlan(
-            grid.Size(StreetWidth),
+            size,
             placed,
             grid.Streets(StreetWidth),
             courts,
-            square
+            square,
+            size.Depth / 2
         );
     }
 
@@ -136,7 +139,7 @@ internal static class ResidentialDistrictPlanner
         for (var index = 0; index < row.Count; index++)
         {
             var building = row[index];
-            yield return strip.Place(building, LocationSizer.SnapDown(cursor));
+            yield return strip.Place(building, CityGrid.SnapDown(cursor));
             cursor += building.Footprint.Width + Alley + share * weights[index + 1];
         }
     }
@@ -173,14 +176,14 @@ internal static class ResidentialDistrictPlanner
     {
         internal static BlockMeasure Of(IReadOnlyCollection<DistrictBuildingInput> buildings)
         {
-            var band = LocationSizer.SnapUp(
+            var band = CityGrid.SnapUp(
                 Math.Max(
                     MinimumBand,
                     buildings.Select(b => b.Footprint.Depth).DefaultIfEmpty(0).Max()
                 )
             );
             var frontage = buildings.Select(b => b.Footprint.Width).DefaultIfEmpty(0).Max();
-            var side = LocationSizer.SnapUp(Math.Max(2 * band + MinimumCourt, frontage));
+            var side = CityGrid.SnapUp(Math.Max(2 * band + MinimumCourt, frontage));
             var sideStrip = side - 2 * band - 2 * Alley;
             var capacity = 2 * (FitCount(side, frontage) + FitCount(sideStrip, frontage));
 
@@ -205,7 +208,23 @@ internal static class ResidentialDistrictPlanner
             var widths = RandomSides(columns, measure, random);
             var depths = RandomSides(rows, measure, random);
 
-            return new BlockGrid(widths, depths, random.Next(columns * rows));
+            return new BlockGrid(
+                PadToOddCells(widths),
+                PadToOddCells(depths),
+                random.Next(columns * rows)
+            );
+        }
+
+        private static double[] PadToOddCells(double[] sides)
+        {
+            var total = sides.Sum() + StreetWidth * (sides.Length + 1);
+
+            if (CityGrid.SnapUpToOddCells(total) == total)
+            {
+                return sides;
+            }
+
+            return [.. sides[..^1], sides[^1] + CityGrid.CellSize];
         }
 
         internal IEnumerable<BlockCell> Cells(double street)
@@ -260,7 +279,7 @@ internal static class ResidentialDistrictPlanner
             Enumerable
                 .Range(0, count)
                 .Select(_ =>
-                    LocationSizer.SnapUp(measure.MinimumSide + random.NextDouble() * BlockJitter)
+                    CityGrid.SnapUp(measure.MinimumSide + random.NextDouble() * BlockJitter)
                 )
                 .ToArray();
     }

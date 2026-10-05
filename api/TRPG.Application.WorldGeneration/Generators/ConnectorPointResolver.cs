@@ -43,9 +43,11 @@ internal static class ConnectorPointResolver
 
     internal static IReadOnlyList<ConnectorExit> ResolveExits(
         Footprint frame,
-        IReadOnlyCollection<ConnectorExitRequest> requests
+        IReadOnlyCollection<ConnectorExitRequest> requests,
+        double? eastWestAxis = null
     )
     {
+        var axis = eastWestAxis ?? frame.Depth / 2;
         var exits = new List<ConnectorExit>();
         var evenlySpaced = requests.Where(IsEvenlySpacedOnEdge).GroupBy(request => EdgeOf(request));
 
@@ -55,7 +57,8 @@ internal static class ConnectorPointResolver
                 SpreadEvenly(
                     frame,
                     group.Key,
-                    group.OrderBy(r => r.DestinationLocationId).ToArray()
+                    group.OrderBy(r => r.DestinationLocationId).ToArray(),
+                    axis
                 )
             );
         }
@@ -63,10 +66,10 @@ internal static class ConnectorPointResolver
         foreach (
             var group in requests
                 .Where(request => request.Kind == ConnectorExitKind.Bearing)
-                .GroupBy(request => BearingEdge(frame, request.BearingRadians))
+                .GroupBy(request => BearingEdge(frame, axis, request.BearingRadians))
         )
         {
-            exits.AddRange(SpreadByBearing(frame, group.Key, group.ToArray()));
+            exits.AddRange(SpreadByBearing(frame, axis, group.Key, group.ToArray()));
         }
 
         exits.AddRange(PlaceHallwayDoors(frame, requests));
@@ -180,25 +183,31 @@ internal static class ConnectorPointResolver
     private static IEnumerable<ConnectorExit> SpreadEvenly(
         Footprint frame,
         FrameEdge edge,
-        IReadOnlyList<ConnectorExitRequest> requests
+        IReadOnlyList<ConnectorExitRequest> requests,
+        double eastWestAxis
     )
     {
         var length = EdgeLength(frame, edge);
+        var onAxis = edge is FrameEdge.East or FrameEdge.West && requests.Count == 1;
 
         return requests.Select(
             (request, index) =>
                 new ConnectorExit(
                     request.ConnectorId,
-                    PointOnEdge(frame, edge, length * (index + 1) / (requests.Count + 1)),
+                    PointOnEdge(
+                        frame,
+                        edge,
+                        onAxis ? eastWestAxis : length * (index + 1) / (requests.Count + 1)
+                    ),
                     FacingInward(edge)
                 )
         );
     }
 
-    private static FrameEdge BearingEdge(Footprint frame, double bearing) =>
-        BearingHit(frame, bearing).Edge;
+    private static FrameEdge BearingEdge(Footprint frame, double axis, double bearing) =>
+        BearingHit(frame, axis, bearing).Edge;
 
-    private static BearingHitPoint BearingHit(Footprint frame, double bearing)
+    private static BearingHitPoint BearingHit(Footprint frame, double axis, double bearing)
     {
         var directionX = Math.Sin(bearing);
         var directionY = -Math.Cos(bearing);
@@ -210,7 +219,7 @@ internal static class ConnectorPointResolver
         if (distanceToSide < distanceToEnd)
         {
             var edge = directionX > 0 ? FrameEdge.East : FrameEdge.West;
-            return new BearingHitPoint(edge, frame.Depth / 2 + directionY * distanceToSide);
+            return new BearingHitPoint(edge, axis + directionY * distanceToSide);
         }
 
         var endEdge = directionY < 0 ? FrameEdge.North : FrameEdge.South;
@@ -219,6 +228,7 @@ internal static class ConnectorPointResolver
 
     private static IEnumerable<ConnectorExit> SpreadByBearing(
         Footprint frame,
+        double axis,
         FrameEdge edge,
         IReadOnlyList<ConnectorExitRequest> requests
     )
@@ -228,7 +238,7 @@ internal static class ConnectorPointResolver
             .Select(request => new
             {
                 Request = request,
-                Position = BearingHit(frame, request.BearingRadians).Position,
+                Position = BearingHit(frame, axis, request.BearingRadians).Position,
             })
             .OrderBy(entry => entry.Position)
             .ThenBy(entry => entry.Request.DestinationLocationId)

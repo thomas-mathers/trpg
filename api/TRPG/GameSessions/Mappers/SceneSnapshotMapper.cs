@@ -32,7 +32,10 @@ internal static class SceneSnapshotMapper
             Version: stamp.Version,
             GameTimeMilliseconds: (long)(stamp.GameTime - GameClock.Epoch).TotalMilliseconds,
             AnchoredAtUnixMilliseconds: stamp.CapturedAt.ToUnixTimeMilliseconds(),
-            TimeScale: stamp.TimeScale
+            TimeScale: stamp.TimeScale,
+            Boundary: scene.Boundary?.ToSnapshot(),
+            Roads: scene.Roads?.Select(road => road.ToSnapshot()).ToArray(),
+            Neighbors: scene.Neighbors?.Select(neighbor => neighbor.ToSnapshot()).ToArray()
         );
     }
 }

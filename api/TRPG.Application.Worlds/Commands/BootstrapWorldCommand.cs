@@ -79,6 +79,8 @@ internal class BootstrapWorldCommandHandler(
         context.LocationConnectors.AddRange(world.LocationConnectors);
         context.DoorConnectors.AddRange(world.DoorConnectors);
         context.TravelConnectors.AddRange(world.TravelConnectors);
+        context.RoadNodes.AddRange(world.RoadNodes);
+        context.RoadEdges.AddRange(world.RoadEdges);
         var tradeStock = tradeStockGenerator.Generate(
             world.Props,
             world.Rooms,

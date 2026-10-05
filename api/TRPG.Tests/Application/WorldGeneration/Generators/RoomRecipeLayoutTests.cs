@@ -26,7 +26,7 @@ public class RoomRecipeLayoutTests
         );
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         Assert.All(
@@ -49,7 +49,7 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         Assert.All(
@@ -79,7 +79,7 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         Assert.All(
@@ -102,7 +102,7 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         Assert.All(
@@ -222,7 +222,7 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         var roomIds = RecipeRooms(world, type).Select(room => room.LocationId).ToHashSet();
@@ -245,7 +245,7 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         var lobby = RecipeRooms(world, BuildingType.Inn).Single(room => room.Name == "Lobby");
@@ -262,7 +262,7 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         var lobby = RecipeRooms(world, BuildingType.Inn).Single(room => room.Name == "Lobby");
@@ -282,7 +282,7 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input);
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         var workshop = RecipeRooms(world, BuildingType.Blacksmith)
@@ -301,10 +301,10 @@ public class RoomRecipeLayoutTests
     {
         // Arrange
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
-        var first = LocationLayoutGenerator.Generate(world.Input);
+        var first = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Act
-        var second = LocationLayoutGenerator.Generate(world.Input);
+        var second = LocationLayoutGenerator.Generate(world.Input).Props;
 
         // Assert
         Assert.Equal(Poses(first), Poses(second));

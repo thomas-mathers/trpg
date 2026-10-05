@@ -338,17 +338,8 @@ public class GeographyGenerator(
                         cityDistricts.Add(districtResult.District);
                     }
 
-                    var cityCenterDistrict = cityDistricts.First(d =>
-                        d.DistrictType == DistrictType.CityCenter
-                    );
                     locationConnectors.AddRange(
-                        DistrictConnectorGenerator.Generate(
-                            cityCenterDistrict,
-                            cityDistricts
-                                .Where(d => d.DistrictType != DistrictType.CityCenter)
-                                .ToArray(),
-                            world.Id
-                        )
+                        DistrictConnectorGenerator.Generate(cityDistricts, world.Id)
                     );
                 }
             }

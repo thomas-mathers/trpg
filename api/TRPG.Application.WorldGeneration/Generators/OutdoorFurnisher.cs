@@ -12,13 +12,8 @@ internal record OutdoorFurnishing(
 internal static class OutdoorFurnisher
 {
     private const double SquareInset = 1;
-    private const double Clearance = 0.35;
-    private const double ApproachWidth = 2;
-    private const double ApproachDepth = 1.5;
-
-    private const double ClutterEdgeOffset = 1;
-    private const double ClutterSpacing = 1.25;
-    private const double ClutterDistance = 0.9;
+    private const double ApproachWidth = CityGrid.CellSize;
+    private const double ApproachDepth = CityGrid.CellSize;
 
     private static readonly PropModel[] DoorClutterModels =
     [
@@ -62,16 +57,17 @@ internal static class OutdoorFurnisher
     {
         var occupied = Blocked(plan, buildings);
         var decor = new List<DistrictDecor>();
+        var district = new PlanRect(0, 0, plan.Size.Width, plan.Size.Depth);
 
-        PlaceOptional(decor, occupied, Centerpiece(type, plan.Square));
-        PlaceOptional(decor, occupied, BoardCandidates(plan.Square));
+        PlaceOptional(decor, occupied, plan.Square, Centerpiece(type, plan));
+        PlaceOptional(decor, occupied, plan.Square, BoardCandidates(plan.Square));
 
         var fronts = FrontBoxes(plan, buildings);
         var placedSeats = PlaceSeats(seats, plan.Square, occupied, fronts);
 
         foreach (var candidate in DoorClutter(plan, buildings))
         {
-            PlaceOptional(decor, occupied, [candidate]);
+            PlaceOptional(decor, occupied, district, [candidate]);
         }
 
         return new OutdoorFurnishing(placedSeats, decor);
@@ -102,8 +98,8 @@ internal static class OutdoorFurnisher
             {
                 var angle = layout.Placement.Angle;
                 var (sin, cos) = Math.SinCos(angle);
-                var along = -footprint.Width / 2 + ClutterEdgeOffset + index * ClutterSpacing;
-                var ahead = footprint.Depth / 2 + ClutterDistance;
+                var along = (index * 2 - 1) * CityGrid.CellSize;
+                var ahead = footprint.Depth / 2 + CityGrid.HalfCell;
 
                 return Decor(
                     model,
@@ -117,7 +113,29 @@ internal static class OutdoorFurnisher
     private static List<OrientedBox> Blocked(
         DistrictPlan plan,
         IReadOnlyCollection<DistrictBuildingInput> buildings
-    ) => FrontBoxes(plan, buildings).Concat(plan.Buildings.Select(Approach)).ToList();
+    ) =>
+        FrontBoxes(plan, buildings)
+            .Concat(plan.Buildings.Select(Approach))
+            .Concat(GateAxes(plan))
+            .ToList();
+
+    private static OrientedBox[] GateAxes(DistrictPlan plan) =>
+        [
+            new OrientedBox(
+                plan.Size.Width / 2,
+                plan.Size.Depth / 2,
+                CityGrid.GateCorridor,
+                plan.Size.Depth,
+                Angle: 0
+            ),
+            new OrientedBox(
+                plan.Size.Width / 2,
+                plan.SideAxis,
+                plan.Size.Width,
+                CityGrid.GateCorridor,
+                Angle: 0
+            ),
+        ];
 
     private static OrientedBox[] FrontBoxes(
         DistrictPlan plan,
@@ -136,7 +154,7 @@ internal static class OutdoorFurnisher
             .ToArray();
     }
 
-    private static OrientedBox Approach(DistrictBuildingLayout layout)
+    internal static OrientedBox Approach(DistrictBuildingLayout layout)
     {
         var angle = layout.Placement.Angle;
         var center = new Placement(
@@ -148,8 +166,35 @@ internal static class OutdoorFurnisher
         return OrientedBox.From(center, new Footprint(ApproachWidth, ApproachDepth));
     }
 
-    private static DistrictDecor[] Centerpiece(DistrictType type, PlanRect square) =>
-        [Decor(Centerpieces[type], square.CenterX, square.CenterY, angle: 0)];
+    private static DistrictDecor[] Centerpiece(DistrictType type, DistrictPlan plan) =>
+        QuadrantCentres(plan)
+            .Select(centre => Decor(Centerpieces[type], centre.X, centre.Y, angle: 0))
+            .ToArray();
+
+    private static IEnumerable<PlanarPoint> QuadrantCentres(DistrictPlan plan)
+    {
+        var square = plan.Square;
+        var columns = AxisSpans(square.X, square.Right, plan.Size.Width / 2);
+        var rows = AxisSpans(square.Y, square.Bottom, plan.SideAxis);
+
+        return rows.SelectMany(row =>
+            columns.Select(column => new PlanarPoint(
+                (column.Start + column.End) / 2,
+                (row.Start + row.End) / 2
+            ))
+        );
+    }
+
+    private static AxisSpan[] AxisSpans(double low, double high, double axis)
+    {
+        var halfCorridor = CityGrid.GateCorridor / 2;
+        var before = new AxisSpan(low, Math.Min(high, axis - halfCorridor));
+        var after = new AxisSpan(Math.Max(low, axis + halfCorridor), high);
+
+        return new[] { before, after }.Where(span => span.End > span.Start).ToArray();
+    }
+
+    private sealed record AxisSpan(double Start, double End);
 
     private static DistrictDecor[] BoardCandidates(PlanRect square)
     {
@@ -167,17 +212,26 @@ internal static class OutdoorFurnisher
             .ToArray();
     }
 
-    private static DistrictDecor Decor(PropModel model, double x, double y, double angle) =>
-        new(model, new Placement(x, y, angle), PropFootprintCatalog.Get(model).Footprint);
+    private static DistrictDecor Decor(PropModel model, double x, double y, double angle)
+    {
+        var footprint = PropFootprintCatalog.Get(model).Footprint;
+
+        return new DistrictDecor(
+            model,
+            CityGrid.SnapCentre(new Placement(x, y, angle), footprint),
+            footprint
+        );
+    }
 
     private static void PlaceOptional(
         List<DistrictDecor> decor,
         List<OrientedBox> occupied,
+        PlanRect bounds,
         DistrictDecor[] candidates
     )
     {
         var fit = candidates.FirstOrDefault(candidate =>
-            IsFree(candidate.Placement, candidate.Footprint, occupied)
+            IsFree(candidate.Placement, candidate.Footprint, bounds, occupied)
         );
 
         if (fit is null)
@@ -186,7 +240,7 @@ internal static class OutdoorFurnisher
         }
 
         decor.Add(fit);
-        occupied.Add(OrientedBox.From(fit.Placement, fit.Footprint));
+        occupied.Add(CityGrid.CellBox(fit.Placement, fit.Footprint));
     }
 
     private static List<DistrictSeatLayout> PlaceSeats(
@@ -203,16 +257,48 @@ internal static class OutdoorFurnisher
             var placement =
                 FrontSlots(square, buildings, seat.Footprint)
                     .Concat(BenchSlots(square, seat.Footprint))
-                    .FirstOrDefault(slot => IsFree(slot, seat.Footprint, occupied))
+                    .Concat(EdgeScanSlots(square, seat.Footprint))
+                    .Select(slot => CityGrid.SnapCentre(slot, seat.Footprint))
+                    .FirstOrDefault(slot => IsFree(slot, seat.Footprint, square, occupied))
                 ?? throw new InvalidOperationException(
                     $"The square has no free bench slot for seat {seat.Id}."
                 );
 
-            occupied.Add(OrientedBox.From(placement, seat.Footprint));
+            occupied.Add(CityGrid.CellBox(placement, seat.Footprint));
             layouts.Add(new DistrictSeatLayout(seat.Id, placement));
         }
 
         return layouts;
+    }
+
+    private static IEnumerable<Placement> EdgeScanSlots(PlanRect square, Footprint footprint)
+    {
+        var inset = SquareInset + footprint.Depth / 2;
+        var columns = (int)Math.Round(square.Width / CityGrid.CellSize);
+        var rows = (int)Math.Round(square.Depth / CityGrid.CellSize);
+
+        var sides = Enumerable
+            .Range(0, rows)
+            .Select(row => square.Y + (row + 0.5) * CityGrid.CellSize)
+            .SelectMany(y =>
+                new[]
+                {
+                    new Placement(square.X + inset, y, Math.PI / 2),
+                    new Placement(square.Right - inset, y, 3 * Math.PI / 2),
+                }
+            );
+        var ends = Enumerable
+            .Range(0, columns)
+            .Select(column => square.X + (column + 0.5) * CityGrid.CellSize)
+            .SelectMany(x =>
+                new[]
+                {
+                    new Placement(x, square.Y + inset, Math.PI),
+                    new Placement(x, square.Bottom - inset, 0),
+                }
+            );
+
+        return sides.Concat(ends);
     }
 
     private static IEnumerable<Placement> BenchSlots(PlanRect square, Footprint footprint) =>
@@ -257,11 +343,17 @@ internal static class OutdoorFurnisher
     private static bool IsFree(
         Placement placement,
         Footprint footprint,
+        PlanRect bounds,
         IReadOnlyCollection<OrientedBox> occupied
     )
     {
-        var box = OrientedBox.From(placement, footprint).Inflated(Clearance / 2);
+        var box = CityGrid.CellBox(placement, footprint);
+        var inside =
+            box.CenterX - box.Width / 2 >= bounds.X - 1e-6
+            && box.CenterX + box.Width / 2 <= bounds.Right + 1e-6
+            && box.CenterY - box.Depth / 2 >= bounds.Y - 1e-6
+            && box.CenterY + box.Depth / 2 <= bounds.Bottom + 1e-6;
 
-        return occupied.All(other => !box.Overlaps(other));
+        return inside && occupied.All(other => !box.Overlaps(other));
     }
 }

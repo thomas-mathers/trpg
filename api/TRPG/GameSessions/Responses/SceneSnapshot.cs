@@ -227,7 +227,58 @@ public record SceneSnapshot(
     long Version,
     long GameTimeMilliseconds,
     long AnchoredAtUnixMilliseconds,
-    double TimeScale
+    double TimeScale,
+    LocationBoundarySnapshot? Boundary = null,
+    IReadOnlyCollection<RoadSnapshot>? Roads = null,
+    IReadOnlyCollection<NeighborSnapshot>? Neighbors = null
+);
+
+[TranspilationSource]
+public record RoadSnapshot(
+    IReadOnlyCollection<PointWire> Points,
+    double Width,
+    RoadClassSnapshot Class
+);
+
+[TranspilationSource]
+public enum RoadClassSnapshot
+{
+    Avenue,
+    Street,
+    Lane,
+}
+
+[TranspilationSource]
+public record NeighborSnapshot(
+    Guid LocationId,
+    IReadOnlyCollection<NearbyBuildingSnapshot> Buildings,
+    IReadOnlyCollection<NearbyPropSnapshot> Props,
+    IReadOnlyCollection<BoundarySegmentSnapshot> Segments,
+    IReadOnlyCollection<RoadSnapshot> Roads
+);
+
+[TranspilationSource]
+public enum BoundarySegmentKind
+{
+    Wall,
+    Tower,
+}
+
+[TranspilationSource]
+public record BoundarySegmentSnapshot(
+    BoundarySegmentKind Kind,
+    PlacementWire Placement,
+    FootprintWire Footprint
+);
+
+[TranspilationSource]
+public record BoundaryGateSnapshot(Guid ConnectorId, PlacementWire Placement, double Width);
+
+[TranspilationSource]
+public record LocationBoundarySnapshot(
+    IReadOnlyCollection<BoundarySegmentSnapshot> Segments,
+    IReadOnlyCollection<BoundaryGateSnapshot> Gates,
+    IReadOnlyCollection<CompassDirection> OpenEdges
 );
 
 [TranspilationSource]

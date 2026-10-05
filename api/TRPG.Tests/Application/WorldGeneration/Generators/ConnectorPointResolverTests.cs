@@ -50,6 +50,24 @@ public class ConnectorPointResolverTests
     }
 
     [Theory]
+    [InlineData(CompassDirection.East, 20)]
+    [InlineData(CompassDirection.West, 0)]
+    public void ResolveExits_PlacesAnEastOrWestExitOnTheSuppliedAxis(
+        CompassDirection direction,
+        double expectedX
+    )
+    {
+        // Arrange
+        var request = Request(ConnectorExitKind.Compass, direction);
+
+        // Act
+        var exits = ConnectorPointResolver.ResolveExits(Frame, [request], eastWestAxis: 7.5);
+
+        // Assert
+        Assert.Equal(new PlanarPoint(expectedX, 7.5), exits.Single().Point);
+    }
+
+    [Theory]
     [InlineData(CompassDirection.North, Math.PI)]
     [InlineData(CompassDirection.South, 0)]
     public void ResolveArrival_StandsOneMeterInsideFacingInward_ForANorthOrSouthExit(

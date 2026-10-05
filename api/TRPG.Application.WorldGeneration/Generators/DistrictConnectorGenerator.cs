@@ -5,37 +5,40 @@ namespace TRPG.Application.WorldGeneration.Generators;
 internal static class DistrictConnectorGenerator
 {
     public static IReadOnlyList<LocationConnector> Generate(
-        District cityCenterDistrict,
-        IReadOnlyList<District> otherDistricts,
+        IReadOnlyList<District> districts,
         Guid worldId
     )
     {
-        var connectors = new List<LocationConnector>();
-        foreach (var district in otherDistricts)
-        {
-            connectors.Add(
-                new LocationConnector
-                {
-                    OriginLocationId = district.LocationId,
-                    DestinationLocationId = cityCenterDistrict.LocationId,
-                    Name = "Path",
-                    Description = $"A path leading to {cityCenterDistrict.Name}.",
-                    DestinationLabel = cityCenterDistrict.Name,
-                    WorldId = worldId,
-                }
-            );
-            connectors.Add(
-                new LocationConnector
-                {
-                    OriginLocationId = cityCenterDistrict.LocationId,
-                    DestinationLocationId = district.LocationId,
-                    Name = "Path",
-                    Description = $"A path leading to {district.Name}.",
-                    DestinationLabel = district.Name,
-                    WorldId = worldId,
-                }
-            );
-        }
-        return connectors;
+        var cells = DistrictGrid.Assign(districts);
+        var byCell = districts.ToDictionary(district => cells[district.LocationId]);
+
+        return districts
+            .SelectMany(origin =>
+                DistrictGrid
+                    .Edges.Select(edge =>
+                        byCell.TryGetValue(cells[origin.LocationId].Step(edge), out var neighbor)
+                            ? Connect(origin, neighbor, edge, worldId)
+                            : null
+                    )
+                    .OfType<LocationConnector>()
+            )
+            .ToArray();
     }
+
+    private static LocationConnector Connect(
+        District origin,
+        District destination,
+        CompassDirection direction,
+        Guid worldId
+    ) =>
+        new()
+        {
+            OriginLocationId = origin.LocationId,
+            DestinationLocationId = destination.LocationId,
+            Name = "Path",
+            Description = $"A path leading to {destination.Name}.",
+            DestinationLabel = destination.Name,
+            Direction = direction,
+            WorldId = worldId,
+        };
 }

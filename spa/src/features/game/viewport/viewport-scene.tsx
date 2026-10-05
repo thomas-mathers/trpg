@@ -5,6 +5,7 @@ import { BackSide, Mesh } from 'three';
 import type {
   CreatureStatusSnapshot,
   FootprintWire,
+  LocationBoundarySnapshot,
   NearbyBuildingSnapshot,
   NearbyExitSnapshot,
   NearbyPropSnapshot,
@@ -12,11 +13,13 @@ import type {
   PropModel,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
+import { OUTDOOR_FLOOR_COLOR } from './boundary-scene';
 import { connectorYaw } from './connector-placement';
+import { buildingNameBoards, hasDoor } from './connector-visibility';
 import { CreatureFigure } from './creature-figure';
 import type { CreatureFocus } from './creature-focus';
 import { DoorConnector } from './door-connector';
-import { floorGeometry } from './floor-geometry';
+import { floorGeometry, terrainGeometry } from './floor-geometry';
 import { FurnitureMesh } from './furniture-mesh';
 import { isFurnitureModel } from './furniture-parts';
 import {
@@ -35,11 +38,11 @@ import {
 } from './model-styles';
 import type { ViewportSeat } from './seat-interaction';
 import { SeatMesh } from './seat-mesh';
+import { NameBoard, SignMesh } from './sign-mesh';
 import { StairConnector } from './stair-connector';
 
 type EntityNames = ReadonlyMap<string, string>;
 
-const OUTDOOR_FLOOR_COLOR = '#6f6350';
 export const ROOM_FLOOR_COLOR = '#6e5338';
 
 export function Ground({
@@ -56,6 +59,20 @@ export function Ground({
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor} receiveShadow>
       <meshLambertMaterial color={color} />
+    </mesh>
+  );
+}
+
+const TERRAIN_EXTENT = 600;
+const TERRAIN_OVERLAP = 0.3;
+const TERRAIN_DROP = 0.02;
+
+export function Terrain({ size }: { size: FootprintWire }) {
+  const terrain = useMemo(() => terrainGeometry(size, TERRAIN_EXTENT, TERRAIN_OVERLAP), [size]);
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -TERRAIN_DROP, 0]} geometry={terrain}>
+      <meshLambertMaterial color={OUTDOOR_FLOOR_COLOR} />
     </mesh>
   );
 }
@@ -78,7 +95,17 @@ export function Ceiling({
 
 const HEADER_HEIGHT = WALL_HEIGHT - DOOR_HEIGHT;
 
-export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle[] }) {
+const TOWER_HEIGHT = WALL_HEIGHT * 1.7;
+
+export function Walls({
+  walls,
+  headers = [],
+  towers = [],
+}: {
+  walls: Obstacle[];
+  headers?: Obstacle[];
+  towers?: Obstacle[];
+}) {
   return (
     <>
       {walls.map(({ placement, footprint }) => (
@@ -87,9 +114,22 @@ export function Walls({ walls, headers }: { walls: Obstacle[]; headers: Obstacle
           receiveShadow
           key={`${placement.x}:${placement.y}`}
           position={toScenePosition(placement.x, placement.y, WALL_HEIGHT / 2)}
+          rotation={[0, headingToYaw(placement.angle), 0]}
         >
           <boxGeometry args={[footprint.width, WALL_HEIGHT, footprint.depth]} />
           <meshLambertMaterial color="#8a7b66" />
+        </mesh>
+      ))}
+      {towers.map(({ placement, footprint }) => (
+        <mesh
+          castShadow
+          receiveShadow
+          key={`tower:${placement.x}:${placement.y}`}
+          position={toScenePosition(placement.x, placement.y, TOWER_HEIGHT / 2)}
+          rotation={[0, headingToYaw(placement.angle), 0]}
+        >
+          <boxGeometry args={[footprint.width, TOWER_HEIGHT, footprint.depth]} />
+          <meshLambertMaterial color="#756853" />
         </mesh>
       ))}
       {headers.map(({ placement, footprint }) => (
@@ -144,7 +184,10 @@ function BoxMesh({ footprint, style }: { footprint: FootprintWire; style: BoxSty
   );
 }
 
-function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropModel) {
+function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropModel, text?: string) {
+  if (model === 'Sign' && text) {
+    return <SignMesh footprint={footprint} style={style} text={text} />;
+  }
   if (model?.startsWith('Seat')) {
     return <SeatMesh footprint={footprint} style={style} model={model} />;
   }
@@ -160,15 +203,17 @@ function Box({
   style,
   modelUrl,
   propModel,
+  text,
 }: {
   placement: PlacementWire;
   footprint: FootprintWire;
   style: BoxStyle;
   modelUrl?: string;
   propModel?: PropModel;
+  text?: string;
 }) {
   const { height } = style;
-  const fallback = propFallback(footprint, style, propModel);
+  const fallback = propFallback(footprint, style, propModel, text);
 
   return (
     <group
@@ -195,13 +240,14 @@ export function Boxes({
 }) {
   return (
     <>
-      {props.map(({ id, model, placement, footprint }) => (
+      {props.map(({ id, model, placement, footprint, description }) => (
         <Box
           key={id}
           placement={placement}
           footprint={footprint}
           style={PROP_STYLES[model]}
           propModel={model}
+          text={description}
           modelUrl={PROP_MODEL_URLS[model]}
         />
       ))}
@@ -256,7 +302,15 @@ export function Creatures({
   );
 }
 
-export function Connectors({ connectors }: { connectors: NearbyExitSnapshot[] }) {
+export function Connectors({
+  connectors,
+  boundary,
+  size,
+}: {
+  connectors: NearbyExitSnapshot[];
+  boundary?: LocationBoundarySnapshot;
+  size: FootprintWire;
+}) {
   return (
     <>
       {connectors.map((connector) => (
@@ -265,7 +319,32 @@ export function Connectors({ connectors }: { connectors: NearbyExitSnapshot[] })
           position={toScenePosition(connector.placement.x, connector.placement.y)}
           rotation={[0, connectorYaw(connector), 0]}
         >
-          {connector.stairs ? <StairConnector direction={connector.stairs} /> : <DoorConnector />}
+          {connector.stairs ? (
+            <StairConnector direction={connector.stairs} />
+          ) : (
+            hasDoor(connector, boundary, size) && <DoorConnector />
+          )}
+        </group>
+      ))}
+    </>
+  );
+}
+
+const NAME_BOARD_HEIGHT = 0.3;
+const NAME_BOARD_CENTER = DOOR_HEIGHT + 0.03 + NAME_BOARD_HEIGHT / 2;
+
+export function BuildingNameBoards({ connectors }: { connectors: NearbyExitSnapshot[] }) {
+  const boards = useMemo(() => buildingNameBoards(connectors), [connectors]);
+
+  return (
+    <>
+      {boards.map(({ exit, text, width }) => (
+        <group
+          key={exit.connectorId}
+          position={toScenePosition(exit.placement.x, exit.placement.y, NAME_BOARD_CENTER)}
+          rotation={[0, connectorYaw(exit), 0]}
+        >
+          <NameBoard text={text} width={width} height={NAME_BOARD_HEIGHT} />
         </group>
       ))}
     </>
