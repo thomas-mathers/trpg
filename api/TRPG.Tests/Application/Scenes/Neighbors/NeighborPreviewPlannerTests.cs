@@ -348,6 +348,7 @@ public class NeighborPreviewPlannerTests
             ],
             [building ?? Building(new Placement(3, 4, 0))],
             [],
+            [],
             []
         );
 }

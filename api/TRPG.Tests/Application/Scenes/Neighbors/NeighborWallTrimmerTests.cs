@@ -142,7 +142,7 @@ public class NeighborWallTrimmerTests
         Placement origin,
         Footprint size,
         BoundarySegment segment
-    ) => new(Guid.NewGuid(), origin, size, [], [], [segment], []);
+    ) => new(Guid.NewGuid(), origin, size, [], [], [], [segment], []);
 
     private static BoundarySegment Wall(Placement placement, double width, double depth) =>
         new(BoundarySegmentKind.Wall, placement, new Footprint(width, depth));
