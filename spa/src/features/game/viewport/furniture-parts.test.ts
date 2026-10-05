@@ -50,10 +50,15 @@ const FOOTPRINTS: Record<FurnitureModel, [number, number]> = {
 
 const TOLERANCE = 1e-6;
 
-function extent({ shape, size }: FurniturePart): [number, number, number] {
+function extent({ shape, size, rotation }: FurniturePart): [number, number, number] {
   const [first, second, third] = size;
   if (shape === 'box') return [first / 2, second / 2, third / 2];
-  if (shape === 'cylinder') return [Math.max(first, second), third / 2, Math.max(first, second)];
+  if (shape === 'cylinder') {
+    const radius = Math.max(first, second);
+    return rotation?.[0] === Math.PI / 2
+      ? [radius, radius, third / 2]
+      : [radius, third / 2, radius];
+  }
   return [first, first, first];
 }
 

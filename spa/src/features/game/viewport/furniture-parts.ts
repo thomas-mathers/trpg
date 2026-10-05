@@ -395,7 +395,7 @@ function cart({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
     box([0, bedHeight + height * 0.2, -depth * 0.34], [width * 0.82, railHeight, 0.1], color),
     box([0, bedHeight + height * 0.2, depth * 0.34], [width * 0.82, railHeight, 0.1], color),
     ...[-1, 1].map((z) =>
-      cylinder([0, 0.24, z * depth * 0.42], [0.3, 0.3, 0.12], DARK_WOOD, undefined, [
+      cylinder([0, 0.3, z * depth * 0.42], [0.3, 0.3, 0.12], DARK_WOOD, undefined, [
         Math.PI / 2,
         0,
         0,

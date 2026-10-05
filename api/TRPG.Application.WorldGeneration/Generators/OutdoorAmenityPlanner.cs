@@ -410,11 +410,7 @@ internal static class OutdoorAmenityPlanner
             return true;
         }
 
-        private bool TryPlace(
-            PropModel model,
-            Placement requested,
-            PlanRect zone
-        )
+        private bool TryPlace(PropModel model, Placement requested, PlanRect zone)
         {
             var footprint = PropFootprintCatalog.Get(model).Footprint;
             var placement = CityGrid.SnapCentre(requested, footprint);
