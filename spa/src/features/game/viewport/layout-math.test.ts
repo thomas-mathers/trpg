@@ -216,6 +216,20 @@ describe('buildObstacles', () => {
     expect(obstacles).toEqual([props[0], buildings[0]]);
   });
 
+  it('lets the player walk under a chandelier and past a wall sconce', () => {
+    // Arrange
+    const props = [
+      { id: 'chandelier', model: 'FurnitureChandelier', placement, footprint },
+      { id: 'sconce', model: 'FurnitureWallSconce', placement, footprint },
+    ] as NearbyPropSnapshot[];
+
+    // Act
+    const obstacles = buildObstacles(props, [], []);
+
+    // Assert
+    expect(obstacles).toEqual([]);
+  });
+
   it('adds the stair footprint ahead of a flight of stairs but not a door', () => {
     // Arrange
     const stairs = {

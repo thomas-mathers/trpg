@@ -26,7 +26,6 @@ public static class SceneSemanticComparer
         || !SetEquals(previous.Exits, current.Exits)
         || !SetEquals(previous.NearbyProps, current.NearbyProps)
         || !SetEquals(previous.NearbyBuildings, current.NearbyBuildings)
-        || !SetEquals(previous.GreenSpaces ?? [], current.GreenSpaces ?? [])
         || previous.Size != current.Size;
 
     internal static bool PlayerStatusEquivalent(
@@ -34,6 +33,7 @@ public static class SceneSemanticComparer
         SceneCreatureInfo current
     ) =>
         Normalize(previous) == Normalize(current)
+        && SetEquals(previous.Equipment, current.Equipment)
         && previous.FactionNames.Order().SequenceEqual(current.FactionNames.Order())
         && SetEquals(previous.QuestMarkers, current.QuestMarkers)
         && EffectsAreEquivalent(previous.Effects, current.Effects);
@@ -88,6 +88,7 @@ public static class SceneSemanticComparer
             CurrentAp = 0,
             CurrentMp = 0,
             FactionNames = Array.Empty<string>(),
+            Equipment = Array.Empty<SceneEquipmentVisual>(),
             QuestMarkers = Array.Empty<QuestMarkerEntry>(),
             Effects = CreatureEffects.None,
             Placement = new(0, 0, 0),

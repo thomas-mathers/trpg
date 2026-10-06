@@ -60,6 +60,8 @@ export const PROP_STYLES: Record<PropModel, BoxStyle> = {
   FurnitureCart: { color: WOOD, height: 1.6 },
   FurnitureTrough: { color: WOOD, height: 0.8 },
   FurnitureBanner: { color: '#995b4c', height: 2.7 },
+  FurnitureChandelier: { color: METAL, height: 3 },
+  FurnitureWallSconce: { color: METAL, height: 2 },
   SeatBasic: { color: WOOD, height: 0.5 },
   SeatChair: { color: WOOD, height: 0.9 },
   SeatPew: { color: '#74502f', height: 0.9 },

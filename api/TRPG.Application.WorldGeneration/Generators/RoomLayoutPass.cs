@@ -49,7 +49,10 @@ internal static class RoomLayoutPass
             var scattered = PlaceScattered(context, room, building, inputs, requests);
             ApplyProps(props, scattered.Props);
 
-            return new RoomLayout(scattered, []);
+            return new RoomLayout(
+                scattered,
+                UnfurnishedLighting(location, building, scattered.Room)
+            );
         }
 
         var size = TemplateSize(context, room, building);
@@ -67,6 +70,26 @@ internal static class RoomLayoutPass
             furnished.Decor.Select(item => CreateFurniture(location, item)).ToArray()
         );
     }
+
+    private static IReadOnlyList<Prop> UnfurnishedLighting(
+        Location location,
+        Building building,
+        Footprint room
+    ) =>
+        BuildingTypes.Dungeon.Contains(building.BuildingType)
+            ? []
+            :
+            [
+                CreateDecor(
+                    location,
+                    RecipeGeometry.Around(
+                        PropModel.FurnitureChandelier,
+                        room.Width / 2,
+                        room.Depth / 2,
+                        RecipeWall.North
+                    )
+                ),
+            ];
 
     private static RoomPlacementResult PlaceScattered(
         LocationLayoutContext context,

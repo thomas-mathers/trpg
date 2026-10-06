@@ -72,7 +72,6 @@ public class DistrictCornerPlannerTests
             new Footprint(30, 50),
             [],
             [],
-            [],
             [Wall(new Placement(0, -5.1, 0), new Footprint(0.4, 10.2))],
             []
         );
@@ -80,7 +79,6 @@ public class DistrictCornerPlannerTests
             Guid.NewGuid(),
             new Placement(6, -20, 0),
             new Footprint(28, 20),
-            [],
             [],
             [],
             [],
@@ -122,7 +120,6 @@ public class DistrictCornerPlannerTests
             new Footprint(60, 20),
             [],
             [],
-            [],
             [
                 Wall(new Placement(-10, -10, 0), new Footprint(0.4, 20.4)),
                 Wall(new Placement(-5.1, 0, 0), new Footprint(10.2, 0.4)),
@@ -135,7 +132,6 @@ public class DistrictCornerPlannerTests
             Guid.NewGuid(),
             new Placement(-30, top, 0),
             new Footprint(30, 30 - top),
-            [],
             [],
             [],
             [],

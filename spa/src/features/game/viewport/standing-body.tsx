@@ -1,4 +1,6 @@
+import type { CreatureAppearance } from './creature-appearance';
 import { CreatureBody, type BodyPose } from './creature-body';
+import type { Gear } from './creature-gear';
 
 const pose: BodyPose = {
   torso: { from: [0, 0.99, 0], to: [0, 1.23, 0], radius: 0.21 },
@@ -14,6 +16,6 @@ const pose: BodyPose = {
   foot: [0.15, 0.075, -0.08],
 };
 
-export function StandingBody({ color }: { color: string }) {
-  return <CreatureBody pose={pose} color={color} />;
+export function StandingBody({ appearance, gear }: { appearance: CreatureAppearance; gear: Gear }) {
+  return <CreatureBody pose={pose} appearance={appearance} gear={gear} />;
 }

@@ -29,13 +29,15 @@ internal static class RoomFurnisher
     {
         var items = recipe.Expand(room).Where(item => item.Bounds.IsInside(room)).ToArray();
         var decor = items
-            .Where(item => item.Model == PropModel.FurnitureRug && IsFree(item.Bounds, blocked))
+            .Where(item =>
+                item.IsOverlay && (item.IsCeilingMounted || IsFree(item.Bounds, blocked))
+            )
             .ToList();
         var unplaced = props.ToList();
         var bound = new List<PlacedProp>();
         var obstacles = blocked.ToList();
 
-        foreach (var item in items.Where(item => item.Model != PropModel.FurnitureRug))
+        foreach (var item in items.Where(item => !item.IsOverlay && !item.IsWallMounted))
         {
             var prop = unplaced.Find(candidate => candidate.Model == item.Model);
 
@@ -57,6 +59,8 @@ internal static class RoomFurnisher
             unplaced.Remove(prop);
             bound.Add(new PlacedProp(prop.Id, prop.Model, item.Placement, item.Footprint));
         }
+
+        decor.AddRange(items.Where(item => item.IsWallMounted && IsFree(item.Bounds, obstacles)));
 
         return unplaced.Count == 0
             ? new FurnishedRoom(bound, decor)

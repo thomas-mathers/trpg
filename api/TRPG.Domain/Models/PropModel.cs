@@ -52,6 +52,8 @@ public enum PropModel
     FurnitureCart,
     FurnitureTrough,
     FurnitureBanner,
+    FurnitureChandelier,
+    FurnitureWallSconce,
     SeatBasic,
     SeatChair,
     SeatPew,

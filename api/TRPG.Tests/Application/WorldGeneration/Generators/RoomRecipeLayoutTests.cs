@@ -311,6 +311,44 @@ public class RoomRecipeLayoutTests
         Assert.NotEmpty(RecipeRooms(world, type));
     }
 
+    private static readonly PropModel[] LightModels =
+    [
+        PropModel.FurnitureFireplace,
+        PropModel.FurnitureFirePit,
+        PropModel.FurnitureChandelier,
+        PropModel.FurnitureWallSconce,
+    ];
+
+    [Theory]
+    [MemberData(nameof(RecipeBuildingTypes))]
+    public void Generate_LightsEveryRoom_ForNonDungeonBuildings(BuildingType type)
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
+        var building = world.Input.Buildings.Single(candidate => candidate.BuildingType == type);
+        var rooms = world.Input.Rooms.Where(room => room.BuildingId == building.Id).ToArray();
+
+        // Act
+        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
+
+        // Assert
+        Assert.NotEmpty(rooms);
+        Assert.All(
+            rooms,
+            room =>
+                Assert.True(
+                    world
+                        .Input.Props.Concat(furniture)
+                        .Any(prop =>
+                            prop.LocationId == room.LocationId
+                            && prop is Furniture furnishing
+                            && LightModels.Contains(furnishing.Model)
+                        ),
+                    room.Name
+                )
+        );
+    }
+
     private static Room[] RecipeRooms(
         MiniLayoutWorldBuilder.MiniLayoutWorld world,
         BuildingType type
@@ -332,7 +370,13 @@ public class RoomRecipeLayoutTests
         world
             .Input.Props.Concat(furniture)
             .Where(prop => prop.LocationId == room.LocationId)
-            .Where(prop => prop is not Furniture { Model: PropModel.FurnitureRug })
+            .Where(prop =>
+                prop
+                    is not Furniture
+                    {
+                        Model: PropModel.FurnitureRug or PropModel.FurnitureChandelier
+                    }
+            )
             .ToArray();
 
     private static double[] Poses(IReadOnlyList<Prop> furniture) =>

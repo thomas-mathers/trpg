@@ -228,7 +228,6 @@ public record SceneSnapshot(
     long GameTimeMilliseconds,
     long AnchoredAtUnixMilliseconds,
     double TimeScale,
-    IReadOnlyCollection<GreenSpaceSnapshot>? GreenSpaces = null,
     LocationBoundarySnapshot? Boundary = null,
     IReadOnlyCollection<RoadSnapshot>? Roads = null,
     IReadOnlyCollection<NeighborSnapshot>? Neighbors = null
@@ -254,13 +253,9 @@ public record NeighborSnapshot(
     Guid LocationId,
     IReadOnlyCollection<NearbyBuildingSnapshot> Buildings,
     IReadOnlyCollection<NearbyPropSnapshot> Props,
-    IReadOnlyCollection<GreenSpaceSnapshot> GreenSpaces,
     IReadOnlyCollection<BoundarySegmentSnapshot> Segments,
     IReadOnlyCollection<RoadSnapshot> Roads
 );
-
-[TranspilationSource]
-public record GreenSpaceSnapshot(Guid Id, PlacementWire Placement, FootprintWire Footprint);
 
 [TranspilationSource]
 public enum BoundarySegmentKind
@@ -335,7 +330,13 @@ public record CreatureStatusSnapshot(
     IReadOnlyCollection<ActiveHot> ActiveHots,
     IReadOnlyCollection<ActiveBuff> ActiveBuffs,
     PlacementWire Placement
-);
+)
+{
+    public IReadOnlyCollection<EquippedGearSnapshot> Equipment { get; init; } = [];
+}
+
+[TranspilationSource]
+public record EquippedGearSnapshot(Guid ItemId, string Slot, string ModelClass);
 
 [TranspilationSource]
 public record QuestMarkerEntry(Guid QuestId, string Name, QuestMarker Marker);

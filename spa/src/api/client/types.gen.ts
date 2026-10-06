@@ -264,6 +264,7 @@ export type CreatureStatusSnapshot = {
     activeHots: Array<ActiveHot>;
     activeBuffs: Array<ActiveBuff>;
     placement: PlacementWire;
+    equipment?: Array<EquippedGearSnapshot>;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
@@ -315,6 +316,12 @@ export type EquipItemRequest = {
 };
 
 export type EquipmentSlot = 'Helm' | 'Chest' | 'LeftHand' | 'RightHand' | 'Boots' | 'Necklace' | 'Gloves' | 'LeftRing' | 'RightRing' | 'Belt';
+
+export type EquippedGearSnapshot = {
+    itemId: string;
+    slot: string;
+    modelClass: string;
+};
 
 export type FootprintWire = {
     width: number;
@@ -813,7 +820,7 @@ export type ProcTrigger = 'OnStriking' | 'WhenStruck' | 'OnKill';
 
 export type Profession = 'Knight' | 'Rogue' | 'Ranger' | 'Mage' | 'Cleric' | 'Mercenary' | 'Alchemist' | 'Blacksmith' | 'Scholar' | 'Merchant' | 'Politician' | 'StableMaster' | 'Bartender' | 'Guard' | 'Baker' | 'Innkeeper' | 'Tailor' | 'Carpenter' | 'Jeweler' | 'Homemaker' | 'Unemployed';
 
-export type PropModel = 'Bed' | 'Cell' | 'Sign' | 'ContainerBasic' | 'ContainerBarrel' | 'ContainerChest' | 'ContainerCrate' | 'ContainerFootlocker' | 'ContainerStrongbox' | 'ContainerWeaponRack' | 'FurnitureTable' | 'FurnitureWorkTable' | 'FurnitureFireplace' | 'FurnitureStall' | 'FurnitureNoticeBoard' | 'FurnitureDisplayShelf' | 'FurnitureTrainingDummy' | 'FurnitureRug' | 'FurnitureCauldron' | 'FurnitureHerbRack' | 'FurnitureLectern' | 'FurnitureStaffRack' | 'FurnitureMannequin' | 'FurnitureClothShelf' | 'FurnitureDisplayCase' | 'FurnitureFlourSacks' | 'FurnitureBreadRack' | 'FurnitureLumberStack' | 'FurnitureTimberRack' | 'FurnitureBookcase' | 'FurnitureChair' | 'FurnitureBench' | 'FurniturePew' | 'FurnitureFountain' | 'FurnitureWell' | 'FurnitureFirePit' | 'FurnitureStatue' | 'FurnitureMonument' | 'FurnitureShrine' | 'FurnitureWaystone' | 'SeatBasic' | 'SeatChair' | 'SeatPew' | 'SeatThrone' | 'SeatBench' | 'SeatStoneBench' | 'SeatLowWall' | 'TrapMechanical' | 'TrapCollapse' | 'TrapSlope' | 'TrapWater' | 'TriggerBasic' | 'TriggerLever' | 'WorkstationAlchemy' | 'WorkstationArmorsmithing' | 'WorkstationCarpentry' | 'WorkstationCooking' | 'WorkstationEnchanting' | 'WorkstationJewelcrafting' | 'WorkstationPrayer' | 'WorkstationReading' | 'WorkstationTailoring' | 'WorkstationTrade' | 'WorkstationWeaponsmithing';
+export type PropModel = 'Bed' | 'Cell' | 'Sign' | 'ContainerBasic' | 'ContainerBarrel' | 'ContainerChest' | 'ContainerCrate' | 'ContainerFootlocker' | 'ContainerStrongbox' | 'ContainerWeaponRack' | 'FurnitureTable' | 'FurnitureWorkTable' | 'FurnitureFireplace' | 'FurnitureStall' | 'FurnitureNoticeBoard' | 'FurnitureDisplayShelf' | 'FurnitureTrainingDummy' | 'FurnitureRug' | 'FurnitureCauldron' | 'FurnitureHerbRack' | 'FurnitureLectern' | 'FurnitureStaffRack' | 'FurnitureMannequin' | 'FurnitureClothShelf' | 'FurnitureDisplayCase' | 'FurnitureFlourSacks' | 'FurnitureBreadRack' | 'FurnitureLumberStack' | 'FurnitureTimberRack' | 'FurnitureBookcase' | 'FurnitureChair' | 'FurnitureBench' | 'FurniturePew' | 'FurnitureFountain' | 'FurnitureWell' | 'FurnitureFirePit' | 'FurnitureStatue' | 'FurnitureMonument' | 'FurnitureShrine' | 'FurnitureWaystone' | 'FurnitureTree' | 'FurnitureShrub' | 'FurnitureFlowerBed' | 'FurnitureHerbTub' | 'FurnitureStreetLantern' | 'FurnitureWallLantern' | 'FurnitureHitchingRail' | 'FurnitureCart' | 'FurnitureTrough' | 'FurnitureBanner' | 'FurnitureChandelier' | 'FurnitureWallSconce' | 'SeatBasic' | 'SeatChair' | 'SeatPew' | 'SeatThrone' | 'SeatBench' | 'SeatStoneBench' | 'SeatLowWall' | 'TrapMechanical' | 'TrapCollapse' | 'TrapSlope' | 'TrapWater' | 'TriggerBasic' | 'TriggerLever' | 'WorkstationAlchemy' | 'WorkstationArmorsmithing' | 'WorkstationCarpentry' | 'WorkstationCooking' | 'WorkstationEnchanting' | 'WorkstationJewelcrafting' | 'WorkstationPrayer' | 'WorkstationReading' | 'WorkstationTailoring' | 'WorkstationTrade' | 'WorkstationWeaponsmithing';
 
 export type QuestDialogMode = 'Offer' | 'TurnIn';
 

@@ -58,6 +58,8 @@ internal static class PropModelMapper
             DataPropModel.FurnitureCart => ContractPropModel.FurnitureCart,
             DataPropModel.FurnitureTrough => ContractPropModel.FurnitureTrough,
             DataPropModel.FurnitureBanner => ContractPropModel.FurnitureBanner,
+            DataPropModel.FurnitureChandelier => ContractPropModel.FurnitureChandelier,
+            DataPropModel.FurnitureWallSconce => ContractPropModel.FurnitureWallSconce,
             DataPropModel.SeatBasic => ContractPropModel.SeatBasic,
             DataPropModel.SeatChair => ContractPropModel.SeatChair,
             DataPropModel.SeatPew => ContractPropModel.SeatPew,

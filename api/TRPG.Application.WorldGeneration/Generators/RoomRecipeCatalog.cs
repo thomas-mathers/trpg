@@ -10,6 +10,7 @@ internal static class RoomRecipeCatalog
         new RugBeside(RecipeWall.East, 1.6, 2.4),
         new WallRun(PropModel.SeatBench, RecipeWall.West, From: 0.15, To: 0.8),
         new TableGrid(Top: 4, Bottom: 5),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
     ]);
 
     private static readonly RoomRecipe CommonRoom = new([
@@ -18,6 +19,8 @@ internal static class RoomRecipeCatalog
         new CounterAt(0.3, RecipeWall.East),
         new TableGrid(Top: 3.5, Bottom: 4.5),
         new WallRun(PropModel.ContainerBarrel, RecipeWall.South, From: 0.65, To: 0.95),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.North, From: 0.2, To: 0.8, Count: 2),
     ]);
 
     private static readonly RoomRecipe LivingRoom = new([
@@ -26,6 +29,7 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.FurnitureBookcase, 0, 0.1, RecipeWall.West),
         new Anchored(PropModel.SeatBench, 1, 0.55, RecipeWall.East),
         new TableSetAt(0.5, 0.42),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.North, From: 0.3, To: 0.7, Count: 1),
     ]);
 
     private static readonly RoomRecipe GuildHall = new([
@@ -33,6 +37,8 @@ internal static class RoomRecipeCatalog
         new WallRun(PropModel.FurnitureNoticeBoard, RecipeWall.West, From: 0.2, To: 0.8, Count: 3),
         new WallRun(PropModel.SeatBench, RecipeWall.East, From: 0.2, To: 0.8, Count: 3),
         new TableGrid(Top: 4, Bottom: 5),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.North, From: 0.4, To: 0.9, Count: 2),
     ]);
 
     private static readonly RoomRecipe GreatHall = new([
@@ -42,12 +48,15 @@ internal static class RoomRecipeCatalog
         new WallRun(PropModel.FurnitureFireplace, RecipeWall.West, From: 0.25, To: 0.75, Count: 2),
         new WallRun(PropModel.FurnitureFireplace, RecipeWall.East, From: 0.25, To: 0.75, Count: 2),
         new TableGrid(Top: 5, Bottom: 8),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.3),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.55),
     ]);
 
     private static readonly RoomRecipe GuardStation = new([
         new WallRun(PropModel.ContainerWeaponRack, RecipeWall.West, From: 0.2, To: 0.7, Count: 3),
         new WallRun(PropModel.SeatBench, RecipeWall.East, From: 0.3, To: 0.7, Count: 2),
         new TableSetAt(0.5, 0.45),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.North, From: 0.2, To: 0.8, Count: 2),
     ]);
 
     private static readonly RoomRecipe JailCells = new([
@@ -56,6 +65,7 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.Cell, 1, 0),
         new Anchored(PropModel.Cell, 1, 0.35),
         new Anchored(PropModel.Cell, 1, 0.7),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.4, 0.5),
     ]);
 
     private static readonly RoomRecipe DrillHall = new([
@@ -65,6 +75,7 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.FurnitureTrainingDummy, 0.3, 0.45),
         new Anchored(PropModel.FurnitureTrainingDummy, 0.5, 0.45),
         new Anchored(PropModel.FurnitureTrainingDummy, 0.7, 0.45),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.South, From: 0.2, To: 0.8, Count: 2),
     ]);
 
     private static readonly RoomRecipe Dormitory = new([
@@ -78,6 +89,7 @@ internal static class RoomRecipeCatalog
             }
         ),
         new Anchored(PropModel.Bed, 0.5, 0, RecipeWall.East),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
     ]);
 
     private static readonly RoomRecipe Stable = new([
@@ -86,6 +98,7 @@ internal static class RoomRecipeCatalog
         new WallRun(PropModel.FurnitureStall, RecipeWall.East, From: 0.1, To: 0.95),
         new WallRun(PropModel.ContainerBarrel, RecipeWall.South, From: 0.1, To: 0.3),
         new WallRun(PropModel.ContainerCrate, RecipeWall.South, From: 0.7, To: 0.9),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.North, From: 0.1, To: 0.5, Count: 1),
     ]);
 
     private static readonly RoomRecipe Sanctuary = new([
@@ -94,6 +107,7 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.WorkstationPrayer, 0.5, 0),
         new Anchored(PropModel.WorkstationPrayer, 0.15, 0),
         new PewRows(),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
     ]);
 
     private static readonly RoomRecipe LibraryRoom = new([
@@ -103,6 +117,7 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.WorkstationTrade, 0.5, 0.12),
         .. LibraryShelving(),
         new ReadingTables([0.15, 0.5, 0.85]),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
     ]);
 
     private static readonly RoomRecipe LibraryStudy = new([
@@ -112,6 +127,7 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.ContainerChest, 1, 0.82, RecipeWall.East),
         .. LibraryShelving(),
         new ReadingTables([0.15, 0.5, 0.85]),
+        new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
     ]);
 
     private static readonly RoomRecipe WestBedroom = Bedroom(bedFraction: 0);
@@ -125,6 +141,7 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.WorkstationArmorsmithing, 0.25, 0.75),
         new WallRun(PropModel.FurnitureDisplayShelf, RecipeWall.West, From: 0.05, To: 0.8),
         new WallRun(PropModel.FurnitureDisplayShelf, RecipeWall.East, From: 0.35, To: 0.95),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.North, From: 0.25, To: 0.6, Count: 2),
     ]);
 
     private static readonly RoomRecipe HouseBedroom = new([
@@ -139,6 +156,8 @@ internal static class RoomRecipeCatalog
         new Anchored(PropModel.ContainerChest, 0, 1, RecipeWall.West),
         new Anchored(PropModel.ContainerChest, 1, 0.5),
         new Anchored(PropModel.ContainerChest, 0, 0.5),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.North, From: 0.5, To: 0.5, Count: 1),
+        new WallRun(PropModel.FurnitureWallSconce, RecipeWall.South, From: 0.5, To: 0.5, Count: 1),
     ]);
 
     private static readonly IReadOnlyDictionary<BuildingType, RoomRecipe> TradeRooms =
@@ -225,6 +244,15 @@ internal static class RoomRecipeCatalog
         steps.Add(
             new WallRun(PropModel.FurnitureDisplayShelf, RecipeWall.East, From: 0.35, To: 0.95)
         );
+        steps.Add(
+            new WallRun(
+                PropModel.FurnitureWallSconce,
+                RecipeWall.North,
+                From: 0.3,
+                To: 0.7,
+                Count: 2
+            )
+        );
 
         return new RoomRecipe(steps);
     }
@@ -244,12 +272,20 @@ internal static class RoomRecipeCatalog
 
         return new([
             new RugAt(0.5, 0.38, 1.5, 1.5),
+            new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
             new Anchored(PropModel.Bed, bedFraction, 0),
             new Anchored(PropModel.Bed, bedFraction, 1),
             new Anchored(PropModel.ContainerChest, bedFraction, 1),
             new Anchored(PropModel.ContainerChest, 1 - bedFraction, 1),
             new Anchored(PropModel.SeatChair, 1 - bedFraction, 0.3, chairWall),
             new Anchored(PropModel.SeatChair, 1 - bedFraction, 0.7, chairWall),
+            new WallRun(
+                PropModel.FurnitureWallSconce,
+                RecipeWall.North,
+                From: 0.5,
+                To: 0.5,
+                Count: 1
+            ),
         ]);
     }
 }

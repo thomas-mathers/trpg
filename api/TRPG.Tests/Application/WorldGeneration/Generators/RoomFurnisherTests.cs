@@ -156,6 +156,54 @@ public class RoomFurnisherTests
     }
 
     [Fact]
+    public void Furnish_HangsAChandelierOverFurniture_WithoutClaimingTheFloor()
+    {
+        // Arrange
+        RoomRecipe recipe = new([
+            new Anchored(PropModel.Bed, 0.5, 0.5),
+            new CenteredAt(PropModel.FurnitureChandelier, 0.5, 0.5),
+        ]);
+        var bed = new RoomPropInput(Guid.NewGuid(), PropModel.Bed);
+
+        // Act
+        var result = RoomFurnisher.Furnish(Room, recipe, [bed], []);
+
+        // Assert
+        Assert.Contains(result.Decor, item => item.Model == PropModel.FurnitureChandelier);
+        Assert.Single(result.Bound);
+    }
+
+    [Fact]
+    public void Furnish_DropsAWallSconce_WhenFurnitureAlreadyOccupiesTheSpot()
+    {
+        // Arrange
+        RoomRecipe recipe = new([
+            new Anchored(PropModel.Bed, 0.5, 0),
+            new Anchored(PropModel.FurnitureWallSconce, 0.5, 0),
+        ]);
+        var bed = new RoomPropInput(Guid.NewGuid(), PropModel.Bed);
+
+        // Act
+        var result = RoomFurnisher.Furnish(Room, recipe, [bed], []);
+
+        // Assert
+        Assert.DoesNotContain(result.Decor, item => item.Model == PropModel.FurnitureWallSconce);
+    }
+
+    [Fact]
+    public void Furnish_KeepsAWallSconce_WhenTheWallSpotIsFree()
+    {
+        // Arrange
+        RoomRecipe recipe = new([new Anchored(PropModel.FurnitureWallSconce, 0.5, 0)]);
+
+        // Act
+        var result = RoomFurnisher.Furnish(Room, recipe, [], []);
+
+        // Assert
+        Assert.Contains(result.Decor, item => item.Model == PropModel.FurnitureWallSconce);
+    }
+
+    [Fact]
     public void Furnish_DropsFurnitureThatFallsOutsideTheRoom()
     {
         // Arrange

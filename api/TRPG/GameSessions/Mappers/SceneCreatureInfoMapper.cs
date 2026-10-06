@@ -55,5 +55,14 @@ internal static class SceneCreatureInfoMapper
             creature.Effects.Hots.Select(hot => hot.ToContract()).ToArray(),
             creature.Effects.Buffs.Select(buff => buff.ToContract()).ToArray(),
             creature.Placement.ToWire()
-        );
+        )
+        {
+            Equipment = creature
+                .Equipment.Select(item => new EquippedGearSnapshot(
+                    item.ItemId,
+                    item.Slot.ToString(),
+                    item.ModelClass
+                ))
+                .ToArray(),
+        };
 }

@@ -4,13 +4,13 @@ using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Factions.Queries;
+using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
 using TRPG.Application.Scenes.Boundaries;
-using TRPG.Application.Scenes.GreenSpaces;
 using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Scenes.Roads;
@@ -113,7 +113,11 @@ internal class GetSceneQueryHandler(
         IReadOnlyDictionary<Guid, RouteTravelerJourney>
     > getRouteTravelerJourneysByCreatureIds,
     IQueryHandler<GetSceneNeighborsQuery, IReadOnlyCollection<NeighborDistrict>> getSceneNeighbors,
-    IQueryHandler<GetRoadNetworkByLocationIdQuery, LocationRoadNetwork> getRoadNetwork
+    IQueryHandler<GetRoadNetworkByLocationIdQuery, LocationRoadNetwork> getRoadNetwork,
+    IQueryHandler<
+        GetEquippedItemsByOwnersQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Item>>
+    > getEquippedItemsByOwners
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -127,6 +131,13 @@ internal class GetSceneQueryHandler(
         );
         var player = creaturesHere.Single(c => c.Id == query.PlayerId);
         var nearby = creaturesHere.Where(c => c.Id != query.PlayerId).ToArray();
+        var equippedItemsByCreature = await getEquippedItemsByOwners.Handle(
+            new GetEquippedItemsByOwnersQuery
+            {
+                CreatureIds = creaturesHere.Select(creature => creature.Id).ToArray(),
+            },
+            cancellationToken
+        );
 
         var state = await getStateById.Handle(
             new GetStateByIdQuery { Id = player.StateId },
@@ -145,13 +156,23 @@ internal class GetSceneQueryHandler(
             player,
             cancellationToken
         );
-        var nearbyPeople = await BuildNearbyPeopleInfos(query, nearby, cancellationToken);
+        var nearbyPeople = await BuildNearbyPeopleInfos(
+            query,
+            nearby,
+            equippedItemsByCreature,
+            cancellationToken
+        );
 
         var details =
             player.RoomId != null
                 ? await BuildIndoorScene(query.WorldId, player, cancellationToken)
                 : await BuildOutdoorScene(query.WorldId, player, state, cancellationToken);
-        var playerCreatureInfo = await BuildPlayerCreatureInfo(query, player, cancellationToken);
+        var playerCreatureInfo = await BuildPlayerCreatureInfo(
+            query,
+            player,
+            equippedItemsByCreature.GetValueOrDefault(player.Id, []).ToVisualEquipment(),
+            cancellationToken
+        );
         var weather =
             player.RoomId == null
                 ? await getWeatherByStateId.Handle(
@@ -205,7 +226,6 @@ internal class GetSceneQueryHandler(
             weather,
             nearbyCaravans,
             size,
-            isDistrictOutdoors ? GreenSpacePlanner.Plan(details.NearbyProps) : null,
             isDistrictOutdoors
                 ? SceneBoundaryResolver.Resolve(size, exitInfos, neighbors ?? [])
                 : null,
@@ -469,6 +489,7 @@ internal class GetSceneQueryHandler(
     private async Task<SceneCreatureInfo> BuildPlayerCreatureInfo(
         GetSceneQuery query,
         CreatureResult player,
+        IReadOnlyCollection<SceneEquipmentVisual> equipment,
         CancellationToken cancellationToken
     )
     {
@@ -487,7 +508,8 @@ internal class GetSceneQueryHandler(
             player.Posture,
             player.Movement,
             reputation: null,
-            totalCharacterXp
+            totalCharacterXp,
+            equipment: equipment
         );
     }
 
@@ -501,6 +523,7 @@ internal class GetSceneQueryHandler(
         CreatureMovement movement,
         int? reputation,
         int totalCharacterXp,
+        IReadOnlyCollection<SceneEquipmentVisual>? equipment = null,
         Guid? tradeWorkstationId = null,
         IReadOnlyCollection<QuestMarkerEntry>? questMarkers = null,
         bool readyToDeliver = false,
@@ -558,7 +581,10 @@ internal class GetSceneQueryHandler(
             creature.Effects,
             journey,
             new Placement(creature.X, creature.Y, creature.Angle)
-        );
+        )
+        {
+            Equipment = equipment ?? [],
+        };
     }
 
     private async Task<SceneCityInfo?> BuildCityInfo(
@@ -760,6 +786,7 @@ internal class GetSceneQueryHandler(
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
         GetSceneQuery query,
         IReadOnlyCollection<CreatureResult> nearby,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Item>> equippedItemsByCreature,
         CancellationToken cancellationToken
     )
     {
@@ -839,6 +866,9 @@ internal class GetSceneQueryHandler(
                     movement: x.Movement,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
+                    equipment: equippedItemsByCreature
+                        .GetValueOrDefault(x.Id, [])
+                        .ToVisualEquipment(),
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
                     questMarkers: questMarkers.EntriesByCreatureId.GetValueOrDefault(x.Id, []),
                     readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id),

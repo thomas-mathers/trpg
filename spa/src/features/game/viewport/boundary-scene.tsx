@@ -11,11 +11,11 @@ import type {
 import { apronQuads, roadRenderOrder, roadRibbon } from './boundary-geometry';
 import type { PlanarPoint } from './layout-math';
 
-export const OUTDOOR_FLOOR_COLOR = '#777c79';
+export const OUTDOOR_FLOOR_COLOR = '#6f7658';
 const ROAD_COLORS: Record<RoadClassSnapshot, string> = {
-  Avenue: '#a89a82',
-  Street: '#9a8b72',
-  Lane: '#8a7c64',
+  Avenue: '#b5a98f',
+  Street: '#9d8e74',
+  Lane: '#837358',
 };
 const APRON_COLOR = ROAD_COLORS.Avenue;
 const ROAD_OFFSET_FACTOR: Record<RoadClassSnapshot, number> = { Lane: -1, Street: -2, Avenue: -3 };

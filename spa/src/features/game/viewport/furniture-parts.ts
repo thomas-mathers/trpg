@@ -1,49 +1,52 @@
 import type { PropModel } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
+import { shadeColor, varyColor } from './color-variation';
+
 export type FurnitureModel =
   | Extract<PropModel, `Furniture${string}`>
   | Extract<PropModel, 'ContainerBarrel' | 'ContainerCrate'>;
 
 type Vector = [number, number, number];
 
-export type FurniturePart =
-  | {
-      shape: 'box';
-      position: Vector;
-      size: Vector;
-      color: string;
-      opacity?: number;
-      rotation?: Vector;
-    }
-  | {
-      shape: 'cylinder';
-      position: Vector;
-      size: Vector;
-      color: string;
-      opacity?: number;
-      rotation?: Vector;
-    }
-  | {
-      shape: 'sphere';
-      position: Vector;
-      size: Vector;
-      color: string;
-      opacity?: number;
-      rotation?: Vector;
-    };
+export type PartFinish = 'glow' | 'metal' | 'water';
+
+export interface FurniturePart {
+  shape: 'box' | 'cylinder' | 'sphere' | 'basin';
+  position: Vector;
+  size: Vector;
+  color: string;
+  opacity?: number;
+  rotation?: Vector;
+  finish?: PartFinish;
+}
 
 export interface FurnitureSize {
   width: number;
   depth: number;
   height: number;
   color: string;
+  id?: string;
 }
 
 const DARK_WOOD = '#5e4529';
 const DARK_STONE = '#6e6a63';
 const CLOTH = '#c9b99a';
-const WATER = '#4a8fb8';
+const WATER = '#3f86b5';
+const WATER_DEEP = '#2a5f86';
+const WATER_LIGHT = '#8cc6e4';
 const GLOW = '#e19c51';
+
+function glowing(part: FurniturePart): FurniturePart {
+  return { ...part, finish: 'glow' };
+}
+
+function watery(part: FurniturePart): FurniturePart {
+  return { ...part, finish: 'water' };
+}
+
+function metallic(part: FurniturePart): FurniturePart {
+  return { ...part, finish: 'metal' };
+}
 
 // A box whose underside rests at `bottom`, centered on the footprint.
 function box(
@@ -78,6 +81,22 @@ function cylinder(
     color,
     opacity,
     rotation,
+  };
+}
+
+export const BASIN_FLOOR_RATIO = 0.45;
+
+// A hollow cylinder: size is [outerRadius, innerRadius, height], with the floor at BASIN_FLOOR_RATIO of the height.
+function basin(
+  [x, bottom, z]: Vector,
+  [outerRadius, innerRadius, height]: Vector,
+  color: string,
+): FurniturePart {
+  return {
+    shape: 'basin',
+    position: [x, bottom + height / 2, z],
+    size: [outerRadius, innerRadius, height],
+    color,
   };
 }
 
@@ -151,19 +170,48 @@ function stackOf(
 
 function fountain({ width, height, color }: FurnitureSize): FurniturePart[] {
   const radius = width / 2;
+  const rimHeight = height * 0.45;
+  const poolRadius = radius * 0.88;
+  const floor = rimHeight * BASIN_FLOOR_RATIO;
+  const surface = rimHeight * 0.85;
+  const bowlRim = radius * 0.38;
+  const streams = Array.from({ length: 10 }, (_, index) => {
+    const angle = (index / 10) * Math.PI * 2;
+    return watery(
+      cylinder(
+        [Math.cos(angle) * bowlRim, surface, Math.sin(angle) * bowlRim],
+        [0.014, 0.022, height * 0.7 + 0.08 - surface],
+        WATER_LIGHT,
+        0.55,
+      ),
+    );
+  });
   return [
-    cylinder([0, 0, 0], [radius, radius, height * 0.45], color),
-    cylinder([0, height * 0.4, 0], [radius * 0.85, radius * 0.85, 0.06], WATER),
+    basin([0, 0, 0], [radius, poolRadius, rimHeight], color),
+    watery(cylinder([0, floor, 0], [poolRadius, poolRadius, surface - floor], WATER_DEEP, 0.55)),
+    watery(cylinder([0, surface, 0], [poolRadius, poolRadius, 0.004], WATER, 0.35)),
+    watery(
+      cylinder(
+        [0, surface + 0.004, 0],
+        [poolRadius * 0.5, poolRadius * 0.5, 0.004],
+        WATER_LIGHT,
+        0.25,
+      ),
+    ),
     cylinder([0, 0, 0], [0.12, 0.2, height], color),
     cylinder([0, height * 0.7, 0], [radius * 0.4, radius * 0.25, 0.1], color),
+    watery(cylinder([0, height * 0.7 + 0.1, 0], [radius * 0.36, radius * 0.36, 0.01], WATER, 0.7)),
+    ...streams,
   ];
 }
 
 function well({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
   const radius = Math.min(width, depth) / 2;
+  const rimHeight = height * 0.55;
+  const shaftRadius = radius * 0.75;
   return [
-    cylinder([0, 0, 0], [radius, radius, height * 0.55], color),
-    cylinder([0, height * 0.5, 0], [radius * 0.75, radius * 0.75, 0.06], WATER),
+    basin([0, 0, 0], [radius, shaftRadius, rimHeight], color),
+    watery(cylinder([0, height * 0.4, 0], [shaftRadius, shaftRadius, 0.04], WATER_DEEP, 0.85)),
     ...[-1, 1].map((x) => box([x * radius * 0.85, 0, 0], [0.08, height, 0.08], DARK_WOOD)),
     box([0, height - 0.08, 0], [radius * 2, 0.08, 0.1], DARK_WOOD),
   ];
@@ -182,7 +230,7 @@ function shrine({ width, height, color }: FurnitureSize): FurniturePart[] {
   return [
     box([0, 0, 0], [width, height * 0.25, width], DARK_STONE),
     box([0, height * 0.25, 0], [width * 0.45, height * 0.4, width * 0.45], color),
-    sphere([0, height * 0.65, 0], width * 0.2, GLOW),
+    glowing(sphere([0, height * 0.65, 0], width * 0.2, GLOW)),
   ];
 }
 
@@ -231,7 +279,7 @@ function fireplace({ width, depth, height, color }: FurnitureSize): FurniturePar
     ),
     box([0, openingHeight, 0], [openingWidth, height - openingHeight, depth], color),
     box([0, 0, backZ], [openingWidth, openingHeight, 0.04], '#2e2a26'),
-    box([0, 0.04, backZ - 0.06], [width * 0.3, height * 0.2, 0.03], GLOW),
+    glowing(box([0, 0.04, backZ - 0.06], [width * 0.3, height * 0.2, 0.03], GLOW)),
   ];
 }
 
@@ -255,10 +303,12 @@ function lectern({ width, depth, height, color }: FurnitureSize): FurniturePart[
 function cauldron({ width, depth, height, color }: FurnitureSize): FurniturePart[] {
   const radius = Math.min(width, depth) / 2;
   return [
-    cylinder([0, 0.1, 0], [radius, radius * 0.8, height - 0.1], color),
+    metallic(cylinder([0, 0.1, 0], [radius, radius * 0.8, height - 0.1], color)),
     cylinder([0, height - 0.08, 0], [radius * 0.85, radius * 0.85, 0.06], '#4f7a4a'),
     ...[-1, 1].flatMap((x) =>
-      [-1, 1].map((z) => box([x * radius * 0.55, 0, z * radius * 0.55], [0.08, 0.1, 0.08], color)),
+      [-1, 1].map((z) =>
+        metallic(box([x * radius * 0.55, 0, z * radius * 0.55], [0.08, 0.1, 0.08], color)),
+      ),
     ),
   ];
 }
@@ -288,8 +338,8 @@ function barrel({ width, depth, height, color }: FurnitureSize): FurniturePart[]
     cylinder([0, 0, 0], [radius, radius * 0.85, half], color),
     cylinder([0, half, 0], [radius * 0.85, radius, half - 0.03], color),
     cylinder([0, height - 0.03, 0], [radius * 0.8, radius * 0.8, 0.03], DARK_WOOD),
-    cylinder([0, height * 0.2, 0], [hoop, hoop, 0.06], DARK_STONE),
-    cylinder([0, height * 0.75, 0], [hoop, hoop, 0.06], DARK_STONE),
+    metallic(cylinder([0, height * 0.2, 0], [hoop, hoop, 0.06], DARK_STONE)),
+    metallic(cylinder([0, height * 0.75, 0], [hoop, hoop, 0.06], DARK_STONE)),
   ];
 }
 
@@ -316,7 +366,7 @@ function waystone({ width, depth, height, color }: FurnitureSize): FurniturePart
   return [
     box([0, 0, 0], [width * 0.8, height * 0.15, depth * 0.8], DARK_STONE),
     box([0, height * 0.15, 0], [width * 0.45, height * 0.85, depth * 0.35], color),
-    sphere([0, height * 0.55, -depth * 0.18], 0.08, GLOW),
+    glowing(sphere([0, height * 0.55, -depth * 0.18], 0.08, GLOW)),
   ];
 }
 
@@ -331,22 +381,24 @@ function firePit({ width, height, color }: FurnitureSize): FurniturePart[] {
   const radius = width / 2;
   return [
     cylinder([0, 0, 0], [radius, radius, height], color),
-    cylinder([0, height * 0.7, 0], [radius * 0.75, radius * 0.75, height * 0.3], GLOW),
+    glowing(cylinder([0, height * 0.7, 0], [radius * 0.75, radius * 0.75, height * 0.3], GLOW)),
   ];
 }
 
-function tree({ width, height, color }: FurnitureSize): FurniturePart[] {
+function tree({ id = '', width, height, color }: FurnitureSize): FurniturePart[] {
+  const canopy = varyColor(color, id, 1.5);
   return [
     cylinder([0, 0, 0], [0.18, 0.25, height * 0.65], DARK_WOOD),
-    sphere([0, height * 0.43, 0], width * 0.42, color),
-    sphere([width * 0.12, height * 0.6, 0], width * 0.33, color),
+    sphere([0, height * 0.43, 0], width * 0.42, canopy),
+    sphere([width * 0.12, height * 0.6, 0], width * 0.33, shadeColor(canopy, 0.06)),
   ];
 }
 
-function shrub({ width, height, color }: FurnitureSize): FurniturePart[] {
+function shrub({ id = '', width, height, color }: FurnitureSize): FurniturePart[] {
+  const foliage = varyColor(color, id, 1.5);
   return [
-    sphere([-width * 0.05, 0, 0], height * 0.45, color),
-    sphere([width * 0.05, 0, 0], height * 0.45, color),
+    sphere([-width * 0.05, 0, 0], height * 0.45, foliage),
+    sphere([width * 0.05, 0, 0], height * 0.45, shadeColor(foliage, 0.05)),
   ];
 }
 
@@ -365,18 +417,70 @@ function herbTub({ width, depth, height }: FurnitureSize): FurniturePart[] {
   ];
 }
 
-function streetLantern({ height }: FurnitureSize): FurniturePart[] {
+function moveAlongDepth(z: number) {
+  return (part: FurniturePart): FurniturePart => ({
+    ...part,
+    position: [part.position[0], part.position[1], part.position[2] + z],
+  });
+}
+
+function lanternCage(bottom: number, radius: number, height: number): FurniturePart[] {
+  const bar = radius * 1.15;
   return [
-    cylinder([0, 0, 0], [0.12, 0.16, height * 0.82], DARK_STONE),
-    box([0, height * 0.8, 0], [0.38, 0.4, 0.38], GLOW),
-    box([0, height - 0.08, 0], [0.5, 0.08, 0.5], DARK_STONE),
+    glowing(cylinder([0, bottom, 0], [radius, radius, height], GLOW)),
+    metallic(box([0, bottom - 0.03, 0], [bar * 2, 0.04, bar * 2], DARK_STONE)),
+    ...[-1, 1].flatMap((x) =>
+      [-1, 1].map((z) =>
+        metallic(box([x * bar, bottom, z * bar], [0.025, height, 0.025], DARK_STONE)),
+      ),
+    ),
+    metallic(cylinder([0, bottom + height, 0], [0.015, bar * 1.5, 0.1], DARK_STONE)),
   ];
 }
 
-function wallLantern({ height }: FurnitureSize): FurniturePart[] {
+function streetLantern({ height }: FurnitureSize): FurniturePart[] {
+  const postHeight = height * 0.76;
   return [
-    box([0, height * 0.65, 0], [0.12, 0.1, 0.4], DARK_STONE),
-    box([0, height * 0.68, -0.15], [0.3, 0.35, 0.3], GLOW),
+    cylinder([0, 0, 0], [0.1, 0.14, postHeight], DARK_WOOD),
+    metallic(box([0, postHeight - 0.04, 0], [0.3, 0.06, 0.3], DARK_STONE)),
+    ...lanternCage(postHeight + 0.02, 0.1, 0.34),
+  ];
+}
+
+function wallLantern({ height, depth }: FurnitureSize): FurniturePart[] {
+  const wall = depth / 2;
+  const armBottom = height * 0.7;
+  return [
+    metallic(box([0, armBottom - 0.1, wall - 0.02], [0.18, 0.34, 0.04], DARK_STONE)),
+    metallic(box([0, armBottom, wall - 0.2], [0.04, 0.04, 0.4], DARK_STONE)),
+    ...lanternCage(armBottom - 0.3, 0.07, 0.22).map(moveAlongDepth(wall - 0.4)),
+  ];
+}
+
+function chandelier({ width, height }: FurnitureSize): FurniturePart[] {
+  const reach = width * 0.44;
+  const frame = height * 0.77;
+  const flameBase = frame + 0.05;
+  return [
+    metallic(cylinder([0, frame, 0], [0.02, 0.02, height - frame], DARK_STONE)),
+    metallic(box([0, frame, 0], [reach * 2, 0.05, 0.05], DARK_STONE)),
+    metallic(box([0, frame, 0], [0.05, 0.05, reach * 2], DARK_STONE)),
+    ...[
+      [0, 0],
+      [reach, 0],
+      [-reach, 0],
+      [0, reach],
+      [0, -reach],
+    ].map(([x, z]) => glowing(box([x!, flameBase, z!], [0.06, 0.14, 0.06], GLOW))),
+  ];
+}
+
+function wallSconce({ width, depth, height }: FurnitureSize): FurniturePart[] {
+  const back = depth / 2 - 0.02;
+  return [
+    metallic(box([0, height * 0.7, back], [width * 0.6, height * 0.2, 0.04], DARK_STONE)),
+    metallic(box([0, height * 0.72, back - 0.06], [0.04, 0.04, 0.1], DARK_STONE)),
+    glowing(box([0, height * 0.74, back - 0.11], [0.06, 0.14, 0.06], GLOW)),
   ];
 }
 
@@ -408,7 +512,7 @@ function trough({ width, depth, height, color }: FurnitureSize): FurniturePart[]
   const basinHeight = height * 0.72;
   return [
     box([0, 0, 0], [width, basinHeight, depth], color),
-    box([0, basinHeight, 0], [width * 0.78, 0.04, depth * 0.65], WATER),
+    watery(box([0, basinHeight, 0], [width * 0.78, 0.04, depth * 0.65], WATER_DEEP, 0.92)),
   ];
 }
 
@@ -466,6 +570,8 @@ export const FURNITURE_BUILDERS: Record<FurnitureModel, (size: FurnitureSize) =>
     FurnitureCart: cart,
     FurnitureTrough: trough,
     FurnitureBanner: banner,
+    FurnitureChandelier: chandelier,
+    FurnitureWallSconce: wallSconce,
   };
 
 export function isFurnitureModel(model: PropModel): model is FurnitureModel {

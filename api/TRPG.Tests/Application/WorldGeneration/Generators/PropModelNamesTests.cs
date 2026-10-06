@@ -9,7 +9,9 @@ public class PropModelNamesTests
     [InlineData(PropModel.FurnitureDisplayShelf, "Display Shelf")]
     [InlineData(PropModel.FurnitureRug, "Rug")]
     [InlineData(PropModel.FurnitureFireplace, "Fireplace")]
-    public void DisplayName_SplitsPascalCaseWords_AndDropsTheFurniturePrefix(
+    [InlineData(PropModel.SeatBench, "Bench")]
+    [InlineData(PropModel.SeatStoneBench, "Stone Bench")]
+    public void DisplayName_SplitsPascalCaseWords_AndDropsTheCategoryPrefix(
         PropModel model,
         string expected
     )

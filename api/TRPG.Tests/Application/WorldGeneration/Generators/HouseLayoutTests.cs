@@ -53,7 +53,13 @@ public class HouseLayoutTests
                 var boxes = world
                     .Input.Props.Concat(furniture)
                     .Where(prop => prop.LocationId == room.LocationId)
-                    .Where(prop => prop is not Furniture { Model: PropModel.FurnitureRug })
+                    .Where(prop =>
+                        prop
+                            is not Furniture
+                            {
+                                Model: PropModel.FurnitureRug or PropModel.FurnitureChandelier
+                            }
+                    )
                     .Select(BoxOf)
                     .ToArray();
                 Assert.Empty(
@@ -104,7 +110,13 @@ public class HouseLayoutTests
                 var solids = world
                     .Input.Props.Concat(furniture)
                     .Where(prop => prop.LocationId == room.LocationId)
-                    .Where(prop => prop is not Furniture { Model: PropModel.FurnitureRug })
+                    .Where(prop =>
+                        prop
+                            is not Furniture
+                            {
+                                Model: PropModel.FurnitureRug or PropModel.FurnitureChandelier
+                            }
+                    )
                     .Select(BoxOf);
                 Assert.DoesNotContain(solids, solid => keepOuts.Any(solid.Overlaps));
             }

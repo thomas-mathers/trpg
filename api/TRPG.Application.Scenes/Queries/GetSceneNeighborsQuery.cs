@@ -1,7 +1,6 @@
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Scenes.Boundaries;
-using TRPG.Application.Scenes.GreenSpaces;
 using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Scenes.Roads;
@@ -134,7 +133,6 @@ internal class GetSceneNeighborsQueryHandler(
                 .ToArray(),
             buildings.Select(ToNearbyBuilding).ToArray(),
             props.Where(IsVisibleFromAfar).Select(ToNearbyProp).ToArray(),
-            GreenSpacePlanner.Plan(props.Where(IsVisibleFromAfar).Select(ToNearbyProp).ToArray()),
             SceneRoadMapper.ToRoads(network)
         );
     }

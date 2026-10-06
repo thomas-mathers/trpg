@@ -3,6 +3,7 @@ import { Suspense, useMemo } from 'react';
 import { BackSide, Mesh } from 'three';
 
 import type {
+  BuildingType,
   CreatureStatusSnapshot,
   FootprintWire,
   LocationBoundarySnapshot,
@@ -14,6 +15,8 @@ import type {
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import { OUTDOOR_FLOOR_COLOR } from './boundary-scene';
+import { BuildingMesh } from './building-mesh';
+import { varyColor } from './color-variation';
 import { connectorYaw } from './connector-placement';
 import { buildingNameBoards, hasDoor } from './connector-visibility';
 import { CreatureFigure } from './creature-figure';
@@ -189,7 +192,13 @@ function BoxMesh({ footprint, style }: { footprint: FootprintWire; style: BoxSty
   );
 }
 
-function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropModel, text?: string) {
+function propFallback(
+  id: string,
+  footprint: FootprintWire,
+  style: BoxStyle,
+  model?: PropModel,
+  text?: string,
+) {
   if (model === 'Sign' && text) {
     return <SignMesh footprint={footprint} style={style} text={text} />;
   }
@@ -197,12 +206,14 @@ function propFallback(footprint: FootprintWire, style: BoxStyle, model?: PropMod
     return <SeatMesh footprint={footprint} style={style} model={model} />;
   }
   if (model && isFurnitureModel(model)) {
-    return <FurnitureMesh footprint={footprint} style={style} model={model} />;
+    return <FurnitureMesh id={id} footprint={footprint} style={style} model={model} />;
   }
   return <BoxMesh footprint={footprint} style={style} />;
 }
 
 function Box({
+  id,
+  buildingType,
   placement,
   footprint,
   style,
@@ -210,6 +221,8 @@ function Box({
   propModel,
   text,
 }: {
+  id: string;
+  buildingType?: BuildingType;
   placement: PlacementWire;
   footprint: FootprintWire;
   style: BoxStyle;
@@ -218,7 +231,11 @@ function Box({
   text?: string;
 }) {
   const { height } = style;
-  const fallback = propFallback(footprint, style, propModel, text);
+  const fallback = buildingType ? (
+    <BuildingMesh id={id} type={buildingType} footprint={footprint} style={style} />
+  ) : (
+    propFallback(id, footprint, style, propModel, text)
+  );
 
   return (
     <group
@@ -236,6 +253,11 @@ function Box({
   );
 }
 
+function propStyle(model: PropModel, id: string): BoxStyle {
+  const style = PROP_STYLES[model];
+  return { ...style, color: varyColor(style.color, id, 0.5) };
+}
+
 export function Boxes({
   props,
   buildings,
@@ -248,9 +270,10 @@ export function Boxes({
       {props.map(({ id, model, placement, footprint, description }) => (
         <Box
           key={id}
+          id={id}
           placement={placement}
           footprint={footprint}
-          style={PROP_STYLES[model]}
+          style={propStyle(model, id)}
           propModel={model}
           text={description}
           modelUrl={PROP_MODEL_URLS[model]}
@@ -259,6 +282,8 @@ export function Boxes({
       {buildings.map(({ id, type, placement, footprint, floorCount }) => (
         <Box
           key={id}
+          id={id}
+          buildingType={type}
           placement={placement}
           footprint={footprint}
           style={buildingStyle(type, floorCount)}
@@ -287,7 +312,7 @@ export function Creatures({
 }) {
   return (
     <>
-      {creatures.map(({ id, placement }) => {
+      {creatures.map(({ id, placement, creatureType, age, equipment }) => {
         const status = statuses.find((creature) => creature.id === id);
         const posture = status?.posture;
         if (id === playerId && posture !== 'Sitting') return null;
@@ -299,6 +324,9 @@ export function Creatures({
             posture={posture}
             playerId={playerId}
             label={names.get(id)}
+            creatureType={creatureType}
+            age={age}
+            equipment={equipment}
             facing={focus?.id === id && status?.condition !== 'Dead' ? focus.facing : undefined}
           />
         );

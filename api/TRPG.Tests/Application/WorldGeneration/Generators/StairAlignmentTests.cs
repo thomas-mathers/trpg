@@ -123,7 +123,13 @@ public class StairAlignmentTests
                 var solids = world
                     .Input.Props.Concat(furniture)
                     .Where(prop => prop.LocationId == stair.OriginLocationId)
-                    .Where(prop => prop is not Furniture { Model: PropModel.FurnitureRug })
+                    .Where(prop =>
+                        prop
+                            is not Furniture
+                            {
+                                Model: PropModel.FurnitureRug or PropModel.FurnitureChandelier
+                            }
+                    )
                     .Select(prop =>
                         OrientedBox.From(
                             new Placement(prop.X, prop.Y, prop.Angle),

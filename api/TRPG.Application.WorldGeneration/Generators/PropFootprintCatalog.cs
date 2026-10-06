@@ -270,6 +270,8 @@ internal static class PropFootprintCatalog
         [PropModel.FurnitureCart] = new(2.4, 1.4, PropPlacementRule.Free, 0.6),
         [PropModel.FurnitureTrough] = new(1.8, 0.8, PropPlacementRule.Free, 0.4),
         [PropModel.FurnitureBanner] = new(0.9, 0.3, PropPlacementRule.Free, 0.3),
+        [PropModel.FurnitureChandelier] = new(0.9, 0.9, PropPlacementRule.Center, 0.0),
+        [PropModel.FurnitureWallSconce] = new(0.3, 0.2, PropPlacementRule.Wall, 0.0),
         [PropModel.SeatBasic] = new(
             Width: 0.5,
             Depth: 0.5,

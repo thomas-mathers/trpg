@@ -91,8 +91,24 @@ internal static class ExteriorLayoutPass
             : exits;
     }
 
-    private static Furniture CreateFurniture(Location location, DistrictDecor item) =>
-        new()
+    private static Prop CreateFurniture(Location location, DistrictDecor item)
+    {
+        if (PropModelNames.IsSeat(item.Model))
+        {
+            return new Seat
+            {
+                LocationId = location.Id,
+                WorldId = location.WorldId,
+                Name = PropModelNames.DisplayName(item.Model),
+                X = item.Placement.X,
+                Y = item.Placement.Y,
+                Angle = item.Placement.Angle,
+                Width = item.Footprint.Width,
+                Depth = item.Footprint.Depth,
+            };
+        }
+
+        return new Furniture
         {
             LocationId = location.Id,
             WorldId = location.WorldId,
@@ -104,6 +120,7 @@ internal static class ExteriorLayoutPass
             Width = item.Footprint.Width,
             Depth = item.Footprint.Depth,
         };
+    }
 
     private static ExteriorLayout LayOut(LocationLayoutContext context, Location location)
     {

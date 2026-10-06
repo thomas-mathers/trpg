@@ -12,7 +12,6 @@ public record NeighborSource(
     IReadOnlyCollection<BoundaryExit> Exits,
     IReadOnlyCollection<SceneNearbyBuildingInfo> Buildings,
     IReadOnlyCollection<ScenePropInfo> Props,
-    IReadOnlyCollection<SceneGreenSpaceInfo> GreenSpaces,
     IReadOnlyCollection<DistrictRoad> Roads
 );
 
@@ -22,7 +21,6 @@ public record NeighborDistrict(
     Footprint Size,
     IReadOnlyCollection<SceneNearbyBuildingInfo> Buildings,
     IReadOnlyCollection<ScenePropInfo> Props,
-    IReadOnlyCollection<SceneGreenSpaceInfo> GreenSpaces,
     IReadOnlyCollection<BoundarySegment> Segments,
     IReadOnlyCollection<DistrictRoad> Roads
 );
@@ -50,14 +48,6 @@ public static class NeighborPreviewPlanner
             source.Buildings.Select(building => Translate(building, origin)).ToArray(),
             source
                 .Props.Select(prop => prop with { Placement = Shift(prop.Placement, origin) })
-                .ToArray(),
-            source
-                .GreenSpaces.Select(space =>
-                    space with
-                    {
-                        Placement = Shift(space.Placement, origin),
-                    }
-                )
                 .ToArray(),
             segments.Select(segment => Translate(segment, origin)).ToArray(),
             source.Roads.Select(road => Translate(road, origin)).ToArray()
