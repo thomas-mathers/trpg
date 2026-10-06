@@ -2,7 +2,10 @@ import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { PCFShadowMap, type Scene, type WebGPURenderer } from 'three/webgpu';
 
-import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type {
+  NearbyExitSnapshot,
+  PlacementWire,
+} from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
 import {
@@ -147,6 +150,10 @@ export function LocationViewport({
     void runAction(chatHub.sendMove(connectorId));
   };
 
+  const handlePoseChange = ({ x, y, angle }: PlacementWire) => {
+    chatHub.reportPose(scene.locationId, x, y, angle).catch(() => {});
+  };
+
   const targetCreature = scene.nearbyCreatures.find((creature) => creature.id === targetId);
   const interactionPrompt = targetCreature
     ? `E: Interact with ${targetCreature.name}`
@@ -229,6 +236,7 @@ export function LocationViewport({
             onLockChange={setLocked}
             onNearbyConnectorChange={(connector) => setNearbyConnectorId(connector?.connectorId)}
             onEnterConnector={handleEnterConnector}
+            onPoseChange={handlePoseChange}
           />
           {isRoomScene(scene) ? (
             <IndoorLighting size={size} props={props} />

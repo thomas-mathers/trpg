@@ -25,7 +25,8 @@ internal class MovePlayerCommandHandler(
     IDomainEventPublisher<PlayerMovedEvent> domainEvents,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
-    ICommandHandler<StopSittingCommand> stopSitting
+    ICommandHandler<StopSittingCommand> stopSitting,
+    PlayerPoseStore poseStore
 ) : ICommandHandler<MovePlayerCommand>
 {
     public async Task Handle(
@@ -48,6 +49,8 @@ internal class MovePlayerCommandHandler(
             new StopSittingCommand { CreatureId = command.PlayerId },
             cancellationToken
         );
+
+        poseStore.Remove(command.PlayerId);
 
         await updateCreatures.Handle(
             new UpdateCreaturesCommand

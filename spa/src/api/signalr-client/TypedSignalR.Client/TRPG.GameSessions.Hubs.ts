@@ -78,6 +78,14 @@ export type IChatHub = {
     */
     sendMove(connectorId: string): Promise<ActionResult>;
     /**
+    * @param locationId Transpiled from System.Guid
+    * @param x Transpiled from double
+    * @param y Transpiled from double
+    * @param angle Transpiled from double
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    reportPose(locationId: string, x: number, y: number, angle: number): Promise<void>;
+    /**
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
     sendFlee(): Promise<ActionResult>;

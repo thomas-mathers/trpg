@@ -1,4 +1,5 @@
 import { act, fireEvent } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { PerspectiveCamera } from 'three';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -31,7 +32,7 @@ const chair: ViewportSeat = {
   description: '',
   type: 'Seat',
 };
-function setup() {
+function setup(overrides: Partial<ComponentProps<typeof FpsController>> = {}) {
   const props = {
     movementSpeed: BASE_MOVEMENT_SPEED,
     size: { width: 20, depth: 20 },
@@ -46,7 +47,9 @@ function setup() {
     onEnterConnector: vi.fn(),
     onNearbySeatChange: vi.fn(),
     onSeatInteraction: vi.fn(),
+    onPoseChange: vi.fn(),
     onChatRequested: vi.fn(),
+    ...overrides,
   };
   return { props, ...renderWithProviders(<FpsController {...props} />) };
 }
@@ -93,6 +96,22 @@ describe('chair interaction', () => {
     );
     rerender(<FpsController {...props} />);
     expect(camera.position.toArray()).toEqual([5, EYE_HEIGHT, 6]);
+  });
+  it('stands at the server pose after loading while already seated', () => {
+    const { props, rerender } = setup({
+      seated: true,
+      seatedPlacement: chair.placement,
+      start: chair.placement,
+    });
+    rerender(<FpsController {...props} seated={false} start={{ x: 8, y: 9, angle: 0 }} />);
+    expect((renderer.camera as PerspectiveCamera).position.toArray()).toEqual([8, EYE_HEIGHT, 9]);
+  });
+  it('keeps the walked position when the server echoes a stale pose for the same location', () => {
+    const { props, rerender } = setup();
+    const camera = renderer.camera as PerspectiveCamera;
+    camera.position.set(9, EYE_HEIGHT, 9);
+    rerender(<FpsController {...props} start={{ x: 5, y: 6.5, angle: 0 }} />);
+    expect(camera.position.toArray()).toEqual([9, EYE_HEIGHT, 9]);
   });
   it('ignores interaction keys while typing outside pointer lock', () => {
     const { props } = setup();
