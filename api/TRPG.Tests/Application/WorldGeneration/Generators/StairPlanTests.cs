@@ -12,12 +12,7 @@ public class StairPlanTests
         var connectorId = Guid.NewGuid();
 
         // Act
-        var exit = StairPlan.Exit(
-            connectorId,
-            roomWidth: 10,
-            lowerFloorNumber: 0,
-            StairDirection.Up
-        );
+        var exit = StairPlan.Exit(connectorId, roomWidth: 10, StairDirection.Up);
 
         // Assert
         Assert.Equal(0, exit.Point.Y);
@@ -25,46 +20,15 @@ public class StairPlanTests
     }
 
     [Theory]
-    [InlineData(2.5)]
+    [InlineData(2.25)]
     [InlineData(5.25)]
     [InlineData(20)]
-    public void Exit_PutsTheSameFlightAtTheSamePlanOffset_InRoomsOfDifferentWidths(double width)
+    public void Exit_CentersTheFlight_InRoomsOfDifferentWidths(double width)
     {
-        // Arrange
-        var narrow = StairPlan.Exit(
-            Guid.NewGuid(),
-            roomWidth: 2.5,
-            lowerFloorNumber: 0,
-            StairDirection.Up
-        );
-
         // Act
-        var exit = StairPlan.Exit(Guid.NewGuid(), width, lowerFloorNumber: 0, StairDirection.Up);
+        var exit = StairPlan.Exit(Guid.NewGuid(), width, StairDirection.Up);
 
         // Assert
-        Assert.Equal(narrow.Point.X - 2.5 / 2, exit.Point.X - width / 2, precision: 6);
-    }
-
-    [Fact]
-    public void Exit_SeparatesTheFlightsOfConsecutiveFloors()
-    {
-        // Arrange
-        var first = StairPlan.Exit(
-            Guid.NewGuid(),
-            roomWidth: 2.5,
-            lowerFloorNumber: 0,
-            StairDirection.Up
-        );
-
-        // Act
-        var second = StairPlan.Exit(
-            Guid.NewGuid(),
-            roomWidth: 2.5,
-            lowerFloorNumber: 1,
-            StairDirection.Up
-        );
-
-        // Assert
-        Assert.Equal(StairPlan.FlightSpacing, second.Point.X - first.Point.X, precision: 6);
+        Assert.Equal(width / 2, exit.Point.X, precision: 6);
     }
 }

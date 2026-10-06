@@ -19,7 +19,6 @@ internal record ConnectorExitRequest(
 )
 {
     internal CompassDirection Direction { get; init; }
-    internal int LowerFloorNumber { get; init; }
     internal StairDirection Flight { get; init; }
     internal int SideIndex { get; init; }
     internal double DestinationDepth { get; init; }
@@ -286,7 +285,6 @@ internal static class ConnectorPointResolver
             ConnectorExitKind.Stairs => StairPlan.Exit(
                 request.ConnectorId,
                 frame.Width,
-                request.LowerFloorNumber,
                 request.Flight
             ),
             ConnectorExitKind.Fixed => new ConnectorExit(

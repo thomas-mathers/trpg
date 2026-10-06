@@ -4,7 +4,6 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class StairPlan
 {
-    internal const double FlightSpacing = 1.2;
     internal const double Width = 1.2;
     internal const double Depth = 2;
     internal const double ArrivalInset = Depth + 0.5;
@@ -12,21 +11,8 @@ internal static class StairPlan
     internal static ConnectorExit Exit(
         Guid connectorId,
         double roomWidth,
-        int lowerFloorNumber,
         StairDirection direction
-    ) =>
-        new(
-            connectorId,
-            new PlanarPoint(
-                roomWidth / 2
-                    + (lowerFloorNumber % 2 == 0 ? -FlightSpacing / 2 : FlightSpacing / 2),
-                0
-            ),
-            Math.PI
-        )
-        {
-            Stairs = direction,
-        };
+    ) => new(connectorId, new PlanarPoint(roomWidth / 2, 0), Math.PI) { Stairs = direction };
 
     internal static ConnectorExit ThroughExit(
         Guid connectorId,
