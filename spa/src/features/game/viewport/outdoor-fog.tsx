@@ -2,12 +2,12 @@ import type { FootprintWire } from '@/api/signalr-client/TRPG.GameSessions.Respo
 
 export const HORIZON_COLOR = '#a3b5c6';
 
-const FOG_NEAR_CAP = 220;
+const FOG_NEAR_CAP = 160;
 const FOG_SPAN = 150;
-const FOG_CLEARANCE = 80;
+const FOG_CLEARANCE = 20;
 
 export function outdoorFogRange({ width, depth }: FootprintWire) {
-  const near = Math.min(FOG_NEAR_CAP, Math.hypot(width, depth) + FOG_CLEARANCE);
+  const near = Math.min(FOG_NEAR_CAP, Math.max(width, depth) + FOG_CLEARANCE);
   return { near, far: near + FOG_SPAN };
 }
 
