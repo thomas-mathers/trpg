@@ -6,6 +6,7 @@ import type {
   NearbyExitSnapshot,
   NearbyPropSnapshot,
   PlacementWire,
+  PropModel,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
@@ -41,6 +42,7 @@ export const PLAYER_RADIUS = 0.35;
 export const INTERACT_RANGE = 2.5;
 const BOUNDS_MARGIN = 0.3;
 const WALKABLE_HEIGHT = 0.3;
+const OVERHEAD_MODELS = new Set<PropModel>(['FurnitureChandelier', 'FurnitureWallSconce']);
 const RESOLVE_PASSES = 2;
 const WALL_THICKNESS = 0.2;
 export const WALL_HEIGHT = 3;
@@ -92,7 +94,9 @@ export function buildObstacles(
   buildings: NearbyBuildingSnapshot[],
   connectors: NearbyExitSnapshot[],
 ): Obstacle[] {
-  const solidProps = props.filter(({ model }) => PROP_STYLES[model].height >= WALKABLE_HEIGHT);
+  const solidProps = props.filter(
+    ({ model }) => !OVERHEAD_MODELS.has(model) && PROP_STYLES[model].height >= WALKABLE_HEIGHT,
+  );
   return [...solidProps, ...buildings, ...connectors.filter(isStairs).map(stairObstacle)];
 }
 

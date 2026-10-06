@@ -27,12 +27,21 @@ import { createWebGpuRenderer } from './webgpu-renderer';
 
 const scene = {
   worldId: 'world',
-  playerStatus: { id: 'player', posture: 'Standing', placement: { x: 5, y: 6, angle: 0 } },
+  playerStatus: {
+    id: 'player',
+    creatureType: 'Human',
+    age: 30,
+    equipment: [],
+    posture: 'Standing',
+    placement: { x: 5, y: 6, angle: 0 },
+  },
   nearbyCreatures: [
     {
       id: 'npc',
       name: 'Tessa',
       creatureType: 'Human',
+      age: 30,
+      equipment: [],
       condition: 'Awake',
       posture: 'Standing',
       tradeWorkstationId: 'shop',

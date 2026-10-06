@@ -1,35 +1,13 @@
 import { useMemo } from 'react';
-import { PointLight } from 'three/webgpu';
 
 import type {
   FootprintWire,
   NearbyPropSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-import { createFireLight, isFireSource } from './indoor-fire-light';
-import { WALL_HEIGHT } from './layout-math';
-
-function FireLight({ prop, size }: { prop: NearbyPropSnapshot; size: FootprintWire }) {
-  const light = useMemo(() => createFireLight(prop, size), [prop, size]);
-  return <primitive object={light} />;
-}
-
-function CeilingLight({ size: { width, depth } }: { size: FootprintWire }) {
-  const light = useMemo(() => {
-    const point = new PointLight('#fff0d6', 4);
-    point.position.set(width / 2, WALL_HEIGHT - 0.2, depth / 2);
-    point.decay = 1;
-    point.castShadow = true;
-    point.shadow.mapSize.set(512, 512);
-    point.shadow.camera.near = 0.1;
-    point.shadow.camera.far = Math.hypot(width / 2, depth / 2, WALL_HEIGHT) + 1;
-    point.shadow.camera.updateProjectionMatrix();
-    point.shadow.normalBias = 0.02;
-    point.shadow.radius = 3;
-    return point;
-  }, [width, depth]);
-  return <primitive object={light} />;
-}
+import { LightPool } from './light-pool';
+import { indoorAmbientAt, lightSourcesFor, shadowReach } from './light-rig';
+import { useSceneHour } from './scene-hour';
 
 export function IndoorLighting({
   size,
@@ -38,14 +16,24 @@ export function IndoorLighting({
   size: FootprintWire;
   props: NearbyPropSnapshot[];
 }) {
-  const fires = props.filter(isFireSource);
+  const hour = useSceneHour();
+  const sources = useMemo(() => lightSourcesFor(props), [props]);
+  const ambient = useMemo(() => indoorAmbientAt(hour), [hour]);
+
   return (
     <>
-      <ambientLight intensity={fires.length > 0 ? 0.45 : 0.7} />
-      <CeilingLight size={size} />
-      {fires.map((prop) => (
-        <FireLight key={prop.id} prop={prop} size={size} />
-      ))}
+      <hemisphereLight
+        color={ambient.sky}
+        groundColor={ambient.ground}
+        intensity={ambient.intensity}
+      />
+      <LightPool
+        sources={sources}
+        hour={hour}
+        shadowSlots={1}
+        shadowFar={shadowReach(size)}
+        decay={0.85}
+      />
     </>
   );
 }

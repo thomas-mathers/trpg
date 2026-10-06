@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import type { NeighborSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import { Roads } from './boundary-scene';
+import { BuildingMesh } from './building-mesh';
 import { DoorConnector } from './door-connector';
-import { GreenSpaces } from './green-spaces';
 import { boundaryTowers, boundaryWalls, headingToYaw, toScenePosition } from './layout-math';
 import { buildingStyle } from './model-styles';
 import {
@@ -26,24 +26,22 @@ export function NeighborDistricts({ neighbors }: { neighbors: NeighborSnapshot[]
   return (
     <>
       <Roads roads={roads} />
-      <GreenSpaces spaces={neighbors.flatMap(({ greenSpaces }) => greenSpaces)} />
       <Walls walls={walls} towers={towers} />
       <Boxes props={props} buildings={[]} />
       {buildings.map(({ id, type, placement, footprint, floorCount }) => {
-        const { height, color } = buildingStyle(type, floorCount);
+        const style = buildingStyle(type, floorCount);
         const distance = footprint.depth / 2;
         const doorX = placement.x + distance * Math.sin(placement.angle);
         const doorY = placement.y - distance * Math.cos(placement.angle);
 
         return (
           <group key={id}>
-            <mesh
-              position={toScenePosition(placement.x, placement.y, height / 2)}
+            <group
+              position={toScenePosition(placement.x, placement.y, style.height / 2)}
               rotation={[0, headingToYaw(placement.angle), 0]}
             >
-              <boxGeometry args={[footprint.width, height, footprint.depth]} />
-              <meshLambertMaterial color={color} />
-            </mesh>
+              <BuildingMesh id={id} type={type} footprint={footprint} style={style} />
+            </group>
             <group
               position={toScenePosition(doorX, doorY)}
               rotation={[0, headingToYaw(placement.angle) + Math.PI, 0]}

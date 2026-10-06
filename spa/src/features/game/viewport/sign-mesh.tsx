@@ -70,7 +70,7 @@ function BoardFace({
   return (
     <mesh>
       <planeGeometry args={[width, height]} />
-      <meshBasicMaterial map={texture} toneMapped={false} />
+      <meshStandardMaterial map={texture} />
     </mesh>
   );
 }

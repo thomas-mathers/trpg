@@ -23,6 +23,25 @@ public class OutdoorAmenityPlannerTests
     }
 
     [Fact]
+    public void Place_ProvidesSittableBenchesAroundTheFountain()
+    {
+        // Arrange
+        var fountain = new DistrictDecor(
+            PropModel.FurnitureFountain,
+            new Placement(37.5, 37.5, 0),
+            PropFootprintCatalog.Get(PropModel.FurnitureFountain).Footprint
+        );
+        var input = Input() with { Existing = [fountain] };
+
+        // Act
+        var props = OutdoorAmenityPlanner.Place(DistrictType.CityCenter, input);
+
+        // Assert
+        Assert.Contains(props, prop => prop.Model == PropModel.SeatBench);
+        Assert.DoesNotContain(props, prop => prop.Model == PropModel.FurnitureBench);
+    }
+
+    [Fact]
     public void Place_KeepsLanternsAndMarketStallsClearOfRoads()
     {
         var props = OutdoorAmenityPlanner.Place(DistrictType.CityCenter, Input());

@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { PCFShadowMap, type Scene, type WebGPURenderer } from 'three/webgpu';
 
 import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -17,7 +17,6 @@ import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { FpsController } from './fps-controller';
-import { GreenSpaces } from './green-spaces';
 import { IndoorLighting } from './indoor-lighting';
 import {
   boundaryTowers,
@@ -29,7 +28,6 @@ import {
   isRoomScene,
   findPlayerPlacement,
 } from './layout-math';
-import { buildingStyle } from './model-styles';
 import { NeighborDistricts } from './neighbor-scene';
 import { OutdoorFog } from './outdoor-fog';
 import { OutdoorLighting } from './outdoor-lighting';
@@ -48,9 +46,22 @@ import {
   Terrain,
   Walls,
 } from './viewport-scene';
+import { weatherLookFor } from './weather-look';
+import { WeatherParticles } from './weather-particles';
 import { createWebGpuRenderer } from './webgpu-renderer';
 
 const CANVAS_ID = 'location-viewport-canvas';
+const DEFAULT_BACKGROUND = '#9bb7d4';
+const StaticGround = memo(Ground);
+const StaticWalls = memo(Walls);
+const StaticRoads = memo(Roads);
+const StaticRoadAprons = memo(RoadAprons);
+const StaticTerrain = memo(Terrain);
+const StaticNeighborDistricts = memo(NeighborDistricts);
+const StaticCeiling = memo(Ceiling);
+const StaticBoxes = memo(Boxes);
+const StaticConnectors = memo(Connectors);
+const StaticBuildingNameBoards = memo(BuildingNameBoards);
 
 export function LocationViewport({
   onQuestDialogRequested,
@@ -61,6 +72,7 @@ export function LocationViewport({
   const [restoring, setRestoring] = useState(false);
   const [targetId, setTargetId] = useState<string>();
   const [renderScene, setRenderScene] = useState<Scene | null>(null);
+  const weatherLook = weatherLookFor(scene.weather);
   const rendererRef = useRef<WebGPURenderer | null>(null);
   const closeInteraction = () => {
     setFocus(null);
@@ -85,25 +97,27 @@ export function LocationViewport({
   const [nearbyConnectorId, setNearbyConnectorId] = useState<string>();
   const names = useMemo(
     () => (scene ? buildEntityNames(scene) : new Map<string, string>()),
-    [scene],
+    [scene.nearbyCreatures, scene.nearbyBuildings, scene.nearbyProps, scene.exits],
   );
   const obstacles = useMemo(
     () => buildObstacles(scene.nearbyProps, scene.nearbyBuildings, scene.exits),
-    [scene],
+    [scene.nearbyProps, scene.nearbyBuildings, scene.exits],
   );
 
-  const wells = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Down'), [scene]);
-  const shafts = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Up'), [scene]);
+  const wells = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Down'), [scene.exits]);
+  const shafts = useMemo(() => scene.exits.filter(({ stairs }) => stairs === 'Up'), [scene.exits]);
   const walls = useMemo(
     () =>
       isRoomScene(scene) ? buildWalls(scene.size, scene.exits) : boundaryWalls(scene.boundary),
-    [scene],
+    [scene.roomName, scene.size, scene.exits, scene.boundary],
   );
-  const towers = useMemo(() => boundaryTowers(scene.boundary), [scene]);
+  const towers = useMemo(() => boundaryTowers(scene.boundary), [scene.boundary]);
   const headers = useMemo(
     () => (isRoomScene(scene) ? buildDoorHeaders(scene.size, scene.exits) : []),
-    [scene],
+    [scene.roomName, scene.size, scene.exits],
   );
+  const openEdges = useMemo(() => scene.boundary?.openEdges ?? [], [scene.boundary]);
+  const seats = useMemo(() => buildSeats(scene.nearbyProps), [scene.nearbyProps]);
 
   if (!scene) {
     return null;
@@ -122,7 +136,6 @@ export function LocationViewport({
     y: size.depth / 2,
     angle: 0,
   };
-  const seats = buildSeats(props);
   const occupiedSeat = seats.find((seat) => seat.isOccupiedByPlayer);
   const canTravel = !seated && canInteract;
   const nearbyName = nearbyConnectorId ? names.get(nearbyConnectorId) : undefined;
@@ -166,26 +179,21 @@ export function LocationViewport({
           shadows={{ type: PCFShadowMap }}
           camera={{ fov: 75, near: 0.1, far: 500 }}
         >
-          <color attach="background" args={['#9bb7d4']} />
-          <Ground
+          <color attach="background" args={[DEFAULT_BACKGROUND]} />
+          <StaticGround
             size={size}
             wells={wells}
             color={isRoomScene(scene) ? ROOM_FLOOR_COLOR : undefined}
           />
-          {!isRoomScene(scene) && <GreenSpaces spaces={scene.greenSpaces ?? []} />}
-          <Walls walls={walls} headers={headers} towers={towers} />
-          {scene.roads && <Roads roads={scene.roads} />}
+          <StaticWalls walls={walls} headers={headers} towers={towers} />
+          {scene.roads && <StaticRoads roads={scene.roads} />}
           {scene.roads && (
-            <RoadAprons
-              roads={scene.roads}
-              size={size}
-              openEdges={scene.boundary?.openEdges ?? []}
-            />
+            <StaticRoadAprons roads={scene.roads} size={size} openEdges={openEdges} />
           )}
-          {!isRoomScene(scene) && <Terrain size={size} />}
-          {scene.neighbors && <NeighborDistricts neighbors={scene.neighbors} />}
-          {isRoomScene(scene) && <Ceiling size={size} openings={shafts} />}
-          <Boxes props={props} buildings={buildings} />
+          {!isRoomScene(scene) && <StaticTerrain size={size} />}
+          {scene.neighbors && <StaticNeighborDistricts neighbors={scene.neighbors} />}
+          {isRoomScene(scene) && <StaticCeiling size={size} openings={shafts} />}
+          <StaticBoxes props={props} buildings={buildings} />
           <Creatures
             creatures={creatures}
             playerId={playerStatus.id}
@@ -194,8 +202,8 @@ export function LocationViewport({
             playerSeat={occupiedSeat}
             focus={focus}
           />
-          <Connectors connectors={connectors} boundary={scene.boundary} size={size} />
-          {!isRoomScene(scene) && <BuildingNameBoards connectors={connectors} />}
+          <StaticConnectors connectors={connectors} boundary={scene.boundary} size={size} />
+          {!isRoomScene(scene) && <StaticBuildingNameBoards connectors={connectors} />}
           <CreatureFocusController
             focus={focus}
             creatures={creatures}
@@ -226,18 +234,10 @@ export function LocationViewport({
             <IndoorLighting size={size} props={props} />
           ) : (
             <>
-              <OutdoorSky />
-              <OutdoorFog size={size} />
-              <OutdoorLighting
-                size={size}
-                props={props}
-                height={Math.max(
-                  3,
-                  ...buildings.map(
-                    ({ type, floorCount }) => buildingStyle(type, floorCount).height,
-                  ),
-                )}
-              />
+              <OutdoorSky look={weatherLook} />
+              <OutdoorFog size={size} look={weatherLook} />
+              <WeatherParticles look={weatherLook} />
+              <OutdoorLighting size={size} props={props} look={weatherLook} />
             </>
           )}
         </Canvas>

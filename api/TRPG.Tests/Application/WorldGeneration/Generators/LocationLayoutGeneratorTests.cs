@@ -230,6 +230,24 @@ public class LocationLayoutGeneratorTests
     }
 
     [Fact]
+    public void Generate_ReturnsDistrictBenchesAsSeats()
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
+
+        // Act
+        var props = LocationLayoutGenerator.Generate(world.Input).Props;
+
+        // Assert
+        var benches = props.Where(prop => PropModelResolver.Resolve(prop) == PropModel.SeatBench);
+        Assert.All(benches, bench => Assert.IsType<Seat>(bench));
+        Assert.DoesNotContain(
+            props.OfType<Furniture>(),
+            item => item.Model == PropModel.FurnitureBench
+        );
+    }
+
+    [Fact]
     public void Generate_ProducesTheSameLayout_WhenRunTwice()
     {
         // Arrange

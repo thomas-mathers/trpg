@@ -30,6 +30,12 @@ internal record RecipeItem(PropModel Model, RoomRect Bounds, RecipeWall Wall)
 
     internal bool IsSeat => SittableDecor.Contains(Model);
 
+    internal bool IsOverlay => Model is PropModel.FurnitureRug or PropModel.FurnitureChandelier;
+
+    internal bool IsCeilingMounted => Model == PropModel.FurnitureChandelier;
+
+    internal bool IsWallMounted => Model == PropModel.FurnitureWallSconce;
+
     internal PropModel? DecorModel =>
         SittableDecor.Contains(Model) ? Model
         : StandIns.TryGetValue(Model, out var standIn) ? standIn

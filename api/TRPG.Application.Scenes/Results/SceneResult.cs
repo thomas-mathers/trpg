@@ -118,7 +118,12 @@ public record SceneCreatureInfo(
     CreatureEffects Effects,
     SceneJourneyInfo? Journey,
     Placement Placement
-);
+)
+{
+    public IReadOnlyCollection<SceneEquipmentVisual> Equipment { get; init; } = [];
+}
+
+public record SceneEquipmentVisual(Guid ItemId, EquipmentSlot Slot, string ModelClass);
 
 public record SceneNearbyBuildingInfo(
     Guid Id,
@@ -164,7 +169,6 @@ public record SceneResult(
     WeatherCondition? Weather,
     IReadOnlyCollection<SceneCaravanInfo> NearbyCaravans,
     Footprint Size,
-    IReadOnlyCollection<SceneGreenSpaceInfo>? GreenSpaces = null,
     DistrictBoundary? Boundary = null,
     IReadOnlyCollection<DistrictRoad>? Roads = null,
     IReadOnlyCollection<NeighborDistrict>? Neighbors = null

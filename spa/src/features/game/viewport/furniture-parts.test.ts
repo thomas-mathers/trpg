@@ -46,6 +46,8 @@ const FOOTPRINTS: Record<FurnitureModel, [number, number]> = {
   FurnitureCart: [2.4, 1.4],
   FurnitureTrough: [1.8, 0.8],
   FurnitureBanner: [0.9, 0.3],
+  FurnitureChandelier: [0.9, 0.9],
+  FurnitureWallSconce: [0.3, 0.2],
 };
 
 const TOLERANCE = 1e-6;
@@ -53,7 +55,7 @@ const TOLERANCE = 1e-6;
 function extent({ shape, size, rotation }: FurniturePart): [number, number, number] {
   const [first, second, third] = size;
   if (shape === 'box') return [first / 2, second / 2, third / 2];
-  if (shape === 'cylinder') {
+  if (shape === 'cylinder' || shape === 'basin') {
     const radius = Math.max(first, second);
     return rotation?.[0] === Math.PI / 2
       ? [radius, radius, third / 2]
@@ -108,5 +110,39 @@ describe('furniture parts', () => {
       expect(y - halfY).toBeGreaterThanOrEqual(-TOLERANCE);
       expect(y + halfY).toBeLessThanOrEqual(height + TOLERANCE);
     });
+  });
+
+  it.each([
+    'FurnitureStreetLantern',
+    'FurnitureWallLantern',
+    'FurnitureFireplace',
+    'FurnitureChandelier',
+    'FurnitureWallSconce',
+  ] as const)('makes some %s parts glow', (model) => {
+    // Arrange
+    const [width, depth] = FOOTPRINTS[model];
+    const { height, color } = PROP_STYLES[model];
+
+    // Act
+    const parts = FURNITURE_BUILDERS[model]({ width, depth, height, color });
+
+    // Assert
+    expect(parts.some((part) => part.finish === 'glow')).toBe(true);
+  });
+
+  it('varies tree foliage between trees', () => {
+    // Arrange
+    const [width, depth] = FOOTPRINTS.FurnitureTree;
+    const { height, color } = PROP_STYLES.FurnitureTree;
+
+    // Act
+    const canopies = new Set(
+      ['t1', 't2', 't3', 't4', 't5'].map(
+        (id) => FURNITURE_BUILDERS.FurnitureTree({ width, depth, height, color, id })[1].color,
+      ),
+    );
+
+    // Assert
+    expect(canopies.size).toBeGreaterThan(1);
   });
 });

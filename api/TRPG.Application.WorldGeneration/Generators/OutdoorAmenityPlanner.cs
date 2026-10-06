@@ -211,7 +211,7 @@ internal static class OutdoorAmenityPlanner
         )
         {
             state.TryPlace(
-                PropModel.FurnitureBench,
+                PropModel.SeatBench,
                 fountain.Placement.X + dx,
                 fountain.Placement.Y + dy,
                 angle,
