@@ -11,13 +11,13 @@ internal static class BuildingTemplateCatalog
     {
         [BuildingType.House] =
         [
-            Template("Small", 8, 10, Open("Living Room"), Single("Bedroom 1", 3, 5.25)),
+            Template("Small", 8, 10, Open("Living Room"), Single("Bedroom 1", 3, 5.5)),
             Template(
                 "Medium",
                 10,
                 12,
                 Open("Living Room"),
-                Wing(2.25, 12, Sized("Bedroom 1", 3.75, 4), Sized("Bedroom 2", 3.75, 4))
+                Wing(2, 12, Sized("Bedroom 1", 4, 4), Sized("Bedroom 2", 4, 4))
             ),
             Template(
                 "Large",
@@ -27,19 +27,19 @@ internal static class BuildingTemplateCatalog
                 Wing(
                     2.5,
                     14,
-                    Sized("Bedroom 1", 4.25, 3.5),
-                    Sized("Bedroom 2", 4.25, 3.5),
-                    Sized("Bedroom 3", 4.25, 3.5)
+                    Sized("Bedroom 1", 4.5, 3.5),
+                    Sized("Bedroom 2", 4.5, 3.5),
+                    Sized("Bedroom 3", 4.5, 3.5)
                 )
             ),
         ],
-        [BuildingType.GeneralGoods] = Standard(11, 15, "Shop", Sized("Living Quarters", 4.25, 5.5)),
-        [BuildingType.Bakery] = Standard(12, 14, "Bakery", Sized("Living Quarters", 4.75, 5)),
+        [BuildingType.GeneralGoods] = Standard(11, 15, "Shop", Sized("Living Quarters", 4.5, 5.5)),
+        [BuildingType.Bakery] = Standard(12, 14, "Bakery", Sized("Living Quarters", 5, 5)),
         [BuildingType.Tavern] = Standard(
             20,
             18,
             "Common Room",
-            Sized("Owner's Quarters", 5.25, 4.5)
+            Sized("Owner's Quarters", 5.5, 4.5)
         ),
         [BuildingType.Inn] =
         [
@@ -51,22 +51,17 @@ internal static class BuildingTemplateCatalog
                 Wing(
                     2.5,
                     24,
-                    Sized("North Guest Room", 4.25, 3.5),
-                    Sized("South Guest Room", 4.25, 3.5),
-                    Sized("East Guest Room", 4.25, 3.5),
-                    Sized("West Guest Room", 4.25, 3.5)
+                    Sized("North Guest Room", 4.5, 3.5),
+                    Sized("South Guest Room", 4.5, 3.5),
+                    Sized("East Guest Room", 4.5, 3.5),
+                    Sized("West Guest Room", 4.5, 3.5)
                 ),
-                Single("Owner's Quarters", 5.25, 4.5)
+                Single("Owner's Quarters", 5.5, 4.5)
             ),
         ],
-        [BuildingType.Tailor] = Standard(9, 14, "Shop", Sized("Living Quarters", 3.5, 6.75)),
-        [BuildingType.Carpenter] = Standard(
-            16,
-            20,
-            "Workshop",
-            Sized("Living Quarters", 5.25, 4.5)
-        ),
-        [BuildingType.Jeweler] = Standard(9, 12, "Shop", Sized("Living Quarters", 3.5, 6.75)),
+        [BuildingType.Tailor] = Standard(9, 14, "Shop", Sized("Living Quarters", 3.5, 7)),
+        [BuildingType.Carpenter] = Standard(16, 20, "Workshop", Sized("Living Quarters", 5.5, 4.5)),
+        [BuildingType.Jeweler] = Standard(9, 12, "Shop", Sized("Living Quarters", 3.5, 7)),
         [BuildingType.GuildHall] =
         [
             Template(
@@ -77,12 +72,12 @@ internal static class BuildingTemplateCatalog
                 Wing(
                     2.5,
                     22,
-                    Sized("Guild Master's Chamber", 4.25, 5.25),
-                    Sized("Member Room 1", 4.25, 3.5),
-                    Sized("Member Room 2", 4.25, 3.5),
-                    Sized("Member Room 3", 4.25, 3.5),
-                    Sized("Member Room 4", 4.25, 3.5),
-                    Sized("Member Room 5", 4.25, 3.5)
+                    Sized("Guild Master's Chamber", 4.5, 5.5),
+                    Sized("Member Room 1", 4.5, 3.5),
+                    Sized("Member Room 2", 4.5, 3.5),
+                    Sized("Member Room 3", 4.5, 3.5),
+                    Sized("Member Room 4", 4.5, 3.5),
+                    Sized("Member Room 5", 4.5, 3.5)
                 )
             ),
         ],
@@ -90,14 +85,14 @@ internal static class BuildingTemplateCatalog
         [
             Template("Standard", 24, 26, Open("Reading Room"), Open("Study")),
         ],
-        [BuildingType.ArcaneShop] = Standard(12, 16, "Shop", Sized("Living Quarters", 4.75, 5)),
-        [BuildingType.Apothecary] = Standard(12, 15, "Shop", Sized("Living Quarters", 4.75, 5)),
-        [BuildingType.Castle] = Standard(38, 32, "Great Hall", Sized("Royal Chambers", 7, 5.75)),
+        [BuildingType.ArcaneShop] = Standard(12, 16, "Shop", Sized("Living Quarters", 5, 5)),
+        [BuildingType.Apothecary] = Standard(12, 15, "Shop", Sized("Living Quarters", 5, 5)),
+        [BuildingType.Castle] = Standard(38, 32, "Great Hall", Sized("Royal Chambers", 7, 6)),
         [BuildingType.Jail] =
         [
             Template("Standard", 17, 22, Open("Guard Station"), Open(JailRoomNames.Cells)),
         ],
-        [BuildingType.Temple] = Standard(26, 36, "Sanctuary", Sized("Quarters", 4.25, 3.5)),
+        [BuildingType.Temple] = Standard(26, 36, "Sanctuary", Sized("Quarters", 4.5, 3.5)),
         [BuildingType.Barracks] =
         [
             Template(
@@ -108,8 +103,8 @@ internal static class BuildingTemplateCatalog
                 Wing(
                     2.5,
                     22,
-                    Sized("Officer's Quarters", 5.25, 4.5),
-                    Sized("Barracks Dormitory", 5.25, 7.25)
+                    Sized("Officer's Quarters", 5.5, 4.5),
+                    Sized("Barracks Dormitory", 5.5, 7.5)
                 )
             ),
         ],
@@ -117,9 +112,9 @@ internal static class BuildingTemplateCatalog
             17,
             20,
             "Workshop",
-            Sized("Living Quarters", 5.25, 4.5)
+            Sized("Living Quarters", 5.5, 4.5)
         ),
-        [BuildingType.Stable] = Standard(28, 13, "Stable", Sized("Living Quarters", 5.25, 4.5)),
+        [BuildingType.Stable] = Standard(28, 13, "Stable", Sized("Living Quarters", 5.5, 4.5)),
     };
 
     internal static IReadOnlyCollection<BuildingType> BuildingTypes =>

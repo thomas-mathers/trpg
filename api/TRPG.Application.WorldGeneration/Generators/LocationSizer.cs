@@ -11,7 +11,7 @@ internal record RoomSizingRequest(
 
 internal static class LocationSizer
 {
-    internal const double GridSize = 0.25;
+    internal const double GridSize = RoomGrid.CellSize;
 
     private const double PropAreaFactor = 1.5;
     private const double AreaPerOccupant = 1.2;
@@ -21,7 +21,7 @@ internal static class LocationSizer
     {
         var limits = RoomSizeCatalog.Get(request.BuildingType, request.Role);
         var propArea = request.PropModels.Sum(model =>
-            PropFootprintCatalog.Get(model).Footprint.Area()
+            RoomGrid.CellArea(PropFootprintCatalog.Get(model).Footprint)
         );
         var area = Math.Max(
             limits.MinimumArea,
@@ -49,9 +49,9 @@ internal static class LocationSizer
 
     internal static Footprint SizeWilderness() => WildernessCatalog.Size;
 
-    internal static double SnapUp(double value) => Math.Ceiling(value / GridSize - 1e-9) * GridSize;
+    internal static double SnapUp(double value) => RoomGrid.SnapUp(value);
 
-    internal static double SnapDown(double value) => Math.Floor(value / GridSize + 1e-9) * GridSize;
+    internal static double SnapDown(double value) => RoomGrid.SnapDown(value);
 
     private static Footprint FromAreaAndAspect(double area, double aspect, double maximumArea)
     {
@@ -65,6 +65,4 @@ internal static class LocationSizer
 
         return new Footprint(Width: width, Depth: depth);
     }
-
-    private static double Area(this Footprint footprint) => footprint.Width * footprint.Depth;
 }
