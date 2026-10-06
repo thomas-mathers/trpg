@@ -24,6 +24,7 @@ import {
 } from './layout-math';
 import { findSeatInRange, type ViewportSeat } from './seat-interaction';
 import { useDebugTeleport } from './use-debug-teleport';
+import { usePoseReporter } from './use-pose-reporter';
 import { useSeatedCamera } from './use-seated-camera';
 
 const MAX_FRAME_SECONDS = 0.1;
@@ -51,6 +52,7 @@ interface FpsControllerProps {
   onLockChange: (locked: boolean) => void;
   onNearbyConnectorChange: (connector: NearbyExitSnapshot | undefined) => void;
   onEnterConnector: (connector: NearbyExitSnapshot) => void;
+  onPoseChange: (pose: PlacementWire) => void;
 }
 
 const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
@@ -72,6 +74,7 @@ export function FpsController({
   onLockChange,
   onNearbyConnectorChange,
   onEnterConnector,
+  onPoseChange,
 }: FpsControllerProps) {
   const camera = useThree((state) => state.camera);
   const pressed = useRef(new Set<string>());
@@ -83,9 +86,11 @@ export function FpsController({
     seated,
     movementLocked,
   });
-  const { x, y, angle } = start;
+  const latestStart = useRef(start);
 
   const { scene, setMovementSpeed } = useScene();
+  const { locationId } = scene;
+  const trackPose = usePoseReporter(locationId, onPoseChange);
 
   useEffect(() => {
     handlers.current = {
@@ -94,16 +99,18 @@ export function FpsController({
       seated,
       movementLocked,
     };
-  }, [onEnterConnector, onSeatInteraction, seated, movementLocked]);
+    latestStart.current = start;
+  }, [onEnterConnector, onSeatInteraction, seated, movementLocked, start]);
 
   useEffect(() => {
     camera.rotation.order = 'YXZ';
     if (seated) return;
+    const { x, y, angle } = latestStart.current;
     camera.position.set(...toScenePosition(x, y, EYE_HEIGHT));
     camera.rotation.set(0, headingToYaw(angle), 0);
-  }, [camera, x, y, angle, seated]);
+  }, [camera, locationId, seated]);
 
-  useSeatedCamera(camera, seated, seatedPlacement, start, obstacles, size);
+  useSeatedCamera(camera, seated, seatedPlacement);
   const cameraHeld = useDebugTeleport();
 
   useEffect(() => {
@@ -162,6 +169,7 @@ export function FpsController({
     const attempted = { x: camera.position.x + delta.x, y: camera.position.z + delta.y };
     const next = clampToBounds(pushOutOfObstacles(attempted, obstacles), size);
     camera.position.set(next.x, EYE_HEIGHT, next.y);
+    trackPose({ ...next, angle: yawToHeading(camera.rotation.y) }, performance.now());
 
     const seat = findSeatInRange(next, seats);
     if (

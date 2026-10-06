@@ -265,7 +265,8 @@ internal static class Builders
         Guid? id = null,
         double x = 0,
         double y = 0,
-        double angle = 0
+        double angle = 0,
+        float? movementSpeed = null
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -310,7 +311,7 @@ internal static class Builders
             MaximumAp = attributes.MaximumAp,
             MaximumMp = attributes.MaximumMp,
             CarryingCapacity = attributes.CarryingCapacity,
-            MovementSpeed = attributes.MovementSpeed,
+            MovementSpeed = movementSpeed ?? attributes.MovementSpeed,
             PhysicalResistance = attributes.PhysicalResistance,
             FireResistance = attributes.FireResistance,
             IceResistance = attributes.IceResistance,

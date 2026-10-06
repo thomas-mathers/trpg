@@ -9,6 +9,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
@@ -36,6 +37,7 @@ public interface IChatHub
     Task<ActionResult> SendPurchaseCaravanTicket(Guid caravanId, Guid destinationLocationId);
     Task<ActionResult> SendBoardCaravan(Guid caravanId);
     Task<ActionResult> SendMove(Guid connectorId);
+    Task ReportPose(Guid locationId, double x, double y, double angle);
     Task<ActionResult> SendFlee();
     Task<ActionResult> SendRespawn();
     Task<ActionResult> SendCastAbility(Guid targetId, string abilityName);
@@ -63,6 +65,8 @@ public interface IChatHub
 internal sealed class ChatHub(
     GameTurnRunner gameTurnRunner,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
+    ICommandHandler<ReportPlayerPoseCommand> reportPlayerPose,
+    ICommandHandler<FlushPlayerPoseCommand> flushPlayerPose,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     PendingSessionEndRegistry pendingSessionEnds
 ) : Hub<IGameClient>, IChatHub
@@ -101,7 +105,17 @@ internal sealed class ChatHub(
     {
         if (Context.Items[SessionKey] is GameTurnSession session)
         {
-            await pendingSessionEnds.Disconnect(session.SessionId);
+            try
+            {
+                await flushPlayerPose.Handle(
+                    new FlushPlayerPoseCommand { PlayerId = session.PlayerId },
+                    CancellationToken.None
+                );
+            }
+            finally
+            {
+                await pendingSessionEnds.Disconnect(session.SessionId);
+            }
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -157,6 +171,19 @@ internal sealed class ChatHub(
 
     public Task<ActionResult> SendMove(Guid connectorId) =>
         Result(gameTurnRunner.Move(Session, connectorId, Context.ConnectionAborted));
+
+    public Task ReportPose(Guid locationId, double x, double y, double angle) =>
+        reportPlayerPose.Handle(
+            new ReportPlayerPoseCommand
+            {
+                PlayerId = Session.PlayerId,
+                LocationId = locationId,
+                X = x,
+                Y = y,
+                Angle = angle,
+            },
+            Context.ConnectionAborted
+        );
 
     public Task<ActionResult> SendFlee() =>
         Result(gameTurnRunner.Flee(Session, Context.ConnectionAborted));

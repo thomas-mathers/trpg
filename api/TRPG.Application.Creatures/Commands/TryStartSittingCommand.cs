@@ -14,7 +14,7 @@ public class TryStartSittingCommand
     public required double Angle { get; init; }
 }
 
-internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
+internal class TryStartSittingCommandHandler(ICreaturesDbContext context, PlayerPoseStore poseStore)
     : ICommandHandler<TryStartSittingCommand, bool>
 {
     public async Task<bool> Handle(
@@ -22,6 +22,12 @@ internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
         CancellationToken cancellationToken = default
     )
     {
+        var live = poseStore.Find(command.CreatureId);
+        var livePose = live?.LocationId == command.LocationId ? live : null;
+        double? liveX = livePose?.X;
+        double? liveY = livePose?.Y;
+        double? liveAngle = livePose?.Angle;
+
         var updated = await context
             .Creatures.Where(creature =>
                 creature.Id == command.CreatureId
@@ -34,14 +40,28 @@ internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
                 setters =>
                     setters
                         .SetProperty(creature => creature.Posture, CreaturePosture.Sitting)
-                        .SetProperty(creature => creature.StandingX, creature => creature.X)
-                        .SetProperty(creature => creature.StandingY, creature => creature.Y)
-                        .SetProperty(creature => creature.StandingAngle, creature => creature.Angle)
+                        .SetProperty(
+                            creature => creature.StandingX,
+                            creature => liveX ?? creature.X
+                        )
+                        .SetProperty(
+                            creature => creature.StandingY,
+                            creature => liveY ?? creature.Y
+                        )
+                        .SetProperty(
+                            creature => creature.StandingAngle,
+                            creature => liveAngle ?? creature.Angle
+                        )
                         .SetProperty(creature => creature.X, command.X)
                         .SetProperty(creature => creature.Y, command.Y)
                         .SetProperty(creature => creature.Angle, command.Angle),
                 cancellationToken
             );
+
+        if (updated == 1)
+        {
+            poseStore.Remove(command.CreatureId);
+        }
 
         return updated == 1;
     }
