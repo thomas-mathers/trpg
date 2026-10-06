@@ -19,6 +19,7 @@ import { runAction } from '../run-action';
 import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
+import { DebugFloorGrid } from './debug-floor-grid';
 import { FpsController } from './fps-controller';
 import { IndoorLighting } from './indoor-lighting';
 import {
@@ -192,6 +193,7 @@ export function LocationViewport({
             wells={wells}
             color={isRoomScene(scene) ? ROOM_FLOOR_COLOR : undefined}
           />
+          <DebugFloorGrid size={size} />
           <StaticWalls walls={walls} headers={headers} towers={towers} />
           {scene.roads && <StaticRoads roads={scene.roads} />}
           {scene.roads && (
