@@ -153,6 +153,9 @@ public class Creature
     public double? StandingX { get; set; }
     public double? StandingY { get; set; }
     public double? StandingAngle { get; set; }
+    public double? EntryX { get; set; }
+    public double? EntryY { get; set; }
+    public GameInstant? EnteredAt { get; set; }
 
     public int Strength { get; set; }
     public int Dexterity { get; set; }

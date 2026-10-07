@@ -13,8 +13,12 @@ public abstract record RouteTimelinePosition
 {
     public sealed record Pending(Guid LocationId, double HoursUntilStart) : RouteTimelinePosition;
 
-    public sealed record Lingering(Guid LocationId, int StepIndex, double HoursUntilDeparture)
-        : RouteTimelinePosition;
+    public sealed record Lingering(
+        Guid LocationId,
+        int StepIndex,
+        double HoursUntilDeparture,
+        GameInstant ArrivedAtGameTime
+    ) : RouteTimelinePosition;
 
     public sealed record InTransit(
         Guid ConnectorId,
@@ -85,7 +89,8 @@ public static class RouteTimeline
                 return new RouteTimelinePosition.Lingering(
                     step.LocationId,
                     index,
-                    step.DwellHours - elapsedHours
+                    step.DwellHours - elapsedHours,
+                    gameTime - TimeSpan.FromHours(1) * elapsedHours
                 );
             }
             elapsedHours -= step.DwellHours;
@@ -108,7 +113,8 @@ public static class RouteTimeline
         return new RouteTimelinePosition.Lingering(
             steps[0].LocationId,
             StepIndex: 0,
-            HoursUntilDeparture: steps[0].DwellHours
+            HoursUntilDeparture: steps[0].DwellHours,
+            ArrivedAtGameTime: gameTime
         );
     }
 

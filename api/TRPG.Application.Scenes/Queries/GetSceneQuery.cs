@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Caravans.Queries;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
@@ -11,6 +13,7 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
 using TRPG.Application.Scenes.Boundaries;
+using TRPG.Application.Scenes.Navigation;
 using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Scenes.Roads;
@@ -117,7 +120,8 @@ internal class GetSceneQueryHandler(
     IQueryHandler<
         GetEquippedItemsByOwnersQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Item>>
-    > getEquippedItemsByOwners
+    > getEquippedItemsByOwners,
+    IOptions<WorldClockOptions> clockOptions
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -402,7 +406,8 @@ internal class GetSceneQueryHandler(
                         new RouteTimelinePosition.Lingering(
                             playerLocationId,
                             stopIndex,
-                            HoursUntilDeparture: 0
+                            HoursUntilDeparture: 0,
+                            ArrivedAtGameTime: gameTime
                         ),
                         ticket
                     )
@@ -509,6 +514,7 @@ internal class GetSceneQueryHandler(
             player.Movement,
             reputation: null,
             totalCharacterXp,
+            placement: new Placement(player.X, player.Y, player.Angle),
             equipment: equipment
         );
     }
@@ -523,6 +529,7 @@ internal class GetSceneQueryHandler(
         CreatureMovement movement,
         int? reputation,
         int totalCharacterXp,
+        Placement placement,
         IReadOnlyCollection<SceneEquipmentVisual>? equipment = null,
         Guid? tradeWorkstationId = null,
         IReadOnlyCollection<QuestMarkerEntry>? questMarkers = null,
@@ -580,7 +587,7 @@ internal class GetSceneQueryHandler(
             readyToDeliver,
             creature.Effects,
             journey,
-            new Placement(creature.X, creature.Y, creature.Angle)
+            placement
         )
         {
             Equipment = equipment ?? [],
@@ -866,6 +873,11 @@ internal class GetSceneQueryHandler(
                     movement: x.Movement,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
+                    placement: CreaturePoseResolver.Resolve(
+                        x,
+                        query.GameTime,
+                        clockOptions.Value.TimeScale
+                    ),
                     equipment: equippedItemsByCreature
                         .GetValueOrDefault(x.Id, [])
                         .ToVisualEquipment(),

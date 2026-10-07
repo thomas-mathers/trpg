@@ -10,6 +10,7 @@ public class UpdateCreaturesCommand
 {
     public required IReadOnlyCollection<Guid> CreatureIds { get; init; }
     public Guid? LocationId { get; init; }
+    public GameInstant? ArrivedAt { get; init; }
     public GameInstant? LastRegenGameTime { get; init; }
     public string? Name { get; init; }
     public bool? IsRestrained { get; init; }
@@ -94,6 +95,7 @@ internal class UpdateCreaturesCommandHandler(
             {
                 CreatureIds = relocatingIds,
                 LocationId = locationId,
+                ArrivedAt = command.ArrivedAt,
             },
             cancellationToken
         );

@@ -94,6 +94,9 @@ internal static class CreatureMapper
             creature.ToEffects(),
             creature.X,
             creature.Y,
-            creature.Angle
+            creature.Angle,
+            creature.EntryX,
+            creature.EntryY,
+            creature.EnteredAt
         );
 }
