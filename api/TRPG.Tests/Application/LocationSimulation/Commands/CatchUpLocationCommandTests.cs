@@ -83,7 +83,10 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
 
-    private async Task AddMeasuredConnector(Guid originLocationId, Guid destinationLocationId)
+    private async Task<LocationConnector> AddConnector(
+        Guid originLocationId,
+        Guid destinationLocationId
+    )
     {
         var connector = new LocationConnector
         {
@@ -93,13 +96,25 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
             DestinationLabel = "Destination",
         };
         _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(
-            new TravelConnector
-            {
-                WorldId = WorldId,
-                ConnectorId = connector.Id,
-                Distance = 5,
-            }
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(connector));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return connector;
+    }
+
+    private async Task AddWalk(
+        Guid locationId,
+        LocationConnector arrival,
+        LocationConnector departure
+    )
+    {
+        _context.PointConnectors.Add(
+            Builders.MakePointConnector(
+                locationId,
+                arrival.DestinationNodeId,
+                departure.OriginNodeId,
+                WalkPace.MetersFor(5, 1),
+                WorldId
+            )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -110,7 +125,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         // Arrange
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
         var creature = await SeedCreature();
-        await AddMeasuredConnector(creature.LocationId, sleepLocation.Id);
+        await AddConnector(creature.LocationId, sleepLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -152,7 +167,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         var sleepLocation = await SeedLocation(roomId: Guid.NewGuid());
         var workLocation = await SeedLocation(roomId: Guid.NewGuid());
         var creature = await SeedCreature(sleepLocation.Id);
-        await AddMeasuredConnector(sleepLocation.Id, workLocation.Id);
+        await AddConnector(sleepLocation.Id, workLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -244,7 +259,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
                 NextChangeGameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 5,
             }
         );
-        await AddMeasuredConnector(sleepLocation.Id, idleLocation.Id);
+        await AddConnector(sleepLocation.Id, idleLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -303,7 +318,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         );
         var gateLocation = await SeedLocation(districtId: targetDistrictId);
         var creature = await SeedCreature(currentLocation.Id);
-        await AddMeasuredConnector(currentLocation.Id, gateLocation.Id);
+        await AddConnector(currentLocation.Id, gateLocation.Id);
         await AddJob(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -728,8 +743,9 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var shop = await SeedLocation(roomId: shopRoom.Id, id: shopLocationId);
         var worker = await SeedCreature(home.Id);
-        await AddMeasuredConnector(home.Id, district.Id);
-        await AddMeasuredConnector(district.Id, shop.Id);
+        var toDistrict = await AddConnector(home.Id, district.Id);
+        var toShop = await AddConnector(district.Id, shop.Id);
+        await AddWalk(district.Id, toDistrict, toShop);
         await AddJob(
             Builders.MakeCreatureJob(
                 worker.Id,
@@ -797,6 +813,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         var door = Builders.MakeDoorConnector(entryConnector.Id, worldId: WorldId);
         _context.Locations.Add(outsideLocation);
         _context.LocationConnectors.Add(entryConnector);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(entryConnector));
         _context.DoorConnectors.Add(door);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return door;

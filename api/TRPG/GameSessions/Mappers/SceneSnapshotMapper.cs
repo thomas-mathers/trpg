@@ -35,7 +35,8 @@ internal static class SceneSnapshotMapper
             TimeScale: stamp.TimeScale,
             Boundary: scene.Boundary?.ToSnapshot(),
             Roads: scene.Roads?.Select(road => road.ToSnapshot()).ToArray(),
-            Neighbors: scene.Neighbors?.Select(neighbor => neighbor.ToSnapshot()).ToArray()
+            Neighbors: scene.Neighbors?.Select(neighbor => neighbor.ToSnapshot()).ToArray(),
+            TravelNetwork: scene.TravelNetwork?.ToSnapshot()
         );
     }
 }

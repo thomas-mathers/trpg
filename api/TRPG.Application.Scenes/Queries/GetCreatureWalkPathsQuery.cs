@@ -2,6 +2,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Scenes.Navigation;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain.Models;
 
@@ -20,7 +21,7 @@ internal class GetCreatureWalkPathsQueryHandler(
         GetBuildingsByLocationQuery,
         IReadOnlyCollection<Building>
     > getBuildingsByLocation,
-    IQueryHandler<GetRoadNetworkByLocationIdQuery, LocationRoadNetwork> getRoadNetwork
+    IQueryHandler<GetPointNetworkByLocationIdQuery, LocationPointNetwork> getRoadNetwork
 ) : IQueryHandler<GetCreatureWalkPathsQuery, IReadOnlyDictionary<Guid, IReadOnlyList<Point>>>
 {
     public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<Point>>> Handle(
@@ -84,7 +85,7 @@ internal class GetCreatureWalkPathsQueryHandler(
             cancellationToken
         );
         var network = await getRoadNetwork.Handle(
-            new GetRoadNetworkByLocationIdQuery { LocationId = district.Id },
+            new GetPointNetworkByLocationIdQuery { LocationId = district.Id },
             cancellationToken
         );
 

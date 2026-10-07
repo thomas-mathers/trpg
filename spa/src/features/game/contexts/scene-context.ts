@@ -57,7 +57,6 @@ export const createSceneSnapshot = (): SceneSnapshot => ({
     activeHots: [],
     activeBuffs: [],
     equipment: [],
-    walkPath: [],
     placement: { x: 0, y: 0, angle: 0 },
   },
   nearbyCreatures: [],

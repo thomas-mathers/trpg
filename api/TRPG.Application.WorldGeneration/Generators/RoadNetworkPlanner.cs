@@ -2,7 +2,11 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
 
-internal record RoadNetwork(IReadOnlyList<RoadNode> Nodes, IReadOnlyList<RoadEdge> Edges);
+internal record RoadNetwork(
+    IReadOnlyList<TravelNode> Nodes,
+    IReadOnlyList<PointConnector> Edges,
+    IReadOnlyDictionary<Guid, Guid> PortNodeIdByConnectorId
+);
 
 internal static class RoadNetworkPlanner
 {
@@ -24,31 +28,36 @@ internal static class RoadNetworkPlanner
 
         return new RoadNetwork(
             graph.Nodes.Select(node => ToNode(district, node)).ToArray(),
-            graph.Paths.Select(path => ToEdge(district, path, classes[path])).ToArray()
+            graph.Paths.Select(path => ToEdge(district, path, classes[path])).ToArray(),
+            graph
+                .Nodes.Where(node => node.Terminal is not null)
+                .ToDictionary(node => node.Terminal!.ConnectorId, node => node.Id)
         );
     }
 
-    private static RoadNode ToNode(Location district, RoadGraphNode node) =>
+    private static TravelNode ToNode(Location district, RoadGraphNode node) =>
         new()
         {
             Id = node.Id,
             WorldId = district.WorldId,
             LocationId = district.Id,
-            Kind = node.Terminal is null ? RoadNodeKind.Junction : RoadNodeKind.Port,
-            ConnectorId = node.Terminal?.ConnectorId,
-            X = node.Position.X,
-            Y = node.Position.Y,
+            Position = node.Position,
         };
 
-    private static RoadEdge ToEdge(Location district, RoadGraphPath path, RoadClass roadClass) =>
+    private static PointConnector ToEdge(
+        Location district,
+        RoadGraphPath path,
+        RoadClass roadClass
+    ) =>
         new()
         {
             WorldId = district.WorldId,
             LocationId = district.Id,
-            FromNodeId = path.From.Id,
-            ToNodeId = path.To.Id,
-            Class = roadClass,
-            Length = RoadGeometry.Length(path.Points),
+            OriginNodeId = path.From.Id,
+            DestinationNodeId = path.To.Id,
+            Bidirectional = true,
+            RoadClass = roadClass,
+            Distance = RoadGeometry.Length(path.Points),
             Waypoints = new Polyline
             {
                 Points = path.Points.Skip(1).Take(path.Points.Count - 2).ToList(),

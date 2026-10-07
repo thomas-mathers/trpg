@@ -30,7 +30,7 @@ public class CountryPatrolRouteSeederTests
             .Values.SelectMany(ids => ids)
             .ToHashSet();
 
-        var result = _seeder.Seed(world, Options);
+        var result = _seeder.Seed(world, Options, WalkPace.TimeScale);
 
         Assert.Equal(2, result.Routes.Count);
         foreach (var (countryId, expectedLocationIds) in entranceLocationIdsByCountryId)
@@ -67,7 +67,7 @@ public class CountryPatrolRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, _, _) = BuildTwoCountryWorld(worldId);
 
-        var result = _seeder.Seed(world, Options);
+        var result = _seeder.Seed(world, Options, WalkPace.TimeScale);
 
         Assert.Equal(2, result.Travelers.Count);
         Assert.Equal(Options.SquadSize * 2, result.Creatures.Count);
@@ -93,7 +93,7 @@ public class CountryPatrolRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, _, _) = BuildTwoCountryWorld(worldId);
 
-        var result = _seeder.Seed(world, Options);
+        var result = _seeder.Seed(world, Options, WalkPace.TimeScale);
 
         var guardFactionIds = world
             .Factions.Where(f => f.Kind == FactionKind.CityGuard)
@@ -112,7 +112,7 @@ public class CountryPatrolRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, _, _) = BuildTwoCountryWorld(worldId, secondCountryCityCount: 1);
 
-        var result = _seeder.Seed(world, Options);
+        var result = _seeder.Seed(world, Options, WalkPace.TimeScale);
 
         Assert.Single(result.Routes);
         Assert.Single(result.Travelers);
@@ -133,8 +133,7 @@ public class CountryPatrolRouteSeederTests
         var cities = new List<City>();
         var districts = new List<District>();
         var locations = new List<Location>();
-        var locationConnectors = new List<LocationConnector>();
-        var travelConnectors = new List<TravelConnector>();
+        var topology = new WalkableTopology(worldId, WalkPace.MetersFor(5, 1));
         var factions = new List<Faction>();
         var entranceLocationIdsByCountryId = new Dictionary<Guid, IReadOnlyList<Guid>>();
         var hubLocationIdByCountryId = new Dictionary<Guid, Guid>();
@@ -214,14 +213,7 @@ public class CountryPatrolRouteSeederTests
                 districts.Add(entranceDistrict);
                 entranceLocationIds.Add(entranceLocation.Id);
 
-                AddBidirectionalConnector(
-                    worldId,
-                    entranceLocation.Id,
-                    hubLocation.Id,
-                    distance: 5,
-                    locationConnectors,
-                    travelConnectors
-                );
+                topology.ConnectBothWays(entranceLocation.Id, hubLocation.Id);
             }
 
             entranceLocationIdsByCountryId[country.Id] = entranceLocationIds;
@@ -235,8 +227,9 @@ public class CountryPatrolRouteSeederTests
             Cities = cities,
             Districts = districts,
             Locations = locations,
-            LocationConnectors = locationConnectors,
-            TravelConnectors = travelConnectors,
+            LocationConnectors = topology.LocationConnectors,
+            TravelNodes = topology.TravelNodes,
+            PointConnectors = topology.BuildPointConnectors(),
             InitiationQuests = [],
             InitiationQuestObjectives = [],
             FactionStandings = [],
@@ -262,41 +255,5 @@ public class CountryPatrolRouteSeederTests
         };
 
         return (world, entranceLocationIdsByCountryId, hubLocationIdByCountryId);
-    }
-
-    private static void AddBidirectionalConnector(
-        Guid worldId,
-        Guid originLocationId,
-        Guid destinationLocationId,
-        float distance,
-        List<LocationConnector> locationConnectors,
-        List<TravelConnector> travelConnectors
-    )
-    {
-        foreach (
-            var (from, to) in new[]
-            {
-                (originLocationId, destinationLocationId),
-                (destinationLocationId, originLocationId),
-            }
-        )
-        {
-            var connector = new LocationConnector
-            {
-                OriginLocationId = from,
-                DestinationLocationId = to,
-                DestinationLabel = "",
-                WorldId = worldId,
-            };
-            locationConnectors.Add(connector);
-            travelConnectors.Add(
-                new TravelConnector
-                {
-                    ConnectorId = connector.Id,
-                    Distance = distance,
-                    WorldId = worldId,
-                }
-            );
-        }
     }
 }

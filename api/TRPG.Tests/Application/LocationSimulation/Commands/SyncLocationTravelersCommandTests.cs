@@ -51,28 +51,10 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         var exitFromA = Builders.MakeLocationConnector(
             _locationA.Id,
             _locationB.Id,
-            worldId: WorldId,
-            exitX: 7,
-            exitY: 6
-        );
-        var connectorA = Builders.MakeTravelConnector(exitFromA.Id, distance: 10, worldId: WorldId);
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
             worldId: WorldId
         );
-        var stopA = Builders.MakeCaravanRouteStop(
-            route.Id,
-            0,
-            _locationA.Id,
-            connectorA.ConnectorId
-        );
-        var stopB = Builders.MakeCaravanRouteStop(
-            route.Id,
-            1,
-            _locationB.Id,
-            connectorB.ConnectorId
-        );
+        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, _locationA.Id, exitFromA.Id);
+        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, _locationB.Id, Guid.NewGuid());
         var routeTraveler = Builders.MakeCaravan(
             route.Id,
             WorldId,
@@ -85,7 +67,10 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(stopA, stopB);
         _context.LocationConnectors.Add(exitFromA);
-        _context.TravelConnectors.AddRange(connectorA, connectorB);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(exitFromA, 7, 6),
+            Builders.MakeArrivalNode(exitFromA)
+        );
         _context.RouteTravelers.Add(routeTraveler);
         _context.RouteTravelerMembers.Add(
             Builders.MakeRouteTravelerMember(routeTraveler.Id, _traveler.Id, WorldId)

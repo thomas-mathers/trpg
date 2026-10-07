@@ -60,16 +60,6 @@ public sealed class BoardCaravanActionHandlerTests(DatabaseFixture db)
             _originLocationId,
             worldId: _worldId
         );
-        var travelConnectorAB = Builders.MakeTravelConnector(
-            stopAB.Id,
-            worldId: _worldId,
-            distance: 10
-        );
-        var travelConnectorBA = Builders.MakeTravelConnector(
-            stopBA.Id,
-            worldId: _worldId,
-            distance: 10
-        );
         var originStop = Builders.MakeCaravanRouteStop(route.Id, 0, _originLocationId, stopAB.Id);
         var destinationStop = Builders.MakeCaravanRouteStop(
             route.Id,
@@ -95,7 +85,8 @@ public sealed class BoardCaravanActionHandlerTests(DatabaseFixture db)
         _context.RouteSteps.AddRange(originStop, destinationStop);
         _context.RouteTravelers.Add(caravan);
         _context.LocationConnectors.AddRange(stopAB, stopBA);
-        _context.TravelConnectors.AddRange(travelConnectorAB, travelConnectorBA);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(stopAB));
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(stopBA));
         _context.Creatures.Add(player);
         _context.GameSessions.Add(gameSession);
         _context.CaravanTickets.Add(ticket);

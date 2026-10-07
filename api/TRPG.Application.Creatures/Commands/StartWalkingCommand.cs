@@ -27,7 +27,7 @@ internal class StartWalkingCommandHandler(
     ICreaturesDbContext context,
     IQueryHandler<
         GetConnectorsByOriginLocationIdsQuery,
-        IReadOnlyCollection<LocationConnector>
+        IReadOnlyCollection<PlacedConnector>
     > getConnectorsByOrigins,
     IDomainEventPublisher<CreaturesStartedWalkingEvent> domainEvents
 ) : ICommandHandler<StartWalkingCommand>
@@ -111,7 +111,7 @@ internal class StartWalkingCommandHandler(
         }
     }
 
-    private async Task<IReadOnlyCollection<LocationConnector>> GetConnectors(
+    private async Task<IReadOnlyCollection<PlacedConnector>> GetConnectors(
         IReadOnlyList<LivingCreature> creatures,
         WalkExit? exit,
         CancellationToken cancellationToken
@@ -138,11 +138,12 @@ internal class StartWalkingCommandHandler(
         Guid locationId,
         Guid? previousLocationId,
         WalkExit? exit,
-        IReadOnlyCollection<LocationConnector> connectors
+        IReadOnlyCollection<PlacedConnector> connectors
     )
     {
-        var exitConnector = connectors.FirstOrDefault(connector =>
-            connector.Id == exit?.ConnectorId && connector.OriginLocationId == locationId
+        var exitConnector = connectors.FirstOrDefault(placed =>
+            placed.Connector.Id == exit?.ConnectorId
+            && placed.Connector.OriginLocationId == locationId
         );
         if (exit == null || exitConnector == null)
         {
@@ -150,18 +151,16 @@ internal class StartWalkingCommandHandler(
         }
 
         var entryConnector = exit.IsPassThrough
-            ? connectors.FirstOrDefault(connector =>
-                connector.OriginLocationId == previousLocationId
-                && connector.DestinationLocationId == locationId
+            ? connectors.FirstOrDefault(placed =>
+                placed.Connector.OriginLocationId == previousLocationId
+                && placed.Connector.DestinationLocationId == locationId
             )
             : null;
 
         return new WalkRecord(
-            entryConnector == null
-                ? null
-                : new Point(entryConnector.ArrivalX, entryConnector.ArrivalY),
+            entryConnector == null ? null : entryConnector.Arrival,
             entryConnector == null ? null : exit.DepartedAt,
-            new Point(exitConnector.ExitX, exitConnector.ExitY),
+            exitConnector.Exit,
             exit.DepartedAt
         );
     }

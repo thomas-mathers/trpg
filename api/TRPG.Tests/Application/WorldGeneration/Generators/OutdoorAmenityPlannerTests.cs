@@ -1,5 +1,6 @@
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
+using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
@@ -105,26 +106,30 @@ public class OutdoorAmenityPlannerTests
 
     private static RoadNetwork Roads()
     {
-        var north = new RoadNode { X = 37.5, Y = 0 };
-        var south = new RoadNode { X = 37.5, Y = 75 };
-        var west = new RoadNode { X = 0, Y = 37.5 };
-        var east = new RoadNode { X = 75, Y = 37.5 };
+        var locationId = Guid.NewGuid();
+        var north = Builders.MakeTravelNode(locationId, 37.5, 0);
+        var south = Builders.MakeTravelNode(locationId, 37.5, 75);
+        var west = Builders.MakeTravelNode(locationId, 0, 37.5);
+        var east = Builders.MakeTravelNode(locationId, 75, 37.5);
         return new RoadNetwork(
             [north, south, west, east],
             [
-                new RoadEdge
-                {
-                    FromNodeId = north.Id,
-                    ToNodeId = south.Id,
-                    Class = RoadClass.Avenue,
-                },
-                new RoadEdge
-                {
-                    FromNodeId = west.Id,
-                    ToNodeId = east.Id,
-                    Class = RoadClass.Avenue,
-                },
-            ]
+                Builders.MakePointConnector(
+                    locationId,
+                    north.Id,
+                    south.Id,
+                    75,
+                    roadClass: RoadClass.Avenue
+                ),
+                Builders.MakePointConnector(
+                    locationId,
+                    west.Id,
+                    east.Id,
+                    75,
+                    roadClass: RoadClass.Avenue
+                ),
+            ],
+            new Dictionary<Guid, Guid>()
         );
     }
 }

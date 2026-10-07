@@ -42,15 +42,16 @@ public sealed class PlaceCreaturesAtLocationCommandTests(DatabaseFixture db)
 
         _context.Worlds.Add(world);
         _context.Locations.AddRange(origin, _room);
-        _context.LocationConnectors.Add(
-            Builders.MakeLocationConnector(
-                origin.Id,
-                _room.Id,
-                worldId: _worldId,
-                arrivalX: 2,
-                arrivalY: 7,
-                arrivalAngle: 1.5
-            )
+        var connector = Builders.MakeLocationConnector(
+            origin.Id,
+            _room.Id,
+            worldId: _worldId,
+            arrivalAngle: 1.5
+        );
+        _context.LocationConnectors.Add(connector);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector),
+            Builders.MakeArrivalNode(connector, 2, 7)
         );
         _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

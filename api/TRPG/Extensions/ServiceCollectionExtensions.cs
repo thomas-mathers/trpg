@@ -425,7 +425,6 @@ internal static class ServiceCollectionExtensions
                 configuration.GetSection("QuestGenerationLlm")
             )
             .Configure<CombatOptions>(configuration.GetSection("Combat"))
-            .Configure<CityTravelOptions>(configuration.GetSection("CityTravel"))
             .Configure<CreatureGeneratorOptions>(configuration.GetSection("CreatureGenerator"))
             .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
             .Configure<GameSessionOptions>(configuration.GetSection("GameSession"))

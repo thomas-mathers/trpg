@@ -1,8 +1,8 @@
-using TRPG.Application.Scenes.Navigation;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
-namespace TRPG.Tests.Application.Scenes.Navigation;
+namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
 public class RoomNavigationGridTests
 {

@@ -159,6 +159,33 @@ public sealed class SceneSnapshotMapperTests
     }
 
     [Fact]
+    public void ToSnapshot_CarriesTheTravelNetworkNodesAndEdges()
+    {
+        // Arrange
+        var nodeId = Guid.NewGuid();
+        var scene = SceneResultBuilder.MakeScene() with
+        {
+            TravelNetwork = new SceneTravelNetwork(
+                [new SceneTravelNode(nodeId, new Point(1, 2), true)],
+                [new SceneTravelEdge([new Point(1, 2), new Point(3, 4)], 2.8, false)]
+            ),
+        };
+
+        // Act
+        var snapshot = scene.ToSnapshot(Stamp);
+
+        // Assert
+        var network = snapshot.TravelNetwork!;
+        var node = Assert.Single(network.Nodes);
+        Assert.Equal(nodeId, node.Id);
+        Assert.True(node.IsPort);
+        var edge = Assert.Single(network.Edges);
+        Assert.Equal(2.8, edge.Distance);
+        Assert.False(edge.Bidirectional);
+        Assert.Equal([1.0, 3.0], edge.Points.Select(point => point.X));
+    }
+
+    [Fact]
     public void ToSnapshot_OmitsTheNeighbors_WhenTheSceneHasNone()
     {
         // Arrange

@@ -39,14 +39,19 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         var workplace = Builders.MakeLocation(_worldId);
         var creature = Builders.MakeCreature(_worldId, locationId: origin.Id);
         creature.MovementSpeed = 5;
-        var firstConnector = Connector(origin.Id, intermediate.Id);
-        var secondConnector = Connector(intermediate.Id, workplace.Id);
-        secondConnector.ExitX = 11;
-        secondConnector.ExitY = 12;
-        _context.Locations.AddRange(origin, intermediate, workplace);
+        var crossing = Builders.MakeLocation(_worldId);
+        var toCrossing = Connector(origin.Id, crossing.Id);
+        var fromCrossing = Connector(crossing.Id, intermediate.Id);
+        var hallway = Builders.MakeLocation(_worldId);
+        var toHallway = Connector(intermediate.Id, hallway.Id);
+        var toWorkplace = Connector(hallway.Id, workplace.Id, 11, 12);
+        _context.PointConnectors.AddRange(
+            Walk(crossing.Id, toCrossing, fromCrossing, 1),
+            Walk(hallway.Id, toHallway, toWorkplace, 1)
+        );
+        _context.Locations.AddRange(origin, crossing, intermediate, hallway, workplace);
         _context.Creatures.Add(creature);
-        _context.LocationConnectors.AddRange(firstConnector, secondConnector);
-        _context.TravelConnectors.AddRange(Travel(firstConnector, 5), Travel(secondConnector, 5));
+        _context.LocationConnectors.AddRange(toCrossing, fromCrossing, toHallway, toWorkplace);
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -92,9 +97,9 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
                 entry => entry.Id == creature.Id,
                 TestContext.Current.CancellationToken
             );
-            Assert.Equal(intermediate.Id, walking.LocationId);
+            Assert.Equal(hallway.Id, walking.LocationId);
             Assert.Equal(CreatureMovement.Walking, walking.Movement);
-            Assert.Null(walking.EntryX);
+            Assert.Equal((0d, 0d), (walking.EntryX, walking.EntryY));
             Assert.Equal((11d, 12d), (walking.ExitX, walking.ExitY));
             Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), walking.DepartedAt);
 
@@ -142,11 +147,13 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         var workplace = Builders.MakeLocation(_worldId);
         var creature = Builders.MakeCreature(_worldId, locationId: home.Id);
         creature.MovementSpeed = 5;
-        var connector = Connector(home.Id, workplace.Id);
-        _context.Locations.AddRange(home, workplace);
+        var via = Builders.MakeLocation(_worldId);
+        var enter = Connector(home.Id, via.Id);
+        var leave = Connector(via.Id, workplace.Id);
+        _context.Locations.AddRange(home, via, workplace);
         _context.Creatures.Add(creature);
-        _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(Travel(connector, 5));
+        _context.LocationConnectors.AddRange(enter, leave);
+        _context.PointConnectors.Add(Walk(via.Id, enter, leave, 1));
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -199,7 +206,6 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         _context.Locations.AddRange(home, workplace);
         _context.Creatures.Add(creature);
         _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(Travel(connector, 5));
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -248,7 +254,6 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         _context.Locations.AddRange(home, workplace);
         _context.Creatures.Add(creature);
         _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(Travel(connector, 5));
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -297,7 +302,6 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         _context.Locations.AddRange(home, workplace);
         _context.Creatures.Add(creature);
         _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(Travel(connector, 5));
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -483,7 +487,6 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         _context.Locations.AddRange(firstDistrict, secondDistrict);
         _context.Creatures.Add(creature);
         _context.LocationConnectors.AddRange(outbound, inbound);
-        _context.TravelConnectors.AddRange(Travel(outbound, 5), Travel(inbound, 5));
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(
             PatrolStep(route.Id, 0, firstDistrict.Id, outbound.Id),
@@ -554,13 +557,16 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             WorldId = _worldId,
             RouteId = route.Id,
             StartedAtGameTime = GameClock.Epoch,
-            SpeedUnitsPerHour = creature.MovementSpeed,
+            SpeedUnitsPerHour = WalkPace.MetersFor(creature.MovementSpeed, 1),
             Purpose = "Patrolling the city",
         };
         _context.Locations.AddRange(firstDistrict, secondDistrict);
         _context.Creatures.Add(creature);
         _context.LocationConnectors.AddRange(outbound, inbound);
-        _context.TravelConnectors.AddRange(Travel(outbound, 5), Travel(inbound, 5));
+        _context.PointConnectors.AddRange(
+            Walk(firstDistrict.Id, inbound, outbound, 1),
+            Walk(secondDistrict.Id, outbound, inbound, 1)
+        );
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(
             PatrolStep(route.Id, 0, firstDistrict.Id, outbound.Id),
@@ -644,7 +650,6 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         _context.Locations.AddRange(outdoors, home);
         _context.Creatures.Add(creature);
         _context.LocationConnectors.AddRange(outbound, inbound);
-        _context.TravelConnectors.AddRange(Travel(outbound, 5), Travel(inbound, 5));
         _context.CreatureJobs.AddRange(
             Builders.MakeCreatureJob(
                 creature.Id,
@@ -740,22 +745,41 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         Assert.Equal(outdoors.Id, onDuty.LocationId);
     }
 
-    private LocationConnector Connector(Guid originLocationId, Guid destinationLocationId) =>
-        new()
+    private LocationConnector Connector(
+        Guid originLocationId,
+        Guid destinationLocationId,
+        double exitX = 0,
+        double exitY = 0
+    )
+    {
+        var connector = new LocationConnector
         {
             WorldId = _worldId,
             OriginLocationId = originLocationId,
             DestinationLocationId = destinationLocationId,
             DestinationLabel = "Destination",
         };
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector, exitX, exitY),
+            Builders.MakeArrivalNode(connector)
+        );
 
-    private TravelConnector Travel(LocationConnector connector, float distance) =>
-        new()
-        {
-            WorldId = _worldId,
-            ConnectorId = connector.Id,
-            Distance = distance,
-        };
+        return connector;
+    }
+
+    private PointConnector Walk(
+        Guid locationId,
+        LocationConnector arrival,
+        LocationConnector departure,
+        double hours
+    ) =>
+        Builders.MakePointConnector(
+            locationId,
+            arrival.DestinationNodeId,
+            departure.OriginNodeId,
+            WalkPace.MetersFor(5, hours),
+            _worldId
+        );
 
     private RouteStep PatrolStep(
         Guid routeId,
@@ -771,5 +795,6 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             LocationId = locationId,
             ConnectorId = connectorId,
             DwellHours = 0.5,
+            Distance = WalkPace.MetersFor(5, 1),
         };
 }

@@ -24,7 +24,7 @@ public class RoadTravelerRouteSeederTests
     {
         var world = BuildWorld();
 
-        var result = _seeder.Seed(world.World, Options);
+        var result = _seeder.Seed(world.World, Options, WalkPace.TimeScale);
 
         Assert.Equal(3, result.Members.Count);
         Assert.Single(
@@ -50,7 +50,7 @@ public class RoadTravelerRouteSeederTests
     {
         var world = BuildWorld();
 
-        var result = _seeder.Seed(world.World, Options);
+        var result = _seeder.Seed(world.World, Options, WalkPace.TimeScale);
 
         foreach (var routeTraveler in result.RouteTravelers)
         {
@@ -133,11 +133,10 @@ public class RoadTravelerRouteSeederTests
                     }
             )
             .ToArray();
-        var locationConnectors = new List<LocationConnector>();
-        var travelConnectors = new List<TravelConnector>();
+        var topology = new WalkableTopology(worldId, WalkPace.MetersFor(5, 1));
         foreach (var entrance in entrances)
         {
-            AddRoad(worldId, entrance.Id, hub.Id, locationConnectors, travelConnectors);
+            topology.ConnectBothWays(entrance.Id, hub.Id);
         }
 
         return new RoadTravelerWorldFixture(
@@ -149,8 +148,9 @@ public class RoadTravelerRouteSeederTests
                 Cities = cities,
                 Districts = districts,
                 Locations = [hub, .. entrances],
-                LocationConnectors = locationConnectors,
-                TravelConnectors = travelConnectors,
+                LocationConnectors = topology.LocationConnectors,
+                TravelNodes = topology.TravelNodes,
+                PointConnectors = topology.BuildPointConnectors(),
                 Buildings = buildings,
                 InitiationQuests = [],
                 InitiationQuestObjectives = [],
@@ -176,41 +176,6 @@ public class RoadTravelerRouteSeederTests
             },
             hub.Id
         );
-    }
-
-    private static void AddRoad(
-        Guid worldId,
-        Guid firstLocationId,
-        Guid secondLocationId,
-        List<LocationConnector> locationConnectors,
-        List<TravelConnector> travelConnectors
-    )
-    {
-        foreach (
-            var (origin, destination) in new[]
-            {
-                (firstLocationId, secondLocationId),
-                (secondLocationId, firstLocationId),
-            }
-        )
-        {
-            var connector = new LocationConnector
-            {
-                WorldId = worldId,
-                OriginLocationId = origin,
-                DestinationLocationId = destination,
-                DestinationLabel = "Road",
-            };
-            locationConnectors.Add(connector);
-            travelConnectors.Add(
-                new TravelConnector
-                {
-                    WorldId = worldId,
-                    ConnectorId = connector.Id,
-                    Distance = 5,
-                }
-            );
-        }
     }
 
     private sealed record RoadTravelerWorldFixture(WorldGeneratorResult World, Guid HubLocationId);

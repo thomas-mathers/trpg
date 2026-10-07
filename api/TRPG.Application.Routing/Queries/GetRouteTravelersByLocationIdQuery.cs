@@ -25,13 +25,8 @@ public class GetRouteTravelersByLocationIdQuery
     public required Guid LocationId { get; init; }
 }
 
-internal class GetRouteTravelersByLocationIdQueryHandler(
-    IRoutingDbContext context,
-    IQueryHandler<
-        GetTravelConnectorDistancesQuery,
-        IReadOnlyDictionary<Guid, float>
-    > getTravelConnectorDistances
-) : IQueryHandler<GetRouteTravelersByLocationIdQuery, IReadOnlyList<RouteTravelerSummary>>
+internal class GetRouteTravelersByLocationIdQueryHandler(IRoutingDbContext context)
+    : IQueryHandler<GetRouteTravelersByLocationIdQuery, IReadOnlyList<RouteTravelerSummary>>
 {
     public async Task<IReadOnlyList<RouteTravelerSummary>> Handle(
         GetRouteTravelersByLocationIdQuery query,
@@ -66,16 +61,6 @@ internal class GetRouteTravelersByLocationIdQueryHandler(
             .Where(step => routeIds.AsEnumerable().Contains(step.RouteId))
             .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(cancellationToken);
-        var connectorIds = routeSteps
-            .Where(step => step.ConnectorId != null)
-            .Select(step => step.ConnectorId!.Value)
-            .Distinct()
-            .ToArray();
-
-        var distances = await getTravelConnectorDistances.Handle(
-            new GetTravelConnectorDistancesQuery { ConnectorIds = connectorIds },
-            cancellationToken
-        );
         var stepsByRouteId = routeSteps
             .GroupBy(step => step.RouteId)
             .ToDictionary(
@@ -86,7 +71,7 @@ internal class GetRouteTravelersByLocationIdQueryHandler(
                             .Select(step => new RouteTimelineStep(
                                 step.LocationId,
                                 step.ConnectorId,
-                                step.ConnectorId == null ? 0 : distances[step.ConnectorId.Value],
+                                step.Distance,
                                 step.DwellHours
                             ))
                             .ToArray()

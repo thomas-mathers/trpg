@@ -159,6 +159,7 @@ public class Creature
     public double? ExitX { get; set; }
     public double? ExitY { get; set; }
     public GameInstant? DepartedAt { get; set; }
+    public GameInstant? WalkPausedAt { get; set; }
 
     public int Strength { get; set; }
     public int Dexterity { get; set; }

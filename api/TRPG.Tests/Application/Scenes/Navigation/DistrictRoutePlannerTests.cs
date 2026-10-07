@@ -14,7 +14,7 @@ public class DistrictRoutePlannerTests
     public void Plan_WalksTheRoadThenCutsAcrossToTheAnchor()
     {
         // Arrange
-        var network = MakeNetwork(RoadNodeKind.Port, Port, Junction, []);
+        var network = MakeNetwork(true, Port, Junction, []);
         var grid = DistrictNavigationGrid.Build(MakeDistrict(), []);
 
         // Act
@@ -28,7 +28,7 @@ public class DistrictRoutePlannerTests
     public void Plan_FollowsEdgeWaypointsInOrder_WhenTheEdgeIsTraversedBackwards()
     {
         // Arrange
-        var network = MakeNetwork(RoadNodeKind.Port, Port, Junction, [new Point(10, 10)], true);
+        var network = MakeNetwork(true, Port, Junction, [new Point(10, 10)], true);
         var grid = DistrictNavigationGrid.Build(MakeDistrict(), []);
 
         // Act
@@ -42,7 +42,7 @@ public class DistrictRoutePlannerTests
     public void Plan_GoesAroundBuildings_WhenTheAnchorIsBehindOne()
     {
         // Arrange
-        var network = MakeNetwork(RoadNodeKind.Port, Port, Junction, []);
+        var network = MakeNetwork(true, Port, Junction, []);
         var building = Builders.MakeBuilding(x: 15, y: 15, width: 6, depth: 1.5);
         var grid = DistrictNavigationGrid.Build(MakeDistrict(), [building]);
 
@@ -57,7 +57,7 @@ public class DistrictRoutePlannerTests
     public void Plan_WalksStraightAcrossOpenGround_WhenTheDistrictHasNoPort()
     {
         // Arrange
-        var network = MakeNetwork(RoadNodeKind.Junction, Port, Junction, []);
+        var network = MakeNetwork(false, Port, Junction, []);
         var grid = DistrictNavigationGrid.Build(MakeDistrict(), []);
 
         // Act
@@ -70,40 +70,35 @@ public class DistrictRoutePlannerTests
     private static Location MakeDistrict() =>
         Builders.MakeLocation(kind: LocationKind.District, width: 30, depth: 30);
 
-    private static LocationRoadNetwork MakeNetwork(
-        RoadNodeKind firstKind,
+    private static LocationPointNetwork MakeNetwork(
+        bool firstIsPort,
         Point first,
         Point second,
         List<Point> waypoints,
         bool reversed = false
     )
     {
-        var start = new RoadNode
-        {
-            Kind = firstKind,
-            X = first.X,
-            Y = first.Y,
-        };
-        var end = new RoadNode
-        {
-            Kind = RoadNodeKind.Junction,
-            X = second.X,
-            Y = second.Y,
-        };
-        var edge = reversed
-            ? new RoadEdge
+        var locationId = Guid.NewGuid();
+        var start = Builders.MakeTravelNode(locationId, first.X, first.Y);
+        var end = Builders.MakeTravelNode(locationId, second.X, second.Y);
+        var connector = reversed
+            ? new PointConnector
             {
-                FromNodeId = end.Id,
-                ToNodeId = start.Id,
+                OriginNodeId = end.Id,
+                DestinationNodeId = start.Id,
                 Waypoints = new Polyline { Points = [.. waypoints.AsEnumerable().Reverse()] },
             }
-            : new RoadEdge
+            : new PointConnector
             {
-                FromNodeId = start.Id,
-                ToNodeId = end.Id,
+                OriginNodeId = start.Id,
+                DestinationNodeId = end.Id,
                 Waypoints = new Polyline { Points = waypoints },
             };
 
-        return new LocationRoadNetwork([start, end], [edge]);
+        return new LocationPointNetwork(
+            [start, end],
+            [connector],
+            firstIsPort ? new HashSet<Guid> { start.Id } : new HashSet<Guid>()
+        );
     }
 }

@@ -1,12 +1,11 @@
 using TRPG.Application.Common.Navigation;
-using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Scenes.Navigation;
+namespace TRPG.Application.WorldGeneration.Generators;
 
-internal static class RoomNavigationGrid
+public static class RoomNavigationGrid
 {
-    internal const double CellSize = 0.5;
+    public const double CellSize = 0.5;
 
     private static readonly HashSet<PropModel> NonBlockingModels =
     [

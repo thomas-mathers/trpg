@@ -1,7 +1,10 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -29,10 +32,7 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
     > getCreatureJobsByCreatureIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<SetCreatureActivityCommand> setCreatureActivity,
-    IQueryHandler<
-        GetTravelConnectorDistancesQuery,
-        IReadOnlyDictionary<Guid, float>
-    > getTravelConnectorDistances
+    IOptions<WorldClockOptions> clockOptions
 ) : ICommandHandler<MaterializeScheduledRouteTravelersCommand, IReadOnlyCollection<Guid>>
 {
     public async Task<IReadOnlyCollection<Guid>> Handle(
@@ -183,7 +183,10 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             WorldId = worldId,
             RouteId = occurrence.Schedule.RouteId,
             StartedAtGameTime = occurrence.StartedAtGameTime,
-            SpeedUnitsPerHour = creature.MovementSpeed,
+            SpeedUnitsPerHour = InLocationPace.MetersPerGameHour(
+                creature.MovementSpeed,
+                clockOptions.Value.TimeScale
+            ),
             Purpose = occurrence.Schedule.Purpose,
             CreatureRouteScheduleId = occurrence.Schedule.Id,
             ArrivalActivity = arrivalActivity,
@@ -331,15 +334,6 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
             .Where(step => routeIds.AsEnumerable().Contains(step.RouteId))
             .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(cancellationToken);
-        var connectorIds = steps
-            .Where(step => step.ConnectorId != null)
-            .Select(step => step.ConnectorId!.Value)
-            .Distinct()
-            .ToArray();
-        var distances = await getTravelConnectorDistances.Handle(
-            new GetTravelConnectorDistancesQuery { ConnectorIds = connectorIds },
-            cancellationToken
-        );
         var stepsByRouteId = steps
             .GroupBy(step => step.RouteId)
             .ToDictionary(
@@ -350,7 +344,7 @@ internal class MaterializeScheduledRouteTravelersCommandHandler(
                             .Select(step => new RouteTimelineStep(
                                 step.LocationId,
                                 step.ConnectorId,
-                                step.ConnectorId == null ? 0 : distances[step.ConnectorId.Value],
+                                step.Distance,
                                 step.DwellHours
                             ))
                             .ToArray()

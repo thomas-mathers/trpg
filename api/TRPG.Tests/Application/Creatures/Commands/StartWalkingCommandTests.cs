@@ -289,22 +289,16 @@ public sealed class StartWalkingCommandTests(DatabaseFixture db)
         var here = Builders.MakeLocation(worldId: worldId, width: 20, depth: 20);
         var previous = Builders.MakeLocation(worldId: worldId, width: 20, depth: 20);
         var next = Builders.MakeLocation(worldId: worldId, width: 20, depth: 20);
-        var entering = Builders.MakeLocationConnector(
-            previous.Id,
-            here.Id,
-            worldId: worldId,
-            arrivalX: 2,
-            arrivalY: 3
-        );
-        var exit = Builders.MakeLocationConnector(
-            here.Id,
-            next.Id,
-            worldId: worldId,
-            exitX: 9,
-            exitY: 8
-        );
+        var entering = Builders.MakeLocationConnector(previous.Id, here.Id, worldId: worldId);
+        var exit = Builders.MakeLocationConnector(here.Id, next.Id, worldId: worldId);
         _context.Locations.AddRange(here, previous, next);
         _context.LocationConnectors.AddRange(entering, exit);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(entering),
+            Builders.MakeArrivalNode(entering, 2, 3),
+            Builders.MakeExitNode(exit, 9, 8),
+            Builders.MakeArrivalNode(exit)
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return (here, previous, exit);

@@ -100,6 +100,7 @@ internal static class CreatureMapper
             creature.EnteredAt,
             creature.ExitX,
             creature.ExitY,
-            creature.DepartedAt
+            creature.DepartedAt,
+            creature.WalkPausedAt
         );
 }

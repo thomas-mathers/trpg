@@ -19,7 +19,8 @@ function hueFor(id: string) {
   return hash % 360;
 }
 
-function pathGeometry({ walkPath }: CreatureStatusSnapshot) {
+function pathGeometry({ walk }: CreatureStatusSnapshot) {
+  const walkPath = walk?.points ?? [];
   const positions: number[] = [];
   for (let i = 0; i < walkPath.length - 1; i++) {
     positions.push(
@@ -34,7 +35,7 @@ function pathGeometry({ walkPath }: CreatureStatusSnapshot) {
 }
 
 function WalkPath({ creature }: { creature: CreatureStatusSnapshot }) {
-  const geometry = useMemo(() => pathGeometry(creature), [creature.walkPath]);
+  const geometry = useMemo(() => pathGeometry(creature), [creature.walk]);
 
   return (
     <lineSegments geometry={geometry}>
@@ -59,7 +60,7 @@ export function DebugWalkPaths({ creatures }: { creatures: CreatureStatusSnapsho
   return (
     <group>
       {creatures
-        .filter(({ walkPath }) => walkPath.length > 1)
+        .filter(({ walk }) => walk !== undefined)
         .map((creature) => (
           <WalkPath key={creature.id} creature={creature} />
         ))}

@@ -111,23 +111,12 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
             WorldId,
             purpose: "Making a pilgrimage to the Dawn Temple."
         );
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
-        );
         _context.Locations.AddRange(origin, destination);
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(
-            Builders.MakeCaravanRouteStop(route.Id, 0, origin.Id, connectorA.ConnectorId),
-            Builders.MakeCaravanRouteStop(route.Id, 1, destination.Id, connectorB.ConnectorId)
+            Builders.MakeCaravanRouteStop(route.Id, 0, origin.Id, Guid.NewGuid()),
+            Builders.MakeCaravanRouteStop(route.Id, 1, destination.Id, Guid.NewGuid())
         );
-        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.RouteTravelers.Add(routeTraveler);
         _context.RouteTravelerMembers.Add(
             new RouteTravelerMember

@@ -63,14 +63,6 @@ public class BarracksGuardDutyAssignerTests
                 _gateLocationId,
                 districts,
                 connectors,
-                connectors
-                    .Select(connector => new TravelConnector
-                    {
-                        WorldId = _worldId,
-                        ConnectorId = connector.Id,
-                        Distance = 15,
-                    })
-                    .ToArray(),
                 beds,
                 guards
             )

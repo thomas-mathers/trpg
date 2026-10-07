@@ -96,13 +96,14 @@ public class CityGridLayoutTests
         var districtIds = Districts(world).Select(district => district.Id).ToHashSet();
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
         var offLattice = world
-            .Input.Connectors.Where(connector => districtIds.Contains(connector.OriginLocationId))
-            .Where(connector => !IsFacadeCellCentre(connector.ExitX, connector.ExitY))
-            .Select(connector => $"({connector.ExitX}, {connector.ExitY})")
+            .PlacedConnectors(layout)
+            .Where(placed => districtIds.Contains(placed.Connector.OriginLocationId))
+            .Where(placed => !IsFacadeCellCentre(placed.Exit.X, placed.Exit.Y))
+            .Select(placed => $"({placed.Exit.X}, {placed.Exit.Y})")
             .ToList();
         Assert.True(offLattice.Count == 0, string.Join(Environment.NewLine, offLattice));
     }

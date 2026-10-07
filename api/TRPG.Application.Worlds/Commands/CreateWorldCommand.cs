@@ -33,7 +33,8 @@ internal class CreateWorldCommandHandler(
     ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld,
     IOptionsSnapshot<CaravanOptions> caravanOptions,
     IOptionsSnapshot<CountryPatrolOptions> countryPatrolOptions,
-    IOptionsSnapshot<RoadTravelerOptions> roadTravelerOptions
+    IOptionsSnapshot<RoadTravelerOptions> roadTravelerOptions,
+    IOptions<WorldClockOptions> clockOptions
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
     public async Task<CreateWorldResult> Handle(
@@ -111,14 +112,20 @@ internal class CreateWorldCommandHandler(
             })
             .ToArray();
 
-        var caravanRoutes = CaravanRouteSeeder.Seed(worldResult, caravanOptions.Value);
+        var caravanRoutes = CaravanRouteSeeder.Seed(
+            worldResult,
+            caravanOptions.Value,
+            clockOptions.Value.TimeScale
+        );
         var countryPatrolRoutes = countryPatrolRouteSeeder.Seed(
             worldResult,
-            countryPatrolOptions.Value
+            countryPatrolOptions.Value,
+            clockOptions.Value.TimeScale
         );
         var roadTravelerRoutes = roadTravelerRouteSeeder.Seed(
             worldResult,
-            roadTravelerOptions.Value
+            roadTravelerOptions.Value,
+            clockOptions.Value.TimeScale
         );
 
         var seededCreatures = countryPatrolRoutes
@@ -185,7 +192,7 @@ internal class CreateWorldCommandHandler(
             worldResult.Locations,
             worldResult.Props,
             worldResult.Buildings,
-            worldResult.LocationConnectors,
+            PlacedConnector.Place(worldResult.LocationConnectors, worldResult.TravelNodes),
             creatures
         )
         {

@@ -77,7 +77,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             RouteId = scenario.RouteId,
             CreatureRouteScheduleId = scenario.ScheduleId,
             StartedAtGameTime = GameClock.Epoch - TimeSpan.FromHours(1) * 169,
-            SpeedUnitsPerHour = 5,
+            SpeedUnitsPerHour = WalkPace.MetersFor(5, 1),
             Purpose = "Walking to work",
         };
         _context.RouteTravelers.Add(staleTraveler);
@@ -120,7 +120,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             RouteId = scenario.RouteId,
             CreatureRouteScheduleId = scenario.ScheduleId,
             StartedAtGameTime = GameClock.Epoch - TimeSpan.FromHours(1) * 171,
-            SpeedUnitsPerHour = 5,
+            SpeedUnitsPerHour = WalkPace.MetersFor(5, 1),
             Purpose = "Walking to work",
         };
         _context.RouteTravelers.Add(staleTraveler);
@@ -264,7 +264,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             StartedAtGameTime = startedAtGameTime,
             PausedAtGameTime = pausedAtGameTime,
             PausedDuration = pausedDuration,
-            SpeedUnitsPerHour = 5,
+            SpeedUnitsPerHour = WalkPace.MetersFor(5, 1),
             Purpose = "Walking to work",
         };
         _context.RouteTravelers.Add(traveler);
@@ -288,6 +288,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
         var destination = Builders.MakeLocation(worldId);
         var creature = Builders.MakeCreature(worldId, locationId: origin.Id);
         creature.MovementSpeed = 5;
+        var legMeters = WalkPace.MetersFor(5, 1);
         var firstConnector = Connector(worldId, origin.Id, middle.Id);
         var secondConnector = Connector(worldId, middle.Id, destination.Id);
         var route = new Route
@@ -328,15 +329,17 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
         _context.Creatures.Add(creature);
         _context.CreatureJobs.AddRange(originJob, destinationJob);
         _context.LocationConnectors.AddRange(firstConnector, secondConnector);
-        _context.TravelConnectors.AddRange(
-            Travel(worldId, firstConnector.Id),
-            Travel(worldId, secondConnector.Id)
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(firstConnector),
+            Builders.MakeArrivalNode(firstConnector),
+            Builders.MakeExitNode(secondConnector),
+            Builders.MakeArrivalNode(secondConnector)
         );
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(
-            Step(worldId, route.Id, 0, origin.Id, firstConnector.Id),
-            Step(worldId, route.Id, 1, middle.Id, secondConnector.Id),
-            Step(worldId, route.Id, 2, destination.Id, null)
+            Step(worldId, route.Id, 0, origin.Id, firstConnector.Id, legMeters),
+            Step(worldId, route.Id, 1, middle.Id, secondConnector.Id, legMeters),
+            Step(worldId, route.Id, 2, destination.Id, null, 0)
         );
         _context.CreatureRouteSchedules.Add(schedule);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -364,20 +367,13 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             DestinationLabel = "Destination",
         };
 
-    private static TravelConnector Travel(Guid worldId, Guid connectorId) =>
-        new()
-        {
-            WorldId = worldId,
-            ConnectorId = connectorId,
-            Distance = 5,
-        };
-
     private static RouteStep Step(
         Guid worldId,
         Guid routeId,
         int index,
         Guid locationId,
-        Guid? connectorId
+        Guid? connectorId,
+        double distance
     ) =>
         new()
         {
@@ -387,6 +383,7 @@ public sealed class MaterializeScheduledRouteTravelersCommandTests(DatabaseFixtu
             LocationId = locationId,
             ConnectorId = connectorId,
             DwellHours = 0,
+            Distance = distance,
         };
 
     private sealed record Scenario(

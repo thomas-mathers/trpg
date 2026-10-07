@@ -6,7 +6,7 @@ public record CreatureLayoutInput(
     IReadOnlyList<Location> Locations,
     IReadOnlyList<Prop> Props,
     IReadOnlyList<Building> Buildings,
-    IReadOnlyList<LocationConnector> Connectors,
+    IReadOnlyList<PlacedConnector> Connectors,
     IReadOnlyList<Creature> Creatures
 )
 {
@@ -17,8 +17,8 @@ internal sealed class CreatureLayoutContext
 {
     private readonly ILookup<Guid, Prop> _propsByLocation;
     private readonly ILookup<Guid, Building> _buildingsByExterior;
-    private readonly ILookup<Guid, LocationConnector> _connectorsByOrigin;
-    private readonly IReadOnlyList<LocationConnector> _connectors;
+    private readonly ILookup<Guid, PlacedConnector> _connectorsByOrigin;
+    private readonly IReadOnlyList<PlacedConnector> _connectors;
     private readonly Dictionary<Guid, List<PlacementObstacle>> _creaturesByLocation;
 
     internal CreatureLayoutContext(CreatureLayoutInput input)
@@ -27,7 +27,9 @@ internal sealed class CreatureLayoutContext
         _propsByLocation = input.Props.ToLookup(prop => prop.LocationId);
         _buildingsByExterior = input.Buildings.ToLookup(building => building.ExteriorLocationId);
         _connectors = input.Connectors;
-        _connectorsByOrigin = input.Connectors.ToLookup(connector => connector.OriginLocationId);
+        _connectorsByOrigin = input.Connectors.ToLookup(placed =>
+            placed.Connector.OriginLocationId
+        );
         _creaturesByLocation = input
             .AlreadyPlaced.GroupBy(creature => creature.LocationId)
             .ToDictionary(group => group.Key, group => group.Select(CreatureObstacle).ToList());
@@ -65,13 +67,17 @@ internal sealed class CreatureLayoutContext
     internal Placement? ArrivalPointFrom(Guid originLocationId, Guid destinationLocationId)
     {
         var connector = _connectors.FirstOrDefault(candidate =>
-            candidate.OriginLocationId == originLocationId
-            && candidate.DestinationLocationId == destinationLocationId
+            candidate.Connector.OriginLocationId == originLocationId
+            && candidate.Connector.DestinationLocationId == destinationLocationId
         );
 
         return connector is null
             ? null
-            : new Placement(connector.ArrivalX, connector.ArrivalY, connector.ArrivalAngle);
+            : new Placement(
+                connector.Arrival.X,
+                connector.Arrival.Y,
+                connector.Connector.ArrivalAngle
+            );
     }
 
     internal void Record(Creature creature)
@@ -87,12 +93,12 @@ internal sealed class CreatureLayoutContext
 
     internal static Placement PoseOf(Prop prop) => new(prop.X, prop.Y, prop.Angle);
 
-    private static PlacementObstacle DoorObstacle(LocationConnector connector)
+    private static PlacementObstacle DoorObstacle(PlacedConnector placed)
     {
         var box = ExitKeepOut.Of(
-            new PlanarPoint(connector.ExitX, connector.ExitY),
-            connector.ExitAngle,
-            connector.StairDirection
+            new PlanarPoint(placed.Exit.X, placed.Exit.Y),
+            placed.Connector.ExitAngle,
+            placed.Connector.StairDirection
         );
 
         return new PlacementObstacle(

@@ -10,14 +10,14 @@ internal static class DistrictRoutePlanner
     public static IReadOnlyList<Point> Plan(
         Point entry,
         Point anchor,
-        LocationRoadNetwork network,
+        LocationPointNetwork network,
         NavigationGrid offRoad
     )
     {
         var polylines = Polylines(network);
         var ports = network
-            .Nodes.Where(node => node.Kind == RoadNodeKind.Port)
-            .Select(node => new Point(node.X, node.Y))
+            .Nodes.Where(node => network.PortNodeIds.Contains(node.Id))
+            .Select(node => node.Position)
             .ToArray();
         var landing = NearestLanding(anchor, polylines);
 
@@ -38,26 +38,24 @@ internal static class DistrictRoutePlanner
         return WithoutRepeats([entry, .. road, .. offRoad.FindPath(landing.Point, anchor)]);
     }
 
-    private static List<List<Point>> Polylines(LocationRoadNetwork network)
+    private static List<List<Point>> Polylines(LocationPointNetwork network)
     {
         var nodes = network.Nodes.ToDictionary(node => node.Id);
 
         return
         [
             .. network
-                .Edges.Where(edge =>
-                    nodes.ContainsKey(edge.FromNodeId) && nodes.ContainsKey(edge.ToNodeId)
+                .Connectors.Where(connector =>
+                    nodes.ContainsKey(connector.OriginNodeId)
+                    && nodes.ContainsKey(connector.DestinationNodeId)
                 )
-                .Select(edge =>
+                .Select(connector =>
                 {
-                    var from = nodes[edge.FromNodeId];
-                    var to = nodes[edge.ToNodeId];
-
                     List<Point> line =
                     [
-                        new(from.X, from.Y),
-                        .. edge.Waypoints.Points,
-                        new(to.X, to.Y),
+                        nodes[connector.OriginNodeId].Position,
+                        .. connector.Waypoints.Points,
+                        nodes[connector.DestinationNodeId].Position,
                     ];
 
                     return line;

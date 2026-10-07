@@ -34,6 +34,7 @@ public static class SceneSemanticComparer
         SceneCreatureInfo current
     ) =>
         Normalize(previous) == Normalize(current)
+        && WalksAreEquivalent(previous.Walk, current.Walk)
         && SetEquals(previous.Equipment, current.Equipment)
         && previous.FactionNames.Order().SequenceEqual(current.FactionNames.Order())
         && SetEquals(previous.QuestMarkers, current.QuestMarkers)
@@ -90,7 +91,7 @@ public static class SceneSemanticComparer
             CurrentMp = 0,
             FactionNames = Array.Empty<string>(),
             Equipment = Array.Empty<SceneEquipmentVisual>(),
-            WalkPath = Array.Empty<Point>(),
+            Walk = null,
             QuestMarkers = Array.Empty<QuestMarkerEntry>(),
             Effects = CreatureEffects.None,
             Placement = new(0, 0, 0),
@@ -102,6 +103,18 @@ public static class SceneSemanticComparer
             MinutesUntilDeparture = 0,
             Destinations = Array.Empty<SceneCaravanDestination>(),
         };
+
+    private static bool WalksAreEquivalent(
+        SceneCreatureWalk? previous,
+        SceneCreatureWalk? current
+    ) =>
+        previous is null || current is null
+            ? previous is null && current is null
+            : previous.StartedAt == current.StartedAt
+                && previous.MetersPerGameSecond == current.MetersPerGameSecond
+                && previous.LeavesAtEnd == current.LeavesAtEnd
+                && previous.PausedAt == current.PausedAt
+                && previous.Path.SequenceEqual(current.Path);
 
     private static bool EffectsAreEquivalent(CreatureEffects previous, CreatureEffects current) =>
         SetEquals(previous.Conditions, current.Conditions)

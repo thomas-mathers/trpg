@@ -7,7 +7,7 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 public class WildernessConnectorGeneratorTests
 {
     [Fact]
-    public void Generate_CreatesTravelConnectorsInBothDirections()
+    public void Generate_CreatesConnectorsInBothDirections()
     {
         // Arrange
         var worldId = Guid.NewGuid();
@@ -19,29 +19,20 @@ public class WildernessConnectorGeneratorTests
         var result = WildernessConnectorGenerator.Generate(city, cityEntrance, wilderness, worldId);
 
         // Assert
-        Assert.Equal(2, result.LocationConnectors.Count);
-        Assert.Equal(2, result.TravelConnectors.Count);
+        Assert.Equal(2, result.Count);
         Assert.Contains(
-            result.LocationConnectors,
+            result,
             connector =>
                 connector.OriginLocationId == cityEntrance.LocationId
                 && connector.DestinationLocationId == wilderness.Id
         );
         Assert.Contains(
-            result.LocationConnectors,
+            result,
             connector =>
                 connector.OriginLocationId == wilderness.Id
                 && connector.DestinationLocationId == cityEntrance.LocationId
                 && connector.DestinationLabel == city.Name
                 && connector.Description.Contains(city.Name, StringComparison.Ordinal)
-        );
-        Assert.All(
-            result.TravelConnectors,
-            connector =>
-                Assert.Contains(
-                    result.LocationConnectors,
-                    locationConnector => locationConnector.Id == connector.ConnectorId
-                )
         );
     }
 
@@ -58,7 +49,7 @@ public class WildernessConnectorGeneratorTests
         var result = WildernessConnectorGenerator.Generate(city, cityEntrance, wilderness, worldId);
 
         // Assert
-        var gate = result.LocationConnectors.Single(connector =>
+        var gate = result.Single(connector =>
             connector.OriginLocationId == cityEntrance.LocationId
         );
         Assert.Equal(CompassDirection.South, gate.Direction);

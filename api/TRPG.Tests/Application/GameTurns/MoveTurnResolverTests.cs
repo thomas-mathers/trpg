@@ -45,6 +45,7 @@ public sealed class MoveTurnResolverTests(DatabaseFixture db)
         _context.Locations.AddRange(origin, destination);
         _context.Creatures.Add(player);
         _context.LocationConnectors.Add(_connector);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(_connector));
         _context.GameSessions.Add(gameSession);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }

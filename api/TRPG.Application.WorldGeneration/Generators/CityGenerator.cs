@@ -10,7 +10,6 @@ internal class CityGeneratorInput
     public required CreatureType DominantRace { get; init; }
     public required IReadOnlyList<District> Districts { get; init; }
     public required IReadOnlyList<LocationConnector> DistrictConnectors { get; init; }
-    public required IReadOnlyList<TravelConnector> DistrictTravelConnectors { get; init; }
     public required IReadOnlyDictionary<Guid, Location> LocationsById { get; init; }
     public required IReadOnlyList<Faction> NamedFactions { get; init; }
     public required WorldGeneratorInput GeneratorInput { get; init; }
@@ -485,7 +484,6 @@ public class CityGenerator(
                 gateLocationId,
                 input.Districts,
                 input.DistrictConnectors,
-                input.DistrictTravelConnectors,
                 buildingResult.Props.OfType<Bed>().ToList(),
                 guards
             )

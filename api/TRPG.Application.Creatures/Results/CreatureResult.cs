@@ -55,5 +55,6 @@ public record CreatureResult(
     GameInstant? EnteredAt,
     double? ExitX,
     double? ExitY,
-    GameInstant? DepartedAt
+    GameInstant? DepartedAt,
+    GameInstant? WalkPausedAt
 );

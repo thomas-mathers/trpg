@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Configuration;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -19,7 +20,8 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
 {
     public CountryPatrolRouteSeederResult Seed(
         WorldGeneratorResult world,
-        CountryPatrolOptions options
+        CountryPatrolOptions options,
+        double timeScale
     )
     {
         var routes = new List<Route>();
@@ -30,7 +32,8 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
         var factionMembers = new List<FactionMember>();
         var items = new List<Item>();
         var skills = new List<CreatureSkill>();
-        var graph = TravelGraph.Build(world);
+        var graph = world.BuildTravelGraph();
+        var metersPerHour = InLocationPace.MetersPerGameHour(options.SpeedUnitsPerHour, timeScale);
         var countryIdByLocationId = BuildCountryIdByLocationId(world);
         var districtsByCityId = world.Districts.ToLookup(district => district.CityId);
 
@@ -63,7 +66,9 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                 continue;
             }
 
-            var countryGraph = FilterToCountry(graph, countryIdByLocationId, country.Id);
+            var countryGraph = graph.WhereLocation(locationId =>
+                countryIdByLocationId.GetValueOrDefault(locationId) == country.Id
+            );
             var orderedEntrances = CaravanRouteSeeder.OrderByDfsPreorder(
                 entranceLocationIds,
                 countryGraph
@@ -80,8 +85,8 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                 Traversal = RouteTraversal.Cyclic,
             };
             var entranceSet = entranceLocationIds.ToHashSet();
-            var routeSteps = TravelGraph
-                .BuildCycle(countryGraph, orderedEntrances)
+            var routeSteps = countryGraph
+                .BuildCycle(orderedEntrances)
                 .Select(
                     (leg, index) =>
                         new RouteStep
@@ -94,6 +99,7 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                             DwellHours = entranceSet.Contains(leg.OriginLocationId)
                                 ? 0
                                 : options.DefaultLingerHours,
+                            Distance = leg.Distance,
                         }
                 )
                 .ToArray();
@@ -107,7 +113,7 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
                 WorldId = world.World.Id,
                 RouteId = route.Id,
                 StartedAtGameTime = GameClock.Epoch,
-                SpeedUnitsPerHour = options.SpeedUnitsPerHour,
+                SpeedUnitsPerHour = metersPerHour,
                 Purpose = $"Patrolling the roads of {country.Name}.",
                 ArrivalActivity = CreatureActivity.Working,
             };
@@ -173,23 +179,4 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
             location => countryIdByStateId[location.StateId]
         );
     }
-
-    private static IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> FilterToCountry(
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
-        IReadOnlyDictionary<Guid, Guid> countryIdByLocationId,
-        Guid countryId
-    ) =>
-        graph
-            .Where(entry => countryIdByLocationId.GetValueOrDefault(entry.Key) == countryId)
-            .ToDictionary(
-                entry => entry.Key,
-                entry =>
-                    (IReadOnlyList<TravelGraphEdge>)
-                        entry
-                            .Value.Where(edge =>
-                                countryIdByLocationId.GetValueOrDefault(edge.DestinationLocationId)
-                                == countryId
-                            )
-                            .ToArray()
-            );
 }

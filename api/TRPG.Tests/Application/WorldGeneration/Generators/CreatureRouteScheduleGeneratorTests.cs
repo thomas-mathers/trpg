@@ -33,38 +33,16 @@ public sealed class CreatureRouteScheduleGeneratorTests
             worldId,
             new HourWindow(17, 0)
         );
-        var homeToMiddle = Builders.MakeLocationConnector(
-            homeLocationId,
-            middleLocationId,
-            worldId
-        );
-        var middleToWork = Builders.MakeLocationConnector(
-            middleLocationId,
-            workLocationId,
-            worldId
-        );
-        var workToMiddle = Builders.MakeLocationConnector(
-            workLocationId,
-            middleLocationId,
-            worldId
-        );
-        var middleToHome = Builders.MakeLocationConnector(
-            middleLocationId,
-            homeLocationId,
-            worldId
-        );
+        var topology = new WalkableTopology(worldId, WalkPace.MetersFor(5, 2));
+        topology.ConnectBothWays(homeLocationId, middleLocationId);
+        topology.ConnectBothWays(middleLocationId, workLocationId);
 
         var result = CreatureRouteScheduleGenerator.Generate(
             worldId,
             [creature],
             [sleep, work, idle],
-            [homeToMiddle, middleToWork, workToMiddle, middleToHome],
-            [
-                Builders.MakeTravelConnector(homeToMiddle.Id, 5, worldId: worldId),
-                Builders.MakeTravelConnector(middleToWork.Id, 5, worldId: worldId),
-                Builders.MakeTravelConnector(workToMiddle.Id, 5, worldId: worldId),
-                Builders.MakeTravelConnector(middleToHome.Id, 5, worldId: worldId),
-            ]
+            topology.BuildGraph(),
+            WalkPace.TimeScale
         );
 
         var outboundSchedules = result
@@ -128,18 +106,17 @@ public sealed class CreatureRouteScheduleGeneratorTests
             worldId,
             new HourWindow(17, 0)
         );
-        var homeToWork = Builders.MakeLocationConnector(homeLocationId, workLocationId, worldId);
-        var workToHome = Builders.MakeLocationConnector(workLocationId, homeLocationId, worldId);
+        var middleLocationId = Guid.NewGuid();
+        var topology = new WalkableTopology(worldId, WalkPace.MetersFor(5, 1));
+        topology.ConnectBothWays(homeLocationId, middleLocationId);
+        topology.ConnectBothWays(middleLocationId, workLocationId);
 
         var result = CreatureRouteScheduleGenerator.Generate(
             worldId,
             [creature],
             [sleep, work, meal, idle],
-            [homeToWork, workToHome],
-            [
-                Builders.MakeTravelConnector(homeToWork.Id, 5, worldId: worldId),
-                Builders.MakeTravelConnector(workToHome.Id, 5, worldId: worldId),
-            ]
+            topology.BuildGraph(),
+            WalkPace.TimeScale
         );
 
         var lunchDepartures = result

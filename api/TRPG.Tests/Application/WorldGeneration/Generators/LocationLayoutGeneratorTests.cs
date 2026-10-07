@@ -116,48 +116,52 @@ public class LocationLayoutGeneratorTests
         var world = MiniLayoutWorldBuilder.BuildWorld(iteration);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        Assert.NotEmpty(world.Input.Connectors);
+        var placed = world.PlacedConnectors(layout);
+        Assert.NotEmpty(placed);
         Assert.All(
-            world.Input.Connectors,
-            connector =>
+            placed,
+            placement =>
             {
-                var origin = world.LocationById(connector.OriginLocationId);
-                var destination = world.LocationById(connector.DestinationLocationId);
-                Assert.True(IsInside(connector.ExitX, connector.ExitY, origin));
-                Assert.True(IsInside(connector.ArrivalX, connector.ArrivalY, destination));
+                var origin = world.LocationById(placement.Connector.OriginLocationId);
+                var destination = world.LocationById(placement.Connector.DestinationLocationId);
+                Assert.True(IsInside(placement.Exit.X, placement.Exit.Y, origin));
+                Assert.True(IsInside(placement.Arrival.X, placement.Arrival.Y, destination));
             }
         );
     }
 
     [Fact]
-    public void Generate_ExitsABuildingAtItsDoorAndArrivesJustOutsideIt()
+    public void Generate_ExitsABuildingAtItsDoorAndArrivesAtTheDoorNode()
     {
         // Arrange
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
         var building = world.Input.Buildings.First(building =>
             world.LocationById(building.ExteriorLocationId).Kind == LocationKind.District
         );
-        var entrance = world.EntranceConnector(building);
-        var leaving = world.Input.Connectors.Single(connector =>
-            connector.OriginLocationId == entrance.DestinationLocationId
-            && connector.DestinationLocationId == entrance.OriginLocationId
+        var placed = world.PlacedConnectors(layout);
+        var entrance = placed.Single(placement =>
+            placement.Connector.Id == world.EntranceConnector(building).Id
+        );
+        var leaving = placed.Single(placement =>
+            placement.Connector.OriginLocationId == entrance.Connector.DestinationLocationId
+            && placement.Connector.DestinationLocationId == entrance.Connector.OriginLocationId
         );
         var doorX = building.X + building.Depth / 2 * Math.Sin(building.Angle);
         var doorY = building.Y - building.Depth / 2 * Math.Cos(building.Angle);
-        Assert.Equal(doorX, entrance.ExitX, Tolerance);
-        Assert.Equal(doorY, entrance.ExitY, Tolerance);
-        Assert.Equal(building.Angle, entrance.ExitAngle, Tolerance);
-        Assert.Equal(doorX + Math.Sin(building.Angle), leaving.ArrivalX, Tolerance);
-        Assert.Equal(doorY - Math.Cos(building.Angle), leaving.ArrivalY, Tolerance);
-        Assert.Equal(building.Angle, leaving.ArrivalAngle, Tolerance);
+        Assert.Equal(doorX, entrance.Exit.X, Tolerance);
+        Assert.Equal(doorY, entrance.Exit.Y, Tolerance);
+        Assert.Equal(building.Angle, entrance.Connector.ExitAngle, Tolerance);
+        Assert.Equal(doorX, leaving.Arrival.X, Tolerance);
+        Assert.Equal(doorY, leaving.Arrival.Y, Tolerance);
+        Assert.Equal(building.Angle, leaving.Connector.ArrivalAngle, Tolerance);
     }
 
     [Fact]
@@ -167,16 +171,18 @@ public class LocationLayoutGeneratorTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
         var building = world.Input.Buildings.First(building =>
             world.LocationById(building.ExteriorLocationId).Kind == LocationKind.District
         );
-        var entrance = world.EntranceConnector(building);
-        var room = world.LocationById(entrance.DestinationLocationId);
-        Assert.Equal(room.Depth - 1, entrance.ArrivalY, Tolerance);
-        Assert.Equal(0, entrance.ArrivalAngle, Tolerance);
+        var entrance = world
+            .PlacedConnectors(layout)
+            .Single(placement => placement.Connector.Id == world.EntranceConnector(building).Id);
+        var room = world.LocationById(entrance.Connector.DestinationLocationId);
+        Assert.Equal(room.Depth - 1, entrance.Arrival.Y, Tolerance);
+        Assert.Equal(0, entrance.Connector.ArrivalAngle, Tolerance);
     }
 
     [Fact]
@@ -252,14 +258,13 @@ public class LocationLayoutGeneratorTests
     {
         // Arrange
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
-        LocationLayoutGenerator.Generate(world.Input);
-        var first = world.Snapshot();
+        var first = world.Snapshot(LocationLayoutGenerator.Generate(world.Input));
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var second = world.Snapshot(LocationLayoutGenerator.Generate(world.Input));
 
         // Assert
-        Assert.Equal(first, world.Snapshot());
+        Assert.Equal(first, second);
     }
 
     private static OrientedBox BoxOf(

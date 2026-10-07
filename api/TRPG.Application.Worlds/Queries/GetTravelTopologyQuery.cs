@@ -1,61 +1,72 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Queries;
 
-public record TravelTopologyEdge(
-    Guid WorldId,
-    Guid ConnectorId,
-    Guid OriginLocationId,
-    Guid DestinationLocationId,
-    float Distance
-);
+public record TravelTopology(
+    IReadOnlyList<LocationConnector> LocationConnectors,
+    IReadOnlyList<PointConnector> PointConnectors,
+    IReadOnlyList<TravelNode> Nodes
+)
+{
+    private TravelGraph? _graph;
+
+    public TravelGraph ToGraph() =>
+        _graph ??= new([.. LocationConnectors, .. PointConnectors], Nodes);
+}
 
 public class GetTravelTopologyQuery
 {
-    public IReadOnlyCollection<Guid> WorldIds { get; init; } = [];
-    public IReadOnlyCollection<Guid> ConnectorIds { get; init; } = [];
+    public required Guid WorldId { get; init; }
 }
 
-internal class GetTravelTopologyQueryHandler(IWorldsDbContext context)
-    : IQueryHandler<GetTravelTopologyQuery, IReadOnlyList<TravelTopologyEdge>>
+internal class GetTravelTopologyQueryHandler(IWorldsDbContext context, IMemoryCache cache)
+    : IQueryHandler<GetTravelTopologyQuery, TravelTopology>
 {
-    public async Task<IReadOnlyList<TravelTopologyEdge>> Handle(
+    public static string CacheKey(Guid worldId) => $"travel-topology:{worldId}";
+
+    public async Task<TravelTopology> Handle(
         GetTravelTopologyQuery query,
         CancellationToken cancellationToken = default
     )
     {
-        if (query.WorldIds.Count == 0 && query.ConnectorIds.Count == 0)
+        if (
+            cache.TryGetValue(CacheKey(query.WorldId), out TravelTopology? cached)
+            && cached is not null
+        )
         {
-            return [];
+            return cached;
         }
 
-        var connectors = context.LocationConnectors.AsNoTracking();
-        if (query.WorldIds.Count > 0)
+        var topology = await Load(query.WorldId, cancellationToken);
+
+        if (topology.Nodes.Count > 0)
         {
-            connectors = connectors.Where(connector =>
-                query.WorldIds.AsEnumerable().Contains(connector.WorldId)
-            );
-        }
-        if (query.ConnectorIds.Count > 0)
-        {
-            connectors = connectors.Where(connector =>
-                query.ConnectorIds.AsEnumerable().Contains(connector.Id)
-            );
+            cache.Set(CacheKey(query.WorldId), topology, TimeSpan.FromHours(1));
         }
 
-        return await (
-            from connector in connectors
-            join travel in context.TravelConnectors.AsNoTracking()
-                on connector.Id equals travel.ConnectorId
-            select new TravelTopologyEdge(
-                connector.WorldId,
-                connector.Id,
-                connector.OriginLocationId,
-                connector.DestinationLocationId,
-                travel.Distance
-            )
-        ).ToArrayAsync(cancellationToken);
+        return topology;
+    }
+
+    private async Task<TravelTopology> Load(Guid worldId, CancellationToken cancellationToken)
+    {
+        var locationConnectors = await context
+            .LocationConnectors.AsNoTracking()
+            .Where(connector => connector.WorldId == worldId)
+            .ToArrayAsync(cancellationToken);
+        var pointConnectors = await context
+            .PointConnectors.AsNoTracking()
+            .Where(connector => connector.WorldId == worldId)
+            .ToArrayAsync(cancellationToken);
+        var nodes = await context
+            .TravelNodes.AsNoTracking()
+            .Where(node => node.WorldId == worldId)
+            .ToArrayAsync(cancellationToken);
+
+        return new TravelTopology(locationConnectors, pointConnectors, nodes);
     }
 }

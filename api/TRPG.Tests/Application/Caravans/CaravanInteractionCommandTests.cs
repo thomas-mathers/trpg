@@ -30,25 +30,14 @@ public sealed class CaravanInteractionCommandTests(DatabaseFixture db)
         var locationA = Guid.NewGuid();
         var locationB = Guid.NewGuid();
         var route = Builders.MakeCaravanRoute(_worldId);
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
         _caravan = Builders.MakeCaravan(route.Id, _worldId);
         _player = Builders.MakeCreature(_worldId, locationId: locationA);
         _member = Builders.MakeCreature(_worldId, locationId: locationA);
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(
-            Builders.MakeCaravanRouteStop(route.Id, 0, locationA, connectorA.ConnectorId),
-            Builders.MakeCaravanRouteStop(route.Id, 1, locationB, connectorB.ConnectorId)
+            Builders.MakeCaravanRouteStop(route.Id, 0, locationA, Guid.NewGuid()),
+            Builders.MakeCaravanRouteStop(route.Id, 1, locationB, Guid.NewGuid())
         );
-        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.RouteTravelers.Add(_caravan);
         _context.Creatures.AddRange(_player, _member);
         _context.RouteTravelerMembers.Add(

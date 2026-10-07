@@ -27,7 +27,7 @@ internal class PlaceCreaturesAtLocationCommandHandler(
     > getBuildingsByLocation,
     IQueryHandler<
         GetConnectorsByOriginLocationIdsQuery,
-        IReadOnlyCollection<LocationConnector>
+        IReadOnlyCollection<PlacedConnector>
     > getConnectorsByOrigins,
     IQueryHandler<GetWorldPlayerIdQuery, Guid?> getWorldPlayerId
 ) : ICommandHandler<PlaceCreaturesAtLocationCommand>

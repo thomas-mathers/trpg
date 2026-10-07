@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -11,14 +12,13 @@ internal static class MealScheduleGenerator
         Guid worldId,
         IReadOnlyCollection<Creature> creatures,
         IReadOnlyCollection<CreatureJob> jobs,
-        IReadOnlyCollection<LocationConnector> locationConnectors,
-        IReadOnlyCollection<TravelConnector> travelConnectors
+        TravelGraph graph,
+        double timeScale
     )
     {
         var creaturesById = creatures.ToDictionary(creature => creature.Id);
-        var graph = TravelGraph.Build(locationConnectors, travelConnectors);
         var candidates = jobs.GroupBy(job => job.CreatureId)
-            .SelectMany(group => BuildCandidates(group.Key, group, creaturesById, graph))
+            .SelectMany(group => BuildCandidates(group.Key, group, creaturesById, graph, timeScale))
             .ToArray();
 
         return candidates
@@ -36,7 +36,8 @@ internal static class MealScheduleGenerator
         Guid creatureId,
         IEnumerable<CreatureJob> creatureJobs,
         IReadOnlyDictionary<Guid, Creature> creaturesById,
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph
+        TravelGraph graph,
+        double timeScale
     )
     {
         if (
@@ -60,7 +61,7 @@ internal static class MealScheduleGenerator
                 && job.RouteId == null
                 && NeedsMealBreak(creature.Profession, job)
             )
-            .Select(work => BuildCandidate(creature, sleep, work, graph))
+            .Select(work => BuildCandidate(creature, sleep, work, graph, timeScale))
             .Where(candidate => candidate != null)
             .Select(candidate => candidate!)
             .ToArray();
@@ -74,14 +75,16 @@ internal static class MealScheduleGenerator
         Creature creature,
         CreatureJob sleep,
         CreatureJob work,
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph
+        TravelGraph graph,
+        double timeScale
     )
     {
         var travelHours = ResolveTravelHours(
             graph,
             work.LocationId,
             sleep.LocationId,
-            creature.MovementSpeed
+            creature.MovementSpeed,
+            timeScale
         );
         return travelHours == null
             ? null
@@ -125,19 +128,21 @@ internal static class MealScheduleGenerator
     }
 
     private static double? ResolveTravelHours(
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
+        TravelGraph graph,
         Guid originLocationId,
         Guid destinationLocationId,
-        float movementSpeed
+        float movementSpeed,
+        double timeScale
     )
     {
-        var path = TravelGraph.FindShortestPath(graph, originLocationId, destinationLocationId);
+        var path = graph.FindShortestPath(originLocationId, null, destinationLocationId);
         if (originLocationId != destinationLocationId && path.Count == 0)
         {
             return null;
         }
 
-        return path.Sum(leg => leg.Distance) / movementSpeed;
+        return path.Sum(leg => leg.Distance)
+            / InLocationPace.MetersPerGameHour(movementSpeed, timeScale);
     }
 
     private static int Duration(int startHour, int endHour) =>

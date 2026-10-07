@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -28,18 +29,15 @@ public sealed class MealScheduleGeneratorTests
                 new HourWindow(8, 20)
             ),
         };
-        var outbound = Builders.MakeLocationConnector(workLocationId, homeLocationId, worldId);
-        var inbound = Builders.MakeLocationConnector(homeLocationId, workLocationId, worldId);
+        var topology = new WalkableTopology(worldId, WalkPace.MetersFor(50, 1));
+        topology.ConnectBothWays(workLocationId, homeLocationId);
 
         var meals = MealScheduleGenerator.Generate(
             worldId,
             [creature],
             jobs,
-            [outbound, inbound],
-            [
-                Builders.MakeTravelConnector(outbound.Id, distance: 50, worldId: worldId),
-                Builders.MakeTravelConnector(inbound.Id, distance: 50, worldId: worldId),
-            ]
+            topology.BuildGraph(),
+            WalkPace.TimeScale
         );
 
         var meal = Assert.Single(meals);
@@ -62,7 +60,13 @@ public sealed class MealScheduleGeneratorTests
             CreatureJobGenerator.GenerateWork(creature.Id, locationId, worldId),
         };
 
-        var meals = MealScheduleGenerator.Generate(worldId, [creature], jobs, [], []);
+        var meals = MealScheduleGenerator.Generate(
+            worldId,
+            [creature],
+            jobs,
+            new TravelGraph([], []),
+            WalkPace.TimeScale
+        );
 
         Assert.Empty(meals);
     }
@@ -84,7 +88,13 @@ public sealed class MealScheduleGeneratorTests
             ),
         };
 
-        var meals = MealScheduleGenerator.Generate(worldId, [creature], jobs, [], []);
+        var meals = MealScheduleGenerator.Generate(
+            worldId,
+            [creature],
+            jobs,
+            new TravelGraph([], []),
+            WalkPace.TimeScale
+        );
 
         Assert.Empty(meals);
     }
@@ -106,7 +116,13 @@ public sealed class MealScheduleGeneratorTests
             ),
         };
 
-        var meals = MealScheduleGenerator.Generate(worldId, [creature], jobs, [], []);
+        var meals = MealScheduleGenerator.Generate(
+            worldId,
+            [creature],
+            jobs,
+            new TravelGraph([], []),
+            WalkPace.TimeScale
+        );
 
         Assert.Empty(meals);
     }

@@ -139,9 +139,13 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
         // Arrange
         var frontier = Builders.MakeRoom(_building.Id, worldId: WorldId);
         _context.Rooms.Add(frontier);
-        _context.LocationConnectors.Add(
-            Builders.MakeLocationConnector(_currentLocationId, frontier.LocationId, WorldId)
+        var connector = Builders.MakeLocationConnector(
+            _currentLocationId,
+            frontier.LocationId,
+            WorldId
         );
+        _context.LocationConnectors.Add(connector);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(connector));
         _context.Props.AddRange(
             Builders.MakeContainer(WorldId, frontier.LocationId),
             Builders.MakeTrigger(WorldId, frontier.LocationId)
@@ -269,6 +273,7 @@ public sealed class LocalMapMarkersTests(DatabaseFixture db)
         );
         _context.Rooms.Add(next);
         _context.LocationConnectors.Add(connector);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(connector));
         _context.DoorConnectors.Add(door);
         if (kind == LocalMapLockKind.KeyLockedDoor)
             _context.DoorConnectorKeys.Add(

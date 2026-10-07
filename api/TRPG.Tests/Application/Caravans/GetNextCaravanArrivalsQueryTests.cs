@@ -41,22 +41,11 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
         // 2 stops, 10 units apart each way at speed 5 = 2 leg hours; with a 1-hour linger the
         // total cycle is 2 * (1 + 2) = 6 hours, and stop A's own linger window is [0, 1).
         _route = Builders.MakeCaravanRoute(_worldId);
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
-        var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, _locationA, connectorA.ConnectorId);
-        var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, _locationB, connectorB.ConnectorId);
+        var stopA = Builders.MakeCaravanRouteStop(_route.Id, 0, _locationA, Guid.NewGuid());
+        var stopB = Builders.MakeCaravanRouteStop(_route.Id, 1, _locationB, Guid.NewGuid());
         var fare = Builders.MakeCaravanFare(_route.Id, _worldId);
         _context.Routes.Add(_route);
         _context.RouteSteps.AddRange(stopA, stopB);
-        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.CaravanFares.Add(fare);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -178,22 +167,11 @@ public sealed class GetNextCaravanArrivalsQueryTests(DatabaseFixture db)
             _worldId,
             name: "The Capital Circuit — Counter-clockwise"
         );
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
         _context.Routes.Add(secondRoute);
         _context.RouteSteps.AddRange(
-            Builders.MakeCaravanRouteStop(secondRoute.Id, 0, _locationA, connectorA.ConnectorId),
-            Builders.MakeCaravanRouteStop(secondRoute.Id, 1, _locationB, connectorB.ConnectorId)
+            Builders.MakeCaravanRouteStop(secondRoute.Id, 0, _locationA, Guid.NewGuid()),
+            Builders.MakeCaravanRouteStop(secondRoute.Id, 1, _locationB, Guid.NewGuid())
         );
-        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.CaravanFares.Add(Builders.MakeCaravanFare(secondRoute.Id, _worldId));
         _context.RouteTravelers.AddRange(
             Builders.MakeCaravan(_route.Id, _worldId),

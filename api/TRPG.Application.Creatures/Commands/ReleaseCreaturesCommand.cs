@@ -57,6 +57,7 @@ internal class ReleaseCreaturesCommandHandler(
         foreach (var creature in creatures.Where(creature => creature.IsEngaged))
         {
             creature.IsEngaged = false;
+            ResumeWalk(creature, command.GameTime);
         }
         await context.SaveChangesAsync(cancellationToken);
         await publisher.Publish(
@@ -64,5 +65,18 @@ internal class ReleaseCreaturesCommandHandler(
             cancellationToken
         );
         transaction.Complete();
+    }
+
+    private static void ResumeWalk(Creature creature, GameInstant now)
+    {
+        if (creature.WalkPausedAt is not { } pausedAt)
+        {
+            return;
+        }
+
+        var paused = now - pausedAt;
+        creature.EnteredAt += paused;
+        creature.DepartedAt += paused;
+        creature.WalkPausedAt = null;
     }
 }

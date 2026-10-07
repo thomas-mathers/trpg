@@ -24,11 +24,7 @@ public class GetRouteJourneyQuoteQuery
 
 internal class GetRouteJourneyQuoteQueryHandler(
     IRoutingDbContext context,
-    IQueryHandler<ResolveRouteTravelerPositionQuery, RouteTimelinePosition?> resolvePosition,
-    IQueryHandler<
-        GetTravelConnectorDistancesQuery,
-        IReadOnlyDictionary<Guid, float>
-    > getTravelConnectorDistances
+    IQueryHandler<ResolveRouteTravelerPositionQuery, RouteTimelinePosition?> resolvePosition
 ) : IQueryHandler<GetRouteJourneyQuoteQuery, RouteJourneyQuote?>
 {
     public async Task<RouteJourneyQuote?> Handle(
@@ -127,19 +123,11 @@ internal class GetRouteJourneyQuoteQueryHandler(
             .Where(step => step.RouteId == routeId)
             .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(cancellationToken);
-        var connectorIds = routeSteps
-            .Where(step => step.ConnectorId != null)
-            .Select(step => step.ConnectorId!.Value)
-            .ToArray();
-        var distances = await getTravelConnectorDistances.Handle(
-            new GetTravelConnectorDistancesQuery { ConnectorIds = connectorIds },
-            cancellationToken
-        );
         return routeSteps
             .Select(step => new RouteTimelineStep(
                 step.LocationId,
                 step.ConnectorId,
-                step.ConnectorId == null ? 0 : distances[step.ConnectorId.Value],
+                step.Distance,
                 step.DwellHours
             ))
             .ToArray();

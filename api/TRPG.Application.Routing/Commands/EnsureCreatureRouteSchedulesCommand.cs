@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.WorldGeneration.Generators;
@@ -26,7 +28,8 @@ internal class EnsureCreatureRouteSchedulesCommandHandler(
         GetCreatureJobsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
     > getCreatureJobsByCreatureIds,
-    IQueryHandler<GetTravelTopologyQuery, IReadOnlyList<TravelTopologyEdge>> getTravelTopology
+    IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTravelTopology,
+    IOptions<WorldClockOptions> clockOptions
 ) : ICommandHandler<EnsureCreatureRouteSchedulesCommand>
 {
     public async Task Handle(
@@ -71,33 +74,15 @@ internal class EnsureCreatureRouteSchedulesCommandHandler(
         );
 
         var topology = await getTravelTopology.Handle(
-            new GetTravelTopologyQuery { WorldIds = [worldId] },
+            new GetTravelTopologyQuery { WorldId = worldId },
             cancellationToken
         );
         return CreatureRouteScheduleGenerator.Generate(
             worldId,
             creatures.Values.ToArray(),
             jobsByCreatureId.Values.SelectMany(jobs => jobs).ToArray(),
-            topology.Select(ToLocationConnector).ToArray(),
-            topology.Select(ToTravelConnector).ToArray()
+            topology.ToGraph(),
+            clockOptions.Value.TimeScale
         );
     }
-
-    private static LocationConnector ToLocationConnector(TravelTopologyEdge edge) =>
-        new()
-        {
-            Id = edge.ConnectorId,
-            WorldId = edge.WorldId,
-            OriginLocationId = edge.OriginLocationId,
-            DestinationLocationId = edge.DestinationLocationId,
-            DestinationLabel = "",
-        };
-
-    private static TravelConnector ToTravelConnector(TravelTopologyEdge edge) =>
-        new()
-        {
-            WorldId = edge.WorldId,
-            ConnectorId = edge.ConnectorId,
-            Distance = edge.Distance,
-        };
 }

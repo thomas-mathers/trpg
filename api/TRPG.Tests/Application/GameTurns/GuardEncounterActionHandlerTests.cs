@@ -101,6 +101,7 @@ public sealed class GuardEncounterActionHandlerTests(DatabaseFixture db)
         _context.Buildings.Add(jail);
         _context.Rooms.AddRange(guardStationRoom, cellsRoom);
         _context.LocationConnectors.Add(exitConnector);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(exitConnector));
         _context.DoorConnectors.Add(exitDoor);
         _context.Encounters.Add(encounter);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

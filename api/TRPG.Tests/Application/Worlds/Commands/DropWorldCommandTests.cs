@@ -248,26 +248,16 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         _context.Items.Add(item);
         _context.LocationConnectors.Add(locationConnector);
         _context.DoorConnectors.Add(doorConnector);
-        _context.RoadNodes.Add(
-            new RoadNode
-            {
-                WorldId = worldId,
-                LocationId = location.Id,
-                Kind = RoadNodeKind.Junction,
-            }
+        var pointStart = Builders.MakeTravelNode(location.Id, worldId: worldId);
+        var pointEnd = Builders.MakeTravelNode(location.Id, 5, 0, worldId);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(locationConnector),
+            Builders.MakeArrivalNode(locationConnector),
+            pointStart,
+            pointEnd
         );
-        _context.RoadEdges.Add(
-            new RoadEdge
-            {
-                WorldId = worldId,
-                LocationId = location.Id,
-                FromNodeId = Guid.NewGuid(),
-                ToNodeId = Guid.NewGuid(),
-                Class = RoadClass.Lane,
-            }
-        );
-        _context.TravelConnectors.Add(
-            Builders.MakeTravelConnector(locationConnector.Id, worldId: worldId)
+        _context.PointConnectors.Add(
+            Builders.MakePointConnector(location.Id, pointStart.Id, pointEnd.Id, 5, worldId)
         );
         _context.DoorConnectorKeys.Add(
             Builders.MakeDoorConnectorKey(item.Id, doorConnector.Id, worldId)
@@ -611,15 +601,14 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         Assert.Equal(expected, await HasWorldData(verifyContext.LocationConnectors, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.NpcConversationHistories, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.NpcConversations, worldId));
+        Assert.Equal(expected, await HasWorldData(verifyContext.PointConnectors, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.QuestObjectives, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.Relationships, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.Reputations, worldId));
-        Assert.Equal(expected, await HasWorldData(verifyContext.RoadEdges, worldId));
-        Assert.Equal(expected, await HasWorldData(verifyContext.RoadNodes, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.RoomBookings, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.RouteTravelerMembers, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.States, worldId));
-        Assert.Equal(expected, await HasWorldData(verifyContext.TravelConnectors, worldId));
+        Assert.Equal(expected, await HasWorldData(verifyContext.TravelNodes, worldId));
     }
 
     private static Task<bool> HasWorldData<TEntity>(DbSet<TEntity> entities, Guid worldId)

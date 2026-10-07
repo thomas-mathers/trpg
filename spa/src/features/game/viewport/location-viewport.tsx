@@ -20,6 +20,7 @@ import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
 import { DebugFloorGrid } from './debug-floor-grid';
+import { DebugTravelNetwork } from './debug-travel-network';
 import { DebugWalkPaths } from './debug-walk-paths';
 import { FpsController } from './fps-controller';
 import { IndoorLighting } from './indoor-lighting';
@@ -73,6 +74,14 @@ export function LocationViewport({
   onDeliverItemDialogRequested,
 }: Pick<CreatureInteractionPanelProps, 'onQuestDialogRequested' | 'onDeliverItemDialogRequested'>) {
   const { scene } = useScene();
+  const clock = useMemo(
+    () => ({
+      gameTimeMilliseconds: scene.gameTimeMilliseconds,
+      anchoredAtUnixMilliseconds: scene.anchoredAtUnixMilliseconds,
+      timeScale: scene.timeScale,
+    }),
+    [scene.gameTimeMilliseconds, scene.anchoredAtUnixMilliseconds, scene.timeScale],
+  );
   const [focus, setFocus] = useState<CreatureFocus | null>(null);
   const [restoring, setRestoring] = useState(false);
   const [targetId, setTargetId] = useState<string>();
@@ -196,6 +205,7 @@ export function LocationViewport({
           />
           <DebugFloorGrid size={size} />
           <DebugWalkPaths creatures={scene.nearbyCreatures} />
+          <DebugTravelNetwork network={scene.travelNetwork} />
           <StaticWalls walls={walls} headers={headers} towers={towers} />
           {scene.roads && <StaticRoads roads={scene.roads} />}
           {scene.roads && (
@@ -212,6 +222,7 @@ export function LocationViewport({
             statuses={[playerStatus, ...scene.nearbyCreatures]}
             playerSeat={occupiedSeat}
             focus={focus}
+            clock={clock}
           />
           <StaticConnectors connectors={connectors} boundary={scene.boundary} size={size} />
           {!isRoomScene(scene) && <StaticBuildingNameBoards connectors={connectors} />}

@@ -11,8 +11,10 @@ internal sealed class NpcPathPlanner(Func<Point, Point, IReadOnlyList<Point>> ro
 
     public static NpcPathPlanner ForRoom(NavigationGrid grid) => new(grid.FindPath);
 
-    public static NpcPathPlanner ForDistrict(LocationRoadNetwork network, NavigationGrid offRoad) =>
-        new((from, to) => DistrictRoutePlanner.Plan(from, to, network, offRoad));
+    public static NpcPathPlanner ForDistrict(
+        LocationPointNetwork network,
+        NavigationGrid offRoad
+    ) => new((from, to) => DistrictRoutePlanner.Plan(from, to, network, offRoad));
 
     public IReadOnlyList<Point> Plan(CreatureResult creature)
     {

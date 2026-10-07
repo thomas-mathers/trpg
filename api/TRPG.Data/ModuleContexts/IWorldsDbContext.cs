@@ -16,10 +16,9 @@ public interface IWorldsDbContext : ITrpgDbContext
     DbSet<DoorConnector> DoorConnectors { get; }
     DbSet<LocationConnector> LocationConnectors { get; }
     DbSet<Location> Locations { get; }
-    DbSet<RoadEdge> RoadEdges { get; }
-    DbSet<RoadNode> RoadNodes { get; }
+    DbSet<PointConnector> PointConnectors { get; }
     DbSet<Room> Rooms { get; }
     DbSet<State> States { get; }
-    DbSet<TravelConnector> TravelConnectors { get; }
+    DbSet<TravelNode> TravelNodes { get; }
     DbSet<World> Worlds { get; }
 }

@@ -52,6 +52,28 @@ public sealed class CreatureEngagementCommandTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
+    private Task Engage(Guid creatureId, GameInstant gameTime) =>
+        _engage.Handle(
+            new EngageCreaturesCommand
+            {
+                WorldId = _worldId,
+                CreatureIds = [creatureId],
+                GameTime = gameTime,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+    private Task Release(Guid creatureId, GameInstant gameTime) =>
+        _release.Handle(
+            new ReleaseCreaturesCommand
+            {
+                WorldId = _worldId,
+                CreatureIds = [creatureId],
+                GameTime = gameTime,
+            },
+            TestContext.Current.CancellationToken
+        );
+
     [Fact]
     public async Task Handle_PausesAndResumesWholeRouteGroup_WhenMembersEngageAndRelease()
     {
@@ -121,6 +143,78 @@ public sealed class CreatureEngagementCommandTests(DatabaseFixture db)
             resumed.StartedAtGameTime
         );
         Assert.Equal(releasedAt - pausedAt, resumed.PausedDuration);
+    }
+
+    [Fact]
+    public async Task Handle_ShiftsAnEntryWalkByThePause_WhenAWalkingCreatureIsEngagedAndReleased()
+    {
+        var walkStartedAt = GameClock.Epoch + TimeSpan.FromHours(1);
+        var walker = Builders.MakeCreature(
+            _worldId,
+            entry: new Point(0, 0),
+            enteredAt: walkStartedAt
+        );
+        _context.Creatures.Add(walker);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _context.ChangeTracker.Clear();
+        await Engage(walker.Id, walkStartedAt + TimeSpan.FromSeconds(5));
+
+        await Release(walker.Id, walkStartedAt + TimeSpan.FromSeconds(65));
+
+        await using var verifyContext = db.CreateContext();
+        var stored = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == walker.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(walkStartedAt + TimeSpan.FromSeconds(60), stored.EnteredAt);
+    }
+
+    [Fact]
+    public async Task Handle_ShiftsAnExitWalkByThePause_WhenAWalkingCreatureIsEngagedAndReleased()
+    {
+        var walkStartedAt = GameClock.Epoch + TimeSpan.FromHours(1);
+        var walker = Builders.MakeCreature(
+            _worldId,
+            exit: new Point(10, 0),
+            departedAt: walkStartedAt
+        );
+        _context.Creatures.Add(walker);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _context.ChangeTracker.Clear();
+        await Engage(walker.Id, walkStartedAt + TimeSpan.FromSeconds(5));
+
+        await Release(walker.Id, walkStartedAt + TimeSpan.FromSeconds(65));
+
+        await using var verifyContext = db.CreateContext();
+        var stored = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == walker.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal(walkStartedAt + TimeSpan.FromSeconds(60), stored.DepartedAt);
+    }
+
+    [Fact]
+    public async Task Handle_ClearsTheWalkPause_WhenAWalkingCreatureIsReleased()
+    {
+        var walkStartedAt = GameClock.Epoch + TimeSpan.FromHours(1);
+        var walker = Builders.MakeCreature(
+            _worldId,
+            entry: new Point(0, 0),
+            enteredAt: walkStartedAt
+        );
+        _context.Creatures.Add(walker);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        _context.ChangeTracker.Clear();
+        await Engage(walker.Id, walkStartedAt + TimeSpan.FromSeconds(5));
+
+        await Release(walker.Id, walkStartedAt + TimeSpan.FromSeconds(65));
+
+        await using var verifyContext = db.CreateContext();
+        var stored = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == walker.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Null(stored.WalkPausedAt);
     }
 
     [Fact]

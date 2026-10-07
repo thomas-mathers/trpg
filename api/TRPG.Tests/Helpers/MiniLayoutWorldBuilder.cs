@@ -165,6 +165,8 @@ internal static class MiniLayoutWorldBuilder
 
     internal sealed record MiniLayoutWorld(LocationLayoutInput Input)
     {
+        internal LocationLayoutResult? Layout { get; set; }
+
         internal Location LocationById(Guid id) => Input.Locations.Single(l => l.Id == id);
 
         internal LocationConnector EntranceConnector(Building building) =>
@@ -176,7 +178,10 @@ internal static class MiniLayoutWorldBuilder
                 )
             );
 
-        internal IReadOnlyList<double> Snapshot() =>
+        internal IReadOnlyList<PlacedConnector> PlacedConnectors(LocationLayoutResult layout) =>
+            PlacedConnector.Place(Input.Connectors, layout.TravelNodes);
+
+        internal IReadOnlyList<double> Snapshot(LocationLayoutResult layout) =>
             Input
                 .Locations.SelectMany(location => new[] { location.Width, location.Depth })
                 .Concat(
@@ -184,15 +189,16 @@ internal static class MiniLayoutWorldBuilder
                 )
                 .Concat(Input.Buildings.SelectMany(building => new[] { building.X, building.Y }))
                 .Concat(
-                    Input.Connectors.SelectMany(connector =>
-                        new[]
-                        {
-                            connector.ExitX,
-                            connector.ExitY,
-                            connector.ArrivalX,
-                            connector.ArrivalY,
-                        }
-                    )
+                    PlacedConnectors(layout)
+                        .SelectMany(placement =>
+                            new[]
+                            {
+                                placement.Exit.X,
+                                placement.Exit.Y,
+                                placement.Arrival.X,
+                                placement.Arrival.Y,
+                            }
+                        )
                 )
                 .ToArray();
     }

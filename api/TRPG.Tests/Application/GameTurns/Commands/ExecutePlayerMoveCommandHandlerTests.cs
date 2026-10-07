@@ -60,6 +60,7 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
         _context.Locations.AddRange(_origin, _destination);
         _context.Creatures.Add(_player);
         _context.LocationConnectors.Add(_connector);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(_connector));
         _context.GameSessions.Add(_session);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -206,27 +207,6 @@ public sealed class ExecutePlayerMoveCommandHandlerTests(DatabaseFixture db)
                 TestContext.Current.CancellationToken
             )
         );
-    }
-
-    [Fact]
-    public async Task Handle_LeavesTheWorldClockAlone_WhenTheConnectorHasATravelDistance()
-    {
-        // Arrange
-        _context.TravelConnectors.Add(
-            Builders.MakeTravelConnector(_connector.Id, distance: 116, worldId: _worldId)
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        await Execute(_connector.Id);
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var world = await verifyContext.Worlds.SingleAsync(
-            world => world.Id == _worldId,
-            TestContext.Current.CancellationToken
-        );
-        Assert.Equal(GameClock.Epoch, world.GameTime);
     }
 
     private Task<ExecutePlayerMoveResult> Execute(Guid connectorId) =>

@@ -518,9 +518,9 @@ public class StatFormulasTests
         // Arrange
         var options = new CreatureGeneratorOptions();
 
-        // Act & Assert — 50 + 8 below the cap, 50 + 20 clamped once dexterity exceeds the cap
-        Assert.Equal(58f, StatFormulas.CalculateTravelSpeed(8, [], false, options));
-        Assert.Equal(70f, StatFormulas.CalculateTravelSpeed(30, [], false, options));
+        // Act & Assert
+        Assert.Equal(52f, StatFormulas.CalculateTravelSpeed(8, [], false, options));
+        Assert.Equal(60f, StatFormulas.CalculateTravelSpeed(100, [], false, options));
     }
 
     [Fact]
@@ -600,6 +600,6 @@ public class StatFormulasTests
         StatFormulas.RefreshMovementSpeed(creature, [], options);
 
         // Assert
-        Assert.Equal(29f, creature.BaseAttributes.MovementSpeed);
+        Assert.Equal(26f, creature.BaseAttributes.MovementSpeed);
     }
 }

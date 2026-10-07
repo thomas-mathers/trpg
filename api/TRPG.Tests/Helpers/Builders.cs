@@ -72,18 +72,10 @@ internal static class Builders
         string name = "Door",
         string description = "A door.",
         string destinationLabel = "Outside",
-        double arrivalX = 0,
-        double arrivalY = 0,
-        double arrivalAngle = 0,
-        double exitX = 0,
-        double exitY = 0
+        double arrivalAngle = 0
     ) =>
         new()
         {
-            ExitX = exitX,
-            ExitY = exitY,
-            ArrivalX = arrivalX,
-            ArrivalY = arrivalY,
             ArrivalAngle = arrivalAngle,
             OriginLocationId = originLocationId,
             WorldId = worldId ?? Guid.NewGuid(),
@@ -91,6 +83,70 @@ internal static class Builders
             Description = description,
             DestinationLocationId = destinationLocationId ?? Guid.NewGuid(),
             DestinationLabel = destinationLabel,
+        };
+
+    public static TravelNode MakeTravelNode(
+        Guid locationId,
+        double x = 0,
+        double y = 0,
+        Guid? worldId = null
+    ) =>
+        new()
+        {
+            LocationId = locationId,
+            Position = new Point(x, y),
+            WorldId = worldId ?? Guid.NewGuid(),
+        };
+
+    public static TravelNode[] MakeConnectorNodes(LocationConnector connector) =>
+        [MakeExitNode(connector), MakeArrivalNode(connector)];
+
+    public static TravelNode MakeExitNode(
+        LocationConnector connector,
+        double x = 0,
+        double y = 0
+    ) =>
+        new()
+        {
+            Id = connector.OriginNodeId,
+            LocationId = connector.OriginLocationId,
+            Position = new Point(x, y),
+            WorldId = connector.WorldId,
+        };
+
+    public static TravelNode MakeArrivalNode(
+        LocationConnector connector,
+        double x = 0,
+        double y = 0
+    ) =>
+        new()
+        {
+            Id = connector.DestinationNodeId,
+            LocationId = connector.DestinationLocationId,
+            Position = new Point(x, y),
+            WorldId = connector.WorldId,
+        };
+
+    public static PointConnector MakePointConnector(
+        Guid locationId,
+        Guid originNodeId,
+        Guid destinationNodeId,
+        double distance,
+        Guid? worldId = null,
+        RoadClass? roadClass = null,
+        List<Point>? waypoints = null,
+        bool bidirectional = false
+    ) =>
+        new()
+        {
+            WorldId = worldId ?? Guid.NewGuid(),
+            LocationId = locationId,
+            OriginNodeId = originNodeId,
+            DestinationNodeId = destinationNodeId,
+            Bidirectional = bidirectional,
+            Distance = distance,
+            RoadClass = roadClass,
+            Waypoints = new Polyline { Points = waypoints ?? [] },
         };
 
     public static DoorConnector MakeDoorConnector(
@@ -108,20 +164,6 @@ internal static class Builders
             IsLocked = isLocked,
             LockLevel = lockLevel,
             UnlocksAtGameTime = unlocksAtGameTime,
-            WorldId = worldId ?? Guid.NewGuid(),
-        };
-
-    public static TravelConnector MakeTravelConnector(
-        Guid connectorId,
-        float distance = 1,
-        float dangerLevel = 0,
-        Guid? worldId = null
-    ) =>
-        new()
-        {
-            ConnectorId = connectorId,
-            Distance = distance,
-            DangerLevel = dangerLevel,
             WorldId = worldId ?? Guid.NewGuid(),
         };
 
@@ -270,7 +312,8 @@ internal static class Builders
         Point? entry = null,
         GameInstant? enteredAt = null,
         Point? exit = null,
-        GameInstant? departedAt = null
+        GameInstant? departedAt = null,
+        GameInstant? walkPausedAt = null
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -287,6 +330,7 @@ internal static class Builders
             ExitX = exit?.X,
             ExitY = exit?.Y,
             DepartedAt = departedAt,
+            WalkPausedAt = walkPausedAt,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             CreatureType = creatureType,
@@ -1605,7 +1649,8 @@ internal static class Builders
         int sequenceIndex,
         Guid locationId,
         Guid connectorId,
-        double dwellHours = 1
+        double dwellHours = 1,
+        double distance = 10
     ) =>
         new()
         {
@@ -1614,6 +1659,7 @@ internal static class Builders
             LocationId = locationId,
             ConnectorId = connectorId,
             DwellHours = dwellHours,
+            Distance = distance,
         };
 
     public static RouteTraveler MakeCaravan(

@@ -103,23 +103,23 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
+        var furniture = layout.Props;
         Assert.All(
             RecipeRooms(world, type),
             room =>
             {
                 var keepOuts = world
-                    .Input.Connectors.Where(connector =>
-                        connector.OriginLocationId == room.LocationId
-                    )
-                    .Select(connector =>
+                    .PlacedConnectors(layout)
+                    .Where(placed => placed.Connector.OriginLocationId == room.LocationId)
+                    .Select(placed =>
                         RoomFurnisher.KeepOut(
                             new ConnectorExit(
-                                connector.Id,
-                                new PlanarPoint(connector.ExitX, connector.ExitY),
-                                connector.ExitAngle
+                                placed.Connector.Id,
+                                new PlanarPoint(placed.Exit.X, placed.Exit.Y),
+                                placed.Connector.ExitAngle
                             )
                         )
                     )

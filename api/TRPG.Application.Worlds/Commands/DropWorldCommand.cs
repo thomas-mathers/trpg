@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 
 namespace TRPG.Application.Worlds.Commands;
@@ -9,7 +11,8 @@ public class DropWorldCommand
     public required Guid WorldId { get; init; }
 }
 
-internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<DropWorldCommand>
+internal class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache)
+    : ICommandHandler<DropWorldCommand>
 {
     public async Task Handle(
         DropWorldCommand command,
@@ -105,19 +108,15 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .TravelConnectors.Where(x => x.WorldId == worldId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context
             .LocationConnectors.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .RoadEdges.Where(x => x.WorldId == worldId)
+            .PointConnectors.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .RoadNodes.Where(x => x.WorldId == worldId)
+            .TravelNodes.Where(x => x.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
 
         await context.Props.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
@@ -264,5 +263,6 @@ internal class DropWorldCommandHandler(TrpgDbContext context) : ICommandHandler<
         await context.Worlds.Where(x => x.Id == worldId).ExecuteDeleteAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
+        cache.Remove(GetTravelTopologyQueryHandler.CacheKey(worldId));
     }
 }

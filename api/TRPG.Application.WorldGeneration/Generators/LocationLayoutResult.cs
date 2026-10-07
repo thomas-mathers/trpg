@@ -4,6 +4,6 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal record LocationLayoutResult(
     IReadOnlyList<Prop> Props,
-    IReadOnlyList<RoadNode> RoadNodes,
-    IReadOnlyList<RoadEdge> RoadEdges
+    IReadOnlyList<TravelNode> TravelNodes,
+    IReadOnlyList<PointConnector> PointConnectors
 );

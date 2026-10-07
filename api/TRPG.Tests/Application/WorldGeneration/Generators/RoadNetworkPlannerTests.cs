@@ -24,7 +24,7 @@ public class RoadNetworkPlannerTests
     }
 
     [Fact]
-    public void Plan_CreatesOnePortPerTerminalKeyedByItsConnector()
+    public void Plan_CreatesOnePortNodePerTerminalKeyedByItsConnector()
     {
         // Arrange
         var terminals = FourEdgeTerminals(gateEdges: 0);
@@ -33,10 +33,13 @@ public class RoadNetworkPlannerTests
         var network = RoadNetworkPlanner.Plan(_district, [], terminals);
 
         // Assert
-        var ports = network.Nodes.Where(node => node.Kind == RoadNodeKind.Port).ToArray();
         Assert.Equal(
             terminals.Select(terminal => terminal.ConnectorId).Order(),
-            ports.Select(port => port.ConnectorId!.Value).Order()
+            network.PortNodeIdByConnectorId.Keys.Order()
+        );
+        Assert.All(
+            network.PortNodeIdByConnectorId.Values,
+            nodeId => Assert.Contains(network.Nodes, node => node.Id == nodeId)
         );
     }
 
@@ -55,8 +58,8 @@ public class RoadNetworkPlannerTests
             network.Edges,
             edge =>
             {
-                Assert.Contains(network.Nodes, node => node.Id == edge.FromNodeId);
-                Assert.Contains(network.Nodes, node => node.Id == edge.ToNodeId);
+                Assert.Contains(network.Nodes, node => node.Id == edge.OriginNodeId);
+                Assert.Contains(network.Nodes, node => node.Id == edge.DestinationNodeId);
             }
         );
     }
@@ -104,8 +107,8 @@ public class RoadNetworkPlannerTests
             network.Edges,
             edge =>
             {
-                var from = positions[edge.FromNodeId];
-                var to = positions[edge.ToNodeId];
+                var from = positions[edge.OriginNodeId].Position;
+                var to = positions[edge.DestinationNodeId].Position;
                 Assert.DoesNotContain(
                     edge.Waypoints.Points,
                     point =>
@@ -131,11 +134,14 @@ public class RoadNetworkPlannerTests
             network.Edges,
             edge =>
             {
-                var from = positions[edge.FromNodeId];
-                var to = positions[edge.ToNodeId];
-                var straight = Math.Sqrt(Math.Pow(to.X - from.X, 2) + Math.Pow(to.Y - from.Y, 2));
-                Assert.True(edge.Length >= straight - 1e-6);
-                Assert.True(edge.Length > 0);
+                var from = positions[edge.OriginNodeId];
+                var to = positions[edge.DestinationNodeId];
+                var straight = Math.Sqrt(
+                    Math.Pow(to.Position.X - from.Position.X, 2)
+                        + Math.Pow(to.Position.Y - from.Position.Y, 2)
+                );
+                Assert.True(edge.Distance >= straight - 1e-6);
+                Assert.True(edge.Distance > 0);
             }
         );
     }
@@ -150,7 +156,7 @@ public class RoadNetworkPlannerTests
         var network = RoadNetworkPlanner.Plan(_district, [], terminals);
 
         // Assert
-        Assert.All(network.Edges, edge => Assert.Equal(RoadClass.Avenue, edge.Class));
+        Assert.All(network.Edges, edge => Assert.Equal(RoadClass.Avenue, edge.RoadClass));
     }
 
     [Fact]
@@ -163,7 +169,7 @@ public class RoadNetworkPlannerTests
         var network = RoadNetworkPlanner.Plan(_district, [], terminals);
 
         // Assert
-        Assert.All(network.Edges, edge => Assert.Equal(RoadClass.Lane, edge.Class));
+        Assert.All(network.Edges, edge => Assert.Equal(RoadClass.Lane, edge.RoadClass));
     }
 
     private static RoadTerminal[] FourEdgeTerminals(int gateEdges) =>
