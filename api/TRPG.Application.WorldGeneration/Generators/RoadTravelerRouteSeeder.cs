@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Configuration;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -21,8 +22,9 @@ internal record RoadTravelerSeedInput(
     RoadTravelerType Type,
     CityRoadStop Origin,
     CityRoadStop Destination,
-    IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> Graph,
+    TravelGraph Graph,
     RoadTravelerOptions Options,
+    double MetersPerHour,
     int SequenceIndex,
     int TravelerCount
 );
@@ -49,11 +51,13 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
 
     public RoadTravelerRouteSeederResult Seed(
         WorldGeneratorResult world,
-        RoadTravelerOptions options
+        RoadTravelerOptions options,
+        double timeScale
     )
     {
+        var metersPerHour = InLocationPace.MetersPerGameHour(options.SpeedUnitsPerHour, timeScale);
         var results = new List<SeededRoadTraveler>();
-        var graph = TravelGraph.Build(world);
+        var graph = world.BuildTravelGraph();
         var countryIdByLocationId = BuildCountryIdByLocationId(world);
         var cityStops = BuildCityStops(world);
 
@@ -65,9 +69,15 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                 continue;
             }
 
-            var countryGraph = FilterToCountry(graph, countryIdByLocationId, country.Id);
-            results.AddRange(SeedPilgrims(world, country, stops, countryGraph, options));
-            results.AddRange(SeedAdventurers(world, country, stops, countryGraph, options));
+            var countryGraph = graph.WhereLocation(locationId =>
+                countryIdByLocationId.GetValueOrDefault(locationId) == country.Id
+            );
+            results.AddRange(
+                SeedPilgrims(world, country, stops, countryGraph, options, metersPerHour)
+            );
+            results.AddRange(
+                SeedAdventurers(world, country, stops, countryGraph, options, metersPerHour)
+            );
         }
 
         var creatures = results.Select(result => result.Creature.Creature).ToArray();
@@ -88,8 +98,9 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
         WorldGeneratorResult world,
         Country country,
         IReadOnlyList<CityRoadStop> stops,
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
-        RoadTravelerOptions options
+        TravelGraph graph,
+        RoadTravelerOptions options,
+        double metersPerHour
     )
     {
         var templeStops = stops.Where(stop => stop.TempleName != null).ToArray();
@@ -113,6 +124,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                         destination,
                         graph,
                         options,
+                        metersPerHour,
                         index,
                         options.PilgrimsPerCountry
                     )
@@ -127,8 +139,9 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
         WorldGeneratorResult world,
         Country country,
         IReadOnlyList<CityRoadStop> stops,
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
-        RoadTravelerOptions options
+        TravelGraph graph,
+        RoadTravelerOptions options,
+        double metersPerHour
     ) =>
         Enumerable
             .Range(0, options.AdventurersPerCountry)
@@ -142,6 +155,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                         stops[(index + 1) % stops.Count],
                         graph,
                         options,
+                        metersPerHour,
                         index,
                         options.AdventurersPerCountry
                     )
@@ -153,27 +167,17 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
 
     private SeededRoadTraveler? SeedTraveler(RoadTravelerSeedInput input)
     {
-        var forwardPath = TravelGraph.FindShortestPath(
-            input.Graph,
+        var roundTrip = input.Graph.BuildCycle([
             input.Origin.LocationId,
-            input.Destination.LocationId
-        );
-        var returnPath = TravelGraph.FindShortestPath(
-            input.Graph,
             input.Destination.LocationId,
-            input.Origin.LocationId
-        );
-        if (forwardPath.Count == 0 || returnPath.Count == 0)
+        ]);
+        if (!IsCompleteRoundTrip(roundTrip, input))
         {
             return null;
         }
 
         var routeId = Guid.NewGuid();
-        var seededSteps = BuildRoundTripSteps(
-            forwardPath.Concat(returnPath).ToArray(),
-            input,
-            routeId
-        );
+        var seededSteps = BuildRoundTripSteps(roundTrip, input, routeId);
         var route = new Route
         {
             Id = routeId,
@@ -193,6 +197,14 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
         return new SeededRoadTraveler(route, seededSteps.Steps, routeTraveler, member, creature);
     }
 
+    private static bool IsCompleteRoundTrip(
+        IReadOnlyList<RouteLeg> legs,
+        RoadTravelerSeedInput input
+    ) =>
+        legs.Any(leg => leg.DestinationLocationId == input.Destination.LocationId)
+        && legs.Count > 0
+        && legs[^1].DestinationLocationId == input.Origin.LocationId;
+
     private static RouteTraveler BuildRouteTraveler(
         RoadTravelerSeedInput input,
         Route route,
@@ -206,7 +218,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
             StartedAtGameTime =
                 GameClock.Epoch
                 - TimeSpan.FromHours(1) * durationHours * input.SequenceIndex / input.TravelerCount,
-            SpeedUnitsPerHour = input.Options.SpeedUnitsPerHour,
+            SpeedUnitsPerHour = input.MetersPerHour,
             Purpose = BuildPurpose(input),
         };
     }
@@ -247,7 +259,7 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
             : $"Traveling to {input.Destination.City.Name} in search of work, rumors, and adventure.";
 
     private static SeededRouteSteps BuildRoundTripSteps(
-        IReadOnlyList<TravelPathLeg> legs,
+        IReadOnlyList<RouteLeg> legs,
         RoadTravelerSeedInput input,
         Guid routeId
     )
@@ -262,11 +274,12 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
                         LocationId = leg.OriginLocationId,
                         ConnectorId = leg.ConnectorId,
                         DwellHours = input.Options.LingerHours,
+                        Distance = leg.Distance,
                     }
             )
             .ToArray();
         var durationHours = legs.Sum(leg =>
-            input.Options.LingerHours + leg.Distance / input.Options.SpeedUnitsPerHour
+            input.Options.LingerHours + leg.Distance / input.MetersPerHour
         );
         return new SeededRouteSteps(steps, durationHours);
     }
@@ -306,25 +319,6 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
             location => countryIdByStateId[location.StateId]
         );
     }
-
-    private static IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> FilterToCountry(
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
-        IReadOnlyDictionary<Guid, Guid> countryIdByLocationId,
-        Guid countryId
-    ) =>
-        graph
-            .Where(pair => countryIdByLocationId.GetValueOrDefault(pair.Key) == countryId)
-            .ToDictionary(
-                pair => pair.Key,
-                pair =>
-                    (IReadOnlyList<TravelGraphEdge>)
-                        pair
-                            .Value.Where(edge =>
-                                countryIdByLocationId.GetValueOrDefault(edge.DestinationLocationId)
-                                == countryId
-                            )
-                            .ToArray()
-            );
 
     private static IReadOnlyList<CreatureProfile> GenerateProfiles(
         WorldGeneratorResult world,

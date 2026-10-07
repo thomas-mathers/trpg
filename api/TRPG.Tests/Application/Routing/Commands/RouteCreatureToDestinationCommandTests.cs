@@ -41,7 +41,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         var destinationId = Guid.NewGuid();
         var creature = Builders.MakeCreature(worldId, locationId: originId);
         creature.MovementSpeed = 7;
-        var connector = AddMeasuredConnector(worldId, originId, destinationId, distance: 14);
+        var connector = AddConnector(worldId, originId, destinationId);
         _context.Creatures.Add(creature);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -71,7 +71,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         );
 
         Assert.Equal(worldId, traveler.WorldId);
-        Assert.Equal(7, traveler.SpeedUnitsPerHour);
+        Assert.Equal(WalkPace.MetersFor(7, 1), traveler.SpeedUnitsPerHour);
         Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1) * 3, traveler.StartedAtGameTime);
         Assert.Equal("Going to work.", traveler.Purpose);
         Assert.Equal([connector.Id, null], steps.Select(step => step.ConnectorId));
@@ -85,8 +85,8 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         var worldId = Guid.NewGuid();
         var locationX = Guid.NewGuid();
         var locationY = Guid.NewGuid();
-        var outbound = AddMeasuredConnector(worldId, locationX, locationY, distance: 10);
-        var inbound = AddMeasuredConnector(worldId, locationY, locationX, distance: 10);
+        var outbound = AddConnector(worldId, locationX, locationY);
+        var inbound = AddReverseConnector(outbound);
         var creature = Builders.MakeCreature(worldId, locationId: locationX);
         creature.MovementSpeed = 20;
         var traveler = AddFiniteTraveler(creature, speedUnitsPerHour: 10, [outbound], locationY);
@@ -124,14 +124,65 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_CarriesTheCurrentLegDistanceAndWalksTheTailFromItsArrivalNode_WhenPreempted()
+    {
+        var worldId = Guid.NewGuid();
+        var locationX = Guid.NewGuid();
+        var locationY = Guid.NewGuid();
+        var outbound = AddConnector(worldId, locationX, locationY);
+        var inbound = Builders.MakeLocationConnector(locationY, locationX, worldId);
+        var inboundExit = Builders.MakeExitNode(inbound);
+        var inboundArrival = Builders.MakeArrivalNode(inbound);
+        _context.LocationConnectors.Add(inbound);
+        _context.TravelNodes.AddRange(inboundExit, inboundArrival);
+        _context.PointConnectors.Add(
+            Builders.MakePointConnector(
+                locationY,
+                outbound.DestinationNodeId,
+                inboundExit.Id,
+                distance: 4,
+                worldId
+            )
+        );
+        var creature = Builders.MakeCreature(worldId, locationId: locationX);
+        creature.MovementSpeed = 20;
+        AddFiniteTraveler(creature, speedUnitsPerHour: 10, [outbound], locationY);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await _handler.Handle(
+            new RouteCreatureToDestinationCommand
+            {
+                CreatureId = creature.Id,
+                DestinationLocationId = locationX,
+                GameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 0.4,
+                Purpose = "Returning to the gate.",
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        _context.ChangeTracker.Clear();
+        var replacement = await _context.RouteTravelers.SingleAsync(
+            entry => entry.Id == result.RouteTravelerId,
+            TestContext.Current.CancellationToken
+        );
+        var steps = await _context
+            .RouteSteps.Where(step => step.RouteId == replacement.RouteId)
+            .OrderBy(step => step.SequenceIndex)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([outbound.Id, inbound.Id, null], steps.Select(step => step.ConnectorId));
+        Assert.Equal([10d, 4d, 0d], steps.Select(step => step.Distance));
+    }
+
+    [Fact]
     public async Task Handle_MaterializesACompletedArrival_BeforeStartingTheReplacement()
     {
         var worldId = Guid.NewGuid();
         var locationX = Guid.NewGuid();
         var locationY = Guid.NewGuid();
         var locationZ = Guid.NewGuid();
-        var first = AddMeasuredConnector(worldId, locationX, locationY, distance: 10);
-        var second = AddMeasuredConnector(worldId, locationY, locationZ, distance: 5);
+        var first = AddConnector(worldId, locationX, locationY);
+        var second = AddConnector(worldId, locationY, locationZ);
         var creature = Builders.MakeCreature(worldId, locationId: locationX);
         creature.MovementSpeed = 5;
         AddFiniteTraveler(creature, speedUnitsPerHour: 10, [first], locationY);
@@ -175,8 +226,8 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         var worldId = Guid.NewGuid();
         var locationX = Guid.NewGuid();
         var locationY = Guid.NewGuid();
-        var outbound = AddMeasuredConnector(worldId, locationX, locationY, distance: 10);
-        var inbound = AddMeasuredConnector(worldId, locationY, locationX, distance: 10);
+        var outbound = AddConnector(worldId, locationX, locationY);
+        var inbound = AddReverseConnector(outbound);
         var creatures = Enumerable
             .Range(0, 2)
             .Select(_ => Builders.MakeCreature(worldId, locationId: locationX))
@@ -230,11 +281,10 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
         Assert.Equal([outbound.Id, inbound.Id, null], steps.Select(step => step.ConnectorId));
     }
 
-    private LocationConnector AddMeasuredConnector(
+    private LocationConnector AddConnector(
         Guid worldId,
         Guid originLocationId,
-        Guid destinationLocationId,
-        float distance
+        Guid destinationLocationId
     )
     {
         var connector = Builders.MakeLocationConnector(
@@ -243,17 +293,32 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
             worldId
         );
         _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(
-            Builders.MakeTravelConnector(connector.Id, distance, worldId: worldId)
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector),
+            Builders.MakeArrivalNode(connector)
         );
         return connector;
+    }
+
+    private LocationConnector AddReverseConnector(LocationConnector forward)
+    {
+        var reverse = Builders.MakeLocationConnector(
+            forward.DestinationLocationId,
+            forward.OriginLocationId,
+            forward.WorldId
+        );
+        reverse.OriginNodeId = forward.DestinationNodeId;
+        reverse.DestinationNodeId = forward.OriginNodeId;
+        _context.LocationConnectors.Add(reverse);
+        return reverse;
     }
 
     private RouteTraveler AddFiniteTraveler(
         Creature creature,
         double speedUnitsPerHour,
         IReadOnlyList<LocationConnector> connectors,
-        Guid destinationLocationId
+        Guid destinationLocationId,
+        double legDistance = 10
     )
     {
         var route = new Route
@@ -283,6 +348,7 @@ public sealed class RouteCreatureToDestinationCommandTests(DatabaseFixture db)
                         LocationId = connector.OriginLocationId,
                         ConnectorId = connector.Id,
                         DwellHours = 0,
+                        Distance = legDistance,
                     }
             )
         );

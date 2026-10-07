@@ -4,10 +4,6 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class RecipeGeometry
 {
-    internal const double Margin = 0.2;
-    internal const double RunGap = 0.15;
-    private const double ChairGap = 0.15;
-
     internal static double Facing(RecipeWall wall) =>
         wall switch
         {
@@ -20,6 +16,25 @@ internal static class RecipeGeometry
     internal static Footprint Rotated(Footprint size, RecipeWall wall) =>
         wall is RecipeWall.East or RecipeWall.West ? new Footprint(size.Depth, size.Width) : size;
 
+    internal static double AlongRoom(double length, double extent, double fraction)
+    {
+        var free = length - extent;
+
+        return fraction switch
+        {
+            <= 0 => 0,
+            >= 1 => RoomGrid.SnapDown(free),
+            _ => Math.Min(RoomGrid.SnapNearest(fraction * free), RoomGrid.SnapDown(free)),
+        };
+    }
+
+    internal static RecipeItem At(PropModel model, double left, double top, RecipeWall wall)
+    {
+        var size = Rotated(PropFootprintCatalog.Get(model).Footprint, wall);
+
+        return new RecipeItem(model, new RoomRect(left, top, size.Width, size.Depth), wall);
+    }
+
     internal static RecipeItem InsideRoom(
         Footprint room,
         PropModel model,
@@ -29,15 +44,36 @@ internal static class RecipeGeometry
     )
     {
         var size = Rotated(PropFootprintCatalog.Get(model).Footprint, wall);
-        var bounds = new RoomRect(
-            Margin + fractionX * (room.Width - size.Width - 2 * Margin),
-            Margin + fractionY * (room.Depth - size.Depth - 2 * Margin),
-            size.Width,
-            size.Depth
-        );
 
-        return new RecipeItem(model, bounds, wall);
+        return At(
+            model,
+            AlongRoom(room.Width, size.Width, fractionX),
+            AlongRoom(room.Depth, size.Depth, fractionY),
+            wall
+        );
     }
+
+    internal static RecipeItem OnWall(
+        Footprint room,
+        PropModel model,
+        RecipeWall wall,
+        double setback,
+        double along
+    )
+    {
+        var size = Rotated(PropFootprintCatalog.Get(model).Footprint, wall);
+
+        return wall switch
+        {
+            RecipeWall.North => At(model, along, setback, wall),
+            RecipeWall.East => At(model, FarEdge(room.Width, setback, size.Width), along, wall),
+            RecipeWall.South => At(model, along, FarEdge(room.Depth, setback, size.Depth), wall),
+            _ => At(model, setback, along, wall),
+        };
+    }
+
+    internal static double FarEdge(double length, double setback, double extent) =>
+        RoomGrid.SnapDown(length - setback - extent);
 
     internal static RecipeItem Around(
         PropModel model,
@@ -47,14 +83,13 @@ internal static class RecipeGeometry
     )
     {
         var size = Rotated(PropFootprintCatalog.Get(model).Footprint, wall);
-        var bounds = new RoomRect(
-            centerX - size.Width / 2,
-            centerY - size.Depth / 2,
-            size.Width,
-            size.Depth
-        );
 
-        return new RecipeItem(model, bounds, wall);
+        return At(
+            model,
+            RoomGrid.SnapNearest(centerX - size.Width / 2),
+            RoomGrid.SnapNearest(centerY - size.Depth / 2),
+            wall
+        );
     }
 
     internal static RecipeItem Rug(double centerX, double centerY, double width, double depth) =>
@@ -66,12 +101,23 @@ internal static class RecipeGeometry
 
     internal static IEnumerable<RecipeItem> TableSet(double centerX, double centerY)
     {
-        var table = PropFootprintCatalog.Get(PropModel.FurnitureTable);
-        var chair = PropFootprintCatalog.Get(PropModel.SeatChair);
-        var offset = table.Depth / 2 + ChairGap + chair.Depth / 2;
+        var table = Around(PropModel.FurnitureTable, centerX, centerY, RecipeWall.North);
+        var chair = PropFootprintCatalog.Get(PropModel.SeatChair).Footprint;
+        var chairLeft = RoomGrid.SnapNearest(table.Bounds.CenterX - chair.Width / 2);
+        var tableBottom = table.Bounds.Top + table.Bounds.Depth;
 
-        yield return Around(PropModel.FurnitureTable, centerX, centerY, RecipeWall.North);
-        yield return Around(PropModel.SeatChair, centerX, centerY - offset, RecipeWall.North);
-        yield return Around(PropModel.SeatChair, centerX, centerY + offset, RecipeWall.South);
+        yield return table;
+        yield return At(
+            PropModel.SeatChair,
+            chairLeft,
+            table.Bounds.Top - RoomGrid.SnapUp(chair.Depth),
+            RecipeWall.North
+        );
+        yield return At(
+            PropModel.SeatChair,
+            chairLeft,
+            RoomGrid.SnapUp(tableBottom),
+            RecipeWall.South
+        );
     }
 }

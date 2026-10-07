@@ -7,22 +7,23 @@ public record DistrictRoad(IReadOnlyList<Point> Points, double Width, RoadClass 
 
 internal static class SceneRoadMapper
 {
-    internal static IReadOnlyCollection<DistrictRoad> ToRoads(LocationRoadNetwork network)
+    internal static IReadOnlyCollection<DistrictRoad> ToRoads(LocationPointNetwork network)
     {
         var nodeById = network.Nodes.ToDictionary(node => node.Id);
 
-        return network
-            .Edges.Select(edge => new DistrictRoad(
-                [
-                    Position(nodeById[edge.FromNodeId]),
-                    .. edge.Waypoints.Points,
-                    Position(nodeById[edge.ToNodeId]),
-                ],
-                RoadClassWidths.Of(edge.Class),
-                edge.Class
-            ))
-            .ToArray();
+        return
+        [
+            .. network
+                .Connectors.Where(connector => connector.RoadClass is not null)
+                .Select(connector => new DistrictRoad(
+                    [
+                        nodeById[connector.OriginNodeId].Position,
+                        .. connector.Waypoints.Points,
+                        nodeById[connector.DestinationNodeId].Position,
+                    ],
+                    RoadClassWidths.Of(connector.RoadClass!.Value),
+                    connector.RoadClass.Value
+                )),
+        ];
     }
-
-    private static Point Position(RoadNode node) => new(node.X, node.Y);
 }

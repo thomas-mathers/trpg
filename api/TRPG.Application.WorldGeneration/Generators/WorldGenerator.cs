@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Configuration;
 using TRPG.Domain.Models;
 
@@ -28,8 +29,8 @@ public class WorldGeneratorResult
     public IReadOnlyList<DungeonExpedition> DungeonExpeditions { get; init; } = [];
     public IReadOnlyList<BookWork> BookWorks { get; init; } = [];
     public IReadOnlyList<Fact> Facts { get; init; } = [];
-    public IReadOnlyList<RoadEdge> RoadEdges { get; init; } = [];
-    public IReadOnlyList<RoadNode> RoadNodes { get; init; } = [];
+    public required IReadOnlyList<TravelNode> TravelNodes { get; init; }
+    public required IReadOnlyList<PointConnector> PointConnectors { get; init; }
     public required IReadOnlyList<BuildingOwner> BuildingOwners { get; init; }
     public required IReadOnlyList<Building> Buildings { get; init; }
     public required IReadOnlyList<City> Cities { get; init; }
@@ -49,7 +50,6 @@ public class WorldGeneratorResult
     public required IReadOnlyList<Relationship> Relationships { get; init; }
     public required IReadOnlyList<LocationConnector> LocationConnectors { get; init; }
     public required IReadOnlyList<DoorConnector> DoorConnectors { get; init; }
-    public required IReadOnlyList<TravelConnector> TravelConnectors { get; init; }
     public required IReadOnlyList<DoorConnectorKey> DoorConnectorKeys { get; init; }
     public required IReadOnlyList<DoorConnectorLever> DoorConnectorLevers { get; init; }
     public required IReadOnlyList<Room> Rooms { get; init; }
@@ -62,6 +62,9 @@ public class WorldGeneratorResult
     public IReadOnlyList<Route> CreatureScheduleRoutes { get; init; } = [];
     public IReadOnlyList<RouteStep> CreatureScheduleRouteSteps { get; init; } = [];
     public IReadOnlyList<CreatureRouteSchedule> CreatureRouteSchedules { get; init; } = [];
+
+    public TravelGraph BuildTravelGraph() =>
+        new([.. LocationConnectors, .. PointConnectors], TravelNodes);
 }
 
 // Archetypes always leads with LeaderArchetype, which is also always Humanoid — an antagonist
@@ -85,7 +88,7 @@ public class WorldGenerator(
     DungeonTrapGenerator dungeonTrapGenerator,
     DungeonObstacleGenerator dungeonObstacleGenerator,
     WildernessPopulator wildernessPopulator,
-    IOptionsSnapshot<CityTravelOptions> cityTravelOptions,
+    IOptions<WorldClockOptions> clockOptions,
     ILogger<WorldGenerator> logger
 )
 {
@@ -156,7 +159,6 @@ public class WorldGenerator(
         var props = new List<Prop>(geography.Props);
         var locationConnectors = new List<LocationConnector>(geography.LocationConnectors);
         var doorConnectors = new List<DoorConnector>();
-        var travelConnectors = new List<TravelConnector>();
         var skills = new List<CreatureSkill>();
         var jobs = new List<CreatureJob>();
         var doorConnectorKeys = new List<DoorConnectorKey>();
@@ -178,14 +180,6 @@ public class WorldGenerator(
             .Cities.GroupBy(c => c.StateId)
             .ToDictionary(g => g.Key, g => g.ToList());
         var locationsById = geography.Locations.ToDictionary(location => location.Id);
-        var districtTravelConnectors = CityTravelConnectorGenerator.Generate(
-            worldId,
-            geography.Districts,
-            [],
-            [],
-            geography.LocationConnectors,
-            cityTravelOptions.Value
-        );
 
         foreach (var city in geography.Cities)
         {
@@ -199,9 +193,6 @@ public class WorldGenerator(
                     && districtLocationIds.Contains(connector.DestinationLocationId)
                 )
                 .ToArray();
-            var districtConnectorIds = districtConnectors
-                .Select(connector => connector.Id)
-                .ToHashSet();
             var cityResult = cityGenerator.Generate(
                 new CityGeneratorInput
                 {
@@ -211,13 +202,7 @@ public class WorldGenerator(
                     DominantRace = geography.DominantRaceByCountryId[city.CountryId],
                     Districts = cityDistricts,
                     DistrictConnectors = districtConnectors,
-                    DistrictTravelConnectors = districtTravelConnectors
-                        .Where(travelConnector =>
-                            districtConnectorIds.Contains(travelConnector.ConnectorId)
-                        )
-                        .ToArray(),
                     LocationsById = locationsById,
-                    PatrolDwellHours = cityTravelOptions.Value.PatrolDwellHours,
                     NamedFactions = namedFactions,
                     GeneratorInput = generatorInput,
                 }
@@ -303,14 +288,13 @@ public class WorldGenerator(
                 {
                     var cityEntranceDistrict = districtsByCityId[city.Id]
                         .First(d => d.DistrictType == DistrictType.CityEntrance);
-                    var connectorResult = WildernessConnectorGenerator.Generate(
+                    var wildernessConnectors = WildernessConnectorGenerator.Generate(
                         city,
                         cityEntranceDistrict,
                         wildernessLocation,
                         worldId
                     );
-                    locationConnectors.AddRange(connectorResult.LocationConnectors);
-                    travelConnectors.AddRange(connectorResult.TravelConnectors);
+                    locationConnectors.AddRange(wildernessConnectors);
                 }
             }
 
@@ -729,33 +713,23 @@ public class WorldGenerator(
         );
         items.AddRange(initiationQuests.Items);
 
-        travelConnectors.AddRange(
-            CityTravelConnectorGenerator.Generate(
-                worldId,
-                geography.Districts,
-                buildings,
-                rooms,
-                locationConnectors,
-                cityTravelOptions.Value
-            )
+        var travelGraph = new TravelGraph(
+            [.. locationConnectors, .. layout.PointConnectors],
+            layout.TravelNodes
         );
+        AssignPatrolStepDistances(travelGraph, cityPatrolRouteSteps);
+        var timeScale = clockOptions.Value.TimeScale;
 
         jobs.AddRange(
-            MealScheduleGenerator.Generate(
-                worldId,
-                creatures,
-                jobs,
-                locationConnectors,
-                travelConnectors
-            )
+            MealScheduleGenerator.Generate(worldId, creatures, jobs, travelGraph, timeScale)
         );
 
         var creatureRouteSchedules = CreatureRouteScheduleGenerator.Generate(
             worldId,
             creatures,
             jobs,
-            locationConnectors,
-            travelConnectors
+            travelGraph,
+            timeScale
         );
 
         CreatureLayoutGenerator.Place(
@@ -763,7 +737,7 @@ public class WorldGenerator(
                 anchoredLocations,
                 props,
                 buildings,
-                locationConnectors,
+                PlacedConnector.Place(locationConnectors, layout.TravelNodes),
                 creatures
             )
         );
@@ -772,8 +746,8 @@ public class WorldGenerator(
 
         return new WorldGeneratorResult
         {
-            RoadNodes = layout.RoadNodes,
-            RoadEdges = layout.RoadEdges,
+            TravelNodes = layout.TravelNodes,
+            PointConnectors = layout.PointConnectors,
             DungeonExpeditions = expeditions.Select(expedition => expedition.Expedition).ToArray(),
             BookWorks = expeditions.Select(expedition => expedition.Work).ToArray(),
             Facts = expeditions.Select(expedition => expedition.Fact).ToArray(),
@@ -786,7 +760,6 @@ public class WorldGenerator(
             EncounterGroupMembers = encounterGroupMembers,
             LocationConnectors = locationConnectors,
             DoorConnectors = doorConnectors,
-            TravelConnectors = travelConnectors,
             Factions = factions,
             FactionStandings = factionStandings,
             InitiationQuests = initiationQuests.Quests.ToArray(),
@@ -832,14 +805,19 @@ public class WorldGenerator(
                 WorldId = worldId,
             };
             locationConnectors.Add(connector);
-            travelConnectors.Add(
-                new TravelConnector
-                {
-                    ConnectorId = connector.Id,
-                    Distance = link.Distance,
-                    DangerLevel = link.DangerLevel,
-                    WorldId = worldId,
-                }
+        }
+    }
+
+    private static void AssignPatrolStepDistances(
+        TravelGraph travelGraph,
+        IEnumerable<RouteStep> patrolSteps
+    )
+    {
+        foreach (var steps in patrolSteps.GroupBy(step => step.RouteId))
+        {
+            travelGraph.AssignStepDistances(
+                [.. steps.OrderBy(step => step.SequenceIndex)],
+                cyclic: true
             );
         }
     }

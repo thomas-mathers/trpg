@@ -44,31 +44,17 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         _traveler = Builders.MakeCreature(
             WorldId,
             locationId: _locationA.Id,
-            profession: Profession.Guard
+            profession: Profession.Guard,
+            movementSpeed: 50
         );
         var route = Builders.MakeCaravanRoute(WorldId);
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
-        );
-        var stopA = Builders.MakeCaravanRouteStop(
-            route.Id,
-            0,
+        var exitFromA = Builders.MakeLocationConnector(
             _locationA.Id,
-            connectorA.ConnectorId
-        );
-        var stopB = Builders.MakeCaravanRouteStop(
-            route.Id,
-            1,
             _locationB.Id,
-            connectorB.ConnectorId
+            worldId: WorldId
         );
+        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, _locationA.Id, exitFromA.Id);
+        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, _locationB.Id, Guid.NewGuid());
         var routeTraveler = Builders.MakeCaravan(
             route.Id,
             WorldId,
@@ -80,7 +66,11 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         _context.Creatures.AddRange(_watcherAtA, _watcherAtB, _traveler);
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(stopA, stopB);
-        _context.TravelConnectors.AddRange(connectorA, connectorB);
+        _context.LocationConnectors.Add(exitFromA);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(exitFromA, 7, 6),
+            Builders.MakeArrivalNode(exitFromA)
+        );
         _context.RouteTravelers.Add(routeTraveler);
         _context.RouteTravelerMembers.Add(
             Builders.MakeRouteTravelerMember(routeTraveler.Id, _traveler.Id, WorldId)
@@ -112,6 +102,18 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         var traveler = await LoadTraveler();
         Assert.Equal(_locationA.Id, traveler.LocationId);
         Assert.Equal(CreatureMovement.Walking, traveler.Movement);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsTheExitWalk_WhenTheTravelerDepartsAfterLingering()
+    {
+        // Act
+        await SyncAt(_locationA.Id, hours: 1.5);
+
+        // Assert
+        var traveler = await LoadTraveler();
+        Assert.Equal((7d, 6d, At(hours: 1)), (traveler.ExitX, traveler.ExitY, traveler.DepartedAt));
+        Assert.Null(traveler.EnteredAt);
     }
 
     [Fact]
@@ -213,7 +215,34 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task GetScene_ShowsTheTravelerAsWalkingToAWatcherAtTheDepartureStop_WhileTheyAreInTransit()
+    public async Task GetScene_ShowsTheTravelerAsWalkingToAWatcherAtTheDepartureStop_WhileTheyWalkToTheExit()
+    {
+        // Arrange
+        var justDeparted = 1 + 1d / 3600;
+        await SyncAt(_locationA.Id, hours: justDeparted);
+
+        // Act
+        var scene = await _getScene.Handle(
+            new GetSceneQuery
+            {
+                WorldId = WorldId,
+                PlayerId = _watcherAtA.Id,
+                CurrentDate = GameClock.GetCurrentInGameDate(At(hours: justDeparted)),
+                GameTime = At(hours: justDeparted),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var traveler = Assert.Single(
+            scene.NearbyCreatures,
+            creature => creature.Id == _traveler.Id
+        );
+        Assert.Equal(CreatureMovement.Walking, traveler.Movement);
+    }
+
+    [Fact]
+    public async Task GetScene_HidesTheTravelerFromAWatcherAtTheDepartureStop_OnceTheyReachTheExit()
     {
         // Arrange
         await SyncAt(_locationA.Id, hours: 1.5);
@@ -231,11 +260,7 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        var traveler = Assert.Single(
-            scene.NearbyCreatures,
-            creature => creature.Id == _traveler.Id
-        );
-        Assert.Equal(CreatureMovement.Walking, traveler.Movement);
+        Assert.DoesNotContain(scene.NearbyCreatures, creature => creature.Id == _traveler.Id);
     }
 
     [Fact]

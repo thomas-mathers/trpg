@@ -79,23 +79,12 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var captiveId = await SeedFreedCaptive();
         var homeLocation = Builders.MakeLocation(WorldId, _stateId);
-        var connector = new LocationConnector
-        {
-            WorldId = WorldId,
-            OriginLocationId = _cellLocation.Id,
-            DestinationLocationId = homeLocation.Id,
-            DestinationLabel = "Home",
-        };
-        _context.Locations.Add(homeLocation);
-        _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(
-            new TravelConnector
-            {
-                WorldId = WorldId,
-                ConnectorId = connector.Id,
-                Distance = 5,
-            }
-        );
+        var via = Builders.MakeLocation(WorldId, _stateId);
+        var topology = new WalkableTopology(WorldId, walkMetersPerLocation: 10_000);
+        topology.ConnectBothWays(_cellLocation.Id, via.Id);
+        topology.ConnectBothWays(via.Id, homeLocation.Id);
+        _context.Locations.AddRange(homeLocation, via);
+        topology.AddTo(_context);
         _context.CreatureJobs.Add(
             Builders.MakeCreatureJob(
                 captiveId,
@@ -124,7 +113,7 @@ public sealed class RelocateFreedCaptivesCommandHandlerTests(DatabaseFixture db)
             [captiveId],
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_cellLocation.Id, relocated!.LocationId);
+        Assert.Equal(via.Id, relocated!.LocationId);
         Assert.Equal(CreatureMovement.Walking, relocated.Movement);
         Assert.Contains(
             await verifyContext.RouteTravelerMembers.ToArrayAsync(

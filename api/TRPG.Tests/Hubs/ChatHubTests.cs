@@ -978,6 +978,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         context.Districts.Add(destinationDistrict);
         context.Locations.Add(destinationLocation);
         context.LocationConnectors.Add(connector);
+        context.TravelNodes.AddRange(Builders.MakeConnectorNodes(connector));
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var sessionId = await StartSession();
@@ -1027,6 +1028,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         );
         context.Locations.Add(destination);
         context.LocationConnectors.Add(connector);
+        context.TravelNodes.AddRange(Builders.MakeConnectorNodes(connector));
         context.Factions.Add(faction);
         context.Creatures.Add(monster);
         context.EncounterGroups.Add(group);
@@ -1149,6 +1151,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         context.Districts.Add(destinationDistrict);
         context.Locations.Add(destinationLocation);
         context.LocationConnectors.Add(connector);
+        context.TravelNodes.AddRange(Builders.MakeConnectorNodes(connector));
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var enemy = await SeedHostileCreature();

@@ -11,9 +11,9 @@ public class GetConnectorsByOriginLocationIdsQuery
 }
 
 internal class GetConnectorsByOriginLocationIdsQueryHandler(IWorldsDbContext context)
-    : IQueryHandler<GetConnectorsByOriginLocationIdsQuery, IReadOnlyCollection<LocationConnector>>
+    : IQueryHandler<GetConnectorsByOriginLocationIdsQuery, IReadOnlyCollection<PlacedConnector>>
 {
-    public async Task<IReadOnlyCollection<LocationConnector>> Handle(
+    public async Task<IReadOnlyCollection<PlacedConnector>> Handle(
         GetConnectorsByOriginLocationIdsQuery query,
         CancellationToken cancellationToken = default
     )
@@ -23,11 +23,21 @@ internal class GetConnectorsByOriginLocationIdsQueryHandler(IWorldsDbContext con
             return [];
         }
 
-        return await context
+        var connectors = await context
             .LocationConnectors.AsNoTracking()
             .Where(connector =>
                 query.OriginLocationIds.AsEnumerable().Contains(connector.OriginLocationId)
             )
             .ToArrayAsync(cancellationToken);
+        var nodeIds = connectors
+            .SelectMany(connector => new[] { connector.OriginNodeId, connector.DestinationNodeId })
+            .Distinct()
+            .ToArray();
+        var nodes = await context
+            .TravelNodes.AsNoTracking()
+            .Where(node => nodeIds.Contains(node.Id))
+            .ToArrayAsync(cancellationToken);
+
+        return PlacedConnector.Place(connectors, nodes);
     }
 }

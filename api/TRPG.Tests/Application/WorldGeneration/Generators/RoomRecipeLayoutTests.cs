@@ -1,3 +1,4 @@
+using TRPG.Application.WorldGeneration;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -102,23 +103,23 @@ public class RoomRecipeLayoutTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
+        var furniture = layout.Props;
         Assert.All(
             RecipeRooms(world, type),
             room =>
             {
                 var keepOuts = world
-                    .Input.Connectors.Where(connector =>
-                        connector.OriginLocationId == room.LocationId
-                    )
-                    .Select(connector =>
+                    .PlacedConnectors(layout)
+                    .Where(placed => placed.Connector.OriginLocationId == room.LocationId)
+                    .Select(placed =>
                         RoomFurnisher.KeepOut(
                             new ConnectorExit(
-                                connector.Id,
-                                new PlanarPoint(connector.ExitX, connector.ExitY),
-                                connector.ExitAngle
+                                placed.Connector.Id,
+                                new PlanarPoint(placed.Exit.X, placed.Exit.Y),
+                                placed.Connector.ExitAngle
                             )
                         )
                     )
@@ -187,6 +188,65 @@ public class RoomRecipeLayoutTests
         var counter = items.First(item => item.Model == PropModel.WorkstationTrade).Bounds;
         var wallGap = againstEastWall ? room.Width - counter.Left - counter.Width : counter.Top;
         Assert.True(wallGap >= CounterAt.Setback - 1e-9, $"counter is {wallGap} m from its wall");
+    }
+
+    public static TheoryData<BuildingType, string> RecipedRooms =>
+        new()
+        {
+            { BuildingType.Inn, "Lobby" },
+            { BuildingType.Inn, "North Guest Room" },
+            { BuildingType.Tavern, "Common Room" },
+            { BuildingType.Tavern, "Owner's Quarters" },
+            { BuildingType.House, "Living Room" },
+            { BuildingType.House, "Bedroom 1" },
+            { BuildingType.GuildHall, "Hall" },
+            { BuildingType.GuildHall, "Member Room 1" },
+            { BuildingType.Library, "Reading Room" },
+            { BuildingType.Library, "Study" },
+            { BuildingType.Temple, "Sanctuary" },
+            { BuildingType.Stable, "Stable" },
+            { BuildingType.Barracks, "Drill Hall" },
+            { BuildingType.Barracks, "Barracks Dormitory" },
+            { BuildingType.Castle, "Great Hall" },
+            { BuildingType.Jail, "Guard Station" },
+            { BuildingType.Jail, JailRoomNames.Cells },
+            { BuildingType.Blacksmith, "Workshop" },
+            { BuildingType.GeneralGoods, "Shop" },
+            { BuildingType.Apothecary, "Shop" },
+            { BuildingType.ArcaneShop, "Shop" },
+            { BuildingType.Tailor, "Shop" },
+            { BuildingType.Jeweler, "Shop" },
+            { BuildingType.Bakery, "Bakery" },
+            { BuildingType.Carpenter, "Workshop" },
+        };
+
+    [Theory]
+    [MemberData(nameof(RecipedRooms))]
+    public void Furnish_KeepsEverySurvivingDecorItemOnItsAuthoredPose(
+        BuildingType type,
+        string roomName
+    )
+    {
+        // Arrange
+        var room = new Footprint(14, 12);
+        var recipe = RoomRecipeCatalog.Find(type, roomName)!;
+        var authored = recipe.Expand(room);
+
+        // Act
+        var furnished = RoomFurnisher.Furnish(room, recipe, [], []);
+
+        // Assert
+        Assert.All(
+            furnished.Decor,
+            item =>
+                Assert.Contains(
+                    authored,
+                    candidate =>
+                        candidate.Model == item.Model || candidate.DecorModel == item.Model
+                            ? candidate.Placement == item.Placement
+                            : false
+                )
+        );
     }
 
     [Theory]

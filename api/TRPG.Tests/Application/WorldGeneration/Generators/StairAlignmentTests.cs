@@ -13,17 +13,19 @@ public class StairAlignmentTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var pairs = StairPairs(world).Where(pair => !HasFlightsBothWays(world, pair)).ToArray();
+        var pairs = StairPairs(world, layout)
+            .Where(pair => !HasFlightsBothWays(world, pair))
+            .ToArray();
         Assert.NotEmpty(pairs);
         Assert.All(
             pairs,
             pair =>
             {
                 Assert.Equal(PlanOffset(world, pair.Up), PlanOffset(world, pair.Down), 6);
-                Assert.Equal(pair.Up.ExitY, pair.Down.ExitY, 6);
+                Assert.Equal(pair.Up.Exit.Y, pair.Down.Exit.Y, 6);
             }
         );
     }
@@ -35,29 +37,29 @@ public class StairAlignmentTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
         Assert.All(
-            StairPairs(world),
+            StairPairs(world, layout),
             pair =>
             {
-                var upstairs = world.LocationById(pair.Up.DestinationLocationId);
+                var upstairs = world.LocationById(pair.Up.Connector.DestinationLocationId);
                 var expected = ConnectorPointResolver.KeepInside(
                     ConnectorPointResolver.ResolveArrival(
                         new ConnectorExit(
-                            pair.Down.Id,
-                            new PlanarPoint(pair.Down.ExitX, pair.Down.ExitY),
-                            pair.Down.ExitAngle
+                            pair.Down.Connector.Id,
+                            new PlanarPoint(pair.Down.Exit.X, pair.Down.Exit.Y),
+                            pair.Down.Connector.ExitAngle
                         )
                         {
-                            Stairs = pair.Down.StairDirection,
+                            Stairs = pair.Down.Connector.StairDirection,
                         }
                     ),
                     new Footprint(upstairs.Width, upstairs.Depth)
                 );
-                Assert.Equal(expected.X, pair.Up.ArrivalX, 6);
-                Assert.Equal(expected.Y, pair.Up.ArrivalY, 6);
+                Assert.Equal(expected.X, pair.Up.Arrival.X, 6);
+                Assert.Equal(expected.Y, pair.Up.Arrival.Y, 6);
             }
         );
     }
@@ -69,15 +71,15 @@ public class StairAlignmentTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
         Assert.All(
-            StairPairs(world),
+            StairPairs(world, layout),
             pair =>
             {
-                Assert.Equal(StairDirection.Up, pair.Up.StairDirection);
-                Assert.Equal(StairDirection.Down, pair.Down.StairDirection);
+                Assert.Equal(StairDirection.Up, pair.Up.Connector.StairDirection);
+                Assert.Equal(StairDirection.Down, pair.Down.Connector.StairDirection);
             }
         );
     }
@@ -106,23 +108,23 @@ public class StairAlignmentTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var stairs = StairConnectors(world);
+        var stairs = Placed(world, layout, StairConnectors(world));
         Assert.NotEmpty(stairs);
         Assert.All(
             stairs,
             stair =>
             {
                 var footprint = ExitKeepOut.Of(
-                    new PlanarPoint(stair.ExitX, stair.ExitY),
-                    stair.ExitAngle,
-                    stair.StairDirection
+                    new PlanarPoint(stair.Exit.X, stair.Exit.Y),
+                    stair.Connector.ExitAngle,
+                    stair.Connector.StairDirection
                 );
                 var solids = world
-                    .Input.Props.Concat(furniture)
-                    .Where(prop => prop.LocationId == stair.OriginLocationId)
+                    .Input.Props.Concat(layout.Props)
+                    .Where(prop => prop.LocationId == stair.Connector.OriginLocationId)
                     .Where(prop =>
                         prop
                             is not Furniture
@@ -137,15 +139,17 @@ public class StairAlignmentTests
                         )
                     );
                 var otherExits = world
-                    .Input.Connectors.Where(other =>
-                        other.OriginLocationId == stair.OriginLocationId && other.Id != stair.Id
+                    .PlacedConnectors(layout)
+                    .Where(other =>
+                        other.Connector.OriginLocationId == stair.Connector.OriginLocationId
+                        && other.Connector.Id != stair.Connector.Id
                     )
-                    .Where(other => other.StairDirection is not null)
+                    .Where(other => other.Connector.StairDirection is not null)
                     .Select(other =>
                         ExitKeepOut.Of(
-                            new PlanarPoint(other.ExitX, other.ExitY),
-                            other.ExitAngle,
-                            other.StairDirection
+                            new PlanarPoint(other.Exit.X, other.Exit.Y),
+                            other.Connector.ExitAngle,
+                            other.Connector.StairDirection
                         )
                     )
                     .Select(box => box with { Width = box.Width - 0.1, Depth = box.Depth - 0.1 });
@@ -161,16 +165,16 @@ public class StairAlignmentTests
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
         Assert.All(
-            StairConnectors(world),
-            connector =>
+            Placed(world, layout, StairConnectors(world)),
+            placed =>
             {
-                var destination = world.LocationById(connector.DestinationLocationId);
-                Assert.InRange(connector.ArrivalX, 0, destination.Width);
-                Assert.InRange(connector.ArrivalY, 0, destination.Depth);
+                var destination = world.LocationById(placed.Connector.DestinationLocationId);
+                Assert.InRange(placed.Arrival.X, 0, destination.Width);
+                Assert.InRange(placed.Arrival.Y, 0, destination.Depth);
             }
         );
     }
@@ -183,10 +187,10 @@ public class StairAlignmentTests
         var world = MiniLayoutWorldBuilder.BuildHouseWorld(memberIds);
 
         // Act
-        LocationLayoutGenerator.Generate(world.Input);
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var pairs = StairPairs(world);
+        var pairs = StairPairs(world, layout);
         Assert.NotEmpty(pairs);
         Assert.All(
             pairs,
@@ -198,14 +202,21 @@ public class StairAlignmentTests
         MiniLayoutWorldBuilder.MiniLayoutWorld world,
         StairPair pair
     ) =>
-        new[] { pair.Up.OriginLocationId, pair.Down.OriginLocationId }.Any(roomId =>
-            StairConnectors(world).Count(connector => connector.OriginLocationId == roomId) > 1
+        new[] { pair.Up.Connector.OriginLocationId, pair.Down.Connector.OriginLocationId }.Any(
+            roomId =>
+                StairConnectors(world).Count(connector => connector.OriginLocationId == roomId) > 1
         );
 
     private static double PlanOffset(
         MiniLayoutWorldBuilder.MiniLayoutWorld world,
-        LocationConnector connector
-    ) => connector.ExitX - world.LocationById(connector.OriginLocationId).Width / 2;
+        PlacedConnector placed
+    ) => placed.Exit.X - world.LocationById(placed.Connector.OriginLocationId).Width / 2;
+
+    private static IReadOnlyList<PlacedConnector> Placed(
+        MiniLayoutWorldBuilder.MiniLayoutWorld world,
+        LocationLayoutResult layout,
+        IReadOnlyCollection<LocationConnector> connectors
+    ) => [.. world.PlacedConnectors(layout).Where(placed => connectors.Contains(placed.Connector))];
 
     private static IReadOnlyList<LocationConnector> StairConnectors(
         MiniLayoutWorldBuilder.MiniLayoutWorld world
@@ -219,24 +230,35 @@ public class StairAlignmentTests
             .ToArray();
 
     private static IReadOnlyList<StairPair> StairPairs(
-        MiniLayoutWorldBuilder.MiniLayoutWorld world
-    ) =>
-        StairConnectors(world)
-            .Where(connector =>
-                FloorOf(world, connector.DestinationLocationId)
-                > FloorOf(world, connector.OriginLocationId)
-            )
-            .Select(up => new StairPair(
-                up,
-                world.Input.Connectors.First(down =>
-                    down.OriginLocationId == up.DestinationLocationId
-                    && down.DestinationLocationId == up.OriginLocationId
+        MiniLayoutWorldBuilder.MiniLayoutWorld world,
+        LocationLayoutResult layout
+    )
+    {
+        var placedById = world.PlacedConnectors(layout).ToDictionary(placed => placed.Connector.Id);
+
+        return
+        [
+            .. StairConnectors(world)
+                .Where(connector =>
+                    FloorOf(world, connector.DestinationLocationId)
+                    > FloorOf(world, connector.OriginLocationId)
                 )
-            ))
-            .ToArray();
+                .Select(up => new StairPair(
+                    placedById[up.Id],
+                    placedById[
+                        world
+                            .Input.Connectors.First(down =>
+                                down.OriginLocationId == up.DestinationLocationId
+                                && down.DestinationLocationId == up.OriginLocationId
+                            )
+                            .Id
+                    ]
+                )),
+        ];
+    }
 
     private static int? FloorOf(MiniLayoutWorldBuilder.MiniLayoutWorld world, Guid locationId) =>
         world.Input.Rooms.FirstOrDefault(room => room.LocationId == locationId)?.FloorNumber;
 
-    private sealed record StairPair(LocationConnector Up, LocationConnector Down);
+    private sealed record StairPair(PlacedConnector Up, PlacedConnector Down);
 }

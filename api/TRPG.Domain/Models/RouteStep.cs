@@ -9,4 +9,5 @@ public class RouteStep
     public required Guid LocationId { get; init; }
     public Guid? ConnectorId { get; init; }
     public required double DwellHours { get; init; }
+    public double Distance { get; set; }
 }

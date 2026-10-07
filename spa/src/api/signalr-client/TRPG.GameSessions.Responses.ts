@@ -225,6 +225,36 @@ export type SceneSnapshot = {
     roads?: RoadSnapshot[];
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.NeighborSnapshot>? */
     neighbors?: NeighborSnapshot[];
+    /** Transpiled from TRPG.GameSessions.Responses.TravelNetworkSnapshot? */
+    travelNetwork?: TravelNetworkSnapshot;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.TravelNodeSnapshot */
+export type TravelNodeSnapshot = {
+    /** Transpiled from System.Guid */
+    id: string;
+    /** Transpiled from TRPG.GameSessions.Responses.PointWire */
+    position: PointWire;
+    /** Transpiled from bool */
+    isPort: boolean;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.TravelEdgeSnapshot */
+export type TravelEdgeSnapshot = {
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.PointWire> */
+    points: PointWire[];
+    /** Transpiled from double */
+    distance: number;
+    /** Transpiled from bool */
+    bidirectional: boolean;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.TravelNetworkSnapshot */
+export type TravelNetworkSnapshot = {
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.TravelNodeSnapshot> */
+    nodes: TravelNodeSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.TravelEdgeSnapshot> */
+    edges: TravelEdgeSnapshot[];
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.RoadSnapshot */
@@ -385,6 +415,22 @@ export type CreatureStatusSnapshot = {
     placement: PlacementWire;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.EquippedGearSnapshot> */
     equipment: EquippedGearSnapshot[];
+    /** Transpiled from TRPG.GameSessions.Responses.CreatureWalkSnapshot? */
+    walk?: CreatureWalkSnapshot;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.CreatureWalkSnapshot */
+export type CreatureWalkSnapshot = {
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.PointWire> */
+    points: PointWire[];
+    /** Transpiled from long */
+    startedAtGameTimeMilliseconds: number;
+    /** Transpiled from double */
+    metersPerGameSecond: number;
+    /** Transpiled from bool */
+    leavesAtEnd: boolean;
+    /** Transpiled from long */
+    pausedAtGameTimeMilliseconds?: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.EquippedGearSnapshot */

@@ -1,8 +1,11 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Routing.Queries;
@@ -37,7 +40,8 @@ internal class RouteCreaturesToDestinationsCommandHandler(
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
     ICommandHandler<UpdateCreaturesCommand> updateCreatures,
     ICommandHandler<StartWalkingCommand> startWalking,
-    IQueryHandler<GetTravelTopologyQuery, IReadOnlyList<TravelTopologyEdge>> getTravelTopology
+    IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTravelTopology,
+    IOptions<WorldClockOptions> clockOptions
 )
     : ICommandHandler<
         RouteCreaturesToDestinationsCommand,
@@ -58,21 +62,24 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         var creatures = await LoadCreatures(command.Routes, cancellationToken);
         ValidateCreatures(creatures.Values.ToArray());
         var worldId = creatures.Values.First().WorldId;
-        var topology = await LoadTopology(worldId, cancellationToken);
-        var activeRoutes = await LoadActiveRoutes(
-            creatures.Keys.ToArray(),
-            topology,
-            cancellationToken
-        );
+        var graph = await LoadGraph(worldId, cancellationToken);
+        var activeRoutes = await LoadActiveRoutes(creatures.Keys.ToArray(), cancellationToken);
         var plans = command.Routes.ToDictionary(
             request => request.CreatureId,
-            request => BuildPlan(request, creatures[request.CreatureId], activeRoutes, topology)
+            request =>
+                BuildPlan(
+                    request,
+                    creatures[request.CreatureId],
+                    activeRoutes,
+                    graph,
+                    clockOptions.Value.TimeScale
+                )
         );
 
         using var transaction = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
         await CreatureRouteCleaner.Remove(context, creatures.Keys.ToArray(), cancellationToken);
         var routeCache = await LoadRouteCache(worldId, cancellationToken);
-        var results = CreateTravelers(worldId, plans, topology, routeCache);
+        var results = CreateTravelers(worldId, plans, routeCache);
         await PersistCreatureTargets(plans.Values.ToArray(), cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
         transaction.Complete();
@@ -101,22 +108,18 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             : throw new EntityNotFoundException(nameof(Creature), missingId.Value);
     }
 
-    private async Task<RouteTopology> LoadTopology(
-        Guid worldId,
-        CancellationToken cancellationToken
-    )
+    private async Task<TravelGraph> LoadGraph(Guid worldId, CancellationToken cancellationToken)
     {
-        var edges = await getTravelTopology.Handle(
-            new GetTravelTopologyQuery { WorldIds = [worldId] },
+        var topology = await getTravelTopology.Handle(
+            new GetTravelTopologyQuery { WorldId = worldId },
             cancellationToken
         );
 
-        return new RouteTopology(edges, edges.ToDictionary(edge => edge.ConnectorId));
+        return topology.ToGraph();
     }
 
     private async Task<IReadOnlyDictionary<Guid, ActiveCreatureRoute>> LoadActiveRoutes(
         IReadOnlyCollection<Guid> creatureIds,
-        RouteTopology topology,
         CancellationToken cancellationToken
     )
     {
@@ -140,7 +143,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             .Routes.AsNoTracking()
             .Where(route => routeIds.AsEnumerable().Contains(route.Id))
             .ToDictionaryAsync(route => route.Id, cancellationToken);
-        var stepsByRouteId = await LoadTimelineSteps(routeIds, topology, cancellationToken);
+        var stepsByRouteId = await LoadTimelineSteps(routeIds, cancellationToken);
 
         return memberships.ToDictionary(
             member => member.CreatureId,
@@ -158,11 +161,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
 
     private async Task<
         IReadOnlyDictionary<Guid, IReadOnlyList<RouteTimelineStep>>
-    > LoadTimelineSteps(
-        IReadOnlyCollection<Guid> routeIds,
-        RouteTopology topology,
-        CancellationToken cancellationToken
-    )
+    > LoadTimelineSteps(IReadOnlyCollection<Guid> routeIds, CancellationToken cancellationToken)
     {
         var steps = await context
             .RouteSteps.AsNoTracking()
@@ -179,9 +178,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                             .Select(step => new RouteTimelineStep(
                                 step.LocationId,
                                 step.ConnectorId,
-                                step.ConnectorId == null
-                                    ? 0
-                                    : topology.EdgeByConnectorId[step.ConnectorId.Value].Distance,
+                                step.Distance,
                                 step.DwellHours
                             ))
                             .ToArray()
@@ -192,12 +189,13 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         CreatureRouteRequest request,
         Creature creature,
         IReadOnlyDictionary<Guid, ActiveCreatureRoute> activeRoutes,
-        RouteTopology topology
+        TravelGraph graph,
+        double timeScale
     )
     {
         if (!activeRoutes.TryGetValue(creature.Id, out var activeRoute))
         {
-            return BuildStationaryPlan(request, creature, creature.LocationId, topology);
+            return BuildStationaryPlan(request, creature, creature.LocationId, graph, timeScale);
         }
 
         var resolved = ResolveRouteTravelerPositionsQueryHandler.Resolve(
@@ -213,25 +211,28 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                 creature,
                 activeRoute,
                 inTransit,
-                topology
+                graph
             ),
             RouteTimelinePosition.Arrived arrived => BuildStationaryPlan(
                 request,
                 creature,
                 arrived.LocationId,
-                topology
+                graph,
+                timeScale
             ),
             RouteTimelinePosition.Pending pending => BuildStationaryPlan(
                 request,
                 creature,
                 pending.LocationId,
-                topology
+                graph,
+                timeScale
             ),
             RouteTimelinePosition.Lingering lingering => BuildStationaryPlan(
                 request,
                 creature,
                 lingering.LocationId,
-                topology
+                graph,
+                timeScale
             ),
             _ => throw new InvalidOperationException("Unknown route position."),
         };
@@ -241,7 +242,8 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         CreatureRouteRequest request,
         Creature creature,
         Guid originLocationId,
-        RouteTopology topology
+        TravelGraph graph,
+        double timeScale
     )
     {
         if (originLocationId == request.DestinationLocationId)
@@ -249,14 +251,14 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             return CreatureRoutePlan.AlreadyAt(request, creature, originLocationId);
         }
 
-        var path = FindPath(topology, originLocationId, request.DestinationLocationId);
+        var path = graph.FindShortestPath(originLocationId, null, request.DestinationLocationId);
         EnsurePathExists(path);
         return new CreatureRoutePlan(
             request,
             creature,
             path,
             request.GameTime,
-            creature.MovementSpeed,
+            InLocationPace.MetersPerGameHour(creature.MovementSpeed, timeScale),
             originLocationId,
             IsAlreadyAtDestination: false
         );
@@ -267,47 +269,45 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         Creature creature,
         ActiveCreatureRoute activeRoute,
         RouteTimelinePosition.InTransit inTransit,
-        RouteTopology topology
+        TravelGraph graph
     )
     {
-        var tail = FindPath(topology, inTransit.ToLocationId, request.DestinationLocationId);
+        var arrivalNodeId = graph.ArrivalNodeOf(inTransit.ConnectorId);
+        var tail = graph.FindShortestPath(
+            inTransit.ToLocationId,
+            arrivalNodeId,
+            request.DestinationLocationId
+        );
         if (inTransit.ToLocationId != request.DestinationLocationId)
         {
             EnsurePathExists(tail);
         }
 
-        var currentLeg = new RoutePathLeg(
+        var currentDistance = activeRoute
+            .Steps.First(step =>
+                step.ConnectorId == inTransit.ConnectorId
+                && step.LocationId == inTransit.FromLocationId
+            )
+            .Distance;
+        var currentLeg = new RouteLeg(
             inTransit.FromLocationId,
             inTransit.ConnectorId,
-            inTransit.ToLocationId
+            inTransit.ToLocationId,
+            arrivalNodeId,
+            currentDistance
         );
-        var path = new[] { currentLeg }.Concat(tail).ToArray();
-        var currentDistance = topology.EdgeByConnectorId[inTransit.ConnectorId].Distance;
         var elapsedHours =
             currentDistance / activeRoute.Traveler.SpeedUnitsPerHour - inTransit.HoursUntilArrival;
         return new CreatureRoutePlan(
             request,
             creature,
-            path,
+            [currentLeg, .. tail],
             request.GameTime - TimeSpan.FromHours(1) * elapsedHours,
             activeRoute.Traveler.SpeedUnitsPerHour,
             inTransit.FromLocationId,
             IsAlreadyAtDestination: false
         );
     }
-
-    private static IReadOnlyList<RoutePathLeg> FindPath(
-        RouteTopology topology,
-        Guid originLocationId,
-        Guid destinationLocationId
-    ) =>
-        originLocationId == destinationLocationId
-            ? []
-            : RoutePathfinder.FindShortestPath(
-                topology.Edges,
-                originLocationId,
-                destinationLocationId
-            );
 
     private async Task<FiniteRouteCache> LoadRouteCache(
         Guid worldId,
@@ -337,7 +337,6 @@ internal class RouteCreaturesToDestinationsCommandHandler(
     private IReadOnlyDictionary<Guid, RouteCreatureResult> CreateTravelers(
         Guid worldId,
         IReadOnlyDictionary<Guid, CreatureRoutePlan> plans,
-        RouteTopology topology,
         FiniteRouteCache routeCache
     )
     {
@@ -356,9 +355,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
 
             var route = GetOrCreateRoute(worldId, plan.Path, routeCache);
             var traveler = AddTraveler(worldId, plan, route.Id);
-            var travelHours =
-                plan.Path.Sum(leg => topology.EdgeByConnectorId[leg.ConnectorId].Distance)
-                / plan.SpeedUnitsPerHour;
+            var travelHours = plan.Path.Sum(leg => leg.Distance) / plan.SpeedUnitsPerHour;
             results[plan.Creature.Id] = new RouteCreatureResult(
                 traveler.Id,
                 IsAlreadyAtDestination: false,
@@ -370,7 +367,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
 
     private Route GetOrCreateRoute(
         Guid worldId,
-        IReadOnlyList<RoutePathLeg> path,
+        IReadOnlyList<RouteLeg> path,
         FiniteRouteCache routeCache
     )
     {
@@ -439,14 +436,20 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             );
         }
 
-        var walkingCreatureIds = plans
+        var walkingPlans = plans
             .Where(plan => !plan.IsAlreadyAtDestination)
-            .Select(plan => plan.Creature.Id)
-            .ToArray();
-        await startWalking.Handle(
-            new StartWalkingCommand { CreatureIds = walkingCreatureIds },
-            cancellationToken
-        );
+            .GroupBy(plan => new WalkExit(plan.Path[0].ConnectorId, plan.StartedAtGameTime, null));
+        foreach (var walking in walkingPlans)
+        {
+            await startWalking.Handle(
+                new StartWalkingCommand
+                {
+                    CreatureIds = walking.Select(plan => plan.Creature.Id).ToArray(),
+                    Exit = walking.Key,
+                },
+                cancellationToken
+            );
+        }
     }
 
     private static void ValidateRequests(IReadOnlyCollection<CreatureRouteRequest> requests)
@@ -472,7 +475,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         }
     }
 
-    private static void EnsurePathExists(IReadOnlyCollection<RoutePathLeg> path)
+    private static void EnsurePathExists(IReadOnlyCollection<RouteLeg> path)
     {
         if (path.Count == 0)
         {
@@ -480,7 +483,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
         }
     }
 
-    private static bool Matches(IReadOnlyList<RoutePathLeg> path, IReadOnlyList<RouteStep> steps)
+    private static bool Matches(IReadOnlyList<RouteLeg> path, IReadOnlyList<RouteStep> steps)
     {
         if (steps.Count != path.Count + 1)
         {
@@ -491,6 +494,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                 .All(entry =>
                     steps[entry.index].LocationId == entry.leg.OriginLocationId
                     && steps[entry.index].ConnectorId == entry.leg.ConnectorId
+                    && Math.Abs(steps[entry.index].Distance - entry.leg.Distance) < 1e-6
                 )
             && steps[^1].LocationId == path[^1].DestinationLocationId
             && steps[^1].ConnectorId == null;
@@ -499,7 +503,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
     private static RouteStep[] BuildSteps(
         Guid worldId,
         Guid routeId,
-        IReadOnlyList<RoutePathLeg> path
+        IReadOnlyList<RouteLeg> path
     ) =>
         [
             .. path.Select(
@@ -512,6 +516,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
                         LocationId = leg.OriginLocationId,
                         ConnectorId = leg.ConnectorId,
                         DwellHours = 0,
+                        Distance = leg.Distance,
                     }
             ),
             new RouteStep
@@ -525,11 +530,6 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             },
         ];
 
-    private record RouteTopology(
-        IReadOnlyCollection<TravelTopologyEdge> Edges,
-        IReadOnlyDictionary<Guid, TravelTopologyEdge> EdgeByConnectorId
-    );
-
     private record ActiveCreatureRoute(
         RouteTraveler Traveler,
         Route Route,
@@ -539,7 +539,7 @@ internal class RouteCreaturesToDestinationsCommandHandler(
     private record CreatureRoutePlan(
         CreatureRouteRequest Request,
         Creature Creature,
-        IReadOnlyList<RoutePathLeg> Path,
+        IReadOnlyList<RouteLeg> Path,
         GameInstant StartedAtGameTime,
         double SpeedUnitsPerHour,
         Guid AnchorLocationId,

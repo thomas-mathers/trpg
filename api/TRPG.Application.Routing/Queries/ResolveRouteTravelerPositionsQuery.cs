@@ -15,13 +15,7 @@ public class ResolveRouteTravelerPositionsQuery
     public required GameInstant GameTime { get; init; }
 }
 
-internal class ResolveRouteTravelerPositionsQueryHandler(
-    IRoutingDbContext context,
-    IQueryHandler<
-        GetTravelConnectorDistancesQuery,
-        IReadOnlyDictionary<Guid, float>
-    > getTravelConnectorDistances
-)
+internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext context)
     : IQueryHandler<
         ResolveRouteTravelerPositionsQuery,
         IReadOnlyDictionary<Guid, ResolvedRouteTravelerPosition>
@@ -48,16 +42,6 @@ internal class ResolveRouteTravelerPositionsQueryHandler(
             .Where(step => routeIds.AsEnumerable().Contains(step.RouteId))
             .OrderBy(step => step.SequenceIndex)
             .ToArrayAsync(cancellationToken);
-        var connectorIds = routeSteps
-            .Where(step => step.ConnectorId != null)
-            .Select(step => step.ConnectorId!.Value)
-            .Distinct()
-            .ToArray();
-
-        var distances = await getTravelConnectorDistances.Handle(
-            new GetTravelConnectorDistancesQuery { ConnectorIds = connectorIds },
-            cancellationToken
-        );
         var timelineStepsByRouteId = routeSteps
             .GroupBy(step => step.RouteId)
             .ToDictionary(
@@ -67,7 +51,7 @@ internal class ResolveRouteTravelerPositionsQueryHandler(
                         .Select(step => new RouteTimelineStep(
                             step.LocationId,
                             step.ConnectorId,
-                            step.ConnectorId == null ? 0 : distances[step.ConnectorId.Value],
+                            step.Distance,
                             step.DwellHours
                         ))
                         .ToArray()

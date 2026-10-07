@@ -16,8 +16,8 @@ public class CreatureGeneratorOptions
     public int BaseCarryingCapacity { get; init; } = 80;
     public int CarryWeightPerEndurance { get; init; } = 10;
     public float BaseMovementSpeed { get; init; } = WalkingSpeedUnitsPerHour;
-    public float MovementSpeedPerDexterity { get; init; } = 1f;
-    public int MovementSpeedDexterityCap { get; init; } = 20;
+    public float MovementSpeedPerDexterity { get; init; } = 0.25f;
+    public int MovementSpeedDexterityCap { get; init; } = 40;
     public float ClothMovementPenalty { get; init; } = 0f;
     public float LeatherMovementPenalty { get; init; } = 2f;
     public float MailMovementPenalty { get; init; } = 5f;

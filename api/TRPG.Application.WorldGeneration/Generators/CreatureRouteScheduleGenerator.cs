@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -19,11 +20,10 @@ public static class CreatureRouteScheduleGenerator
         Guid worldId,
         IReadOnlyCollection<Creature> creatures,
         IReadOnlyCollection<CreatureJob> jobs,
-        IReadOnlyCollection<LocationConnector> locationConnectors,
-        IReadOnlyCollection<TravelConnector> travelConnectors
+        TravelGraph graph,
+        double timeScale
     )
     {
-        var graph = TravelGraph.Build(locationConnectors, travelConnectors);
         var creaturesById = creatures.ToDictionary(creature => creature.Id);
         var routes = new List<Route>();
         var steps = new List<RouteStep>();
@@ -49,7 +49,7 @@ public static class CreatureRouteScheduleGenerator
                 continue;
             }
 
-            GenerateForCreature(creature, group.ToArray(), state);
+            GenerateForCreature(creature, group.ToArray(), state, timeScale);
         }
 
         return new CreatureRouteScheduleGeneratorResult(routes, steps, schedules);
@@ -58,7 +58,8 @@ public static class CreatureRouteScheduleGenerator
     private static void GenerateForCreature(
         Creature creature,
         IReadOnlyCollection<CreatureJob> jobs,
-        GenerationState state
+        GenerationState state,
+        double timeScale
     )
     {
         for (var weekHour = 0; weekHour < HoursPerWeek; weekHour++)
@@ -75,9 +76,9 @@ public static class CreatureRouteScheduleGenerator
                 continue;
             }
 
-            var path = TravelGraph.FindShortestPath(
-                state.Graph,
+            var path = state.Graph.FindShortestPath(
                 origin.LocationId,
+                null,
                 destination.LocationId
             );
             if (path.Count == 0)
@@ -85,7 +86,9 @@ public static class CreatureRouteScheduleGenerator
                 continue;
             }
 
-            var durationHours = path.Sum(leg => leg.Distance) / creature.MovementSpeed;
+            var durationHours =
+                path.Sum(leg => leg.Distance)
+                / InLocationPace.MetersPerGameHour(creature.MovementSpeed, timeScale);
             var departureWeekHour = NormalizeWeekHour(
                 ResolveDepartureWeekHour(creature.Id, origin, destination, weekHour, durationHours)
             );
@@ -174,7 +177,7 @@ public static class CreatureRouteScheduleGenerator
             : hour >= job.StartHour || hour < job.EndHour;
     }
 
-    private static Route GetOrCreateRoute(IReadOnlyList<TravelPathLeg> path, GenerationState state)
+    private static Route GetOrCreateRoute(IReadOnlyList<RouteLeg> path, GenerationState state)
     {
         var key = string.Join(',', path.Select(leg => leg.ConnectorId));
         if (state.RoutesByPath.TryGetValue(key, out var existing))
@@ -200,6 +203,7 @@ public static class CreatureRouteScheduleGenerator
                         LocationId = leg.OriginLocationId,
                         ConnectorId = leg.ConnectorId,
                         DwellHours = 0,
+                        Distance = leg.Distance,
                     }
             )
         );
@@ -239,10 +243,7 @@ public static class CreatureRouteScheduleGenerator
     private sealed class GenerationState
     {
         public required Guid WorldId { get; init; }
-        public required IReadOnlyDictionary<
-            Guid,
-            IReadOnlyList<TravelGraphEdge>
-        > Graph { get; init; }
+        public required TravelGraph Graph { get; init; }
         public required List<Route> Routes { get; init; }
         public required List<RouteStep> Steps { get; init; }
         public required List<CreatureRouteSchedule> Schedules { get; init; }

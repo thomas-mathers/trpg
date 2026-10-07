@@ -64,5 +64,6 @@ internal static class SceneCreatureInfoMapper
                     item.ModelClass
                 ))
                 .ToArray(),
+            Walk = creature.Walk?.ToWire(),
         };
 }

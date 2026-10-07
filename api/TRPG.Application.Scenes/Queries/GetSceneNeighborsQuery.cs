@@ -21,15 +21,15 @@ public class GetSceneNeighborsQuery
 internal class GetSceneNeighborsQueryHandler(
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<
-        GetConnectorsByLocationIdQuery,
-        IReadOnlyCollection<LocationConnector>
+        GetPlacedConnectorsByLocationIdQuery,
+        IReadOnlyCollection<PlacedConnector>
     > getConnectorsByLocationId,
     IQueryHandler<
         GetBuildingsByLocationQuery,
         IReadOnlyCollection<Building>
     > getAllBuildingsByLocation,
     IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getPropsByLocationId,
-    IQueryHandler<GetRoadNetworkByLocationIdQuery, LocationRoadNetwork> getRoadNetwork
+    IQueryHandler<GetPointNetworkByLocationIdQuery, LocationPointNetwork> getRoadNetwork
 ) : IQueryHandler<GetSceneNeighborsQuery, IReadOnlyCollection<NeighborDistrict>>
 {
     public async Task<IReadOnlyCollection<NeighborDistrict>> Handle(
@@ -85,11 +85,11 @@ internal class GetSceneNeighborsQueryHandler(
     )
     {
         var connectors = await getConnectorsByLocationId.Handle(
-            new GetConnectorsByLocationIdQuery { LocationId = neighborId },
+            new GetPlacedConnectorsByLocationIdQuery { LocationId = neighborId },
             cancellationToken
         );
-        var reverse = connectors.FirstOrDefault(connector =>
-            connector.DestinationLocationId == locationId
+        var reverse = connectors.FirstOrDefault(placed =>
+            placed.Connector.DestinationLocationId == locationId
         );
         if (reverse == null)
         {
@@ -97,7 +97,7 @@ internal class GetSceneNeighborsQueryHandler(
         }
 
         var locationIds = connectors
-            .Select(connector => connector.DestinationLocationId)
+            .Select(placed => placed.Connector.DestinationLocationId)
             .Append(neighborId)
             .Distinct()
             .ToArray();
@@ -117,7 +117,7 @@ internal class GetSceneNeighborsQueryHandler(
         );
 
         var network = await getRoadNetwork.Handle(
-            new GetRoadNetworkByLocationIdQuery { LocationId = neighborId },
+            new GetPointNetworkByLocationIdQuery { LocationId = neighborId },
             cancellationToken
         );
 
@@ -128,7 +128,7 @@ internal class GetSceneNeighborsQueryHandler(
             new Footprint(neighbor.Width, neighbor.Depth),
             ExitPlacement(reverse),
             connectors
-                .Select(connector => ToBoundaryExit(connector, locations))
+                .Select(placed => ToBoundaryExit(placed, locations))
                 .OfType<BoundaryExit>()
                 .ToArray(),
             buildings.Select(ToNearbyBuilding).ToArray(),
@@ -137,24 +137,24 @@ internal class GetSceneNeighborsQueryHandler(
         );
     }
 
-    private static Placement ExitPlacement(LocationConnector connector) =>
-        new(connector.ExitX, connector.ExitY, connector.ExitAngle);
+    private static Placement ExitPlacement(PlacedConnector placed) =>
+        new(placed.Exit.X, placed.Exit.Y, placed.Connector.ExitAngle);
 
     private static BoundaryExit? ToBoundaryExit(
-        LocationConnector connector,
+        PlacedConnector placed,
         IReadOnlyDictionary<Guid, Location> locations
     ) =>
-        locations.GetValueOrDefault(connector.DestinationLocationId)?.Kind switch
+        locations.GetValueOrDefault(placed.Connector.DestinationLocationId)?.Kind switch
         {
             LocationKind.District => new BoundaryExit(
-                connector.Id,
+                placed.Connector.Id,
                 BoundaryExitKind.District,
-                ExitPlacement(connector)
+                ExitPlacement(placed)
             ),
             LocationKind.Wilderness => new BoundaryExit(
-                connector.Id,
+                placed.Connector.Id,
                 BoundaryExitKind.Wilderness,
-                ExitPlacement(connector)
+                ExitPlacement(placed)
             ),
             _ => null,
         };

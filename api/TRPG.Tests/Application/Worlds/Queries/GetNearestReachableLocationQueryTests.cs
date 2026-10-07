@@ -67,8 +67,12 @@ public sealed class GetNearestReachableLocationQueryTests(DatabaseFixture db)
         var farCandidate = Builders.MakeLocation(WorldId, coarseAnchorLocationId: farAnchor);
         _context.Locations.AddRange(fromLocation, nearCandidate, farCandidate);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await SeedTravelConnector(fromAnchor, nearAnchor, distance: 1);
-        await SeedTravelConnector(fromAnchor, farAnchor, distance: 5);
+        var viaAnchor = Guid.NewGuid();
+        var topology = new WalkableTopology(WorldId, walkMetersPerLocation: 10);
+        topology.ConnectBothWays(fromAnchor, nearAnchor);
+        topology.ConnectBothWays(fromAnchor, viaAnchor);
+        topology.ConnectBothWays(viaAnchor, farAnchor);
+        await Seed(topology);
 
         var query = new GetNearestReachableLocationQuery
         {
@@ -129,27 +133,11 @@ public sealed class GetNearestReachableLocationQueryTests(DatabaseFixture db)
         Assert.Null(result);
     }
 
-    private async Task SeedTravelConnector(
-        Guid originLocationId,
-        Guid destinationLocationId,
-        float distance
-    )
+    private async Task Seed(WalkableTopology topology)
     {
-        var outbound = Builders.MakeLocationConnector(
-            originLocationId,
-            destinationLocationId,
-            WorldId
-        );
-        var inbound = Builders.MakeLocationConnector(
-            destinationLocationId,
-            originLocationId,
-            WorldId
-        );
-        _context.LocationConnectors.AddRange(outbound, inbound);
-        _context.TravelConnectors.AddRange(
-            Builders.MakeTravelConnector(outbound.Id, distance, worldId: WorldId),
-            Builders.MakeTravelConnector(inbound.Id, distance, worldId: WorldId)
-        );
+        _context.LocationConnectors.AddRange(topology.LocationConnectors);
+        _context.PointConnectors.AddRange(topology.BuildPointConnectors());
+        _context.TravelNodes.AddRange(topology.TravelNodes);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 }

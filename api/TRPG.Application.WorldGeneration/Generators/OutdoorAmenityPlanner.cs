@@ -348,15 +348,19 @@ internal static class OutdoorAmenityPlanner
         return network
             .Edges.SelectMany(edge =>
             {
-                var points = new[] { new Point(nodes[edge.FromNodeId].X, nodes[edge.FromNodeId].Y) }
+                var points = new[] { nodes[edge.OriginNodeId].Position }
                     .Concat(edge.Waypoints.Points)
-                    .Append(new Point(nodes[edge.ToNodeId].X, nodes[edge.ToNodeId].Y))
+                    .Append(nodes[edge.DestinationNodeId].Position)
                     .ToArray();
                 return points
                     .Skip(1)
                     .Select(
                         (point, index) =>
-                            new RoadSegment(points[index], point, RoadClassWidths.Of(edge.Class))
+                            new RoadSegment(
+                                points[index],
+                                point,
+                                RoadClassWidths.Of(edge.RoadClass!.Value)
+                            )
                     );
             })
             .ToArray();

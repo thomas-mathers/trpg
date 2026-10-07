@@ -1,10 +1,11 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class CityGrid
 {
-    internal const double CellSize = 1.5;
+    internal const double CellSize = CityLattice.CellSize;
     internal const double HalfCell = CellSize / 2;
     internal const double GateCorridor = 5 * CellSize;
 

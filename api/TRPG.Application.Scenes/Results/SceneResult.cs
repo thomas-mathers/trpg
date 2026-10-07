@@ -3,6 +3,7 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Scenes.Boundaries;
 using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Roads;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes.Results;
@@ -121,7 +122,16 @@ public record SceneCreatureInfo(
 )
 {
     public IReadOnlyCollection<SceneEquipmentVisual> Equipment { get; init; } = [];
+    public SceneCreatureWalk? Walk { get; init; }
 }
+
+public record SceneCreatureWalk(
+    IReadOnlyList<Point> Path,
+    GameInstant StartedAt,
+    double MetersPerGameSecond,
+    bool LeavesAtEnd,
+    GameInstant? PausedAt = null
+);
 
 public record SceneEquipmentVisual(Guid ItemId, EquipmentSlot Slot, string ModelClass);
 
@@ -171,5 +181,6 @@ public record SceneResult(
     Footprint Size,
     DistrictBoundary? Boundary = null,
     IReadOnlyCollection<DistrictRoad>? Roads = null,
-    IReadOnlyCollection<NeighborDistrict>? Neighbors = null
+    IReadOnlyCollection<NeighborDistrict>? Neighbors = null,
+    SceneTravelNetwork? TravelNetwork = null
 );

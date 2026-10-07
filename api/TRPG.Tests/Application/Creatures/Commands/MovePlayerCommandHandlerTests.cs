@@ -55,14 +55,16 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
             oldLocation.Id,
             newLocation.Id,
             worldId: WorldId,
-            arrivalX: 3,
-            arrivalY: 8,
             arrivalAngle: 3
         );
         world.PlayerId = player.Id;
         _context.Worlds.Add(world);
         _context.Locations.AddRange(oldLocation, newLocation);
         _context.LocationConnectors.Add(connector);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector),
+            Builders.MakeArrivalNode(connector, 3, 8)
+        );
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

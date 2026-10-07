@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
+using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
@@ -179,6 +180,128 @@ public sealed class StartWalkingCommandTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(creature.Id, await db.ReadPropOccupantId(seat.Id));
+    }
+
+    [Fact]
+    public async Task Handle_RecordsTheExitPoint_WhenTheCreatureLeavesAfterADwell()
+    {
+        // Arrange
+        var (here, previous, exit) = await SeedLocations();
+        var creature = await Seed(
+            Builders.MakeCreature(locationId: here.Id, previousLocationId: previous.Id)
+        );
+
+        // Act
+        await _handler.Handle(
+            new StartWalkingCommand
+            {
+                CreatureIds = [creature.Id],
+                Exit = new WalkExit(exit.Id, Departed, ArrivedAt: Departed - TimeSpan.FromHours(1)),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await db.ReadCreature(creature.Id);
+        Assert.Equal((9d, 8d, Departed), (updated.ExitX, updated.ExitY, updated.DepartedAt));
+        Assert.Null(updated.EnteredAt);
+    }
+
+    [Fact]
+    public async Task Handle_RecordsTheEntryPointFromThePreviousLocation_WhenTheCreaturePassesThrough()
+    {
+        // Arrange
+        var (here, previous, exit) = await SeedLocations();
+        var creature = await Seed(
+            Builders.MakeCreature(locationId: here.Id, previousLocationId: previous.Id)
+        );
+
+        // Act
+        await _handler.Handle(
+            new StartWalkingCommand
+            {
+                CreatureIds = [creature.Id],
+                Exit = new WalkExit(exit.Id, Departed, ArrivedAt: Departed),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await db.ReadCreature(creature.Id);
+        Assert.Equal((2d, 3d, Departed), (updated.EntryX, updated.EntryY, updated.EnteredAt));
+        Assert.Equal((9d, 8d, Departed), (updated.ExitX, updated.ExitY, updated.DepartedAt));
+    }
+
+    [Fact]
+    public async Task Handle_ClearsAStaleEntryWalk_WhenTheCreatureLeavesAfterADwell()
+    {
+        // Arrange
+        var (here, previous, exit) = await SeedLocations();
+        var creature = Builders.MakeCreature(locationId: here.Id, previousLocationId: previous.Id);
+        creature.EntryX = 1;
+        creature.EntryY = 1;
+        creature.EnteredAt = Departed - TimeSpan.FromHours(1);
+        await Seed(creature);
+
+        // Act
+        await _handler.Handle(
+            new StartWalkingCommand
+            {
+                CreatureIds = [creature.Id],
+                Exit = new WalkExit(exit.Id, Departed, ArrivedAt: null),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await db.ReadCreature(creature.Id);
+        Assert.Equal((null, null, null), (updated.EntryX, updated.EntryY, updated.EnteredAt));
+    }
+
+    [Fact]
+    public async Task Handle_ClearsTheExitWalk_WhenNoExitIsGiven()
+    {
+        // Arrange
+        var creature = Builders.MakeCreature();
+        creature.ExitX = 4;
+        creature.ExitY = 4;
+        creature.DepartedAt = Departed;
+        await Seed(creature);
+
+        // Act
+        await _handler.Handle(
+            new StartWalkingCommand { CreatureIds = [creature.Id] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await db.ReadCreature(creature.Id);
+        Assert.Equal((null, null, null), (updated.ExitX, updated.ExitY, updated.DepartedAt));
+    }
+
+    private static readonly GameInstant Departed = new(
+        new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Unspecified)
+    );
+
+    private async Task<(Location Here, Location Previous, LocationConnector Exit)> SeedLocations()
+    {
+        var worldId = Guid.NewGuid();
+        var here = Builders.MakeLocation(worldId: worldId, width: 20, depth: 20);
+        var previous = Builders.MakeLocation(worldId: worldId, width: 20, depth: 20);
+        var next = Builders.MakeLocation(worldId: worldId, width: 20, depth: 20);
+        var entering = Builders.MakeLocationConnector(previous.Id, here.Id, worldId: worldId);
+        var exit = Builders.MakeLocationConnector(here.Id, next.Id, worldId: worldId);
+        _context.Locations.AddRange(here, previous, next);
+        _context.LocationConnectors.AddRange(entering, exit);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(entering),
+            Builders.MakeArrivalNode(entering, 2, 3),
+            Builders.MakeExitNode(exit, 9, 8),
+            Builders.MakeArrivalNode(exit)
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return (here, previous, exit);
     }
 
     private async Task<Creature> Seed(Creature creature)

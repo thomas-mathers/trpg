@@ -111,11 +111,10 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
     public DbSet<Encounter> Encounters => Set<Encounter>();
     public DbSet<EncounterGroup> EncounterGroups => Set<EncounterGroup>();
     public DbSet<EncounterGroupMember> EncounterGroupMembers => Set<EncounterGroupMember>();
-    public DbSet<RoadEdge> RoadEdges => Set<RoadEdge>();
-    public DbSet<RoadNode> RoadNodes => Set<RoadNode>();
+    public DbSet<PointConnector> PointConnectors => Set<PointConnector>();
     public DbSet<Room> Rooms => Set<Room>();
     public DbSet<State> States => Set<State>();
-    public DbSet<TravelConnector> TravelConnectors => Set<TravelConnector>();
+    public DbSet<TravelNode> TravelNodes => Set<TravelNode>();
     public DbSet<World> Worlds => Set<World>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
     public DbSet<NpcConversationSessionState> NpcConversationSessionStates =>
@@ -530,12 +529,24 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(l => l.DistrictId).IsUnique().HasFilter("room_id IS NULL");
         });
 
+        modelBuilder.Entity<Connector>(entity =>
+        {
+            entity.ToTable("connectors");
+            entity
+                .HasDiscriminator<string>("connector_kind")
+                .HasValue<LocationConnector>("Location")
+                .HasValue<PointConnector>("Point");
+            entity.Property<string>("connector_kind").HasColumnType("text");
+            entity.HasIndex(c => c.WorldId);
+            entity.HasIndex(c => c.OriginNodeId);
+            entity.HasIndex(c => c.DestinationNodeId);
+        });
+
         modelBuilder.Entity<LocationConnector>(entity =>
         {
             entity.HasIndex(c => c.OriginLocationId);
             entity.HasIndex(c => c.DestinationLocationId);
             entity.HasIndex(c => new { c.OriginLocationId, c.DestinationLocationId });
-            entity.HasIndex(c => c.WorldId);
             entity.OwnsOne(
                 c => c.Path,
                 path =>
@@ -546,37 +557,30 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             );
         });
 
-        modelBuilder.Entity<DoorConnector>(entity =>
+        modelBuilder.Entity<PointConnector>(entity =>
         {
-            entity.HasIndex(c => c.ConnectorId).IsUnique();
-            entity.HasIndex(c => c.WorldId);
-        });
-
-        modelBuilder.Entity<TravelConnector>(entity =>
-        {
-            entity.HasIndex(c => c.ConnectorId).IsUnique();
-            entity.HasIndex(c => c.WorldId);
-        });
-
-        modelBuilder.Entity<RoadNode>(entity =>
-        {
-            entity.HasIndex(n => n.LocationId);
-            entity.HasIndex(n => n.WorldId);
-            entity.HasIndex(n => n.ConnectorId).IsUnique().HasFilter("connector_id IS NOT NULL");
-        });
-
-        modelBuilder.Entity<RoadEdge>(entity =>
-        {
-            entity.HasIndex(e => e.LocationId);
-            entity.HasIndex(e => e.WorldId);
+            entity.HasIndex(c => c.LocationId);
             entity.OwnsOne(
-                e => e.Waypoints,
+                c => c.Waypoints,
                 waypoints =>
                 {
                     waypoints.ToJson();
                     waypoints.OwnsMany(p => p.Points);
                 }
             );
+        });
+
+        modelBuilder.Entity<DoorConnector>(entity =>
+        {
+            entity.HasIndex(c => c.ConnectorId).IsUnique();
+            entity.HasIndex(c => c.WorldId);
+        });
+
+        modelBuilder.Entity<TravelNode>(entity =>
+        {
+            entity.HasIndex(n => n.LocationId);
+            entity.HasIndex(n => n.WorldId);
+            entity.OwnsOne(n => n.Position);
         });
 
         modelBuilder.Entity<Prop>(entity =>

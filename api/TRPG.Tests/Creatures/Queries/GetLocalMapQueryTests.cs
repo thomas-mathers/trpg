@@ -117,6 +117,16 @@ public sealed class GetLocalMapQueryTests(DatabaseFixture db)
             frontierToCurrent,
             frontierToHidden
         );
+        _context.TravelNodes.AddRange(
+            new[]
+            {
+                visitedToCurrent,
+                currentToVisited,
+                currentToFrontier,
+                frontierToCurrent,
+                frontierToHidden,
+            }.SelectMany(Builders.MakeConnectorNodes)
+        );
         _context.DoorConnectors.Add(lockedDoor);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -168,6 +178,8 @@ public sealed class GetLocalMapQueryTests(DatabaseFixture db)
         _context.Locations.AddRange(MakeLocation(current), MakeLocation(next));
         _context.Creatures.Add(player);
         _context.LocationConnectors.AddRange(forward, reverse);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(forward));
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(reverse));
         _context.DoorConnectors.Add(
             Builders.MakeDoorConnector(forward.Id, isLocked: true, worldId: _worldId)
         );

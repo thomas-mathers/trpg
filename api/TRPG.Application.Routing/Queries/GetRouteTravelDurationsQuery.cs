@@ -1,4 +1,7 @@
+using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 
@@ -8,7 +11,7 @@ public record RouteTravelDurationRequest(
     Guid CreatureId,
     Guid OriginLocationId,
     Guid DestinationLocationId,
-    double SpeedUnitsPerHour
+    float MovementSpeed
 );
 
 public class GetRouteTravelDurationsQuery
@@ -18,7 +21,8 @@ public class GetRouteTravelDurationsQuery
 }
 
 internal class GetRouteTravelDurationsQueryHandler(
-    IQueryHandler<GetTravelTopologyQuery, IReadOnlyList<TravelTopologyEdge>> getTravelTopology
+    IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTravelTopology,
+    IOptions<WorldClockOptions> clockOptions
 ) : IQueryHandler<GetRouteTravelDurationsQuery, IReadOnlyDictionary<Guid, TimeSpan>>
 {
     public async Task<IReadOnlyDictionary<Guid, TimeSpan>> Handle(
@@ -34,19 +38,21 @@ internal class GetRouteTravelDurationsQueryHandler(
         Validate(query.Routes);
 
         var topology = await getTravelTopology.Handle(
-            new GetTravelTopologyQuery { WorldIds = [query.WorldId] },
+            new GetTravelTopologyQuery { WorldId = query.WorldId },
             cancellationToken
         );
+        var graph = topology.ToGraph();
 
         return query.Routes.ToDictionary(
             request => request.CreatureId,
-            request => ResolveDuration(request, topology)
+            request => ResolveDuration(request, graph, clockOptions.Value.TimeScale)
         );
     }
 
     private static TimeSpan ResolveDuration(
         RouteTravelDurationRequest request,
-        IReadOnlyCollection<TravelTopologyEdge> topology
+        TravelGraph graph,
+        double timeScale
     )
     {
         if (request.OriginLocationId == request.DestinationLocationId)
@@ -54,9 +60,9 @@ internal class GetRouteTravelDurationsQueryHandler(
             return TimeSpan.Zero;
         }
 
-        var path = RoutePathfinder.FindShortestPath(
-            topology,
+        var path = graph.FindShortestPath(
             request.OriginLocationId,
+            null,
             request.DestinationLocationId
         );
         if (path.Count == 0)
@@ -64,8 +70,9 @@ internal class GetRouteTravelDurationsQueryHandler(
             throw new InvalidOperationException("No measured route connects the two locations.");
         }
 
-        var distances = topology.ToDictionary(edge => edge.ConnectorId, edge => edge.Distance);
-        var hours = path.Sum(leg => distances[leg.ConnectorId]) / request.SpeedUnitsPerHour;
+        var hours =
+            path.Sum(leg => leg.Distance)
+            / InLocationPace.MetersPerGameHour(request.MovementSpeed, timeScale);
         return TimeSpan.FromHours(1) * hours;
     }
 
@@ -78,7 +85,7 @@ internal class GetRouteTravelDurationsQueryHandler(
                 nameof(requests)
             );
         }
-        if (requests.Any(request => request.SpeedUnitsPerHour <= 0))
+        if (requests.Any(request => request.MovementSpeed <= 0))
         {
             throw new InvalidOperationException("A creature must have positive movement speed.");
         }

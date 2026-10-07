@@ -2,6 +2,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain;
 using TRPG.Domain.Models;
+using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
@@ -21,7 +22,7 @@ public class CaravanRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, capitalLocationIds) = BuildStarTopologyWorld(worldId, countryCount: 3);
 
-        var result = CaravanRouteSeeder.Seed(world, Options);
+        var result = CaravanRouteSeeder.Seed(world, Options, WalkPace.TimeScale);
 
         Assert.Equal(2, result.Routes.Count);
         Assert.Equal(12, result.Steps.Count);
@@ -42,7 +43,7 @@ public class CaravanRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, _) = BuildStarTopologyWorld(worldId, countryCount: 3);
 
-        var result = CaravanRouteSeeder.Seed(world, Options);
+        var result = CaravanRouteSeeder.Seed(world, Options, WalkPace.TimeScale);
 
         // 3 stops * (1 linger hour + 2 leg hours) = 9 total cycle hours. CaravansPerStop = 1 gives
         // 3 instances per direction (one per stop), so 6 total — one clockwise and one
@@ -68,7 +69,7 @@ public class CaravanRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, capitalLocationIds) = BuildStarTopologyWorld(worldId, countryCount: 3);
 
-        var result = CaravanRouteSeeder.Seed(world, Options);
+        var result = CaravanRouteSeeder.Seed(world, Options, WalkPace.TimeScale);
 
         Assert.Equal(capitalLocationIds.Count, result.Signs.Count);
         Assert.Equal(
@@ -85,7 +86,7 @@ public class CaravanRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, _) = BuildStarTopologyWorld(worldId, countryCount: 3);
 
-        var result = CaravanRouteSeeder.Seed(world, Options);
+        var result = CaravanRouteSeeder.Seed(world, Options, WalkPace.TimeScale);
 
         Assert.All(
             result.Signs,
@@ -105,7 +106,7 @@ public class CaravanRouteSeederTests
         var worldId = Guid.NewGuid();
         var (world, _) = BuildStarTopologyWorld(worldId, countryCount: 1);
 
-        var result = CaravanRouteSeeder.Seed(world, Options);
+        var result = CaravanRouteSeeder.Seed(world, Options, WalkPace.TimeScale);
 
         Assert.Empty(result.Routes);
         Assert.Empty(result.Steps);
@@ -128,8 +129,7 @@ public class CaravanRouteSeederTests
         var cities = new List<City>();
         var districts = new List<District>();
         var locations = new List<Location> { hubLocation };
-        var locationConnectors = new List<LocationConnector>();
-        var travelConnectors = new List<TravelConnector>();
+        var topology = new WalkableTopology(worldId, WalkPace.MetersFor(5, 1));
         var capitalLocationIds = new List<Guid>();
 
         for (var i = 0; i < countryCount; i++)
@@ -164,14 +164,7 @@ public class CaravanRouteSeederTests
             districts.Add(entranceDistrict);
             capitalLocationIds.Add(entranceLocation.Id);
 
-            AddBidirectionalConnector(
-                worldId,
-                entranceLocation.Id,
-                hubLocation.Id,
-                distance: 5,
-                locationConnectors,
-                travelConnectors
-            );
+            topology.ConnectBothWays(entranceLocation.Id, hubLocation.Id);
         }
 
         var world = new WorldGeneratorResult
@@ -182,8 +175,9 @@ public class CaravanRouteSeederTests
             Cities = cities,
             Districts = districts,
             Locations = locations,
-            LocationConnectors = locationConnectors,
-            TravelConnectors = travelConnectors,
+            LocationConnectors = topology.LocationConnectors,
+            TravelNodes = topology.TravelNodes,
+            PointConnectors = topology.BuildPointConnectors(),
             InitiationQuests = [],
             InitiationQuestObjectives = [],
             FactionStandings = [],
@@ -209,41 +203,5 @@ public class CaravanRouteSeederTests
         };
 
         return (world, capitalLocationIds);
-    }
-
-    private static void AddBidirectionalConnector(
-        Guid worldId,
-        Guid originLocationId,
-        Guid destinationLocationId,
-        float distance,
-        List<LocationConnector> locationConnectors,
-        List<TravelConnector> travelConnectors
-    )
-    {
-        foreach (
-            var (from, to) in new[]
-            {
-                (originLocationId, destinationLocationId),
-                (destinationLocationId, originLocationId),
-            }
-        )
-        {
-            var connector = new LocationConnector
-            {
-                OriginLocationId = from,
-                DestinationLocationId = to,
-                DestinationLabel = "",
-                WorldId = worldId,
-            };
-            locationConnectors.Add(connector);
-            travelConnectors.Add(
-                new TravelConnector
-                {
-                    ConnectorId = connector.Id,
-                    Distance = distance,
-                    WorldId = worldId,
-                }
-            );
-        }
     }
 }

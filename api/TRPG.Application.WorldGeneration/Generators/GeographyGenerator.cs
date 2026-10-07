@@ -466,8 +466,7 @@ public class GeographyGenerator(
                     SettlementNameGenerator.GenerateRoadName(dominantRace, usedRoadNames),
                     originState.Id,
                     destState.Id,
-                    distance,
-                    (float)Random.Shared.NextDouble() * 0.5f
+                    distance
                 );
             })
             .ToList();
@@ -512,8 +511,7 @@ internal record StateTravelLink(
     string Name,
     Guid OriginStateId,
     Guid DestinationStateId,
-    float Distance,
-    float DangerLevel
+    float Distance
 );
 
 internal class GeographyEntitySchema

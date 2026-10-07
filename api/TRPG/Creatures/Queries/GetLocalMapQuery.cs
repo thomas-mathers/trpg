@@ -50,7 +50,7 @@ internal class GetLocalMapQueryHandler(
     IQueryHandler<GetRoomsByBuildingIdQuery, IReadOnlyCollection<Room>> getRoomsByBuildingId,
     IQueryHandler<
         GetConnectorsByOriginLocationIdsQuery,
-        IReadOnlyCollection<LocationConnector>
+        IReadOnlyCollection<PlacedConnector>
     > getConnectorsByOriginLocationIds,
     IQueryHandler<GetLocalMapLocksQuery, IReadOnlyDictionary<Guid, LocalMapLockKind>> getLocks,
     IQueryHandler<GetLocalMapMarkersQuery, IReadOnlyList<LocalMapMarker>> getMarkers,
@@ -107,10 +107,11 @@ internal class GetLocalMapQueryHandler(
             .Select(marker => marker.LocationId)
             .ToHashSet();
 
-        var connectors = await getConnectorsByOriginLocationIds.Handle(
+        var placedConnectors = await getConnectorsByOriginLocationIds.Handle(
             new GetConnectorsByOriginLocationIdsQuery { OriginLocationIds = roomLocationIds },
             cancellationToken
         );
+        var connectors = placedConnectors.Select(placed => placed.Connector);
         var roomsByLocationId = rooms.ToDictionary(room => room.LocationId);
         var interiorConnectors = connectors
             .Where(connector => roomsByLocationId.ContainsKey(connector.DestinationLocationId))

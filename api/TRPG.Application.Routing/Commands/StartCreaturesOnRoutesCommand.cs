@@ -1,8 +1,11 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
@@ -25,7 +28,8 @@ public class StartCreaturesOnRoutesCommand
 
 internal class StartCreaturesOnRoutesCommandHandler(
     IRoutingDbContext context,
-    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds
+    IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
+    IOptions<WorldClockOptions> clockOptions
 ) : ICommandHandler<StartCreaturesOnRoutesCommand>
 {
     public async Task Handle(
@@ -93,7 +97,10 @@ internal class StartCreaturesOnRoutesCommandHandler(
                 WorldId = creature.WorldId,
                 RouteId = request.RouteId,
                 StartedAtGameTime = request.StartedAtGameTime,
-                SpeedUnitsPerHour = creature.MovementSpeed,
+                SpeedUnitsPerHour = InLocationPace.MetersPerGameHour(
+                    creature.MovementSpeed,
+                    clockOptions.Value.TimeScale
+                ),
                 Purpose = request.Purpose,
                 ArrivalActivity = request.ArrivalActivity,
             };

@@ -81,16 +81,6 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
     {
         // Arrange — the cycle is 6 hours and it is 10:00, so the next arrival is 4 hours minus the phase away
         var route = Builders.MakeCaravanRoute(_worldId);
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
         var sign = new CaravanScheduleSign
         {
             WorldId = _worldId,
@@ -113,10 +103,9 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
                 );
             context.Routes.Add(route);
             context.RouteSteps.AddRange(
-                Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, connectorA.ConnectorId),
-                Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, connectorB.ConnectorId)
+                Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, Guid.NewGuid()),
+                Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, Guid.NewGuid())
             );
-            context.TravelConnectors.AddRange(connectorA, connectorB);
             context.CaravanFares.Add(Builders.MakeCaravanFare(route.Id, _worldId));
             context.RouteTravelers.Add(
                 Builders.MakeCaravan(route.Id, _worldId, phaseOffsetHours: phaseOffsetHours)
@@ -144,18 +133,8 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
         // Arrange — 2 stops, 10 units apart each way at speed 5 = 2 leg hours; with a 1-hour
         // linger the total cycle is 2 * (1 + 2) = 6 hours, and stop A's window is [0, 1).
         var route = Builders.MakeCaravanRoute(_worldId);
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: _worldId
-        );
-        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, connectorA.ConnectorId);
-        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, connectorB.ConnectorId);
+        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, _locationA, Guid.NewGuid());
+        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, _locationB, Guid.NewGuid());
         var fare = Builders.MakeCaravanFare(route.Id, _worldId);
         var caravan = Builders.MakeCaravan(route.Id, _worldId, phaseOffsetHours: 0);
         var sign = new CaravanScheduleSign
@@ -182,7 +161,6 @@ public sealed class SignEndpointsTests(EndpointTestFixture fixture) : IAsyncLife
                 );
             context.Routes.Add(route);
             context.RouteSteps.AddRange(stopA, stopB);
-            context.TravelConnectors.AddRange(connectorA, connectorB);
             context.CaravanFares.Add(fare);
             context.RouteTravelers.Add(caravan);
             context.Props.Add(sign);

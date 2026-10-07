@@ -13,14 +13,20 @@ public abstract record RouteTimelinePosition
 {
     public sealed record Pending(Guid LocationId, double HoursUntilStart) : RouteTimelinePosition;
 
-    public sealed record Lingering(Guid LocationId, int StepIndex, double HoursUntilDeparture)
-        : RouteTimelinePosition;
+    public sealed record Lingering(
+        Guid LocationId,
+        int StepIndex,
+        double HoursUntilDeparture,
+        GameInstant ArrivedAtGameTime
+    ) : RouteTimelinePosition;
 
     public sealed record InTransit(
         Guid ConnectorId,
         Guid FromLocationId,
         Guid ToLocationId,
-        double HoursUntilArrival
+        double HoursUntilArrival,
+        GameInstant? ArrivedAtGameTime,
+        GameInstant DepartedAtGameTime
     ) : RouteTimelinePosition;
 
     public sealed record Arrived(Guid LocationId, int StepIndex, GameInstant ArrivedAtGameTime)
@@ -62,6 +68,7 @@ public static class RouteTimeline
 
         var elapsedHours = (gameTime - startedAtGameTime) / TimeSpan.FromHours(1);
         var durationHours = TotalDurationHours(steps, traversal, speedUnitsPerHour);
+        var firstLap = elapsedHours < durationHours;
         if (traversal == RouteTraversal.Cyclic)
         {
             elapsedHours %= durationHours;
@@ -85,7 +92,8 @@ public static class RouteTimeline
                 return new RouteTimelinePosition.Lingering(
                     step.LocationId,
                     index,
-                    step.DwellHours - elapsedHours
+                    step.DwellHours - elapsedHours,
+                    gameTime - TimeSpan.FromHours(1) * elapsedHours
                 );
             }
             elapsedHours -= step.DwellHours;
@@ -94,11 +102,15 @@ public static class RouteTimeline
             var travelHours = TravelHours(step, speedUnitsPerHour);
             if (elapsedHours < travelHours)
             {
+                var departedAt = gameTime - TimeSpan.FromHours(1) * elapsedHours;
+                var startedHere = index == 0 && firstLap;
                 return new RouteTimelinePosition.InTransit(
                     step.ConnectorId.Value,
                     step.LocationId,
                     steps[(index + 1) % steps.Count].LocationId,
-                    travelHours - elapsedHours
+                    travelHours - elapsedHours,
+                    startedHere ? null : departedAt - TimeSpan.FromHours(1) * step.DwellHours,
+                    departedAt
                 );
             }
             elapsedHours -= travelHours;
@@ -108,7 +120,8 @@ public static class RouteTimeline
         return new RouteTimelinePosition.Lingering(
             steps[0].LocationId,
             StepIndex: 0,
-            HoursUntilDeparture: steps[0].DwellHours
+            HoursUntilDeparture: steps[0].DwellHours,
+            ArrivedAtGameTime: gameTime
         );
     }
 

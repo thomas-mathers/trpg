@@ -13,7 +13,6 @@ public class CityGeneratorTests
     private readonly IReadOnlyList<District> _districts;
     private readonly IReadOnlyDictionary<Guid, Location> _locationsById;
     private readonly IReadOnlyList<LocationConnector> _districtConnectors;
-    private readonly IReadOnlyList<TravelConnector> _districtTravelConnectors;
     private readonly WorldGeneratorInput _generatorInput = new()
     {
         Description = "test",
@@ -61,14 +60,6 @@ public class CityGeneratorTests
                 DestinationLabel = _districts[0].Name,
             },
         ];
-        _districtTravelConnectors = _districtConnectors
-            .Select(connector => new TravelConnector
-            {
-                WorldId = _worldId,
-                ConnectorId = connector.Id,
-                Distance = 15,
-            })
-            .ToArray();
     }
 
     private static CityGenerator MakeCityGenerator()
@@ -103,9 +94,7 @@ public class CityGeneratorTests
             DominantRace = CreatureType.Human,
             Districts = _districts,
             DistrictConnectors = _districtConnectors,
-            DistrictTravelConnectors = _districtTravelConnectors,
             LocationsById = _locationsById,
-            PatrolDwellHours = 0.5,
             NamedFactions = namedFactions,
             GeneratorInput = _generatorInput,
         };

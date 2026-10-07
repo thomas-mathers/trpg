@@ -51,6 +51,31 @@ public class RoomFurnisherTests
     }
 
     [Fact]
+    public void Furnish_GivesEverySolidItsOwnWholeCellsInsideTheRoom()
+    {
+        // Arrange
+        var bed = new RoomPropInput(Guid.NewGuid(), PropModel.Bed);
+        var chest = new RoomPropInput(Guid.NewGuid(), PropModel.ContainerChest);
+
+        // Act
+        var result = RoomFurnisher.Furnish(Room, BedroomRecipe, [bed, chest], []);
+
+        // Assert
+        var cellBoxes = result
+            .Bound.Select(prop => RoomGrid.CellBox(prop.Placement, prop.Footprint))
+            .Concat(
+                result
+                    .Decor.Where(item => item.Model != PropModel.FurnitureRug)
+                    .Select(item => RoomGrid.CellBox(item.Placement, item.Footprint))
+            )
+            .ToArray();
+        Assert.All(cellBoxes, box => Assert.True(box.IsInside(Room.Width, Room.Depth)));
+        Assert.Empty(
+            cellBoxes.SelectMany((box, index) => cellBoxes.Skip(index + 1).Where(box.Overlaps))
+        );
+    }
+
+    [Fact]
     public void Furnish_SpawnsDecorForFurnitureSlots()
     {
         // Arrange

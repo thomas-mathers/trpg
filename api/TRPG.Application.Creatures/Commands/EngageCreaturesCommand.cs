@@ -56,6 +56,10 @@ internal class EngageCreaturesCommandHandler(
         foreach (var creature in creatures)
         {
             creature.IsEngaged = true;
+            if (creature.EnteredAt is not null || creature.DepartedAt is not null)
+            {
+                creature.WalkPausedAt = command.GameTime;
+            }
         }
         await context.SaveChangesAsync(cancellationToken);
         await publisher.Publish(

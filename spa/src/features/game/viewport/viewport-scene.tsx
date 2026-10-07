@@ -13,6 +13,7 @@ import type {
   PlacementWire,
   PropModel,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { GameClockAnchor } from '@/features/game/game-clock';
 
 import { OUTDOOR_FLOOR_COLOR } from './boundary-scene';
 import { BuildingMesh } from './building-mesh';
@@ -301,7 +302,9 @@ export function Creatures({
   statuses,
   playerSeat,
   focus,
+  clock,
 }: {
+  clock: GameClockAnchor;
   creatures: CreatureStatusSnapshot[];
   playerId: string;
   names: EntityNames;
@@ -312,7 +315,7 @@ export function Creatures({
 }) {
   return (
     <>
-      {creatures.map(({ id, placement, creatureType, age, equipment }) => {
+      {creatures.map(({ id, placement, walk, creatureType, age, equipment }) => {
         const status = statuses.find((creature) => creature.id === id);
         const posture = status?.posture;
         if (id === playerId && posture !== 'Sitting') return null;
@@ -321,6 +324,8 @@ export function Creatures({
             key={id}
             id={id}
             placement={id === playerId && playerSeat ? playerSeat.placement : placement}
+            walk={walk}
+            clock={clock}
             posture={posture}
             playerId={playerId}
             label={names.get(id)}

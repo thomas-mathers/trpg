@@ -4,14 +4,12 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class WildernessConnectorGenerator
 {
-    public static WildernessConnectorGeneratorResult Generate(
+    public static IReadOnlyList<LocationConnector> Generate(
         City city,
         District cityEntranceDistrict,
         Location wildernessLocation,
         Guid worldId
-    )
-    {
-        LocationConnector[] connectors =
+    ) =>
         [
             new LocationConnector
             {
@@ -33,20 +31,4 @@ internal static class WildernessConnectorGenerator
                 WorldId = worldId,
             },
         ];
-        var travelConnectors = connectors
-            .Select(connector => new TravelConnector
-            {
-                ConnectorId = connector.Id,
-                Distance = 1,
-                WorldId = worldId,
-            })
-            .ToArray();
-
-        return new WildernessConnectorGeneratorResult(connectors, travelConnectors);
-    }
 }
-
-internal record WildernessConnectorGeneratorResult(
-    IReadOnlyList<LocationConnector> LocationConnectors,
-    IReadOnlyList<TravelConnector> TravelConnectors
-);

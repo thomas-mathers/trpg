@@ -4,19 +4,24 @@ import { MathUtils, type Group } from 'three';
 
 import type {
   CreatureStatusSnapshot,
+  CreatureWalkSnapshot,
   PlacementWire,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { GameClockAnchor } from '@/features/game/game-clock';
 
 import { creatureAppearance } from './creature-appearance';
 import { resolveGear } from './creature-gear';
 import { EntityLabel } from './entity-label';
-import { headingToYaw, toScenePosition } from './layout-math';
+import { headingToYaw } from './layout-math';
 import { SeatedBody } from './seated-body';
 import { StandingBody } from './standing-body';
+import { useCreaturePosition } from './use-creature-position';
 
 export const CreatureFigure = memo(function CreatureFigure({
   id,
   placement,
+  walk,
+  clock,
   posture,
   playerId,
   label,
@@ -27,6 +32,8 @@ export const CreatureFigure = memo(function CreatureFigure({
 }: {
   id: string;
   placement: PlacementWire;
+  walk?: CreatureWalkSnapshot;
+  clock: GameClockAnchor;
   posture?: string;
   playerId: string;
   label?: string;
@@ -45,21 +52,24 @@ export const CreatureFigure = memo(function CreatureFigure({
   const [upperBodyYaw, setUpperBodyYaw] = useState(0);
   const seated = posture === 'Sitting';
   const base = headingToYaw(placement.angle);
+  const heading = useCreaturePosition(group, {
+    placement,
+    walk,
+    clock,
+    seated,
+    debugName: label ?? id,
+  });
   useFrame((_, dt) => {
     if (!group.current) return;
-    const target = seated ? base : (facing ?? base);
+    const walking = heading.current === undefined ? base : headingToYaw(heading.current);
+    const target = seated ? base : (facing ?? walking);
     group.current.rotation.y = turnTowards(group.current.rotation.y, target, dt);
     const desired = seated && facing !== undefined ? facing - base : 0;
     upper.current = turnTowards(upper.current, desired, dt);
     if (Math.abs(upper.current - upperBodyYaw) > 0.001) setUpperBodyYaw(upper.current);
   });
   return (
-    <group
-      ref={group}
-      position={toScenePosition(placement.x, placement.y)}
-      rotation={[0, base, 0]}
-      userData={id === playerId ? {} : { creatureId: id }}
-    >
+    <group ref={group} rotation={[0, base, 0]} userData={id === playerId ? {} : { creatureId: id }}>
       {seated ? (
         <SeatedBody
           appearance={appearance}

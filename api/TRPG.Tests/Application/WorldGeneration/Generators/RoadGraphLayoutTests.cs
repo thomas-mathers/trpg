@@ -7,7 +7,7 @@ namespace TRPG.Tests.Application.WorldGeneration.Generators;
 public class RoadGraphLayoutTests
 {
     [Fact]
-    public void Generate_PlansRoadNodesAndEdgesOnlyInsideDistricts()
+    public void Generate_PlansRoadConnectorsOnlyInsideDistricts()
     {
         // Arrange
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
@@ -20,14 +20,18 @@ public class RoadGraphLayoutTests
             .Input.Locations.Where(location => location.Kind == LocationKind.District)
             .Select(location => location.Id)
             .ToHashSet();
-        Assert.NotEmpty(layout.RoadNodes);
-        Assert.NotEmpty(layout.RoadEdges);
-        Assert.All(layout.RoadNodes, node => Assert.Contains(node.LocationId, districtIds));
-        Assert.All(layout.RoadEdges, edge => Assert.Contains(edge.LocationId, districtIds));
+        var roads = RoadConnectors(layout);
+        var nodeById = layout.TravelNodes.ToDictionary(node => node.Id);
+        Assert.NotEmpty(roads);
+        Assert.All(roads, road => Assert.Contains(road.LocationId, districtIds));
+        Assert.All(
+            roads,
+            road => Assert.Equal(road.LocationId, nodeById[road.OriginNodeId].LocationId)
+        );
     }
 
     [Fact]
-    public void Generate_GivesEveryDistrictExitAPortNodeKeyedByItsConnector()
+    public void Generate_PlacesEveryDistrictExitOnANodeInsideItsDistrict()
     {
         // Arrange
         var world = MiniLayoutWorldBuilder.BuildWorld(1);
@@ -36,18 +40,15 @@ public class RoadGraphLayoutTests
         var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var exitConnectorIds = world
-            .Input.Connectors.Where(connector =>
-                world.LocationById(connector.OriginLocationId).Kind == LocationKind.District
-            )
-            .Select(connector => connector.Id)
-            .ToHashSet();
-        var portConnectorIds = layout
-            .RoadNodes.Where(node => node.Kind == RoadNodeKind.Port)
-            .Select(node => node.ConnectorId!.Value)
-            .ToHashSet();
-        Assert.NotEmpty(portConnectorIds);
-        Assert.Subset(exitConnectorIds, portConnectorIds);
+        var nodeById = layout.TravelNodes.ToDictionary(node => node.Id);
+        var exits = world.Input.Connectors.Where(connector =>
+            world.LocationById(connector.OriginLocationId).Kind == LocationKind.District
+        );
+        Assert.NotEmpty(exits);
+        Assert.All(
+            exits,
+            exit => Assert.Equal(exit.OriginLocationId, nodeById[exit.OriginNodeId].LocationId)
+        );
     }
 
     [Theory]
@@ -176,9 +177,9 @@ public class RoadGraphLayoutTests
 
     private static List<string> RoadCrossings(LocationLayoutResult layout)
     {
-        var nodes = layout.RoadNodes.ToDictionary(node => node.Id);
-        var polylines = layout
-            .RoadEdges.Select(edge => (Edge: edge, Points: RoadPolyline(nodes, edge)))
+        var nodes = layout.TravelNodes.ToDictionary(node => node.Id);
+        var polylines = RoadConnectors(layout)
+            .Select(edge => (Edge: edge, Points: RoadPolyline(nodes, edge)))
             .ToList();
 
         return polylines
@@ -228,29 +229,32 @@ public class RoadGraphLayoutTests
     private static string Describe(List<Point> points) =>
         string.Join(">", points.Select(point => $"({point.X:0.##},{point.Y:0.##})"));
 
-    private static List<Point> RoadPolyline(Dictionary<Guid, RoadNode> nodes, RoadEdge edge) =>
-        new[] { new Point(nodes[edge.FromNodeId].X, nodes[edge.FromNodeId].Y) }
+    private static List<PointConnector> RoadConnectors(LocationLayoutResult layout) =>
+        [.. layout.PointConnectors.Where(connector => connector.RoadClass != null)];
+
+    private static List<Point> RoadPolyline(
+        Dictionary<Guid, TravelNode> nodes,
+        PointConnector edge
+    ) =>
+        new[] { nodes[edge.OriginNodeId].Position }
             .Concat(edge.Waypoints.Points)
-            .Append(new Point(nodes[edge.ToNodeId].X, nodes[edge.ToNodeId].Y))
+            .Append(nodes[edge.DestinationNodeId].Position)
             .ToList();
 
     private static List<RoadFootprint> RoadFootprints(LocationLayoutResult layout)
     {
-        var nodes = layout.RoadNodes.ToDictionary(node => node.Id);
+        var nodes = layout.TravelNodes.ToDictionary(node => node.Id);
         var footprints = new List<RoadFootprint>();
 
-        foreach (var edge in layout.RoadEdges)
+        foreach (var edge in RoadConnectors(layout))
         {
-            var half = RoadClassWidths.Of(edge.Class) / 2;
-            var points = new[] { new Point(nodes[edge.FromNodeId].X, nodes[edge.FromNodeId].Y) }
-                .Concat(edge.Waypoints.Points)
-                .Append(new Point(nodes[edge.ToNodeId].X, nodes[edge.ToNodeId].Y))
-                .ToList();
+            var half = RoadClassWidths.Of(edge.RoadClass!.Value) / 2;
+            var points = RoadPolyline(nodes, edge);
 
             foreach (var (segment, (from, to)) in points.Zip(points.Skip(1)).Index())
             {
                 var bounds = SegmentBounds(from, to, segment == 0 ? 0 : half, half, half);
-                footprints.Add(new RoadFootprint(edge.LocationId, edge.Class, bounds));
+                footprints.Add(new RoadFootprint(edge.LocationId, edge.RoadClass!.Value, bounds));
             }
         }
 
@@ -334,16 +338,9 @@ public class RoadGraphLayoutTests
 
     private static List<List<Point>> RoadPolylines(LocationLayoutResult layout)
     {
-        var nodes = layout.RoadNodes.ToDictionary(node => node.Id);
+        var nodes = layout.TravelNodes.ToDictionary(node => node.Id);
 
-        return layout
-            .RoadEdges.Select(edge =>
-                new[] { new Point(nodes[edge.FromNodeId].X, nodes[edge.FromNodeId].Y) }
-                    .Concat(edge.Waypoints.Points)
-                    .Append(new Point(nodes[edge.ToNodeId].X, nodes[edge.ToNodeId].Y))
-                    .ToList()
-            )
-            .ToList();
+        return [.. RoadConnectors(layout).Select(edge => RoadPolyline(nodes, edge))];
     }
 
     private static bool IsSidestep(Point before, Point start, Point end, Point after)
@@ -371,14 +368,19 @@ public class RoadGraphLayoutTests
         var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var nodeCounts = layout.RoadNodes.GroupBy(node => node.LocationId).ToArray();
-        Assert.All(
-            nodeCounts,
-            group =>
-                Assert.Equal(
-                    group.Count() - 1,
-                    layout.RoadEdges.Count(edge => edge.LocationId == group.Key)
-                )
-        );
+        var roads = RoadConnectors(layout);
+        var nodeCounts = roads
+            .GroupBy(road => road.LocationId)
+            .Select(group => new
+            {
+                Edges = group.Count(),
+                Nodes = group
+                    .SelectMany(road => new[] { road.OriginNodeId, road.DestinationNodeId })
+                    .Distinct()
+                    .Count(),
+            })
+            .ToArray();
+        Assert.NotEmpty(nodeCounts);
+        Assert.All(nodeCounts, count => Assert.Equal(count.Nodes - 1, count.Edges));
     }
 }

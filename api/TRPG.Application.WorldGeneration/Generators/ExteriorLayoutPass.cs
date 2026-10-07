@@ -12,14 +12,15 @@ internal static class ExteriorLayoutPass
         IReadOnlyList<OrientedBox>? Occupied = null
     );
 
-    internal static LocationLayoutResult Run(
+    internal static ExteriorLayoutResult Run(
         LocationLayoutContext context,
         Dictionary<Guid, ConnectorExit> exitByConnectorId
     )
     {
         var furniture = new List<Prop>();
-        var roadNodes = new List<RoadNode>();
-        var roadEdges = new List<RoadEdge>();
+        var roadNodes = new List<TravelNode>();
+        var roadEdges = new List<PointConnector>();
+        var portNodeIdByConnectorId = new Dictionary<Guid, Guid>();
 
         foreach (var location in context.Locations.Where(l => l.Kind != LocationKind.Room))
         {
@@ -35,6 +36,10 @@ internal static class ExteriorLayoutPass
                 var roads = PlanRoads(context, location, exterior, exits);
                 roadNodes.AddRange(roads.Nodes);
                 roadEdges.AddRange(roads.Edges);
+                foreach (var (connectorId, nodeId) in roads.PortNodeIdByConnectorId)
+                {
+                    portNodeIdByConnectorId[connectorId] = nodeId;
+                }
                 var amenities = OutdoorAmenityPlanner.Place(
                     context.DistrictByLocationId[location.Id].DistrictType,
                     new OutdoorAmenityInput(
@@ -56,7 +61,7 @@ internal static class ExteriorLayoutPass
             furniture.AddRange(exterior.Decor.Select(item => CreateFurniture(location, item)));
         }
 
-        return new LocationLayoutResult(furniture, roadNodes, roadEdges);
+        return new ExteriorLayoutResult(furniture, roadNodes, roadEdges, portNodeIdByConnectorId);
     }
 
     private static RoadNetwork PlanRoads(
@@ -265,3 +270,10 @@ internal static class ExteriorLayoutPass
         );
     }
 }
+
+internal record ExteriorLayoutResult(
+    IReadOnlyList<Prop> Props,
+    IReadOnlyList<TravelNode> TravelNodes,
+    IReadOnlyList<PointConnector> PointConnectors,
+    IReadOnlyDictionary<Guid, Guid> PortNodeIdByConnectorId
+);

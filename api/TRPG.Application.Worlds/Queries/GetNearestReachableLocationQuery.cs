@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.Common.Algorithms;
 using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
 
@@ -12,8 +11,10 @@ public class GetNearestReachableLocationQuery
     public required IReadOnlyCollection<Guid> CandidateLocationIds { get; init; }
 }
 
-internal class GetNearestReachableLocationQueryHandler(IWorldsDbContext context)
-    : IQueryHandler<GetNearestReachableLocationQuery, Guid?>
+internal class GetNearestReachableLocationQueryHandler(
+    IWorldsDbContext context,
+    IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTravelTopology
+) : IQueryHandler<GetNearestReachableLocationQuery, Guid?>
 {
     public async Task<Guid?> Handle(
         GetNearestReachableLocationQuery query,
@@ -46,44 +47,14 @@ internal class GetNearestReachableLocationQueryHandler(IWorldsDbContext context)
             return null;
         }
 
-        var edges = await context
-            .LocationConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == query.WorldId)
-            .Join(
-                context
-                    .TravelConnectors.AsNoTracking()
-                    .Where(travel => travel.WorldId == query.WorldId),
-                connector => connector.Id,
-                travel => travel.ConnectorId,
-                (connector, travel) =>
-                    new
-                    {
-                        connector.OriginLocationId,
-                        connector.DestinationLocationId,
-                        travel.Distance,
-                    }
-            )
-            .ToArrayAsync(cancellationToken);
-
-        var neighborsByOrigin = edges
-            .GroupBy(edge => edge.OriginLocationId)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(edge => edge.DestinationLocationId).ToArray()
-            );
-
-        var costByEdge = edges.ToDictionary(
-            edge => (edge.OriginLocationId, edge.DestinationLocationId),
-            edge => edge.Distance
+        var topology = await getTravelTopology.Handle(
+            new GetTravelTopologyQuery { WorldId = query.WorldId },
+            cancellationToken
         );
+        var nearestAnchor = topology
+            .ToGraph()
+            .FindNearestLocation(fromAnchor, candidateIdByAnchor.Keys.ToHashSet());
 
-        var path = Graphs.ShortestPathToNearest(
-            fromAnchor,
-            candidateIdByAnchor.Keys.ToHashSet(),
-            locationId => neighborsByOrigin.GetValueOrDefault(locationId, []),
-            (from, to) => costByEdge[(from, to)]
-        );
-
-        return path.Count == 0 ? null : candidateIdByAnchor[path[^1]];
+        return nearestAnchor is null ? null : candidateIdByAnchor[nearestAnchor.Value];
     }
 }

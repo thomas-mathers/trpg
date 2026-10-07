@@ -265,9 +265,17 @@ export type CreatureStatusSnapshot = {
     activeBuffs: Array<ActiveBuff>;
     placement: PlacementWire;
     equipment?: Array<EquippedGearSnapshot>;
+    walk?: null | CreatureWalkSnapshot;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';
+
+export type CreatureWalkSnapshot = {
+    points: Array<PointWire>;
+    startedAtGameTimeMilliseconds: number;
+    metersPerGameSecond: number;
+    leavesAtEnd: boolean;
+};
 
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
 
@@ -937,6 +945,7 @@ export type SceneSnapshot = {
     boundary?: null | LocationBoundarySnapshot;
     roads?: null | Array<RoadSnapshot>;
     neighbors?: null | Array<NeighborSnapshot>;
+    travelNetwork?: null | TravelNetworkSnapshot;
 };
 
 export type SessionCreatedResponse = {
@@ -1003,6 +1012,23 @@ export type TradeRequest = {
 export type TradeSnapshot = {
     playerInventory: InventorySummary;
     shopInventory: InventorySummary;
+};
+
+export type TravelEdgeSnapshot = {
+    points: Array<PointWire>;
+    distance: number;
+    bidirectional: boolean;
+};
+
+export type TravelNetworkSnapshot = {
+    nodes: Array<TravelNodeSnapshot>;
+    edges: Array<TravelEdgeSnapshot>;
+};
+
+export type TravelNodeSnapshot = {
+    id: string;
+    position: PointWire;
+    isPort: boolean;
 };
 
 export type WeatherCondition = 'Clear' | 'Cloudy' | 'Rain' | 'Storm' | 'Snow' | 'Fog';

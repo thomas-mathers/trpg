@@ -14,7 +14,6 @@ internal sealed class RoomPlacementSession
     private const double SeatedLegReach = 0.6;
     private const int SamplingTries = 50;
     private const double FreeAngleStep = Math.PI / 12;
-    private const double RelaxedStep = 0.5;
     private const double Tolerance = 1e-6;
 
     private readonly Footprint _room;
@@ -40,10 +39,13 @@ internal sealed class RoomPlacementSession
         {
             foreach (var candidate in Candidates(rule, spec))
             {
-                if (Fits(candidate, spec))
+                foreach (var pose in RoomGrid.Alignments(candidate.Pose, spec.Footprint))
                 {
-                    Commit(prop, spec, candidate.Pose);
-                    return true;
+                    if (Fits(candidate with { Pose = pose }, spec))
+                    {
+                        Commit(prop, spec, pose);
+                        return true;
+                    }
                 }
             }
         }
@@ -198,7 +200,7 @@ internal sealed class RoomPlacementSession
         var distance = target.Footprint.Depth / 2 + seatToEdge;
         var seatAngle = Math.Atan2(-forward.X, forward.Y);
 
-        foreach (var offset in FrontRowOffsets(target.Footprint.Width / 2, spec))
+        foreach (var offset in FrontRowOffsets(RoomGrid.SnapUp(target.Footprint.Width) / 2, spec))
         {
             yield return new Placement(
                 target.Placement.X + forward.X * distance + right.X * offset,
@@ -210,7 +212,7 @@ internal sealed class RoomPlacementSession
 
     private static IEnumerable<double> FrontRowOffsets(double reach, PropFootprintSpec spec)
     {
-        var spacing = spec.Width + spec.FrontClearance + 2 * AnchorGap;
+        var spacing = RoomGrid.SnapUp(spec.Width);
 
         yield return 0;
 
@@ -223,17 +225,31 @@ internal sealed class RoomPlacementSession
 
     private bool Fits(Candidate candidate, PropFootprintSpec spec)
     {
-        var box = OrientedBox.From(candidate.Pose, spec.Footprint);
+        var box = RoomGrid.CellBox(candidate.Pose, spec.Footprint);
 
         return box.IsInside(_room.Width, _room.Depth)
+            && (candidate.Target is null || IsSeatedInFront(candidate.Target, candidate.Pose, spec))
             && _obstacles.All(obstacle =>
                 IsClearOf(obstacle, box, spec.FrontClearance, candidate.Target)
             );
     }
 
+    private static bool IsSeatedInFront(PlacedProp target, Placement pose, PropFootprintSpec spec)
+    {
+        var angle = target.Placement.Angle;
+        var offsetX = pose.X - target.Placement.X;
+        var offsetY = pose.Y - target.Placement.Y;
+        var forward = offsetX * Math.Sin(angle) - offsetY * Math.Cos(angle);
+        var lateral = offsetX * Math.Cos(angle) + offsetY * Math.Sin(angle);
+        var seatToEdge = forward - target.Footprint.Depth / 2;
+
+        return seatToEdge >= Math.Max(spec.Depth / 2, SeatedLegReach) - Tolerance
+            && Math.Abs(lateral) <= RoomGrid.SnapUp(target.Footprint.Width) / 2 + Tolerance;
+    }
+
     private bool IsClearOf(Obstacle obstacle, OrientedBox box, double clearance, PlacedProp? target)
     {
-        if (target is not null && obstacle.Source == target)
+        if (target is not null && (obstacle.Source == target || obstacle.IsSeat))
         {
             return !box.Overlaps(obstacle.Raw);
         }
@@ -248,12 +264,13 @@ internal sealed class RoomPlacementSession
         _placed.Add(placed);
         _obstacles.Add(
             new Obstacle(
-                OrientedBox.From(pose, spec.Footprint),
+                RoomGrid.CellBox(pose, spec.Footprint),
                 spec.FrontClearance,
                 IsPlacedProp: true
             )
             {
                 Source = placed,
+                IsSeat = spec.Rule == PropPlacementRule.Anchor,
             }
         );
 
@@ -268,15 +285,16 @@ internal sealed class RoomPlacementSession
 
     private Placement FirstUnobstructedPose(PropFootprintSpec spec)
     {
-        for (var y = spec.Depth / 2; y <= _room.Depth - spec.Depth / 2; y += RelaxedStep)
+        for (var top = 0.0; top <= _room.Depth - spec.Depth; top += RoomGrid.CellSize)
         {
-            for (var x = spec.Width / 2; x <= _room.Width - spec.Width / 2; x += RelaxedStep)
+            for (var left = 0.0; left <= _room.Width - spec.Width; left += RoomGrid.CellSize)
             {
-                var box = new OrientedBox(x, y, spec.Width, spec.Depth, 0);
+                var pose = new Placement(left + spec.Width / 2, top + spec.Depth / 2, 0);
+                var box = RoomGrid.CellBox(pose, spec.Footprint);
 
                 if (_obstacles.Where(o => o.IsPlacedProp).All(o => !box.Overlaps(o.Raw)))
                 {
-                    return new Placement(x, y, 0);
+                    return pose;
                 }
             }
         }
@@ -297,5 +315,7 @@ internal sealed class RoomPlacementSession
     private record Obstacle(OrientedBox Raw, double Clearance, bool IsPlacedProp)
     {
         internal PlacedProp? Source { get; init; }
+
+        internal bool IsSeat { get; init; }
     }
 }

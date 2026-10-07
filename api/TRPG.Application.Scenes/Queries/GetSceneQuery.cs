@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
 using TRPG.Application.Caravans.Queries;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
@@ -11,6 +13,7 @@ using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.Routing.Queries;
 using TRPG.Application.Scenes.Boundaries;
+using TRPG.Application.Scenes.Navigation;
 using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Scenes.Roads;
@@ -47,8 +50,8 @@ internal class GetSceneQueryHandler(
     IQueryHandler<GetRoomQuery, RoomResult?> getRoom,
     IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getAllPropsByLocationId,
     IQueryHandler<
-        GetConnectorsByLocationIdQuery,
-        IReadOnlyCollection<LocationConnector>
+        GetPlacedConnectorsByLocationIdQuery,
+        IReadOnlyCollection<PlacedConnector>
     > getConnectorsByLocationId,
     IQueryHandler<
         GetBuildingsByLocationQuery,
@@ -113,11 +116,16 @@ internal class GetSceneQueryHandler(
         IReadOnlyDictionary<Guid, RouteTravelerJourney>
     > getRouteTravelerJourneysByCreatureIds,
     IQueryHandler<GetSceneNeighborsQuery, IReadOnlyCollection<NeighborDistrict>> getSceneNeighbors,
-    IQueryHandler<GetRoadNetworkByLocationIdQuery, LocationRoadNetwork> getRoadNetwork,
+    IQueryHandler<GetPointNetworkByLocationIdQuery, LocationPointNetwork> getRoadNetwork,
     IQueryHandler<
         GetEquippedItemsByOwnersQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Item>>
-    > getEquippedItemsByOwners
+    > getEquippedItemsByOwners,
+    IQueryHandler<
+        GetCreatureWalkPathsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Point>>
+    > getCreatureWalkPaths,
+    IOptions<WorldClockOptions> clockOptions
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
     public async Task<SceneResult> Handle(
@@ -147,7 +155,7 @@ internal class GetSceneQueryHandler(
         var districtInfo = await BuildDistrictInfo(player, cancellationToken);
 
         var connectors = await getConnectorsByLocationId.Handle(
-            new GetConnectorsByLocationIdQuery { LocationId = player.LocationId },
+            new GetPlacedConnectorsByLocationIdQuery { LocationId = player.LocationId },
             cancellationToken
         );
         var exitInfos = await BuildExitInfos(
@@ -158,6 +166,7 @@ internal class GetSceneQueryHandler(
         );
         var nearbyPeople = await BuildNearbyPeopleInfos(
             query,
+            player.LocationId,
             nearby,
             equippedItemsByCreature,
             cancellationToken
@@ -202,6 +211,10 @@ internal class GetSceneQueryHandler(
                 cancellationToken
             )
             : null;
+        var pointNetwork = await getRoadNetwork.Handle(
+            new GetPointNetworkByLocationIdQuery { LocationId = player.LocationId },
+            cancellationToken
+        );
 
         return new SceneResult(
             query.WorldId,
@@ -229,15 +242,9 @@ internal class GetSceneQueryHandler(
             isDistrictOutdoors
                 ? SceneBoundaryResolver.Resolve(size, exitInfos, neighbors ?? [])
                 : null,
-            isDistrictOutdoors
-                ? SceneRoadMapper.ToRoads(
-                    await getRoadNetwork.Handle(
-                        new GetRoadNetworkByLocationIdQuery { LocationId = player.LocationId },
-                        cancellationToken
-                    )
-                )
-                : null,
-            neighbors
+            isDistrictOutdoors ? SceneRoadMapper.ToRoads(pointNetwork) : null,
+            neighbors,
+            PointNetworkMapper.ToTravelNetwork(pointNetwork)
         );
     }
 
@@ -402,7 +409,8 @@ internal class GetSceneQueryHandler(
                         new RouteTimelinePosition.Lingering(
                             playerLocationId,
                             stopIndex,
-                            HoursUntilDeparture: 0
+                            HoursUntilDeparture: 0,
+                            ArrivedAtGameTime: gameTime
                         ),
                         ticket
                     )
@@ -509,6 +517,7 @@ internal class GetSceneQueryHandler(
             player.Movement,
             reputation: null,
             totalCharacterXp,
+            placement: new Placement(player.X, player.Y, player.Angle),
             equipment: equipment
         );
     }
@@ -523,11 +532,13 @@ internal class GetSceneQueryHandler(
         CreatureMovement movement,
         int? reputation,
         int totalCharacterXp,
+        Placement placement,
         IReadOnlyCollection<SceneEquipmentVisual>? equipment = null,
         Guid? tradeWorkstationId = null,
         IReadOnlyCollection<QuestMarkerEntry>? questMarkers = null,
         bool readyToDeliver = false,
-        SceneJourneyInfo? journey = null
+        SceneJourneyInfo? journey = null,
+        SceneCreatureWalk? walk = null
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
@@ -580,10 +591,11 @@ internal class GetSceneQueryHandler(
             readyToDeliver,
             creature.Effects,
             journey,
-            new Placement(creature.X, creature.Y, creature.Angle)
+            placement
         )
         {
             Equipment = equipment ?? [],
+            Walk = walk,
         };
     }
 
@@ -785,6 +797,7 @@ internal class GetSceneQueryHandler(
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
         GetSceneQuery query,
+        Guid locationId,
         IReadOnlyCollection<CreatureResult> nearby,
         IReadOnlyDictionary<Guid, IReadOnlyList<Item>> equippedItemsByCreature,
         CancellationToken cancellationToken
@@ -795,7 +808,26 @@ internal class GetSceneQueryHandler(
             return [];
         }
 
-        var nearbyCreatureIds = nearby.Select(x => x.Id).ToArray();
+        var walkPaths = await getCreatureWalkPaths.Handle(
+            new GetCreatureWalkPathsQuery { LocationId = locationId, Creatures = nearby },
+            cancellationToken
+        );
+        var present = nearby
+            .Where(x =>
+                !CreaturePoseResolver.HasLeft(
+                    x,
+                    walkPaths.GetValueOrDefault(x.Id, []),
+                    query.GameTime,
+                    clockOptions.Value.TimeScale
+                )
+            )
+            .ToArray();
+        if (present.Length == 0)
+        {
+            return [];
+        }
+
+        var nearbyCreatureIds = present.Select(x => x.Id).ToArray();
         var factionIdsByCreature = await getFactionIdsByCreatureIds.Handle(
             new GetFactionIdsByCreatureIdsQuery { CreatureIds = nearbyCreatureIds },
             cancellationToken
@@ -854,7 +886,7 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
-        return nearby
+        return present
             .Select(x =>
                 BuildSceneCreatureInfo(
                     x,
@@ -866,13 +898,24 @@ internal class GetSceneQueryHandler(
                     movement: x.Movement,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
+                    placement: CreaturePoseResolver.Resolve(
+                        x,
+                        walkPaths.GetValueOrDefault(x.Id, []),
+                        query.GameTime,
+                        clockOptions.Value.TimeScale
+                    ),
                     equipment: equippedItemsByCreature
                         .GetValueOrDefault(x.Id, [])
                         .ToVisualEquipment(),
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
                     questMarkers: questMarkers.EntriesByCreatureId.GetValueOrDefault(x.Id, []),
                     readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id),
-                    journey: ToSceneJourney(journeysByCreature.GetValueOrDefault(x.Id))
+                    journey: ToSceneJourney(journeysByCreature.GetValueOrDefault(x.Id)),
+                    walk: CreaturePoseResolver.BuildWalk(
+                        x,
+                        walkPaths.GetValueOrDefault(x.Id, []),
+                        clockOptions.Value.TimeScale
+                    )
                 )
             )
             .ToArray();
@@ -882,12 +925,13 @@ internal class GetSceneQueryHandler(
         journey == null ? null : new SceneJourneyInfo(journey.Purpose, journey.NextDestination);
 
     private async Task<IReadOnlyCollection<SceneExitInfo>> BuildExitInfos(
-        IReadOnlyCollection<LocationConnector> connectors,
+        IReadOnlyCollection<PlacedConnector> placedConnectors,
         bool sourceIsRoom,
         CreatureResult player,
         CancellationToken cancellationToken
     )
     {
+        var connectors = placedConnectors.Select(placed => placed.Connector).ToArray();
         var destinationLocationIds = connectors
             .Select(connector => connector.DestinationLocationId)
             .ToArray();
@@ -942,6 +986,11 @@ internal class GetSceneQueryHandler(
             cancellationToken
         );
 
+        var placementByConnectorId = placedConnectors.ToDictionary(
+            placed => placed.Connector.Id,
+            placed => new Placement(placed.Exit.X, placed.Exit.Y, placed.Connector.ExitAngle)
+        );
+
         return connectors
             .Select(connector => new SceneExitInfo(
                 connector.Id,
@@ -959,7 +1008,7 @@ internal class GetSceneQueryHandler(
                 visited.Contains(connector.DestinationLocationId),
                 connector.DestinationLocationId == player.PreviousLocationId,
                 connector.DestinationLocationId,
-                new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle),
+                placementByConnectorId[connector.Id],
                 connector.StairDirection
             ))
             .ToArray();

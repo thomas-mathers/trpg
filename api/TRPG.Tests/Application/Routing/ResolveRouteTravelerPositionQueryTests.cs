@@ -29,23 +29,12 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
         _handler = _serviceProvider.GetRequiredService<ResolveRouteTravelerPositionQueryHandler>();
 
         var route = Builders.MakeCaravanRoute(WorldId);
-        var connectorA = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
-        );
-        var connectorB = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
-        );
-        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, LocationA, connectorA.ConnectorId);
-        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, LocationB, connectorB.ConnectorId);
+        var stopA = Builders.MakeCaravanRouteStop(route.Id, 0, LocationA, Guid.NewGuid());
+        var stopB = Builders.MakeCaravanRouteStop(route.Id, 1, LocationB, Guid.NewGuid());
         _traveler = Builders.MakeCaravan(route.Id, WorldId);
 
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(stopA, stopB);
-        _context.TravelConnectors.AddRange(connectorA, connectorB);
         _context.RouteTravelers.Add(_traveler);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -102,28 +91,30 @@ public sealed class ResolveRouteTravelerPositionQueryTests(DatabaseFixture db)
         var locationY = Guid.NewGuid();
         var locationZ = Guid.NewGuid();
         var route = Builders.MakeCaravanRoute(WorldId);
-        var connectorX = Builders.MakeTravelConnector(
+        var stopX = Builders.MakeCaravanRouteStop(
+            route.Id,
+            0,
+            locationX,
             Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
+            distance: 5
         );
-        var connectorY = Builders.MakeTravelConnector(
+        var stopY = Builders.MakeCaravanRouteStop(
+            route.Id,
+            1,
+            locationY,
             Guid.NewGuid(),
-            distance: 20,
-            worldId: WorldId
+            distance: 10
         );
-        var connectorZ = Builders.MakeTravelConnector(
+        var stopZ = Builders.MakeCaravanRouteStop(
+            route.Id,
+            2,
+            locationZ,
             Guid.NewGuid(),
-            distance: 5,
-            worldId: WorldId
+            distance: 20
         );
-        var stopX = Builders.MakeCaravanRouteStop(route.Id, 0, locationX, connectorX.ConnectorId);
-        var stopY = Builders.MakeCaravanRouteStop(route.Id, 1, locationY, connectorY.ConnectorId);
-        var stopZ = Builders.MakeCaravanRouteStop(route.Id, 2, locationZ, connectorZ.ConnectorId);
         var traveler = Builders.MakeCaravan(route.Id, WorldId);
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(stopX, stopY, stopZ);
-        _context.TravelConnectors.AddRange(connectorX, connectorY, connectorZ);
         _context.RouteTravelers.Add(traveler);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 

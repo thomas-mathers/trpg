@@ -77,9 +77,10 @@ public class HouseLayoutTests
         var world = MiniLayoutWorldBuilder.BuildHouseWorld(MakeMembers(householdSize));
 
         // Act
-        var furniture = LocationLayoutGenerator.Generate(world.Input).Props;
+        var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
+        var furniture = layout.Props;
         Assert.All(
             world.Input.Rooms.Where(room =>
                 room.Name.StartsWith("Bedroom", StringComparison.Ordinal)
@@ -87,15 +88,14 @@ public class HouseLayoutTests
             room =>
             {
                 var keepOuts = world
-                    .Input.Connectors.Where(connector =>
-                        connector.OriginLocationId == room.LocationId
-                    )
-                    .Select(connector =>
+                    .PlacedConnectors(layout)
+                    .Where(placed => placed.Connector.OriginLocationId == room.LocationId)
+                    .Select(placed =>
                         RoomFurnisher.KeepOut(
                             new ConnectorExit(
-                                connector.Id,
-                                new PlanarPoint(connector.ExitX, connector.ExitY),
-                                connector.ExitAngle
+                                placed.Connector.Id,
+                                new PlanarPoint(placed.Exit.X, placed.Exit.Y),
+                                placed.Connector.ExitAngle
                             )
                         )
                     )

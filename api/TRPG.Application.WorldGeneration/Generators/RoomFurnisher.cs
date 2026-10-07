@@ -35,20 +35,26 @@ internal static class RoomFurnisher
             .ToList();
         var unplaced = props.ToList();
         var bound = new List<PlacedProp>();
-        var obstacles = blocked.ToList();
+        var cells = new List<RoomRect>();
 
-        foreach (var item in items.Where(item => !item.IsOverlay && !item.IsWallMounted))
+        foreach (var recipeItem in items.Where(item => !item.IsOverlay && !item.IsWallMounted))
         {
-            var prop = unplaced.Find(candidate => candidate.Model == item.Model);
+            var prop = unplaced.Find(candidate => candidate.Model == recipeItem.Model);
+            var decorModel = recipeItem.DecorModel;
 
-            var decorModel = item.DecorModel;
-
-            if ((prop is null && decorModel is null) || !IsFree(item.Bounds, obstacles))
+            if (prop is null && decorModel is null)
             {
                 continue;
             }
 
-            obstacles.Add(item.Bounds);
+            var item = AlignToFreeCells(recipeItem, room, blocked, cells);
+
+            if (item is null)
+            {
+                continue;
+            }
+
+            cells.Add(CellRect(item.Placement, item.Footprint));
 
             if (prop is null)
             {
@@ -60,6 +66,7 @@ internal static class RoomFurnisher
             bound.Add(new PlacedProp(prop.Id, prop.Model, item.Placement, item.Footprint));
         }
 
+        var obstacles = blocked.Concat(cells).ToArray();
         decor.AddRange(items.Where(item => item.IsWallMounted && IsFree(item.Bounds, obstacles)));
 
         return unplaced.Count == 0
@@ -67,6 +74,62 @@ internal static class RoomFurnisher
             : throw new InvalidOperationException(
                 $"The recipe has no slot for {unplaced[0].Model} in a {room.Width}x{room.Depth} room."
             );
+    }
+
+    private static RecipeItem? AlignToFreeCells(
+        RecipeItem item,
+        Footprint room,
+        IReadOnlyCollection<RoomRect> blocked,
+        IReadOnlyCollection<RoomRect> cells
+    )
+    {
+        foreach (var pose in RoomGrid.Alignments(item.Placement, item.Footprint))
+        {
+            var cell = CellRect(pose, item.Footprint);
+
+            if (
+                cell.IsInside(room)
+                && IsFree(cell, blocked)
+                && cells.All(other => !cell.IsWithin(other, margin: 0))
+            )
+            {
+                return Shifted(item, pose.X - item.Placement.X, pose.Y - item.Placement.Y);
+            }
+        }
+
+        return null;
+    }
+
+    private static RecipeItem Shifted(RecipeItem item, double shiftX, double shiftY)
+    {
+        if (shiftX == 0 && shiftY == 0)
+        {
+            return item;
+        }
+
+        var bounds = item.Bounds;
+
+        return item with
+        {
+            Bounds = new RoomRect(
+                bounds.Left + shiftX,
+                bounds.Top + shiftY,
+                bounds.Width,
+                bounds.Depth
+            ),
+        };
+    }
+
+    private static RoomRect CellRect(Placement pose, Footprint footprint)
+    {
+        var box = RoomGrid.CellBox(pose, footprint);
+
+        return new RoomRect(
+            box.CenterX - box.Width / 2,
+            box.CenterY - box.Depth / 2,
+            box.Width,
+            box.Depth
+        );
     }
 
     private static bool IsFree(RoomRect rect, IEnumerable<RoomRect> others) =>

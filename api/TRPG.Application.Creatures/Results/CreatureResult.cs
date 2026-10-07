@@ -1,3 +1,4 @@
+using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Results;
@@ -48,5 +49,12 @@ public record CreatureResult(
     CreatureEffects Effects,
     double X,
     double Y,
-    double Angle
+    double Angle,
+    double? EntryX,
+    double? EntryY,
+    GameInstant? EnteredAt,
+    double? ExitX,
+    double? ExitY,
+    GameInstant? DepartedAt,
+    GameInstant? WalkPausedAt
 );

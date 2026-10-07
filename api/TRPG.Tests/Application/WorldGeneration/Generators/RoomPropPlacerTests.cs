@@ -87,6 +87,29 @@ public class RoomPropPlacerTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
+    public void Place_GivesEveryPropItsOwnWholeCellsInsideTheRoom(int seed)
+    {
+        // Act
+        var result = PlaceMixed(seed, Doors());
+
+        // Assert
+        var cellBoxes = result
+            .Props.Select(prop => RoomGrid.CellBox(prop.Placement, prop.Footprint))
+            .ToArray();
+        var overlapping = cellBoxes.SelectMany(
+            (box, index) => cellBoxes.Skip(index + 1).Where(box.Overlaps)
+        );
+        Assert.All(
+            cellBoxes,
+            box => Assert.True(box.IsInside(result.Room.Width, result.Room.Depth))
+        );
+        Assert.Empty(overlapping);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
     public void Place_KeepsDoorKeepOutsClear(int seed)
     {
         // Act
@@ -117,7 +140,7 @@ public class RoomPropPlacerTests
                 Math.Sin(seat.Placement.Angle) * toWorkstationX
                 - Math.Cos(seat.Placement.Angle) * toWorkstationY
             ) / distance;
-        Assert.Equal(1, facingDot, precision: 6);
+        Assert.InRange(facingDot, 0.9, 1.0 + 1e-9);
     }
 
     [Theory]
@@ -188,8 +211,8 @@ public class RoomPropPlacerTests
 
         // Assert
         var placement = result.Props.Single().Placement;
-        Assert.Equal(tavernRoom.Width / 2, placement.X);
-        Assert.Equal(tavernRoom.Depth / 2, placement.Y);
+        Assert.InRange(placement.X, tavernRoom.Width / 2 - 0.25, tavernRoom.Width / 2 + 0.25);
+        Assert.InRange(placement.Y, tavernRoom.Depth / 2 - 0.25, tavernRoom.Depth / 2 + 0.25);
     }
 
     private static bool IsInFrontOf(PlacedProp workstation, PlacedProp seat)
@@ -201,7 +224,7 @@ public class RoomPropPlacerTests
         var lateral = offsetX * Math.Cos(angle) + offsetY * Math.Sin(angle);
 
         return forward > workstation.Footprint.Depth / 2
-            && Math.Abs(lateral) <= workstation.Footprint.Width / 2 + 1e-6;
+            && Math.Abs(lateral) <= RoomGrid.SnapUp(workstation.Footprint.Width) / 2 + 1e-6;
     }
 
     [Fact]

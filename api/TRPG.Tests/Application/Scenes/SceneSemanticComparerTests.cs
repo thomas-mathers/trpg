@@ -393,6 +393,48 @@ public class SceneSemanticComparerTests
     }
 
     [Fact]
+    public void HasPlayerVisibleChange_ReturnsFalse_WhenTheSameWalkIsRebuilt()
+    {
+        // Arrange
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId, walk: MakeWalk())]);
+        var current = MakeScene(creatures: [MakeCreature(VillagerId, walk: MakeWalk())]);
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.False(changed);
+    }
+
+    [Fact]
+    public void HasPlayerVisibleChange_ReturnsTrue_WhenTheWalkStartsAtAnotherTime()
+    {
+        // Arrange
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId, walk: MakeWalk(0))]);
+        var current = MakeScene(creatures: [MakeCreature(VillagerId, walk: MakeWalk(30))]);
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.True(changed);
+    }
+
+    [Fact]
+    public void HasPlayerVisibleChange_ReturnsTrue_WhenACreatureStartsWalking()
+    {
+        // Arrange
+        var previous = MakeScene(creatures: [MakeCreature(VillagerId)]);
+        var current = MakeScene(creatures: [MakeCreature(VillagerId, walk: MakeWalk())]);
+
+        // Act
+        var changed = SceneSemanticComparer.HasPlayerVisibleChange(previous, current);
+
+        // Assert
+        Assert.True(changed);
+    }
+
+    [Fact]
     public void HasPlayerVisibleChange_ReturnsTrue_WhenTheWeatherChanges()
     {
         // Arrange
@@ -521,7 +563,8 @@ public class SceneSemanticComparerTests
         int currentHp = 10,
         SceneJourneyInfo? journey = null,
         CreatureEffects? effects = null,
-        Placement? placement = null
+        Placement? placement = null,
+        SceneCreatureWalk? walk = null
     ) =>
         new(
             Id: id,
@@ -569,7 +612,13 @@ public class SceneSemanticComparerTests
             Effects: effects ?? CreatureEffects.None,
             Journey: journey,
             Placement: placement ?? new Placement(id == PlayerId ? 1 : 2, id == PlayerId ? 3 : 4, 0)
-        );
+        )
+        {
+            Walk = walk,
+        };
+
+    private static SceneCreatureWalk MakeWalk(int startedAtSecond = 0) =>
+        new([new Point(0, 0), new Point(10, 0)], MakeInstant(startedAtSecond), 1.5, false);
 
     private static CreatureDotEffect MakeDot(string abilityName, int expiresAtSecond) =>
         new(abilityName, 3, DamageType.Fire, MakeInstant(expiresAtSecond));

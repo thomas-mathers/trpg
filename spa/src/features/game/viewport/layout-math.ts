@@ -35,7 +35,6 @@ export interface MovementInput {
 export const EYE_HEIGHT = 1.7;
 export const WALK_SPEED = 3;
 export const BASE_MOVEMENT_SPEED = 50;
-
 export const walkSpeedFor = (movementSpeed: number) =>
   WALK_SPEED * (movementSpeed / BASE_MOVEMENT_SPEED);
 export const PLAYER_RADIUS = 0.35;

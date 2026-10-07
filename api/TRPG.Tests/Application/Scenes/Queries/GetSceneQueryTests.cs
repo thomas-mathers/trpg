@@ -251,6 +251,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         _context.Rooms.AddRange(room, destinationRoom);
         _context.Locations.AddRange(location, destinationLocation);
         _context.LocationConnectors.Add(connector);
+        _context.TravelNodes.AddRange(Builders.MakeConnectorNodes(connector));
         _player.LocationId = room.LocationId;
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -341,6 +342,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         _context.Districts.Add(cityCenter);
         _context.Locations.Add(cityCenterLocation);
         _context.LocationConnectors.Add(connector);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector, 4, 6),
+            Builders.MakeArrivalNode(connector)
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -651,13 +656,12 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         );
         var chest = Builders.MakeContainer(WorldId, location.Id, x: 10, y: 12, width: 2, depth: 1);
         var house = Builders.MakeBuilding(location.Id, WorldId, x: 20, y: 8, width: 6, depth: 4);
-        var connector = Builders.MakeLocationConnector(
-            location.Id,
-            worldId: WorldId,
-            exitX: 39,
-            exitY: 15
-        );
+        var connector = Builders.MakeLocationConnector(location.Id, worldId: WorldId);
         _context.Locations.Add(location);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector, 39, 15),
+            Builders.MakeArrivalNode(connector)
+        );
         _context.Creatures.Add(player);
         _context.Props.Add(chest);
         _context.Buildings.Add(house);
@@ -724,11 +728,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         var connector = Builders.MakeLocationConnector(
             location.Id,
             destinationLocationId: neighbourLocation.Id,
-            worldId: WorldId,
-            exitX: 20,
-            exitY: 0
+            worldId: WorldId
         );
         _context.Locations.AddRange(location, neighbourLocation);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector, 20, 0),
+            Builders.MakeArrivalNode(connector)
+        );
         _context.Districts.AddRange(district, neighbour);
         _context.Creatures.Add(player);
         _context.LocationConnectors.Add(connector);
@@ -769,38 +775,22 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
             locationId: location.Id
         );
         var player = Builders.MakeCreature(WorldId, birthYear: 950, locationId: location.Id);
-        var port = new RoadNode
-        {
-            WorldId = WorldId,
-            LocationId = location.Id,
-            Kind = RoadNodeKind.Port,
-            ConnectorId = Guid.NewGuid(),
-            X = 20,
-            Y = 0,
-        };
-        var junction = new RoadNode
-        {
-            WorldId = WorldId,
-            LocationId = location.Id,
-            Kind = RoadNodeKind.Junction,
-            X = 20,
-            Y = 10,
-        };
-        var edge = new RoadEdge
-        {
-            WorldId = WorldId,
-            LocationId = location.Id,
-            FromNodeId = port.Id,
-            ToNodeId = junction.Id,
-            Class = RoadClass.Avenue,
-            Length = 10,
-            Waypoints = new Polyline { Points = [new Point(20, 5)] },
-        };
+        var port = Builders.MakeTravelNode(location.Id, 20, 0, WorldId);
+        var junction = Builders.MakeTravelNode(location.Id, 20, 10, WorldId);
+        var roadConnector = Builders.MakePointConnector(
+            location.Id,
+            port.Id,
+            junction.Id,
+            10,
+            WorldId,
+            roadClass: RoadClass.Avenue,
+            waypoints: [new Point(20, 5)]
+        );
         _context.Locations.Add(location);
         _context.Districts.Add(district);
         _context.Creatures.Add(player);
-        _context.RoadNodes.AddRange(port, junction);
-        _context.RoadEdges.Add(edge);
+        _context.TravelNodes.AddRange(port, junction);
+        _context.PointConnectors.Add(roadConnector);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -865,16 +855,18 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         var outbound = Builders.MakeLocationConnector(
             location.Id,
             destinationLocationId: neighbourLocation.Id,
-            worldId: WorldId,
-            exitX: 20,
-            exitY: 0
+            worldId: WorldId
         );
         var inbound = Builders.MakeLocationConnector(
             neighbourLocation.Id,
             destinationLocationId: location.Id,
-            worldId: WorldId,
-            exitX: 10,
-            exitY: 20
+            worldId: WorldId
+        );
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(outbound, 20, 0),
+            Builders.MakeArrivalNode(outbound),
+            Builders.MakeExitNode(inbound, 10, 20),
+            Builders.MakeArrivalNode(inbound)
         );
         _context.Locations.AddRange(location, neighbourLocation);
         _context.Districts.AddRange(district, neighbour);
@@ -950,21 +942,22 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
                     locationId: neighbourLocation.Id
                 )
             );
-            _context.LocationConnectors.AddRange(
-                Builders.MakeLocationConnector(
-                    location.Id,
-                    destinationLocationId: neighbourLocation.Id,
-                    worldId: WorldId,
-                    exitX: exitX,
-                    exitY: 0
-                ),
-                Builders.MakeLocationConnector(
-                    neighbourLocation.Id,
-                    destinationLocationId: location.Id,
-                    worldId: WorldId,
-                    exitX: 10,
-                    exitY: 20
-                )
+            var outbound = Builders.MakeLocationConnector(
+                location.Id,
+                destinationLocationId: neighbourLocation.Id,
+                worldId: WorldId
+            );
+            var inbound = Builders.MakeLocationConnector(
+                neighbourLocation.Id,
+                destinationLocationId: location.Id,
+                worldId: WorldId
+            );
+            _context.LocationConnectors.AddRange(outbound, inbound);
+            _context.TravelNodes.AddRange(
+                Builders.MakeExitNode(outbound, exitX, 0),
+                Builders.MakeArrivalNode(outbound),
+                Builders.MakeExitNode(inbound, 10, 20),
+                Builders.MakeArrivalNode(inbound)
             );
         }
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -1155,6 +1148,10 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         _context.Rooms.Add(entranceRoom);
         _context.Locations.Add(entranceLocation);
         _context.LocationConnectors.Add(connector);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connector, 4, 6),
+            Builders.MakeArrivalNode(connector)
+        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var query = new GetSceneQuery
@@ -1173,10 +1170,7 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         var exit = Assert.Single(result.Exits);
         Assert.Equal(connector.Id, exit.ConnectorId);
         Assert.Equal(connector.DestinationLocationId, exit.DestinationLocationId);
-        Assert.Equal(
-            new Placement(connector.ExitX, connector.ExitY, connector.ExitAngle),
-            exit.Placement
-        );
+        Assert.Equal(new Placement(4, 6, connector.ExitAngle), exit.Placement);
     }
 
     [Fact]
@@ -1339,27 +1333,27 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         );
 
         var route = Builders.MakeCaravanRoute(WorldId);
-        var connectorHere = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
+        var connectorHere = Builders.MakeLocationConnector(
+            _player.LocationId,
+            destinationLocationId,
+            WorldId
         );
-        var connectorThere = Builders.MakeTravelConnector(
-            Guid.NewGuid(),
-            distance: 10,
-            worldId: WorldId
+        var connectorThere = Builders.MakeLocationConnector(
+            destinationLocationId,
+            _player.LocationId,
+            WorldId
         );
         var stopHere = Builders.MakeCaravanRouteStop(
             route.Id,
             0,
             _player.LocationId,
-            connectorHere.ConnectorId
+            connectorHere.Id
         );
         var stopThere = Builders.MakeCaravanRouteStop(
             route.Id,
             1,
             destinationLocationId,
-            connectorThere.ConnectorId
+            connectorThere.Id
         );
         var fare = Builders.MakeCaravanFare(route.Id, WorldId, ticketFeeGold: ticketFeeGold);
         var caravan = Builders.MakeCaravan(route.Id, WorldId);
@@ -1369,7 +1363,13 @@ public sealed class GetSceneQueryTests(DatabaseFixture db)
         _context.Districts.Add(destinationDistrict);
         _context.Routes.Add(route);
         _context.RouteSteps.AddRange(stopHere, stopThere);
-        _context.TravelConnectors.AddRange(connectorHere, connectorThere);
+        _context.LocationConnectors.AddRange(connectorHere, connectorThere);
+        _context.TravelNodes.AddRange(
+            Builders.MakeExitNode(connectorHere),
+            Builders.MakeArrivalNode(connectorHere),
+            Builders.MakeExitNode(connectorThere),
+            Builders.MakeArrivalNode(connectorThere)
+        );
         _context.CaravanFares.Add(fare);
         _context.RouteTravelers.Add(caravan);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

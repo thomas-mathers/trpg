@@ -206,18 +206,12 @@ public class CreatureLayoutGeneratorTests
         // Arrange
         var origin = Builders.MakeLocation(width: 20, depth: 20);
         var room = Builders.MakeLocation(width: 10, depth: 10);
-        var connector = Builders.MakeLocationConnector(
-            origin.Id,
-            room.Id,
-            arrivalX: 2,
-            arrivalY: 7,
-            arrivalAngle: 1.5
-        );
+        var connector = Builders.MakeLocationConnector(origin.Id, room.Id, arrivalAngle: 1.5);
         var creature = Builders.MakeCreature(locationId: room.Id, previousLocationId: origin.Id);
 
         // Act
         CreatureLayoutGenerator.PlaceAtArrival(
-            new CreatureLayoutInput([origin, room], [], [], [connector], [creature])
+            new CreatureLayoutInput([origin, room], [], [], [Placed(connector, 2, 7)], [creature])
         );
 
         // Assert
@@ -246,28 +240,35 @@ public class CreatureLayoutGeneratorTests
         // Arrange
         var origin = Builders.MakeLocation(width: 20, depth: 20);
         var room = Builders.MakeLocation(width: 10, depth: 10);
-        var connector = Builders.MakeLocationConnector(
-            origin.Id,
-            room.Id,
-            arrivalX: 5,
-            arrivalY: 5
-        );
+        var connector = Builders.MakeLocationConnector(origin.Id, room.Id);
         var crate = Builders.MakeContainer(locationId: room.Id, x: 5, y: 5, width: 2, depth: 2);
         var creature = Builders.MakeCreature(locationId: room.Id, previousLocationId: origin.Id);
 
         // Act
         CreatureLayoutGenerator.PlaceAtArrival(
-            new CreatureLayoutInput([origin, room], [crate], [], [connector], [creature])
+            new CreatureLayoutInput(
+                [origin, room],
+                [crate],
+                [],
+                [Placed(connector, 5, 5)],
+                [creature]
+            )
         );
 
         // Assert
         Assert.False(PropBox(crate).Overlaps(BodyAt(creature)));
     }
 
+    private static PlacedConnector Placed(
+        LocationConnector connector,
+        double arrivalX,
+        double arrivalY
+    ) => new(connector, new Point(0, 0), new Point(arrivalX, arrivalY));
+
     private static MiniLayoutWorld LaidOutWorld(int iteration)
     {
         var world = MiniLayoutWorldBuilder.BuildWorld(iteration);
-        LocationLayoutGenerator.Generate(world.Input);
+        world.Layout = LocationLayoutGenerator.Generate(world.Input);
 
         return world;
     }
@@ -280,7 +281,7 @@ public class CreatureLayoutGeneratorTests
             [.. world.Input.Locations],
             [.. world.Input.Props],
             [.. world.Input.Buildings],
-            [.. world.Input.Connectors],
+            [.. world.PlacedConnectors(world.Layout!)],
             creatures
         );
 

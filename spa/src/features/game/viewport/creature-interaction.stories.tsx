@@ -164,6 +164,7 @@ function FocusedStage() {
             names={new Map([['npc', 'Tessa']])}
             statuses={scene.nearbyCreatures}
             focus={focus}
+            clock={{ gameTimeMilliseconds: 0, anchoredAtUnixMilliseconds: 0, timeScale: 1 }}
           />
           <CreatureFocusController
             focus={focus}

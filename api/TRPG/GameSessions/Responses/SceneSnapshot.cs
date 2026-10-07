@@ -230,7 +230,24 @@ public record SceneSnapshot(
     double TimeScale,
     LocationBoundarySnapshot? Boundary = null,
     IReadOnlyCollection<RoadSnapshot>? Roads = null,
-    IReadOnlyCollection<NeighborSnapshot>? Neighbors = null
+    IReadOnlyCollection<NeighborSnapshot>? Neighbors = null,
+    TravelNetworkSnapshot? TravelNetwork = null
+);
+
+[TranspilationSource]
+public record TravelNodeSnapshot(Guid Id, PointWire Position, bool IsPort);
+
+[TranspilationSource]
+public record TravelEdgeSnapshot(
+    IReadOnlyCollection<PointWire> Points,
+    double Distance,
+    bool Bidirectional
+);
+
+[TranspilationSource]
+public record TravelNetworkSnapshot(
+    IReadOnlyCollection<TravelNodeSnapshot> Nodes,
+    IReadOnlyCollection<TravelEdgeSnapshot> Edges
 );
 
 [TranspilationSource]
@@ -333,7 +350,17 @@ public record CreatureStatusSnapshot(
 )
 {
     public IReadOnlyCollection<EquippedGearSnapshot> Equipment { get; init; } = [];
+    public CreatureWalkSnapshot? Walk { get; init; }
 }
+
+[TranspilationSource]
+public record CreatureWalkSnapshot(
+    IReadOnlyCollection<PointWire> Points,
+    long StartedAtGameTimeMilliseconds,
+    double MetersPerGameSecond,
+    bool LeavesAtEnd,
+    long? PausedAtGameTimeMilliseconds = null
+);
 
 [TranspilationSource]
 public record EquippedGearSnapshot(Guid ItemId, string Slot, string ModelClass);

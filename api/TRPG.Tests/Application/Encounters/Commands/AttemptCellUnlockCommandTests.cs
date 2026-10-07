@@ -14,6 +14,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
     private readonly Guid _worldId = Guid.NewGuid();
     private readonly Guid _captiveJobLocationId = Guid.NewGuid();
     private readonly Location _location;
+    private readonly Location _via;
     private readonly Creature _player;
     private readonly Creature _captive;
     private readonly Cell _cell;
@@ -25,6 +26,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
     {
         Database = database;
         _location = Builders.MakeLocation(_worldId);
+        _via = Builders.MakeLocation(_worldId);
         _player = Builders.MakeCreature(_worldId, locationId: _location.Id, name: "Player");
         _captive = Builders.MakeCreature(
             _worldId,
@@ -56,12 +58,11 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
         >();
 
         var jobLocation = Builders.MakeLocation(_worldId, id: _captiveJobLocationId);
-        var connector = Builders.MakeLocationConnector(_location.Id, jobLocation.Id, _worldId);
-        _context.Locations.AddRange(_location, jobLocation);
-        _context.LocationConnectors.Add(connector);
-        _context.TravelConnectors.Add(
-            Builders.MakeTravelConnector(connector.Id, distance: 5, worldId: _worldId)
-        );
+        var topology = new WalkableTopology(_worldId, walkMetersPerLocation: 10_000);
+        topology.ConnectBothWays(_location.Id, _via.Id);
+        topology.ConnectBothWays(_via.Id, jobLocation.Id);
+        _context.Locations.AddRange(_location, jobLocation, _via);
+        topology.AddTo(_context);
         _context.Creatures.AddRange(_player, _captive);
         _context.Props.Add(_cell);
         _context.CreatureJobs.Add(
@@ -121,7 +122,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             c => c.Id == _captive.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_location.Id, captive.LocationId);
+        Assert.Equal(_via.Id, captive.LocationId);
         Assert.Equal(CreatureMovement.Walking, captive.Movement);
         Assert.Contains(
             await verification.RouteTravelerMembers.ToArrayAsync(

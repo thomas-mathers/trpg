@@ -75,7 +75,7 @@ internal record Anchored(
 
 internal record CounterAt(double Fraction, RecipeWall Wall = RecipeWall.North) : RecipeStep
 {
-    internal const double Setback = 1.1;
+    internal const double Setback = 1.0;
 
     internal override IEnumerable<RecipeItem> Expand(Footprint room)
     {
@@ -84,28 +84,12 @@ internal record CounterAt(double Fraction, RecipeWall Wall = RecipeWall.North) :
             Wall
         );
         var alongX = Wall is RecipeWall.North or RecipeWall.South;
-        var along = alongX ? AlongWall(room.Width, size.Width) : AlongWall(room.Depth, size.Depth);
-        var offset = Setback + (alongX ? size.Depth : size.Width) / 2;
+        var along = alongX
+            ? RecipeGeometry.AlongRoom(room.Width, size.Width, Fraction)
+            : RecipeGeometry.AlongRoom(room.Depth, size.Depth, Fraction);
 
-        return
-        [
-            Wall switch
-            {
-                RecipeWall.North => At(along, offset),
-                RecipeWall.East => At(room.Width - offset, along),
-                RecipeWall.South => At(along, room.Depth - offset),
-                _ => At(offset, along),
-            },
-        ];
+        return [RecipeGeometry.OnWall(room, PropModel.WorkstationTrade, Wall, Setback, along)];
     }
-
-    private RecipeItem At(double centerX, double centerY) =>
-        RecipeGeometry.Around(PropModel.WorkstationTrade, centerX, centerY, Wall);
-
-    private double AlongWall(double length, double extent) =>
-        RecipeGeometry.Margin
-        + Fraction * (length - extent - 2 * RecipeGeometry.Margin)
-        + extent / 2;
 }
 
 internal record WallRun(
@@ -122,26 +106,49 @@ internal record WallRun(
         var horizontal = Wall is RecipeWall.North or RecipeWall.South;
         var length = horizontal ? room.Width : room.Depth;
         var along = horizontal ? size.Width : size.Depth;
-        var count =
-            Count
-            ?? Math.Max(1, (int)Math.Floor((To - From) * length / (along + RecipeGeometry.RunGap)));
 
-        return Enumerable
-            .Range(0, count)
-            .Select(index =>
-                count == 1 ? (From + To) / 2 : From + (To - From) * index / (count - 1)
-            )
-            .Select(position => AtPosition(room, position));
+        var setback = FlushModels.Contains(Model) ? 0 : RoomGrid.CellSize;
+
+        return Lefts(length, along)
+            .Select(left => RecipeGeometry.OnWall(room, Model, Wall, setback, left));
     }
 
-    private RecipeItem AtPosition(Footprint room, double position) =>
-        Wall switch
+    private static readonly IReadOnlySet<PropModel> FlushModels = new HashSet<PropModel>
+    {
+        PropModel.FurnitureWallSconce,
+        PropModel.FurnitureFireplace,
+    };
+
+    private IEnumerable<double> Lefts(double length, double extent)
+    {
+        if (Count is { } count)
         {
-            RecipeWall.North => RecipeGeometry.InsideRoom(room, Model, position, 0, Wall),
-            RecipeWall.South => RecipeGeometry.InsideRoom(room, Model, position, 1, Wall),
-            RecipeWall.West => RecipeGeometry.InsideRoom(room, Model, 0, position, Wall),
-            _ => RecipeGeometry.InsideRoom(room, Model, 1, position, Wall),
-        };
+            return Enumerable
+                .Range(0, count)
+                .Select(index =>
+                    RecipeGeometry.AlongRoom(
+                        length,
+                        extent,
+                        count == 1 ? (From + To) / 2 : From + (To - From) * index / (count - 1)
+                    )
+                );
+        }
+
+        var free = length - extent;
+        var cell = RoomGrid.SnapUp(extent);
+        var span = (To - From) * free;
+        var fits = Math.Max(1, (int)Math.Floor(span / cell + 1e-9) + 1);
+
+        if (fits == 1)
+        {
+            return [RecipeGeometry.AlongRoom(length, extent, (From + To) / 2)];
+        }
+
+        var step = RoomGrid.SnapDown(span / (fits - 1));
+        var start = RoomGrid.SnapDown(From * free);
+
+        return Enumerable.Range(0, fits).Select(index => start + index * step);
+    }
 }
 
 internal record TableGrid(double Top, double Bottom) : RecipeStep
@@ -284,7 +291,7 @@ internal record ReadingTables(double[] Columns) : RecipeStep
 internal record BookStacks(double[] Columns) : RecipeStep
 {
     private const double RowSpacing = 1.15;
-    private const double PairOffset = 0.425;
+    private const double PairOffset = 0.5;
 
     internal override IEnumerable<RecipeItem> Expand(Footprint room)
     {
@@ -326,37 +333,20 @@ internal record SouthStock(PropModel? Left, PropModel Right) : RecipeStep
     internal override IEnumerable<RecipeItem> Expand(Footprint room)
     {
         var right = PropFootprintCatalog.Get(Right).Footprint;
+        var cell = RoomGrid.SnapUp(right.Width);
         var rights = Enumerable
             .Range(0, RightSlots)
             .Select(slot =>
                 AlongSouth(
                     room,
                     Right,
-                    room.Width
-                        - RecipeGeometry.Margin
-                        - right.Width / 2
-                        - slot * (right.Width + RecipeGeometry.RunGap)
+                    RecipeGeometry.FarEdge(room.Width, 0, right.Width) - slot * cell
                 )
             );
 
-        return Left is { } left
-            ? rights.Prepend(
-                AlongSouth(
-                    room,
-                    left,
-                    LeftInset + PropFootprintCatalog.Get(left).Footprint.Width / 2
-                )
-            )
-            : rights;
+        return Left is { } left ? rights.Prepend(AlongSouth(room, left, LeftInset)) : rights;
     }
 
-    private static RecipeItem AlongSouth(Footprint room, PropModel model, double centerX) =>
-        RecipeGeometry.Around(
-            model,
-            centerX,
-            room.Depth
-                - RecipeGeometry.Margin
-                - PropFootprintCatalog.Get(model).Footprint.Depth / 2,
-            RecipeWall.South
-        );
+    private static RecipeItem AlongSouth(Footprint room, PropModel model, double left) =>
+        RecipeGeometry.OnWall(room, model, RecipeWall.South, 0, left);
 }

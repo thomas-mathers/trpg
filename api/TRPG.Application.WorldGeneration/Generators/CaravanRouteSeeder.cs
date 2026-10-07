@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Configuration;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -14,7 +15,11 @@ public record CaravanRouteSeederResult(
 
 public static class CaravanRouteSeeder
 {
-    public static CaravanRouteSeederResult Seed(WorldGeneratorResult world, CaravanOptions options)
+    public static CaravanRouteSeederResult Seed(
+        WorldGeneratorResult world,
+        CaravanOptions options,
+        double timeScale
+    )
     {
         var capitalLocationIds = ResolveCapitalEntranceLocationIds(world);
         if (capitalLocationIds.Count < 2)
@@ -22,7 +27,8 @@ public static class CaravanRouteSeeder
             return new CaravanRouteSeederResult([], [], [], [], []);
         }
 
-        var graph = TravelGraph.Build(world);
+        var graph = world.BuildTravelGraph();
+        var metersPerHour = InLocationPace.MetersPerGameHour(options.SpeedUnitsPerHour, timeScale);
         var clockwiseLocations = OrderByDfsPreorder(capitalLocationIds, graph);
         var counterClockwiseLocations = clockwiseLocations
             .Take(1)
@@ -32,6 +38,7 @@ public static class CaravanRouteSeeder
             world,
             options,
             graph,
+            metersPerHour,
             clockwiseLocations,
             "The Capital Circuit — Clockwise"
         );
@@ -39,6 +46,7 @@ public static class CaravanRouteSeeder
             world,
             options,
             graph,
+            metersPerHour,
             counterClockwiseLocations,
             "The Capital Circuit — Counter-clockwise"
         );
@@ -48,7 +56,7 @@ public static class CaravanRouteSeeder
                 world.Locations,
                 world.Props,
                 world.Buildings,
-                world.LocationConnectors,
+                PlacedConnector.Place(world.LocationConnectors, world.TravelNodes),
                 []
             )
         );
@@ -99,7 +107,8 @@ public static class CaravanRouteSeeder
     private static SeededCaravanRoute BuildRoute(
         WorldGeneratorResult world,
         CaravanOptions options,
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph,
+        TravelGraph graph,
+        double metersPerHour,
         IReadOnlyList<Guid> orderedStopLocationIds,
         string name
     )
@@ -111,7 +120,7 @@ public static class CaravanRouteSeeder
             Traversal = RouteTraversal.Cyclic,
         };
         var stopLocationIds = orderedStopLocationIds.ToHashSet();
-        var legs = TravelGraph.BuildCycle(graph, orderedStopLocationIds);
+        var legs = graph.BuildCycle(orderedStopLocationIds);
         var steps = legs.Select(
                 (leg, index) =>
                     new RouteStep
@@ -124,13 +133,12 @@ public static class CaravanRouteSeeder
                         DwellHours = stopLocationIds.Contains(leg.OriginLocationId)
                             ? options.DefaultLingerHours
                             : 0,
+                        Distance = leg.Distance,
                     }
             )
             .ToArray();
         var durationHours = steps
-            .Select(
-                (step, index) => step.DwellHours + legs[index].Distance / options.SpeedUnitsPerHour
-            )
+            .Select((step, index) => step.DwellHours + legs[index].Distance / metersPerHour)
             .Sum();
         var instanceCount = orderedStopLocationIds.Count * options.CaravansPerStop;
         var travelers = Enumerable
@@ -141,7 +149,7 @@ public static class CaravanRouteSeeder
                 RouteId = route.Id,
                 StartedAtGameTime =
                     GameClock.Epoch - TimeSpan.FromHours(1) * durationHours * index / instanceCount,
-                SpeedUnitsPerHour = options.SpeedUnitsPerHour,
+                SpeedUnitsPerHour = metersPerHour,
                 Purpose = name,
             })
             .ToArray();
@@ -173,7 +181,7 @@ public static class CaravanRouteSeeder
 
     internal static IReadOnlyList<Guid> OrderByDfsPreorder(
         IReadOnlyCollection<Guid> stopLocationIds,
-        IReadOnlyDictionary<Guid, IReadOnlyList<TravelGraphEdge>> graph
+        TravelGraph graph
     )
     {
         var remaining = stopLocationIds.ToHashSet();
@@ -194,11 +202,11 @@ public static class CaravanRouteSeeder
                 order.Add(current);
             }
 
-            foreach (var edge in graph.GetValueOrDefault(current, []))
+            foreach (var connector in graph.ConnectorsFrom(current))
             {
-                if (!visited.Contains(edge.DestinationLocationId))
+                if (!visited.Contains(connector.DestinationLocationId))
                 {
-                    stack.Push(edge.DestinationLocationId);
+                    stack.Push(connector.DestinationLocationId);
                 }
             }
         }

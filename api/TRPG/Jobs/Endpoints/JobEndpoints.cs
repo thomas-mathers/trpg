@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using TRPG.Data;
+using TRPG.Jobs.Mappers;
 using TRPG.Jobs.Responses;
 
 namespace TRPG.Jobs.Endpoints;
@@ -28,7 +29,7 @@ internal static class JobEndpoints
         return TypedResults.Ok(
             new JobStatusResponse(
                 ticker.Id,
-                Enum.Parse<JobStatus>(ticker.Status.ToString()),
+                ticker.Status.ToJobStatus(),
                 ticker.ResultJson,
                 ticker.ExceptionMessage
             )
