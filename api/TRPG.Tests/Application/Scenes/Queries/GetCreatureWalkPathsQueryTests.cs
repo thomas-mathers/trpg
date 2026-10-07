@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures.Mappers;
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Data;
 using TRPG.Domain;
@@ -58,7 +59,7 @@ public sealed class GetCreatureWalkPathsQueryTests(DatabaseFixture db)
         _context.Locations.Add(room);
         _context.Props.Add(table);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var walker = MakeWalker(room.Id, entryX: 1.25, anchorX: 8.75);
+        var walker = MakeWalker(room.Id, anchorX: 8.75, entry: new Point(1.25, 5));
 
         // Act
         var paths = await _handler.Handle(
@@ -74,15 +75,8 @@ public sealed class GetCreatureWalkPathsQueryTests(DatabaseFixture db)
     public async Task Handle_WalksStraight_WhenTheDistrictHasNoRoads()
     {
         // Arrange
-        var district = Builders.MakeLocation(
-            worldId: _worldId,
-            kind: LocationKind.District,
-            width: 10,
-            depth: 10
-        );
-        _context.Locations.Add(district);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var walker = MakeWalker(district.Id, entryX: 1.25, anchorX: 8.75);
+        var district = await SeedRoadlessDistrict();
+        var walker = MakeWalker(district.Id, anchorX: 8.75, entry: new Point(1.25, 5));
 
         // Act
         var paths = await _handler.Handle(
@@ -112,21 +106,77 @@ public sealed class GetCreatureWalkPathsQueryTests(DatabaseFixture db)
         Assert.Empty(paths);
     }
 
-    private TRPG.Application.Creatures.Results.CreatureResult MakeWalker(
+    [Fact]
+    public async Task Handle_WalksFromTheAnchorToTheExit_WhenTheNpcIsLeaving()
+    {
+        // Arrange
+        var district = await SeedRoadlessDistrict();
+        var leaver = MakeWalker(district.Id, anchorX: 2.5, exit: new Point(8.75, 5));
+
+        // Act
+        var paths = await _handler.Handle(
+            new GetCreatureWalkPathsQuery { LocationId = district.Id, Creatures = [leaver] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal([new Point(2.5, 5), new Point(8.75, 5)], paths[leaver.Id]);
+    }
+
+    [Fact]
+    public async Task Handle_WalksFromTheEntryToTheExit_WhenTheNpcIsPassingThrough()
+    {
+        // Arrange
+        var district = await SeedRoadlessDistrict();
+        var traveler = MakeWalker(
+            district.Id,
+            anchorX: 5,
+            entry: new Point(1.25, 5),
+            exit: new Point(8.75, 5)
+        );
+
+        // Act
+        var paths = await _handler.Handle(
+            new GetCreatureWalkPathsQuery { LocationId = district.Id, Creatures = [traveler] },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal([new Point(1.25, 5), new Point(8.75, 5)], paths[traveler.Id]);
+    }
+
+    private async Task<Location> SeedRoadlessDistrict()
+    {
+        var district = Builders.MakeLocation(
+            worldId: _worldId,
+            kind: LocationKind.District,
+            width: 10,
+            depth: 10
+        );
+        _context.Locations.Add(district);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return district;
+    }
+
+    private CreatureResult MakeWalker(
         Guid locationId,
-        double entryX,
-        double anchorX
+        double anchorX,
+        Point? entry = null,
+        Point? exit = null
     )
     {
+        var departedAt = new GameInstant(new DateTime(2026, 1, 1));
         var creature = Builders.MakeCreature(
             worldId: _worldId,
             locationId: locationId,
             x: anchorX,
-            y: 5
+            y: 5,
+            entry: entry,
+            enteredAt: entry == null ? null : departedAt,
+            exit: exit,
+            departedAt: exit == null ? null : departedAt
         );
-        creature.EntryX = entryX;
-        creature.EntryY = 5;
-        creature.EnteredAt = new GameInstant(new DateTime(2026, 1, 1));
 
         return creature.ToResult(0, Guid.NewGuid(), null, null, null);
     }

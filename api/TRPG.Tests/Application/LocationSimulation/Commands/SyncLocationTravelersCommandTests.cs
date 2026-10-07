@@ -44,7 +44,8 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         _traveler = Builders.MakeCreature(
             WorldId,
             locationId: _locationA.Id,
-            profession: Profession.Guard
+            profession: Profession.Guard,
+            movementSpeed: 50
         );
         var route = Builders.MakeCaravanRoute(WorldId);
         var exitFromA = Builders.MakeLocationConnector(
@@ -229,7 +230,34 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task GetScene_ShowsTheTravelerAsWalkingToAWatcherAtTheDepartureStop_WhileTheyAreInTransit()
+    public async Task GetScene_ShowsTheTravelerAsWalkingToAWatcherAtTheDepartureStop_WhileTheyWalkToTheExit()
+    {
+        // Arrange
+        var justDeparted = 1 + 1d / 3600;
+        await SyncAt(_locationA.Id, hours: justDeparted);
+
+        // Act
+        var scene = await _getScene.Handle(
+            new GetSceneQuery
+            {
+                WorldId = WorldId,
+                PlayerId = _watcherAtA.Id,
+                CurrentDate = GameClock.GetCurrentInGameDate(At(hours: justDeparted)),
+                GameTime = At(hours: justDeparted),
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var traveler = Assert.Single(
+            scene.NearbyCreatures,
+            creature => creature.Id == _traveler.Id
+        );
+        Assert.Equal(CreatureMovement.Walking, traveler.Movement);
+    }
+
+    [Fact]
+    public async Task GetScene_HidesTheTravelerFromAWatcherAtTheDepartureStop_OnceTheyReachTheExit()
     {
         // Arrange
         await SyncAt(_locationA.Id, hours: 1.5);
@@ -247,11 +275,7 @@ public sealed class SyncLocationTravelersCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        var traveler = Assert.Single(
-            scene.NearbyCreatures,
-            creature => creature.Id == _traveler.Id
-        );
-        Assert.Equal(CreatureMovement.Walking, traveler.Movement);
+        Assert.DoesNotContain(scene.NearbyCreatures, creature => creature.Id == _traveler.Id);
     }
 
     [Fact]

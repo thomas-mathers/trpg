@@ -28,7 +28,7 @@ internal class GetCreatureWalkPathsQueryHandler(
         CancellationToken cancellationToken = default
     )
     {
-        var walkers = query.Creatures.Where(CreaturePoseResolver.HasEntryWalk).ToArray();
+        var walkers = query.Creatures.Where(CreaturePoseResolver.HasWalk).ToArray();
         if (walkers.Length == 0)
         {
             return new Dictionary<Guid, IReadOnlyList<Point>>();

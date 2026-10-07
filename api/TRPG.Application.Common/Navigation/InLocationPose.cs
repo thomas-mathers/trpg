@@ -23,7 +23,7 @@ public static class InLocationPose
             throw new ArgumentOutOfRangeException(nameof(metersPerSecond));
         }
 
-        var remaining = Math.Max(0, (now - enteredAt).TotalSeconds) * metersPerSecond;
+        var remaining = Travelled(enteredAt, metersPerSecond, now);
 
         for (var index = 1; index < path.Count; index++)
         {
@@ -43,6 +43,29 @@ public static class InLocationPose
 
         return new Placement(destination.X, destination.Y, settledAngle);
     }
+
+    public static bool HasFinished(
+        IReadOnlyList<Point> path,
+        GameInstant startedAt,
+        double metersPerSecond,
+        GameInstant now
+    )
+    {
+        var length = 0.0;
+
+        for (var index = 1; index < path.Count; index++)
+        {
+            length += Distance(path[index - 1], path[index]);
+        }
+
+        return metersPerSecond > 0 && Travelled(startedAt, metersPerSecond, now) >= length;
+    }
+
+    private static double Travelled(
+        GameInstant startedAt,
+        double metersPerSecond,
+        GameInstant now
+    ) => Math.Max(0, (now - startedAt).TotalSeconds) * metersPerSecond;
 
     private static Placement AlongSegment(Point from, Point to, double fraction) =>
         new(

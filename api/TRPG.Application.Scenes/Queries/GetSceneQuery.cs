@@ -808,7 +808,26 @@ internal class GetSceneQueryHandler(
             return [];
         }
 
-        var nearbyCreatureIds = nearby.Select(x => x.Id).ToArray();
+        var walkPaths = await getCreatureWalkPaths.Handle(
+            new GetCreatureWalkPathsQuery { LocationId = locationId, Creatures = nearby },
+            cancellationToken
+        );
+        var present = nearby
+            .Where(x =>
+                !CreaturePoseResolver.HasLeft(
+                    x,
+                    walkPaths.GetValueOrDefault(x.Id, []),
+                    query.GameTime,
+                    clockOptions.Value.TimeScale
+                )
+            )
+            .ToArray();
+        if (present.Length == 0)
+        {
+            return [];
+        }
+
+        var nearbyCreatureIds = present.Select(x => x.Id).ToArray();
         var factionIdsByCreature = await getFactionIdsByCreatureIds.Handle(
             new GetFactionIdsByCreatureIdsQuery { CreatureIds = nearbyCreatureIds },
             cancellationToken
@@ -866,12 +885,8 @@ internal class GetSceneQueryHandler(
             },
             cancellationToken
         );
-        var walkPaths = await getCreatureWalkPaths.Handle(
-            new GetCreatureWalkPathsQuery { LocationId = locationId, Creatures = nearby },
-            cancellationToken
-        );
 
-        return nearby
+        return present
             .Select(x =>
                 BuildSceneCreatureInfo(
                     x,

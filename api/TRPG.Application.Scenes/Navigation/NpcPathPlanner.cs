@@ -16,9 +16,20 @@ internal sealed class NpcPathPlanner(Func<Point, Point, IReadOnlyList<Point>> ro
 
     public IReadOnlyList<Point> Plan(CreatureResult creature)
     {
-        var entry = new Point(creature.EntryX!.Value, creature.EntryY!.Value);
         var anchor = new Point(creature.X, creature.Y);
 
-        return route(entry, anchor);
+        if (!CreaturePoseResolver.HasExitWalk(creature))
+        {
+            return route(EntryPoint(creature), anchor);
+        }
+
+        var exit = new Point(creature.ExitX!.Value, creature.ExitY!.Value);
+
+        return CreaturePoseResolver.HasEntryWalk(creature)
+            ? route(EntryPoint(creature), exit)
+            : [.. route(exit, anchor).Reverse()];
     }
+
+    private static Point EntryPoint(CreatureResult creature) =>
+        new(creature.EntryX!.Value, creature.EntryY!.Value);
 }
