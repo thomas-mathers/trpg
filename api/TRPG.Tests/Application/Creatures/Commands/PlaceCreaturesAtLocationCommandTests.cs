@@ -261,6 +261,27 @@ public sealed class PlaceCreaturesAtLocationCommandTests(DatabaseFixture db)
         Assert.Equal((null, null, null), (placed.EntryX, placed.EntryY, placed.EnteredAt));
     }
 
+    [Fact]
+    public async Task Handle_ClearsAnExitWalk_WhenTheNpcIsPlaced()
+    {
+        // Arrange
+        var npc = await AddArrivingNpc();
+        npc.ExitX = 5;
+        npc.ExitY = 5;
+        npc.DepartedAt = ArrivedAt;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new PlaceCreaturesAtLocationCommand { CreatureIds = [npc.Id], LocationId = _room.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var placed = await ReadCreature(npc.Id);
+        Assert.Equal((null, null, null), (placed.ExitX, placed.ExitY, placed.DepartedAt));
+    }
+
     private static readonly GameInstant ArrivedAt = new(
         new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Unspecified)
     );

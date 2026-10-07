@@ -439,14 +439,20 @@ internal class RouteCreaturesToDestinationsCommandHandler(
             );
         }
 
-        var walkingCreatureIds = plans
+        var walkingPlans = plans
             .Where(plan => !plan.IsAlreadyAtDestination)
-            .Select(plan => plan.Creature.Id)
-            .ToArray();
-        await startWalking.Handle(
-            new StartWalkingCommand { CreatureIds = walkingCreatureIds },
-            cancellationToken
-        );
+            .GroupBy(plan => new WalkExit(plan.Path[0].ConnectorId, plan.StartedAtGameTime, null));
+        foreach (var walking in walkingPlans)
+        {
+            await startWalking.Handle(
+                new StartWalkingCommand
+                {
+                    CreatureIds = walking.Select(plan => plan.Creature.Id).ToArray(),
+                    Exit = walking.Key,
+                },
+                cancellationToken
+            );
+        }
     }
 
     private static void ValidateRequests(IReadOnlyCollection<CreatureRouteRequest> requests)

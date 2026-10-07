@@ -143,7 +143,7 @@ internal class SyncRouteTravelersCommandHandler(
         {
             case RouteTravelerPhase.Walking:
                 await startWalking.Handle(
-                    new StartWalkingCommand { CreatureIds = creatureIds },
+                    new StartWalkingCommand { CreatureIds = creatureIds, Exit = target.Exit },
                     cancellationToken
                 );
                 break;
@@ -243,7 +243,8 @@ internal class SyncRouteTravelersCommandHandler(
                     inTransit.FromLocationId,
                     RouteTravelerPhase.Walking,
                     null,
-                    null
+                    null,
+                    WalkExit.From(inTransit)
                 ),
             _ => throw new InvalidOperationException("Unknown route position."),
         };
@@ -284,6 +285,7 @@ internal class SyncRouteTravelersCommandHandler(
         Guid LocationId,
         RouteTravelerPhase Phase,
         CreatureActivity? ArrivalActivity,
-        GameInstant? ArrivedAt
+        GameInstant? ArrivedAt,
+        WalkExit? Exit = null
     );
 }

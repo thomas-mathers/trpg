@@ -177,7 +177,10 @@ internal class PlaceCreaturesAtLocationCommandHandler(
                             .SetProperty(candidate => candidate.Angle, angle)
                             .SetProperty(candidate => candidate.EntryX, entryX)
                             .SetProperty(candidate => candidate.EntryY, entryY)
-                            .SetProperty(candidate => candidate.EnteredAt, enteredAt),
+                            .SetProperty(candidate => candidate.EnteredAt, enteredAt)
+                            .SetProperty(candidate => candidate.ExitX, (double?)null)
+                            .SetProperty(candidate => candidate.ExitY, (double?)null)
+                            .SetProperty(candidate => candidate.DepartedAt, (GameInstant?)null),
                     cancellationToken
                 );
         }

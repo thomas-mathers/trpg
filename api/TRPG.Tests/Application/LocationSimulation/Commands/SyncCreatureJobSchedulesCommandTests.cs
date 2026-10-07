@@ -41,6 +41,8 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
         creature.MovementSpeed = 5;
         var firstConnector = Connector(origin.Id, intermediate.Id);
         var secondConnector = Connector(intermediate.Id, workplace.Id);
+        secondConnector.ExitX = 11;
+        secondConnector.ExitY = 12;
         _context.Locations.AddRange(origin, intermediate, workplace);
         _context.Creatures.Add(creature);
         _context.LocationConnectors.AddRange(firstConnector, secondConnector);
@@ -92,6 +94,9 @@ public sealed class SyncCreatureJobSchedulesCommandTests(DatabaseFixture db)
             );
             Assert.Equal(intermediate.Id, walking.LocationId);
             Assert.Equal(CreatureMovement.Walking, walking.Movement);
+            Assert.Null(walking.EntryX);
+            Assert.Equal((11d, 12d), (walking.ExitX, walking.ExitY));
+            Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(1), walking.DepartedAt);
 
             var membership = await verifyWalking.RouteTravelerMembers.SingleAsync(
                 entry => entry.CreatureId == creature.Id,

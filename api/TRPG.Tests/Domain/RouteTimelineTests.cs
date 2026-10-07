@@ -73,6 +73,61 @@ public class RouteTimelineTests
     }
 
     [Fact]
+    public void Resolve_LeavesTheArrivalUnknown_WhenTheRouteStartedAtTheStop()
+    {
+        var position = RouteTimeline.Resolve(
+            FiniteSteps,
+            RouteTraversal.Finite,
+            SpeedUnitsPerHour,
+            Start,
+            Start + TimeSpan.FromHours(0.5)
+        );
+
+        var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position);
+        Assert.Null(inTransit.ArrivedAtGameTime);
+        Assert.Equal(Start + TimeSpan.FromHours(0.25), inTransit.DepartedAtGameTime);
+    }
+
+    [Fact]
+    public void Resolve_ReportsEqualArrivalAndDeparture_WhenTheStopHasNoDwell()
+    {
+        var position = RouteTimeline.Resolve(
+            FiniteSteps,
+            RouteTraversal.Finite,
+            SpeedUnitsPerHour,
+            Start,
+            Start + TimeSpan.FromHours(1)
+        );
+
+        var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position);
+        Assert.Equal(LocationB, inTransit.FromLocationId);
+        Assert.Equal(Start + TimeSpan.FromHours(0.75), inTransit.DepartedAtGameTime);
+        Assert.Equal(inTransit.DepartedAtGameTime, inTransit.ArrivedAtGameTime);
+    }
+
+    [Fact]
+    public void Resolve_ReportsTheDwellBetweenArrivalAndDeparture_OnALaterCyclicLap()
+    {
+        RouteTimelineStep[] steps =
+        [
+            new(LocationA, ConnectorA, Distance: 5, DwellHours: 0.5),
+            new(LocationB, ConnectorB, Distance: 5, DwellHours: 0.5),
+        ];
+
+        var position = RouteTimeline.Resolve(
+            steps,
+            RouteTraversal.Cyclic,
+            SpeedUnitsPerHour,
+            Start,
+            Start + TimeSpan.FromHours(2.75)
+        );
+
+        var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position);
+        Assert.Equal(Start + TimeSpan.FromHours(2), inTransit.ArrivedAtGameTime);
+        Assert.Equal(Start + TimeSpan.FromHours(2.5), inTransit.DepartedAtGameTime);
+    }
+
+    [Fact]
     public void Resolve_ReturnsArrived_AtFiniteTerminal()
     {
         var expectedArrival = Start + TimeSpan.FromHours(1) * 1.75;

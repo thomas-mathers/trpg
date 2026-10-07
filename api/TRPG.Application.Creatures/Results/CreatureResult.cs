@@ -52,5 +52,8 @@ public record CreatureResult(
     double Angle,
     double? EntryX,
     double? EntryY,
-    GameInstant? EnteredAt
+    GameInstant? EnteredAt,
+    double? ExitX,
+    double? ExitY,
+    GameInstant? DepartedAt
 );

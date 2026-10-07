@@ -97,6 +97,9 @@ internal static class CreatureMapper
             creature.Angle,
             creature.EntryX,
             creature.EntryY,
-            creature.EnteredAt
+            creature.EnteredAt,
+            creature.ExitX,
+            creature.ExitY,
+            creature.DepartedAt
         );
 }
