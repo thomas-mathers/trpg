@@ -121,6 +121,10 @@ internal class GetSceneQueryHandler(
         GetEquippedItemsByOwnersQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Item>>
     > getEquippedItemsByOwners,
+    IQueryHandler<
+        GetCreatureWalkPathsQuery,
+        IReadOnlyDictionary<Guid, IReadOnlyList<Point>>
+    > getCreatureWalkPaths,
     IOptions<WorldClockOptions> clockOptions
 ) : IQueryHandler<GetSceneQuery, SceneResult>
 {
@@ -162,6 +166,7 @@ internal class GetSceneQueryHandler(
         );
         var nearbyPeople = await BuildNearbyPeopleInfos(
             query,
+            player.LocationId,
             nearby,
             equippedItemsByCreature,
             cancellationToken
@@ -792,6 +797,7 @@ internal class GetSceneQueryHandler(
 
     private async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
         GetSceneQuery query,
+        Guid locationId,
         IReadOnlyCollection<CreatureResult> nearby,
         IReadOnlyDictionary<Guid, IReadOnlyList<Item>> equippedItemsByCreature,
         CancellationToken cancellationToken
@@ -860,6 +866,10 @@ internal class GetSceneQueryHandler(
             },
             cancellationToken
         );
+        var walkPaths = await getCreatureWalkPaths.Handle(
+            new GetCreatureWalkPathsQuery { LocationId = locationId, Creatures = nearby },
+            cancellationToken
+        );
 
         return nearby
             .Select(x =>
@@ -875,6 +885,7 @@ internal class GetSceneQueryHandler(
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
                     placement: CreaturePoseResolver.Resolve(
                         x,
+                        walkPaths.GetValueOrDefault(x.Id, []),
                         query.GameTime,
                         clockOptions.Value.TimeScale
                     ),

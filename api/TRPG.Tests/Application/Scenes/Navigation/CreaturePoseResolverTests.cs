@@ -10,6 +10,8 @@ public class CreaturePoseResolverTests
 {
     private const double Tolerance = 1e-6;
 
+    private static readonly Point[] StraightWalk = [new(0, 0), new(30, 0)];
+
     private static readonly GameInstant EnteredAt = new(
         new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Unspecified)
     );
@@ -21,7 +23,7 @@ public class CreaturePoseResolverTests
         var creature = MakeResult(x: 10, y: 4, angle: 1.5);
 
         // Act
-        var pose = CreaturePoseResolver.Resolve(creature, EnteredAt, timeScale: 1);
+        var pose = CreaturePoseResolver.Resolve(creature, [], EnteredAt, timeScale: 1);
 
         // Assert
         Assert.Equal(new Placement(10, 4, 1.5), pose);
@@ -36,6 +38,7 @@ public class CreaturePoseResolverTests
         // Act
         var pose = CreaturePoseResolver.Resolve(
             creature,
+            StraightWalk,
             EnteredAt + TimeSpan.FromSeconds(5),
             timeScale: 1
         );
@@ -53,6 +56,7 @@ public class CreaturePoseResolverTests
         // Act
         var pose = CreaturePoseResolver.Resolve(
             creature,
+            StraightWalk,
             EnteredAt + TimeSpan.FromHours(1),
             timeScale: 1
         );
@@ -70,6 +74,7 @@ public class CreaturePoseResolverTests
         // Act
         var pose = CreaturePoseResolver.Resolve(
             creature,
+            StraightWalk,
             EnteredAt + TimeSpan.FromSeconds(50),
             timeScale: 10
         );
