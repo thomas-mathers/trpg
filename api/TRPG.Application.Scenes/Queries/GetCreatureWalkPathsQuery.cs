@@ -15,7 +15,12 @@ internal class GetCreatureWalkPathsQuery
 
 internal class GetCreatureWalkPathsQueryHandler(
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
-    IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getPropsByLocation
+    IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getPropsByLocation,
+    IQueryHandler<
+        GetBuildingsByLocationQuery,
+        IReadOnlyCollection<Building>
+    > getBuildingsByLocation,
+    IQueryHandler<GetRoadNetworkByLocationIdQuery, LocationRoadNetwork> getRoadNetwork
 ) : IQueryHandler<GetCreatureWalkPathsQuery, IReadOnlyDictionary<Guid, IReadOnlyList<Point>>>
 {
     public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<Point>>> Handle(
@@ -43,19 +48,49 @@ internal class GetCreatureWalkPathsQueryHandler(
             new GetLocationsByIdsQuery { Ids = [locationId] },
             cancellationToken
         );
-        if (
-            !locations.TryGetValue(locationId, out var location)
-            || location.Kind != LocationKind.Room
-        )
+        if (!locations.TryGetValue(locationId, out var location))
         {
             return NpcPathPlanner.Straight;
         }
 
+        return location.Kind switch
+        {
+            LocationKind.Room => await BuildRoomPlanner(location, cancellationToken),
+            LocationKind.District => await BuildDistrictPlanner(location, cancellationToken),
+            _ => NpcPathPlanner.Straight,
+        };
+    }
+
+    private async Task<NpcPathPlanner> BuildRoomPlanner(
+        Location room,
+        CancellationToken cancellationToken
+    )
+    {
         var props = await getPropsByLocation.Handle(
-            new GetPropsByLocationIdQuery { LocationId = locationId },
+            new GetPropsByLocationIdQuery { LocationId = room.Id },
             cancellationToken
         );
 
-        return new NpcPathPlanner(RoomNavigationGrid.Build(location, props));
+        return NpcPathPlanner.ForRoom(RoomNavigationGrid.Build(room, props));
+    }
+
+    private async Task<NpcPathPlanner> BuildDistrictPlanner(
+        Location district,
+        CancellationToken cancellationToken
+    )
+    {
+        var buildings = await getBuildingsByLocation.Handle(
+            new GetBuildingsByLocationQuery { LocationId = district.Id },
+            cancellationToken
+        );
+        var network = await getRoadNetwork.Handle(
+            new GetRoadNetworkByLocationIdQuery { LocationId = district.Id },
+            cancellationToken
+        );
+
+        return NpcPathPlanner.ForDistrict(
+            network,
+            DistrictNavigationGrid.Build(district, buildings)
+        );
     }
 }

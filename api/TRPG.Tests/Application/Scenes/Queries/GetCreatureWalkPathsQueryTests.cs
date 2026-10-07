@@ -71,7 +71,7 @@ public sealed class GetCreatureWalkPathsQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_WalksStraight_WhenTheLocationIsNotARoom()
+    public async Task Handle_WalksStraight_WhenTheDistrictHasNoRoads()
     {
         // Arrange
         var district = Builders.MakeLocation(

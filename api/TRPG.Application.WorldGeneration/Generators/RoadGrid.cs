@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -6,7 +7,6 @@ internal readonly record struct RoadCell(int Column, int Row);
 
 internal sealed class RoadGrid
 {
-    private const double ObstacleClearance = 2.25;
     private const int EdgeMarginCells = 2;
 
     private readonly bool[,] _blocked;
@@ -92,16 +92,8 @@ internal sealed class RoadGrid
         (first < EdgeMarginCells && second < EdgeMarginCells)
         || (first >= count - EdgeMarginCells && second >= count - EdgeMarginCells);
 
-    private static bool IsNear(RoadBuilding building, Point point)
-    {
-        var (sin, cos) = Math.SinCos(building.Placement.Angle);
-        var dx = point.X - building.Placement.X;
-        var dy = point.Y - building.Placement.Y;
-        var local = new Point(dx * cos + dy * sin, -dx * sin + dy * cos);
-
-        return Math.Abs(local.X) < building.Footprint.Width / 2 + ObstacleClearance - 1e-6
-            && Math.Abs(local.Y) < building.Footprint.Depth / 2 + ObstacleClearance - 1e-6;
-    }
+    private static bool IsNear(RoadBuilding building, Point point) =>
+        CityLattice.IsWithinBuildingClearance(building.Placement, building.Footprint, point);
 }
 
 internal sealed class RoadNetworkCells(RoadGrid grid)
