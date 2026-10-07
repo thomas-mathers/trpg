@@ -121,6 +121,7 @@ public record SceneCreatureInfo(
 )
 {
     public IReadOnlyCollection<SceneEquipmentVisual> Equipment { get; init; } = [];
+    public IReadOnlyList<Point> WalkPath { get; init; } = [];
 }
 
 public record SceneEquipmentVisual(Guid ItemId, EquipmentSlot Slot, string ModelClass);

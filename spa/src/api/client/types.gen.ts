@@ -265,6 +265,7 @@ export type CreatureStatusSnapshot = {
     activeBuffs: Array<ActiveBuff>;
     placement: PlacementWire;
     equipment?: Array<EquippedGearSnapshot>;
+    walkPath?: Array<PointWire>;
 };
 
 export type CreatureType = 'Human' | 'Elf' | 'Dwarf' | 'Orc' | 'Halfling' | 'Gnome' | 'Undead' | 'Demon' | 'Beast' | 'Construct' | 'Elemental' | 'Goblin' | 'Wraith' | 'Giant' | 'Dragon';

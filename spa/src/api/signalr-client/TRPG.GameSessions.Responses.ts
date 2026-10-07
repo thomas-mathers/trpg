@@ -385,6 +385,8 @@ export type CreatureStatusSnapshot = {
     placement: PlacementWire;
     /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.EquippedGearSnapshot> */
     equipment: EquippedGearSnapshot[];
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.GameSessions.Responses.PointWire> */
+    walkPath: PointWire[];
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.EquippedGearSnapshot */

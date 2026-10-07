@@ -1,6 +1,7 @@
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Scenes.Results;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes;
 
@@ -89,6 +90,7 @@ public static class SceneSemanticComparer
             CurrentMp = 0,
             FactionNames = Array.Empty<string>(),
             Equipment = Array.Empty<SceneEquipmentVisual>(),
+            WalkPath = Array.Empty<Point>(),
             QuestMarkers = Array.Empty<QuestMarkerEntry>(),
             Effects = CreatureEffects.None,
             Placement = new(0, 0, 0),

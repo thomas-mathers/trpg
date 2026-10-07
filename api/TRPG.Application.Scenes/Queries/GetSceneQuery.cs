@@ -539,7 +539,8 @@ internal class GetSceneQueryHandler(
         Guid? tradeWorkstationId = null,
         IReadOnlyCollection<QuestMarkerEntry>? questMarkers = null,
         bool readyToDeliver = false,
-        SceneJourneyInfo? journey = null
+        SceneJourneyInfo? journey = null,
+        IReadOnlyList<Point>? walkPath = null
     )
     {
         var experienceProgress = SkillFormulas.GetExperienceProgress(
@@ -596,6 +597,7 @@ internal class GetSceneQueryHandler(
         )
         {
             Equipment = equipment ?? [],
+            WalkPath = walkPath ?? [],
         };
     }
 
@@ -910,7 +912,8 @@ internal class GetSceneQueryHandler(
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
                     questMarkers: questMarkers.EntriesByCreatureId.GetValueOrDefault(x.Id, []),
                     readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id),
-                    journey: ToSceneJourney(journeysByCreature.GetValueOrDefault(x.Id))
+                    journey: ToSceneJourney(journeysByCreature.GetValueOrDefault(x.Id)),
+                    walkPath: walkPaths.GetValueOrDefault(x.Id, [])
                 )
             )
             .ToArray();

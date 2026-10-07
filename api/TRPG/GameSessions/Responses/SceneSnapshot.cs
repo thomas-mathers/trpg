@@ -333,6 +333,7 @@ public record CreatureStatusSnapshot(
 )
 {
     public IReadOnlyCollection<EquippedGearSnapshot> Equipment { get; init; } = [];
+    public IReadOnlyCollection<PointWire> WalkPath { get; init; } = [];
 }
 
 [TranspilationSource]
