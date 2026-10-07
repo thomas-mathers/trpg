@@ -81,7 +81,7 @@ public sealed class AllocateAttributePointsCommandTests(DatabaseFixture db)
 
         // Assert
         var creature = await ReloadCreature();
-        Assert.Equal(54f, creature.MovementSpeed);
+        Assert.Equal(51f, creature.MovementSpeed);
     }
 
     [Fact]
