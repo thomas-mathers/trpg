@@ -105,7 +105,6 @@ public class CityGeneratorTests
             DistrictConnectors = _districtConnectors,
             DistrictTravelConnectors = _districtTravelConnectors,
             LocationsById = _locationsById,
-            PatrolDwellHours = 0.5,
             NamedFactions = namedFactions,
             GeneratorInput = _generatorInput,
         };

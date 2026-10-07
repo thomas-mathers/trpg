@@ -11,7 +11,6 @@ internal record BarracksGuardDutyAssignerInput(
     IReadOnlyList<District> Districts,
     IReadOnlyList<LocationConnector> DistrictConnectors,
     IReadOnlyList<TravelConnector> DistrictTravelConnectors,
-    double PatrolDwellHours,
     IReadOnlyList<Bed> Beds,
     IReadOnlyList<Creature> Guards
 );
@@ -190,7 +189,6 @@ internal static class BarracksGuardDutyAssigner
             Name = $"{input.CityName} City Patrol",
             Traversal = RouteTraversal.Cyclic,
         };
-        var lingeredLocationIds = new HashSet<Guid>();
         var steps = legs.Select(
                 (leg, index) =>
                     new RouteStep
@@ -200,9 +198,7 @@ internal static class BarracksGuardDutyAssigner
                         SequenceIndex = index,
                         LocationId = leg.OriginLocationId,
                         ConnectorId = leg.ConnectorId,
-                        DwellHours = lingeredLocationIds.Add(leg.OriginLocationId)
-                            ? input.PatrolDwellHours
-                            : 0,
+                        DwellHours = 0,
                     }
             )
             .ToArray();

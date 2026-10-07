@@ -71,7 +71,6 @@ public class BarracksGuardDutyAssignerTests
                         Distance = 15,
                     })
                     .ToArray(),
-                PatrolDwellHours: 0.5,
                 beds,
                 guards
             )
@@ -168,10 +167,12 @@ public class BarracksGuardDutyAssignerTests
     }
 
     [Fact]
-    public void Generate_PatrolRoutesVisitAndLingerInEveryDistrict()
+    public void Generate_PatrolRoutesVisitEveryDistrictWithoutLingering()
     {
+        // Act
         var (_, result) = Generate(7);
 
+        // Assert
         Assert.NotEmpty(result.Routes);
         foreach (var route in result.Routes)
         {
@@ -179,8 +180,9 @@ public class BarracksGuardDutyAssignerTests
             Assert.Equal(RouteTraversal.Cyclic, route.Traversal);
             Assert.Equal(
                 new HashSet<Guid> { _waypointA, _waypointB, _waypointC },
-                steps.Where(step => step.DwellHours > 0).Select(step => step.LocationId).ToHashSet()
+                steps.Select(step => step.LocationId).ToHashSet()
             );
+            Assert.All(steps, step => Assert.Equal(0, step.DwellHours));
         }
     }
 

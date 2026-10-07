@@ -12,7 +12,6 @@ internal class CityGeneratorInput
     public required IReadOnlyList<LocationConnector> DistrictConnectors { get; init; }
     public required IReadOnlyList<TravelConnector> DistrictTravelConnectors { get; init; }
     public required IReadOnlyDictionary<Guid, Location> LocationsById { get; init; }
-    public required double PatrolDwellHours { get; init; }
     public required IReadOnlyList<Faction> NamedFactions { get; init; }
     public required WorldGeneratorInput GeneratorInput { get; init; }
 }
@@ -487,7 +486,6 @@ public class CityGenerator(
                 input.Districts,
                 input.DistrictConnectors,
                 input.DistrictTravelConnectors,
-                input.PatrolDwellHours,
                 buildingResult.Props.OfType<Bed>().ToList(),
                 guards
             )

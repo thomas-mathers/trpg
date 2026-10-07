@@ -217,7 +217,6 @@ public class WorldGenerator(
                         )
                         .ToArray(),
                     LocationsById = locationsById,
-                    PatrolDwellHours = cityTravelOptions.Value.PatrolDwellHours,
                     NamedFactions = namedFactions,
                     GeneratorInput = generatorInput,
                 }
