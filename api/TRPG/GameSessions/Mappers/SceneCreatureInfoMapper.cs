@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Scenes.Results;
 using TRPG.Combat.Mappers;
 using TRPG.GameSessions.Responses;
@@ -41,6 +42,7 @@ internal static class SceneCreatureInfoMapper
             creature.Mana,
             creature.Defense,
             creature.MovementSpeed,
+            (float)InLocationPace.MetersPerRealSecond(creature.MovementSpeed),
             creature.PhysicalResistance,
             creature.FireResistance,
             creature.IceResistance,

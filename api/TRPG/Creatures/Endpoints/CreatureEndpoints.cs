@@ -9,6 +9,7 @@ using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Commands;
@@ -326,7 +327,8 @@ internal static class CreatureEndpoints
             new ToggleSneakingResponse(
                 CreatureId: result.CreatureId,
                 IsSneaking: result.IsSneaking,
-                MovementSpeed: result.MovementSpeed
+                MovementSpeed: result.MovementSpeed,
+                WalkMetersPerSecond: (float)InLocationPace.MetersPerRealSecond(result.MovementSpeed)
             )
         );
     }

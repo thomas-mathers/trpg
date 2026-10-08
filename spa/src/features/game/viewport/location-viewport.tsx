@@ -236,7 +236,7 @@ export function LocationViewport({
             onRestored={() => setRestoring(false)}
           />
           <FpsController
-            movementSpeed={playerStatus.movementSpeed}
+            walkSpeed={playerStatus.walkMetersPerSecond}
             movementLocked={!!focus || restoring}
             seats={seats}
             seated={seated}

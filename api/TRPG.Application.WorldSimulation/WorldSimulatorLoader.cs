@@ -57,7 +57,8 @@ public sealed class WorldSimulatorLoader(
             graph,
             new WorldSimulatorOptions(
                 clockOptions.Value.TimeScale,
-                simulationOptions.Value.RouteSearchesPerTick
+                simulationOptions.Value.RouteSearchesPerTick,
+                simulationOptions.Value.ArrivalStagger
             )
         );
         foreach (var seed in await LoadSeeds(worldId, graph, null, cancellationToken))

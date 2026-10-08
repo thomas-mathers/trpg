@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Configuration;
 
 namespace TRPG.Tests.Application.Configuration;
@@ -11,10 +12,7 @@ public sealed class ContinuousTimeBalanceTests
         var options = new CaravanOptions();
 
         // Assert
-        Assert.Equal(
-            CreatureGeneratorOptions.WalkingSpeedUnitsPerHour * 3,
-            options.SpeedUnitsPerHour
-        );
+        Assert.Equal((float)InLocationPace.BaseMovementSpeed * 3, options.SpeedUnitsPerHour);
     }
 
     [Fact]

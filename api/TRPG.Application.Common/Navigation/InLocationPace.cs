@@ -2,7 +2,7 @@ namespace TRPG.Application.Common.Navigation;
 
 public static class InLocationPace
 {
-    public const double WalkMetersPerSecond = 1.4;
+    public const double WalkMetersPerSecond = 1.68;
     public const double BaseMovementSpeed = 50;
     private const double SecondsPerHour = 3600;
 

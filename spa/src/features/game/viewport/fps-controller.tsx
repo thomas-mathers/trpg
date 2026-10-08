@@ -19,7 +19,6 @@ import {
   headingToYaw,
   pushOutOfObstacles,
   toScenePosition,
-  walkSpeedFor,
   yawToHeading,
 } from './layout-math';
 import { findSeatInRange, type ViewportSeat } from './seat-interaction';
@@ -37,7 +36,7 @@ const INTERACT_KEY = 'KeyE';
 const SNEAK_KEYS = ['ControlLeft', 'ControlRight'];
 
 interface FpsControllerProps {
-  movementSpeed: number;
+  walkSpeed: number;
   movementLocked?: boolean;
   seats: ViewportSeat[];
   seated: boolean;
@@ -59,7 +58,7 @@ const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
   Number(positive.some((key) => keys.has(key))) - Number(negative.some((key) => keys.has(key)));
 
 export function FpsController({
-  movementSpeed,
+  walkSpeed,
   movementLocked = false,
   seats,
   seated,
@@ -136,9 +135,9 @@ export function FpsController({
             return;
           }
 
-          const { movementSpeed } = response.data;
+          const { movementSpeed, walkMetersPerSecond } = response.data;
 
-          setMovementSpeed(movementSpeed);
+          setMovementSpeed(movementSpeed, walkMetersPerSecond);
         });
       }
 
@@ -163,7 +162,7 @@ export function FpsController({
       heading: yawToHeading(camera.rotation.y),
       forward: axis(keys, FORWARD_KEYS, BACKWARD_KEYS),
       strafe: axis(keys, RIGHT_KEYS, LEFT_KEYS),
-      speed: walkSpeedFor(movementSpeed),
+      speed: walkSpeed,
       deltaSeconds: Math.min(deltaSeconds, MAX_FRAME_SECONDS),
     });
     const attempted = { x: camera.position.x + delta.x, y: camera.position.z + delta.y };

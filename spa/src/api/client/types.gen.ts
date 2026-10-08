@@ -250,6 +250,7 @@ export type CreatureStatusSnapshot = {
     mana: number;
     defense: number;
     movementSpeed: number;
+    walkMetersPerSecond: number;
     physicalResistance: number;
     fireResistance: number;
     iceResistance: number;
@@ -275,6 +276,7 @@ export type CreatureWalkSnapshot = {
     startedAtGameTimeMilliseconds: number;
     metersPerGameSecond: number;
     leavesAtEnd: boolean;
+    pausedAtGameTimeMilliseconds?: null | number;
 };
 
 export type DamageType = 'Physical' | 'Fire' | 'Ice' | 'Lightning' | 'Poison' | 'Magic';
@@ -996,6 +998,7 @@ export type ToggleSneakingResponse = {
     creatureId: string;
     isSneaking: boolean;
     movementSpeed: number;
+    walkMetersPerSecond: number;
 };
 
 export type TradeProposalResponse = {

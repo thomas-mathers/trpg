@@ -28,9 +28,6 @@ import {
   STAIR_WIDTH,
   stairCorners,
   toScenePosition,
-  walkSpeedFor,
-  WALK_SPEED,
-  BASE_MOVEMENT_SPEED,
   yawToHeading,
 } from './layout-math';
 
@@ -476,24 +473,6 @@ describe('buildEntityNames', () => {
 
     // Assert
     expect(placement).toEqual({ x: 1, y: 2, angle: 0.5 });
-  });
-});
-
-describe('walkSpeedFor', () => {
-  it('walks at the base pace for the base movement speed', () => {
-    // Act
-    const speed = walkSpeedFor(BASE_MOVEMENT_SPEED);
-
-    // Assert
-    expect(speed).toBe(WALK_SPEED);
-  });
-
-  it('halves the pace when the movement speed is halved', () => {
-    // Act
-    const speed = walkSpeedFor(BASE_MOVEMENT_SPEED / 2);
-
-    // Assert
-    expect(speed).toBe(WALK_SPEED / 2);
   });
 });
 

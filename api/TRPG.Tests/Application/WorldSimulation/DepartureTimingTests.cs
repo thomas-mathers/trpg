@@ -8,6 +8,7 @@ namespace TRPG.Tests.Application.WorldSimulation;
 public class DepartureTimingTests
 {
     private static readonly TimeSpan Walk = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan Stagger = TimeSpan.FromMinutes(10);
     private static readonly GameInstant Noon = new(new DateTime(2000, 1, 3, 12, 0, 0));
 
     private readonly Guid _creatureId = Guid.NewGuid();
@@ -17,10 +18,10 @@ public class DepartureTimingTests
     {
         // Arrange
         var transition = Transition(CreatureJobAction.Eat, CreatureJobAction.Work);
-        var first = DepartureTiming.Resolve(_creatureId, transition, Walk);
+        var first = DepartureTiming.Resolve(_creatureId, transition, Walk, Stagger);
 
         // Act
-        var second = DepartureTiming.Resolve(_creatureId, transition, Walk);
+        var second = DepartureTiming.Resolve(_creatureId, transition, Walk, Stagger);
 
         // Assert
         Assert.Equal(first, second);
@@ -58,11 +59,32 @@ public class DepartureTimingTests
         Assert.InRange(offsets.Max(), 25, 30);
     }
 
+    [Fact]
+    public void Resolve_DepartsUpToTenMinutesBeforeTheWalkBudget_WhenArrivingForWork()
+    {
+        // Arrange
+        var transition = Transition(CreatureJobAction.Work, CreatureJobAction.Sleep);
+
+        // Act
+        var offsets = ResolveForManyCreatures(transition)
+            .Select(departure => (departure - (Noon - Walk)).TotalMinutes)
+            .ToArray();
+
+        // Assert
+        Assert.InRange(offsets.Min(), -10, -8);
+        Assert.InRange(offsets.Max(), -2, 0);
+    }
+
     private static IEnumerable<GameInstant> ResolveForManyCreatures(JobTransition transition) =>
         Enumerable
             .Range(1, 200)
             .Select(seed =>
-                DepartureTiming.Resolve(new Guid(seed, 0, 0, new byte[8]), transition, Walk)
+                DepartureTiming.Resolve(
+                    new Guid(seed, 0, 0, new byte[8]),
+                    transition,
+                    Walk,
+                    Stagger
+                )
             );
 
     private JobTransition Transition(CreatureJobAction destination, CreatureJobAction origin) =>

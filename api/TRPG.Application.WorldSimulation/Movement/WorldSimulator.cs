@@ -4,7 +4,11 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Movement;
 
-public sealed record WorldSimulatorOptions(double TimeScale, int RouteSearchesPerTick);
+public sealed record WorldSimulatorOptions(
+    double TimeScale,
+    int RouteSearchesPerTick,
+    TimeSpan ArrivalStagger
+);
 
 public sealed class WorldSimulator
 {
@@ -23,7 +27,7 @@ public sealed class WorldSimulator
     {
         _options = options;
         _routeFinder = new RouteFinder(graph, options.RouteSearchesPerTick);
-        _planner = new JourneyPlanner(_routeFinder, _shelter);
+        _planner = new JourneyPlanner(_routeFinder, _shelter, options.ArrivalStagger);
     }
 
     public IReadOnlySet<Guid> IdleLocationIds() =>
