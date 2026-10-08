@@ -191,12 +191,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             locationId: destination.Id,
             worldId: worldId
         );
-        var route = new Route
-        {
-            WorldId = worldId,
-            Name = "Test route",
-            Traversal = RouteTraversal.Cyclic,
-        };
+        var route = new Route { WorldId = worldId, Name = "Test route" };
         var routeStep = new RouteStep
         {
             WorldId = worldId,

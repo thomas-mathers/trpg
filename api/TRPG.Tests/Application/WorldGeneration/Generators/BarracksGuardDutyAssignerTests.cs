@@ -169,7 +169,6 @@ public class BarracksGuardDutyAssignerTests
         foreach (var route in result.Routes)
         {
             var steps = result.RouteSteps.Where(step => step.RouteId == route.Id).ToArray();
-            Assert.Equal(RouteTraversal.Cyclic, route.Traversal);
             Assert.Equal(3, steps.Length);
             Assert.Equal(
                 new HashSet<Guid> { _waypointA, _waypointB, _waypointC },

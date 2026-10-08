@@ -9,8 +9,8 @@ namespace TRPG.Tests.Application.WorldSimulation;
 public class WorldSimulatorTests
 {
     private const float MovementSpeed = 50;
-    private const double MetersPerSecond = 3;
-    private const double LegMeters = 1800;
+    private const double MetersPerSecond = InLocationPace.WalkMetersPerSecond;
+    private const double LegMeters = 600 * MetersPerSecond;
     private static readonly TimeSpan LegDuration = TimeSpan.FromSeconds(
         LegMeters / MetersPerSecond
     );

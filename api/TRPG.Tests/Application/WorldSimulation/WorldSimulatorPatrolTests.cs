@@ -9,12 +9,12 @@ namespace TRPG.Tests.Application.WorldSimulation;
 public class WorldSimulatorPatrolTests
 {
     private const float MovementSpeed = 50;
-    private const double MetersPerSecond = 3;
-    private const double LegMeters = 1800;
+    private const double MetersPerSecond = InLocationPace.WalkMetersPerSecond;
+    private const double LegMeters = 600 * MetersPerSecond;
     private static readonly TimeSpan LegDuration = TimeSpan.FromSeconds(
         LegMeters / MetersPerSecond
     );
-    private const double StopMeters = 900;
+    private const double StopMeters = 300 * MetersPerSecond;
     private static readonly TimeSpan StopOffset = TimeSpan.FromSeconds(
         StopMeters / MetersPerSecond
     );

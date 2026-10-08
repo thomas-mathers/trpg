@@ -113,12 +113,7 @@ public static class CaravanRouteSeeder
         string name
     )
     {
-        var route = new Route
-        {
-            WorldId = world.World.Id,
-            Name = name,
-            Traversal = RouteTraversal.Cyclic,
-        };
+        var route = new Route { WorldId = world.World.Id, Name = name };
         var stopLocationIds = orderedStopLocationIds.ToHashSet();
         var legs = graph.BuildCycle(orderedStopLocationIds);
         var steps = legs.Select(

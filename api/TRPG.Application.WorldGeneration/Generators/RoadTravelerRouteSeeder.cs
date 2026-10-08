@@ -183,7 +183,6 @@ public class RoadTravelerRouteSeeder(CreatureGroupGenerator creatureGroupGenerat
             Id = routeId,
             WorldId = input.World.World.Id,
             Name = $"{input.Origin.City.Name} to {input.Destination.City.Name} journey",
-            Traversal = RouteTraversal.Cyclic,
         };
         var routeTraveler = BuildRouteTraveler(input, route, seededSteps.DurationHours);
         var creature = GenerateCreature(input, seededSteps.Steps[0].LocationId);

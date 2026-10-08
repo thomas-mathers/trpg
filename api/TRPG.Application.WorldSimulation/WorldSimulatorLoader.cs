@@ -114,22 +114,17 @@ public sealed class WorldSimulatorLoader(
         [
             .. creatures
                 .Where(creature => !routeTravelerIds.Contains(creature.Id))
-                .Select(creature => ToSeed(creature, jobsByCreatureId, patrols))
-                .OfType<SimCreatureSeed>(),
+                .Select(creature => ToSeed(creature, jobsByCreatureId, patrols)),
         ];
     }
 
-    private static SimCreatureSeed? ToSeed(
+    private static SimCreatureSeed ToSeed(
         SimulatableCreature creature,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
         IReadOnlyDictionary<Guid, IReadOnlyList<RouteLeg>> patrols
     )
     {
         var jobs = jobsByCreatureId.GetValueOrDefault(creature.Id) ?? [];
-        if (jobs.Any(job => job.RouteId is { } routeId && !patrols.ContainsKey(routeId)))
-        {
-            return null;
-        }
 
         return new SimCreatureSeed(
             creature.Id,

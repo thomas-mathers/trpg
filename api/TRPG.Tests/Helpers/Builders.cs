@@ -1638,13 +1638,7 @@ internal static class Builders
     public static Route MakeCaravanRoute(
         Guid? worldId = null,
         string name = "The Capital Circuit"
-    ) =>
-        new()
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            Name = name,
-            Traversal = RouteTraversal.Cyclic,
-        };
+    ) => new() { WorldId = worldId ?? Guid.NewGuid(), Name = name };
 
     public static RouteStep MakeCaravanRouteStop(
         Guid routeId,

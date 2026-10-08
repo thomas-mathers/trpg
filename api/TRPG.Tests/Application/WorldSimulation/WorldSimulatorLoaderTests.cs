@@ -143,7 +143,7 @@ public sealed class WorldSimulatorLoaderTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Load_SkipsAPatroller_WhoseRouteHasNoPatrol()
+    public async Task Load_SimulatesAPatroller_WhoseRouteHasNoPatrol()
     {
         // Arrange
         var patroller = await AddWorker(routeId: Guid.NewGuid());
@@ -152,7 +152,7 @@ public sealed class WorldSimulatorLoaderTests(DatabaseFixture db)
         var loaded = await _loader.Load(_worldId, Now, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Null(loaded.Simulator.StateOf(patroller.Id));
+        Assert.NotNull(loaded.Simulator.StateOf(patroller.Id));
     }
 
     [Fact]

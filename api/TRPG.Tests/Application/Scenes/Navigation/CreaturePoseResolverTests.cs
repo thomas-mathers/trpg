@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures.Mappers;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Scenes.Navigation;
@@ -12,7 +13,12 @@ public class CreaturePoseResolverTests
 {
     private const double Tolerance = 1e-6;
 
+    private const double Pace = InLocationPace.WalkMetersPerSecond;
+
     private static readonly Point[] StraightWalk = [new(0, 0), new(30, 0)];
+
+    private static readonly TimeSpan HalfWalk = TimeSpan.FromSeconds(15 / Pace);
+    private static readonly TimeSpan FinishedWalk = TimeSpan.FromSeconds(30 / Pace + 1);
 
     private static readonly GameInstant StartedAt = new(
         new DateTime(2026, 1, 1, 8, 0, 0, DateTimeKind.Unspecified)
@@ -41,7 +47,7 @@ public class CreaturePoseResolverTests
         var pose = CreaturePoseResolver.Resolve(
             creature,
             StraightWalk,
-            StartedAt + TimeSpan.FromSeconds(5),
+            StartedAt + HalfWalk,
             timeScale: 1
         );
 
@@ -77,7 +83,7 @@ public class CreaturePoseResolverTests
         var pose = CreaturePoseResolver.Resolve(
             creature,
             StraightWalk,
-            StartedAt + TimeSpan.FromSeconds(50),
+            StartedAt + HalfWalk * 10,
             timeScale: 10
         );
 
@@ -95,7 +101,7 @@ public class CreaturePoseResolverTests
         var pose = CreaturePoseResolver.Resolve(
             creature,
             StraightWalk,
-            StartedAt + TimeSpan.FromSeconds(5),
+            StartedAt + HalfWalk,
             timeScale: 1
         );
 
@@ -119,12 +125,13 @@ public class CreaturePoseResolverTests
         var pose = CreaturePoseResolver.Resolve(
             creature,
             StraightWalk,
-            StartedAt + TimeSpan.FromSeconds(5),
+            StartedAt + HalfWalk,
             timeScale: 1
         );
 
         // Assert
-        Assert.Equal(new Placement(15, 0, Math.PI / 2), pose);
+        Assert.Equal(15, pose.X, Tolerance);
+        Assert.Equal((0, Math.PI / 2), (pose.Y, pose.Angle));
     }
 
     [Fact]
@@ -136,7 +143,7 @@ public class CreaturePoseResolverTests
             y: 0,
             angle: 1.5,
             entry: new Point(0, 0),
-            walkPausedAt: StartedAt + TimeSpan.FromSeconds(5)
+            walkPausedAt: StartedAt + HalfWalk
         );
 
         // Act
@@ -160,7 +167,7 @@ public class CreaturePoseResolverTests
             y: 0,
             angle: 0,
             exit: new Point(30, 0),
-            walkPausedAt: StartedAt + TimeSpan.FromSeconds(5)
+            walkPausedAt: StartedAt + HalfWalk
         );
 
         // Act
@@ -179,7 +186,7 @@ public class CreaturePoseResolverTests
     public void BuildWalk_CarriesThePauseInstant_WhenTheWalkIsPaused()
     {
         // Arrange
-        var pausedAt = StartedAt + TimeSpan.FromSeconds(5);
+        var pausedAt = StartedAt + HalfWalk;
         var creature = MakeResult(
             x: 30,
             y: 0,
@@ -205,7 +212,7 @@ public class CreaturePoseResolverTests
         var hasLeft = CreaturePoseResolver.HasLeft(
             creature,
             StraightWalk,
-            StartedAt + TimeSpan.FromSeconds(5),
+            StartedAt + HalfWalk,
             timeScale: 1
         );
 
@@ -223,7 +230,7 @@ public class CreaturePoseResolverTests
         var hasLeft = CreaturePoseResolver.HasLeft(
             creature,
             StraightWalk,
-            StartedAt + TimeSpan.FromSeconds(10),
+            StartedAt + FinishedWalk,
             timeScale: 1
         );
 
@@ -285,7 +292,7 @@ public class CreaturePoseResolverTests
         var walk = CreaturePoseResolver.BuildWalk(creature, StraightWalk, timeScale: 1);
 
         // Assert
-        Assert.Equal(new SceneCreatureWalk(StraightWalk, StartedAt, 3.0, false), walk);
+        Assert.Equal(new SceneCreatureWalk(StraightWalk, StartedAt, Pace, false), walk);
     }
 
     [Fact]
@@ -311,7 +318,7 @@ public class CreaturePoseResolverTests
         var walk = CreaturePoseResolver.BuildWalk(creature, StraightWalk, timeScale: 10);
 
         // Assert
-        Assert.Equal(0.3, walk!.MetersPerGameSecond, Tolerance);
+        Assert.Equal(Pace / 10, walk!.MetersPerGameSecond, Tolerance);
     }
 
     private static CreatureResult MakeResult(

@@ -183,12 +183,7 @@ internal static class BarracksGuardDutyAssigner
             return null;
         }
 
-        var route = new Route
-        {
-            WorldId = input.WorldId,
-            Name = $"{input.CityName} City Patrol",
-            Traversal = RouteTraversal.Cyclic,
-        };
+        var route = new Route { WorldId = input.WorldId, Name = $"{input.CityName} City Patrol" };
         var steps = patrolStops
             .Skip(startStopIndex)
             .Concat(patrolStops.Take(startStopIndex))
