@@ -25,7 +25,6 @@ public record SyncLocationRoutinesResult(IReadOnlyCollection<Guid> SpawnedEncoun
 internal class SyncLocationRoutinesCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     ICommandHandler<SyncWeatherCommand> syncWeather,
-    ICommandHandler<SyncLocationJobsCommand> syncLocationJobs,
     ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock,
     ICommandHandler<SyncCreatureSpawnerCommand, SyncCreatureSpawnerResult> syncCreatureSpawner,
     ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy,
@@ -46,23 +45,12 @@ internal class SyncLocationRoutinesCommandHandler(
             return SyncLocationRoutinesResult.None;
         }
 
-        // Weather precedes jobs because a creature's routine can be overridden by it.
         await syncWeather.Handle(
             new SyncWeatherCommand
             {
                 WorldId = command.WorldId,
                 StateId = location.StateId,
                 CurrentGameTime = command.GameTime,
-            },
-            cancellationToken
-        );
-
-        await syncLocationJobs.Handle(
-            new SyncLocationJobsCommand
-            {
-                WorldId = command.WorldId,
-                LocationId = command.LocationId,
-                GameTime = command.GameTime,
             },
             cancellationToken
         );

@@ -28,6 +28,7 @@ using TRPG.Application.Routing.Extensions;
 using TRPG.Application.Scenes.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Application.Worlds.Extensions;
+using TRPG.Application.WorldSimulation.Extensions;
 using TRPG.Commands;
 using TRPG.GameTurns.Tools;
 using TRPG.Queries;
@@ -86,6 +87,7 @@ public static class ApplicationServiceCollectionExtensions
             .AddReputationsServices()
             .AddWorldGenerationServices()
             .AddWorldsServices()
+            .AddWorldSimulationServices()
             .AddEffectsServices()
             .AddCombatServices()
             .AddScenesServices()

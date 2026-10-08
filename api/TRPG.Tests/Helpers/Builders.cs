@@ -1376,7 +1376,8 @@ internal static class Builders
         int endHour = 17,
         Guid? locationId = null,
         Guid? worldId = null,
-        DayOfWeek? specificDay = null
+        DayOfWeek? specificDay = null,
+        Guid? routeId = null
     )
     {
         return new CreatureJob
@@ -1386,6 +1387,7 @@ internal static class Builders
             StartHour = startHour,
             EndHour = endHour,
             SpecificDay = specificDay,
+            RouteId = routeId,
             Priority = priority,
             LocationId = locationId ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),

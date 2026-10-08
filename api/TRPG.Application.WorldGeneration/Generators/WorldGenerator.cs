@@ -59,9 +59,6 @@ public class WorldGeneratorResult
     public required IReadOnlyList<CreatureSpawner> CreatureSpawners { get; init; }
     public IReadOnlyList<Route> CityPatrolRoutes { get; init; } = [];
     public IReadOnlyList<RouteStep> CityPatrolRouteSteps { get; init; } = [];
-    public IReadOnlyList<Route> CreatureScheduleRoutes { get; init; } = [];
-    public IReadOnlyList<RouteStep> CreatureScheduleRouteSteps { get; init; } = [];
-    public IReadOnlyList<CreatureRouteSchedule> CreatureRouteSchedules { get; init; } = [];
 
     public TravelGraph BuildTravelGraph() =>
         new([.. LocationConnectors, .. PointConnectors], TravelNodes);
@@ -717,19 +714,16 @@ public class WorldGenerator(
             [.. locationConnectors, .. layout.PointConnectors],
             layout.TravelNodes
         );
-        AssignPatrolStepDistances(travelGraph, cityPatrolRouteSteps);
+        PatrolStopNodeAssigner.Assign(
+            cityPatrolRouteSteps,
+            layout.TravelNodes,
+            layout.PointConnectors,
+            anchoredLocations.ToDictionary(location => location.Id)
+        );
         var timeScale = clockOptions.Value.TimeScale;
 
         jobs.AddRange(
             MealScheduleGenerator.Generate(worldId, creatures, jobs, travelGraph, timeScale)
-        );
-
-        var creatureRouteSchedules = CreatureRouteScheduleGenerator.Generate(
-            worldId,
-            creatures,
-            jobs,
-            travelGraph,
-            timeScale
         );
 
         CreatureLayoutGenerator.Place(
@@ -786,9 +780,6 @@ public class WorldGenerator(
             Relationships = relationships,
             CityPatrolRoutes = cityPatrolRoutes,
             CityPatrolRouteSteps = cityPatrolRouteSteps,
-            CreatureScheduleRoutes = creatureRouteSchedules.Routes,
-            CreatureScheduleRouteSteps = creatureRouteSchedules.Steps,
-            CreatureRouteSchedules = creatureRouteSchedules.Schedules,
             CreatureSpawners = creatureSpawners,
         };
 
@@ -805,20 +796,6 @@ public class WorldGenerator(
                 WorldId = worldId,
             };
             locationConnectors.Add(connector);
-        }
-    }
-
-    private static void AssignPatrolStepDistances(
-        TravelGraph travelGraph,
-        IEnumerable<RouteStep> patrolSteps
-    )
-    {
-        foreach (var steps in patrolSteps.GroupBy(step => step.RouteId))
-        {
-            travelGraph.AssignStepDistances(
-                [.. steps.OrderBy(step => step.SequenceIndex)],
-                cyclic: true
-            );
         }
     }
 }

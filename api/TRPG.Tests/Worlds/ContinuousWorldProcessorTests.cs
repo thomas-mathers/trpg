@@ -30,7 +30,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     private WorldClock _worldClock = null!;
     private ContinuousWorldProcessor _processor = null!;
     private World _world = null!;
-    private Creature _sleeper = null!;
+    private Guid _stateId;
     private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
@@ -49,26 +49,15 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         _world = Builders.MakeWorld();
         var country = Builders.MakeCountry(_world.Id);
         var state = Builders.MakeState(country.Id);
+        _stateId = state.Id;
         var location = Builders.MakeLocation(_world.Id, state.Id, kind: LocationKind.Wilderness);
         _player = Builders.MakeCreature(_world.Id, locationId: location.Id, currentHp: 1);
-        _sleeper = Builders.MakeCreature(_world.Id, locationId: location.Id);
         _world.PlayerId = _player.Id;
         _context.Worlds.Add(_world);
         _context.Countries.Add(country);
         _context.States.Add(state);
         _context.Locations.Add(location);
-        _context.Creatures.AddRange(_player, _sleeper);
-        _context.CreatureJobs.Add(
-            Builders.MakeCreatureJob(
-                _sleeper.Id,
-                action: CreatureJobAction.Sleep,
-                startHour: 6,
-                endHour: 22,
-                locationId: location.Id,
-                worldId: _world.Id,
-                priority: 100
-            )
-        );
+        _context.Creatures.Add(_player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -79,7 +68,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessRoutines_AppliesJobRoutine_WhenWorldIsActive()
+    public async Task ProcessRoutines_AppliesRoutines_WhenWorldIsActive()
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
@@ -88,7 +77,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(CreatureCondition.Sleeping, await ReadSleeperCondition());
+        Assert.True(await WeatherExists());
     }
 
     [Fact]
@@ -98,7 +87,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(_sleeper.Condition, await ReadSleeperCondition());
+        Assert.False(await WeatherExists());
     }
 
     [Fact]
@@ -240,10 +229,10 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         // Assert
         await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.False(pass.IsCompleted);
-        Assert.Equal(_sleeper.Condition, await ReadSleeperCondition());
+        Assert.False(await WeatherExists());
         await lease.DisposeAsync();
         await pass;
-        Assert.Equal(CreatureCondition.Sleeping, await ReadSleeperCondition());
+        Assert.True(await WeatherExists());
     }
 
     [Fact]
@@ -274,20 +263,14 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
         await _context
-            .Creatures.Where(creature => creature.Id == _sleeper.Id)
-            .ExecuteUpdateAsync(
-                setters =>
-                    setters
-                        .SetProperty(creature => creature.Condition, CreatureCondition.Awake)
-                        .SetProperty(creature => creature.Posture, CreaturePosture.Standing),
-                TestContext.Current.CancellationToken
-            );
+            .WeatherStates.Where(weather => weather.StateId == _stateId)
+            .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
 
         // Act
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.Equal(CreatureCondition.Sleeping, await ReadSleeperCondition());
+        Assert.True(await WeatherExists());
     }
 
     [Fact]
@@ -326,13 +309,13 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         Assert.NotEmpty(_logger.Errors);
     }
 
-    private async Task<CreatureCondition> ReadSleeperCondition()
+    private async Task<bool> WeatherExists()
     {
         await using var verifyContext = db.CreateContext();
-        return await verifyContext
-            .Creatures.Where(creature => creature.Id == _sleeper.Id)
-            .Select(creature => creature.Condition)
-            .SingleAsync(TestContext.Current.CancellationToken);
+        return await verifyContext.WeatherStates.AnyAsync(
+            weather => weather.StateId == _stateId,
+            TestContext.Current.CancellationToken
+        );
     }
 
     private async Task<int> ReadPlayerHp()

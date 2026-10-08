@@ -1,3 +1,4 @@
 namespace TRPG.Application.Common.Events;
 
-public sealed record CreaturesDiedEvent(IReadOnlyCollection<Guid> CreatureIds) : DomainEvent;
+public sealed record CreaturesDiedEvent(Guid WorldId, IReadOnlyCollection<Guid> CreatureIds)
+    : DomainEvent;

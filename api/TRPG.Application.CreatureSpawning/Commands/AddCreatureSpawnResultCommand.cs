@@ -1,5 +1,6 @@
 using System.Transactions;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters.Commands;
@@ -30,7 +31,8 @@ internal class AddCreatureSpawnResultCommandHandler(
     ICommandHandler<AddCreatureSkillsCommand> addCreatureSkills,
     ICommandHandler<AddCreatureJobsCommand> addCreatureJobs,
     ICommandHandler<CreateEncounterGroupsCommand> createEncounterGroups,
-    ICommandHandler<AddFactionMembersCommand> addFactionMembers
+    ICommandHandler<AddFactionMembersCommand> addFactionMembers,
+    IDomainEventPublisher<CreaturesSpawnedEvent> creaturesSpawned
 ) : ICommandHandler<AddCreatureSpawnResultCommand>
 {
     public async Task Handle(
@@ -86,5 +88,17 @@ internal class AddCreatureSpawnResultCommandHandler(
         );
 
         transaction.Complete();
+
+        foreach (
+            var world in command
+                .Monsters.Select(monster => monster.Creature)
+                .GroupBy(creature => creature.WorldId)
+        )
+        {
+            await creaturesSpawned.Publish(
+                new CreaturesSpawnedEvent(world.Key, [.. world.Select(creature => creature.Id)]),
+                cancellationToken
+            );
+        }
     }
 }

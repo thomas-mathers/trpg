@@ -10,6 +10,5 @@ public class RouteTraveler
     public TimeSpan PausedDuration { get; set; }
     public required double SpeedUnitsPerHour { get; init; }
     public string? Purpose { get; init; }
-    public Guid? CreatureRouteScheduleId { get; init; }
     public CreatureActivity? ArrivalActivity { get; init; }
 }

@@ -155,3 +155,9 @@ internal sealed class TestGameClientEventSink : IGameClientEventSink
 
     public void Enqueue(GameClientEvent gameEvent) => EnqueuedEvents.Add(gameEvent);
 }
+
+internal sealed class NoOpGameClientEventDispatcher : IGameClientEventDispatcher
+{
+    public Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default) =>
+        Task.FromResult(false);
+}

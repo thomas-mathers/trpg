@@ -1,5 +1,4 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Routing.Commands;
 using TRPG.Domain;
 
 namespace TRPG.Application.LocationSimulation.Commands;
@@ -12,11 +11,6 @@ public class SyncLocationTravelersCommand
 }
 
 internal class SyncLocationTravelersCommandHandler(
-    ICommandHandler<EnsureCreatureRouteSchedulesCommand> ensureCreatureRouteSchedules,
-    ICommandHandler<
-        MaterializeScheduledRouteTravelersCommand,
-        IReadOnlyCollection<Guid>
-    > materializeScheduledRouteTravelers,
     ICommandHandler<SyncRouteTravelersCommand> syncRouteTravelers
 ) : ICommandHandler<SyncLocationTravelersCommand>
 {
@@ -25,21 +19,6 @@ internal class SyncLocationTravelersCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        await ensureCreatureRouteSchedules.Handle(
-            new EnsureCreatureRouteSchedulesCommand { WorldId = command.WorldId },
-            cancellationToken
-        );
-
-        await materializeScheduledRouteTravelers.Handle(
-            new MaterializeScheduledRouteTravelersCommand
-            {
-                WorldId = command.WorldId,
-                LocationId = command.LocationId,
-                GameTime = command.GameTime,
-            },
-            cancellationToken
-        );
-
         await syncRouteTravelers.Handle(
             new SyncRouteTravelersCommand
             {

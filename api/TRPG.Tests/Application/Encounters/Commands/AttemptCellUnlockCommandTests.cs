@@ -122,14 +122,7 @@ public sealed class AttemptCellUnlockCommandTests : IAsyncLifetime, IClassFixtur
             c => c.Id == _captive.Id,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(_via.Id, captive.LocationId);
-        Assert.Equal(CreatureMovement.Walking, captive.Movement);
-        Assert.Contains(
-            await verification.RouteTravelerMembers.ToArrayAsync(
-                TestContext.Current.CancellationToken
-            ),
-            member => member.CreatureId == captive.Id
-        );
+        Assert.False(captive.IsRestrained);
     }
 
     [Fact]
