@@ -29,7 +29,7 @@ public class GenerateQuestChainCommand
 
 // TickerQ scheduling (ITimeTickerManager) is host-only — this is the same kind of boundary
 // IChatClient is: an external-infrastructure dependency the host wires up concretely, so
-// LocationSimulation can enqueue a background job without taking a TickerQ package reference.
+// WorldSimulation can enqueue a background job without taking a TickerQ package reference.
 public interface IQuestChainGenerationScheduler
 {
     Task ScheduleAsync(

@@ -1,8 +1,8 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.LocationSimulation;
-using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Scenes.Commands;
+using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Queries;
 using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation.Publishing;

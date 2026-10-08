@@ -21,12 +21,12 @@
     <ProjectReference Include="..\TRPG.Application.Factions\TRPG.Application.Factions.csproj" />
     <ProjectReference Include="..\TRPG.Application.GameSessions\TRPG.Application.GameSessions.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
-    <ProjectReference Include="..\TRPG.Application.LocationSimulation\TRPG.Application.LocationSimulation.csproj" />
     <ProjectReference Include="..\TRPG.Application.Reputations\TRPG.Application.Reputations.csproj" />
     <ProjectReference Include="..\TRPG.Application.RoomBookings\TRPG.Application.RoomBookings.csproj" />
     <ProjectReference Include="..\TRPG.Application.Routing\TRPG.Application.Routing.csproj" />
     <ProjectReference Include="..\TRPG.Application.Scenes\TRPG.Application.Scenes.csproj" />
     <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
+    <ProjectReference Include="..\TRPG.Application.WorldSimulation\TRPG.Application.WorldSimulation.csproj" />
     <ProjectReference Include="..\TRPG.Application.Narration\TRPG.Application.Narration.csproj" />
     <ProjectReference Include="..\TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj" />
     <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />

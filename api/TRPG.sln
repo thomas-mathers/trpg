@@ -36,8 +36,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Quests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Creatures", "TRPG.Application.Creatures\TRPG.Application.Creatures.csproj", "{A17651A5-5F80-46F4-93BD-61CAA40B22B9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.LocationSimulation", "TRPG.Application.LocationSimulation\TRPG.Application.LocationSimulation.csproj", "{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.NpcConversations", "TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj", "{B629A341-0021-44F3-9200-DE5A1E49C337}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Combat", "TRPG.Application.Combat\TRPG.Application.Combat.csproj", "{97464E72-F0F7-4A36-93C4-8B50E7189C52}"
@@ -304,18 +302,6 @@ Global
 		{A17651A5-5F80-46F4-93BD-61CAA40B22B9}.Release|x64.Build.0 = Release|Any CPU
 		{A17651A5-5F80-46F4-93BD-61CAA40B22B9}.Release|x86.ActiveCfg = Release|Any CPU
 		{A17651A5-5F80-46F4-93BD-61CAA40B22B9}.Release|x86.Build.0 = Release|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Debug|x64.Build.0 = Debug|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Debug|x86.Build.0 = Debug|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Release|x64.ActiveCfg = Release|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Release|x64.Build.0 = Release|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Release|x86.ActiveCfg = Release|Any CPU
-		{94395AB8-3B5C-4F0D-A8AA-73640638BF7A}.Release|x86.Build.0 = Release|Any CPU
 		{B629A341-0021-44F3-9200-DE5A1E49C337}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B629A341-0021-44F3-9200-DE5A1E49C337}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B629A341-0021-44F3-9200-DE5A1E49C337}.Debug|x64.ActiveCfg = Debug|Any CPU

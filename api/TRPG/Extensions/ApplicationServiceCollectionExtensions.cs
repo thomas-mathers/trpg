@@ -17,7 +17,6 @@ using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Extensions;
 using TRPG.Application.Inventory.Extensions;
 using TRPG.Application.Knowledge.Extensions;
-using TRPG.Application.LocationSimulation.Extensions;
 using TRPG.Application.NpcConversations.Extensions;
 using TRPG.Application.Props.Extensions;
 using TRPG.Application.QuestGeneration.Extensions;
@@ -81,13 +80,12 @@ public static class ApplicationServiceCollectionExtensions
             .AddEncountersServices()
             .AddRoutingServices()
             .AddRoomBookingsServices()
-            .AddLocationSimulationServices()
+            .AddWorldSimulationServices()
             .AddQuestGenerationServices()
             .AddQuestServices()
             .AddReputationsServices()
             .AddWorldGenerationServices()
             .AddWorldsServices()
-            .AddWorldSimulationServices()
             .AddEffectsServices()
             .AddCombatServices()
             .AddScenesServices()
