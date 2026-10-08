@@ -6,10 +6,10 @@ using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Inventory;
 using TRPG.Application.Inventory.Queries;
-using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Application.WorldSimulation.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 

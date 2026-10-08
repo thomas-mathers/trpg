@@ -22,7 +22,7 @@ public sealed partial class ModuleArchitectureTests
 
     private static readonly (string From, string To)[] ForbiddenReferences =
     [
-        ("TRPG.Application.LocationSimulation", "TRPG.Application.RoomBookings"),
+        ("TRPG.Application.WorldSimulation", "TRPG.Application.RoomBookings"),
     ];
 
     private static readonly IReadOnlySet<string> ConcreteContextAllowlist = new HashSet<string>

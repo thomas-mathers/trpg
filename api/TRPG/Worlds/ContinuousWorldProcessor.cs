@@ -8,11 +8,10 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Application.LocationSimulation;
-using TRPG.Application.LocationSimulation.Commands;
-using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Commands;
+using TRPG.Application.WorldSimulation.Queries;
 using TRPG.Domain;
 
 namespace TRPG.Worlds;

@@ -1,9 +1,9 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
+using TRPG.Application.WorldSimulation.Commands;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 

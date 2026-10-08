@@ -36,7 +36,6 @@
     <ProjectReference Include="..\TRPG.Application.GameTurns\TRPG.Application.GameTurns.csproj" />
     <ProjectReference Include="..\TRPG.Application.Inventory\TRPG.Application.Inventory.csproj" />
     <ProjectReference Include="..\TRPG.Application.Knowledge\TRPG.Application.Knowledge.csproj" />
-    <ProjectReference Include="..\TRPG.Application.LocationSimulation\TRPG.Application.LocationSimulation.csproj" />
     <ProjectReference Include="..\TRPG.Application.QuestGeneration\TRPG.Application.QuestGeneration.csproj" />
     <ProjectReference Include="..\TRPG.Application.Narration\TRPG.Application.Narration.csproj" />
     <ProjectReference Include="..\TRPG.Application.NpcConversations\TRPG.Application.NpcConversations.csproj" />
