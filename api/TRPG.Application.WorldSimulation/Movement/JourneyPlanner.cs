@@ -3,7 +3,11 @@ using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation.Movement;
 
-internal sealed class JourneyPlanner(RouteFinder routeFinder, WeatherShelter shelter)
+internal sealed class JourneyPlanner(
+    RouteFinder routeFinder,
+    WeatherShelter shelter,
+    TimeSpan arrivalStagger
+)
 {
     private static readonly TimeSpan RetryWhenUnreachable = TimeSpan.FromHours(1);
     private static readonly TimeSpan RetryWhenNothingScheduled = TimeSpan.FromDays(7);
@@ -75,7 +79,7 @@ internal sealed class JourneyPlanner(RouteFinder routeFinder, WeatherShelter she
         creature.NextUpdate = start;
     }
 
-    private static GameInstant ResolveDeparture(
+    private GameInstant ResolveDeparture(
         SimulatedCreature creature,
         JobTransition transition,
         double totalMeters,
@@ -88,7 +92,12 @@ internal sealed class JourneyPlanner(RouteFinder routeFinder, WeatherShelter she
         }
 
         var walkDuration = TimeSpan.FromSeconds(totalMeters / creature.MetersPerGameSecond);
-        var departure = DepartureTiming.Resolve(creature.Id, transition, walkDuration);
+        var departure = DepartureTiming.Resolve(
+            creature.Id,
+            transition,
+            walkDuration,
+            arrivalStagger
+        );
 
         return departure > now ? departure : now;
     }

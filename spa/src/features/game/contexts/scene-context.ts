@@ -7,7 +7,7 @@ export const PlayerIdContext = createContext<string | undefined>(undefined);
 
 export interface SceneContextType {
   scene: SceneSnapshot;
-  setMovementSpeed: (movementSpeed: number) => void;
+  setMovementSpeed: (movementSpeed: number, walkMetersPerSecond: number) => void;
 }
 
 export const createSceneSnapshot = (): SceneSnapshot => ({
@@ -44,6 +44,7 @@ export const createSceneSnapshot = (): SceneSnapshot => ({
     mana: 0,
     defense: 0,
     movementSpeed: 0,
+    walkMetersPerSecond: 0,
     physicalResistance: 0,
     fireResistance: 0,
     iceResistance: 0,

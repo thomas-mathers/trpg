@@ -386,6 +386,8 @@ export type CreatureStatusSnapshot = {
     /** Transpiled from float */
     movementSpeed: number;
     /** Transpiled from float */
+    walkMetersPerSecond: number;
+    /** Transpiled from float */
     physicalResistance: number;
     /** Transpiled from float */
     fireResistance: number;

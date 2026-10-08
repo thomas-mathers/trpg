@@ -1,11 +1,12 @@
+using TRPG.Application.Common.Navigation;
+
 namespace TRPG.Application.Configuration;
 
 public class CaravanOptions
 {
-    // 3x CreatureGeneratorOptions.WalkingSpeedUnitsPerHour — a scheduled coach with relay stops
+    // 3x InLocationPace.BaseMovementSpeed — a scheduled coach with relay stops
     // reads as faster and more comfortable than walking, without implying galloping-horse speed.
-    public float SpeedUnitsPerHour { get; init; } =
-        CreatureGeneratorOptions.WalkingSpeedUnitsPerHour * 3;
+    public float SpeedUnitsPerHour { get; init; } = (float)InLocationPace.BaseMovementSpeed * 3;
 
     // Boarding is ticket-anchored (see BoardCaravanCommand), immune to ordinary narration-time
     // drift once purchased, so this no longer needs slack for interaction overhead — 20 minutes.

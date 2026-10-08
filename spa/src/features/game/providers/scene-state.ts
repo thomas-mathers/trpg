@@ -40,7 +40,7 @@ export type SceneAction =
   | { type: 'PlayerVitalsUpdated'; payload: PlayerVitalsUpdated }
   | { type: 'SkillLevelUp'; payload: SkillLevelUp }
   | { type: 'CharacterLevelUp'; payload: CharacterLevelUp }
-  | { type: 'MovementSpeedChanged'; movementSpeed: number }
+  | { type: 'MovementSpeedChanged'; movementSpeed: number; walkMetersPerSecond: number }
   | { type: 'Reset' };
 
 export interface SceneState {
@@ -59,7 +59,7 @@ export function reduceSceneState(state: SceneState, action: SceneAction): SceneS
   if (action.type === 'SkillLevelUp') return applySkillLevel(state, action.payload);
   if (action.type === 'CharacterLevelUp') return applyCharacterLevel(state, action.payload);
   if (action.type === 'MovementSpeedChanged')
-    return applyMovementSpeed(state, action.movementSpeed);
+    return applyMovementSpeed(state, action.movementSpeed, action.walkMetersPerSecond);
 
   const { scene } = state;
   const { payload } = action;
@@ -132,11 +132,18 @@ function applyCharacterLevel(state: SceneState, progress: CharacterLevelUp): Sce
   };
 }
 
-function applyMovementSpeed(state: SceneState, movementSpeed: number): SceneState {
+function applyMovementSpeed(
+  state: SceneState,
+  movementSpeed: number,
+  walkMetersPerSecond: number,
+): SceneState {
   const { scene } = state;
   return {
     ...state,
-    scene: { ...scene, playerStatus: { ...scene.playerStatus, movementSpeed } },
+    scene: {
+      ...scene,
+      playerStatus: { ...scene.playerStatus, movementSpeed, walkMetersPerSecond },
+    },
   };
 }
 

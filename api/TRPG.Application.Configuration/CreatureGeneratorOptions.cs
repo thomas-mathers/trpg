@@ -1,12 +1,9 @@
+using TRPG.Application.Common.Navigation;
+
 namespace TRPG.Application.Configuration;
 
 public class CreatureGeneratorOptions
 {
-    // Shared with CountryPatrolOptions.SpeedUnitsPerHour (ordinary walking pace) and
-    // CaravanOptions.SpeedUnitsPerHour (a multiple of it), so every overworld travel speed
-    // derives from this one baseline instead of independently duplicating its value.
-    public const float WalkingSpeedUnitsPerHour = 50f;
-
     public int PointsPerLevel { get; init; } = 5;
     public int SkillExperiencePerAbilityUse { get; init; } = 10;
     public float RestedSkillExperienceMultiplier { get; init; } = 1.25f;
@@ -15,7 +12,7 @@ public class CreatureGeneratorOptions
     public int MpPerMana { get; init; } = 2;
     public int BaseCarryingCapacity { get; init; } = 80;
     public int CarryWeightPerEndurance { get; init; } = 10;
-    public float BaseMovementSpeed { get; init; } = WalkingSpeedUnitsPerHour;
+    public float BaseMovementSpeed { get; init; } = (float)InLocationPace.BaseMovementSpeed;
     public float MovementSpeedPerDexterity { get; init; } = 0.25f;
     public int MovementSpeedDexterityCap { get; init; } = 40;
     public float ClothMovementPenalty { get; init; } = 0f;

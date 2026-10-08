@@ -333,6 +333,7 @@ public record CreatureStatusSnapshot(
     int Mana,
     int Defense,
     float MovementSpeed,
+    float WalkMetersPerSecond,
     float PhysicalResistance,
     float FireResistance,
     float IceResistance,

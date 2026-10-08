@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Abilities.Responses;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Creatures.Requests;
@@ -529,6 +530,30 @@ public sealed class CreatureEndpointsTests(EndpointTestFixture fixture) : IAsync
             TestContext.Current.CancellationToken
         );
         Assert.Equal(TRPG.Domain.Models.EquipmentSlot.RightHand, equipped.Ownership.EquippedSlot);
+    }
+
+    [Fact]
+    public async Task ToggleSneaking_ReturnsTheWalkPaceForTheNewMovementSpeed()
+    {
+        // Act
+        var response = await _client.PutAsJsonAsync(
+            "ToggleCreatureSneaking",
+            routeValues: new { creatureId = _creature.Id },
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await _client.ReadContentFromJsonAsync<ToggleSneakingResponse>(
+            response,
+            TestContext.Current.CancellationToken
+        );
+        Assert.NotNull(body);
+        Assert.Equal(
+            (float)InLocationPace.MetersPerRealSecond(body.MovementSpeed),
+            body.WalkMetersPerSecond,
+            0.001f
+        );
     }
 
     [Fact]

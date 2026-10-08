@@ -349,7 +349,7 @@ public class WorldSimulatorTests
     }
 
     private WorldSimulator CreateSimulator(int searchesPerTick) =>
-        new(BuildGraph(), new WorldSimulatorOptions(1, searchesPerTick));
+        new(BuildGraph(), new WorldSimulatorOptions(1, searchesPerTick, TimeSpan.Zero));
 
     private void AddCommuter(WorldSimulator simulator) => AddWorker(simulator, _locationC);
 
@@ -382,7 +382,7 @@ public class WorldSimulatorTests
         for (var seed = 1; ; seed++)
         {
             var id = new Guid(seed, 0, 0, new byte[8]);
-            var departure = DepartureTiming.Resolve(id, transition, LegDuration);
+            var departure = DepartureTiming.Resolve(id, transition, LegDuration, TimeSpan.Zero);
             if (departure < transition.At - LegDuration - TimeSpan.FromMinutes(5))
             {
                 return id;

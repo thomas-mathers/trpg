@@ -79,7 +79,8 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
   }, [scene.nearbyBuildings]);
 
   const setMovementSpeed = useCallback(
-    (movementSpeed: number) => dispatch({ type: 'MovementSpeedChanged', movementSpeed }),
+    (movementSpeed: number, walkMetersPerSecond: number) =>
+      dispatch({ type: 'MovementSpeedChanged', movementSpeed, walkMetersPerSecond }),
     [],
   );
 

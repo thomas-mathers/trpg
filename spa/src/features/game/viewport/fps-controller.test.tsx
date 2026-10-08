@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/test/test-utils';
 
 import { FpsController } from './fps-controller';
-import { BASE_MOVEMENT_SPEED, EYE_HEIGHT } from './layout-math';
+import { EYE_HEIGHT } from './layout-math';
 import { SEATED_EYE_HEIGHT, type ViewportSeat } from './seat-interaction';
 
 const renderer = vi.hoisted(() => ({
@@ -34,7 +34,7 @@ const chair: ViewportSeat = {
 };
 function setup(overrides: Partial<ComponentProps<typeof FpsController>> = {}) {
   const props = {
-    movementSpeed: BASE_MOVEMENT_SPEED,
+    walkSpeed: 1.68,
     size: { width: 20, depth: 20 },
     start: { x: 5, y: 6, angle: 0 },
     seats: [chair],

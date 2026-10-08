@@ -1,9 +1,10 @@
+using TRPG.Application.Common.Navigation;
+
 namespace TRPG.Application.Configuration;
 
 public class RoadTravelerOptions
 {
-    public float SpeedUnitsPerHour { get; init; } =
-        CreatureGeneratorOptions.WalkingSpeedUnitsPerHour;
+    public float SpeedUnitsPerHour { get; init; } = (float)InLocationPace.BaseMovementSpeed;
 
     public double LingerHours { get; init; } = 1;
     public int PilgrimsPerCountry { get; init; } = 1;

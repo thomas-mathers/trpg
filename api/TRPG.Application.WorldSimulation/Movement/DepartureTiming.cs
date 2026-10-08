@@ -11,7 +11,8 @@ internal static class DepartureTiming
     public static GameInstant Resolve(
         Guid creatureId,
         JobTransition transition,
-        TimeSpan walkDuration
+        TimeSpan walkDuration,
+        TimeSpan arrivalStagger
     )
     {
         var jitter = StableUnitInterval(creatureId, transition);
@@ -27,7 +28,7 @@ internal static class DepartureTiming
             return transition.At + TimeSpan.FromHours(jitter * EndOfShiftJitterHours);
         }
 
-        return transition.At - walkDuration;
+        return transition.At - walkDuration - arrivalStagger * jitter;
     }
 
     private static double StableUnitInterval(Guid creatureId, JobTransition transition)

@@ -305,7 +305,8 @@ public class WorldSimulatorPatrolTests
 
     private IReadOnlyList<RouteLeg> BuildPatrol() => BuildGraph().BuildCycle([_gate, _plaza]);
 
-    private WorldSimulator CreateSimulator() => new(BuildGraph(), new WorldSimulatorOptions(1, 10));
+    private WorldSimulator CreateSimulator() =>
+        new(BuildGraph(), new WorldSimulatorOptions(1, 10, TimeSpan.Zero));
 
     private TravelGraph BuildGraph()
     {
