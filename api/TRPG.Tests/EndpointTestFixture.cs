@@ -31,6 +31,8 @@ public sealed class EndpointTestFixture(PostgreSqlFixture postgres) : IAsyncLife
                 .Value.SerializerOptions
         );
 
+    public IServiceProvider Services => Factory.Services;
+
     public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
 
     public HubConnection CreateHubConnection(Guid sessionId)

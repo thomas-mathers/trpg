@@ -14,6 +14,7 @@ using TRPG.Application.Encounters;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.WorldSimulation;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Commands;
 using TRPG.GameSessions.Responses;
@@ -68,7 +69,8 @@ internal sealed class ChatHub(
     ICommandHandler<ReportPlayerPoseCommand> reportPlayerPose,
     ICommandHandler<FlushPlayerPoseCommand> flushPlayerPose,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
-    PendingSessionEndRegistry pendingSessionEnds
+    PendingSessionEndRegistry pendingSessionEnds,
+    WorldSimulationCoordinator simulation
 ) : Hub<IGameClient>, IChatHub
 {
     private const string SessionKey = "Session";
@@ -79,6 +81,11 @@ internal sealed class ChatHub(
         var snapshot = await getGameSession.Handle(
             new GetGameSessionQuery { SessionId = sessionId }
         );
+        if (simulation.IsUnavailable(snapshot.WorldId))
+        {
+            throw new HubException("This world failed to load and is unavailable.");
+        }
+
         await pendingSessionEnds.Connect(snapshot.Id, snapshot.WorldId, Context.ConnectionAborted);
         var session = new GameTurnSession(snapshot.Id, snapshot.WorldId, snapshot.PlayerId);
         Context.Items[SessionKey] = session;

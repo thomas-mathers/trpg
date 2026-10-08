@@ -11,6 +11,7 @@ using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration;
+using TRPG.Application.WorldSimulation;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -392,6 +393,28 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         // Act & Assert
         await connection.StartAsync(TestContext.Current.CancellationToken);
         Assert.Equal(HubConnectionState.Connected, connection.State);
+    }
+
+    [Fact]
+    public async Task Connect_Fails_WhenTheWorldsSimulationRunnerFailedToLoad()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        fixture.Services.GetRequiredService<WorldSimulationCoordinator>().MarkUnavailable(_worldId);
+        await using var connection = fixture.CreateHubConnection(sessionId);
+        var closed = new TaskCompletionSource();
+        connection.Closed += _ =>
+        {
+            closed.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        // Act
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        await closed.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
+        Assert.Equal(HubConnectionState.Disconnected, connection.State);
     }
 
     [Fact]
