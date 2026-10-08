@@ -63,7 +63,7 @@ internal static class ServiceCollectionExtensions
             .AddTrpgOptions(configuration)
             .AddTrpgSessionState()
             .AddHostedService<WorldClockCheckpointService>()
-            .AddHostedService<EngagementStartupRecovery>()
+            .AddHostedService<WorldSimulationStartup>()
             .AddSingleton<ContinuousWorldProcessor>()
             .AddHostedService<ContinuousWorldService>()
             .AddHostedService<WorldSimulationService>()

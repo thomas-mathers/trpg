@@ -72,6 +72,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     {
         // Arrange
         var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
 
         // Act
         await coordinator.Tick(TestContext.Current.CancellationToken);
@@ -86,6 +87,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     {
         // Arrange
         var coordinator = MakeCoordinator(activeWorldIds: []);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
 
         // Act
         await coordinator.Tick(TestContext.Current.CancellationToken);
@@ -101,6 +103,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         // Arrange
         var clock = new FixedWorldClock([_worldId], Now);
         var coordinator = MakeCoordinator([_worldId], clock);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
         await coordinator.Tick(TestContext.Current.CancellationToken);
         var spawned = Builders.MakeCreature(_worldId, locationId: _home.Id, movementSpeed: 50);
         _context.Creatures.Add(spawned);
@@ -149,6 +152,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         var clock = new FixedWorldClock([_worldId], Now);
         var coordinator = MakeCoordinator([_worldId], clock);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
         await coordinator.Tick(TestContext.Current.CancellationToken);
         var handler = new CreaturesDiedSimulationEventHandler(coordinator);
         await handler.Handle(
@@ -163,6 +167,59 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         // Assert
         var updated = await db.ReadCreature(sleeper.Id);
         Assert.Equal(_home.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_KeepsMessagesPostedToAPreloadedRunnerWhileTheWorldWasInactive()
+    {
+        // Arrange
+        var sleeper = Builders.MakeCreature(_worldId, locationId: _home.Id, movementSpeed: 50);
+        _context.Creatures.Add(sleeper);
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                sleeper.Id,
+                action: CreatureJobAction.Work,
+                startHour: 20,
+                endHour: 22,
+                locationId: _workplace.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var clock = new FixedWorldClock([], Now);
+        var coordinator = MakeCoordinator([], clock);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+        var handler = new CreaturesDiedSimulationEventHandler(coordinator);
+        await handler.Handle(
+            new CreaturesDiedEvent(_worldId, [sleeper.Id]),
+            TestContext.Current.CancellationToken
+        );
+        clock.ActiveWorldIds = [_worldId];
+        clock.Now = new GameInstant(new DateTime(2000, 1, 3, 21, 0, 0));
+
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(sleeper.Id);
+        Assert.Equal(_home.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task EnsureRunner_MarksTheWorldUnavailable_WhenTheLoadFails()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now) { FailToReadTime = true };
+        var coordinator = MakeCoordinator([], clock);
+
+        // Act
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.True(coordinator.IsUnavailable(_worldId));
     }
 
     private WorldSimulationCoordinator MakeCoordinator(
@@ -186,14 +243,21 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     private sealed class FixedWorldClock(IReadOnlyCollection<Guid> activeWorldIds, GameInstant now)
         : IWorldClock
     {
+        public IReadOnlyCollection<Guid> ActiveWorldIds { get; set; } = activeWorldIds;
+
         public GameInstant Now { get; set; } = now;
 
-        public IReadOnlyCollection<Guid> GetActiveWorldIds() => activeWorldIds;
+        public bool FailToReadTime { get; set; }
+
+        public IReadOnlyCollection<Guid> GetActiveWorldIds() => ActiveWorldIds;
 
         public Task<GameInstant> GetCurrent(
             Guid worldId,
             CancellationToken cancellationToken = default
-        ) => Task.FromResult(Now);
+        ) =>
+            FailToReadTime
+                ? throw new InvalidOperationException("The clock is unavailable.")
+                : Task.FromResult(Now);
 
         public Task<GameInstant> ResumeWorld(
             Guid worldId,

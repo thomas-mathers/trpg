@@ -10,25 +10,44 @@ public sealed class WorldSimulationCoordinator(
     ILogger<WorldSimulationCoordinator> logger
 )
 {
-    private readonly ConcurrentDictionary<Guid, WorldSimulationRunner> _runners = new();
+    private readonly ConcurrentDictionary<Guid, Lazy<Task<WorldSimulationRunner>>> _runners = new();
     private readonly ConcurrentDictionary<Guid, byte> _tickingWorlds = new();
+    private readonly ConcurrentDictionary<Guid, byte> _unavailableWorlds = new();
 
     public void Post(Guid worldId, WorldSimulationMessage message)
     {
-        if (_runners.TryGetValue(worldId, out var runner))
+        if (TryGetRunner(worldId, out var runner))
         {
             runner.Post(message);
+        }
+    }
+
+    public bool IsUnavailable(Guid worldId) => _unavailableWorlds.ContainsKey(worldId);
+
+    public void MarkUnavailable(Guid worldId) => _unavailableWorlds.TryAdd(worldId, 0);
+
+    public async Task EnsureRunner(Guid worldId, CancellationToken cancellationToken = default)
+    {
+        var loading = _runners.GetOrAdd(
+            worldId,
+            id => new Lazy<Task<WorldSimulationRunner>>(() => LoadRunner(id))
+        );
+
+        try
+        {
+            await loading.Value.WaitAsync(cancellationToken);
+        }
+        catch (Exception) when (loading.Value.IsFaulted)
+        {
+            _runners.TryRemove(KeyValuePair.Create(worldId, loading));
+            MarkUnavailable(worldId);
+            throw;
         }
     }
 
     public async Task Tick(CancellationToken cancellationToken = default)
     {
         var activeWorldIds = worldClock.GetActiveWorldIds();
-        foreach (var worldId in _runners.Keys.Except(activeWorldIds))
-        {
-            _runners.TryRemove(worldId, out _);
-        }
-
         await Task.WhenAll(activeWorldIds.Select(worldId => TickWorld(worldId, cancellationToken)));
     }
 
@@ -41,8 +60,12 @@ public sealed class WorldSimulationCoordinator(
 
         try
         {
+            if (!TryGetRunner(worldId, out var runner))
+            {
+                return;
+            }
+
             var now = await worldClock.GetCurrent(worldId, cancellationToken);
-            var runner = await FindOrCreateRunner(worldId, now, cancellationToken);
             await runner.Tick(now, cancellationToken);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
@@ -55,19 +78,24 @@ public sealed class WorldSimulationCoordinator(
         }
     }
 
-    private async Task<WorldSimulationRunner> FindOrCreateRunner(
-        Guid worldId,
-        TRPG.Domain.GameInstant now,
-        CancellationToken cancellationToken
-    )
+    private bool TryGetRunner(Guid worldId, out WorldSimulationRunner runner)
     {
-        if (_runners.TryGetValue(worldId, out var existing))
+        if (
+            _runners.TryGetValue(worldId, out var loading)
+            && loading.Value is { IsCompletedSuccessfully: true } loaded
+        )
         {
-            return existing;
+            runner = loaded.Result;
+            return true;
         }
 
-        var created = await runnerFactory.Create(worldId, now, cancellationToken);
-        _runners[worldId] = created;
-        return created;
+        runner = null!;
+        return false;
+    }
+
+    private async Task<WorldSimulationRunner> LoadRunner(Guid worldId)
+    {
+        var now = await worldClock.GetCurrent(worldId);
+        return await runnerFactory.Create(worldId, now);
     }
 }
