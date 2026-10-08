@@ -74,7 +74,13 @@ internal class PersistCreatureStatesCommandHandler(
 
         if (diedIds.Count > 0)
         {
-            await creaturesDied.Publish(new CreaturesDiedEvent(diedIds), cancellationToken);
+            foreach (var world in diedIds.GroupBy(id => creatures[id].WorldId))
+            {
+                await creaturesDied.Publish(
+                    new CreaturesDiedEvent(world.Key, [.. world]),
+                    cancellationToken
+                );
+            }
         }
 
         foreach (var creatureId in ids)

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TRPG.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TRPG.Application.Common\TRPG.Application.Common.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Configuration\TRPG.Application.Configuration.csproj" />
+    <ProjectReference Include="..\TRPG.Application.CreatureJobs\TRPG.Application.CreatureJobs.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Creatures\TRPG.Application.Creatures.csproj" />
+    <ProjectReference Include="..\TRPG.Application.LocationSimulation\TRPG.Application.LocationSimulation.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Props\TRPG.Application.Props.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Routing\TRPG.Application.Routing.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Scenes\TRPG.Application.Scenes.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Weather\TRPG.Application.Weather.csproj" />
+    <ProjectReference Include="..\TRPG.Application.Worlds\TRPG.Application.Worlds.csproj" />
+    <ProjectReference Include="..\TRPG.Domain\TRPG.Domain.csproj" />
+  </ItemGroup>
+</Project>

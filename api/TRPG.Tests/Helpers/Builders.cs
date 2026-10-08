@@ -1376,7 +1376,8 @@ internal static class Builders
         int endHour = 17,
         Guid? locationId = null,
         Guid? worldId = null,
-        DayOfWeek? specificDay = null
+        DayOfWeek? specificDay = null,
+        Guid? routeId = null
     )
     {
         return new CreatureJob
@@ -1386,6 +1387,7 @@ internal static class Builders
             StartHour = startHour,
             EndHour = endHour,
             SpecificDay = specificDay,
+            RouteId = routeId,
             Priority = priority,
             LocationId = locationId ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),
@@ -1636,13 +1638,7 @@ internal static class Builders
     public static Route MakeCaravanRoute(
         Guid? worldId = null,
         string name = "The Capital Circuit"
-    ) =>
-        new()
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            Name = name,
-            Traversal = RouteTraversal.Cyclic,
-        };
+    ) => new() { WorldId = worldId ?? Guid.NewGuid(), Name = name };
 
     public static RouteStep MakeCaravanRouteStop(
         Guid routeId,

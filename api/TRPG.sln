@@ -76,6 +76,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Weather", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.Scenes", "TRPG.Application.Scenes\TRPG.Application.Scenes.csproj", "{90135EF3-13BF-4E9E-BC5B-14C99C609DE8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TRPG.Application.WorldSimulation", "TRPG.Application.WorldSimulation\TRPG.Application.WorldSimulation.csproj", "{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -542,6 +544,18 @@ Global
 		{90135EF3-13BF-4E9E-BC5B-14C99C609DE8}.Release|x64.Build.0 = Release|Any CPU
 		{90135EF3-13BF-4E9E-BC5B-14C99C609DE8}.Release|x86.ActiveCfg = Release|Any CPU
 		{90135EF3-13BF-4E9E-BC5B-14C99C609DE8}.Release|x86.Build.0 = Release|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Debug|x64.Build.0 = Debug|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Debug|x86.Build.0 = Debug|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Release|x64.ActiveCfg = Release|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Release|x64.Build.0 = Release|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Release|x86.ActiveCfg = Release|Any CPU
+		{F6E4AC9B-D2EB-440A-88B8-AFFC738D54F9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

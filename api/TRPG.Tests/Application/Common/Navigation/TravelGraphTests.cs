@@ -285,36 +285,10 @@ public class TravelGraphTests
     }
 
     [Fact]
-    public void AssignStepDistances_ChargesTheWalkBetweenConsecutiveConnectors_WhenRouteIsFinite()
-    {
-        // Arrange
-        var graph = BuildOutAndBackGraph(out var steps);
-
-        // Act
-        graph.AssignStepDistances(steps, cyclic: false);
-
-        // Assert
-        Assert.Equal([0d, 4d], steps.Select(step => step.Distance));
-    }
-
-    [Fact]
-    public void AssignStepDistances_WrapsTheFirstStepToTheLastArrival_WhenRouteIsCyclic()
-    {
-        // Arrange
-        var graph = BuildOutAndBackGraph(out var steps);
-
-        // Act
-        graph.AssignStepDistances(steps, cyclic: true);
-
-        // Assert
-        Assert.Equal([9d, 4d], steps.Select(step => step.Distance));
-    }
-
-    [Fact]
     public void BuildCycle_ChargesTheWrapWalkToTheFirstLeg()
     {
         // Arrange
-        var graph = BuildOutAndBackGraph(out _);
+        var graph = BuildOutAndBackGraph();
 
         // Act
         var legs = graph.BuildCycle([_locationA, _locationB]);
@@ -331,6 +305,61 @@ public class TravelGraphTests
 
         // Act
         var legs = graph.BuildCycle([_locationA, _locationB]);
+
+        // Assert
+        Assert.Empty(legs);
+    }
+
+    [Fact]
+    public void BuildNodeCycle_ChargesTheWalkToAndFromEachStop_WhenTheStopIsADeadEnd()
+    {
+        // Arrange
+        var graph = BuildSpurGraph(out var hub, out var spurStop, out _);
+
+        // Act
+        var legs = graph.BuildNodeCycle([hub.Id, spurStop.Id]);
+
+        // Assert
+        Assert.Equal([8d, 8d], legs.Select(leg => leg.Distance));
+    }
+
+    [Fact]
+    public void BuildNodeCycle_MarksWhereEachLegPassesItsStop()
+    {
+        // Arrange
+        var graph = BuildSpurGraph(out var hub, out var spurStop, out _);
+
+        // Act
+        var legs = graph.BuildNodeCycle([hub.Id, spurStop.Id]);
+
+        // Assert
+        Assert.Equal(
+            [(3d, hub.Position), (4d, spurStop.Position)],
+            legs.Select(leg => (leg.Stop!.AtMeters, leg.Stop.Position))
+        );
+    }
+
+    [Fact]
+    public void BuildNodeCycle_SkipsUnreachableStops()
+    {
+        // Arrange
+        var graph = BuildSpurGraph(out var hub, out var spurStop, out var stranded);
+
+        // Act
+        var legs = graph.BuildNodeCycle([hub.Id, spurStop.Id, stranded.Id]);
+
+        // Assert
+        Assert.Equal([8d, 8d], legs.Select(leg => leg.Distance));
+    }
+
+    [Fact]
+    public void BuildNodeCycle_ReturnsNoLegs_WhenThereIsOnlyOneStop()
+    {
+        // Arrange
+        var graph = new TravelGraph([], []);
+
+        // Act
+        var legs = graph.BuildNodeCycle([Guid.NewGuid()]);
 
         // Assert
         Assert.Empty(legs);
@@ -378,7 +407,34 @@ public class TravelGraphTests
         Assert.Single(filtered.FindShortestPath(_locationA, null, _locationB));
     }
 
-    private TravelGraph BuildOutAndBackGraph(out List<RouteStep> steps)
+    private TravelGraph BuildSpurGraph(
+        out TravelNode hub,
+        out TravelNode spurStop,
+        out TravelNode stranded
+    )
+    {
+        hub = Node(_locationA);
+        var portA = Node(_locationA);
+        var arrivalA = Node(_locationA);
+        var arrivalB = Node(_locationB);
+        spurStop = Node(_locationB);
+        var exitB = Node(_locationB);
+        stranded = Node(_locationC);
+
+        return new TravelGraph(
+            [
+                Door(_locationA, portA, _locationB, arrivalB),
+                Door(_locationB, exitB, _locationA, arrivalA),
+                Walk(_locationA, hub, portA, 5, bidirectional: true),
+                Walk(_locationA, arrivalA, hub, 3, bidirectional: true),
+                Walk(_locationB, arrivalB, spurStop, 4, bidirectional: true),
+                Walk(_locationB, spurStop, exitB, 4, bidirectional: true),
+            ],
+            [hub, portA, arrivalA, arrivalB, spurStop, exitB, stranded]
+        );
+    }
+
+    private TravelGraph BuildOutAndBackGraph()
     {
         var exitA = Node(_locationA);
         var arrivalA = Node(_locationA);
@@ -386,8 +442,6 @@ public class TravelGraphTests
         var exitB = Node(_locationB);
         var outbound = Door(_locationA, exitA, _locationB, arrivalB);
         var inbound = Door(_locationB, exitB, _locationA, arrivalA);
-
-        steps = [Step(_locationA, outbound.Id, 0), Step(_locationB, inbound.Id, 1)];
 
         return new TravelGraph(
             [
@@ -399,15 +453,6 @@ public class TravelGraphTests
             [exitA, arrivalA, arrivalB, exitB]
         );
     }
-
-    private static RouteStep Step(Guid locationId, Guid connectorId, int sequenceIndex) =>
-        new()
-        {
-            LocationId = locationId,
-            ConnectorId = connectorId,
-            SequenceIndex = sequenceIndex,
-            DwellHours = 0,
-        };
 
     private static TravelNode Node(Guid locationId) => Builders.MakeTravelNode(locationId);
 

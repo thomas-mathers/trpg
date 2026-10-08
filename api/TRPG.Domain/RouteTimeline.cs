@@ -28,35 +28,28 @@ public abstract record RouteTimelinePosition
         GameInstant? ArrivedAtGameTime,
         GameInstant DepartedAtGameTime
     ) : RouteTimelinePosition;
-
-    public sealed record Arrived(Guid LocationId, int StepIndex, GameInstant ArrivedAtGameTime)
-        : RouteTimelinePosition;
 }
 
 public static class RouteTimeline
 {
     public static double TotalDurationHours(
         IReadOnlyList<RouteTimelineStep> steps,
-        RouteTraversal traversal,
         double speedUnitsPerHour
     )
     {
-        Validate(steps, traversal, speedUnitsPerHour);
+        Validate(steps, speedUnitsPerHour);
 
-        return steps.Sum(step =>
-            step.ConnectorId == null ? 0 : step.DwellHours + TravelHours(step, speedUnitsPerHour)
-        );
+        return steps.Sum(step => step.DwellHours + TravelHours(step, speedUnitsPerHour));
     }
 
     public static RouteTimelinePosition Resolve(
         IReadOnlyList<RouteTimelineStep> steps,
-        RouteTraversal traversal,
         double speedUnitsPerHour,
         GameInstant startedAtGameTime,
         GameInstant gameTime
     )
     {
-        Validate(steps, traversal, speedUnitsPerHour);
+        Validate(steps, speedUnitsPerHour);
 
         if (gameTime < startedAtGameTime)
         {
@@ -67,26 +60,13 @@ public static class RouteTimeline
         }
 
         var elapsedHours = (gameTime - startedAtGameTime) / TimeSpan.FromHours(1);
-        var durationHours = TotalDurationHours(steps, traversal, speedUnitsPerHour);
+        var durationHours = TotalDurationHours(steps, speedUnitsPerHour);
         var firstLap = elapsedHours < durationHours;
-        if (traversal == RouteTraversal.Cyclic)
-        {
-            elapsedHours %= durationHours;
-        }
+        elapsedHours %= durationHours;
 
-        double consumedHours = 0;
         for (var index = 0; index < steps.Count; index++)
         {
             var step = steps[index];
-            if (step.ConnectorId == null)
-            {
-                return new RouteTimelinePosition.Arrived(
-                    step.LocationId,
-                    index,
-                    startedAtGameTime + TimeSpan.FromHours(1) * consumedHours
-                );
-            }
-
             if (elapsedHours < step.DwellHours)
             {
                 return new RouteTimelinePosition.Lingering(
@@ -97,7 +77,6 @@ public static class RouteTimeline
                 );
             }
             elapsedHours -= step.DwellHours;
-            consumedHours += step.DwellHours;
 
             var travelHours = TravelHours(step, speedUnitsPerHour);
             if (elapsedHours < travelHours)
@@ -105,7 +84,7 @@ public static class RouteTimeline
                 var departedAt = gameTime - TimeSpan.FromHours(1) * elapsedHours;
                 var startedHere = index == 0 && firstLap;
                 return new RouteTimelinePosition.InTransit(
-                    step.ConnectorId.Value,
+                    step.ConnectorId!.Value,
                     step.LocationId,
                     steps[(index + 1) % steps.Count].LocationId,
                     travelHours - elapsedHours,
@@ -114,7 +93,6 @@ public static class RouteTimeline
                 );
             }
             elapsedHours -= travelHours;
-            consumedHours += travelHours;
         }
 
         return new RouteTimelinePosition.Lingering(
@@ -132,7 +110,7 @@ public static class RouteTimeline
         int toStepIndex
     )
     {
-        Validate(steps, RouteTraversal.Cyclic, speedUnitsPerHour);
+        Validate(steps, speedUnitsPerHour);
         ValidateStepIndex(steps, fromStepIndex);
         ValidateStepIndex(steps, toStepIndex);
 
@@ -158,7 +136,7 @@ public static class RouteTimeline
         int targetStepIndex
     )
     {
-        Validate(steps, RouteTraversal.Cyclic, speedUnitsPerHour);
+        Validate(steps, speedUnitsPerHour);
         ValidateStepIndex(steps, targetStepIndex);
 
         var targetOffsetHours = steps
@@ -169,13 +147,7 @@ public static class RouteTimeline
             return (startedAtGameTime - gameTime) / TimeSpan.FromHours(1) + targetOffsetHours;
         }
 
-        var position = Resolve(
-            steps,
-            RouteTraversal.Cyclic,
-            speedUnitsPerHour,
-            startedAtGameTime,
-            gameTime
-        );
+        var position = Resolve(steps, speedUnitsPerHour, startedAtGameTime, gameTime);
         if (
             position is RouteTimelinePosition.Lingering lingering
             && lingering.StepIndex == targetStepIndex
@@ -184,21 +156,13 @@ public static class RouteTimeline
             return 0;
         }
 
-        var totalDurationHours = TotalDurationHours(
-            steps,
-            RouteTraversal.Cyclic,
-            speedUnitsPerHour
-        );
+        var totalDurationHours = TotalDurationHours(steps, speedUnitsPerHour);
         var elapsedHours = (gameTime - startedAtGameTime) / TimeSpan.FromHours(1);
         var cyclePositionHours = elapsedHours % totalDurationHours;
         return (targetOffsetHours - cyclePositionHours + totalDurationHours) % totalDurationHours;
     }
 
-    private static void Validate(
-        IReadOnlyList<RouteTimelineStep> steps,
-        RouteTraversal traversal,
-        double speedUnitsPerHour
-    )
+    private static void Validate(IReadOnlyList<RouteTimelineStep> steps, double speedUnitsPerHour)
     {
         if (steps.Count == 0)
         {
@@ -222,47 +186,14 @@ public static class RouteTimeline
             );
         }
 
-        var terminalIndexes = steps
-            .Select((step, index) => (step, index))
-            .Where(entry => entry.step.ConnectorId == null)
-            .Select(entry => entry.index)
-            .ToArray();
-
-        if (traversal == RouteTraversal.Finite)
+        if (steps.Any(step => step.ConnectorId == null))
         {
-            if (terminalIndexes.Length != 1 || terminalIndexes[0] != steps.Count - 1)
-            {
-                throw new ArgumentException(
-                    "A finite route requires one connectorless terminal step.",
-                    nameof(steps)
-                );
-            }
-
-            if (steps[^1].Distance != 0 || steps[^1].DwellHours != 0)
-            {
-                throw new ArgumentException(
-                    "A finite route's terminal step cannot have distance or dwell time.",
-                    nameof(steps)
-                );
-            }
-        }
-        else if (terminalIndexes.Length > 0)
-        {
-            throw new ArgumentException(
-                "A cyclic route cannot contain a terminal step.",
-                nameof(steps)
-            );
+            throw new ArgumentException("A route cannot contain a terminal step.", nameof(steps));
         }
 
-        if (
-            traversal == RouteTraversal.Cyclic
-            && steps.All(step => step.Distance == 0 && step.DwellHours == 0)
-        )
+        if (steps.All(step => step.Distance == 0 && step.DwellHours == 0))
         {
-            throw new ArgumentException(
-                "A cyclic route requires a positive duration.",
-                nameof(steps)
-            );
+            throw new ArgumentException("A route requires a positive duration.", nameof(steps));
         }
     }
 

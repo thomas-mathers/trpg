@@ -229,12 +229,6 @@ internal class SyncRouteTravelersCommandHandler(
                 arrivalActivity,
                 creature
             ),
-            RouteTimelinePosition.Arrived arrived => ArriveAt(
-                arrived.LocationId,
-                arrived.ArrivedAtGameTime,
-                arrivalActivity,
-                creature
-            ),
             RouteTimelinePosition.InTransit inTransit => creature.LocationId
                 == inTransit.FromLocationId
             && creature.Movement == CreatureMovement.Walking

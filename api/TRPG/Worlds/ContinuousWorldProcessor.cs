@@ -12,6 +12,7 @@ using TRPG.Application.LocationSimulation;
 using TRPG.Application.LocationSimulation.Commands;
 using TRPG.Application.LocationSimulation.Queries;
 using TRPG.Application.Scenes.Commands;
+using TRPG.Application.WorldSimulation;
 using TRPG.Domain;
 
 namespace TRPG.Worlds;
@@ -144,6 +145,7 @@ internal sealed class ContinuousWorldProcessor(
                     },
                     cancellationToken
                 );
+
             await TickEffects(worldId, players, gameTime, cancellationToken);
             await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
             await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);

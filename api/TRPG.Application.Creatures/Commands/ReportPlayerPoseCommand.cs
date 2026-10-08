@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
 using TRPG.Application.Worlds.Queries;
@@ -28,8 +29,6 @@ internal class ReportPlayerPoseCommandHandler(
     TimeProvider timeProvider
 ) : ICommandHandler<ReportPlayerPoseCommand>
 {
-    private const double WalkMetersPerSecondAtBaseSpeed = 3;
-    private const double BaseMovementSpeed = 50;
     private const double SpeedTolerance = 1.5;
     private const double BurstAllowanceMeters = 1;
 
@@ -90,8 +89,7 @@ internal class ReportPlayerPoseCommandHandler(
     private static bool IsReachable(PlayerPose previous, PlayerPose target, WalkState player)
     {
         var elapsedSeconds = (target.ReportedAt - previous.ReportedAt).TotalSeconds;
-        var metersPerSecond =
-            WalkMetersPerSecondAtBaseSpeed * player.MovementSpeed / BaseMovementSpeed;
+        var metersPerSecond = InLocationPace.MetersPerRealSecond(player.MovementSpeed);
         var allowedMeters =
             (metersPerSecond * elapsedSeconds * SpeedTolerance) + BurstAllowanceMeters;
         var distance = Math.Sqrt(

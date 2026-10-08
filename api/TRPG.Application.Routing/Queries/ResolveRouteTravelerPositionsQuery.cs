@@ -32,11 +32,6 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
             .ToArrayAsync(cancellationToken);
         var routeIds = travelers.Select(traveler => traveler.RouteId).Distinct().ToArray();
 
-        var routesById = await context
-            .Routes.AsNoTracking()
-            .Where(route => routeIds.AsEnumerable().Contains(route.Id))
-            .ToDictionaryAsync(route => route.Id, cancellationToken);
-
         var routeSteps = await context
             .RouteSteps.AsNoTracking()
             .Where(step => routeIds.AsEnumerable().Contains(step.RouteId))
@@ -62,7 +57,6 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
             traveler =>
                 Resolve(
                     traveler,
-                    routesById[traveler.RouteId],
                     timelineStepsByRouteId[traveler.RouteId],
                     traveler.PausedAtGameTime ?? query.GameTime
                 )
@@ -71,14 +65,12 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
 
     internal static ResolvedRouteTravelerPosition Resolve(
         RouteTraveler traveler,
-        Route route,
         IReadOnlyList<RouteTimelineStep> steps,
         GameInstant gameTime
     )
     {
         var position = RouteTimeline.Resolve(
             steps,
-            route.Traversal,
             traveler.SpeedUnitsPerHour,
             traveler.StartedAtGameTime,
             gameTime
@@ -90,7 +82,6 @@ internal class ResolveRouteTravelerPositionsQueryHandler(IRoutingDbContext conte
                 (lingering.StepIndex + 1) % steps.Count
             ].LocationId,
             RouteTimelinePosition.InTransit inTransit => inTransit.ToLocationId,
-            RouteTimelinePosition.Arrived arrived => arrived.LocationId,
             _ => throw new InvalidOperationException("Unknown route position."),
         };
         return new ResolvedRouteTravelerPosition(position, nextLocationId);

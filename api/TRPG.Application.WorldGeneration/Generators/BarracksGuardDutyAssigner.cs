@@ -35,6 +35,10 @@ internal static class BarracksGuardDutyAssigner
         var jobs = new List<CreatureJob>();
         var routes = new List<Route>();
         var routeSteps = new List<RouteStep>();
+        var patrolStops = PatrolDistrictOrder.Build(
+            [.. input.Districts.Select(district => district.LocationId)],
+            input.DistrictConnectors
+        );
 
         for (var i = 0; i < input.Guards.Count; i++)
         {
@@ -63,13 +67,9 @@ internal static class BarracksGuardDutyAssigner
                 input,
                 guard.Id,
                 bedLocationId,
-                rotationOffset: i switch
-                {
-                    0 => 0,
-                    3 or 4 => i - 2,
-                    _ => i - 4,
-                },
-                isDayShift: i is 0 or 3 or 4
+                patrolStops,
+                StartStopIndex(i, input.Guards.Count, patrolStops.Count),
+                isDayShift: IsDayPatrol(i)
             );
             jobs.AddRange(patrol.Jobs);
             if (patrol.Route != null)
@@ -108,14 +108,15 @@ internal static class BarracksGuardDutyAssigner
         BarracksGuardDutyAssignerInput input,
         Guid guardId,
         Guid bedLocationId,
-        int rotationOffset,
+        IReadOnlyList<Guid> patrolStops,
+        int startStopIndex,
         bool isDayShift
     )
     {
         var shiftHours = isDayShift ? DayShiftHours : NightShiftHours;
         var sleepHours = isDayShift ? DayShiftSleepHours : NightShiftSleepHours;
 
-        var patrol = GeneratePatrolRoute(input, rotationOffset);
+        var patrol = GeneratePatrolRoute(input, patrolStops, startStopIndex);
         if (patrol == null)
         {
             return new GuardPatrolAssignment(
@@ -159,47 +160,46 @@ internal static class BarracksGuardDutyAssigner
         );
     }
 
+    private static bool IsDayPatrol(int guardIndex) => guardIndex is 0 or 3 or 4;
+
+    private static int StartStopIndex(int guardIndex, int guardCount, int stopCount)
+    {
+        var sameShift = Enumerable
+            .Range(0, guardCount)
+            .Where(other => other is not (1 or 2) && IsDayPatrol(other) == IsDayPatrol(guardIndex))
+            .ToList();
+
+        return sameShift.IndexOf(guardIndex) * stopCount / sameShift.Count;
+    }
+
     private static CityPatrolRoute? GeneratePatrolRoute(
         BarracksGuardDutyAssignerInput input,
-        int rotationOffset
+        IReadOnlyList<Guid> patrolStops,
+        int startStopIndex
     )
     {
-        var districtLocationIds = input.Districts.Select(district => district.LocationId).ToArray();
-        if (districtLocationIds.Length < 2)
+        if (patrolStops.Count < 2)
         {
             return null;
         }
 
-        var offset = rotationOffset % districtLocationIds.Length;
-        var ordered = districtLocationIds
-            .Skip(offset)
-            .Concat(districtLocationIds.Take(offset))
-            .ToArray();
-        var legs = LocationHopCycle.Build(input.DistrictConnectors, ordered);
-        if (legs.Count == 0)
-        {
-            return null;
-        }
-
-        var route = new Route
-        {
-            WorldId = input.WorldId,
-            Name = $"{input.CityName} City Patrol",
-            Traversal = RouteTraversal.Cyclic,
-        };
-        var steps = legs.Select(
-                (leg, index) =>
+        var route = new Route { WorldId = input.WorldId, Name = $"{input.CityName} City Patrol" };
+        var steps = patrolStops
+            .Skip(startStopIndex)
+            .Concat(patrolStops.Take(startStopIndex))
+            .Select(
+                (locationId, index) =>
                     new RouteStep
                     {
                         WorldId = input.WorldId,
                         RouteId = route.Id,
                         SequenceIndex = index,
-                        LocationId = leg.OriginLocationId,
-                        ConnectorId = leg.Id,
+                        LocationId = locationId,
                         DwellHours = 0,
                     }
             )
             .ToArray();
+
         return new CityPatrolRoute(route, steps);
     }
 

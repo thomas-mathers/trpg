@@ -191,12 +191,7 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             locationId: destination.Id,
             worldId: worldId
         );
-        var route = new Route
-        {
-            WorldId = worldId,
-            Name = "Test route",
-            Traversal = RouteTraversal.Cyclic,
-        };
+        var route = new Route { WorldId = worldId, Name = "Test route" };
         var routeStep = new RouteStep
         {
             WorldId = worldId,
@@ -211,18 +206,6 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             RouteId = route.Id,
             StartedAtGameTime = GameClock.Epoch,
             SpeedUnitsPerHour = 1,
-        };
-        var routeSchedule = new CreatureRouteSchedule
-        {
-            WorldId = worldId,
-            CreatureId = creature.Id,
-            RouteId = route.Id,
-            OriginCreatureJobId = firstJob.Id,
-            DestinationCreatureJobId = secondJob.Id,
-            DepartureDay = DayOfWeek.Monday,
-            DepartureHour = 8,
-            DurationHours = 1,
-            Purpose = "Test travel",
         };
         var conversationHistory = new NpcConversationHistory
         {
@@ -298,7 +281,6 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             }
         );
         _context.CreatureJobs.AddRange(firstJob, secondJob);
-        _context.CreatureRouteSchedules.Add(routeSchedule);
         _context.DungeonExpeditions.Add(Builders.MakeDungeonExpedition(creature, companion));
         _context.EncounterGroups.Add(encounterGroup);
         _context.EncounterGroupMembers.Add(encounterGroupMember);
@@ -589,7 +571,6 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         Assert.Equal(expected, await HasWorldData(verifyContext.CreatureProfiles, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.CreatureQuestObjectives, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.CreatureQuests, worldId));
-        Assert.Equal(expected, await HasWorldData(verifyContext.CreatureRouteSchedules, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.CreatureSkills, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.Districts, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.DoorConnectorKeys, worldId));

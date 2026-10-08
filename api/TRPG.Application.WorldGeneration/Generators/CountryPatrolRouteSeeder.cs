@@ -82,7 +82,6 @@ public class CountryPatrolRouteSeeder(CreatureGroupGenerator creatureGroupGenera
             {
                 WorldId = world.World.Id,
                 Name = $"{country.Name} Road Patrol",
-                Traversal = RouteTraversal.Cyclic,
             };
             var entranceSet = entranceLocationIds.ToHashSet();
             var routeSteps = countryGraph

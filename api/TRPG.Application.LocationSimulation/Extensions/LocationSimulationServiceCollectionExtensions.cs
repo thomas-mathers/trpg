@@ -15,10 +15,6 @@ public static class LocationSimulationServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<CreaturesReleasedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreaturesReleasedEventHandler>()
             )
-            .AddTransient<CreatureFreedScheduleEventHandler>()
-            .AddTransient<IDomainEventConsumer<CreatureFreedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<CreatureFreedScheduleEventHandler>()
-            )
             .AddTransient<PlayerMovedCorpseCleanupEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedCorpseCleanupEventHandler>()
@@ -31,8 +27,8 @@ public static class LocationSimulationServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedArrivalEventHandler>()
             )
-            .AddTransient<PlayerMovedFreedCaptiveRelocationEventHandler>()
+            .AddTransient<PlayerMovedJoblessCaptiveCleanupEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<PlayerMovedFreedCaptiveRelocationEventHandler>()
+                serviceProvider.GetRequiredService<PlayerMovedJoblessCaptiveCleanupEventHandler>()
             );
 }

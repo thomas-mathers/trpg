@@ -42,16 +42,11 @@ public sealed class SyncActiveLocationRoutinesCommandTests(DatabaseFixture db)
     public async Task Handle_SyncsEveryDistinctLocation_WhenPlayersShareOneOfThem()
     {
         // Arrange
-        var firstLocation = Builders.MakeLocation(_worldId, kind: LocationKind.Wilderness);
-        var secondLocation = Builders.MakeLocation(_worldId, kind: LocationKind.Wilderness);
-        var firstSleeper = Builders.MakeCreature(_worldId, locationId: firstLocation.Id);
-        var secondSleeper = Builders.MakeCreature(_worldId, locationId: secondLocation.Id);
+        var firstStateId = Guid.NewGuid();
+        var secondStateId = Guid.NewGuid();
+        var firstLocation = Builders.MakeLocation(_worldId, stateId: firstStateId);
+        var secondLocation = Builders.MakeLocation(_worldId, stateId: secondStateId);
         _context.Locations.AddRange(firstLocation, secondLocation);
-        _context.Creatures.AddRange(firstSleeper, secondSleeper);
-        _context.CreatureJobs.AddRange(
-            MakeSleepJob(firstSleeper.Id, firstLocation.Id),
-            MakeSleepJob(secondSleeper.Id, secondLocation.Id)
-        );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -72,14 +67,13 @@ public sealed class SyncActiveLocationRoutinesCommandTests(DatabaseFixture db)
 
         // Assert
         await using var verifyContext = db.CreateContext();
-        var conditions = await verifyContext
-            .Creatures.Where(creature =>
-                creature.Id == firstSleeper.Id || creature.Id == secondSleeper.Id
+        var syncedStateIds = await verifyContext
+            .WeatherStates.Where(weather =>
+                weather.StateId == firstStateId || weather.StateId == secondStateId
             )
-            .Select(creature => creature.Condition)
+            .Select(weather => weather.StateId)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(2, conditions.Length);
-        Assert.All(conditions, condition => Assert.Equal(CreatureCondition.Sleeping, condition));
+        Assert.Equivalent(new[] { firstStateId, secondStateId }, syncedStateIds);
     }
 
     [Fact]
@@ -207,15 +201,4 @@ public sealed class SyncActiveLocationRoutinesCommandTests(DatabaseFixture db)
 
         return player;
     }
-
-    private CreatureJob MakeSleepJob(Guid creatureId, Guid locationId) =>
-        Builders.MakeCreatureJob(
-            creatureId,
-            action: CreatureJobAction.Sleep,
-            startHour: 6,
-            endHour: 22,
-            locationId: locationId,
-            worldId: _worldId,
-            priority: 100
-        );
 }

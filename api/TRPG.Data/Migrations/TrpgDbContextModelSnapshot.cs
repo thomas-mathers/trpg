@@ -1017,76 +1017,6 @@ namespace TRPG.Migrations
                     b.ToTable("creature_quest_objectives", (string)null);
                 });
 
-            modelBuilder.Entity("TRPG.Domain.Models.CreatureRouteSchedule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("CreatureId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creature_id");
-
-                    b.Property<string>("DepartureDay")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("departure_day");
-
-                    b.Property<double>("DepartureHour")
-                        .HasColumnType("double precision")
-                        .HasColumnName("departure_hour");
-
-                    b.Property<Guid>("DestinationCreatureJobId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("destination_creature_job_id");
-
-                    b.Property<double>("DurationHours")
-                        .HasColumnType("double precision")
-                        .HasColumnName("duration_hours");
-
-                    b.Property<Guid>("OriginCreatureJobId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("origin_creature_job_id");
-
-                    b.Property<string>("Purpose")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("purpose");
-
-                    b.Property<Guid>("RouteId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("route_id");
-
-                    b.Property<Guid>("WorldId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("world_id");
-
-                    b.HasKey("Id")
-                        .HasName("pk_creature_route_schedules");
-
-                    b.HasIndex("CreatureId")
-                        .HasDatabaseName("ix_creature_route_schedules_creature_id");
-
-                    b.HasIndex("DestinationCreatureJobId")
-                        .HasDatabaseName("ix_creature_route_schedules_destination_creature_job_id");
-
-                    b.HasIndex("OriginCreatureJobId")
-                        .HasDatabaseName("ix_creature_route_schedules_origin_creature_job_id");
-
-                    b.HasIndex("RouteId")
-                        .HasDatabaseName("ix_creature_route_schedules_route_id");
-
-                    b.HasIndex("WorldId")
-                        .HasDatabaseName("ix_creature_route_schedules_world_id");
-
-                    b.HasIndex("CreatureId", "DestinationCreatureJobId", "DepartureDay", "DepartureHour")
-                        .IsUnique()
-                        .HasDatabaseName("ix_creature_route_schedules_creature_id_destination_creature_j");
-
-                    b.ToTable("creature_route_schedules", (string)null);
-                });
-
             modelBuilder.Entity("TRPG.Domain.Models.CreatureSkill", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2856,11 +2786,6 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
-                    b.Property<string>("Traversal")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("traversal");
-
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
@@ -2905,6 +2830,10 @@ namespace TRPG.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("sequence_index");
 
+                    b.Property<Guid?>("TravelNodeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("travel_node_id");
+
                     b.Property<Guid>("WorldId")
                         .HasColumnType("uuid")
                         .HasColumnName("world_id");
@@ -2942,17 +2871,9 @@ namespace TRPG.Migrations
                         .HasColumnType("text")
                         .HasColumnName("arrival_activity");
 
-                    b.Property<Guid?>("CreatureRouteScheduleId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("creature_route_schedule_id");
-
                     b.Property<DateTime?>("PausedAtGameTime")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("paused_at_game_time");
-
-                    b.Property<TimeSpan>("PausedDuration")
-                        .HasColumnType("interval")
-                        .HasColumnName("paused_duration");
 
                     b.Property<string>("Purpose")
                         .HasColumnType("text")
@@ -2976,9 +2897,6 @@ namespace TRPG.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_route_travelers");
-
-                    b.HasIndex("CreatureRouteScheduleId")
-                        .HasDatabaseName("ix_route_travelers_creature_route_schedule_id");
 
                     b.HasIndex("RouteId")
                         .HasDatabaseName("ix_route_travelers_route_id");

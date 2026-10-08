@@ -8,6 +8,7 @@ public class RouteStep
     public required int SequenceIndex { get; init; }
     public required Guid LocationId { get; init; }
     public Guid? ConnectorId { get; init; }
+    public Guid? TravelNodeId { get; set; }
     public required double DwellHours { get; init; }
     public double Distance { get; set; }
 }

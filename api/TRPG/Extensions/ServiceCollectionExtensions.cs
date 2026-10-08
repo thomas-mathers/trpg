@@ -21,6 +21,7 @@ using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation;
 using TRPG.Combat.Tools;
 using TRPG.Configuration;
 using TRPG.Data;
@@ -65,6 +66,7 @@ internal static class ServiceCollectionExtensions
             .AddHostedService<EngagementStartupRecovery>()
             .AddSingleton<ContinuousWorldProcessor>()
             .AddHostedService<ContinuousWorldService>()
+            .AddHostedService<WorldSimulationService>()
             .AddTrpgJobs(configuration)
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<InventoryTool>()
@@ -429,6 +431,7 @@ internal static class ServiceCollectionExtensions
             .Configure<CreatureRegenOptions>(configuration.GetSection("CreatureRegen"))
             .Configure<GameSessionOptions>(configuration.GetSection("GameSession"))
             .Configure<WorldClockOptions>(configuration.GetSection("WorldClock"))
+            .Configure<WorldSimulationOptions>(configuration.GetSection("WorldSimulation"))
             .Configure<GameClientEventAckOptions>(configuration.GetSection("GameClientEventAck"))
             .Configure<ReputationOptions>(configuration.GetSection("Reputation"))
             .Configure<GuardEncounterOptions>(configuration.GetSection("GuardEncounter"))

@@ -13,19 +13,17 @@ public class RouteTimelineTests
     private static readonly GameInstant Start = GameClock.Epoch + TimeSpan.FromHours(10);
     private const double SpeedUnitsPerHour = 10;
 
-    private static readonly RouteTimelineStep[] FiniteSteps =
+    private static readonly RouteTimelineStep[] Steps =
     [
         new(LocationA, ConnectorA, Distance: 5, DwellHours: 0.25),
         new(LocationB, ConnectorB, Distance: 10, DwellHours: 0),
-        new(LocationC, ConnectorId: null, Distance: 0, DwellHours: 0),
     ];
 
     [Fact]
     public void Resolve_ReturnsPending_WhenGameTimePrecedesStart()
     {
         var position = RouteTimeline.Resolve(
-            FiniteSteps,
-            RouteTraversal.Finite,
+            Steps,
             SpeedUnitsPerHour,
             Start,
             Start - TimeSpan.FromHours(1) * 0.5
@@ -39,13 +37,7 @@ public class RouteTimelineTests
     [Fact]
     public void Resolve_ReturnsLingering_AtStart()
     {
-        var position = RouteTimeline.Resolve(
-            FiniteSteps,
-            RouteTraversal.Finite,
-            SpeedUnitsPerHour,
-            Start,
-            Start
-        );
+        var position = RouteTimeline.Resolve(Steps, SpeedUnitsPerHour, Start, Start);
 
         var lingering = Assert.IsType<RouteTimelinePosition.Lingering>(position);
         Assert.Equal(LocationA, lingering.LocationId);
@@ -57,13 +49,7 @@ public class RouteTimelineTests
     {
         var gameTime = Start + TimeSpan.FromHours(0.5);
 
-        var position = RouteTimeline.Resolve(
-            FiniteSteps,
-            RouteTraversal.Finite,
-            SpeedUnitsPerHour,
-            Start,
-            gameTime
-        );
+        var position = RouteTimeline.Resolve(Steps, SpeedUnitsPerHour, Start, gameTime);
 
         var inTransit = Assert.IsType<RouteTimelinePosition.InTransit>(position);
         Assert.Equal(ConnectorA, inTransit.ConnectorId);
@@ -76,8 +62,7 @@ public class RouteTimelineTests
     public void Resolve_LeavesTheArrivalUnknown_WhenTheRouteStartedAtTheStop()
     {
         var position = RouteTimeline.Resolve(
-            FiniteSteps,
-            RouteTraversal.Finite,
+            Steps,
             SpeedUnitsPerHour,
             Start,
             Start + TimeSpan.FromHours(0.5)
@@ -92,8 +77,7 @@ public class RouteTimelineTests
     public void Resolve_ReportsEqualArrivalAndDeparture_WhenTheStopHasNoDwell()
     {
         var position = RouteTimeline.Resolve(
-            FiniteSteps,
-            RouteTraversal.Finite,
+            Steps,
             SpeedUnitsPerHour,
             Start,
             Start + TimeSpan.FromHours(1)
@@ -106,7 +90,7 @@ public class RouteTimelineTests
     }
 
     [Fact]
-    public void Resolve_ReportsTheDwellBetweenArrivalAndDeparture_OnALaterCyclicLap()
+    public void Resolve_ReportsTheDwellBetweenArrivalAndDeparture_OnALaterLap()
     {
         RouteTimelineStep[] steps =
         [
@@ -116,7 +100,6 @@ public class RouteTimelineTests
 
         var position = RouteTimeline.Resolve(
             steps,
-            RouteTraversal.Cyclic,
             SpeedUnitsPerHour,
             Start,
             Start + TimeSpan.FromHours(2.75)
@@ -128,41 +111,17 @@ public class RouteTimelineTests
     }
 
     [Fact]
-    public void Resolve_ReturnsArrived_AtFiniteTerminal()
-    {
-        var expectedArrival = Start + TimeSpan.FromHours(1) * 1.75;
-
-        var position = RouteTimeline.Resolve(
-            FiniteSteps,
-            RouteTraversal.Finite,
-            SpeedUnitsPerHour,
-            Start,
-            expectedArrival + TimeSpan.FromHours(1)
-        );
-
-        var arrived = Assert.IsType<RouteTimelinePosition.Arrived>(position);
-        Assert.Equal(LocationC, arrived.LocationId);
-        Assert.Equal(2, arrived.StepIndex);
-        Assert.Equal(expectedArrival, arrived.ArrivedAtGameTime);
-    }
-
-    [Fact]
-    public void Resolve_WrapsAtExactCyclicBoundary()
+    public void Resolve_WrapsAtExactCycleBoundary()
     {
         RouteTimelineStep[] steps =
         [
             new(LocationA, ConnectorA, Distance: 5, DwellHours: 0.5),
             new(LocationB, ConnectorB, Distance: 5, DwellHours: 0.5),
         ];
-        var cycleHours = RouteTimeline.TotalDurationHours(
-            steps,
-            RouteTraversal.Cyclic,
-            SpeedUnitsPerHour
-        );
+        var cycleHours = RouteTimeline.TotalDurationHours(steps, SpeedUnitsPerHour);
 
         var position = RouteTimeline.Resolve(
             steps,
-            RouteTraversal.Cyclic,
             SpeedUnitsPerHour,
             Start,
             Start + TimeSpan.FromHours(1) * cycleHours
@@ -174,12 +133,16 @@ public class RouteTimelineTests
     }
 
     [Fact]
-    public void Resolve_RejectsFiniteRouteWithoutTerminalStep()
+    public void Resolve_RejectsATerminalStep()
     {
-        RouteTimelineStep[] steps = [new(LocationA, ConnectorA, Distance: 5, DwellHours: 0)];
+        RouteTimelineStep[] steps =
+        [
+            new(LocationA, ConnectorA, Distance: 5, DwellHours: 0),
+            new(LocationB, ConnectorId: null, Distance: 0, DwellHours: 0),
+        ];
 
         var exception = Assert.Throws<ArgumentException>(() =>
-            RouteTimeline.Resolve(steps, RouteTraversal.Finite, SpeedUnitsPerHour, Start, Start)
+            RouteTimeline.Resolve(steps, SpeedUnitsPerHour, Start, Start)
         );
 
         Assert.Contains("terminal step", exception.Message, StringComparison.Ordinal);

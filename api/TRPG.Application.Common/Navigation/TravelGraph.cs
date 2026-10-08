@@ -2,12 +2,15 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Common.Navigation;
 
+public record RouteStop(double AtMeters, Point Position);
+
 public record RouteLeg(
     Guid OriginLocationId,
     Guid ConnectorId,
     Guid DestinationLocationId,
     Guid ArrivalNodeId,
-    double Distance
+    double Distance,
+    RouteStop? Stop = null
 );
 
 public sealed class TravelGraph
@@ -19,6 +22,7 @@ public sealed class TravelGraph
     private readonly Dictionary<Guid, List<LocationConnector>> _connectorsByOriginLocation = [];
     private readonly Dictionary<Guid, List<Guid>> _nodeIdsByLocation = [];
     private readonly Dictionary<Guid, Guid> _locationIdByNode = [];
+    private readonly Dictionary<Guid, Point> _positionByNode = [];
 
     public TravelGraph(IEnumerable<Connector> connectors, IEnumerable<TravelNode> nodes)
     {
@@ -29,6 +33,7 @@ public sealed class TravelGraph
         {
             GetOrAdd(_nodeIdsByLocation, node.LocationId).Add(node.Id);
             _locationIdByNode[node.Id] = node.LocationId;
+            _positionByNode[node.Id] = node.Position;
         }
 
         foreach (var connector in _connectors)
@@ -105,6 +110,31 @@ public sealed class TravelGraph
         return legs.Count == 0 ? legs : WithWrapDistance(legs);
     }
 
+    public IReadOnlyList<RouteLeg> BuildNodeCycle(IReadOnlyList<Guid> stopNodeIds)
+    {
+        if (stopNodeIds.Count < 2)
+        {
+            return [];
+        }
+
+        var segments = new List<(List<GraphEdge> Edges, Guid StopNodeId)>();
+        var current = stopNodeIds[0];
+
+        foreach (var stop in stopNodeIds.Skip(1).Append(stopNodeIds[0]))
+        {
+            var segment = Dijkstra([current], node => node == stop);
+            if (segment == null)
+            {
+                continue;
+            }
+
+            segments.Add((segment, stop));
+            current = stop;
+        }
+
+        return ToStoppedLegs(segments);
+    }
+
     public double ShortestDistance(Guid fromNodeId, Guid toNodeId)
     {
         if (fromNodeId == toNodeId)
@@ -117,31 +147,62 @@ public sealed class TravelGraph
         return edges?.Sum(edge => edge.Distance) ?? 0;
     }
 
-    public void AssignStepDistances(IReadOnlyList<RouteStep> orderedSteps, bool cyclic)
-    {
-        for (var index = 0; index < orderedSteps.Count; index++)
-        {
-            var step = orderedSteps[index];
-            var previous =
-                index > 0 ? orderedSteps[index - 1]
-                : cyclic ? orderedSteps[^1]
-                : null;
-
-            step.Distance =
-                previous?.ConnectorId is { } previousConnectorId
-                && step.ConnectorId is { } connectorId
-                    ? ShortestDistance(
-                        _locationConnectorById[previousConnectorId].DestinationNodeId,
-                        _locationConnectorById[connectorId].OriginNodeId
-                    )
-                    : 0;
-        }
-    }
-
     public Guid OriginNodeOf(Guid connectorId) => _locationConnectorById[connectorId].OriginNodeId;
 
     public Guid ArrivalNodeOf(Guid connectorId) =>
         _locationConnectorById[connectorId].DestinationNodeId;
+
+    private List<RouteLeg> ToStoppedLegs(List<(List<GraphEdge> Edges, Guid StopNodeId)> segments)
+    {
+        var legs = new List<RouteLeg>();
+        var pending = 0.0;
+        RouteStop? pendingStop = null;
+
+        foreach (var (edges, stopNodeId) in segments)
+        {
+            foreach (var edge in edges)
+            {
+                if (edge.Connector is LocationConnector location)
+                {
+                    legs.Add(
+                        new RouteLeg(
+                            location.OriginLocationId,
+                            location.Id,
+                            location.DestinationLocationId,
+                            location.DestinationNodeId,
+                            pending,
+                            pendingStop
+                        )
+                    );
+                    pending = 0;
+                    pendingStop = null;
+                }
+                else
+                {
+                    pending += edge.Distance;
+                }
+            }
+
+            pendingStop ??= new RouteStop(pending, _positionByNode[stopNodeId]);
+        }
+
+        if (legs.Count > 0)
+        {
+            legs[0] = WithWrapWalk(legs[0], pending, pendingStop);
+        }
+
+        return legs;
+    }
+
+    private static RouteStop? ShiftedBy(RouteStop? stop, double meters) =>
+        stop == null ? null : stop with { AtMeters = stop.AtMeters + meters };
+
+    private static RouteLeg WithWrapWalk(RouteLeg first, double wrapMeters, RouteStop? wrapStop) =>
+        first with
+        {
+            Distance = first.Distance + wrapMeters,
+            Stop = wrapStop ?? ShiftedBy(first.Stop, wrapMeters),
+        };
 
     private List<RouteLeg> WithWrapDistance(List<RouteLeg> legs)
     {
