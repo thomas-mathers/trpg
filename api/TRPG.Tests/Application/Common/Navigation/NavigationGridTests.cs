@@ -67,6 +67,24 @@ public class NavigationGridTests
     }
 
     [Fact]
+    public void FindNearestFreePoint_ReturnsAWalkableCell_WhenTheRequestedPointIsBlocked()
+    {
+        // Arrange
+        var grid = new NavigationGrid(
+            10,
+            10,
+            Cell,
+            point => point is { X: > 1 and < 2, Y: > 1 and < 2 }
+        );
+
+        // Act
+        var point = grid.FindNearestFreePoint(new Point(1.5, 1.5));
+
+        // Assert
+        Assert.False(point is { X: > 1 and < 2, Y: > 1 and < 2 });
+    }
+
+    [Fact]
     public void FindPath_FallsBackToAStraightLine_WhenTheGoalIsWalledOff()
     {
         // Arrange

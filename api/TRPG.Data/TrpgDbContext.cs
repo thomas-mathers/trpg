@@ -602,6 +602,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.Property<string>("behavior_type").HasColumnType("text");
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);
+            entity
+                .HasOne<TravelNode>()
+                .WithMany()
+                .HasForeignKey(p => p.ApproachNodeId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Cell and Container each declare their own ILockableProp properties rather than

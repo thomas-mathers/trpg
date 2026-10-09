@@ -615,6 +615,8 @@ public class WorldGenerator(
             wildernessLocationByStateId
         );
 
+        WorkstationAssigner.Assign(jobs, props);
+
         var layout = LocationLayoutGenerator.Generate(
             new LocationLayoutInput(
                 anchoredLocations,

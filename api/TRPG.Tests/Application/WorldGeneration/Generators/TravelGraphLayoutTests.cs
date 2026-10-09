@@ -174,6 +174,59 @@ public class TravelGraphLayoutTests
         );
     }
 
+    [Fact]
+    public void Generate_CreatesWalkableApproachNodesForRoutableProps()
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildHouseWorld([Guid.NewGuid()]);
+
+        // Act
+        var layout = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        var anchors = world
+            .Input.Props.Concat(layout.Props)
+            .Where(prop =>
+                prop
+                    is Seat
+                        or Bed { AssignedCreatureId: not null }
+                        or Workstation { AssignedCreatureId: not null }
+            )
+            .ToArray();
+        var nodeIds = layout.TravelNodes.Select(node => node.Id).ToHashSet();
+        Assert.NotEmpty(anchors);
+        Assert.All(anchors, anchor => Assert.Contains(anchor.ApproachNodeId, nodeIds));
+    }
+
+    [Fact]
+    public void Generate_JoinsEveryApproachNodeToTheGraphWithABidirectionalWalk()
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildHouseWorld([Guid.NewGuid()]);
+
+        // Act
+        var layout = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        var anchors = world
+            .Input.Props.Concat(layout.Props)
+            .Where(prop => prop.ApproachNodeId is not null)
+            .ToArray();
+        Assert.NotEmpty(anchors);
+        Assert.All(
+            anchors,
+            anchor =>
+                Assert.Contains(
+                    layout.PointConnectors,
+                    connector =>
+                        connector.Bidirectional
+                        && connector.OriginNodeId == anchor.ApproachNodeId
+                        && connector.RoadClass is null
+                        && connector.Distance > 0
+                )
+        );
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

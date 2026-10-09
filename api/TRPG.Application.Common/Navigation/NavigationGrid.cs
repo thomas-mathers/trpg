@@ -47,6 +47,12 @@ public sealed class NavigationGrid
         return Straighten(from, to, cells, start, goal);
     }
 
+    public Point FindNearestFreePoint(Point point)
+    {
+        var cell = NearestFree(point);
+        return cell.Column == NoCell ? point : CentreOf(cell);
+    }
+
     private IReadOnlyList<Point> Straighten(
         Point from,
         Point to,
