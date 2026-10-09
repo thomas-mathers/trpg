@@ -26,6 +26,7 @@ public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
+    GeneratedJourneySeeder generatedJourneySeeder,
     ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
@@ -108,6 +109,7 @@ internal class CreateWorldCommandHandler(
         CreatureLayoutGenerator.PlaceAtLocationCenter(
             CreateLayoutInput(worldResult, [playerResult.Creature], worldResult.Creatures)
         );
+        var generatedJourneys = generatedJourneySeeder.Seed(worldResult);
 
         var bootstrapResult = await bootstrapWorld.Handle(
             new BootstrapWorldCommand
@@ -117,6 +119,7 @@ internal class CreateWorldCommandHandler(
                 Quests = quests,
                 PlayerReputations = monsterReputations,
                 QuestSeedSchedules = questSeedSchedules,
+                GeneratedJourneys = generatedJourneys,
             },
             cancellationToken
         );

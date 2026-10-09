@@ -62,6 +62,18 @@ public class WorldGeneratorResult
         new([.. LocationConnectors, .. PointConnectors], TravelNodes);
 }
 
+public sealed record GeneratedJourneySeed(
+    IReadOnlyList<Creature> Creatures,
+    IReadOnlyList<Item> Items,
+    IReadOnlyList<CreatureSkill> Skills,
+    IReadOnlyList<FactionMember> FactionMembers,
+    IReadOnlyList<TravelCircuit> Circuits,
+    IReadOnlyList<TravelCircuitLeg> CircuitLegs,
+    IReadOnlyList<Journey> Journeys,
+    IReadOnlyList<JourneyLeg> JourneyLegs,
+    IReadOnlyList<JourneyMember> JourneyMembers
+);
+
 // Archetypes always leads with LeaderArchetype, which is also always Humanoid — an antagonist
 // faction is led by a person, never sampled down to whatever monster archetype happened to win the
 // ambient population roll.

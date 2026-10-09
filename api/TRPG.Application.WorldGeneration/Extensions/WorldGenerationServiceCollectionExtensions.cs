@@ -27,6 +27,7 @@ public static class WorldGenerationServiceCollectionExtensions
             .AddTransient<WildernessPopulator>()
             .AddTransient<HouseholdGenerator>()
             .AddTransient<CreatureGroupGenerator>()
+            .AddTransient<GeneratedJourneySeeder>()
             .AddTransient<CityGenerator>()
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()

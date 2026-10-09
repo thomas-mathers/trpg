@@ -7,6 +7,10 @@
 - Intermediate commits are allowed. The final commit of each milestone must use the exact subject `milestone N: <clear completed outcome>`.
 - This work requires regenerated worlds. Do not add a legacy route, pose, or generated-world compatibility path.
 
+## World reset
+
+The journey model is a clean-world cutover. Before running this version against a local or development database, delete every existing generated world through the normal world-deletion flow, apply the current migrations, and create a new world. Do not attempt to retain worlds generated before the travel-circuit migration: their removed route data has no compatible journey representation.
+
 ## Target data model
 
 ### `TravelCircuit`
@@ -90,7 +94,7 @@ This is updated when a creature settles at an anchor or ordinary node. A creatur
 
 ## Milestone 1 — Travel model foundation
 
-- Replace `Route`, `RouteStep`, and `RouteTraveler` persistence with `TravelCircuit`, `TravelCircuitLeg`, `Journey`, `JourneyLeg`, and `JourneyMember`.
+- Replace the superseded route-traveler persistence with `TravelCircuit`, `TravelCircuitLeg`, `Journey`, `JourneyLeg`, and `JourneyMember`.
 - Model circuits as explicitly closed directed graph-edge sequences with dwell after each endpoint; do not store a looping flag or implicit wrap distance.
 - Add planned/departure instants; planned, traveling, dwelling, completed, and cancelled journey states; source circuit; optional routine target context; directed leg node IDs; immutable distance/path snapshots; and durable checkpoint fields.
 - Enforce one active journey membership per creature.
@@ -149,7 +153,7 @@ This is updated when a creature settles at an anchor or ordinary node. A creatur
 
 ## Milestone 7 — Regenerate-world cutover and full validation
 
-- Wire generated circuits and journeys through all traveler creation flows, remove remaining `RouteTraveler` references, and document the required world reset.
+- Wire generated circuits and journeys through all traveler creation flows, remove legacy traveler references, and document the required world reset.
 - Run the complete backend and SPA test suites plus production builds from a clean generated world.
 - Review the migration/reset procedure and ensure no legacy-route fallback remains.
 - Final commit: `milestone 7: complete unified travel journey cutover`.

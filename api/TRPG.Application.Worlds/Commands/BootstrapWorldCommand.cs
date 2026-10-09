@@ -16,6 +16,7 @@ public class BootstrapWorldCommand
     public required QuestGeneratorResult Quests { get; init; }
     public IReadOnlyList<Reputation> PlayerReputations { get; init; } = [];
     public IReadOnlyList<QuestSeedSchedule> QuestSeedSchedules { get; init; } = [];
+    public GeneratedJourneySeed? GeneratedJourneys { get; init; }
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -50,6 +51,18 @@ internal class BootstrapWorldCommandHandler(
         context.EncounterGroupMembers.AddRange(world.EncounterGroupMembers);
         context.Buildings.AddRange(world.Buildings);
         context.Creatures.AddRange(world.Creatures);
+        if (command.GeneratedJourneys is { } generatedJourneys)
+        {
+            context.Creatures.AddRange(generatedJourneys.Creatures);
+            context.Items.AddRange(generatedJourneys.Items);
+            context.CreatureSkills.AddRange(generatedJourneys.Skills);
+            context.FactionMembers.AddRange(generatedJourneys.FactionMembers);
+            context.TravelCircuits.AddRange(generatedJourneys.Circuits);
+            context.TravelCircuitLegs.AddRange(generatedJourneys.CircuitLegs);
+            context.Journeys.AddRange(generatedJourneys.Journeys);
+            context.JourneyLegs.AddRange(generatedJourneys.JourneyLegs);
+            context.JourneyMembers.AddRange(generatedJourneys.JourneyMembers);
+        }
         context.CreatureProfiles.AddRange(world.CreatureProfiles);
         context.BuildingOwners.AddRange(world.BuildingOwners);
         context.Items.AddRange(world.Items);
