@@ -146,29 +146,6 @@ public class CreaturePoseMapperTests
     }
 
     [Fact]
-    public void MapEvent_SettlesTheCreatureWithoutAnActivity_WhenThePatrolEnds()
-    {
-        // Arrange
-        var ended = new PatrolEnded(_creatureId, Crossing, _locationB);
-
-        // Act
-        var update = _mapper.MapEvent(ended);
-
-        // Assert
-        Assert.Equal(
-            new CreaturePoseUpdate(
-                _creatureId,
-                _locationB,
-                null,
-                CreatureMovement.Stationary,
-                null,
-                null
-            ),
-            update
-        );
-    }
-
-    [Fact]
     public void Map_KeepsTheFinalEntryPoint_WhenCrossingAndCompletionShareABatch()
     {
         // Arrange

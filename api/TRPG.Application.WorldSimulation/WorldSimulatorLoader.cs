@@ -4,7 +4,6 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Routing.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
@@ -29,14 +28,6 @@ public sealed class WorldSimulatorLoader(
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
     > getJobs,
     IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTopology,
-    IQueryHandler<
-        GetRouteTravelerCreatureIdsByWorldIdQuery,
-        IReadOnlyCollection<Guid>
-    > getRouteTravelerCreatureIds,
-    IQueryHandler<
-        GetRouteStopsByIdsQuery,
-        IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>
-    > getRouteStops,
     IOptions<WorldClockOptions> clockOptions,
     IOptions<WorldSimulationOptions> simulationOptions
 )
@@ -105,24 +96,12 @@ public sealed class WorldSimulatorLoader(
             },
             cancellationToken
         );
-        var routeTravelerIds = await getRouteTravelerCreatureIds.Handle(
-            new GetRouteTravelerCreatureIdsByWorldIdQuery { WorldId = worldId },
-            cancellationToken
-        );
-        var patrols = await LoadPatrols(graph, jobsByCreatureId, cancellationToken);
-
-        return
-        [
-            .. creatures
-                .Where(creature => !routeTravelerIds.Contains(creature.Id))
-                .Select(creature => ToSeed(creature, jobsByCreatureId, patrols)),
-        ];
+        return [.. creatures.Select(creature => ToSeed(creature, jobsByCreatureId))];
     }
 
     private static SimCreatureSeed ToSeed(
         SimulatableCreature creature,
-        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
-        IReadOnlyDictionary<Guid, IReadOnlyList<RouteLeg>> patrols
+        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId
     )
     {
         var jobs = jobsByCreatureId.GetValueOrDefault(creature.Id) ?? [];
@@ -132,31 +111,7 @@ public sealed class WorldSimulatorLoader(
             creature.LocationId,
             creature.MovementSpeed,
             jobs,
-            creature.Profession != Profession.Guard,
-            patrols
+            creature.Profession != Profession.Guard
         );
-    }
-
-    private async Task<IReadOnlyDictionary<Guid, IReadOnlyList<RouteLeg>>> LoadPatrols(
-        TravelGraph graph,
-        IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>> jobsByCreatureId,
-        CancellationToken cancellationToken
-    )
-    {
-        var routeIds = jobsByCreatureId
-            .Values.SelectMany(jobs => jobs)
-            .Select(job => job.RouteId)
-            .OfType<Guid>()
-            .Distinct()
-            .ToArray();
-        var stopsByRouteId = await getRouteStops.Handle(
-            new GetRouteStopsByIdsQuery { RouteIds = routeIds },
-            cancellationToken
-        );
-
-        return stopsByRouteId
-            .Select(route => (route.Key, Legs: graph.BuildNodeCycle(route.Value)))
-            .Where(route => route.Legs.Sum(leg => leg.Distance) > 0)
-            .ToDictionary(route => route.Key, route => route.Legs);
     }
 }

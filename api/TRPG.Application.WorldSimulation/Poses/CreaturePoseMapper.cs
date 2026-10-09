@@ -55,23 +55,6 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 completed.Action.ToActivity(),
                 null
             ),
-            DwellStarted dwell => new CreaturePoseUpdate(
-                dwell.CreatureId,
-                dwell.LocationId,
-                null,
-                CreatureMovement.Stationary,
-                null,
-                new WalkColumns(null, null, null, null),
-                dwell.Position
-            ),
-            PatrolEnded ended => new CreaturePoseUpdate(
-                ended.CreatureId,
-                ended.LocationId,
-                null,
-                CreatureMovement.Stationary,
-                null,
-                null
-            ),
             _ => throw new ArgumentOutOfRangeException(nameof(simEvent)),
         };
 

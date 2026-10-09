@@ -136,6 +136,7 @@ public class Creature
     public Profession? Profession { get; set; }
     public Guid? PlayerCorpseOwnerId { get; init; }
     public Guid? PreviousLocationId { get; set; }
+    public Guid? CurrentTravelNodeId { get; set; }
     public GameInstant? RestedUntilGameTime { get; set; }
     public Guid? SpawnerId { get; set; }
     public CreatureCondition Condition { get; set; }

@@ -66,7 +66,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         IWeatherDbContext,
         IRoomBookingsDbContext,
         IBooksDbContext,
-        ICaravansDbContext,
         IRoutingDbContext
 {
     public DbSet<DungeonExpedition> DungeonExpeditions => Set<DungeonExpedition>();
@@ -128,12 +127,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         Set<QuestChainGenerationRequest>();
     public DbSet<RoomBooking> RoomBookings => Set<RoomBooking>();
     public DbSet<WeatherState> WeatherStates => Set<WeatherState>();
-    public DbSet<Route> Routes => Set<Route>();
-    public DbSet<RouteStep> RouteSteps => Set<RouteStep>();
-    public DbSet<RouteTraveler> RouteTravelers => Set<RouteTraveler>();
-    public DbSet<CaravanFare> CaravanFares => Set<CaravanFare>();
-    public DbSet<CaravanTicket> CaravanTickets => Set<CaravanTicket>();
-    public DbSet<RouteTravelerMember> RouteTravelerMembers => Set<RouteTravelerMember>();
+    public DbSet<TravelCircuit> TravelCircuits => Set<TravelCircuit>();
+    public DbSet<TravelCircuitLeg> TravelCircuitLegs => Set<TravelCircuitLeg>();
+    public DbSet<Journey> Journeys => Set<Journey>();
+    public DbSet<JourneyLeg> JourneyLegs => Set<JourneyLeg>();
+    public DbSet<JourneyMember> JourneyMembers => Set<JourneyMember>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -241,6 +239,11 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(p => p.WorldId);
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.SpawnerId);
+            entity
+                .HasOne<TravelNode>()
+                .WithMany()
+                .HasForeignKey(p => p.CurrentTravelNodeId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.ToTable(table =>
             {
                 table.HasCheckConstraint(
@@ -712,7 +715,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
         {
             entity.HasIndex(j => j.CreatureId);
             entity.HasIndex(j => j.LocationId);
-            entity.HasIndex(j => j.RouteId);
             entity.HasIndex(j => j.WorldId);
         });
 
@@ -759,49 +761,125 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(w => w.StateId).IsUnique();
         });
 
-        modelBuilder.Entity<Route>(entity =>
+        modelBuilder.Entity<TravelCircuit>(entity =>
         {
-            entity.HasIndex(r => r.WorldId);
+            entity.HasIndex(circuit => circuit.WorldId);
+            entity
+                .HasOne<World>()
+                .WithMany()
+                .HasForeignKey(circuit => circuit.WorldId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<RouteStep>(entity =>
+        modelBuilder.Entity<TravelCircuitLeg>(entity =>
         {
-            entity.HasIndex(s => s.WorldId);
-            entity.HasIndex(s => s.RouteId);
-            entity.HasIndex(s => new
-            {
-                s.WorldId,
-                s.LocationId,
-                s.RouteId,
-            });
-            entity.HasIndex(s => new { s.RouteId, s.SequenceIndex }).IsUnique();
-            entity.HasIndex(s => s.ConnectorId);
+            entity.HasIndex(leg => leg.TravelCircuitId);
+            entity.HasIndex(leg => new { leg.TravelCircuitId, leg.Index }).IsUnique();
+            entity.HasIndex(leg => leg.FromNodeId);
+            entity.HasIndex(leg => leg.ToNodeId);
+            entity.HasIndex(leg => leg.ConnectorId);
+            entity
+                .HasOne<TravelCircuit>()
+                .WithMany()
+                .HasForeignKey(leg => leg.TravelCircuitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<TravelNode>()
+                .WithMany()
+                .HasForeignKey(leg => leg.FromNodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<TravelNode>()
+                .WithMany()
+                .HasForeignKey(leg => leg.ToNodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<Connector>()
+                .WithMany()
+                .HasForeignKey(leg => leg.ConnectorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<RouteTraveler>(entity =>
+        modelBuilder.Entity<Journey>(entity =>
         {
-            entity.HasIndex(t => t.WorldId);
-            entity.HasIndex(t => t.RouteId);
+            entity.HasIndex(journey => journey.WorldId);
+            entity.HasIndex(journey => journey.TravelCircuitId);
+            entity.HasIndex(journey => journey.DestinationJobId);
+            entity.HasIndex(journey => journey.DestinationPropId);
+            entity
+                .HasOne<World>()
+                .WithMany()
+                .HasForeignKey(journey => journey.WorldId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<TravelCircuit>()
+                .WithMany()
+                .HasForeignKey(journey => journey.TravelCircuitId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<CreatureJob>()
+                .WithMany()
+                .HasForeignKey(journey => journey.DestinationJobId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<Prop>()
+                .WithMany()
+                .HasForeignKey(journey => journey.DestinationPropId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<CaravanFare>(entity =>
+        modelBuilder.Entity<JourneyLeg>(entity =>
         {
-            entity.HasIndex(f => f.WorldId);
-            entity.HasIndex(f => f.RouteId);
+            entity.HasIndex(leg => leg.JourneyId);
+            entity.HasIndex(leg => new { leg.JourneyId, leg.Index }).IsUnique();
+            entity.HasIndex(leg => leg.FromNodeId);
+            entity.HasIndex(leg => leg.ToNodeId);
+            entity.HasIndex(leg => leg.ConnectorId);
+            entity
+                .HasOne<Journey>()
+                .WithMany()
+                .HasForeignKey(leg => leg.JourneyId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<TravelNode>()
+                .WithMany()
+                .HasForeignKey(leg => leg.FromNodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<TravelNode>()
+                .WithMany()
+                .HasForeignKey(leg => leg.ToNodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<Connector>()
+                .WithMany()
+                .HasForeignKey(leg => leg.ConnectorId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.OwnsOne(
+                leg => leg.Path,
+                path =>
+                {
+                    path.ToJson();
+                    path.OwnsMany(point => point.Points);
+                }
+            );
         });
 
-        modelBuilder.Entity<CaravanTicket>(entity =>
+        modelBuilder.Entity<JourneyMember>(entity =>
         {
-            entity.HasIndex(t => t.WorldId);
-            entity.HasIndex(t => t.RouteTravelerId);
-            entity.HasIndex(t => t.CreatureId);
-        });
-
-        modelBuilder.Entity<RouteTravelerMember>(entity =>
-        {
-            entity.HasIndex(m => m.WorldId);
-            entity.HasIndex(m => m.RouteTravelerId);
-            entity.HasIndex(m => m.CreatureId).IsUnique();
+            entity.HasIndex(member => member.JourneyId);
+            entity.HasIndex(member => new { member.JourneyId, member.CreatureId }).IsUnique();
+            entity.HasIndex(member => member.CreatureId);
+            entity
+                .HasOne<Journey>()
+                .WithMany()
+                .HasForeignKey(member => member.JourneyId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity
+                .HasOne<Creature>()
+                .WithMany()
+                .HasForeignKey(member => member.CreatureId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<World>().HasIndex(w => w.Name).IsUnique();

@@ -57,8 +57,7 @@ internal static class CreatureJobGenerator
         Guid creatureId,
         Guid locationId,
         Guid worldId,
-        HourWindow? hours = null,
-        Guid? routeId = null
+        HourWindow? hours = null
     )
     {
         var window = hours ?? DefaultWorkHours;
@@ -70,7 +69,6 @@ internal static class CreatureJobGenerator
             EndHour = window.End,
             Priority = 50,
             LocationId = locationId,
-            RouteId = routeId,
             WorldId = worldId,
         };
     }

@@ -28,8 +28,6 @@ public static class WorldGenerationServiceCollectionExtensions
             .AddTransient<HouseholdGenerator>()
             .AddTransient<CreatureGroupGenerator>()
             .AddTransient<CityGenerator>()
-            .AddTransient<CountryPatrolRouteSeeder>()
-            .AddTransient<RoadTravelerRouteSeeder>()
             .AddTransient<GeographyGenerator>()
             .AddTransient<BuildingGenerator>()
             .AddTransient<QuestChainContentGenerator>()

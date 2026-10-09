@@ -12,10 +12,6 @@ public sealed record WorldSimulatorOptions(
 
 public sealed class WorldSimulator
 {
-    private const double PatrolDwellRealSeconds = 90;
-
-    private static readonly Dictionary<Guid, IReadOnlyList<RouteLeg>> EmptyPatrols = [];
-
     private readonly WorldSimulatorOptions _options;
     private readonly RouteFinder _routeFinder;
     private readonly WeatherShelter _shelter = new();
@@ -66,9 +62,6 @@ public sealed class WorldSimulator
             Id = seed.CreatureId,
             LocationId = seed.LocationId,
             Jobs = seed.Jobs,
-            Patrols = (seed.Patrols ?? EmptyPatrols)
-                .Where(patrol => patrol.Value.Sum(leg => leg.Distance) > 0)
-                .ToDictionary(),
             ShelterLocationId = seed.SeeksShelter
                 ? seed.Jobs.FirstOrDefault(job => job.Action == CreatureJobAction.Sleep)?.LocationId
                 : null,
@@ -76,7 +69,6 @@ public sealed class WorldSimulator
                 seed.MovementSpeed,
                 _options.TimeScale
             ),
-            PatrolDwell = TimeSpan.FromSeconds(PatrolDwellRealSeconds * _options.TimeScale),
             NextUpdate = now,
             LastUpdate = now,
         };

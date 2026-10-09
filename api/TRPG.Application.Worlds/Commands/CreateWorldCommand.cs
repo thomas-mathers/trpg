@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.WorldGeneration.Mappers;
@@ -28,13 +26,7 @@ public record CreateWorldResult(Guid WorldId, Guid PlayerId, string WorldName);
 internal class CreateWorldCommandHandler(
     WorldGenerator worldGenerator,
     CreatureGenerator creatureGenerator,
-    CountryPatrolRouteSeeder countryPatrolRouteSeeder,
-    RoadTravelerRouteSeeder roadTravelerRouteSeeder,
-    ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld,
-    IOptionsSnapshot<CaravanOptions> caravanOptions,
-    IOptionsSnapshot<CountryPatrolOptions> countryPatrolOptions,
-    IOptionsSnapshot<RoadTravelerOptions> roadTravelerOptions,
-    IOptions<WorldClockOptions> clockOptions
+    ICommandHandler<BootstrapWorldCommand, BootstrapWorldResult> bootstrapWorld
 ) : ICommandHandler<CreateWorldCommand, CreateWorldResult>
 {
     public async Task<CreateWorldResult> Handle(
@@ -112,34 +104,9 @@ internal class CreateWorldCommandHandler(
             })
             .ToArray();
 
-        var caravanRoutes = CaravanRouteSeeder.Seed(
-            worldResult,
-            caravanOptions.Value,
-            clockOptions.Value.TimeScale
-        );
-        var countryPatrolRoutes = countryPatrolRouteSeeder.Seed(
-            worldResult,
-            countryPatrolOptions.Value,
-            clockOptions.Value.TimeScale
-        );
-        var roadTravelerRoutes = roadTravelerRouteSeeder.Seed(
-            worldResult,
-            roadTravelerOptions.Value,
-            clockOptions.Value.TimeScale
-        );
-
-        var seededCreatures = countryPatrolRoutes
-            .Creatures.Concat(roadTravelerRoutes.Creatures)
-            .ToArray();
-        CreatureLayoutGenerator.Place(
-            CreateLayoutInput(worldResult, seededCreatures, worldResult.Creatures)
-        );
+        CreatureLayoutGenerator.Place(CreateLayoutInput(worldResult, worldResult.Creatures, []));
         CreatureLayoutGenerator.PlaceAtLocationCenter(
-            CreateLayoutInput(
-                worldResult,
-                [playerResult.Creature],
-                [.. worldResult.Creatures, .. seededCreatures]
-            )
+            CreateLayoutInput(worldResult, [playerResult.Creature], worldResult.Creatures)
         );
 
         var bootstrapResult = await bootstrapWorld.Handle(
@@ -150,28 +117,6 @@ internal class CreateWorldCommandHandler(
                 Quests = quests,
                 PlayerReputations = monsterReputations,
                 QuestSeedSchedules = questSeedSchedules,
-                CaravanRoutes = caravanRoutes.Routes,
-                CaravanRouteSteps = caravanRoutes.Steps,
-                CaravanRouteTravelers = caravanRoutes.Travelers,
-                CaravanFares = caravanRoutes.Fares,
-                CaravanRouteSigns = caravanRoutes.Signs,
-                CountryPatrolRoutes = countryPatrolRoutes.Routes,
-                CountryPatrolRouteSteps = countryPatrolRoutes.Steps,
-                CountryPatrolRouteTravelers = countryPatrolRoutes.Travelers,
-                GuardPatrolCreatures = countryPatrolRoutes.Creatures,
-                GuardPatrolFactionMembers = countryPatrolRoutes.FactionMembers,
-                GuardPatrolItems = countryPatrolRoutes.Items,
-                GuardPatrolSkills = countryPatrolRoutes.Skills,
-                RoadTravelerRoutes = roadTravelerRoutes.Routes,
-                RoadTravelerRouteSteps = roadTravelerRoutes.Steps,
-                RoadTravelerRouteTravelers = roadTravelerRoutes.RouteTravelers,
-                RouteTravelerMembers = countryPatrolRoutes
-                    .Members.Concat(roadTravelerRoutes.Members)
-                    .ToArray(),
-                RoadTravelerCreatures = roadTravelerRoutes.Creatures,
-                RoadTravelerItems = roadTravelerRoutes.Items,
-                RoadTravelerSkills = roadTravelerRoutes.Skills,
-                RoadTravelerProfiles = roadTravelerRoutes.Profiles,
             },
             cancellationToken
         );

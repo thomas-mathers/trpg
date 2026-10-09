@@ -90,51 +90,6 @@ public sealed class GetNpcConversationBriefingQueryTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_IncludesTheRoadTravelersJourney()
-    {
-        var destination = new Location
-        {
-            WorldId = WorldId,
-            StateId = Guid.NewGuid(),
-            Name = "Westmere Gate",
-        };
-        var origin = new Location
-        {
-            Id = _npc.LocationId,
-            WorldId = WorldId,
-            StateId = destination.StateId,
-            Name = "Ashford Gate",
-        };
-        var route = Builders.MakeCaravanRoute(WorldId);
-        var routeTraveler = Builders.MakeCaravan(
-            route.Id,
-            WorldId,
-            purpose: "Making a pilgrimage to the Dawn Temple."
-        );
-        _context.Locations.AddRange(origin, destination);
-        _context.Routes.Add(route);
-        _context.RouteSteps.AddRange(
-            Builders.MakeCaravanRouteStop(route.Id, 0, origin.Id, Guid.NewGuid()),
-            Builders.MakeCaravanRouteStop(route.Id, 1, destination.Id, Guid.NewGuid())
-        );
-        _context.RouteTravelers.Add(routeTraveler);
-        _context.RouteTravelerMembers.Add(
-            new RouteTravelerMember
-            {
-                WorldId = WorldId,
-                RouteTravelerId = routeTraveler.Id,
-                CreatureId = _npc.Id,
-            }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        var result = await _handler.Handle(MakeQuery(), TestContext.Current.CancellationToken);
-
-        Assert.Equal("Making a pilgrimage to the Dawn Temple.", result.Journey?.Purpose);
-        Assert.Equal("Westmere Gate", result.Journey?.NextDestination);
-    }
-
-    [Fact]
     public async Task Handle_ReturnsThePlayersSneakingStance()
     {
         // Arrange

@@ -18,21 +18,11 @@ internal sealed class JourneyPlanner(
             creature.Jobs,
             creature.LocationId,
             now,
-            job => shelter.Apply(creature, job),
-            job => creature.PatrolFor(job) != null
+            job => shelter.Apply(creature, job)
         );
         if (transition == null)
         {
             creature.NextUpdate = now + RetryWhenNothingScheduled;
-            return;
-        }
-
-        if (
-            creature.PatrolFor(transition.Destination) is { } patrol
-            && transition.Destination.LocationId == creature.LocationId
-        )
-        {
-            PlanPatrol(creature, transition, patrol, now);
             return;
         }
 
@@ -60,23 +50,6 @@ internal sealed class JourneyPlanner(
             legs.Sum(leg => leg.Distance),
             now
         );
-    }
-
-    private static void PlanPatrol(
-        SimulatedCreature creature,
-        JobTransition transition,
-        IReadOnlyList<RouteLeg> patrol,
-        GameInstant now
-    )
-    {
-        var start = transition.IsOpen ? now : transition.At;
-        creature.Journey = new Journey(
-            patrol,
-            transition.Destination,
-            transition.At,
-            JobTransition.FindWindowEnd(creature.Jobs, transition.Destination, start)
-        );
-        creature.NextUpdate = start;
     }
 
     private GameInstant ResolveDeparture(

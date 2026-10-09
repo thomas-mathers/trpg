@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using TRPG.Application.Caravans.Queries;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
@@ -11,7 +10,6 @@ using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
-using TRPG.Application.Routing.Queries;
 using TRPG.Application.Scenes.Boundaries;
 using TRPG.Application.Scenes.Navigation;
 using TRPG.Application.Scenes.Neighbors;
@@ -45,10 +43,6 @@ internal sealed class SceneCreatureInfoBuilder(
         GetTradeWorkstationIdsByOccupantIdsQuery,
         IReadOnlyDictionary<Guid, Guid?>
     > getTradeWorkstationIdsByOccupantIds,
-    IQueryHandler<
-        GetRouteTravelerJourneysByCreatureIdsQuery,
-        IReadOnlyDictionary<Guid, RouteTravelerJourney>
-    > getRouteTravelerJourneysByCreatureIds,
     IQueryHandler<
         GetCreatureWalkPathsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<Point>>
@@ -138,15 +132,6 @@ internal sealed class SceneCreatureInfoBuilder(
             new GetTotalCharacterXpFromSkillsQuery { CreatureIds = nearbyCreatureIds },
             cancellationToken
         );
-        var journeysByCreature = await getRouteTravelerJourneysByCreatureIds.Handle(
-            new GetRouteTravelerJourneysByCreatureIdsQuery
-            {
-                CreatureIds = nearbyCreatureIds,
-                GameTime = query.GameTime,
-            },
-            cancellationToken
-        );
-
         return present
             .Select(x =>
                 BuildSceneCreatureInfo(
@@ -171,7 +156,6 @@ internal sealed class SceneCreatureInfoBuilder(
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
                     questMarkers: questMarkers.EntriesByCreatureId.GetValueOrDefault(x.Id, []),
                     readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id),
-                    journey: ToSceneJourney(journeysByCreature.GetValueOrDefault(x.Id)),
                     walk: CreaturePoseResolver.BuildWalk(
                         x,
                         walkPaths.GetValueOrDefault(x.Id, []),
@@ -181,9 +165,6 @@ internal sealed class SceneCreatureInfoBuilder(
             )
             .ToArray();
     }
-
-    private static SceneJourneyInfo? ToSceneJourney(RouteTravelerJourney? journey) =>
-        journey == null ? null : new SceneJourneyInfo(journey.Purpose, journey.NextDestination);
 
     public static SceneCreatureInfo BuildSceneCreatureInfo(
         CreatureResult creature,

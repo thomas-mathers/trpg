@@ -179,29 +179,6 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         );
     }
 
-    [Fact]
-    public async Task Tick_StandsAPatrollingGuardAtItsFirstStop()
-    {
-        // Arrange
-        var route = await _context.AddPatrolRoute(
-            _worldId,
-            _door,
-            TestContext.Current.CancellationToken
-        );
-        var guard = await AddGuard(route);
-        await StartRunner();
-
-        // Act
-        await _runner.Tick(Now, TestContext.Current.CancellationToken);
-
-        // Assert
-        var updated = await db.ReadCreature(guard.Id);
-        Assert.Equal(
-            (_workplace.Id, CreatureMovement.Stationary),
-            (updated.LocationId, updated.Movement)
-        );
-    }
-
     private async Task AddPlayerAt(Location location)
     {
         var player = Builders.MakeCreature(_worldId, locationId: location.Id);
@@ -225,26 +202,6 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         return await readContext
             .CreatureJobs.Where(job => job.CreatureId == creatureId)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-    }
-
-    private async Task<Creature> AddGuard(Route route)
-    {
-        var guard = Builders.MakeCreature(_worldId, locationId: _workplace.Id, movementSpeed: 50);
-        _context.Creatures.Add(guard);
-        _context.CreatureJobs.Add(
-            Builders.MakeCreatureJob(
-                guard.Id,
-                action: CreatureJobAction.Work,
-                startHour: 0,
-                endHour: 24,
-                locationId: _workplace.Id,
-                worldId: _worldId,
-                routeId: route.Id
-            )
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return guard;
     }
 
     private async Task<Creature> AddWorker(bool isRestrained = false)

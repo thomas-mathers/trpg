@@ -11,10 +11,6 @@ public static class WorldSimulationServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddTransient<PlayerVitalsPublisher>()
-            .AddTransient<CreaturesReleasedEventHandler>()
-            .AddTransient<IDomainEventConsumer<CreaturesReleasedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<CreaturesReleasedEventHandler>()
-            )
             .AddTransient<PlayerMovedCorpseCleanupEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedCorpseCleanupEventHandler>()

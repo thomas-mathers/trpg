@@ -17,8 +17,7 @@ internal sealed record JobTransition(
         IReadOnlyList<CreatureJob> jobs,
         Guid currentLocationId,
         GameInstant now,
-        Func<CreatureJob, CreatureJob> resolveDestination,
-        Func<CreatureJob, bool>? startsPatrol = null
+        Func<CreatureJob, CreatureJob> resolveDestination
     )
     {
         var firstBoundary = StartOfHour(now);
@@ -26,10 +25,7 @@ internal sealed record JobTransition(
         {
             var at = offset == 0 ? now : firstBoundary + TimeSpan.FromHours(offset);
             var due = DueJobAt(jobs, at) is { } scheduled ? resolveDestination(scheduled) : null;
-            if (
-                due != null
-                && (due.LocationId != currentLocationId || startsPatrol?.Invoke(due) == true)
-            )
+            if (due != null && due.LocationId != currentLocationId)
             {
                 return new JobTransition(
                     due,

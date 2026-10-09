@@ -24,12 +24,6 @@ public sealed record LocationEntered(
     Point? StopPosition = null
 ) : SimEvent(CreatureId, At);
 
-public sealed record DwellStarted(Guid CreatureId, GameInstant At, Guid LocationId, Point Position)
-    : SimEvent(CreatureId, At);
-
-public sealed record PatrolEnded(Guid CreatureId, GameInstant At, Guid LocationId)
-    : SimEvent(CreatureId, At);
-
 public sealed record JourneyCompleted(
     Guid CreatureId,
     GameInstant At,

@@ -5,8 +5,9 @@ namespace TRPG.Data.ModuleContexts;
 
 public interface IRoutingDbContext : ITrpgDbContext
 {
-    DbSet<Route> Routes { get; }
-    DbSet<RouteStep> RouteSteps { get; }
-    DbSet<RouteTraveler> RouteTravelers { get; }
-    DbSet<RouteTravelerMember> RouteTravelerMembers { get; }
+    DbSet<TravelCircuit> TravelCircuits { get; }
+    DbSet<TravelCircuitLeg> TravelCircuitLegs { get; }
+    DbSet<Journey> Journeys { get; }
+    DbSet<JourneyLeg> JourneyLegs { get; }
+    DbSet<JourneyMember> JourneyMembers { get; }
 }

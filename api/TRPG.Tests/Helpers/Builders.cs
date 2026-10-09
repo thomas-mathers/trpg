@@ -1376,8 +1376,7 @@ internal static class Builders
         int endHour = 17,
         Guid? locationId = null,
         Guid? worldId = null,
-        DayOfWeek? specificDay = null,
-        Guid? routeId = null
+        DayOfWeek? specificDay = null
     )
     {
         return new CreatureJob
@@ -1387,7 +1386,6 @@ internal static class Builders
             StartHour = startHour,
             EndHour = endHour,
             SpecificDay = specificDay,
-            RouteId = routeId,
             Priority = priority,
             LocationId = locationId ?? Guid.NewGuid(),
             WorldId = worldId ?? Guid.NewGuid(),
@@ -1634,87 +1632,4 @@ internal static class Builders
             CombatantIds = combatantIds.ToList(),
         };
     }
-
-    public static Route MakeCaravanRoute(
-        Guid? worldId = null,
-        string name = "The Capital Circuit"
-    ) => new() { WorldId = worldId ?? Guid.NewGuid(), Name = name };
-
-    public static RouteStep MakeCaravanRouteStop(
-        Guid routeId,
-        int sequenceIndex,
-        Guid locationId,
-        Guid connectorId,
-        double dwellHours = 1,
-        double distance = 10
-    ) =>
-        new()
-        {
-            RouteId = routeId,
-            SequenceIndex = sequenceIndex,
-            LocationId = locationId,
-            ConnectorId = connectorId,
-            DwellHours = dwellHours,
-            Distance = distance,
-        };
-
-    public static RouteTraveler MakeCaravan(
-        Guid routeId,
-        Guid? worldId = null,
-        double phaseOffsetHours = 0,
-        string? purpose = null,
-        double speedUnitsPerHour = 5,
-        GameInstant? pausedAtGameTime = null
-    ) =>
-        new()
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            RouteId = routeId,
-            StartedAtGameTime = GameClock.Epoch - TimeSpan.FromHours(1) * phaseOffsetHours,
-            PausedAtGameTime = pausedAtGameTime,
-            SpeedUnitsPerHour = speedUnitsPerHour,
-            Purpose = purpose,
-        };
-
-    public static CaravanFare MakeCaravanFare(
-        Guid routeId,
-        Guid? worldId = null,
-        int ticketFeeGold = 10
-    ) =>
-        new()
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            RouteId = routeId,
-            TicketFeeGold = ticketFeeGold,
-        };
-
-    public static RouteTravelerMember MakeRouteTravelerMember(
-        Guid routeTravelerId,
-        Guid creatureId,
-        Guid? worldId = null
-    ) =>
-        new()
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            RouteTravelerId = routeTravelerId,
-            CreatureId = creatureId,
-        };
-
-    public static CaravanTicket MakeCaravanTicket(
-        Guid routeTravelerId,
-        Guid creatureId,
-        Guid originStopLocationId,
-        Guid destinationLocationId,
-        Guid? worldId = null,
-        GameInstant? purchasedAtGameTime = null
-    ) =>
-        new()
-        {
-            WorldId = worldId ?? Guid.NewGuid(),
-            RouteTravelerId = routeTravelerId,
-            CreatureId = creatureId,
-            OriginStopLocationId = originStopLocationId,
-            DestinationLocationId = destinationLocationId,
-            PurchasedAtGameTime = purchasedAtGameTime ?? GameClock.Epoch,
-        };
 }

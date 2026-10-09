@@ -25,27 +25,35 @@ internal class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache
             cancellationToken
         );
 
+        var journeyIds = await context
+            .Journeys.Where(journey => journey.WorldId == worldId)
+            .Select(journey => journey.Id)
+            .ToArrayAsync(cancellationToken);
+
         await context
-            .CaravanTickets.Where(x => x.WorldId == worldId)
+            .JourneyMembers.Where(member => journeyIds.Contains(member.JourneyId))
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .RouteTravelerMembers.Where(x => x.WorldId == worldId)
+            .JourneyLegs.Where(leg => journeyIds.Contains(leg.JourneyId))
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .RouteTravelers.Where(x => x.WorldId == worldId)
+            .Journeys.Where(journey => journey.WorldId == worldId)
+            .ExecuteDeleteAsync(cancellationToken);
+
+        var circuitIds = await context
+            .TravelCircuits.Where(circuit => circuit.WorldId == worldId)
+            .Select(circuit => circuit.Id)
+            .ToArrayAsync(cancellationToken);
+
+        await context
+            .TravelCircuitLegs.Where(leg => circuitIds.Contains(leg.TravelCircuitId))
             .ExecuteDeleteAsync(cancellationToken);
 
         await context
-            .CaravanFares.Where(x => x.WorldId == worldId)
+            .TravelCircuits.Where(circuit => circuit.WorldId == worldId)
             .ExecuteDeleteAsync(cancellationToken);
-
-        await context
-            .RouteSteps.Where(x => x.WorldId == worldId)
-            .ExecuteDeleteAsync(cancellationToken);
-
-        await context.Routes.Where(x => x.WorldId == worldId).ExecuteDeleteAsync(cancellationToken);
 
         await context
             .QuestChainGenerationRequests.Where(x => x.WorldId == worldId)

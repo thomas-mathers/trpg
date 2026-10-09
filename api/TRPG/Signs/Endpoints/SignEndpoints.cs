@@ -2,20 +2,14 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using TRPG.Application.Caravans.Queries;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Props.Queries;
-using TRPG.Application.Worlds.Queries;
-using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Signs.Responses;
 
 namespace TRPG.Signs.Endpoints;
 
-// Composes across Props (generic prop lookup) and Caravans (live arrival math) — neither module
-// depends on the other, so this dispatch lives at the host, the same way the world map composes
-// across modules that don't depend on each other either.
 internal static class SignEndpoints
 {
     public static void MapSignEndpoints(this WebApplication app)
@@ -27,14 +21,7 @@ internal static class SignEndpoints
 
     private static async Task<Ok<SignTextResponse>> GetSignText(
         Guid signId,
-        Guid worldId,
         [FromServices] IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
-        [FromServices] IQueryHandler<GetGameTimeByWorldIdQuery, GameInstant> getGameTimeByWorldId,
-        [FromServices]
-            IQueryHandler<
-            GetNextCaravanArrivalsQuery,
-            IReadOnlyList<NextCaravanArrival>
-        > getNextCaravanArrivals,
         CancellationToken cancellationToken
     )
     {
@@ -47,59 +34,6 @@ internal static class SignEndpoints
             throw new EntityNotFoundException("Sign", signId);
         }
 
-        if (sign is not CaravanScheduleSign)
-        {
-            return TypedResults.Ok(new SignTextResponse(sign.Description));
-        }
-
-        var gameTime = await getGameTimeByWorldId.Handle(
-            new GetGameTimeByWorldIdQuery { WorldId = worldId },
-            cancellationToken
-        );
-        var arrivals = await getNextCaravanArrivals.Handle(
-            new GetNextCaravanArrivalsQuery
-            {
-                WorldId = worldId,
-                LocationId = sign.LocationId,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
-
-        var lines = arrivals
-            .OrderBy(arrival => arrival.RouteName)
-            .Select(arrival => FormatArrival(arrival, gameTime));
-        return TypedResults.Ok(
-            new SignTextResponse("Caravan schedule:\n" + string.Join("\n", lines))
-        );
-    }
-
-    private static string FormatArrival(NextCaravanArrival arrival, GameInstant currentGameTime)
-    {
-        var routeLabel = arrival.RouteName.Replace(
-            "The Capital Circuit — ",
-            "",
-            StringComparison.Ordinal
-        );
-        if (arrival.HoursUntilArrival <= 0)
-        {
-            return $"{routeLabel}: here now";
-        }
-
-        var arrivalGameTime = RoundUpToMinute(
-            currentGameTime + TimeSpan.FromHours(1) * arrival.HoursUntilArrival
-        );
-        var arrivalDate = GameClock.GetCurrentInGameDate(arrivalGameTime);
-
-        return $"{routeLabel}: next arrival {arrivalDate.WeekdayName}, {arrivalDate.MonthName} {arrivalDate.Day} - {arrivalDate.Hour:00}:{arrivalGameTime.Value.Minute:00}";
-    }
-
-    // Waiting until the printed minute must land on or after the arrival, never just before it.
-    private static GameInstant RoundUpToMinute(GameInstant instant)
-    {
-        var remainder = instant.Value.Ticks % TimeSpan.TicksPerMinute;
-        return remainder == 0
-            ? instant
-            : instant + TimeSpan.FromTicks(TimeSpan.TicksPerMinute - remainder);
+        return TypedResults.Ok(new SignTextResponse(sign.Description));
     }
 }
