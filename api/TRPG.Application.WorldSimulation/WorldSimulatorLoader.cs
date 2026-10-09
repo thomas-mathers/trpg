@@ -60,13 +60,7 @@ public sealed class WorldSimulatorLoader(
             simulator.Add(seed, now);
         }
 
-        return new LoadedWorldSimulation(
-            simulator,
-            new CreaturePoseMapper(
-                PlacedConnector.Place(topology.LocationConnectors, topology.Nodes)
-            ),
-            graph
-        );
+        return new LoadedWorldSimulation(simulator, new CreaturePoseMapper(), graph);
     }
 
     public async Task<SimCreatureSeed?> LoadSeed(

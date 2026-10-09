@@ -4,12 +4,8 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Poses;
 
-public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
+public sealed class CreaturePoseMapper
 {
-    private readonly Dictionary<Guid, PlacedConnector> _connectorsById = connectors.ToDictionary(
-        placed => placed.Connector.Id
-    );
-
     public IReadOnlyList<CreaturePoseUpdate> Map(IEnumerable<SimEvent> events) =>
         [
             .. events
@@ -26,13 +22,7 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 started.OriginLocationId,
                 null,
                 CreatureMovement.Walking,
-                null,
-                new WalkColumns(
-                    null,
-                    null,
-                    started.StopPosition ?? ExitOf(started.NextConnectorId),
-                    started.At
-                )
+                null
             ),
             LocationEntered entered => new CreaturePoseUpdate(
                 entered.CreatureId,
@@ -40,12 +30,6 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 entered.FromLocationId,
                 CreatureMovement.Walking,
                 null,
-                new WalkColumns(
-                    _connectorsById[entered.ConnectorId].Arrival,
-                    entered.At,
-                    entered.StopPosition ?? ExitOf(entered.NextConnectorId),
-                    entered.NextConnectorId == null ? null : entered.At
-                ),
                 CurrentTravelNodeId: entered.ArrivalNodeId
             ),
             JourneyCompleted completed => new CreaturePoseUpdate(
@@ -54,12 +38,8 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 null,
                 CreatureMovement.Stationary,
                 completed.Action.ToActivity(),
-                null,
                 CurrentTravelNodeId: completed.ArrivalNodeId
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(simEvent)),
         };
-
-    private Point? ExitOf(Guid? connectorId) =>
-        connectorId == null ? null : _connectorsById[connectorId.Value].Exit;
 }

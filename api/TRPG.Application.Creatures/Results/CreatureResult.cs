@@ -49,12 +49,5 @@ public record CreatureResult(
     CreatureEffects Effects,
     double X,
     double Y,
-    double Angle,
-    double? EntryX,
-    double? EntryY,
-    GameInstant? EnteredAt,
-    double? ExitX,
-    double? ExitY,
-    GameInstant? DepartedAt,
-    GameInstant? WalkPausedAt
+    double Angle
 );

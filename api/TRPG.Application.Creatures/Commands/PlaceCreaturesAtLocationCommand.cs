@@ -72,29 +72,9 @@ internal class PlaceCreaturesAtLocationCommandHandler(
             cancellationToken
         );
 
-        var entries =
-            command.ArrivedAt != null && resident.Any(creature => creature.Id == playerId)
-                ? PlaceEntryPoints(input, playerId)
-                : new Dictionary<Guid, Point>();
-
         PlaceArrivals(input, playerId);
 
-        await WritePoses(arriving, entries, command.ArrivedAt, cancellationToken);
-    }
-
-    private static Dictionary<Guid, Point> PlaceEntryPoints(
-        CreatureLayoutInput input,
-        Guid? playerId
-    )
-    {
-        var walkers = input.Creatures.Where(creature => creature.Id != playerId).ToArray();
-
-        CreatureLayoutGenerator.PlaceAtArrival(input with { Creatures = walkers });
-
-        return walkers.ToDictionary(
-            creature => creature.Id,
-            creature => new Point(creature.X, creature.Y)
-        );
+        await WritePoses(arriving, cancellationToken);
     }
 
     private async Task<CreatureLayoutInput> BuildInput(
@@ -152,8 +132,6 @@ internal class PlaceCreaturesAtLocationCommandHandler(
 
     private async Task WritePoses(
         IReadOnlyList<Creature> creatures,
-        IReadOnlyDictionary<Guid, Point> entries,
-        GameInstant? arrivedAt,
         CancellationToken cancellationToken
     )
     {
@@ -162,11 +140,6 @@ internal class PlaceCreaturesAtLocationCommandHandler(
             var x = creature.X;
             var y = creature.Y;
             var angle = creature.Angle;
-            var entry = entries.GetValueOrDefault(creature.Id);
-            var entryX = entry?.X;
-            var entryY = entry?.Y;
-            var enteredAt = entry == null ? null : arrivedAt;
-
             await context
                 .Creatures.Where(candidate => candidate.Id == creature.Id)
                 .ExecuteUpdateAsync(
@@ -174,13 +147,7 @@ internal class PlaceCreaturesAtLocationCommandHandler(
                         setters
                             .SetProperty(candidate => candidate.X, x)
                             .SetProperty(candidate => candidate.Y, y)
-                            .SetProperty(candidate => candidate.Angle, angle)
-                            .SetProperty(candidate => candidate.EntryX, entryX)
-                            .SetProperty(candidate => candidate.EntryY, entryY)
-                            .SetProperty(candidate => candidate.EnteredAt, enteredAt)
-                            .SetProperty(candidate => candidate.ExitX, (double?)null)
-                            .SetProperty(candidate => candidate.ExitY, (double?)null)
-                            .SetProperty(candidate => candidate.DepartedAt, (GameInstant?)null),
+                            .SetProperty(candidate => candidate.Angle, angle),
                     cancellationToken
                 );
         }

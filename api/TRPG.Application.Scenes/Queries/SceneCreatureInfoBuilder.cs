@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Configuration;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
@@ -10,8 +8,8 @@ using TRPG.Application.Knowledge.Queries;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Reputations.Queries;
+using TRPG.Application.Routing.Queries;
 using TRPG.Application.Scenes.Boundaries;
-using TRPG.Application.Scenes.Navigation;
 using TRPG.Application.Scenes.Neighbors;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Scenes.Roads;
@@ -44,10 +42,9 @@ internal sealed class SceneCreatureInfoBuilder(
         IReadOnlyDictionary<Guid, Guid?>
     > getTradeWorkstationIdsByOccupantIds,
     IQueryHandler<
-        GetCreatureWalkPathsQuery,
-        IReadOnlyDictionary<Guid, IReadOnlyList<Point>>
-    > getCreatureWalkPaths,
-    IOptions<WorldClockOptions> clockOptions
+        GetCreatureJourneyPositionsQuery,
+        IReadOnlyDictionary<Guid, CreatureJourneyPosition>
+    > getCreatureJourneyPositions
 )
 {
     public async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
@@ -63,21 +60,17 @@ internal sealed class SceneCreatureInfoBuilder(
             return [];
         }
 
-        var walkPaths = await getCreatureWalkPaths.Handle(
-            new GetCreatureWalkPathsQuery { LocationId = locationId, Creatures = nearby },
+        var journeyPositions = await getCreatureJourneyPositions.Handle(
+            new GetCreatureJourneyPositionsQuery
+            {
+                LocationId = locationId,
+                GameTime = query.GameTime,
+                CreatureIds = nearby.Select(creature => creature.Id).ToArray(),
+            },
             cancellationToken
         );
-        var present = nearby
-            .Where(x =>
-                !CreaturePoseResolver.HasLeft(
-                    x,
-                    walkPaths.GetValueOrDefault(x.Id, []),
-                    query.GameTime,
-                    clockOptions.Value.TimeScale
-                )
-            )
-            .ToArray();
-        if (present.Length == 0)
+        var present = nearby;
+        if (present.Count == 0)
         {
             return [];
         }
@@ -144,27 +137,40 @@ internal sealed class SceneCreatureInfoBuilder(
                     movement: x.Movement,
                     reputation: reputationByCreature.GetValueOrDefault(x.Id, 0),
                     totalCharacterXp: xpTotalsByCreature.GetValueOrDefault(x.Id, 0),
-                    placement: CreaturePoseResolver.Resolve(
-                        x,
-                        walkPaths.GetValueOrDefault(x.Id, []),
-                        query.GameTime,
-                        clockOptions.Value.TimeScale
-                    ),
+                    placement: ToPlacement(x, journeyPositions.GetValueOrDefault(x.Id)),
                     equipment: equippedItemsByCreature
                         .GetValueOrDefault(x.Id, [])
                         .ToVisualEquipment(),
                     tradeWorkstationId: tradeWorkstationIdsByCreature.GetValueOrDefault(x.Id),
                     questMarkers: questMarkers.EntriesByCreatureId.GetValueOrDefault(x.Id, []),
                     readyToDeliver: questMarkers.ReadyToDeliverCreatureIds.Contains(x.Id),
-                    walk: CreaturePoseResolver.BuildWalk(
-                        x,
-                        walkPaths.GetValueOrDefault(x.Id, []),
-                        clockOptions.Value.TimeScale
-                    )
+                    walk: ToWalk(journeyPositions.GetValueOrDefault(x.Id), query.GameTime)
                 )
             )
             .ToArray();
     }
+
+    private static Placement ToPlacement(
+        CreatureResult creature,
+        CreatureJourneyPosition? journeyPosition
+    ) =>
+        journeyPosition is { } position
+            ? new Placement(position.Position.X, position.Position.Y, creature.Angle)
+            : new Placement(creature.X, creature.Y, creature.Angle);
+
+    private static SceneCreatureWalk? ToWalk(
+        CreatureJourneyPosition? journeyPosition,
+        GameInstant now
+    ) =>
+        journeyPosition is not { } position
+            ? null
+            : new SceneCreatureWalk(
+                position.Path,
+                now,
+                position.MetersPerGameSecond,
+                position.LeavesAtEnd,
+                position.PausedAt is null ? null : now
+            );
 
     public static SceneCreatureInfo BuildSceneCreatureInfo(
         CreatureResult creature,

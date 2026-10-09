@@ -94,13 +94,6 @@ internal static class CreatureMapper
             creature.ToEffects(),
             creature.X,
             creature.Y,
-            creature.Angle,
-            creature.EntryX,
-            creature.EntryY,
-            creature.EnteredAt,
-            creature.ExitX,
-            creature.ExitY,
-            creature.DepartedAt,
-            creature.WalkPausedAt
+            creature.Angle
         );
 }

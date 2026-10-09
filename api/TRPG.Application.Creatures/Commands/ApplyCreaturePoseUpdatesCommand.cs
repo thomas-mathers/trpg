@@ -7,20 +7,12 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 
-public sealed record WalkColumns(
-    Point? Entry,
-    GameInstant? EnteredAt,
-    Point? Exit,
-    GameInstant? DepartedAt
-);
-
 public sealed record CreaturePoseUpdate(
     Guid CreatureId,
     Guid LocationId,
     Guid? PreviousLocationId,
     CreatureMovement Movement,
     CreatureActivity? Activity,
-    WalkColumns? Walk,
     Point? StandAt = null,
     Guid? CurrentTravelNodeId = null
 )
@@ -29,7 +21,6 @@ public sealed record CreaturePoseUpdate(
         next with
         {
             PreviousLocationId = next.PreviousLocationId ?? PreviousLocationId,
-            Walk = next.Walk ?? Walk,
             StandAt = next.StandAt ?? StandAt,
             CurrentTravelNodeId = next.CurrentTravelNodeId ?? CurrentTravelNodeId,
         };
@@ -64,10 +55,6 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
         }
 
         await PlaceRelocated(command.Updates, cancellationToken);
-        foreach (var update in command.Updates.Where(update => update.Walk != null))
-        {
-            await WriteWalk(update.CreatureId, update.Walk!, cancellationToken);
-        }
 
         await PublishEvents(command.Updates, sleepingIds, cancellationToken);
     }
@@ -158,34 +145,6 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
                         );
                     }
                 },
-                cancellationToken
-            );
-    }
-
-    private async Task WriteWalk(
-        Guid creatureId,
-        WalkColumns walk,
-        CancellationToken cancellationToken
-    )
-    {
-        var entryX = walk.Entry?.X;
-        var entryY = walk.Entry?.Y;
-        var exitX = walk.Exit?.X;
-        var exitY = walk.Exit?.Y;
-
-        await context
-            .Creatures.Where(creature =>
-                creature.Id == creatureId && creature.Condition != CreatureCondition.Dead
-            )
-            .ExecuteUpdateAsync(
-                setters =>
-                    setters
-                        .SetProperty(creature => creature.EntryX, entryX)
-                        .SetProperty(creature => creature.EntryY, entryY)
-                        .SetProperty(creature => creature.EnteredAt, walk.EnteredAt)
-                        .SetProperty(creature => creature.ExitX, exitX)
-                        .SetProperty(creature => creature.ExitY, exitY)
-                        .SetProperty(creature => creature.DepartedAt, walk.DepartedAt),
                 cancellationToken
             );
     }

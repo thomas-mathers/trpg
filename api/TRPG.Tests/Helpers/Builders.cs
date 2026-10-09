@@ -308,12 +308,7 @@ internal static class Builders
         double x = 0,
         double y = 0,
         double angle = 0,
-        float? movementSpeed = null,
-        Point? entry = null,
-        GameInstant? enteredAt = null,
-        Point? exit = null,
-        GameInstant? departedAt = null,
-        GameInstant? walkPausedAt = null
+        float? movementSpeed = null
     )
     {
         var attributes = baseAttributes ?? MakeAttributes();
@@ -324,13 +319,6 @@ internal static class Builders
             X = x,
             Y = y,
             Angle = angle,
-            EntryX = entry?.X,
-            EntryY = entry?.Y,
-            EnteredAt = enteredAt,
-            ExitX = exit?.X,
-            ExitY = exit?.Y,
-            DepartedAt = departedAt,
-            WalkPausedAt = walkPausedAt,
             WorldId = worldId ?? Guid.NewGuid(),
             Name = name,
             CreatureType = creatureType,
