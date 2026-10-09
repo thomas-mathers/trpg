@@ -5,6 +5,16 @@ namespace TRPG.Application.WorldSimulation.Movement;
 
 public abstract record SimEvent(Guid CreatureId, GameInstant At);
 
+public sealed record JourneyCheckpoint(
+    Guid CreatureId,
+    GameInstant At,
+    Guid JourneyId,
+    JourneyStatus Status,
+    int LegIndex,
+    double LegProgressMeters,
+    GameInstant? PausedAt = null
+) : SimEvent(CreatureId, At);
+
 public sealed record JourneyStarted(
     Guid CreatureId,
     GameInstant At,
@@ -21,7 +31,8 @@ public sealed record LocationEntered(
     Guid ToLocationId,
     Guid ConnectorId,
     Guid? NextConnectorId,
-    Point? StopPosition = null
+    Point? StopPosition = null,
+    Guid? ArrivalNodeId = null
 ) : SimEvent(CreatureId, At);
 
 public sealed record JourneyCompleted(
@@ -29,5 +40,6 @@ public sealed record JourneyCompleted(
     GameInstant At,
     Guid LocationId,
     Guid JobId,
-    CreatureJobAction Action
+    CreatureJobAction Action,
+    Guid? ArrivalNodeId = null
 ) : SimEvent(CreatureId, At);

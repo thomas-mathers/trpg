@@ -21,7 +21,8 @@ public sealed record CreaturePoseUpdate(
     CreatureMovement Movement,
     CreatureActivity? Activity,
     WalkColumns? Walk,
-    Point? StandAt = null
+    Point? StandAt = null,
+    Guid? CurrentTravelNodeId = null
 )
 {
     public CreaturePoseUpdate Then(CreaturePoseUpdate next) =>
@@ -30,6 +31,7 @@ public sealed record CreaturePoseUpdate(
             PreviousLocationId = next.PreviousLocationId ?? PreviousLocationId,
             Walk = next.Walk ?? Walk,
             StandAt = next.StandAt ?? StandAt,
+            CurrentTravelNodeId = next.CurrentTravelNodeId ?? CurrentTravelNodeId,
         };
 }
 
@@ -114,6 +116,7 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
         var walking = update.Movement == CreatureMovement.Walking;
         var previousLocationId = update.PreviousLocationId;
         var standAt = update.StandAt;
+        var currentTravelNodeId = update.CurrentTravelNodeId;
 
         await context
             .Creatures.Where(creature =>
@@ -145,6 +148,13 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
                         setters.SetProperty(
                             creature => creature.PreviousLocationId,
                             previousLocationId
+                        );
+                    }
+                    if (currentTravelNodeId != null)
+                    {
+                        setters.SetProperty(
+                            creature => creature.CurrentTravelNodeId,
+                            currentTravelNodeId
                         );
                     }
                 },

@@ -6,6 +6,29 @@ namespace TRPG.Tests.Application.Common.Algorithms;
 public class GraphsTests
 {
     [Fact]
+    public void ShortestPathToNearest_ChoosesTheCheapestOfSeveralOrigins()
+    {
+        // Arrange
+        var graph = new Dictionary<string, Dictionary<string, float>>
+        {
+            ["A"] = new() { ["D"] = 10 },
+            ["B"] = new() { ["D"] = 2 },
+            ["D"] = [],
+        };
+
+        // Act
+        var result = Graphs.ShortestPathToNearest(
+            ["A", "B"],
+            node => node == "D",
+            node => Neighbors(graph, node),
+            (from, to) => graph[from][to]
+        );
+
+        // Assert
+        Assert.Equal(["B", "D"], result);
+    }
+
+    [Fact]
     public void ShortestPath_ReturnsMultiHopPath_InCorrectOrder()
     {
         // Arrange

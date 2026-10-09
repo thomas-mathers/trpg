@@ -45,7 +45,8 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                     entered.At,
                     entered.StopPosition ?? ExitOf(entered.NextConnectorId),
                     entered.NextConnectorId == null ? null : entered.At
-                )
+                ),
+                CurrentTravelNodeId: entered.ArrivalNodeId
             ),
             JourneyCompleted completed => new CreaturePoseUpdate(
                 completed.CreatureId,
@@ -53,7 +54,8 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 null,
                 CreatureMovement.Stationary,
                 completed.Action.ToActivity(),
-                null
+                null,
+                CurrentTravelNodeId: completed.ArrivalNodeId
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(simEvent)),
         };

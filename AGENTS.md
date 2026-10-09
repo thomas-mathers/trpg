@@ -16,6 +16,14 @@ Backend conventions live in `api/AGENTS.md`; frontend conventions live in `spa/A
 
 ---
 
+## Tests
+
+- Build with `scripts/build.sh` before running a focused backend test.
+- Run backend tests through the compiled xUnit assembly, for example: `dotnet api/TRPG.Tests/bin/Debug/net10.0/TRPG.Tests.dll -class Fully.Qualified.TestClass -reporter quiet`. The project uses Microsoft.Testing.Platform, so `dotnet test` is unsupported on the installed .NET SDK.
+- Database-backed tests use Testcontainers. Run the test-assembly command with elevated sandbox permissions so it can access Docker Desktop through `npipe://./pipe/docker_engine`; the sandboxed runner cannot access that Windows named pipe.
+
+---
+
 ## Comments
 
 - Explain *why*, never *how* — well-named identifiers make the what and how obvious

@@ -13,17 +13,13 @@ public sealed record WorldSimulatorOptions(
 public sealed class WorldSimulator
 {
     private readonly WorldSimulatorOptions _options;
-    private readonly RouteFinder _routeFinder;
     private readonly WeatherShelter _shelter = new();
-    private readonly JourneyPlanner _planner;
     private readonly List<SimulatedCreature> _creatures = [];
     private readonly Dictionary<Guid, SimulatedCreature> _creaturesById = [];
 
     public WorldSimulator(TravelGraph graph, WorldSimulatorOptions options)
     {
         _options = options;
-        _routeFinder = new RouteFinder(graph, options.RouteSearchesPerTick);
-        _planner = new JourneyPlanner(_routeFinder, _shelter, options.ArrivalStagger);
     }
 
     public IReadOnlySet<Guid> IdleLocationIds() =>
@@ -55,8 +51,7 @@ public sealed class WorldSimulator
 
         foreach (var creature in _creatures.Where(creature => !creature.IsWalking))
         {
-            creature.Journey = null;
-            if (!creature.IsFrozen)
+            if (creature.Journey is null && !creature.IsFrozen)
             {
                 creature.NextUpdate = now;
             }
@@ -85,7 +80,18 @@ public sealed class WorldSimulator
             ),
             NextUpdate = now,
             LastUpdate = now,
+            IsFrozen = seed.IsEngaged,
         };
+        if (seed.Journey is { } journey)
+        {
+            creature.Journey = new JourneyExecution(journey);
+            creature.IsWalking = journey.Status == JourneyStatus.Traveling;
+            creature.LastUpdate = journey.CheckpointedAt;
+            creature.NextUpdate =
+                journey.Status == JourneyStatus.Planned
+                    ? journey.DepartureAt
+                    : journey.CheckpointedAt;
+        }
         _creatures.Add(creature);
         _creaturesById[creature.Id] = creature;
     }
@@ -104,7 +110,6 @@ public sealed class WorldSimulator
     public IReadOnlyList<SimEvent> Step(GameInstant now)
     {
         var events = new List<SimEvent>();
-        _routeFinder.BeginTick();
         foreach (var creature in _creatures)
         {
             if (creature.IsFrozen || creature.NextUpdate > now)
@@ -129,28 +134,55 @@ public sealed class WorldSimulator
         if (creature.IsWalking)
         {
             JourneyWalker.Advance(creature, at, events);
+            if (creature.Journey is { } journey)
+            {
+                events.Add(
+                    new JourneyCheckpoint(
+                        creature.Id,
+                        at,
+                        journey.Id,
+                        journey.Status,
+                        journey.LegIndex,
+                        journey.LegWalkedMeters,
+                        at
+                    )
+                );
+            }
         }
 
         creature.IsFrozen = true;
         return events;
     }
 
-    public void Release(Guid creatureId, GameInstant at)
+    public IReadOnlyList<SimEvent> Release(Guid creatureId, GameInstant at)
     {
+        var events = new List<SimEvent>();
         if (!_creaturesById.TryGetValue(creatureId, out var creature) || !creature.IsFrozen)
         {
-            return;
+            return events;
         }
 
         creature.IsFrozen = false;
         if (creature.IsWalking)
         {
             JourneyWalker.Resume(creature, at);
-            return;
+            var journey = creature.Journey!;
+            events.Add(
+                new JourneyCheckpoint(
+                    creature.Id,
+                    at,
+                    journey.Id,
+                    journey.Status,
+                    journey.LegIndex,
+                    journey.LegWalkedMeters
+                )
+            );
+            return events;
         }
 
         creature.Journey = null;
         creature.NextUpdate = at;
+        return events;
     }
 
     private void Step(SimulatedCreature creature, GameInstant now, ICollection<SimEvent> events)
@@ -159,11 +191,6 @@ public sealed class WorldSimulator
         {
             JourneyWalker.Advance(creature, now, events);
             return;
-        }
-
-        if (creature.Journey == null)
-        {
-            _planner.Plan(creature, now);
         }
 
         if (creature.Journey != null && creature.NextUpdate <= now)

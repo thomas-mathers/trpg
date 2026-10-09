@@ -94,6 +94,7 @@ Keep this section in sync: when a change adds, removes, or moves a top-level pro
 - `FindAsync([id], cancellationToken)` for PK lookups
 - `ExecuteDeleteAsync` for hard deletes
 - `FirstOrDefaultAsync` + null check for lookups with side effects
+- `TRPG.Application.Common.Algorithms.Graphs` owns reusable shortest-path algorithms. Use `Graphs.ShortestPath` or `Graphs.ShortestPathToNearest`; extend `Graphs` when its current inputs cannot express the graph rather than adding a feature-local Dijkstra or A* loop.
 
 ---
 

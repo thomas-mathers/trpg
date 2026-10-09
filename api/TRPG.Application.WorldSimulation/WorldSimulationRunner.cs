@@ -94,7 +94,7 @@ public sealed class WorldSimulationRunner(
         >();
         foreach (var creatureId in creatureIds)
         {
-            await planJourney.Handle(
+            var journeyId = await planJourney.Handle(
                 new PlanRoutineJourneyCommand
                 {
                     CreatureId = creatureId,
@@ -104,6 +104,10 @@ public sealed class WorldSimulationRunner(
                 },
                 cancellationToken
             );
+            if (journeyId != null)
+            {
+                await Track(creatureId, now, cancellationToken);
+            }
         }
     }
 
@@ -119,7 +123,7 @@ public sealed class WorldSimulationRunner(
                 _unwrittenEvents.AddRange(loaded.Simulator.Engage(engage.CreatureId, now));
                 break;
             case ReleaseCreature release:
-                loaded.Simulator.Release(release.CreatureId, now);
+                _unwrittenEvents.AddRange(loaded.Simulator.Release(release.CreatureId, now));
                 break;
             case SpawnCreature spawn:
                 loaded.Simulator.Add(spawn.Seed, now);
@@ -157,6 +161,28 @@ public sealed class WorldSimulationRunner(
         }
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var checkpoints = _unwrittenEvents.OfType<JourneyCheckpoint>().ToArray();
+        if (checkpoints.Length > 0)
+        {
+            await scope
+                .ServiceProvider.GetRequiredService<ICommandHandler<CheckpointJourneysCommand>>()
+                .Handle(
+                    new CheckpointJourneysCommand
+                    {
+                        Updates = checkpoints
+                            .Select(checkpoint => new JourneyCheckpointUpdate(
+                                checkpoint.JourneyId,
+                                checkpoint.Status,
+                                checkpoint.LegIndex,
+                                checkpoint.LegProgressMeters,
+                                checkpoint.At,
+                                checkpoint.PausedAt
+                            ))
+                            .ToArray(),
+                    },
+                    cancellationToken
+                );
+        }
         var startedCreatureIds = _unwrittenEvents
             .OfType<JourneyStarted>()
             .Select(started => started.CreatureId)
@@ -175,7 +201,11 @@ public sealed class WorldSimulationRunner(
             .Handle(
                 new ApplyCreaturePoseUpdatesCommand
                 {
-                    Updates = loaded.PoseMapper.Map(_unwrittenEvents),
+                    Updates = loaded.PoseMapper.Map(
+                        _unwrittenEvents
+                            .OfType<SimEvent>()
+                            .Where(simEvent => simEvent is not JourneyCheckpoint)
+                    ),
                 },
                 cancellationToken
             );
@@ -200,16 +230,6 @@ public sealed class WorldSimulationRunner(
                 {
                     WorldId = worldId,
                     Arrivals = [.. _unexecutedArrivals],
-                },
-                cancellationToken
-            );
-
-        await scope
-            .ServiceProvider.GetRequiredService<ICommandHandler<CompleteJourneysCommand>>()
-            .Handle(
-                new CompleteJourneysCommand
-                {
-                    CreatureIds = [.. _unexecutedArrivals.Select(arrival => arrival.CreatureId)],
                 },
                 cancellationToken
             );

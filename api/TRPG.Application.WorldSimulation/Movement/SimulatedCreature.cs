@@ -10,27 +10,42 @@ public sealed record SimCreatureSeed(
     float MovementSpeed,
     IReadOnlyList<CreatureJob> Jobs,
     bool SeeksShelter = true,
-    Guid? CurrentTravelNodeId = null
+    Guid? CurrentTravelNodeId = null,
+    JourneyExecutionSeed? Journey = null,
+    bool IsEngaged = false
+);
+
+public sealed record JourneyExecutionSeed(
+    Guid JourneyId,
+    JourneyStatus Status,
+    GameInstant DepartureAt,
+    int CheckpointLegIndex,
+    double CheckpointLegProgressMeters,
+    GameInstant CheckpointedAt,
+    IReadOnlyList<JourneyLeg> Legs,
+    CreatureJob? DestinationJob,
+    IReadOnlyDictionary<Guid, Guid> LocationIdByNodeId
 );
 
 public sealed record SimCreatureState(Guid LocationId, bool IsWalking, bool IsFrozen);
 
-internal sealed class Journey(
-    IReadOnlyList<RouteLeg> legs,
-    CreatureJob destinationJob,
-    GameInstant windowStart
-)
+internal sealed class JourneyExecution(JourneyExecutionSeed seed)
 {
-    public IReadOnlyList<RouteLeg> Legs { get; } = legs;
-    public CreatureJob DestinationJob { get; } = destinationJob;
-    public GameInstant WindowStart { get; } = windowStart;
-    public int LegIndex { get; set; }
-    public double LegWalkedMeters { get; set; }
+    public Guid Id { get; } = seed.JourneyId;
+    public JourneyStatus Status { get; set; } = seed.Status;
+    public GameInstant DepartureAt { get; } = seed.DepartureAt;
+    public IReadOnlyList<JourneyLeg> Legs { get; } = seed.Legs;
+    public CreatureJob? DestinationJob { get; } = seed.DestinationJob;
+    public IReadOnlyDictionary<Guid, Guid> LocationIdByNodeId { get; } = seed.LocationIdByNodeId;
+    public int LegIndex { get; set; } = seed.CheckpointLegIndex;
+    public double LegWalkedMeters { get; set; } = seed.CheckpointLegProgressMeters;
 
     public bool IsOngoing => LegIndex < Legs.Count;
-    public RouteLeg CurrentLeg => Legs[LegIndex];
+    public JourneyLeg CurrentLeg => Legs[LegIndex];
     public double LegRemainingMeters => CurrentLeg.Distance - LegWalkedMeters;
     public double MetersToNextEvent => LegRemainingMeters;
+
+    public Guid LocationOf(Guid nodeId) => LocationIdByNodeId[nodeId];
 }
 
 internal sealed class SimulatedCreature
@@ -41,7 +56,7 @@ internal sealed class SimulatedCreature
     public required Guid LocationId { get; set; }
     public Guid? CurrentTravelNodeId { get; set; }
     public Guid? ShelterLocationId { get; init; }
-    public Journey? Journey { get; set; }
+    public JourneyExecution? Journey { get; set; }
     public bool IsWalking { get; set; }
     public bool IsFrozen { get; set; }
     public GameInstant NextUpdate { get; set; }
