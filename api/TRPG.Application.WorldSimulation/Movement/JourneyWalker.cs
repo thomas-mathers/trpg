@@ -127,7 +127,9 @@ internal static class JourneyWalker
                 creature.LocationId,
                 job?.Id ?? Guid.Empty,
                 job?.Action ?? CreatureJobAction.Idle,
-                creature.CurrentTravelNodeId
+                creature.CurrentTravelNodeId,
+                journey.DestinationPropId,
+                journey.Id
             )
         );
         creature.Journey = null;

@@ -85,7 +85,11 @@ public sealed class TravelGraph
 
     public IReadOnlyList<DirectedTravelLeg> FindShortestPath(Guid fromNodeId, Guid toNodeId)
     {
-        var edges = ShortestEdges([fromNodeId], [toNodeId], pointConnectorsOnly: false);
+        var edges = ShortestEdges(
+            [fromNodeId],
+            new HashSet<Guid> { toNodeId },
+            pointConnectorsOnly: false
+        );
 
         return ToDirectedLegs(edges);
     }
@@ -126,7 +130,11 @@ public sealed class TravelGraph
             return 0;
         }
 
-        var edges = ShortestEdges([fromNodeId], [toNodeId], pointConnectorsOnly: true);
+        var edges = ShortestEdges(
+            [fromNodeId],
+            new HashSet<Guid> { toNodeId },
+            pointConnectorsOnly: true
+        );
 
         return edges.Sum(edge => edge.Distance);
     }
@@ -198,7 +206,7 @@ public sealed class TravelGraph
             From = fromNodeId,
         };
 
-    private static List<RouteLeg> ToLegs(List<GraphEdge> edges)
+    private static List<RouteLeg> ToLegs(IReadOnlyList<GraphEdge> edges)
     {
         var legs = new List<RouteLeg>();
         var pending = 0.0;
@@ -227,7 +235,7 @@ public sealed class TravelGraph
         return legs;
     }
 
-    private List<DirectedTravelLeg> ToDirectedLegs(IReadOnlyList<GraphEdge> edges) =>
+    private IReadOnlyList<DirectedTravelLeg> ToDirectedLegs(IReadOnlyList<GraphEdge> edges) =>
         edges
             .Select(edge => new DirectedTravelLeg(
                 edge.From,

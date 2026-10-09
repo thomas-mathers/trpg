@@ -1,3 +1,4 @@
+using TRPG.Application.CreatureJobs;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 

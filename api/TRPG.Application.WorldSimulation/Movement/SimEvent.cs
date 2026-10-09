@@ -41,5 +41,7 @@ public sealed record JourneyCompleted(
     Guid LocationId,
     Guid JobId,
     CreatureJobAction Action,
-    Guid? ArrivalNodeId = null
+    Guid? ArrivalNodeId = null,
+    Guid? DestinationPropId = null,
+    Guid? JourneyId = null
 ) : SimEvent(CreatureId, At);

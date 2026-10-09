@@ -24,6 +24,7 @@ public sealed record JourneyExecutionSeed(
     GameInstant CheckpointedAt,
     IReadOnlyList<JourneyLeg> Legs,
     CreatureJob? DestinationJob,
+    Guid? DestinationPropId,
     IReadOnlyDictionary<Guid, Guid> LocationIdByNodeId
 );
 
@@ -36,6 +37,7 @@ internal sealed class JourneyExecution(JourneyExecutionSeed seed)
     public GameInstant DepartureAt { get; } = seed.DepartureAt;
     public IReadOnlyList<JourneyLeg> Legs { get; } = seed.Legs;
     public CreatureJob? DestinationJob { get; } = seed.DestinationJob;
+    public Guid? DestinationPropId { get; } = seed.DestinationPropId;
     public IReadOnlyDictionary<Guid, Guid> LocationIdByNodeId { get; } = seed.LocationIdByNodeId;
     public int LegIndex { get; set; } = seed.CheckpointLegIndex;
     public double LegWalkedMeters { get; set; } = seed.CheckpointLegProgressMeters;

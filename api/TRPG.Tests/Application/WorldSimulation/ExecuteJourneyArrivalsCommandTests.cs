@@ -18,7 +18,7 @@ public sealed class ExecuteJourneyArrivalsCommandTests(DatabaseFixture db)
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private ICommandHandler<ExecuteJourneyArrivalsCommand> _handler = null!;
+    private ICommandHandler<ExecuteJourneyArrivalsCommand, JourneyArrivalResult> _handler = null!;
     private Location _room = null!;
 
     public async ValueTask InitializeAsync()
@@ -28,7 +28,7 @@ public sealed class ExecuteJourneyArrivalsCommandTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<
-            ICommandHandler<ExecuteJourneyArrivalsCommand>
+            ICommandHandler<ExecuteJourneyArrivalsCommand, JourneyArrivalResult>
         >();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: WorldId);
@@ -56,7 +56,7 @@ public sealed class ExecuteJourneyArrivalsCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            Arrive(creature.Id, CreatureJobAction.Sleep),
+            Arrive(creature.Id, CreatureJobAction.Sleep, bed.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -75,19 +75,69 @@ public sealed class ExecuteJourneyArrivalsCommandTests(DatabaseFixture db)
             locationId: _room.Id,
             activity: CreatureActivity.Working
         );
-        var counter = Builders.MakeWorkstation(WorldId, _room.Id);
+        var counter = Builders.MakeWorkstation(WorldId, _room.Id, assignedCreatureId: worker.Id);
         _context.Creatures.Add(worker);
         _context.Props.Add(counter);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         await _handler.Handle(
-            Arrive(worker.Id, CreatureJobAction.Work),
+            Arrive(worker.Id, CreatureJobAction.Work, counter.Id),
             TestContext.Current.CancellationToken
         );
 
         // Assert
         Assert.Equal(worker.Id, await db.ReadPropOccupantId(counter.Id));
+    }
+
+    [Fact]
+    public async Task Handle_ClaimsOnlyTheSeatReachedByTheJourney()
+    {
+        // Arrange
+        var creature = Builders.MakeCreature(WorldId, locationId: _room.Id);
+        var otherSeat = new Seat
+        {
+            Id = new Guid("00000000-0000-0000-0000-000000000001"),
+            WorldId = WorldId,
+            LocationId = _room.Id,
+            Name = "Other chair",
+            Description = "A test chair",
+        };
+        var reachedSeat = new Seat
+        {
+            Id = new Guid("00000000-0000-0000-0000-000000000002"),
+            WorldId = WorldId,
+            LocationId = _room.Id,
+            Name = "Reached chair",
+            Description = "A test chair",
+        };
+        _context.Creatures.Add(creature);
+        _context.Props.AddRange(otherSeat, reachedSeat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new ExecuteJourneyArrivalsCommand
+            {
+                WorldId = WorldId,
+                Arrivals =
+                [
+                    new JourneyCompleted(
+                        creature.Id,
+                        Now,
+                        _room.Id,
+                        Guid.NewGuid(),
+                        CreatureJobAction.Idle,
+                        DestinationPropId: reachedSeat.Id
+                    ),
+                ],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Null(await db.ReadPropOccupantId(otherSeat.Id));
+        Assert.Equal(creature.Id, await db.ReadPropOccupantId(reachedSeat.Id));
     }
 
     [Fact]
@@ -109,10 +159,49 @@ public sealed class ExecuteJourneyArrivalsCommandTests(DatabaseFixture db)
         Assert.Equal(CreatureCondition.Awake, updated.Condition);
     }
 
-    private ExecuteJourneyArrivalsCommand Arrive(Guid creatureId, CreatureJobAction action) =>
+    [Fact]
+    public async Task Handle_CompletesStanding_WhenAnIdleJourneyHasNoSeatTarget()
+    {
+        // Arrange
+        var creature = Builders.MakeCreature(
+            WorldId,
+            locationId: _room.Id,
+            activity: CreatureActivity.Working
+        );
+        _context.Creatures.Add(creature);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            Arrive(creature.Id, CreatureJobAction.Idle),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = await db.ReadCreature(creature.Id);
+        Assert.Equal(CreatureCondition.Awake, updated.Condition);
+        Assert.Null(updated.Activity);
+        Assert.Equal(CreaturePosture.Standing, updated.Posture);
+    }
+
+    private ExecuteJourneyArrivalsCommand Arrive(
+        Guid creatureId,
+        CreatureJobAction action,
+        Guid? destinationPropId = null
+    ) =>
         new()
         {
             WorldId = WorldId,
-            Arrivals = [new JourneyCompleted(creatureId, Now, _room.Id, Guid.NewGuid(), action)],
+            Arrivals =
+            [
+                new JourneyCompleted(
+                    creatureId,
+                    Now,
+                    _room.Id,
+                    Guid.NewGuid(),
+                    action,
+                    DestinationPropId: destinationPropId
+                ),
+            ],
         };
 }

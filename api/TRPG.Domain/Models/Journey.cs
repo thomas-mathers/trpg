@@ -8,7 +8,7 @@ public class Journey
     public string? Purpose { get; init; }
     public CreatureActivity? ArrivalActivity { get; init; }
     public Guid? DestinationJobId { get; init; }
-    public Guid? DestinationPropId { get; init; }
+    public Guid? DestinationPropId { get; set; }
     public JourneyStatus Status { get; set; }
     public GameInstant PlannedAt { get; init; }
     public GameInstant DepartureAt { get; set; }

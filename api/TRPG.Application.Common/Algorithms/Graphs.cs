@@ -112,13 +112,13 @@ public static class Graphs
 
             foreach (var to in getNeighbors(from))
             {
-                var cost = costs[from] + getCost(from, to);
+                var candidateCost = costs[from] + getCost(from, to);
 
-                if (!costs.TryGetValue(to, out var bestCost) || cost < bestCost)
+                if (!costs.TryGetValue(to, out var bestCost) || candidateCost < bestCost)
                 {
-                    costs[to] = cost;
+                    costs[to] = candidateCost;
                     cameFrom[to] = from;
-                    frontier.Enqueue(to, cost);
+                    frontier.Enqueue(to, candidateCost);
                 }
             }
         }

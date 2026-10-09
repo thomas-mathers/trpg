@@ -1,12 +1,16 @@
+using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs.Commands;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Creatures.Results;
 using TRPG.Application.Props.Commands;
 using TRPG.Application.Props.Queries;
+using TRPG.Application.Routing.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.WorldSimulation.Movement;
+using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Arrivals;
@@ -17,31 +21,27 @@ public class ExecuteJourneyArrivalsCommand
     public required IReadOnlyCollection<JourneyCompleted> Arrivals { get; init; }
 }
 
+public sealed record JourneyArrivalResult(IReadOnlyCollection<Guid> ReroutedCreatureIds);
+
 internal class ExecuteJourneyArrivalsCommandHandler(
     IQueryHandler<GetCreaturesByIdsQuery, IReadOnlyDictionary<Guid, Creature>> getCreaturesByIds,
+    IQueryHandler<GetPropByIdQuery, Prop?> getPropById,
     ICommandHandler<ExecuteCreatureJobCommand> executeCreatureJob,
-    IQueryHandler<
-        GetCreaturesAtLocationQuery,
-        IReadOnlyCollection<CreatureResult>
-    > getCreaturesAtLocation,
-    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
-    IQueryHandler<
-        GetWorkstationsByLocationIdsQuery,
-        IReadOnlyDictionary<Guid, IReadOnlyList<Workstation>>
-    > getWorkstationsByLocationIds,
-    ICommandHandler<SetWorkstationOccupantsCommand> setWorkstationOccupants
-) : ICommandHandler<ExecuteJourneyArrivalsCommand>
+    ICommandHandler<TryOccupySeatCommand, bool> tryOccupySeat,
+    ICommandHandler<TryOccupyAssignedPropCommand, bool> tryOccupyAssignedProp,
+    ICommandHandler<SetCreatureActivityCommand> setCreatureActivity,
+    ICommandHandler<TryStartSittingCommand, bool> tryStartSitting,
+    IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getPropsByLocationId,
+    IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTravelTopology,
+    IRoutingDbContext routing
+) : ICommandHandler<ExecuteJourneyArrivalsCommand, JourneyArrivalResult>
 {
-    public async Task Handle(
+    public async Task<JourneyArrivalResult> Handle(
         ExecuteJourneyArrivalsCommand command,
         CancellationToken cancellationToken = default
     )
     {
-        if (command.Arrivals.Count == 0)
-        {
-            return;
-        }
-
+        var reroutedCreatureIds = new List<Guid>();
         var creaturesById = await getCreaturesByIds.Handle(
             new GetCreaturesByIdsQuery
             {
@@ -49,132 +49,204 @@ internal class ExecuteJourneyArrivalsCommandHandler(
             },
             cancellationToken
         );
-
-        await ExecuteJobs(command.Arrivals, creaturesById, cancellationToken);
-        await AssignWorkstations(command, cancellationToken);
-    }
-
-    private async Task ExecuteJobs(
-        IReadOnlyCollection<JourneyCompleted> arrivals,
-        IReadOnlyDictionary<Guid, Creature> creaturesById,
-        CancellationToken cancellationToken
-    )
-    {
-        foreach (var arrival in arrivals.OrderBy(arrival => arrival.At))
+        foreach (var arrival in command.Arrivals.OrderBy(arrival => arrival.At))
         {
             if (creaturesById.GetValueOrDefault(arrival.CreatureId) is not { } creature)
             {
                 continue;
             }
-
-            await executeCreatureJob.Handle(
-                new ExecuteCreatureJobCommand
-                {
-                    CreatureId = creature.Id,
-                    CurrentLocationId = creature.LocationId,
-                    CurrentCondition = creature.Condition,
-                    CurrentPosture = creature.Posture,
-                    CreatureJobAction = arrival.Action,
-                    JobLocationId = arrival.LocationId,
-                },
+            if (arrival.DestinationPropId is not { } propId)
+            {
+                await CompleteStanding(arrival, creature, cancellationToken);
+                continue;
+            }
+            var prop = await getPropById.Handle(
+                new GetPropByIdQuery { Id = propId },
                 cancellationToken
             );
+            if (prop != null && prop.LocationId == arrival.LocationId)
+            {
+                if (await CompleteAtProp(arrival, creature, prop, cancellationToken))
+                {
+                    reroutedCreatureIds.Add(creature.Id);
+                }
+            }
         }
+        return new JourneyArrivalResult(reroutedCreatureIds);
     }
 
-    private async Task AssignWorkstations(
-        ExecuteJourneyArrivalsCommand command,
+    private async Task<bool> CompleteAtProp(
+        JourneyCompleted arrival,
+        Creature creature,
+        Prop prop,
         CancellationToken cancellationToken
     )
     {
-        var workLocationIds = command
-            .Arrivals.Where(arrival => arrival.Action == CreatureJobAction.Work)
-            .Select(arrival => arrival.LocationId)
-            .Distinct()
-            .ToArray();
-        if (workLocationIds.Length == 0)
+        if (arrival.Action == CreatureJobAction.Idle && prop is Seat seat)
         {
-            return;
+            if (
+                await tryOccupySeat.Handle(
+                    new TryOccupySeatCommand { SeatId = seat.Id, CreatureId = creature.Id },
+                    cancellationToken
+                )
+            )
+            {
+                await setCreatureActivity.Handle(
+                    new SetCreatureActivityCommand { CreatureIds = [creature.Id], Activity = null },
+                    cancellationToken
+                );
+                await tryStartSitting.Handle(
+                    new TryStartSittingCommand
+                    {
+                        CreatureId = creature.Id,
+                        LocationId = arrival.LocationId,
+                        X = seat.X,
+                        Y = seat.Y,
+                        Angle = seat.Angle,
+                    },
+                    cancellationToken
+                );
+                return false;
+            }
+            return await AppendSeatReroute(arrival, cancellationToken);
         }
-
-        var locationsById = await getLocationsByIds.Handle(
-            new GetLocationsByIdsQuery { Ids = workLocationIds },
-            cancellationToken
-        );
-        var roomLocationIds = workLocationIds
-            .Where(id => locationsById.GetValueOrDefault(id)?.RoomId != null)
-            .ToArray();
-        if (roomLocationIds.Length == 0)
+        if (
+            arrival.Action is CreatureJobAction.Sleep or CreatureJobAction.Work
+            && await tryOccupyAssignedProp.Handle(
+                new TryOccupyAssignedPropCommand
+                {
+                    PropId = prop.Id,
+                    CreatureId = creature.Id,
+                    Action = arrival.Action,
+                },
+                cancellationToken
+            )
+        )
         {
-            return;
+            await executeCreatureJob.Handle(JobCommand(arrival, creature), cancellationToken);
         }
+        return false;
+    }
 
-        var workstationsByLocationId = await getWorkstationsByLocationIds.Handle(
-            new GetWorkstationsByLocationIdsQuery { LocationIds = roomLocationIds },
-            cancellationToken
-        );
-
-        var occupantIdsByWorkstationId = new Dictionary<Guid, Guid?>();
-        foreach (var locationId in roomLocationIds)
+    private async Task CompleteStanding(
+        JourneyCompleted arrival,
+        Creature creature,
+        CancellationToken cancellationToken
+    )
+    {
+        if (arrival.Action == CreatureJobAction.Idle)
         {
-            var workerIds = await FindWorkerIds(command.WorldId, locationId, cancellationToken);
-            var workstations = workstationsByLocationId.GetValueOrDefault(
-                locationId,
-                (IReadOnlyList<Workstation>)[]
+            await setCreatureActivity.Handle(
+                new SetCreatureActivityCommand { CreatureIds = [creature.Id], Activity = null },
+                cancellationToken
             );
-            AssignInOrder(workstations, workerIds, occupantIdsByWorkstationId);
+            return;
         }
-
-        await setWorkstationOccupants.Handle(
-            new SetWorkstationOccupantsCommand
-            {
-                OccupantIdsByWorkstationId = occupantIdsByWorkstationId,
-            },
-            cancellationToken
-        );
+        await executeCreatureJob.Handle(JobCommand(arrival, creature), cancellationToken);
     }
 
-    private async Task<Queue<Guid>> FindWorkerIds(
-        Guid worldId,
-        Guid locationId,
+    private async Task<bool> AppendSeatReroute(
+        JourneyCompleted arrival,
         CancellationToken cancellationToken
     )
     {
-        var present = await getCreaturesAtLocation.Handle(
-            new GetCreaturesAtLocationQuery
-            {
-                WorldId = worldId,
-                LocationId = locationId,
-                IncludeDead = false,
-            },
+        if (arrival.JourneyId is not { } journeyId || arrival.ArrivalNodeId is not { } originNodeId)
+        {
+            return false;
+        }
+        var props = await getPropsByLocationId.Handle(
+            new GetPropsByLocationIdQuery { LocationId = arrival.LocationId },
             cancellationToken
         );
-
-        return new Queue<Guid>(
-            present
-                .Where(creature => creature.Activity == CreatureActivity.Working)
-                .Select(creature => creature.Id)
-                .Order()
-        );
-    }
-
-    private static void AssignInOrder(
-        IReadOnlyList<Workstation> workstations,
-        Queue<Guid> workerIds,
-        Dictionary<Guid, Guid?> occupantIdsByWorkstationId
-    )
-    {
-        var counters = workstations.Where(station =>
-            station.WorkstationType == WorkstationType.Trade
-        );
-        var productionStations = workstations.Where(station =>
-            station.WorkstationType != WorkstationType.Trade
-        );
-
-        foreach (var station in counters.Concat(productionStations))
+        if (props.Count == 0)
         {
-            occupantIdsByWorkstationId[station.Id] =
-                workerIds.Count > 0 ? workerIds.Dequeue() : null;
+            return false;
         }
+        var topology = await getTravelTopology.Handle(
+            new GetTravelTopologyQuery { WorldId = props.First().WorldId },
+            cancellationToken
+        );
+        var graph = topology.ToGraph();
+        var freeSeats = props
+            .OfType<Seat>()
+            .Where(seat => seat.OccupantId == null && seat.ApproachNodeId != null)
+            .ToArray();
+        var target = freeSeats
+            .Select(seat => new RerouteTarget(
+                seat.ApproachNodeId!.Value,
+                seat.Id,
+                graph.FindShortestPath(originNodeId, seat.ApproachNodeId.Value)
+            ))
+            .Where(target => target.Legs.Count > 0)
+            .OrderBy(target => target.Legs.Sum(leg => leg.Distance))
+            .FirstOrDefault();
+        var approachNodeIds = props
+            .Where(prop => prop.ApproachNodeId != null)
+            .Select(prop => prop.ApproachNodeId!.Value)
+            .ToHashSet();
+        target ??= topology
+            .Nodes.Where(node =>
+                node.LocationId == arrival.LocationId && !approachNodeIds.Contains(node.Id)
+            )
+            .Select(node => new RerouteTarget(
+                node.Id,
+                null,
+                graph.FindShortestPath(originNodeId, node.Id)
+            ))
+            .Where(candidate => candidate.Legs.Count > 0)
+            .OrderBy(candidate => candidate.Legs.Sum(leg => leg.Distance))
+            .FirstOrDefault();
+        if (target == null)
+        {
+            return false;
+        }
+        var journey = await routing.Journeys.FindAsync([journeyId], cancellationToken);
+        if (journey == null)
+        {
+            return false;
+        }
+        var index = await routing
+            .JourneyLegs.Where(leg => leg.JourneyId == journeyId)
+            .CountAsync(cancellationToken);
+        routing.JourneyLegs.AddRange(
+            target.Legs.Select(
+                (leg, offset) =>
+                    new JourneyLeg
+                    {
+                        JourneyId = journeyId,
+                        Index = index + offset,
+                        FromNodeId = leg.FromNodeId,
+                        ToNodeId = leg.ToNodeId,
+                        ConnectorId = leg.ConnectorId,
+                        Distance = leg.Distance,
+                        Path = leg.Path,
+                        DwellAfter = TimeSpan.Zero,
+                    }
+            )
+        );
+        journey.DestinationPropId = target.PropId;
+        journey.Status = JourneyStatus.Traveling;
+        await routing.SaveChangesAsync(cancellationToken);
+        return true;
     }
+
+    private sealed record RerouteTarget(
+        Guid NodeId,
+        Guid? PropId,
+        IReadOnlyList<DirectedTravelLeg> Legs
+    );
+
+    private static ExecuteCreatureJobCommand JobCommand(
+        JourneyCompleted arrival,
+        Creature creature
+    ) =>
+        new()
+        {
+            CreatureId = creature.Id,
+            CurrentLocationId = creature.LocationId,
+            CurrentCondition = creature.Condition,
+            CurrentPosture = creature.Posture,
+            CreatureJobAction = arrival.Action,
+            JobLocationId = arrival.LocationId,
+        };
 }

@@ -195,7 +195,14 @@ public class TravelGraphLayoutTests
             .ToArray();
         var nodeIds = layout.TravelNodes.Select(node => node.Id).ToHashSet();
         Assert.NotEmpty(anchors);
-        Assert.All(anchors, anchor => Assert.Contains(anchor.ApproachNodeId, nodeIds));
+        Assert.All(
+            anchors,
+            anchor =>
+            {
+                Assert.NotNull(anchor.ApproachNodeId);
+                Assert.Contains(anchor.ApproachNodeId.Value, nodeIds);
+            }
+        );
     }
 
     [Fact]

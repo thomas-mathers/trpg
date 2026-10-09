@@ -68,7 +68,7 @@ public sealed class WorldSimulationRunner(
 
         await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         await WritePoses(cancellationToken);
-        await ExecuteArrivals(cancellationToken);
+        await ExecuteArrivals(now, cancellationToken);
         await PublishScenes(now, cancellationToken);
     }
 
@@ -215,7 +215,7 @@ public sealed class WorldSimulationRunner(
         _unwrittenEvents.Clear();
     }
 
-    private async Task ExecuteArrivals(CancellationToken cancellationToken)
+    private async Task ExecuteArrivals(GameInstant now, CancellationToken cancellationToken)
     {
         if (_unexecutedArrivals.Count == 0)
         {
@@ -223,8 +223,10 @@ public sealed class WorldSimulationRunner(
         }
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
-        await scope
-            .ServiceProvider.GetRequiredService<ICommandHandler<ExecuteJourneyArrivalsCommand>>()
+        var result = await scope
+            .ServiceProvider.GetRequiredService<
+                ICommandHandler<ExecuteJourneyArrivalsCommand, JourneyArrivalResult>
+            >()
             .Handle(
                 new ExecuteJourneyArrivalsCommand
                 {
@@ -233,6 +235,11 @@ public sealed class WorldSimulationRunner(
                 },
                 cancellationToken
             );
+
+        foreach (var creatureId in result.ReroutedCreatureIds)
+        {
+            await Track(creatureId, now, cancellationToken);
+        }
 
         _unexecutedArrivals.Clear();
     }

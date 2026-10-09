@@ -9,10 +9,9 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Routing;
 
-public sealed class PlanRoutineJourneyCommandTests(DatabaseFixture db)
-    : IAsyncLifetime,
-        IClassFixture<DatabaseFixture>
+public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixture<DatabaseFixture>
 {
+    private readonly DatabaseFixture db;
     private static readonly GameInstant Now = new(new DateTime(1000, 1, 1, 7, 0, 0));
 
     private TrpgDbContext _context = null!;
@@ -27,8 +26,9 @@ public sealed class PlanRoutineJourneyCommandTests(DatabaseFixture db)
     private readonly TravelNode _arrivalNode;
     private readonly TravelNode _workstationNode;
 
-    public PlanRoutineJourneyCommandTests()
+    public PlanRoutineJourneyCommandTests(DatabaseFixture db)
     {
+        this.db = db;
         _homeNode = Builders.MakeTravelNode(_homeLocationId, worldId: _world.Id);
         _exitNode = Builders.MakeTravelNode(_homeLocationId, x: 2, worldId: _world.Id);
         _arrivalNode = Builders.MakeTravelNode(_workLocationId, worldId: _world.Id);
