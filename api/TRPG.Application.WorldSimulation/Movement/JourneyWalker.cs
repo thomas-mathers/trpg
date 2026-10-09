@@ -81,6 +81,7 @@ internal static class JourneyWalker
     {
         var leg = journey.CurrentLeg;
         creature.LocationId = leg.DestinationLocationId;
+        creature.CurrentTravelNodeId = leg.ArrivalNodeId;
         journey.LegIndex++;
         journey.LegWalkedMeters = 0;
         events.Add(

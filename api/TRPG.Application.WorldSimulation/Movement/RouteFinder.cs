@@ -11,11 +11,12 @@ internal sealed class RouteFinder(TravelGraph graph, int searchesPerTick)
 
     public bool TryFind(
         Guid originLocationId,
+        Guid? originNodeId,
         Guid destinationLocationId,
         out IReadOnlyList<RouteLeg> legs
     )
     {
-        var key = new RouteKey(originLocationId, destinationLocationId);
+        var key = new RouteKey(originLocationId, originNodeId, destinationLocationId);
         if (_cache.TryGetValue(key, out var cached))
         {
             legs = cached;
@@ -29,10 +30,14 @@ internal sealed class RouteFinder(TravelGraph graph, int searchesPerTick)
         }
 
         _remainingSearches--;
-        legs = graph.FindShortestPath(originLocationId, null, destinationLocationId);
+        legs = graph.FindShortestPath(originLocationId, originNodeId, destinationLocationId);
         _cache[key] = legs;
         return true;
     }
 
-    private readonly record struct RouteKey(Guid OriginLocationId, Guid DestinationLocationId);
+    private readonly record struct RouteKey(
+        Guid OriginLocationId,
+        Guid? OriginNodeId,
+        Guid DestinationLocationId
+    );
 }

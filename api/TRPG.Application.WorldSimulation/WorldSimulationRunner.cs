@@ -5,6 +5,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Routing.Commands;
 using TRPG.Application.WorldSimulation.Arrivals;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
@@ -54,6 +55,7 @@ public sealed class WorldSimulationRunner(
         }
 
         await DrainMailbox(now, cancellationToken);
+        await PlanJourneys(now, cancellationToken);
         _unwrittenEvents.AddRange(loaded.Simulator.Step(now));
         if (
             _unwrittenEvents.Count == 0
@@ -75,6 +77,33 @@ public sealed class WorldSimulationRunner(
         while (_mailbox.Reader.TryRead(out var message))
         {
             await Apply(message, now, cancellationToken);
+        }
+    }
+
+    private async Task PlanJourneys(GameInstant now, CancellationToken cancellationToken)
+    {
+        var creatureIds = loaded.Simulator.CreaturesAwaitingJourneyPlanning(now);
+        if (creatureIds.Count == 0)
+        {
+            return;
+        }
+
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var planJourney = scope.ServiceProvider.GetRequiredService<
+            ICommandHandler<PlanRoutineJourneyCommand, Guid?>
+        >();
+        foreach (var creatureId in creatureIds)
+        {
+            await planJourney.Handle(
+                new PlanRoutineJourneyCommand
+                {
+                    CreatureId = creatureId,
+                    PlannedAt = now,
+                    TimeScale = loaded.Simulator.Options.TimeScale,
+                    ArrivalStagger = loaded.Simulator.Options.ArrivalStagger,
+                },
+                cancellationToken
+            );
         }
     }
 
@@ -128,6 +157,19 @@ public sealed class WorldSimulationRunner(
         }
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var startedCreatureIds = _unwrittenEvents
+            .OfType<JourneyStarted>()
+            .Select(started => started.CreatureId)
+            .ToArray();
+        if (startedCreatureIds.Length > 0)
+        {
+            await scope
+                .ServiceProvider.GetRequiredService<ICommandHandler<StartJourneysCommand>>()
+                .Handle(
+                    new StartJourneysCommand { CreatureIds = startedCreatureIds },
+                    cancellationToken
+                );
+        }
         await scope
             .ServiceProvider.GetRequiredService<ICommandHandler<ApplyCreaturePoseUpdatesCommand>>()
             .Handle(
@@ -158,6 +200,16 @@ public sealed class WorldSimulationRunner(
                 {
                     WorldId = worldId,
                     Arrivals = [.. _unexecutedArrivals],
+                },
+                cancellationToken
+            );
+
+        await scope
+            .ServiceProvider.GetRequiredService<ICommandHandler<CompleteJourneysCommand>>()
+            .Handle(
+                new CompleteJourneysCommand
+                {
+                    CreatureIds = [.. _unexecutedArrivals.Select(arrival => arrival.CreatureId)],
                 },
                 cancellationToken
             );

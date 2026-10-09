@@ -29,6 +29,7 @@ internal sealed class JourneyPlanner(
         if (
             !routeFinder.TryFind(
                 creature.LocationId,
+                creature.CurrentTravelNodeId,
                 transition.Destination.LocationId,
                 out var legs
             )

@@ -10,6 +10,14 @@ public record RouteLeg(
     double Distance
 );
 
+public record DirectedTravelLeg(
+    Guid FromNodeId,
+    Guid ToNodeId,
+    Guid ConnectorId,
+    double Distance,
+    Polyline Path
+);
+
 public sealed class TravelGraph
 {
     private readonly Connector[] _connectors;
@@ -72,6 +80,26 @@ public sealed class TravelGraph
         var edges = Dijkstra(sources, goals.Contains);
 
         return edges is null ? [] : ToLegs(edges);
+    }
+
+    public IReadOnlyList<DirectedTravelLeg> FindShortestPath(Guid fromNodeId, Guid toNodeId)
+    {
+        var edges = Dijkstra([fromNodeId], node => node == toNodeId);
+
+        return edges is null ? [] : ToDirectedLegs(edges);
+    }
+
+    public DirectedTravelLeg SnapshotLeg(Guid fromNodeId, Guid toNodeId, Guid connectorId)
+    {
+        var edge = _edgesByOriginNode
+            .GetValueOrDefault(fromNodeId, [])
+            .SingleOrDefault(edge => edge.To == toNodeId && edge.Connector.Id == connectorId);
+        if (edge.Connector is null)
+        {
+            throw new InvalidOperationException("The circuit leg does not match the travel graph.");
+        }
+
+        return ToDirectedLegs([edge with { From = fromNodeId }]).Single();
     }
 
     public Guid? FindNearestLocation(Guid originLocationId, IReadOnlySet<Guid> candidateLocationIds)
@@ -218,6 +246,40 @@ public sealed class TravelGraph
         }
 
         return legs;
+    }
+
+    private List<DirectedTravelLeg> ToDirectedLegs(IReadOnlyList<GraphEdge> edges) =>
+        edges
+            .Select(edge => new DirectedTravelLeg(
+                edge.From,
+                edge.To,
+                edge.Connector.Id,
+                edge.Distance,
+                PathFor(edge)
+            ))
+            .ToArray();
+
+    private Polyline PathFor(GraphEdge edge)
+    {
+        var points = edge.Connector switch
+        {
+            PointConnector point => PointPath(point, edge),
+            LocationConnector location when location.Path is not null => location.Path.Points,
+            _ => [],
+        };
+
+        return new Polyline { Points = points.ToList() };
+    }
+
+    private IReadOnlyList<Point> PointPath(PointConnector connector, GraphEdge edge)
+    {
+        var points = new List<Point> { _nodes.Single(node => node.Id == edge.From).Position };
+        points.AddRange(connector.Waypoints.Points);
+        points.Add(_nodes.Single(node => node.Id == edge.To).Position);
+
+        return edge.From == connector.OriginNodeId
+            ? points
+            : points.AsEnumerable().Reverse().ToArray();
     }
 
     private static List<T> GetOrAdd<T>(Dictionary<Guid, List<T>> map, Guid key)

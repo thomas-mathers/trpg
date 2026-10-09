@@ -26,6 +26,48 @@ public class TravelGraphTests
     }
 
     [Fact]
+    public void FindShortestPath_SnapshotsTheReversedPointConnectorPath_WhenWalkingBackward()
+    {
+        // Arrange
+        var first = Node(_locationA);
+        var last = Node(_locationA);
+        first = new TravelNode
+        {
+            Id = first.Id,
+            WorldId = first.WorldId,
+            LocationId = first.LocationId,
+            Position = new Point(1, 2),
+        };
+        last = new TravelNode
+        {
+            Id = last.Id,
+            WorldId = last.WorldId,
+            LocationId = last.LocationId,
+            Position = new Point(9, 2),
+        };
+        var connector = Walk(_locationA, first, last, 8, bidirectional: true);
+        connector = new PointConnector
+        {
+            Id = connector.Id,
+            WorldId = connector.WorldId,
+            LocationId = connector.LocationId,
+            OriginNodeId = connector.OriginNodeId,
+            DestinationNodeId = connector.DestinationNodeId,
+            Distance = connector.Distance,
+            Bidirectional = true,
+            Waypoints = new Polyline { Points = [new Point(5, 2)] },
+        };
+        var graph = new TravelGraph([connector], [first, last]);
+
+        // Act
+        var leg = Assert.Single(graph.FindShortestPath(last.Id, first.Id));
+
+        // Assert
+        Assert.Equal(first.Id, leg.ToNodeId);
+        Assert.Equal([new Point(9, 2), new Point(5, 2), new Point(1, 2)], leg.Path.Points);
+    }
+
+    [Fact]
     public void FindShortestPath_ChargesTheWalkBeforeTheConnector_WhenStartNodeIsGiven()
     {
         // Arrange

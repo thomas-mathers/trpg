@@ -111,7 +111,8 @@ public sealed class WorldSimulatorLoader(
             creature.LocationId,
             creature.MovementSpeed,
             jobs,
-            creature.Profession != Profession.Guard
+            creature.Profession != Profession.Guard,
+            creature.CurrentTravelNodeId
         );
     }
 }

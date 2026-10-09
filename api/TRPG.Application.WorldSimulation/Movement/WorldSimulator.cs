@@ -33,6 +33,19 @@ public sealed class WorldSimulator
             .Select(job => job.LocationId)
             .ToHashSet();
 
+    public IReadOnlyList<Guid> CreaturesAwaitingJourneyPlanning(GameInstant now) =>
+        _creatures
+            .Where(creature =>
+                !creature.IsFrozen
+                && !creature.IsWalking
+                && creature.Journey is null
+                && creature.NextUpdate <= now
+            )
+            .Select(creature => creature.Id)
+            .ToArray();
+
+    public WorldSimulatorOptions Options => _options;
+
     public void SetExposedLocations(IReadOnlySet<Guid> exposedLocationIds, GameInstant now)
     {
         if (!_shelter.Update(exposedLocationIds))
@@ -61,6 +74,7 @@ public sealed class WorldSimulator
         {
             Id = seed.CreatureId,
             LocationId = seed.LocationId,
+            CurrentTravelNodeId = seed.CurrentTravelNodeId,
             Jobs = seed.Jobs,
             ShelterLocationId = seed.SeeksShelter
                 ? seed.Jobs.FirstOrDefault(job => job.Action == CreatureJobAction.Sleep)?.LocationId

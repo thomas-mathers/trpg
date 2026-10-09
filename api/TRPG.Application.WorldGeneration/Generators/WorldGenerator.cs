@@ -725,6 +725,7 @@ public class WorldGenerator(
                 creatures
             )
         );
+        CreatureTravelNodeAssigner.Assign(creatures, layout.TravelNodes);
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 

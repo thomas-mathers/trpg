@@ -14,6 +14,7 @@ public class GetSimulatableCreaturesQuery
 public record SimulatableCreature(
     Guid Id,
     Guid LocationId,
+    Guid? CurrentTravelNodeId,
     float MovementSpeed,
     Profession? Profession
 );
@@ -40,6 +41,7 @@ internal class GetSimulatableCreaturesQueryHandler(ICreaturesDbContext context)
             .Select(creature => new SimulatableCreature(
                 creature.Id,
                 creature.LocationId,
+                creature.CurrentTravelNodeId,
                 creature.MovementSpeed,
                 creature.Profession
             ))

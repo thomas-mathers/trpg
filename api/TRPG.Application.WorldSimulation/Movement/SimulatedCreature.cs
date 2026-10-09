@@ -9,7 +9,8 @@ public sealed record SimCreatureSeed(
     Guid LocationId,
     float MovementSpeed,
     IReadOnlyList<CreatureJob> Jobs,
-    bool SeeksShelter = true
+    bool SeeksShelter = true,
+    Guid? CurrentTravelNodeId = null
 );
 
 public sealed record SimCreatureState(Guid LocationId, bool IsWalking, bool IsFrozen);
@@ -38,6 +39,7 @@ internal sealed class SimulatedCreature
     public required double MetersPerGameSecond { get; init; }
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required Guid LocationId { get; set; }
+    public Guid? CurrentTravelNodeId { get; set; }
     public Guid? ShelterLocationId { get; init; }
     public Journey? Journey { get; set; }
     public bool IsWalking { get; set; }
