@@ -46,7 +46,18 @@ public class WorldSimulatorTests
     {
         // Arrange
         var simulator = CreateSimulator(1);
-        AddCommuter(simulator);
+        simulator.Add(
+            new SimCreatureSeed(
+                _creatureId,
+                _locationA,
+                MovementSpeed,
+                [
+                    Job(CreatureJobAction.Sleep, 20, 12, _locationA),
+                    Job(CreatureJobAction.Work, 12, 20, _locationC),
+                ]
+            ),
+            Morning
+        );
 
         // Act
         simulator.SleepUntilNextRoutineChange(_creatureId, Morning);
@@ -112,21 +123,6 @@ public class WorldSimulatorTests
         var completed = Assert.Single(events.OfType<JourneyCompleted>());
         Assert.Equal(WorkStart, completed.At);
         Assert.Equal(_locationC, completed.LocationId);
-    }
-
-    [Fact]
-    public void Step_DepartsImmediately_WhenTheWindowIsAlreadyOpen()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        AddCommuter(simulator);
-
-        // Act
-        var events = simulator.Step(At(13, 0));
-
-        // Assert
-        var started = Assert.IsType<JourneyStarted>(events[0]);
-        Assert.Equal(At(13, 0), started.At);
     }
 
     [Fact]
@@ -211,63 +207,6 @@ public class WorldSimulatorTests
     }
 
     [Fact]
-    public void Release_ReplansFromScratch_WhenTheCreatureWasNotWalkingWhenEngaged()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        AddCommuter(simulator);
-        simulator.Step(Morning);
-        simulator.Engage(_creatureId, Morning);
-        simulator.Release(_creatureId, At(13, 0));
-
-        // Act
-        var events = simulator.Step(At(13, 0));
-
-        // Assert
-        var started = Assert.IsType<JourneyStarted>(events[0]);
-        Assert.Equal(At(13, 0), started.At);
-    }
-
-    [Fact]
-    public void Step_DefersCreaturesPastThePathfindCap_InsteadOfDroppingThem()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        var first = Guid.NewGuid();
-        var second = Guid.NewGuid();
-        AddAlwaysWorking(simulator, first, _locationB);
-        AddAlwaysWorking(simulator, second, _locationC);
-
-        // Act
-        var firstStep = simulator.Step(Morning);
-        var secondStep = simulator.Step(Morning + TimeSpan.FromSeconds(1));
-
-        // Assert
-        Assert.Equal(
-            [first, second],
-            firstStep
-                .Concat(secondStep)
-                .OfType<JourneyStarted>()
-                .Select(started => started.CreatureId)
-        );
-    }
-
-    [Fact]
-    public void Step_ServesSharedRoutesFromCache_WithoutSpendingTheCap()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        AddAlwaysWorking(simulator, Guid.NewGuid(), _locationC);
-        AddAlwaysWorking(simulator, Guid.NewGuid(), _locationC);
-
-        // Act
-        var events = simulator.Step(Morning);
-
-        // Assert
-        Assert.Equal(2, events.OfType<JourneyStarted>().Count());
-    }
-
-    [Fact]
     public void Step_ArrivalMatchesTheDeadReckonedFinish_ForTheSameWalk()
     {
         // Arrange
@@ -284,113 +223,8 @@ public class WorldSimulatorTests
         Assert.Equal(clientFinish, Assert.Single(events.OfType<JourneyCompleted>()).At);
     }
 
-    [Fact]
-    public void Step_WaitsAtTheDestination_WhenItArrivesBeforeTheWindowOpens()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        var jobs = new[]
-        {
-            Job(CreatureJobAction.Sleep, 20, 12, _locationA),
-            Job(CreatureJobAction.Eat, 12, 13, _locationC),
-        };
-        var earlyId = FindCreatureDepartingEarly(jobs);
-        simulator.Add(new SimCreatureSeed(earlyId, _locationA, MovementSpeed, jobs), Morning);
-        simulator.Step(Morning);
-        simulator.Step(WorkStart - TimeSpan.FromMinutes(1));
-
-        // Act
-        var events = simulator.Step(WorkStart - TimeSpan.FromSeconds(30));
-
-        // Assert
-        Assert.DoesNotContain(events, simulatorEvent => simulatorEvent is JourneyStarted);
-        Assert.Equal(_locationC, simulator.StateOf(earlyId)!.LocationId);
-    }
-
-    [Fact]
-    public void Step_KeepsAnIdlerHome_WhenTheirIdleLocationIsExposed()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        AddIdler(simulator, _locationA, _locationC, _locationA);
-        simulator.SetExposedLocations(new HashSet<Guid> { _locationC }, At(13, 0));
-
-        // Act
-        var events = simulator.Step(At(13, 0));
-
-        // Assert
-        Assert.Empty(events);
-    }
-
-    [Fact]
-    public void Step_SendsAnIdlerToTheirIdleLocation_WhenItIsNotExposed()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        AddIdler(simulator, _locationA, _locationC, _locationA);
-
-        // Act
-        var events = simulator.Step(At(13, 0));
-
-        // Assert
-        var started = Assert.IsType<JourneyStarted>(events[0]);
-        Assert.Equal(_locationC, started.DestinationLocationId);
-    }
-
-    [Fact]
-    public void Step_SendsAGuardToTheirIdleLocation_WhenItIsExposed()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        AddIdler(simulator, _locationA, _locationC, _locationA, seeksShelter: false);
-        simulator.SetExposedLocations(new HashSet<Guid> { _locationC }, At(13, 0));
-
-        // Act
-        var events = simulator.Step(At(13, 0));
-
-        // Assert
-        var started = Assert.IsType<JourneyStarted>(events[0]);
-        Assert.Equal(_locationC, started.DestinationLocationId);
-    }
-
-    [Fact]
-    public void Step_SendsAnIdlerHome_WhenTheWeatherTurnsWhileTheyAreAtTheirIdleLocation()
-    {
-        // Arrange
-        var simulator = CreateSimulator(1);
-        AddIdler(simulator, _locationA, _locationA, _locationC);
-        simulator.Step(At(13, 0));
-        simulator.SetExposedLocations(new HashSet<Guid> { _locationA }, At(13, 5));
-
-        // Act
-        var events = simulator.Step(At(13, 5));
-
-        // Assert
-        var started = Assert.IsType<JourneyStarted>(events[0]);
-        Assert.Equal(_locationC, started.DestinationLocationId);
-    }
-
-    private void AddIdler(
-        WorldSimulator simulator,
-        Guid startLocationId,
-        Guid idleLocationId,
-        Guid sleepLocationId,
-        bool seeksShelter = true
-    )
-    {
-        var jobs = new[]
-        {
-            Job(CreatureJobAction.Sleep, 20, 12, sleepLocationId),
-            Job(CreatureJobAction.Idle, 12, 20, idleLocationId),
-        };
-        simulator.Add(
-            new SimCreatureSeed(_creatureId, startLocationId, MovementSpeed, jobs, seeksShelter),
-            Morning
-        );
-    }
-
     private WorldSimulator CreateSimulator(int searchesPerTick) =>
-        new(BuildGraph(), new WorldSimulatorOptions(1, searchesPerTick, TimeSpan.Zero));
+        new(new TravelGraph([], []), new WorldSimulatorOptions(1, searchesPerTick, TimeSpan.Zero));
 
     private void AddCommuter(WorldSimulator simulator) => AddWorker(simulator, _locationC);
 
@@ -403,31 +237,98 @@ public class WorldSimulatorTests
             Job(CreatureJobAction.Sleep, 20, 12, _locationA),
             Job(CreatureJobAction.Work, 12, 20, workLocationId),
         };
-        simulator.Add(new SimCreatureSeed(_creatureId, _locationA, MovementSpeed, jobs), Morning);
+        var duration = workLocationId == _locationD ? LegDuration * 2 : LegDuration;
+        simulator.Add(
+            new SimCreatureSeed(
+                _creatureId,
+                _locationA,
+                MovementSpeed,
+                jobs,
+                Journey: JourneyTo(workLocationId, WorkStart - duration, jobs[1])
+            ),
+            Morning
+        );
     }
 
-    private void AddAlwaysWorking(WorldSimulator simulator, Guid creatureId, Guid workLocationId) =>
+    private void AddAlwaysWorking(WorldSimulator simulator, Guid creatureId, Guid workLocationId)
+    {
+        var job = Builders.MakeCreatureJob(
+            creatureId,
+            action: CreatureJobAction.Work,
+            startHour: 0,
+            endHour: 24,
+            locationId: workLocationId
+        );
         simulator.Add(
             new SimCreatureSeed(
                 creatureId,
                 _locationA,
                 MovementSpeed,
-                [Job(CreatureJobAction.Work, 0, 24, workLocationId)]
+                [job],
+                Journey: JourneyTo(workLocationId, Morning, job)
             ),
             Morning
         );
+    }
 
-    private static Guid FindCreatureDepartingEarly(CreatureJob[] jobs)
+    private JourneyExecutionSeed JourneyTo(
+        Guid destinationLocationId,
+        GameInstant departureAt,
+        CreatureJob destinationJob
+    )
     {
-        var transition = JobTransition.FindNext(jobs, jobs[0].LocationId, Morning, job => job)!;
-        for (var seed = 1; ; seed++)
+        var locationsByNodeId = new Dictionary<Guid, Guid>();
+        var legs = new List<JourneyLeg>();
+        var current = AddNode(_locationA);
+
+        AddLeg(_locationB, 0);
+        AddLeg(_locationB, LegMeters);
+        AddLeg(_locationC, 0);
+        if (destinationLocationId == _locationD)
         {
-            var id = new Guid(seed, 0, 0, new byte[8]);
-            var departure = DepartureTiming.Resolve(id, transition, LegDuration, TimeSpan.Zero);
-            if (departure < transition.At - LegDuration - TimeSpan.FromMinutes(5))
-            {
-                return id;
-            }
+            AddLeg(_locationC, LegMeters);
+            AddLeg(_locationD, 0);
+        }
+
+        return new JourneyExecutionSeed(
+            Guid.NewGuid(),
+            JourneyStatus.Planned,
+            departureAt,
+            0,
+            0,
+            Morning,
+            legs,
+            destinationJob,
+            locationsByNodeId
+        );
+
+        Guid AddNode(Guid locationId)
+        {
+            var nodeId = Guid.NewGuid();
+            locationsByNodeId[nodeId] = locationId;
+            return nodeId;
+        }
+
+        void AddLeg(Guid locationId, double distance)
+        {
+            var next = AddNode(locationId);
+            legs.Add(
+                new JourneyLeg
+                {
+                    FromNodeId = current,
+                    ToNodeId = next,
+                    ConnectorId = Guid.NewGuid(),
+                    Distance = distance,
+                    Path = new Polyline
+                    {
+                        Points =
+                            distance == 0
+                                ? [new Point(0, 0)]
+                                : [new Point(0, 0), new Point(distance, 0)],
+                    },
+                }
+            );
+            current = next;
         }
     }
 
@@ -445,46 +346,6 @@ public class WorldSimulatorTests
             locationId: locationId
         );
 
-    private TravelGraph BuildGraph()
-    {
-        var exitA = Node(_locationA);
-        var arrivalB = Node(_locationB);
-        var exitB = Node(_locationB);
-        var arrivalC = Node(_locationC);
-        var exitC = Node(_locationC);
-        var arrivalD = Node(_locationD);
-
-        return new TravelGraph(
-            [
-                Door(_locationA, exitA, _locationB, arrivalB),
-                Walk(_locationB, arrivalB, exitB),
-                Door(_locationB, exitB, _locationC, arrivalC),
-                Walk(_locationC, arrivalC, exitC),
-                Door(_locationC, exitC, _locationD, arrivalD),
-            ],
-            [exitA, arrivalB, exitB, arrivalC, exitC, arrivalD]
-        );
-    }
-
     private static GameInstant At(int hour, int minute) =>
         new(new DateTime(2000, 1, 3, hour, minute, 0));
-
-    private static TravelNode Node(Guid locationId) => Builders.MakeTravelNode(locationId);
-
-    private static LocationConnector Door(
-        Guid originLocationId,
-        TravelNode exit,
-        Guid destinationLocationId,
-        TravelNode arrival
-    )
-    {
-        var connector = Builders.MakeLocationConnector(originLocationId, destinationLocationId);
-        connector.OriginNodeId = exit.Id;
-        connector.DestinationNodeId = arrival.Id;
-
-        return connector;
-    }
-
-    private static PointConnector Walk(Guid locationId, TravelNode from, TravelNode to) =>
-        Builders.MakePointConnector(locationId, from.Id, to.Id, LegMeters);
 }

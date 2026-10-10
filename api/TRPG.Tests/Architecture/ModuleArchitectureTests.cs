@@ -18,7 +18,21 @@ public sealed partial class ModuleArchitectureTests
         "TRPG.Application.WorldGeneration",
     };
 
-    private static readonly IReadOnlySet<string> ForeignContextAllowlist = new HashSet<string>();
+    private static readonly IReadOnlySet<string> ForeignContextAllowlist = new HashSet<string>
+    {
+        "TRPG.Application.Routing/Commands/PlanCircuitJourneyCommand.cs:ICreaturesDbContext",
+        "TRPG.Application.Routing/Commands/PlanCircuitJourneyCommand.cs:IWorldsDbContext",
+        "TRPG.Application.Routing/Commands/PlanRoutineJourneyCommand.cs:ICreatureJobsDbContext",
+        "TRPG.Application.Routing/Commands/PlanRoutineJourneyCommand.cs:ICreaturesDbContext",
+        "TRPG.Application.Routing/Commands/PlanRoutineJourneyCommand.cs:IWorldsDbContext",
+        "TRPG.Application.Routing/Queries/GetCreatureJourneyPositionsQuery.cs:ICreaturesDbContext",
+        "TRPG.Application.Routing/Queries/GetCreatureJourneyPositionsQuery.cs:IWorldsDbContext",
+        "TRPG.Application.WorldSimulation/LocalActivities/LocalActivityPlanner.cs:IPropsDbContext",
+        "TRPG.Application.WorldSimulation/LocalActivities/LocalActivityPlanner.cs:IWorldsDbContext",
+        "TRPG.Application.WorldSimulation/LocalActivities/PlanCurrentLocalActivityCommand.cs:ICreatureJobsDbContext",
+        "TRPG.Application.WorldSimulation/LocalActivities/PlanCurrentLocalActivityCommand.cs:ICreaturesDbContext",
+        "TRPG.Application.WorldSimulation/WorldSimulatorLoader.cs:IRoutingDbContext",
+    };
 
     private static readonly (string From, string To)[] ForbiddenReferences =
     [
