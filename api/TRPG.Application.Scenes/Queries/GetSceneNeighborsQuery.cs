@@ -171,7 +171,8 @@ internal class GetSceneNeighborsQueryHandler(
             IsOccupiedByPlayer: false,
             Model: PropModelResolver.Resolve(prop),
             Placement: new Placement(prop.X, prop.Y, prop.Angle),
-            Footprint: new Footprint(prop.Width, prop.Depth)
+            Footprint: new Footprint(prop.Width, prop.Depth),
+            BlocksMovement: prop.BlocksMovement
         );
 
     private static SceneNearbyBuildingInfo ToNearbyBuilding(Building building) =>

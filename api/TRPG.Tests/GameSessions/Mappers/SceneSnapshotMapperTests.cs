@@ -35,7 +35,8 @@ public sealed class SceneSnapshotMapperTests
                     false,
                     PropModel.SeatChair,
                     new Placement(1, 2, 0.5),
-                    new Footprint(2, 1)
+                    new Footprint(2, 1),
+                    true
                 ),
             ],
             NearbyBuildings =
@@ -62,6 +63,7 @@ public sealed class SceneSnapshotMapperTests
         Assert.Equal(40, snapshot.Size.Width);
         Assert.Equal(1.5, snapshot.PlayerStatus.Placement.Angle);
         Assert.Equal(0.5, Assert.Single(snapshot.NearbyProps).Placement.Angle);
+        Assert.True(Assert.Single(snapshot.NearbyProps).BlocksMovement);
         Assert.Equal(6, Assert.Single(snapshot.NearbyBuildings).Footprint.Width);
         Assert.Equal(3, Assert.Single(snapshot.NearbyBuildings).FloorCount);
         Assert.Equal(
@@ -234,7 +236,8 @@ public sealed class SceneSnapshotMapperTests
                             IsOccupiedByPlayer: false,
                             Model: PropModel.ContainerCrate,
                             Placement: new Placement(9, -3, 0),
-                            Footprint: new Footprint(1, 1)
+                            Footprint: new Footprint(1, 1),
+                            BlocksMovement: true
                         ),
                     ],
                     [

@@ -196,11 +196,11 @@ describe('buildObstacles', () => {
   const placement = { x: 1, y: 1, angle: 0 };
   const footprint = { width: 1, depth: 1 };
 
-  it('treats tall props and buildings as solid but lets the player cross flat props', () => {
+  it('treats props the server marks as blocking and buildings as solid', () => {
     // Arrange
     const props = [
-      { id: 'chair', model: 'SeatChair', placement, footprint },
-      { id: 'trap', model: 'TrapMechanical', placement, footprint },
+      { id: 'chair', placement, footprint, blocksMovement: true },
+      { id: 'rug', placement, footprint, blocksMovement: false },
     ] as NearbyPropSnapshot[];
     const buildings = [
       { id: 'inn', type: 'Inn', placement, footprint },
@@ -211,20 +211,6 @@ describe('buildObstacles', () => {
 
     // Assert
     expect(obstacles).toEqual([props[0], buildings[0]]);
-  });
-
-  it('lets the player walk under a chandelier and past a wall sconce', () => {
-    // Arrange
-    const props = [
-      { id: 'chandelier', model: 'FurnitureChandelier', placement, footprint },
-      { id: 'sconce', model: 'FurnitureWallSconce', placement, footprint },
-    ] as NearbyPropSnapshot[];
-
-    // Act
-    const obstacles = buildObstacles(props, [], []);
-
-    // Assert
-    expect(obstacles).toEqual([]);
   });
 
   it('adds the stair footprint ahead of a flight of stairs but not a door', () => {

@@ -36,6 +36,7 @@ function neighbor(
       isOccupied: false,
       isOccupiedByPlayer: false,
       model: 'ContainerCrate' as const,
+      blocksMovement: true,
       placement,
       footprint,
     })),

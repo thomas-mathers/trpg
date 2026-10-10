@@ -496,6 +496,8 @@ export type NearbyPropSnapshot = {
     placement: PlacementWire;
     /** Transpiled from TRPG.GameSessions.Responses.FootprintWire */
     footprint: FootprintWire;
+    /** Transpiled from bool */
+    blocksMovement: boolean;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.NearbyExitDestination */

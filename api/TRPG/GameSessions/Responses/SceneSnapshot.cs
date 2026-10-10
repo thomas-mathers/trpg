@@ -397,7 +397,8 @@ public record NearbyPropSnapshot(
     bool IsOccupiedByPlayer,
     PropModel Model,
     PlacementWire Placement,
-    FootprintWire Footprint
+    FootprintWire Footprint,
+    bool BlocksMovement
 );
 
 [TranspilationSource]

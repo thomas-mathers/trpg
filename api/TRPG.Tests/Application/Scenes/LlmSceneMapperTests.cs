@@ -108,7 +108,8 @@ public sealed class LlmSceneMapperTests
             IsOccupiedByPlayer: false,
             Model: PropModel.FurnitureRug,
             Placement: new Placement(0, 0, 0),
-            Footprint: new Footprint(1.6f, 2.4f)
+            Footprint: new Footprint(1.6f, 2.4f),
+            BlocksMovement: false
         );
         var sceneWithFurniture = scene with { NearbyProps = [.. scene.NearbyProps, furniture] };
 
@@ -154,7 +155,8 @@ public sealed class LlmSceneMapperTests
                     IsOccupiedByPlayer: false,
                     Model: PropModel.SeatChair,
                     Placement: new Placement(0, 0, 0),
-                    Footprint: new Footprint(1, 1)
+                    Footprint: new Footprint(1, 1),
+                    BlocksMovement: true
                 ),
             ],
             [MakeCreature("Cora", gold: 1449, profession: Profession.Guard, level: 49)],

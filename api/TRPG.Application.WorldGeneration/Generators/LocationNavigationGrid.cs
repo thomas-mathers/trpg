@@ -17,7 +17,7 @@ public static class LocationNavigationGrid
         }
 
         var obstacles = props
-            .Where(BlocksFloor)
+            .Where(prop => prop.BlocksMovement)
             .Select(prop => Bounds(prop.X, prop.Y, prop.Angle, prop.Width, prop.Depth))
             .Concat(
                 buildings.Select(building =>
@@ -33,17 +33,6 @@ public static class LocationNavigationGrid
             point => obstacles.Any(obstacle => obstacle.Contains(point))
         );
     }
-
-    private static bool BlocksFloor(Prop prop) =>
-        prop is not (Sign or Trap or Trigger)
-        && PropModelResolver.Resolve(prop)
-            is not (
-                PropModel.FurnitureRug
-                or PropModel.FurnitureChandelier
-                or PropModel.FurnitureWallSconce
-                or PropModel.FurnitureWallLantern
-                or PropModel.FurnitureBanner
-            );
 
     private static RotatedBounds Bounds(
         double x,
