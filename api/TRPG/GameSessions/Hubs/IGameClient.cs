@@ -35,6 +35,7 @@ public interface IGameClient
     Task TheftEncounterStarted(TheftEncounterState encounter);
     Task TheftEncounterResolved(TheftEncounterResolutionFact fact);
     Task PlayerVitalsUpdated(PlayerVitalsUpdated vitals);
+    Task PlayerCorrected(PlayerCorrectedPayload correction);
     Task SkillLevelUp(SkillLevelUp skillLevelUp);
     Task CharacterLevelUp(CharacterLevelUp characterLevelUp);
     Task QuestObjectiveCompleted(QuestObjectiveCompleted objective);
