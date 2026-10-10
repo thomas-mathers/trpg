@@ -374,7 +374,7 @@ public sealed class WorldSimulationRunner(
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var seed = await scope
             .ServiceProvider.GetRequiredService<WorldSimulatorLoader>()
-            .LoadSeed(worldId, creatureId, loaded.Graph, cancellationToken);
+            .LoadSeed(worldId, creatureId, cancellationToken);
 
         loaded.Simulator.Remove(creatureId);
         if (seed != null)

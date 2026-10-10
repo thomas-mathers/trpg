@@ -14,11 +14,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation;
 
-public sealed record LoadedWorldSimulation(
-    WorldSimulator Simulator,
-    CreaturePoseMapper PoseMapper,
-    TravelGraph Graph
-);
+public sealed record LoadedWorldSimulation(WorldSimulator Simulator, CreaturePoseMapper PoseMapper);
 
 public sealed class WorldSimulatorLoader(
     IQueryHandler<
@@ -29,7 +25,7 @@ public sealed class WorldSimulatorLoader(
         GetCreatureJobsByCreatureIdsQuery,
         IReadOnlyDictionary<Guid, IReadOnlyList<CreatureJob>>
     > getJobs,
-    IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTopology,
+    IQueryHandler<GetTravelGraphQuery, TravelGraph> getTravelGraph,
     IOptions<WorldClockOptions> clockOptions,
     IOptions<WorldSimulationOptions> simulationOptions,
     IRoutingDbContext routing
@@ -41,12 +37,11 @@ public sealed class WorldSimulatorLoader(
         CancellationToken cancellationToken = default
     )
     {
-        var topology = await getTopology.Handle(
-            new GetTravelTopologyQuery { WorldId = worldId },
+        var graph = await getTravelGraph.Handle(
+            new GetTravelGraphQuery { WorldId = worldId },
             cancellationToken
         );
 
-        var graph = topology.ToGraph();
         var simulator = new WorldSimulator(
             graph,
             new WorldSimulatorOptions(
@@ -60,16 +55,19 @@ public sealed class WorldSimulatorLoader(
             simulator.Add(seed, now);
         }
 
-        return new LoadedWorldSimulation(simulator, new CreaturePoseMapper(), graph);
+        return new LoadedWorldSimulation(simulator, new CreaturePoseMapper());
     }
 
     public async Task<SimCreatureSeed?> LoadSeed(
         Guid worldId,
         Guid creatureId,
-        TravelGraph graph,
         CancellationToken cancellationToken = default
     )
     {
+        var graph = await getTravelGraph.Handle(
+            new GetTravelGraphQuery { WorldId = worldId },
+            cancellationToken
+        );
         var seeds = await LoadSeeds(worldId, graph, [creatureId], cancellationToken);
 
         return seeds.SingleOrDefault();
