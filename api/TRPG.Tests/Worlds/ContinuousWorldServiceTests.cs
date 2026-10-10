@@ -66,9 +66,7 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
 
         // Assert
-        await WaitFor(() => _worldClock.CheckpointCount == 1);
         await WaitFor(() => _worldClock.CurrentCount == 1);
-        Assert.Equal(1, _worldClock.CheckpointCount);
         Assert.Equal(1, _worldClock.CurrentCount);
     }
 
@@ -76,16 +74,16 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
     public async Task Service_RunsRoutinePassEveryThirtySeconds()
     {
         // Act
-        for (var pass = 1; pass <= 6; pass++)
+        for (var pass = 1; pass <= 5; pass++)
         {
             _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
             var expectedPasses = pass;
-            await WaitFor(() => _worldClock.CheckpointCount == expectedPasses);
+            await WaitFor(() => _worldClock.CurrentCount == expectedPasses);
         }
+        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
 
         // Assert
         await WaitFor(() => _worldClock.CurrentCount == 7);
-        Assert.Equal(6, _worldClock.CheckpointCount);
         Assert.Equal(7, _worldClock.CurrentCount);
     }
 
@@ -93,15 +91,15 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
     public async Task Service_RetriesOnNextTick_WhenPassFails()
     {
         // Arrange
-        _worldClock.FailCheckpoints = true;
+        _worldClock.FailReads = true;
 
         // Act
         _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
-        await WaitFor(() => _worldClock.CheckpointCount == 1);
+        await WaitFor(() => _worldClock.CurrentCount == 1);
         _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
 
         // Assert
-        await WaitFor(() => _worldClock.CheckpointCount == 2);
+        await WaitFor(() => _worldClock.CurrentCount == 2);
     }
 
     private static async Task WaitFor(Func<bool> condition)
@@ -116,12 +114,10 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
 
     private sealed class CountingWorldClock(Guid activeWorldId) : IWorldClock
     {
-        private int _checkpointCount;
         private int _currentCount;
 
-        public int CheckpointCount => Volatile.Read(ref _checkpointCount);
         public int CurrentCount => Volatile.Read(ref _currentCount);
-        public bool FailCheckpoints { get; set; }
+        public bool FailReads { get; set; }
 
         public IReadOnlyCollection<Guid> GetActiveWorldIds() => [activeWorldId];
 
@@ -131,19 +127,15 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         )
         {
             Interlocked.Increment(ref _currentCount);
-            return Task.FromResult(GameClock.Epoch);
+            return FailReads
+                ? throw new InvalidOperationException("The clock is unavailable.")
+                : Task.FromResult(GameClock.Epoch);
         }
 
         public Task<GameInstant> Checkpoint(
             Guid worldId,
             CancellationToken cancellationToken = default
-        )
-        {
-            Interlocked.Increment(ref _checkpointCount);
-            return FailCheckpoints
-                ? throw new InvalidOperationException("The clock is unavailable.")
-                : Task.FromResult(GameClock.Epoch);
-        }
+        ) => throw new NotSupportedException();
 
         public Task<GameInstant> ResumeWorld(
             Guid worldId,
