@@ -42,6 +42,7 @@ internal static class RoomRecipeCatalog
     ]);
 
     private static readonly RoomRecipe GreatHall = new([
+        new CounterAt(0.15),
         new RugRunner(Width: 2.4, Top: 2.8, BottomInset: 5.3),
         new CenteredFromSouth(PropModel.SeatThrone, 4.6, RecipeWall.South),
         new CenteredFromSouth(PropModel.SeatThrone, 6.5, RecipeWall.South),
@@ -53,6 +54,7 @@ internal static class RoomRecipeCatalog
     ]);
 
     private static readonly RoomRecipe GuardStation = new([
+        new CounterAt(0.15),
         new WallRun(PropModel.ContainerWeaponRack, RecipeWall.West, From: 0.2, To: 0.7, Count: 3),
         new WallRun(PropModel.SeatBench, RecipeWall.East, From: 0.3, To: 0.7, Count: 2),
         new TableSetAt(0.5, 0.45),

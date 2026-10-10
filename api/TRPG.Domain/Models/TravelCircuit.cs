@@ -1,0 +1,8 @@
+namespace TRPG.Domain.Models;
+
+public class TravelCircuit
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid WorldId { get; init; }
+    public required string Name { get; init; }
+}

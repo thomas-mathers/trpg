@@ -1,4 +1,5 @@
 using TRPG.Domain;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Movement;
 
@@ -8,17 +9,21 @@ internal static class JourneyWalker
     {
         var journey = creature.Journey!;
         creature.IsWalking = true;
-        creature.LastUpdate = creature.NextUpdate;
+        journey.Status = JourneyStatus.Traveling;
+        creature.LastUpdate =
+            journey.DepartureAt > creature.NextUpdate ? journey.DepartureAt : creature.NextUpdate;
         events.Add(
             new JourneyStarted(
                 creature.Id,
                 creature.LastUpdate,
                 creature.LocationId,
-                journey.DestinationJob.LocationId,
-                journey.IsOngoing ? journey.CurrentLeg.ConnectorId : null,
-                journey.IsOngoing ? journey.StopAhead : null
+                journey.Legs.Count > 0
+                    ? journey.LocationOf(journey.Legs[^1].ToNodeId)
+                    : creature.LocationId,
+                journey.IsOngoing ? journey.CurrentLeg.ConnectorId : null
             )
         );
+        Checkpoint(creature, creature.LastUpdate, events);
     }
 
     public static void Advance(
@@ -28,28 +33,11 @@ internal static class JourneyWalker
     )
     {
         var journey = creature.Journey!;
-        var start = creature.LastUpdate;
-        var walkUntil = journey.LoopUntil is { } end && end < until ? end : until;
-        var settledAt = WalkLegs(creature, journey, start, walkUntil, events);
-
-        if (journey.LoopUntil is { } loopEnd && loopEnd <= until)
-        {
-            EndPatrol(creature, loopEnd > start ? loopEnd : start, until, events);
-            return;
-        }
-
+        var settledAt = WalkLegs(creature, journey, creature.LastUpdate, until, events);
         creature.LastUpdate = until;
         if (journey.IsOngoing)
         {
-            creature.NextUpdate = ClampToPatrolEnd(journey, creature.TimeToNextEvent(until));
-            return;
-        }
-
-        if (PatrolAfterArrival(creature, journey, settledAt) is { } patrol)
-        {
-            creature.Journey = patrol;
-            creature.LastUpdate = settledAt;
-            Advance(creature, until, events);
+            creature.NextUpdate = creature.TimeToNextJourneyEvent(until);
             return;
         }
 
@@ -58,43 +46,24 @@ internal static class JourneyWalker
 
     public static void Resume(SimulatedCreature creature, GameInstant at)
     {
-        var journey = creature.Journey!;
-        if (journey.DwellEndsAt is { } dwellEnd)
-        {
-            journey.DwellEndsAt = dwellEnd + (at - creature.LastUpdate);
-        }
-
         creature.LastUpdate = at;
-        creature.NextUpdate = ClampToPatrolEnd(journey, creature.TimeToNextEvent(at));
+        creature.NextUpdate = creature.TimeToNextJourneyEvent(at);
     }
 
     private static GameInstant WalkLegs(
         SimulatedCreature creature,
-        Journey journey,
+        JourneyExecution journey,
         GameInstant from,
-        GameInstant walkUntil,
+        GameInstant until,
         ICollection<SimEvent> events
     )
     {
         var cursor = from;
-
         while (journey.IsOngoing)
         {
-            if (journey.DwellEndsAt is { } dwellEnd)
-            {
-                if (dwellEnd > walkUntil)
-                {
-                    break;
-                }
-
-                cursor = dwellEnd;
-                EndDwell(creature, journey, dwellEnd, events);
-                continue;
-            }
-
             var meters = journey.MetersToNextEvent;
             var available =
-                Math.Max(0, (walkUntil - cursor).TotalSeconds) * creature.MetersPerGameSecond;
+                Math.Max(0, (until - cursor).TotalSeconds) * creature.MetersPerGameSecond;
             if (available < meters)
             {
                 journey.LegWalkedMeters += available;
@@ -103,131 +72,102 @@ internal static class JourneyWalker
 
             cursor += TimeSpan.FromSeconds(meters / creature.MetersPerGameSecond);
             journey.LegWalkedMeters += meters;
-            if (journey.StopAhead != null)
-            {
-                StartDwell(creature, journey, cursor, events);
-                continue;
-            }
-
             CrossConnector(creature, journey, cursor, events);
         }
 
         return cursor;
     }
 
-    private static void StartDwell(
-        SimulatedCreature creature,
-        Journey journey,
-        GameInstant at,
-        ICollection<SimEvent> events
-    )
-    {
-        journey.StopServed = true;
-        journey.DwellEndsAt = at + creature.PatrolDwell;
-        events.Add(
-            new DwellStarted(
-                creature.Id,
-                at,
-                creature.LocationId,
-                journey.CurrentLeg.Stop!.Position
-            )
-        );
-    }
-
-    private static void EndDwell(
-        SimulatedCreature creature,
-        Journey journey,
-        GameInstant at,
-        ICollection<SimEvent> events
-    )
-    {
-        journey.DwellEndsAt = null;
-        events.Add(
-            new JourneyStarted(
-                creature.Id,
-                at,
-                creature.LocationId,
-                journey.DestinationJob.LocationId,
-                journey.CurrentLeg.ConnectorId
-            )
-        );
-    }
-
     private static void CrossConnector(
         SimulatedCreature creature,
-        Journey journey,
+        JourneyExecution journey,
         GameInstant crossedAt,
         ICollection<SimEvent> events
     )
     {
         var leg = journey.CurrentLeg;
-        creature.LocationId = leg.DestinationLocationId;
+        var stopPosition = leg.Path.Points[^1];
+        var destinationLocationId = journey.LocationOf(leg.ToNodeId);
+        var crossedLocation = creature.LocationId != destinationLocationId;
+        var originLocationId = creature.LocationId;
+        creature.LocationId = destinationLocationId;
+        creature.CurrentTravelNodeId = leg.ToNodeId;
         journey.LegIndex++;
-        if (journey.IsPatrol && !journey.IsOngoing)
+        journey.LegWalkedMeters = 0;
+        Checkpoint(creature, crossedAt, events);
+        if (crossedLocation)
         {
-            journey.LegIndex = 0;
+            events.Add(
+                new LocationEntered(
+                    creature.Id,
+                    crossedAt,
+                    originLocationId,
+                    destinationLocationId,
+                    leg.ConnectorId,
+                    journey.IsOngoing ? journey.CurrentLeg.ConnectorId : null,
+                    StopPosition: stopPosition,
+                    ArrivalNodeId: leg.ToNodeId
+                )
+            );
+            return;
         }
 
-        journey.LegWalkedMeters = 0;
-        journey.StopServed = false;
         events.Add(
-            new LocationEntered(
+            new JourneyLegCompleted(
                 creature.Id,
                 crossedAt,
-                leg.OriginLocationId,
-                leg.DestinationLocationId,
-                leg.ConnectorId,
-                journey.IsOngoing ? journey.CurrentLeg.ConnectorId : null,
-                journey.IsOngoing ? journey.StopAhead : null
+                creature.LocationId,
+                stopPosition,
+                leg.ToNodeId
             )
         );
     }
 
-    private static GameInstant ClampToPatrolEnd(Journey journey, GameInstant instant) =>
-        journey.LoopUntil is { } end && end < instant ? end : instant;
-
-    private static Journey? PatrolAfterArrival(
-        SimulatedCreature creature,
-        Journey journey,
-        GameInstant arrivedAt
-    ) =>
-        creature.PatrolFor(journey.DestinationJob) is { } legs
-            ? new Journey(
-                legs,
-                journey.DestinationJob,
-                journey.WindowStart,
-                JobTransition.FindWindowEnd(creature.Jobs, journey.DestinationJob, arrivedAt)
-            )
-            : null;
-
-    private static void EndPatrol(
-        SimulatedCreature creature,
-        GameInstant endedAt,
-        GameInstant until,
-        ICollection<SimEvent> events
-    )
-    {
-        events.Add(new PatrolEnded(creature.Id, endedAt, creature.LocationId));
-        creature.Journey = null;
-        creature.IsWalking = false;
-        creature.LastUpdate = until;
-        creature.NextUpdate = endedAt;
-    }
-
     private static void Complete(
         SimulatedCreature creature,
-        Journey journey,
+        JourneyExecution journey,
         GameInstant finishedAt,
         ICollection<SimEvent> events
     )
     {
         var job = journey.DestinationJob;
+        journey.Status = JourneyStatus.Completed;
+        Checkpoint(creature, finishedAt, events);
         events.Add(
-            new JourneyCompleted(creature.Id, finishedAt, creature.LocationId, job.Id, job.Action)
+            new JourneyCompleted(
+                creature.Id,
+                finishedAt,
+                creature.LocationId,
+                job?.Id ?? Guid.Empty,
+                job?.Action ?? CreatureJobAction.Idle,
+                creature.CurrentTravelNodeId,
+                journey.Id
+            )
+            {
+                StopPosition = journey.Legs.Count == 0 ? null : journey.Legs[^1].Path.Points[^1],
+            }
         );
         creature.Journey = null;
         creature.IsWalking = false;
-        creature.NextUpdate =
-            journey.WindowStart > creature.LastUpdate ? journey.WindowStart : creature.LastUpdate;
+        creature.NextUpdate = creature.LastUpdate;
+    }
+
+    private static void Checkpoint(
+        SimulatedCreature creature,
+        GameInstant at,
+        ICollection<SimEvent> events
+    )
+    {
+        var journey = creature.Journey!;
+        events.Add(
+            new JourneyCheckpoint(
+                creature.Id,
+                at,
+                journey.Id,
+                journey.Status,
+                journey.LegIndex,
+                journey.LegWalkedMeters
+            )
+        );
     }
 }

@@ -35,8 +35,6 @@ public interface IChatHub
     Task<ActionResult> SendAcceptQuest(Guid questId);
     Task<ActionResult> SendCompleteQuest(Guid questId);
     Task<ActionResult> SendDeliverItem(Guid recipientId);
-    Task<ActionResult> SendPurchaseCaravanTicket(Guid caravanId, Guid destinationLocationId);
-    Task<ActionResult> SendBoardCaravan(Guid caravanId);
     Task<ActionResult> SendMove(Guid connectorId);
     Task ReportPose(Guid locationId, double x, double y, double angle);
     Task<ActionResult> SendFlee();
@@ -159,22 +157,6 @@ internal sealed class ChatHub(
 
     public Task<ActionResult> SendDeliverItem(Guid recipientId) =>
         Result(gameTurnRunner.DeliverItem(Session, recipientId, Context.ConnectionAborted));
-
-    public Task<ActionResult> SendPurchaseCaravanTicket(
-        Guid caravanId,
-        Guid destinationLocationId
-    ) =>
-        Result(
-            gameTurnRunner.PurchaseCaravanTicket(
-                Session,
-                caravanId,
-                destinationLocationId,
-                Context.ConnectionAborted
-            )
-        );
-
-    public Task<ActionResult> SendBoardCaravan(Guid caravanId) =>
-        Result(gameTurnRunner.BoardCaravan(Session, caravanId, Context.ConnectionAborted));
 
     public Task<ActionResult> SendMove(Guid connectorId) =>
         Result(gameTurnRunner.Move(Session, connectorId, Context.ConnectionAborted));

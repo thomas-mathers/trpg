@@ -33,7 +33,6 @@ internal sealed class WeatherShelter
             EndHour = job.EndHour,
             LocationId = locationId,
             Priority = job.Priority,
-            RouteId = job.RouteId,
             SpecificDay = job.SpecificDay,
             StartHour = job.StartHour,
             WorldId = job.WorldId,

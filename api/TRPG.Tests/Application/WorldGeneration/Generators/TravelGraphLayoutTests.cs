@@ -174,6 +174,52 @@ public class TravelGraphLayoutTests
         );
     }
 
+    [Fact]
+    public void Generate_PersistsRoomDetoursAsConnectorWaypoints()
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
+
+        // Act
+        var layout = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        var roomIds = world
+            .Input.Locations.Where(location => location.Kind == LocationKind.Room)
+            .Select(location => location.Id)
+            .ToHashSet();
+        Assert.Contains(
+            layout.PointConnectors,
+            connector =>
+                roomIds.Contains(connector.LocationId) && connector.Waypoints.Points.Count > 0
+        );
+    }
+
+    [Fact]
+    public void Generate_DoesNotAddPropSpecificNodesToRoomTravelNetworks()
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildHouseWorld([Guid.NewGuid()]);
+
+        // Act
+        var layout = LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        var roomIds = world
+            .Input.Locations.Where(location => location.Kind == LocationKind.Room)
+            .Select(location => location.Id)
+            .ToHashSet();
+        var connectorNodeIds = world
+            .Input.Connectors.SelectMany(connector =>
+                new[] { connector.OriginNodeId, connector.DestinationNodeId }
+            )
+            .ToHashSet();
+        Assert.All(
+            layout.TravelNodes.Where(node => roomIds.Contains(node.LocationId)),
+            node => Assert.Contains(node.Id, connectorNodeIds)
+        );
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
@@ -204,6 +250,40 @@ public class TravelGraphLayoutTests
                         reverse.OriginNodeId == connector.DestinationNodeId
                         && reverse.DestinationNodeId == connector.OriginNodeId
                 )
+        );
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Generate_SharesOnePortNodePerLocationSideOfReciprocalConnectors(int iteration)
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(iteration);
+
+        // Act
+        LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        Assert.All(
+            world.Input.Connectors,
+            connector =>
+            {
+                if (connector.StairDirection is not null)
+                {
+                    return;
+                }
+
+                var reverse = world.Input.Connectors.FirstOrDefault(candidate =>
+                    candidate.OriginLocationId == connector.DestinationLocationId
+                    && candidate.DestinationLocationId == connector.OriginLocationId
+                    && candidate.Name == connector.Name
+                );
+                if (reverse is not null)
+                {
+                    Assert.Equal(reverse.OriginNodeId, connector.DestinationNodeId);
+                }
+            }
         );
     }
 

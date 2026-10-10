@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
 using TRPG.Data;
@@ -36,6 +37,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
+        _context.Worlds.Add(Builders.MakeWorld(_worldId));
         _home = Builders.MakeLocation(_worldId, state.Id);
         _workplace = Builders.MakeLocation(_worldId, state.Id);
         var door = Builders.MakeLocationConnector(_home.Id, _workplace.Id, worldId: _worldId);
@@ -230,7 +232,9 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         clock ??= new FixedWorldClock(activeWorldIds, Now);
         var factory = new WorldSimulationRunnerFactory(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
-            _serviceProvider.GetRequiredService<IWorldMutationGate>()
+            _serviceProvider.GetRequiredService<IWorldMutationGate>(),
+            new TransientCreatureWalkRegistry(),
+            NullLogger<WorldSimulationRunner>.Instance
         );
 
         return new WorldSimulationCoordinator(

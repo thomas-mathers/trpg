@@ -67,22 +67,43 @@ public static class Graphs
         Func<TKey, IEnumerable<TKey>> getNeighbors,
         Func<TKey, TKey, double> getCost
     )
+        where TKey : notnull =>
+        ShortestPathToNearest([origin], destinations.Contains, getNeighbors, getCost);
+
+    public static IReadOnlyList<TKey> ShortestPathToNearest<TKey>(
+        IReadOnlyCollection<TKey> origins,
+        Func<TKey, bool> isDestination,
+        Func<TKey, IEnumerable<TKey>> getNeighbors,
+        Func<TKey, TKey, double> getCost
+    )
         where TKey : notnull
     {
-        var costs = new Dictionary<TKey, double> { [origin] = 0 };
+        var distinctOrigins = origins.Distinct().ToArray();
+        if (distinctOrigins.Length == 0)
+        {
+            return [];
+        }
+
+        var costs = distinctOrigins.ToDictionary(origin => origin, _ => 0d);
         var cameFrom = new Dictionary<TKey, TKey>();
         var frontier = new PriorityQueue<TKey, double>();
 
-        frontier.Enqueue(origin, 0);
+        foreach (var origin in distinctOrigins)
+        {
+            frontier.Enqueue(origin, 0);
+        }
 
-        var reached = origin;
+        var reached = distinctOrigins[0];
         var found = false;
 
-        while (frontier.Count > 0)
+        while (frontier.TryDequeue(out var from, out var cost))
         {
-            var from = frontier.Dequeue();
+            if (cost > costs[from])
+            {
+                continue;
+            }
 
-            if (destinations.Contains(from))
+            if (isDestination(from))
             {
                 reached = from;
                 found = true;
@@ -91,13 +112,13 @@ public static class Graphs
 
             foreach (var to in getNeighbors(from))
             {
-                var cost = costs[from] + getCost(from, to);
+                var candidateCost = costs[from] + getCost(from, to);
 
-                if (!costs.TryGetValue(to, out var bestCost) || cost < bestCost)
+                if (!costs.TryGetValue(to, out var bestCost) || candidateCost < bestCost)
                 {
-                    costs[to] = cost;
+                    costs[to] = candidateCost;
                     cameFrom[to] = from;
-                    frontier.Enqueue(to, cost);
+                    frontier.Enqueue(to, candidateCost);
                 }
             }
         }
@@ -116,7 +137,7 @@ public static class Graphs
             node = prev;
         }
 
-        path.Insert(0, origin);
+        path.Insert(0, node);
 
         return path.ToArray();
     }

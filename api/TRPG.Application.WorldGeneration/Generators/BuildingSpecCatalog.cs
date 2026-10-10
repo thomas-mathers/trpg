@@ -146,7 +146,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A wooden counter for trading.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -217,7 +216,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for selling remedies.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -288,7 +286,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for selling baked goods.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -359,7 +356,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for selling arcane wares.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -418,7 +414,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for general trading.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                     new PropSpec(
@@ -511,7 +506,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for selling garments.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -582,7 +576,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for selling furniture and woodwork.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -653,7 +646,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for selling jewelry.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -758,7 +750,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for lending books.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -988,7 +979,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Bar Counter",
                                 Description = "A long counter for serving drinks.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -1102,7 +1092,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Innkeeper's Counter",
                                 Description = "A counter for booking rooms.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -1245,7 +1234,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for guild business.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                 ]
@@ -1349,7 +1337,6 @@ internal static class BuildingSpecCatalog
                                 Name = "Counter",
                                 Description = "A counter for selling horses and supplies.",
                                 WorkstationType = WorkstationType.Trade,
-                                AssignedCreatureId = ownerId,
                             }
                     ),
                     new PropSpec(
@@ -1493,6 +1480,18 @@ internal static class BuildingSpecCatalog
                 15,
                 [
                     new PropSpec(
+                        "Workstation",
+                        (id, worldId) =>
+                            new Workstation
+                            {
+                                LocationId = id,
+                                WorldId = worldId,
+                                Name = "Writing Desk",
+                                Description = "A desk for conducting official business.",
+                                WorkstationType = WorkstationType.Trade,
+                            }
+                    ),
+                    new PropSpec(
                         "Throne",
                         (id, worldId) =>
                             new Seat
@@ -1582,6 +1581,18 @@ internal static class BuildingSpecCatalog
                 0,
                 4,
                 [
+                    new PropSpec(
+                        "Workstation",
+                        (id, worldId) =>
+                            new Workstation
+                            {
+                                LocationId = id,
+                                WorldId = worldId,
+                                Name = "Guard Desk",
+                                Description = "A desk for recording the watch.",
+                                WorkstationType = WorkstationType.Trade,
+                            }
+                    ),
                     new PropSpec(
                         "Chair",
                         (id, worldId) =>

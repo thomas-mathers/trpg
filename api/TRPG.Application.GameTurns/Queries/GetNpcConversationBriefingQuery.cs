@@ -11,7 +11,6 @@ using TRPG.Application.Reputations;
 using TRPG.Application.Reputations.Mappers;
 using TRPG.Application.Reputations.Queries;
 using TRPG.Application.RoomBookings.Queries;
-using TRPG.Application.Routing.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -160,11 +159,7 @@ internal class GetNpcConversationBriefingQueryHandler(
         GetActiveLearnFactObjectiveForNpcQuery,
         LearnFactFromCreatureObjective?
     > getActiveLearnFactObjectiveForNpc,
-    IQueryHandler<GetFactByIdQuery, Fact?> getFactById,
-    IQueryHandler<
-        GetRouteTravelerJourneysByCreatureIdsQuery,
-        IReadOnlyDictionary<Guid, RouteTravelerJourney>
-    > getRouteTravelerJourneysByCreatureIds
+    IQueryHandler<GetFactByIdQuery, Fact?> getFactById
 ) : IQueryHandler<GetNpcConversationBriefingQuery, NpcConversationBriefing>
 {
     private const int ReputationHistoryLimit = 5;
@@ -240,16 +235,6 @@ internal class GetNpcConversationBriefingQueryHandler(
             ),
             cancellationToken
         );
-        var roadTravelerJourneys = await getRouteTravelerJourneysByCreatureIds.Handle(
-            new GetRouteTravelerJourneysByCreatureIdsQuery
-            {
-                CreatureIds = [query.NpcId],
-                GameTime = query.GameTime,
-            },
-            cancellationToken
-        );
-        var journey = ToNpcConversationJourney(roadTravelerJourneys.GetValueOrDefault(query.NpcId));
-
         return new NpcConversationBriefing(
             new NpcConversationIdentity(
                 npc.Name,
@@ -306,16 +291,9 @@ internal class GetNpcConversationBriefingQueryHandler(
                 withheldFact
             ),
             dungeonKnowledge,
-            journey
+            null
         );
     }
-
-    private static NpcConversationJourney? ToNpcConversationJourney(
-        RouteTravelerJourney? journey
-    ) =>
-        journey == null
-            ? null
-            : new NpcConversationJourney(journey.Purpose, journey.NextDestination);
 
     private async Task<NpcConversationWithheldFact?> GetWithheldFact(
         GetNpcConversationBriefingQuery query,

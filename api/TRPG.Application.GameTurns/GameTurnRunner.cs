@@ -25,8 +25,6 @@ public class GameTurnRunner
     private readonly TheftEncounterActionHandler _theftEncounterActionHandler;
     private readonly CombatActionHandler _combatActionHandler;
     private readonly CastAbilityActionHandler _castAbilityActionHandler;
-    private readonly PurchaseCaravanTicketActionHandler _purchaseCaravanTicketActionHandler;
-    private readonly BoardCaravanActionHandler _boardCaravanActionHandler;
     private readonly MoveActionHandler _moveActionHandler;
 
     internal GameTurnRunner(
@@ -50,8 +48,6 @@ public class GameTurnRunner
         TheftEncounterActionHandler theftEncounterActionHandler,
         CombatActionHandler combatActionHandler,
         CastAbilityActionHandler castAbilityActionHandler,
-        PurchaseCaravanTicketActionHandler purchaseCaravanTicketActionHandler,
-        BoardCaravanActionHandler boardCaravanActionHandler,
         MoveActionHandler moveActionHandler
     )
     {
@@ -75,8 +71,6 @@ public class GameTurnRunner
         _theftEncounterActionHandler = theftEncounterActionHandler;
         _combatActionHandler = combatActionHandler;
         _castAbilityActionHandler = castAbilityActionHandler;
-        _purchaseCaravanTicketActionHandler = purchaseCaravanTicketActionHandler;
-        _boardCaravanActionHandler = boardCaravanActionHandler;
         _moveActionHandler = moveActionHandler;
     }
 
@@ -199,25 +193,6 @@ public class GameTurnRunner
         string abilityName,
         CancellationToken cancellationToken = default
     ) => _castAbilityActionHandler.Handle(session, targetId, abilityName, cancellationToken);
-
-    public Task<ActionOutcome> PurchaseCaravanTicket(
-        GameTurnSession session,
-        Guid caravanId,
-        Guid destinationLocationId,
-        CancellationToken cancellationToken = default
-    ) =>
-        _purchaseCaravanTicketActionHandler.Handle(
-            session,
-            caravanId,
-            destinationLocationId,
-            cancellationToken
-        );
-
-    public Task<ActionOutcome> BoardCaravan(
-        GameTurnSession session,
-        Guid caravanId,
-        CancellationToken cancellationToken = default
-    ) => _boardCaravanActionHandler.Handle(session, caravanId, cancellationToken);
 
     public Task<ActionOutcome> Move(
         GameTurnSession session,

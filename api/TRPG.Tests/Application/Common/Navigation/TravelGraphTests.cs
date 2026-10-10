@@ -26,6 +26,48 @@ public class TravelGraphTests
     }
 
     [Fact]
+    public void FindShortestPath_SnapshotsTheReversedPointConnectorPath_WhenWalkingBackward()
+    {
+        // Arrange
+        var first = Node(_locationA);
+        var last = Node(_locationA);
+        first = new TravelNode
+        {
+            Id = first.Id,
+            WorldId = first.WorldId,
+            LocationId = first.LocationId,
+            Position = new Point(1, 2),
+        };
+        last = new TravelNode
+        {
+            Id = last.Id,
+            WorldId = last.WorldId,
+            LocationId = last.LocationId,
+            Position = new Point(9, 2),
+        };
+        var connector = Walk(_locationA, first, last, 8, bidirectional: true);
+        connector = new PointConnector
+        {
+            Id = connector.Id,
+            WorldId = connector.WorldId,
+            LocationId = connector.LocationId,
+            OriginNodeId = connector.OriginNodeId,
+            DestinationNodeId = connector.DestinationNodeId,
+            Distance = connector.Distance,
+            Bidirectional = true,
+            Waypoints = new Polyline { Points = [new Point(5, 2)] },
+        };
+        var graph = new TravelGraph([connector], [first, last]);
+
+        // Act
+        var leg = Assert.Single(graph.FindShortestPath(last.Id, first.Id));
+
+        // Assert
+        Assert.Equal(first.Id, leg.ToNodeId);
+        Assert.Equal([new Point(9, 2), new Point(5, 2), new Point(1, 2)], leg.Path.Points);
+    }
+
+    [Fact]
     public void FindShortestPath_ChargesTheWalkBeforeTheConnector_WhenStartNodeIsGiven()
     {
         // Arrange
@@ -282,87 +324,6 @@ public class TravelGraphTests
 
         // Assert
         Assert.Equal(exit.Id, originNodeId);
-    }
-
-    [Fact]
-    public void BuildCycle_ChargesTheWrapWalkToTheFirstLeg()
-    {
-        // Arrange
-        var graph = BuildOutAndBackGraph();
-
-        // Act
-        var legs = graph.BuildCycle([_locationA, _locationB]);
-
-        // Assert
-        Assert.Equal([9d, 4d], legs.Select(leg => leg.Distance));
-    }
-
-    [Fact]
-    public void BuildCycle_ReturnsNoLegs_WhenLocationsAreDisconnected()
-    {
-        // Arrange
-        var graph = new TravelGraph([], []);
-
-        // Act
-        var legs = graph.BuildCycle([_locationA, _locationB]);
-
-        // Assert
-        Assert.Empty(legs);
-    }
-
-    [Fact]
-    public void BuildNodeCycle_ChargesTheWalkToAndFromEachStop_WhenTheStopIsADeadEnd()
-    {
-        // Arrange
-        var graph = BuildSpurGraph(out var hub, out var spurStop, out _);
-
-        // Act
-        var legs = graph.BuildNodeCycle([hub.Id, spurStop.Id]);
-
-        // Assert
-        Assert.Equal([8d, 8d], legs.Select(leg => leg.Distance));
-    }
-
-    [Fact]
-    public void BuildNodeCycle_MarksWhereEachLegPassesItsStop()
-    {
-        // Arrange
-        var graph = BuildSpurGraph(out var hub, out var spurStop, out _);
-
-        // Act
-        var legs = graph.BuildNodeCycle([hub.Id, spurStop.Id]);
-
-        // Assert
-        Assert.Equal(
-            [(3d, hub.Position), (4d, spurStop.Position)],
-            legs.Select(leg => (leg.Stop!.AtMeters, leg.Stop.Position))
-        );
-    }
-
-    [Fact]
-    public void BuildNodeCycle_SkipsUnreachableStops()
-    {
-        // Arrange
-        var graph = BuildSpurGraph(out var hub, out var spurStop, out var stranded);
-
-        // Act
-        var legs = graph.BuildNodeCycle([hub.Id, spurStop.Id, stranded.Id]);
-
-        // Assert
-        Assert.Equal([8d, 8d], legs.Select(leg => leg.Distance));
-    }
-
-    [Fact]
-    public void BuildNodeCycle_ReturnsNoLegs_WhenThereIsOnlyOneStop()
-    {
-        // Arrange
-        var graph = new TravelGraph([], []);
-
-        // Act
-        var legs = graph.BuildNodeCycle([Guid.NewGuid()]);
-
-        // Assert
-        Assert.Empty(legs);
     }
 
     [Fact]

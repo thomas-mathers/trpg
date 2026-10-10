@@ -40,7 +40,7 @@ internal class TradeOfferValidator(
 
         return new ValidatedTradeOffer(
             shopOwner,
-            workstation.AssignedCreatureId,
+            workstation.OwnerCreatureId,
             playerValue,
             shopValue
         );

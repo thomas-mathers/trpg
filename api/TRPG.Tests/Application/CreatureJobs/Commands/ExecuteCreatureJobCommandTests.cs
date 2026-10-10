@@ -89,6 +89,33 @@ public sealed class ExecuteCreatureJobCommandTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_ReleasesWorkstation_WhenChangingToIdle()
+    {
+        var workstation = Builders.MakeWorkstation(
+            _creature.WorldId,
+            _creature.LocationId,
+            occupantId: _creature.Id
+        );
+        _context.Props.Add(workstation);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await _handler.Handle(
+            new ExecuteCreatureJobCommand
+            {
+                CreatureId = _creature.Id,
+                CurrentLocationId = _creature.LocationId,
+                CurrentCondition = CreatureCondition.Awake,
+                CurrentPosture = CreaturePosture.Standing,
+                CreatureJobAction = CreatureJobAction.Idle,
+                JobLocationId = _creature.LocationId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Null(await db.ReadPropOccupantId(workstation.Id));
+    }
+
+    [Fact]
     public async Task Handle_RestoresThePreSitPose_WhenASeatedCreatureLeavesToWork()
     {
         var seat = Builders.MakeSeat(

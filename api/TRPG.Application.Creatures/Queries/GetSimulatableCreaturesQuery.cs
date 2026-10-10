@@ -14,8 +14,10 @@ public class GetSimulatableCreaturesQuery
 public record SimulatableCreature(
     Guid Id,
     Guid LocationId,
+    Guid? CurrentTravelNodeId,
     float MovementSpeed,
-    Profession? Profession
+    Profession? Profession,
+    bool IsEngaged
 );
 
 internal class GetSimulatableCreaturesQueryHandler(ICreaturesDbContext context)
@@ -32,7 +34,6 @@ internal class GetSimulatableCreaturesQueryHandler(ICreaturesDbContext context)
             .Where(creature =>
                 creature.WorldId == query.WorldId
                 && creature.Condition != CreatureCondition.Dead
-                && !creature.IsEngaged
                 && !creature.IsRestrained
                 && creature.MovementSpeed > 0
                 && (creatureIds == null || creatureIds.Contains(creature.Id))
@@ -40,8 +41,10 @@ internal class GetSimulatableCreaturesQueryHandler(ICreaturesDbContext context)
             .Select(creature => new SimulatableCreature(
                 creature.Id,
                 creature.LocationId,
+                creature.CurrentTravelNodeId,
                 creature.MovementSpeed,
-                creature.Profession
+                creature.Profession,
+                creature.IsEngaged
             ))
             .ToArrayAsync(cancellationToken);
     }

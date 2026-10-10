@@ -57,12 +57,22 @@ public class WorldGeneratorResult
     public required IReadOnlyList<State> States { get; init; }
     public required World World { get; init; }
     public required IReadOnlyList<CreatureSpawner> CreatureSpawners { get; init; }
-    public IReadOnlyList<Route> CityPatrolRoutes { get; init; } = [];
-    public IReadOnlyList<RouteStep> CityPatrolRouteSteps { get; init; } = [];
 
     public TravelGraph BuildTravelGraph() =>
         new([.. LocationConnectors, .. PointConnectors], TravelNodes);
 }
+
+public sealed record GeneratedJourneySeed(
+    IReadOnlyList<Creature> Creatures,
+    IReadOnlyList<Item> Items,
+    IReadOnlyList<CreatureSkill> Skills,
+    IReadOnlyList<FactionMember> FactionMembers,
+    IReadOnlyList<TravelCircuit> Circuits,
+    IReadOnlyList<TravelCircuitLeg> CircuitLegs,
+    IReadOnlyList<Journey> Journeys,
+    IReadOnlyList<JourneyLeg> JourneyLegs,
+    IReadOnlyList<JourneyMember> JourneyMembers
+);
 
 // Archetypes always leads with LeaderArchetype, which is also always Humanoid — an antagonist
 // faction is led by a person, never sampled down to whatever monster archetype happened to win the
@@ -166,8 +176,6 @@ public class WorldGenerator(
         var expeditions = new List<DungeonExpeditionResult>();
         var dungeonInhabitants = new List<DungeonInhabitantResult>();
         var dungeonInhabitantLocationIds = new List<Guid>();
-        var cityPatrolRoutes = new List<Route>();
-        var cityPatrolRouteSteps = new List<RouteStep>();
 
         var stateById = geography.States.ToDictionary(s => s.Id);
         var districtsByCityId = geography
@@ -220,8 +228,6 @@ public class WorldGenerator(
             jobs.AddRange(cityResult.Jobs);
             doorConnectorKeys.AddRange(cityResult.DoorConnectorKeys);
             relationships.AddRange(cityResult.Relationships);
-            cityPatrolRoutes.AddRange(cityResult.Routes);
-            cityPatrolRouteSteps.AddRange(cityResult.RouteSteps);
         }
 
         var factionsById = factions.ToDictionary(faction => faction.Id);
@@ -714,12 +720,6 @@ public class WorldGenerator(
             [.. locationConnectors, .. layout.PointConnectors],
             layout.TravelNodes
         );
-        PatrolStopNodeAssigner.Assign(
-            cityPatrolRouteSteps,
-            layout.TravelNodes,
-            layout.PointConnectors,
-            anchoredLocations.ToDictionary(location => location.Id)
-        );
         var timeScale = clockOptions.Value.TimeScale;
 
         jobs.AddRange(
@@ -735,6 +735,7 @@ public class WorldGenerator(
                 creatures
             )
         );
+        CreatureTravelNodeAssigner.Assign(creatures, layout.TravelNodes);
 
         logger.LogDebug("GenerateWorld completed in {ElapsedSeconds:F1}s", sw.Elapsed.TotalSeconds);
 
@@ -778,8 +779,6 @@ public class WorldGenerator(
             DoorConnectorKeys = doorConnectorKeys,
             DoorConnectorLevers = doorConnectorLevers,
             Relationships = relationships,
-            CityPatrolRoutes = cityPatrolRoutes,
-            CityPatrolRouteSteps = cityPatrolRouteSteps,
             CreatureSpawners = creatureSpawners,
         };
 

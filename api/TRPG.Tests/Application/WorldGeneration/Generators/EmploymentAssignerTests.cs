@@ -66,6 +66,29 @@ public class EmploymentAssignerTests
     }
 
     [Fact]
+    public void AssignEmployment_LeavesExcessSlotsVacant_WhenResidentsAreExhausted()
+    {
+        // Arrange
+        var adult = Builders.MakeCreature(_worldId, profession: Profession.Unemployed);
+        var context = MakeContext(
+            eligible: [adult],
+            slots:
+            [
+                new ShopEmploymentSlot(Guid.NewGuid(), Profession.Baker, [], WorkHours),
+                new ShopEmploymentSlot(Guid.NewGuid(), Profession.Baker, [], WorkHours),
+            ],
+            homeLocations: new Dictionary<Guid, Guid> { [adult.Id] = Guid.NewGuid() }
+        );
+
+        // Act
+        EmploymentAssigner.AssignEmployment(context);
+
+        // Assert
+        Assert.Single(context.Jobs, job => job.Action == CreatureJobAction.Work);
+        Assert.Single(context.EligibleForEmployment);
+    }
+
+    [Fact]
     public void AssignEmployment_SharesFamilyDayOff_WithHomemakerAndKids()
     {
         // Arrange

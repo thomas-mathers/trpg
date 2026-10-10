@@ -16,26 +16,7 @@ public class BootstrapWorldCommand
     public required QuestGeneratorResult Quests { get; init; }
     public IReadOnlyList<Reputation> PlayerReputations { get; init; } = [];
     public IReadOnlyList<QuestSeedSchedule> QuestSeedSchedules { get; init; } = [];
-    public IReadOnlyList<Route> CaravanRoutes { get; init; } = [];
-    public IReadOnlyList<RouteStep> CaravanRouteSteps { get; init; } = [];
-    public IReadOnlyList<RouteTraveler> CaravanRouteTravelers { get; init; } = [];
-    public IReadOnlyList<CaravanFare> CaravanFares { get; init; } = [];
-    public IReadOnlyList<CaravanScheduleSign> CaravanRouteSigns { get; init; } = [];
-    public IReadOnlyList<Route> CountryPatrolRoutes { get; init; } = [];
-    public IReadOnlyList<RouteStep> CountryPatrolRouteSteps { get; init; } = [];
-    public IReadOnlyList<RouteTraveler> CountryPatrolRouteTravelers { get; init; } = [];
-    public IReadOnlyList<Creature> GuardPatrolCreatures { get; init; } = [];
-    public IReadOnlyList<FactionMember> GuardPatrolFactionMembers { get; init; } = [];
-    public IReadOnlyList<Item> GuardPatrolItems { get; init; } = [];
-    public IReadOnlyList<CreatureSkill> GuardPatrolSkills { get; init; } = [];
-    public IReadOnlyList<Route> RoadTravelerRoutes { get; init; } = [];
-    public IReadOnlyList<RouteStep> RoadTravelerRouteSteps { get; init; } = [];
-    public IReadOnlyList<RouteTraveler> RoadTravelerRouteTravelers { get; init; } = [];
-    public IReadOnlyList<RouteTravelerMember> RouteTravelerMembers { get; init; } = [];
-    public IReadOnlyList<Creature> RoadTravelerCreatures { get; init; } = [];
-    public IReadOnlyList<Item> RoadTravelerItems { get; init; } = [];
-    public IReadOnlyList<CreatureSkill> RoadTravelerSkills { get; init; } = [];
-    public IReadOnlyList<CreatureProfile> RoadTravelerProfiles { get; init; } = [];
+    public GeneratedJourneySeed? GeneratedJourneys { get; init; }
 }
 
 internal class BootstrapWorldCommandHandler(
@@ -70,6 +51,18 @@ internal class BootstrapWorldCommandHandler(
         context.EncounterGroupMembers.AddRange(world.EncounterGroupMembers);
         context.Buildings.AddRange(world.Buildings);
         context.Creatures.AddRange(world.Creatures);
+        if (command.GeneratedJourneys is { } generatedJourneys)
+        {
+            context.Creatures.AddRange(generatedJourneys.Creatures);
+            context.Items.AddRange(generatedJourneys.Items);
+            context.CreatureSkills.AddRange(generatedJourneys.Skills);
+            context.FactionMembers.AddRange(generatedJourneys.FactionMembers);
+            context.TravelCircuits.AddRange(generatedJourneys.Circuits);
+            context.TravelCircuitLegs.AddRange(generatedJourneys.CircuitLegs);
+            context.Journeys.AddRange(generatedJourneys.Journeys);
+            context.JourneyLegs.AddRange(generatedJourneys.JourneyLegs);
+            context.JourneyMembers.AddRange(generatedJourneys.JourneyMembers);
+        }
         context.CreatureProfiles.AddRange(world.CreatureProfiles);
         context.BuildingOwners.AddRange(world.BuildingOwners);
         context.Items.AddRange(world.Items);
@@ -107,34 +100,9 @@ internal class BootstrapWorldCommandHandler(
         context.DoorConnectorKeys.AddRange(world.DoorConnectorKeys);
         context.DoorConnectorLevers.AddRange(world.DoorConnectorLevers);
         context.Relationships.AddRange(world.Relationships);
-        context.Routes.AddRange(world.CityPatrolRoutes);
-        context.RouteSteps.AddRange(world.CityPatrolRouteSteps);
         context.Quests.AddRange(quests.Quests);
         context.QuestObjectives.AddRange(quests.Objectives);
         context.QuestSeedSchedules.AddRange(command.QuestSeedSchedules);
-
-        context.Routes.AddRange(command.CaravanRoutes);
-        context.RouteSteps.AddRange(command.CaravanRouteSteps);
-        context.RouteTravelers.AddRange(command.CaravanRouteTravelers);
-        context.CaravanFares.AddRange(command.CaravanFares);
-        context.Props.AddRange(command.CaravanRouteSigns);
-
-        context.Routes.AddRange(command.CountryPatrolRoutes);
-        context.RouteSteps.AddRange(command.CountryPatrolRouteSteps);
-        context.RouteTravelers.AddRange(command.CountryPatrolRouteTravelers);
-        context.Creatures.AddRange(command.GuardPatrolCreatures);
-        context.FactionMembers.AddRange(command.GuardPatrolFactionMembers);
-        context.Items.AddRange(command.GuardPatrolItems);
-        context.CreatureSkills.AddRange(command.GuardPatrolSkills);
-
-        context.Routes.AddRange(command.RoadTravelerRoutes);
-        context.RouteSteps.AddRange(command.RoadTravelerRouteSteps);
-        context.RouteTravelers.AddRange(command.RoadTravelerRouteTravelers);
-        context.RouteTravelerMembers.AddRange(command.RouteTravelerMembers);
-        context.Creatures.AddRange(command.RoadTravelerCreatures);
-        context.Items.AddRange(command.RoadTravelerItems);
-        context.CreatureSkills.AddRange(command.RoadTravelerSkills);
-        context.CreatureProfiles.AddRange(command.RoadTravelerProfiles);
 
         if (player != null)
         {

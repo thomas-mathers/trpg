@@ -15,7 +15,6 @@ internal static class ConnectorNodePlacer
             connector.DestinationLocationId
         ));
         var nodes = new List<TravelNode>();
-        var arrivals = new Dictionary<Guid, Placement>();
 
         foreach (var connector in context.Connectors)
         {
@@ -26,7 +25,6 @@ internal static class ConnectorNodePlacer
             connector.ExitAngle = exit.FacingAngle;
             connector.StairDirection = exit.Stairs;
             connector.ArrivalAngle = arrival.Angle;
-            arrivals[connector.Id] = arrival;
 
             if (portNodeIdByConnectorId.TryGetValue(connector.Id, out var portNodeId))
             {
@@ -39,7 +37,7 @@ internal static class ConnectorNodePlacer
                         context,
                         connector.OriginNodeId,
                         connector.OriginLocationId,
-                        new Point(exit.Point.X, exit.Point.Y)
+                        PortPosition(context, connector.OriginLocationId, exit)
                     )
                 );
             }
@@ -48,15 +46,14 @@ internal static class ConnectorNodePlacer
         foreach (var connector in context.Connectors)
         {
             var reverse = FindReverse(connectorsByPair, connector);
-            var destination = context.LocationById[connector.DestinationLocationId];
 
-            if (destination.Kind == LocationKind.District && reverse is not null)
+            if (reverse is not null && SharesPort(exitByConnectorId, connector, reverse))
             {
                 connector.DestinationNodeId = reverse.OriginNodeId;
                 continue;
             }
 
-            var arrival = arrivals[connector.Id];
+            var arrival = ResolveArrival(context, connector, reverse, exitByConnectorId);
             nodes.Add(
                 CreateNode(
                     context,
@@ -69,6 +66,33 @@ internal static class ConnectorNodePlacer
 
         return nodes;
     }
+
+    private static Point PortPosition(
+        LocationLayoutContext context,
+        Guid locationId,
+        ConnectorExit exit
+    )
+    {
+        var location = context.LocationById[locationId];
+        if (location.Kind == LocationKind.District || exit.Stairs is not null)
+        {
+            return new Point(exit.Point.X, exit.Point.Y);
+        }
+
+        var arrival = ConnectorPointResolver.KeepInside(
+            ConnectorPointResolver.ResolveArrival(exit),
+            new Footprint(location.Width, location.Depth)
+        );
+        return new Point(arrival.X, arrival.Y);
+    }
+
+    private static bool SharesPort(
+        IReadOnlyDictionary<Guid, ConnectorExit> exitByConnectorId,
+        LocationConnector connector,
+        LocationConnector reverse
+    ) =>
+        exitByConnectorId[connector.Id].Stairs is null
+        && exitByConnectorId[reverse.Id].Stairs is null;
 
     private static Placement ResolveArrival(
         LocationLayoutContext context,

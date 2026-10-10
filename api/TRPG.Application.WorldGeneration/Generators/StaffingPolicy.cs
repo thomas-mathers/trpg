@@ -8,7 +8,7 @@ internal record Shift(
     HourWindow WorkHours
 );
 
-internal record StaffingSchedule(Shift OwnerShift, IReadOnlyList<Shift> EmployeeShifts);
+internal record StaffingSchedule(Shift? OwnerShift, IReadOnlyList<Shift> EmployeeShifts);
 
 internal static class StaffingPolicy
 {

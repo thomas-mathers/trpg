@@ -32,8 +32,6 @@ internal class CityGeneratorResult
     public required IReadOnlyList<CreatureJob> Jobs { get; init; }
     public required IReadOnlyList<DoorConnectorKey> DoorConnectorKeys { get; init; }
     public required IReadOnlyList<Relationship> Relationships { get; init; }
-    public required IReadOnlyList<Route> Routes { get; init; }
-    public required IReadOnlyList<RouteStep> RouteSteps { get; init; }
 }
 
 public class CityGenerator(
@@ -71,8 +69,6 @@ public class CityGenerator(
         public List<CreatureJob> Jobs { get; } = [];
         public List<DoorConnectorKey> DoorConnectorKeys { get; } = [];
         public List<Relationship> Relationships { get; } = [];
-        public List<Route> Routes { get; } = [];
-        public List<RouteStep> RouteSteps { get; } = [];
         public List<ShopEmploymentSlot> OpenShopSlots { get; } = [];
         public List<StaffDayOff> ShopOwnerAssignments { get; } = [];
         public List<Creature> EligibleForEmployment { get; } = [];
@@ -220,8 +216,6 @@ public class CityGenerator(
             Jobs = workspace.Jobs.ToArray(),
             DoorConnectorKeys = workspace.DoorConnectorKeys.ToArray(),
             Relationships = workspace.Relationships.ToArray(),
-            Routes = workspace.Routes.ToArray(),
-            RouteSteps = workspace.RouteSteps.ToArray(),
         };
     }
 
@@ -468,31 +462,15 @@ public class CityGenerator(
         workspace.Items.AddRange(buildingResult.KeyItems);
         workspace.DoorConnectorKeys.AddRange(buildingResult.DoorConnectorKeys);
 
-        var groundFloorRoom = buildingResult.Rooms.First(r => r.FloorNumber == 0);
-        var gateLocationId = workspace.DistrictsByType.TryGetValue(
-            DistrictType.CityEntrance,
-            out var gateDistrict
-        )
-            ? gateDistrict.LocationId
-            : groundFloorRoom.LocationId;
-        var registration = BarracksGuardDutyAssigner.Generate(
-            new BarracksGuardDutyAssignerInput(
-                input.WorldId,
-                input.City.Name,
-                workspace.GuardFaction.Id,
-                groundFloorRoom.LocationId,
-                gateLocationId,
-                input.Districts,
-                input.DistrictConnectors,
-                buildingResult.Props.OfType<Bed>().ToList(),
-                guards
-            )
+        workspace.FactionMembers.AddRange(
+            guards.Select(guard => new FactionMember
+            {
+                WorldId = input.WorldId,
+                FactionId = workspace.GuardFaction.Id,
+                CreatureId = guard.Id,
+                Role = FactionRole.Member,
+            })
         );
-
-        workspace.FactionMembers.AddRange(registration.FactionMembers);
-        workspace.Jobs.AddRange(registration.Jobs);
-        workspace.Routes.AddRange(registration.Routes);
-        workspace.RouteSteps.AddRange(registration.RouteSteps);
         workspace.Creatures.AddRange(guards);
         workspace.Items.AddRange(guardCreatures.SelectMany(g => g.Items));
         workspace.Skills.AddRange(guardCreatures.SelectMany(g => g.Skills));
@@ -523,21 +501,13 @@ public class CityGenerator(
         var type = buildingResult.Building.BuildingType;
         var groundFloorLocationId = buildingResult.Rooms.First(r => r.FloorNumber == 0).LocationId;
 
-        StaffingSchedule schedule;
-        if (type == BuildingType.Inn)
-        {
-            schedule = InnStaffingPolicy.Generate();
-        }
-        else
-        {
-            var staffableWorkstationCount = Math.Max(
-                1,
-                buildingResult
-                    .Props.OfType<Workstation>()
-                    .Count(w => w.WorkstationType != WorkstationType.Reading)
-            );
-            schedule = ShopStaffingPolicy.Generate(type, staffableWorkstationCount);
-        }
+        var staffableWorkstationCount = buildingResult
+            .Props.OfType<Workstation>()
+            .Count(w => w.WorkstationType != WorkstationType.Reading);
+        var schedule =
+            type == BuildingType.Inn
+                ? InnStaffingPolicy.Generate(staffableWorkstationCount)
+                : ShopStaffingPolicy.Generate(type, staffableWorkstationCount);
 
         AssignShiftsToWorkspace(workspace, schedule, ownerId, groundFloorLocationId);
     }
@@ -551,23 +521,26 @@ public class CityGenerator(
     {
         var worldId = workspace.Input.WorldId;
 
-        workspace.Jobs.Add(
-            CreatureJobGenerator.GenerateWork(
+        if (schedule.OwnerShift is { } ownerShift)
+        {
+            workspace.Jobs.Add(
+                CreatureJobGenerator.GenerateWork(
+                    ownerId,
+                    groundFloorLocationId,
+                    worldId,
+                    ownerShift.WorkHours
+                )
+            );
+            CreatureJobGenerator.ApplySleepOverride(
                 ownerId,
-                groundFloorLocationId,
+                ownerShift.WorkHours,
                 worldId,
-                schedule.OwnerShift.WorkHours
-            )
-        );
-        CreatureJobGenerator.ApplySleepOverride(
-            ownerId,
-            schedule.OwnerShift.WorkHours,
-            worldId,
-            workspace.Jobs
-        );
-        workspace.ShopOwnerAssignments.Add(
-            new StaffDayOff(ownerId, schedule.OwnerShift.DaysOff, schedule.OwnerShift.WorkHours)
-        );
+                workspace.Jobs
+            );
+            workspace.ShopOwnerAssignments.Add(
+                new StaffDayOff(ownerId, ownerShift.DaysOff, ownerShift.WorkHours)
+            );
+        }
 
         foreach (var shift in schedule.EmployeeShifts)
         {

@@ -10,8 +10,9 @@ internal static class SimEventLocations
             JourneyStarted started => [started.OriginLocationId],
             LocationEntered entered => [entered.FromLocationId, entered.ToLocationId],
             JourneyCompleted completed => [completed.LocationId],
-            PatrolEnded ended => [ended.LocationId],
-            DwellStarted dwell => [dwell.LocationId],
+            LocalMoveStarted started => [started.LocationId],
+            LocalMoveCompleted completed => [completed.LocationId],
+            LocalMoveInterrupted interrupted => [interrupted.LocationId],
             _ => [],
         };
 }

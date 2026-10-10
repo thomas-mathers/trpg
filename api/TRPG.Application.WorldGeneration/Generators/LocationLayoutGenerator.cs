@@ -18,15 +18,15 @@ internal static class LocationLayoutGenerator
         );
         var nodes = new List<TravelNode>([.. exterior.TravelNodes, .. connectorNodes]);
         var nodeById = nodes.ToDictionary(node => node.Id);
-
+        var pointConnectors = new List<PointConnector>([
+            .. exterior.PointConnectors,
+            .. RoomPointConnectorGenerator.Generate(context, nodeById, roomFurniture),
+            .. WildernessPointConnectorGenerator.Generate(context, nodeById),
+        ]);
         return new LocationLayoutResult(
             [.. roomFurniture, .. exterior.Props],
             nodes,
-            [
-                .. exterior.PointConnectors,
-                .. RoomPointConnectorGenerator.Generate(context, nodeById, roomFurniture),
-                .. WildernessPointConnectorGenerator.Generate(context, nodeById),
-            ]
+            pointConnectors
         );
     }
 }

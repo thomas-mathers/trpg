@@ -12,13 +12,15 @@ public class TryOccupyAnyAvailableSeatCommand
     public Guid? PreferredSeatId { get; init; }
 }
 
+public sealed record SeatClaim(Guid SeatId, Placement Placement);
+
 // Claims one free seat atomically: finds a candidate then conditionally updates it, retrying with
 // that candidate excluded if another claim won the race, instead of fetching every seat up front.
 // Returns the claimed seat's pose, or null when no seat was available.
 internal class TryOccupyAnyAvailableSeatCommandHandler(IPropsDbContext context)
-    : ICommandHandler<TryOccupyAnyAvailableSeatCommand, Placement?>
+    : ICommandHandler<TryOccupyAnyAvailableSeatCommand, SeatClaim?>
 {
-    public async Task<Placement?> Handle(
+    public async Task<SeatClaim?> Handle(
         TryOccupyAnyAvailableSeatCommand command,
         CancellationToken cancellationToken = default
     )
@@ -79,9 +81,9 @@ internal class TryOccupyAnyAvailableSeatCommandHandler(IPropsDbContext context)
         }
     }
 
-    private async Task<Placement> GetPlacement(Guid seatId, CancellationToken cancellationToken) =>
+    private async Task<SeatClaim> GetPlacement(Guid seatId, CancellationToken cancellationToken) =>
         await context
             .Props.Where(seat => seat.Id == seatId)
-            .Select(seat => new Placement(seat.X, seat.Y, seat.Angle))
+            .Select(seat => new SeatClaim(seat.Id, new Placement(seat.X, seat.Y, seat.Angle)))
             .SingleAsync(cancellationToken);
 }

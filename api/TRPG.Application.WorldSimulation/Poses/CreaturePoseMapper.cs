@@ -4,12 +4,8 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Poses;
 
-public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
+public sealed class CreaturePoseMapper
 {
-    private readonly Dictionary<Guid, PlacedConnector> _connectorsById = connectors.ToDictionary(
-        placed => placed.Connector.Id
-    );
-
     public IReadOnlyList<CreaturePoseUpdate> Map(IEnumerable<SimEvent> events) =>
         [
             .. events
@@ -26,13 +22,7 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 started.OriginLocationId,
                 null,
                 CreatureMovement.Walking,
-                null,
-                new WalkColumns(
-                    null,
-                    null,
-                    started.StopPosition ?? ExitOf(started.NextConnectorId),
-                    started.At
-                )
+                null
             ),
             LocationEntered entered => new CreaturePoseUpdate(
                 entered.CreatureId,
@@ -40,12 +30,17 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 entered.FromLocationId,
                 CreatureMovement.Walking,
                 null,
-                new WalkColumns(
-                    _connectorsById[entered.ConnectorId].Arrival,
-                    entered.At,
-                    entered.StopPosition ?? ExitOf(entered.NextConnectorId),
-                    entered.NextConnectorId == null ? null : entered.At
-                )
+                entered.StopPosition,
+                CurrentTravelNodeId: entered.ArrivalNodeId
+            ),
+            JourneyLegCompleted completed => new CreaturePoseUpdate(
+                completed.CreatureId,
+                completed.LocationId,
+                null,
+                CreatureMovement.Walking,
+                null,
+                completed.StopPosition,
+                completed.ArrivalNodeId
             ),
             JourneyCompleted completed => new CreaturePoseUpdate(
                 completed.CreatureId,
@@ -53,28 +48,33 @@ public sealed class CreaturePoseMapper(IEnumerable<PlacedConnector> connectors)
                 null,
                 CreatureMovement.Stationary,
                 completed.Action.ToActivity(),
-                null
+                completed.StopPosition,
+                CurrentTravelNodeId: completed.ArrivalNodeId
             ),
-            DwellStarted dwell => new CreaturePoseUpdate(
-                dwell.CreatureId,
-                dwell.LocationId,
+            LocalMoveStarted started => new CreaturePoseUpdate(
+                started.CreatureId,
+                started.LocationId,
+                null,
+                CreatureMovement.Walking,
+                null,
+                started.Move.Path[0]
+            ),
+            LocalMoveCompleted completed => new CreaturePoseUpdate(
+                completed.CreatureId,
+                completed.LocationId,
+                null,
+                CreatureMovement.Stationary,
+                completed.Move.Action.ToActivity(),
+                completed.StopPosition
+            ),
+            LocalMoveInterrupted interrupted => new CreaturePoseUpdate(
+                interrupted.CreatureId,
+                interrupted.LocationId,
                 null,
                 CreatureMovement.Stationary,
                 null,
-                new WalkColumns(null, null, null, null),
-                dwell.Position
-            ),
-            PatrolEnded ended => new CreaturePoseUpdate(
-                ended.CreatureId,
-                ended.LocationId,
-                null,
-                CreatureMovement.Stationary,
-                null,
-                null
+                interrupted.StopPosition
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(simEvent)),
         };
-
-    private Point? ExitOf(Guid? connectorId) =>
-        connectorId == null ? null : _connectorsById[connectorId.Value].Exit;
 }

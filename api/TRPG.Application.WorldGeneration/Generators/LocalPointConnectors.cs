@@ -4,11 +4,24 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class LocalPointConnectors
 {
+    internal sealed record Path(IReadOnlyList<Point> Points)
+    {
+        internal double Distance =>
+            Points
+                .Zip(Points.Skip(1))
+                .Sum(pair =>
+                    Math.Sqrt(
+                        Math.Pow(pair.Second.X - pair.First.X, 2)
+                            + Math.Pow(pair.Second.Y - pair.First.Y, 2)
+                    )
+                );
+    }
+
     internal static IReadOnlyList<PointConnector> Complete(
         LocationLayoutContext context,
         Location location,
         IReadOnlyDictionary<Guid, TravelNode> nodeById,
-        Func<TravelNode, TravelNode, double> measure,
+        Func<TravelNode, TravelNode, Path> pathBetween,
         Func<LocationConnector, bool>? includeConnector = null
     )
     {
@@ -29,15 +42,28 @@ internal static class LocalPointConnectors
         return
         [
             .. arrivals.SelectMany(arrival =>
-                exits.Select(exit => new PointConnector
-                {
-                    WorldId = location.WorldId,
-                    LocationId = location.Id,
-                    OriginNodeId = arrival.Id,
-                    DestinationNodeId = exit.Id,
-                    Distance = measure(arrival, exit),
-                })
+                exits
+                    .Where(exit => exit.Id != arrival.Id)
+                    .Select(exit =>
+                        CreateConnector(location, arrival, exit, pathBetween(arrival, exit))
+                    )
             ),
         ];
     }
+
+    private static PointConnector CreateConnector(
+        Location location,
+        TravelNode origin,
+        TravelNode destination,
+        Path path
+    ) =>
+        new()
+        {
+            WorldId = location.WorldId,
+            LocationId = location.Id,
+            OriginNodeId = origin.Id,
+            DestinationNodeId = destination.Id,
+            Distance = path.Distance,
+            Waypoints = new Polyline { Points = path.Points.Skip(1).SkipLast(1).ToList() },
+        };
 }

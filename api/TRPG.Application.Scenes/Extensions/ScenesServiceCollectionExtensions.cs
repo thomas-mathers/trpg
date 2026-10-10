@@ -8,6 +8,7 @@ public static class ScenesServiceCollectionExtensions
     public static IServiceCollection AddScenesServices(this IServiceCollection serviceCollection) =>
         serviceCollection
             .AddSingleton<PublishedSceneRegistry>()
+            .AddSingleton<TransientCreatureWalkRegistry>()
             .AddTransient<ScenePublisher>()
             .AddTransient<SceneCreatureInfoBuilder>();
 }

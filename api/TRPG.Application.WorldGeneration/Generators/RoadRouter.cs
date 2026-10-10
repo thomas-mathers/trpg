@@ -1,3 +1,5 @@
+using TRPG.Application.Common.Algorithms;
+
 namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class RoadRouter
@@ -53,37 +55,14 @@ internal static class RoadRouter
     )
     {
         var first = new RoadState(start, Array.IndexOf(Steps, heading), 1);
-        var best = new Dictionary<RoadState, double> { [first] = 0 };
-        var parent = new Dictionary<RoadState, RoadState>();
-        var queue = new PriorityQueue<RoadState, double>();
-        queue.Enqueue(first, 0);
+        var states = Graphs.ShortestPathToNearest(
+            [first],
+            state => network.Contains(state.Cell),
+            state => Neighbours(grid, start, rules, state).Select(neighbour => neighbour.State),
+            (from, to) => Cost(grid, start, rules, from, to)
+        );
 
-        while (queue.TryDequeue(out var state, out var cost))
-        {
-            if (cost > best[state])
-            {
-                continue;
-            }
-
-            if (network.Contains(state.Cell))
-            {
-                return Trace(parent, state);
-            }
-
-            foreach (var next in Neighbours(grid, start, rules, state))
-            {
-                var nextCost = cost + next.Cost;
-
-                if (!best.TryGetValue(next.State, out var known) || nextCost < known)
-                {
-                    best[next.State] = nextCost;
-                    parent[next.State] = state;
-                    queue.Enqueue(next.State, nextCost);
-                }
-            }
-        }
-
-        return [];
+        return states.Select(state => state.Cell).ToArray();
     }
 
     private static IEnumerable<Neighbour> Neighbours(
@@ -133,22 +112,11 @@ internal static class RoadRouter
         || state.Direction == direction
         || state.Run >= rules.MinimumRun;
 
-    private static IReadOnlyList<RoadCell> Trace(
-        Dictionary<RoadState, RoadState> parent,
-        RoadState goal
-    )
-    {
-        var cells = new List<RoadCell> { goal.Cell };
-        var current = goal;
-
-        while (parent.TryGetValue(current, out var previous))
-        {
-            cells.Add(previous.Cell);
-            current = previous;
-        }
-
-        cells.Reverse();
-
-        return cells;
-    }
+    private static double Cost(
+        RoadGrid grid,
+        RoadCell start,
+        RouteRules rules,
+        RoadState from,
+        RoadState to
+    ) => Neighbours(grid, start, rules, from).Single(neighbour => neighbour.State == to).Cost;
 }

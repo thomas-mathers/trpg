@@ -136,6 +136,7 @@ public class Creature
     public Profession? Profession { get; set; }
     public Guid? PlayerCorpseOwnerId { get; init; }
     public Guid? PreviousLocationId { get; set; }
+    public Guid? CurrentTravelNodeId { get; set; }
     public GameInstant? RestedUntilGameTime { get; set; }
     public Guid? SpawnerId { get; set; }
     public CreatureCondition Condition { get; set; }
@@ -153,14 +154,6 @@ public class Creature
     public double? StandingX { get; set; }
     public double? StandingY { get; set; }
     public double? StandingAngle { get; set; }
-    public double? EntryX { get; set; }
-    public double? EntryY { get; set; }
-    public GameInstant? EnteredAt { get; set; }
-    public double? ExitX { get; set; }
-    public double? ExitY { get; set; }
-    public GameInstant? DepartedAt { get; set; }
-    public GameInstant? WalkPausedAt { get; set; }
-
     public int Strength { get; set; }
     public int Dexterity { get; set; }
     public int Intelligence { get; set; }

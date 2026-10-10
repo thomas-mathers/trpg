@@ -4,8 +4,6 @@ namespace TRPG.Application.WorldGeneration.Generators;
 
 internal static class ShopStaffingPolicy
 {
-    private const int MaxShopStaff = 3;
-
     internal static readonly IReadOnlyList<DayOfWeek>[] StaffDayOffPatterns =
     [
         [DayOfWeek.Saturday, DayOfWeek.Sunday],
@@ -15,6 +13,11 @@ internal static class ShopStaffingPolicy
 
     internal static StaffingSchedule Generate(BuildingType type, int staffableWorkstationCount)
     {
+        if (staffableWorkstationCount == 0)
+        {
+            return new StaffingSchedule(null, []);
+        }
+
         var workHours = StaffingPolicy.GetWorkHoursForBuilding(type);
         var ownerProfession = StaffingPolicy.GetProfessionForBuilding(type);
         var employeeProfession = StaffingPolicy.GetEmployeeProfessionForBuilding(type);
@@ -37,12 +40,16 @@ internal static class ShopStaffingPolicy
             );
         }
 
-        var totalStaff = Math.Min(staffableWorkstationCount, MaxShopStaff);
+        var totalStaff = staffableWorkstationCount;
         var employeeShifts = new List<Shift>();
         for (var position = 1; position < totalStaff; position++)
         {
             employeeShifts.Add(
-                new Shift(employeeProfession, StaffDayOffPatterns[position], workHours)
+                new Shift(
+                    employeeProfession,
+                    StaffDayOffPatterns[position % StaffDayOffPatterns.Length],
+                    workHours
+                )
             );
         }
 

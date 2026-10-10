@@ -10,23 +10,10 @@ public class SyncLocationTravelersCommand
     public required GameInstant GameTime { get; init; }
 }
 
-internal class SyncLocationTravelersCommandHandler(
-    ICommandHandler<SyncRouteTravelersCommand> syncRouteTravelers
-) : ICommandHandler<SyncLocationTravelersCommand>
+internal class SyncLocationTravelersCommandHandler : ICommandHandler<SyncLocationTravelersCommand>
 {
     public async Task Handle(
         SyncLocationTravelersCommand command,
         CancellationToken cancellationToken = default
-    )
-    {
-        await syncRouteTravelers.Handle(
-            new SyncRouteTravelersCommand
-            {
-                WorldId = command.WorldId,
-                LocationId = command.LocationId,
-                GameTime = command.GameTime,
-            },
-            cancellationToken
-        );
-    }
+    ) { }
 }

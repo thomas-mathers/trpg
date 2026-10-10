@@ -66,6 +66,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             destination.Id,
             worldId
         );
+        var returnLocationConnector = Builders.MakeLocationConnector(
+            destination.Id,
+            location.Id,
+            worldId
+        );
+        returnLocationConnector.OriginNodeId = locationConnector.DestinationNodeId;
+        returnLocationConnector.DestinationNodeId = locationConnector.OriginNodeId;
         var doorConnector = Builders.MakeDoorConnector(locationConnector.Id, worldId: worldId);
         var factionMember = new FactionMember
         {
@@ -191,21 +198,15 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             locationId: destination.Id,
             worldId: worldId
         );
-        var route = new Route { WorldId = worldId, Name = "Test route" };
-        var routeStep = new RouteStep
+        var circuit = new TravelCircuit { WorldId = worldId, Name = "Test circuit" };
+        var journey = new Journey
         {
             WorldId = worldId,
-            RouteId = route.Id,
-            SequenceIndex = 0,
-            LocationId = location.Id,
-            DwellHours = 1,
-        };
-        var routeTraveler = new RouteTraveler
-        {
-            WorldId = worldId,
-            RouteId = route.Id,
-            StartedAtGameTime = GameClock.Epoch,
-            SpeedUnitsPerHour = 1,
+            TravelCircuitId = circuit.Id,
+            Status = JourneyStatus.Planned,
+            PlannedAt = GameClock.Epoch,
+            DepartureAt = GameClock.Epoch,
+            CheckpointedAt = GameClock.Epoch,
         };
         var conversationHistory = new NpcConversationHistory
         {
@@ -229,16 +230,13 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         _context.Locations.Add(destination);
         _context.Props.Add(bed);
         _context.Items.Add(item);
-        _context.LocationConnectors.Add(locationConnector);
+        _context.LocationConnectors.AddRange(locationConnector, returnLocationConnector);
         _context.DoorConnectors.Add(doorConnector);
         var pointStart = Builders.MakeTravelNode(location.Id, worldId: worldId);
         var pointEnd = Builders.MakeTravelNode(location.Id, 5, 0, worldId);
-        _context.TravelNodes.AddRange(
-            Builders.MakeExitNode(locationConnector),
-            Builders.MakeArrivalNode(locationConnector),
-            pointStart,
-            pointEnd
-        );
+        var exitNode = Builders.MakeExitNode(locationConnector);
+        var arrivalNode = Builders.MakeArrivalNode(locationConnector);
+        _context.TravelNodes.AddRange(exitNode, arrivalNode, pointStart, pointEnd);
         _context.PointConnectors.Add(
             Builders.MakePointConnector(location.Id, pointStart.Id, pointEnd.Id, 5, worldId)
         );
@@ -310,30 +308,40 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
             }
         );
         _context.FactDisclosureLockouts.Add(factDisclosureLockout);
-        _context.Routes.Add(route);
-        _context.RouteSteps.Add(routeStep);
-        _context.RouteTravelers.Add(routeTraveler);
-        _context.RouteTravelerMembers.Add(
-            Builders.MakeRouteTravelerMember(routeTraveler.Id, creature.Id, worldId)
-        );
-        _context.CaravanFares.Add(
-            new CaravanFare
+        _context.TravelCircuits.Add(circuit);
+        _context.TravelCircuitLegs.AddRange(
+            new TravelCircuitLeg
             {
-                WorldId = worldId,
-                RouteId = route.Id,
-                TicketFeeGold = 1,
+                TravelCircuitId = circuit.Id,
+                Index = 0,
+                FromNodeId = exitNode.Id,
+                ToNodeId = arrivalNode.Id,
+                ConnectorId = locationConnector.Id,
+            },
+            new TravelCircuitLeg
+            {
+                TravelCircuitId = circuit.Id,
+                Index = 1,
+                FromNodeId = arrivalNode.Id,
+                ToNodeId = exitNode.Id,
+                ConnectorId = returnLocationConnector.Id,
             }
         );
-        _context.CaravanTickets.Add(
-            new CaravanTicket
+        _context.Journeys.Add(journey);
+        _context.JourneyLegs.Add(
+            new JourneyLeg
             {
-                WorldId = worldId,
-                RouteTravelerId = routeTraveler.Id,
-                CreatureId = creature.Id,
-                OriginStopLocationId = location.Id,
-                DestinationLocationId = location.Id,
-                PurchasedAtGameTime = GameClock.Epoch,
+                JourneyId = journey.Id,
+                Index = 0,
+                FromNodeId = exitNode.Id,
+                ToNodeId = arrivalNode.Id,
+                ConnectorId = locationConnector.Id,
+                Distance = locationConnector.Distance,
+                Path = new Polyline(),
             }
+        );
+        _context.JourneyMembers.Add(
+            new JourneyMember { JourneyId = journey.Id, CreatureId = creature.Id }
         );
         _context.WeatherStates.Add(
             new WeatherState { WorldId = worldId, StateId = Guid.NewGuid() }
@@ -519,27 +527,42 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         );
         Assert.Equal(
             expected,
-            await verifyContext.Routes.AnyAsync(x => x.WorldId == worldId, cancellationToken)
-        );
-        Assert.Equal(
-            expected,
-            await verifyContext.RouteSteps.AnyAsync(x => x.WorldId == worldId, cancellationToken)
-        );
-        Assert.Equal(
-            expected,
-            await verifyContext.RouteTravelers.AnyAsync(
+            await verifyContext.TravelCircuits.AnyAsync(
                 x => x.WorldId == worldId,
                 cancellationToken
             )
         );
         Assert.Equal(
             expected,
-            await verifyContext.CaravanFares.AnyAsync(x => x.WorldId == worldId, cancellationToken)
+            await verifyContext.Journeys.AnyAsync(x => x.WorldId == worldId, cancellationToken)
         );
         Assert.Equal(
             expected,
-            await verifyContext.CaravanTickets.AnyAsync(
-                x => x.WorldId == worldId,
+            await verifyContext.JourneyLegs.AnyAsync(
+                leg =>
+                    verifyContext.Journeys.Any(journey =>
+                        journey.Id == leg.JourneyId && journey.WorldId == worldId
+                    ),
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.JourneyMembers.AnyAsync(
+                member =>
+                    verifyContext.Journeys.Any(journey =>
+                        journey.Id == member.JourneyId && journey.WorldId == worldId
+                    ),
+                cancellationToken
+            )
+        );
+        Assert.Equal(
+            expected,
+            await verifyContext.TravelCircuitLegs.AnyAsync(
+                leg =>
+                    verifyContext.TravelCircuits.Any(circuit =>
+                        circuit.Id == leg.TravelCircuitId && circuit.WorldId == worldId
+                    ),
                 cancellationToken
             )
         );
@@ -587,7 +610,6 @@ public sealed class DropWorldCommandTests(DatabaseFixture db)
         Assert.Equal(expected, await HasWorldData(verifyContext.Relationships, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.Reputations, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.RoomBookings, worldId));
-        Assert.Equal(expected, await HasWorldData(verifyContext.RouteTravelerMembers, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.States, worldId));
         Assert.Equal(expected, await HasWorldData(verifyContext.TravelNodes, worldId));
     }

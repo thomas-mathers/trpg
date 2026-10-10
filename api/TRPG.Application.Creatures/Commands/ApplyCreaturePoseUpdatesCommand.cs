@@ -7,29 +7,22 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Creatures.Commands;
 
-public sealed record WalkColumns(
-    Point? Entry,
-    GameInstant? EnteredAt,
-    Point? Exit,
-    GameInstant? DepartedAt
-);
-
 public sealed record CreaturePoseUpdate(
     Guid CreatureId,
     Guid LocationId,
     Guid? PreviousLocationId,
     CreatureMovement Movement,
     CreatureActivity? Activity,
-    WalkColumns? Walk,
-    Point? StandAt = null
+    Point? StandAt = null,
+    Guid? CurrentTravelNodeId = null
 )
 {
     public CreaturePoseUpdate Then(CreaturePoseUpdate next) =>
         next with
         {
             PreviousLocationId = next.PreviousLocationId ?? PreviousLocationId,
-            Walk = next.Walk ?? Walk,
             StandAt = next.StandAt ?? StandAt,
+            CurrentTravelNodeId = next.CurrentTravelNodeId ?? CurrentTravelNodeId,
         };
 }
 
@@ -62,10 +55,6 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
         }
 
         await PlaceRelocated(command.Updates, cancellationToken);
-        foreach (var update in command.Updates.Where(update => update.Walk != null))
-        {
-            await WriteWalk(update.CreatureId, update.Walk!, cancellationToken);
-        }
 
         await PublishEvents(command.Updates, sleepingIds, cancellationToken);
     }
@@ -114,6 +103,7 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
         var walking = update.Movement == CreatureMovement.Walking;
         var previousLocationId = update.PreviousLocationId;
         var standAt = update.StandAt;
+        var currentTravelNodeId = update.CurrentTravelNodeId;
 
         await context
             .Creatures.Where(creature =>
@@ -147,35 +137,14 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
                             previousLocationId
                         );
                     }
+                    if (currentTravelNodeId != null)
+                    {
+                        setters.SetProperty(
+                            creature => creature.CurrentTravelNodeId,
+                            currentTravelNodeId
+                        );
+                    }
                 },
-                cancellationToken
-            );
-    }
-
-    private async Task WriteWalk(
-        Guid creatureId,
-        WalkColumns walk,
-        CancellationToken cancellationToken
-    )
-    {
-        var entryX = walk.Entry?.X;
-        var entryY = walk.Entry?.Y;
-        var exitX = walk.Exit?.X;
-        var exitY = walk.Exit?.Y;
-
-        await context
-            .Creatures.Where(creature =>
-                creature.Id == creatureId && creature.Condition != CreatureCondition.Dead
-            )
-            .ExecuteUpdateAsync(
-                setters =>
-                    setters
-                        .SetProperty(creature => creature.EntryX, entryX)
-                        .SetProperty(creature => creature.EntryY, entryY)
-                        .SetProperty(creature => creature.EnteredAt, walk.EnteredAt)
-                        .SetProperty(creature => creature.ExitX, exitX)
-                        .SetProperty(creature => creature.ExitY, exitY)
-                        .SetProperty(creature => creature.DepartedAt, walk.DepartedAt),
                 cancellationToken
             );
     }
@@ -186,7 +155,7 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
     )
     {
         var relocatedByLocation = updates
-            .Where(update => update.PreviousLocationId != null)
+            .Where(update => update.PreviousLocationId != null && update.StandAt == null)
             .GroupBy(update => update.LocationId);
 
         foreach (var group in relocatedByLocation)

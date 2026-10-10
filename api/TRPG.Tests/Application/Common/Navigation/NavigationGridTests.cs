@@ -67,6 +67,24 @@ public class NavigationGridTests
     }
 
     [Fact]
+    public void FindNearestFreePoint_ReturnsAWalkableCell_WhenTheRequestedPointIsBlocked()
+    {
+        // Arrange
+        var grid = new NavigationGrid(
+            10,
+            10,
+            Cell,
+            point => point is { X: > 1 and < 2, Y: > 1 and < 2 }
+        );
+
+        // Act
+        var point = grid.FindNearestFreePoint(new Point(1.5, 1.5));
+
+        // Assert
+        Assert.False(point is { X: > 1 and < 2, Y: > 1 and < 2 });
+    }
+
+    [Fact]
     public void FindPath_FallsBackToAStraightLine_WhenTheGoalIsWalledOff()
     {
         // Arrange
@@ -82,6 +100,21 @@ public class NavigationGridTests
 
         // Assert
         Assert.Equal([new Point(1.25, 1.25), new Point(8.25, 8.25)], path);
+    }
+
+    [Fact]
+    public void FindReachablePath_ReturnsNull_WhenTheGoalIsWalledOff()
+    {
+        var grid = new NavigationGrid(
+            10,
+            10,
+            Cell,
+            point => point.X is > 5 and < 5.5 || point.Y is > 5 and < 5.5
+        );
+
+        var path = grid.FindReachablePath(new Point(1.25, 1.25), new Point(8.25, 8.25));
+
+        Assert.Null(path);
     }
 
     private static IEnumerable<Point> Segments(IReadOnlyList<Point> path)

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Scenes;
 using TRPG.Application.WorldSimulation;
@@ -32,11 +33,15 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .AddSingleton<IOptions<WorldSimulationOptions>>(
+                Options.Create(new WorldSimulationOptions { RouteSearchesPerTick = 1 })
+            )
             .WithScopedDbContexts(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
+        _context.Worlds.Add(Builders.MakeWorld(_worldId));
         _home = Builders.MakeLocation(_worldId, state.Id);
         _workplace = Builders.MakeLocation(_worldId, state.Id);
         _door = Builders.MakeLocationConnector(_home.Id, _workplace.Id, worldId: _worldId);
@@ -72,6 +77,40 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             (_workplace.Id, CreatureActivity.Working),
             (updated.LocationId, updated.Activity)
         );
+    }
+
+    [Fact]
+    public async Task Tick_PlansOnlyTheConfiguredNumberOfRoutes()
+    {
+        // Arrange
+        var first = await AddWorker();
+        var second = await AddWorker();
+        await StartRunner();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var creatures = new[] { await db.ReadCreature(first.Id), await db.ReadCreature(second.Id) };
+        Assert.Single(creatures, creature => creature.LocationId == _workplace.Id);
+        Assert.Single(creatures, creature => creature.LocationId == _home.Id);
+    }
+
+    [Fact]
+    public async Task Tick_RotatesRoutePlanningCandidates()
+    {
+        // Arrange
+        await AddResident();
+        var worker = await AddWorker();
+        await StartRunner();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        await _runner.Tick(Now + TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
     }
 
     [Fact]
@@ -179,36 +218,15 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         );
     }
 
-    [Fact]
-    public async Task Tick_StandsAPatrollingGuardAtItsFirstStop()
-    {
-        // Arrange
-        var route = await _context.AddPatrolRoute(
-            _worldId,
-            _door,
-            TestContext.Current.CancellationToken
-        );
-        var guard = await AddGuard(route);
-        await StartRunner();
-
-        // Act
-        await _runner.Tick(Now, TestContext.Current.CancellationToken);
-
-        // Assert
-        var updated = await db.ReadCreature(guard.Id);
-        Assert.Equal(
-            (_workplace.Id, CreatureMovement.Stationary),
-            (updated.LocationId, updated.Movement)
-        );
-    }
-
     private async Task AddPlayerAt(Location location)
     {
         var player = Builders.MakeCreature(_worldId, locationId: location.Id);
         _playerId = player.Id;
-        var world = Builders.MakeWorld(_worldId);
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
         world.PlayerId = player.Id;
-        _context.Worlds.Add(world);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
@@ -225,26 +243,6 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         return await readContext
             .CreatureJobs.Where(job => job.CreatureId == creatureId)
             .ToArrayAsync(TestContext.Current.CancellationToken);
-    }
-
-    private async Task<Creature> AddGuard(Route route)
-    {
-        var guard = Builders.MakeCreature(_worldId, locationId: _workplace.Id, movementSpeed: 50);
-        _context.Creatures.Add(guard);
-        _context.CreatureJobs.Add(
-            Builders.MakeCreatureJob(
-                guard.Id,
-                action: CreatureJobAction.Work,
-                startHour: 0,
-                endHour: 24,
-                locationId: _workplace.Id,
-                worldId: _worldId,
-                routeId: route.Id
-            )
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-        return guard;
     }
 
     private async Task<Creature> AddWorker(bool isRestrained = false)
@@ -269,5 +267,11 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return worker;
+    }
+
+    private async Task AddResident()
+    {
+        _context.Creatures.Add(Builders.MakeCreature(_worldId, locationId: _home.Id));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 }

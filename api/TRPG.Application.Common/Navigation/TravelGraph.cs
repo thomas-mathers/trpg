@@ -1,16 +1,22 @@
+using TRPG.Application.Common.Algorithms;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.Common.Navigation;
-
-public record RouteStop(double AtMeters, Point Position);
 
 public record RouteLeg(
     Guid OriginLocationId,
     Guid ConnectorId,
     Guid DestinationLocationId,
     Guid ArrivalNodeId,
+    double Distance
+);
+
+public record DirectedTravelLeg(
+    Guid FromNodeId,
+    Guid ToNodeId,
+    Guid ConnectorId,
     double Distance,
-    RouteStop? Stop = null
+    Polyline Path
 );
 
 public sealed class TravelGraph
@@ -22,7 +28,6 @@ public sealed class TravelGraph
     private readonly Dictionary<Guid, List<LocationConnector>> _connectorsByOriginLocation = [];
     private readonly Dictionary<Guid, List<Guid>> _nodeIdsByLocation = [];
     private readonly Dictionary<Guid, Guid> _locationIdByNode = [];
-    private readonly Dictionary<Guid, Point> _positionByNode = [];
 
     public TravelGraph(IEnumerable<Connector> connectors, IEnumerable<TravelNode> nodes)
     {
@@ -33,7 +38,6 @@ public sealed class TravelGraph
         {
             GetOrAdd(_nodeIdsByLocation, node.LocationId).Add(node.Id);
             _locationIdByNode[node.Id] = node.LocationId;
-            _positionByNode[node.Id] = node.Position;
         }
 
         foreach (var connector in _connectors)
@@ -74,9 +78,33 @@ public sealed class TravelGraph
             ? [start]
             : NodesOf(originLocationId);
         var goals = NodesOf(destinationLocationId).ToHashSet();
-        var edges = Dijkstra(sources, goals.Contains);
+        var edges = ShortestEdges(sources, goals, pointConnectorsOnly: false);
 
-        return edges is null ? [] : ToLegs(edges);
+        return ToLegs(edges);
+    }
+
+    public IReadOnlyList<DirectedTravelLeg> FindShortestPath(Guid fromNodeId, Guid toNodeId)
+    {
+        var edges = ShortestEdges(
+            [fromNodeId],
+            new HashSet<Guid> { toNodeId },
+            pointConnectorsOnly: false
+        );
+
+        return ToDirectedLegs(edges);
+    }
+
+    public DirectedTravelLeg SnapshotLeg(Guid fromNodeId, Guid toNodeId, Guid connectorId)
+    {
+        var edge = _edgesByOriginNode
+            .GetValueOrDefault(fromNodeId, [])
+            .SingleOrDefault(edge => edge.To == toNodeId && edge.Connector.Id == connectorId);
+        if (edge.Connector is null)
+        {
+            throw new InvalidOperationException("The circuit leg does not match the travel graph.");
+        }
+
+        return ToDirectedLegs([edge with { From = fromNodeId }]).Single();
     }
 
     public Guid? FindNearestLocation(Guid originLocationId, IReadOnlySet<Guid> candidateLocationIds)
@@ -86,53 +114,13 @@ public sealed class TravelGraph
             return originLocationId;
         }
 
-        var edges = Dijkstra(
+        var nodes = ShortestNodes(
             NodesOf(originLocationId),
-            node => candidateLocationIds.Contains(_locationIdByNode[node])
+            node => candidateLocationIds.Contains(_locationIdByNode[node]),
+            pointConnectorsOnly: false
         );
 
-        return edges is { Count: > 0 } ? _locationIdByNode[edges[^1].To] : null;
-    }
-
-    public IReadOnlyList<RouteLeg> BuildCycle(IReadOnlyList<Guid> orderedLocations)
-    {
-        var legs = new List<RouteLeg>();
-        Guid? currentNodeId = null;
-
-        for (var index = 0; index < orderedLocations.Count; index++)
-        {
-            var next = orderedLocations[(index + 1) % orderedLocations.Count];
-            var segment = FindShortestPath(orderedLocations[index], currentNodeId, next);
-            legs.AddRange(segment);
-            currentNodeId = segment.Count > 0 ? segment[^1].ArrivalNodeId : currentNodeId;
-        }
-
-        return legs.Count == 0 ? legs : WithWrapDistance(legs);
-    }
-
-    public IReadOnlyList<RouteLeg> BuildNodeCycle(IReadOnlyList<Guid> stopNodeIds)
-    {
-        if (stopNodeIds.Count < 2)
-        {
-            return [];
-        }
-
-        var segments = new List<(List<GraphEdge> Edges, Guid StopNodeId)>();
-        var current = stopNodeIds[0];
-
-        foreach (var stop in stopNodeIds.Skip(1).Append(stopNodeIds[0]))
-        {
-            var segment = Dijkstra([current], node => node == stop);
-            if (segment == null)
-            {
-                continue;
-            }
-
-            segments.Add((segment, stop));
-            current = stop;
-        }
-
-        return ToStoppedLegs(segments);
+        return nodes.Count > 0 ? _locationIdByNode[nodes[^1]] : null;
     }
 
     public double ShortestDistance(Guid fromNodeId, Guid toNodeId)
@@ -142,9 +130,13 @@ public sealed class TravelGraph
             return 0;
         }
 
-        var edges = Dijkstra([fromNodeId], node => node == toNodeId, pointConnectorsOnly: true);
+        var edges = ShortestEdges(
+            [fromNodeId],
+            new HashSet<Guid> { toNodeId },
+            pointConnectorsOnly: true
+        );
 
-        return edges?.Sum(edge => edge.Distance) ?? 0;
+        return edges.Sum(edge => edge.Distance);
     }
 
     public Guid OriginNodeOf(Guid connectorId) => _locationConnectorById[connectorId].OriginNodeId;
@@ -152,66 +144,7 @@ public sealed class TravelGraph
     public Guid ArrivalNodeOf(Guid connectorId) =>
         _locationConnectorById[connectorId].DestinationNodeId;
 
-    private List<RouteLeg> ToStoppedLegs(List<(List<GraphEdge> Edges, Guid StopNodeId)> segments)
-    {
-        var legs = new List<RouteLeg>();
-        var pending = 0.0;
-        RouteStop? pendingStop = null;
-
-        foreach (var (edges, stopNodeId) in segments)
-        {
-            foreach (var edge in edges)
-            {
-                if (edge.Connector is LocationConnector location)
-                {
-                    legs.Add(
-                        new RouteLeg(
-                            location.OriginLocationId,
-                            location.Id,
-                            location.DestinationLocationId,
-                            location.DestinationNodeId,
-                            pending,
-                            pendingStop
-                        )
-                    );
-                    pending = 0;
-                    pendingStop = null;
-                }
-                else
-                {
-                    pending += edge.Distance;
-                }
-            }
-
-            pendingStop ??= new RouteStop(pending, _positionByNode[stopNodeId]);
-        }
-
-        if (legs.Count > 0)
-        {
-            legs[0] = WithWrapWalk(legs[0], pending, pendingStop);
-        }
-
-        return legs;
-    }
-
-    private static RouteStop? ShiftedBy(RouteStop? stop, double meters) =>
-        stop == null ? null : stop with { AtMeters = stop.AtMeters + meters };
-
-    private static RouteLeg WithWrapWalk(RouteLeg first, double wrapMeters, RouteStop? wrapStop) =>
-        first with
-        {
-            Distance = first.Distance + wrapMeters,
-            Stop = wrapStop ?? ShiftedBy(first.Stop, wrapMeters),
-        };
-
-    private List<RouteLeg> WithWrapDistance(List<RouteLeg> legs)
-    {
-        var first = _locationConnectorById[legs[0].ConnectorId];
-        var wrap = ShortestDistance(legs[^1].ArrivalNodeId, first.OriginNodeId);
-        legs[0] = legs[0] with { Distance = wrap };
-
-        return legs;
-    }
+    public Guid LocationOf(Guid nodeId) => _locationIdByNode[nodeId];
 
     private IReadOnlyCollection<Guid> NodesOf(Guid locationId) =>
         _nodeIdsByLocation.GetValueOrDefault(locationId, []);
@@ -234,71 +167,46 @@ public sealed class TravelGraph
         }
     }
 
-    private List<GraphEdge>? Dijkstra(
-        IEnumerable<Guid> sources,
-        Func<Guid, bool> isGoal,
+    private IReadOnlyList<GraphEdge> ShortestEdges(
+        IReadOnlyCollection<Guid> sources,
+        IReadOnlySet<Guid> destinations,
         bool pointConnectorsOnly = false
     )
     {
-        var costs = new Dictionary<Guid, double>();
-        var cameFrom = new Dictionary<Guid, GraphEdge>();
-        var frontier = new PriorityQueue<Guid, double>();
+        var nodes = ShortestNodes(sources, destinations.Contains, pointConnectorsOnly);
 
-        foreach (var source in sources)
-        {
-            costs[source] = 0;
-            frontier.Enqueue(source, 0);
-        }
-
-        while (frontier.TryDequeue(out var node, out var cost))
-        {
-            if (cost > costs[node])
-            {
-                continue;
-            }
-
-            if (isGoal(node))
-            {
-                return Reconstruct(node, cameFrom);
-            }
-
-            foreach (var edge in _edgesByOriginNode.GetValueOrDefault(node, []))
-            {
-                if (pointConnectorsOnly && edge.Connector is not PointConnector)
-                {
-                    continue;
-                }
-
-                var next = cost + edge.Distance;
-                if (!costs.TryGetValue(edge.To, out var known) || next < known)
-                {
-                    costs[edge.To] = next;
-                    cameFrom[edge.To] = edge with { From = node };
-                    frontier.Enqueue(edge.To, next);
-                }
-            }
-        }
-
-        return null;
+        return nodes
+            .Zip(nodes.Skip(1))
+            .Select(pair => EdgeBetween(pair.First, pair.Second, pointConnectorsOnly))
+            .ToArray();
     }
 
-    private static List<GraphEdge> Reconstruct(Guid goal, Dictionary<Guid, GraphEdge> cameFrom)
-    {
-        var edges = new List<GraphEdge>();
-        var node = goal;
+    private IReadOnlyList<Guid> ShortestNodes(
+        IReadOnlyCollection<Guid> sources,
+        Func<Guid, bool> isDestination,
+        bool pointConnectorsOnly
+    ) =>
+        Graphs.ShortestPathToNearest(
+            sources,
+            isDestination,
+            node => EdgesFrom(node, pointConnectorsOnly).Select(edge => edge.To).Distinct(),
+            (from, to) => EdgeBetween(from, to, pointConnectorsOnly).Distance
+        );
 
-        while (cameFrom.TryGetValue(node, out var edge))
+    private IEnumerable<GraphEdge> EdgesFrom(Guid nodeId, bool pointConnectorsOnly) =>
+        _edgesByOriginNode
+            .GetValueOrDefault(nodeId, [])
+            .Where(edge => !pointConnectorsOnly || edge.Connector is PointConnector);
+
+    private GraphEdge EdgeBetween(Guid fromNodeId, Guid toNodeId, bool pointConnectorsOnly) =>
+        EdgesFrom(fromNodeId, pointConnectorsOnly)
+            .Where(edge => edge.To == toNodeId)
+            .MinBy(edge => edge.Distance) with
         {
-            edges.Add(edge);
-            node = edge.From;
-        }
+            From = fromNodeId,
+        };
 
-        edges.Reverse();
-
-        return edges;
-    }
-
-    private static List<RouteLeg> ToLegs(List<GraphEdge> edges)
+    private static List<RouteLeg> ToLegs(IReadOnlyList<GraphEdge> edges)
     {
         var legs = new List<RouteLeg>();
         var pending = 0.0;
@@ -325,6 +233,44 @@ public sealed class TravelGraph
         }
 
         return legs;
+    }
+
+    private IReadOnlyList<DirectedTravelLeg> ToDirectedLegs(IReadOnlyList<GraphEdge> edges) =>
+        edges
+            .Select(edge => new DirectedTravelLeg(
+                edge.From,
+                edge.To,
+                edge.Connector.Id,
+                edge.Distance,
+                PathFor(edge)
+            ))
+            .ToArray();
+
+    private Polyline PathFor(GraphEdge edge)
+    {
+        var points = edge.Connector switch
+        {
+            PointConnector point => PointPath(point, edge),
+            LocationConnector location when location.Path is not null => location.Path.Points,
+            LocationConnector => [_nodes.Single(node => node.Id == edge.To).Position],
+            _ => [],
+        };
+
+        return new Polyline { Points = points.ToList() };
+    }
+
+    private IReadOnlyList<Point> PointPath(PointConnector connector, GraphEdge edge)
+    {
+        var points = new List<Point>
+        {
+            _nodes.Single(node => node.Id == connector.OriginNodeId).Position,
+        };
+        points.AddRange(connector.Waypoints.Points);
+        points.Add(_nodes.Single(node => node.Id == connector.DestinationNodeId).Position);
+
+        return edge.From == connector.OriginNodeId
+            ? points
+            : points.AsEnumerable().Reverse().ToArray();
     }
 
     private static List<T> GetOrAdd<T>(Dictionary<Guid, List<T>> map, Guid key)

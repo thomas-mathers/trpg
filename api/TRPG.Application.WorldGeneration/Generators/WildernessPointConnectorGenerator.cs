@@ -16,17 +16,11 @@ internal static class WildernessPointConnectorGenerator
                         context,
                         location,
                         nodeById,
-                        StraightDistance,
+                        (from, to) => new LocalPointConnectors.Path([from.Position, to.Position]),
                         connector => !IsDungeonEntrance(context, connector)
                     )
                 ),
         ];
-
-    private static double StraightDistance(TravelNode from, TravelNode to) =>
-        Math.Sqrt(
-            Math.Pow(to.Position.X - from.Position.X, 2)
-                + Math.Pow(to.Position.Y - from.Position.Y, 2)
-        );
 
     private static bool IsDungeonEntrance(
         LocationLayoutContext context,

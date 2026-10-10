@@ -57,9 +57,7 @@ internal static class MealScheduleGenerator
         }
 
         return jobs.Where(job =>
-                job.Action == CreatureJobAction.Work
-                && job.RouteId == null
-                && NeedsMealBreak(creature.Profession, job)
+                job.Action == CreatureJobAction.Work && NeedsMealBreak(creature.Profession, job)
             )
             .Select(work => BuildCandidate(creature, sleep, work, graph, timeScale))
             .Where(candidate => candidate != null)
