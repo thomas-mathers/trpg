@@ -13,4 +13,6 @@ public abstract class Prop
     public double Angle { get; set; }
     public double Width { get; set; }
     public double Depth { get; set; }
+
+    public virtual bool BlocksMovement => true;
 }

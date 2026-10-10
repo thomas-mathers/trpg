@@ -65,7 +65,8 @@ public record ScenePropInfo(
     bool IsOccupiedByPlayer,
     PropModel Model,
     Placement Placement,
-    Footprint Footprint
+    Footprint Footprint,
+    bool BlocksMovement
 )
 {
     public const string FurnitureType = "Furniture";

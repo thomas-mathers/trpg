@@ -31,6 +31,7 @@ const chair: ViewportSeat = {
   isOccupiedByPlayer: false,
   description: '',
   type: 'Seat',
+  blocksMovement: true,
 };
 function setup(overrides: Partial<ComponentProps<typeof FpsController>> = {}) {
   const props = {

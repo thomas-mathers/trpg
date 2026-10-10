@@ -280,7 +280,8 @@ public class NeighborPreviewPlannerTests
             IsOccupiedByPlayer: false,
             Model: PropModel.ContainerCrate,
             Placement: new Placement(2, 3, 0),
-            Footprint: new Footprint(1, 1)
+            Footprint: new Footprint(1, 1),
+            BlocksMovement: true
         );
         var source = Source(new Footprint(20, 20), new Placement(5, 20, 0)) with { Props = [prop] };
 

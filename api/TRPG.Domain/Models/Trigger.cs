@@ -5,4 +5,6 @@ namespace TRPG.Domain.Models;
 public class Trigger : Prop
 {
     public bool IsActivated { get; set; }
+
+    public override bool BlocksMovement => false;
 }

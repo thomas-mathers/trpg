@@ -13,4 +13,6 @@ public class Trap : Prop
     public Guid? TargetId { get; init; }
     public TrapKind TrapKind { get; init; }
     public bool IsResolved { get; set; }
+
+    public override bool BlocksMovement => false;
 }

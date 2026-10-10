@@ -7,18 +7,9 @@ public static class RoomNavigationGrid
 {
     public const double CellSize = 0.5;
 
-    private static readonly HashSet<PropModel> NonBlockingModels =
-    [
-        PropModel.FurnitureRug,
-        PropModel.FurnitureChandelier,
-        PropModel.FurnitureWallSconce,
-        PropModel.FurnitureWallLantern,
-        PropModel.FurnitureBanner,
-    ];
-
     public static NavigationGrid Build(Location room, IEnumerable<Prop> props)
     {
-        var obstacles = props.Where(BlocksFloor).Select(BoundsOf).ToArray();
+        var obstacles = props.Where(prop => prop.BlocksMovement).Select(BoundsOf).ToArray();
 
         return new NavigationGrid(
             room.Width,
@@ -27,10 +18,6 @@ public static class RoomNavigationGrid
             centre => obstacles.Any(obstacle => obstacle.Contains(centre))
         );
     }
-
-    private static bool BlocksFloor(Prop prop) =>
-        prop is not (Sign or Trap or Trigger)
-        && !NonBlockingModels.Contains(PropModelResolver.Resolve(prop));
 
     private static FloorBounds BoundsOf(Prop prop)
     {

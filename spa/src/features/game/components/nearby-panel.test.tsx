@@ -57,6 +57,7 @@ function scene(tradeWorkstationId: string | null | undefined): SceneSnapshot {
 const emptyJournal: QuestJournalEntrySnapshot[] = [];
 const propSpatial = {
   model: 'ContainerBasic' as const,
+  blocksMovement: true,
   placement: { x: 0, y: 0, angle: 0 },
   footprint: { width: 1, depth: 1 },
 };
