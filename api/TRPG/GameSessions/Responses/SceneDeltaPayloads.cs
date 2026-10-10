@@ -78,3 +78,6 @@ public record ClockReanchoredPayload(
     long AnchoredAtUnixMilliseconds,
     double TimeScale
 );
+
+[TranspilationSource]
+public record PlayerCorrectedPayload(Guid PlayerId, Guid LocationId, double X, double Y);

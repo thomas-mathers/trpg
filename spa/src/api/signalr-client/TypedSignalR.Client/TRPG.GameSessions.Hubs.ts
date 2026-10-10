@@ -3,7 +3,7 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
-import type { ActionResult, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -78,13 +78,10 @@ export type IChatHub = {
     */
     sendMove(connectorId: string): Promise<ActionResult>;
     /**
-    * @param locationId Transpiled from System.Guid
-    * @param x Transpiled from double
-    * @param y Transpiled from double
-    * @param angle Transpiled from double
+    * @param input Transpiled from TRPG.GameSessions.Responses.PlayerMovementInput
     * @returns Transpiled from System.Threading.Tasks.Task
     */
-    reportPose(locationId: string, x: number, y: number, angle: number): Promise<void>;
+    sendMovementInput(input: PlayerMovementInput): Promise<void>;
     /**
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
@@ -307,6 +304,11 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     playerVitalsUpdated(vitals: PlayerVitalsUpdated): Promise<void>;
+    /**
+    * @param correction Transpiled from TRPG.GameSessions.Responses.PlayerCorrectedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    playerCorrected(correction: PlayerCorrectedPayload): Promise<void>;
     /**
     * @param skillLevelUp Transpiled from TRPG.Creatures.Responses.SkillLevelUp
     * @returns Transpiled from System.Threading.Tasks.Task

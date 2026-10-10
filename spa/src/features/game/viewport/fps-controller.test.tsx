@@ -48,7 +48,7 @@ function setup(overrides: Partial<ComponentProps<typeof FpsController>> = {}) {
     onEnterConnector: vi.fn(),
     onNearbySeatChange: vi.fn(),
     onSeatInteraction: vi.fn(),
-    onPoseChange: vi.fn(),
+    onInputChange: vi.fn(),
     onChatRequested: vi.fn(),
     ...overrides,
   };

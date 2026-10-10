@@ -20,6 +20,22 @@ export type CrimeNotification = {
     crimeName: string;
 }
 
+/** Transpiled from TRPG.GameSessions.Responses.PlayerMovementInput */
+export type PlayerMovementInput = {
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from double */
+    forward: number;
+    /** Transpiled from double */
+    strafe: number;
+    /** Transpiled from double */
+    heading: number;
+    /** Transpiled from double */
+    x: number;
+    /** Transpiled from double */
+    y: number;
+}
+
 /** Transpiled from TRPG.GameSessions.Responses.CreaturesArrivedPayload */
 export type CreaturesArrivedPayload = {
     /** Transpiled from System.Guid */
@@ -138,6 +154,18 @@ export type ClockReanchoredPayload = {
     anchoredAtUnixMilliseconds: number;
     /** Transpiled from double */
     timeScale: number;
+}
+
+/** Transpiled from TRPG.GameSessions.Responses.PlayerCorrectedPayload */
+export type PlayerCorrectedPayload = {
+    /** Transpiled from System.Guid */
+    playerId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from double */
+    x: number;
+    /** Transpiled from double */
+    y: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureType */

@@ -28,6 +28,7 @@ import type {
   CreaturesMovedPayload,
   CreaturesUpdatedPayload,
   CrimeNotification,
+  PlayerCorrectedPayload,
   SceneSnapshot,
   WeatherChangedPayload,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
@@ -68,6 +69,7 @@ interface GameEventMap {
   TrapEncounterStarted: TrapEncounterState;
   TrapEncounterResolved: TrapEncounterResolutionFact;
   PlayerVitalsUpdated: PlayerVitalsUpdated;
+  PlayerCorrected: PlayerCorrectedPayload;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;
   QuestObjectiveCompleted: QuestObjectiveCompleted;

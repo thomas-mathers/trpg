@@ -129,6 +129,7 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
         gameEventBus.emit('TheftEncounterStarted', encounter),
       theftEncounterResolved: async (fact) => gameEventBus.emit('TheftEncounterResolved', fact),
       playerVitalsUpdated: async (vitals) => gameEventBus.emit('PlayerVitalsUpdated', vitals),
+      playerCorrected: async (correction) => gameEventBus.emit('PlayerCorrected', correction),
       skillLevelUp: async (skillLevelUp) => gameEventBus.emit('SkillLevelUp', skillLevelUp),
       characterLevelUp: async (characterLevelUp) =>
         gameEventBus.emit('CharacterLevelUp', characterLevelUp),
