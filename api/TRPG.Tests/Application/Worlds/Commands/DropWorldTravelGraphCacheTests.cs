@@ -7,7 +7,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Worlds.Commands;
 
-public sealed class DropWorldTravelTopologyCacheTests(DatabaseFixture db)
+public sealed class DropWorldTravelGraphCacheTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -34,11 +34,11 @@ public sealed class DropWorldTravelTopologyCacheTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_EvictsTheDroppedWorldsTravelTopology()
+    public async Task Handle_EvictsTheDroppedWorldsTravelGraph()
     {
         // Arrange
         var worldId = Guid.NewGuid();
-        _cache.Set(GetTravelTopologyQueryHandler.CacheKey(worldId), new object());
+        _cache.Set(GetTravelGraphQueryHandler.CacheKey(worldId), new object());
 
         // Act
         await _handler.Handle(
@@ -47,15 +47,15 @@ public sealed class DropWorldTravelTopologyCacheTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.False(_cache.TryGetValue(GetTravelTopologyQueryHandler.CacheKey(worldId), out _));
+        Assert.False(_cache.TryGetValue(GetTravelGraphQueryHandler.CacheKey(worldId), out _));
     }
 
     [Fact]
-    public async Task Handle_KeepsOtherWorldsTravelTopology()
+    public async Task Handle_KeepsOtherWorldsTravelGraph()
     {
         // Arrange
         var otherWorldId = Guid.NewGuid();
-        _cache.Set(GetTravelTopologyQueryHandler.CacheKey(otherWorldId), new object());
+        _cache.Set(GetTravelGraphQueryHandler.CacheKey(otherWorldId), new object());
 
         // Act
         await _handler.Handle(
@@ -64,8 +64,6 @@ public sealed class DropWorldTravelTopologyCacheTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.True(
-            _cache.TryGetValue(GetTravelTopologyQueryHandler.CacheKey(otherWorldId), out _)
-        );
+        Assert.True(_cache.TryGetValue(GetTravelGraphQueryHandler.CacheKey(otherWorldId), out _));
     }
 }

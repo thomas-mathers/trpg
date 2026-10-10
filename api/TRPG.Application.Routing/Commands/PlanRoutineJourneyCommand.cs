@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureJobs;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
@@ -20,8 +21,8 @@ public class PlanRoutineJourneyCommand
 internal class PlanRoutineJourneyCommandHandler(
     ICreaturesDbContext creatures,
     ICreatureJobsDbContext creatureJobs,
-    IWorldsDbContext worlds,
-    IRoutingDbContext routing
+    IRoutingDbContext routing,
+    IQueryHandler<GetTravelGraphQuery, TravelGraph> getTravelGraph
 ) : ICommandHandler<PlanRoutineJourneyCommand, Guid?>
 {
     public async Task<Guid?> Handle(
@@ -46,15 +47,17 @@ internal class PlanRoutineJourneyCommandHandler(
             return null;
         }
 
-        var topology = await LoadTopology(creature.WorldId, cancellationToken);
-        var graph = topology.ToGraph();
-        var originNodeId = ResolveOriginNode(creature, topology.Nodes);
+        var graph = await getTravelGraph.Handle(
+            new GetTravelGraphQuery { WorldId = creature.WorldId },
+            cancellationToken
+        );
+        var originNodeId = ResolveOriginNode(creature, graph);
         if (originNodeId is null)
         {
             return null;
         }
 
-        var target = ResolveTarget(transition.Destination, topology, graph, originNodeId.Value);
+        var target = ResolveTarget(transition.Destination, graph, originNodeId.Value);
         if (target is null)
         {
             return null;
@@ -87,50 +90,23 @@ internal class PlanRoutineJourneyCommandHandler(
             cancellationToken
         );
 
-    private async Task<TravelTopology> LoadTopology(
-        Guid worldId,
-        CancellationToken cancellationToken
-    )
-    {
-        var locationConnectors = await worlds
-            .LocationConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
-        var pointConnectors = await worlds
-            .PointConnectors.AsNoTracking()
-            .Where(connector => connector.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
-        var nodes = await worlds
-            .TravelNodes.AsNoTracking()
-            .Where(node => node.WorldId == worldId)
-            .ToArrayAsync(cancellationToken);
-
-        return new TravelTopology(locationConnectors, pointConnectors, nodes);
-    }
-
-    private static Guid? ResolveOriginNode(Creature creature, IReadOnlyCollection<TravelNode> nodes)
+    private static Guid? ResolveOriginNode(Creature creature, TravelGraph graph)
     {
         if (creature.CurrentTravelNodeId is { } nodeId)
         {
             return nodeId;
         }
 
-        return nodes
-            .Where(node => node.LocationId == creature.LocationId)
-            .MinBy(node => Distance(new Point(creature.X, creature.Y), node.Position))
-            ?.Id;
+        return graph.FindNearestNode(creature.LocationId, new Point(creature.X, creature.Y));
     }
 
     private static JourneyTarget? ResolveTarget(
         CreatureJob job,
-        TravelTopology topology,
         TravelGraph graph,
         Guid originNodeId
     )
     {
-        var nodeTargets = topology
-            .Nodes.Where(node => node.LocationId == job.LocationId)
-            .Select(node => node.Id);
+        var nodeTargets = graph.NodeIdsAt(job.LocationId);
 
         return BestReachable(graph, originNodeId, nodeTargets);
     }
@@ -274,9 +250,6 @@ internal class PlanRoutineJourneyCommandHandler(
 
         return (hash >> 11) * (1.0 / (1UL << 53));
     }
-
-    private static double Distance(Point first, Point second) =>
-        Math.Sqrt(Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
 
     private sealed record JourneyTarget(Guid NodeId, IReadOnlyList<DirectedTravelLeg> Legs);
 

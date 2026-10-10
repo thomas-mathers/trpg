@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Data.ModuleContexts;
 
@@ -13,7 +14,7 @@ public class GetNearestReachableLocationQuery
 
 internal class GetNearestReachableLocationQueryHandler(
     IWorldsDbContext context,
-    IQueryHandler<GetTravelTopologyQuery, TravelTopology> getTravelTopology
+    IQueryHandler<GetTravelGraphQuery, TravelGraph> getTravelGraph
 ) : IQueryHandler<GetNearestReachableLocationQuery, Guid?>
 {
     public async Task<Guid?> Handle(
@@ -47,13 +48,14 @@ internal class GetNearestReachableLocationQueryHandler(
             return null;
         }
 
-        var topology = await getTravelTopology.Handle(
-            new GetTravelTopologyQuery { WorldId = query.WorldId },
+        var graph = await getTravelGraph.Handle(
+            new GetTravelGraphQuery { WorldId = query.WorldId },
             cancellationToken
         );
-        var nearestAnchor = topology
-            .ToGraph()
-            .FindNearestLocation(fromAnchor, candidateIdByAnchor.Keys.ToHashSet());
+        var nearestAnchor = graph.FindNearestLocation(
+            fromAnchor,
+            candidateIdByAnchor.Keys.ToHashSet()
+        );
 
         return nearestAnchor is null ? null : candidateIdByAnchor[nearestAnchor.Value];
     }

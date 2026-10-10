@@ -267,6 +267,6 @@ internal class DropWorldCommandHandler(TrpgDbContext context, IMemoryCache cache
         await context.Worlds.Where(x => x.Id == worldId).ExecuteDeleteAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);
-        cache.Remove(GetTravelTopologyQueryHandler.CacheKey(worldId));
+        cache.Remove(GetTravelGraphQueryHandler.CacheKey(worldId));
     }
 }

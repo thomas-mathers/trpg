@@ -46,6 +46,8 @@ public sealed class TravelGraph
         }
     }
 
+    public bool HasNodes => _nodes.Length > 0;
+
     public TravelGraph WhereLocation(Func<Guid, bool> includeLocation) =>
         new(
             _connectors.Where(connector =>
@@ -145,6 +147,14 @@ public sealed class TravelGraph
         _locationConnectorById[connectorId].DestinationNodeId;
 
     public Guid LocationOf(Guid nodeId) => _locationIdByNode[nodeId];
+
+    public IReadOnlyCollection<Guid> NodeIdsAt(Guid locationId) => NodesOf(locationId);
+
+    public Guid? FindNearestNode(Guid locationId, Point position) =>
+        NodesOf(locationId)
+            .Select(nodeId => _nodes.Single(node => node.Id == nodeId))
+            .MinBy(node => Distance(position, node.Position))
+            ?.Id;
 
     private IReadOnlyCollection<Guid> NodesOf(Guid locationId) =>
         _nodeIdsByLocation.GetValueOrDefault(locationId, []);
@@ -283,6 +293,9 @@ public sealed class TravelGraph
 
         return list;
     }
+
+    private static double Distance(Point first, Point second) =>
+        Math.Sqrt(Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
 
     private readonly record struct GraphEdge(Connector Connector, Guid To)
     {
