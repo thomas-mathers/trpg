@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Navigation;
+using TRPG.Application.Creatures;
 using TRPG.Application.Scenes;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Movement;
@@ -218,9 +220,73 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         );
     }
 
-    private async Task AddPlayerAt(Location location)
+    [Fact]
+    public async Task Tick_PersistsThePlayersWalkedPosition_WhenPlayerInputWasApplied()
     {
-        var player = Builders.MakeCreature(_worldId, locationId: location.Id);
+        // Arrange
+        _home.Width = 100;
+        _home.Depth = 100;
+        await AddPlayerAt(_home, x: 50, y: 50);
+        await StartRunner();
+        var receivedAt = DateTimeOffset.UtcNow;
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(1, 0, 0),
+                new Point(50, 50),
+                receivedAt
+            )
+        );
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(0, 0, 0),
+                new Point(50, 48),
+                receivedAt.AddSeconds(1)
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.InRange(player.Y, 48, 49);
+    }
+
+    [Fact]
+    public async Task Tick_PersistsTheStoredPose_WhenAPoseFlushWasPosted()
+    {
+        // Arrange
+        await AddPlayerAt(_home);
+        await StartRunner();
+        _serviceProvider
+            .GetRequiredService<PlayerPoseStore>()
+            .Set(
+                _playerId,
+                new PlayerPose(_home.Id, 60, 70, 1.5, DateTimeOffset.UtcNow, IsDirty: true)
+            );
+        _runner.Post(new FlushPlayerPose(_playerId));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal((60d, 70d, 1.5d), (player.X, player.Y, player.Angle));
+    }
+
+    private async Task AddPlayerAt(Location location, double x = 0, double y = 0)
+    {
+        var player = Builders.MakeCreature(
+            _worldId,
+            locationId: location.Id,
+            movementSpeed: 50,
+            x: x,
+            y: y
+        );
         _playerId = player.Id;
         var world = await _context.Worlds.SingleAsync(
             world => world.Id == _worldId,

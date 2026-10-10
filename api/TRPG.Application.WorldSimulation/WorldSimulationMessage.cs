@@ -16,6 +16,8 @@ public sealed record RemoveCreature(Guid CreatureId) : WorldSimulationMessage;
 
 public sealed record TrackCreature(Guid CreatureId) : WorldSimulationMessage;
 
+public sealed record FlushPlayerPose(Guid PlayerId) : WorldSimulationMessage;
+
 public sealed record PlayerInput(
     Guid PlayerId,
     Guid LocationId,
