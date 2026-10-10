@@ -72,7 +72,7 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessFrequent_WritesOnlyTheClockCheckpoint_WhenNothingChanges()
+    public async Task ProcessFrequent_WritesNothing_WhenNothingChanges()
     {
         // Arrange
         await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
@@ -83,8 +83,7 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
         await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
 
         // Assert
-        var write = Assert.Single(_interceptor.Writes);
-        Assert.Contains("UPDATE worlds", write);
+        Assert.Empty(_interceptor.Writes);
     }
 
     [Fact]

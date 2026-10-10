@@ -31,15 +31,8 @@ internal sealed class ContinuousWorldProcessor(
 {
     private readonly ConcurrentDictionary<WorldLane, byte> _runningPasses = new();
 
-    public async Task ProcessFrequent(CancellationToken cancellationToken = default)
-    {
-        foreach (var worldId in worldClock.GetActiveWorldIds())
-        {
-            await CheckpointClock(worldId, cancellationToken);
-        }
-
-        await ProcessActiveWorlds(ContinuousWorldLane.Frequent, cancellationToken);
-    }
+    public Task ProcessFrequent(CancellationToken cancellationToken = default) =>
+        ProcessActiveWorlds(ContinuousWorldLane.Frequent, cancellationToken);
 
     public Task ProcessRoutines(CancellationToken cancellationToken = default) =>
         ProcessActiveWorlds(ContinuousWorldLane.Routines, cancellationToken);
@@ -53,22 +46,6 @@ internal sealed class ContinuousWorldProcessor(
                 .GetActiveWorldIds()
                 .Select(worldId => ProcessWorld(worldId, lane, cancellationToken))
         );
-
-    private async Task CheckpointClock(Guid worldId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await worldClock.Checkpoint(worldId, cancellationToken);
-        }
-        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-        {
-            logger.LogError(
-                exception,
-                "Failed to checkpoint the clock of world {WorldId}",
-                worldId
-            );
-        }
-    }
 
     private async Task ProcessWorld(
         Guid worldId,

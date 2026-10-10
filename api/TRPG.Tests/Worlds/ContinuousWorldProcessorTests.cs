@@ -91,20 +91,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessFrequent_CheckpointsClock_WhenWorldIsActive()
-    {
-        // Arrange
-        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        _timeProvider.Advance(TimeSpan.FromMinutes(10));
-
-        // Act
-        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(GameClock.Epoch + TimeSpan.FromMinutes(10), await ReadPersistedGameTime());
-    }
-
-    [Fact]
     public async Task ProcessFrequent_RegeneratesPlayerAndFlushesVitals_WhenWorldIsActive()
     {
         // Arrange
@@ -291,24 +277,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         Assert.Contains(_logger.Errors, error => error.Contains(_world.Id.ToString()));
     }
 
-    [Fact]
-    public async Task ProcessFrequent_LogsFailureWithoutThrowing_WhenClockCheckpointFails()
-    {
-        // Arrange
-        var processor = new ContinuousWorldProcessor(
-            _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
-            new FailingWorldClock(_world.Id),
-            _gate,
-            _logger
-        );
-
-        // Act
-        await processor.ProcessFrequent(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.NotEmpty(_logger.Errors);
-    }
-
     private async Task<bool> WeatherExists()
     {
         await using var verifyContext = db.CreateContext();
@@ -324,15 +292,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         return await verifyContext
             .Creatures.Where(creature => creature.Id == _player.Id)
             .Select(creature => creature.CurrentHp)
-            .SingleAsync(TestContext.Current.CancellationToken);
-    }
-
-    private async Task<GameInstant> ReadPersistedGameTime()
-    {
-        await using var verifyContext = db.CreateContext();
-        return await verifyContext
-            .Worlds.Where(world => world.Id == _world.Id)
-            .Select(world => world.GameTime)
             .SingleAsync(TestContext.Current.CancellationToken);
     }
 
