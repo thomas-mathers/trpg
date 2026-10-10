@@ -180,43 +180,58 @@ internal static class MapGenerator
             endList.Add(edge);
         }
 
-        var points = new List<Point>();
-        var exploredEdges = new HashSet<VoronoiEdge>();
-
-        var currentEdge = boundaryEdges[0];
-        var entryVertex = currentEdge.Start;
-
-        while (currentEdge is not null)
-        {
-            exploredEdges.Add(currentEdge);
-
-            var exitVertex = currentEdge.Start == entryVertex ? currentEdge.End : currentEdge.Start;
-            points.Add(new Point((int)exitVertex.X, (int)exitVertex.Y));
-
-            var nextEdge = edgesByVertex.TryGetValue(exitVertex, out var candidates)
-                ? candidates.FirstOrDefault(e => !exploredEdges.Contains(e))
-                : null;
-
-            entryVertex = exitVertex;
-            currentEdge = nextEdge;
-        }
-
-        if (points.Count < 3)
-        {
-            throw new InvalidOperationException(
-                "Country boundary walk did not form a closed polygon"
-            );
-        }
-
-        if (exploredEdges.Count < boundaryEdges.Count)
-        {
-            throw new InvalidOperationException(
-                $"Country {countryIndex} has a disconnected boundary — walked {exploredEdges.Count} of {boundaryEdges.Count} boundary edges."
-            );
-        }
-
-        return new Polygon { Points = new List<Point>(points) };
+        var loops = TraceBoundaryLoops(boundaryEdges, edgesByVertex);
+        var exterior = loops.MaxBy(PolygonArea)!;
+        return new Polygon { Points = exterior };
     }
+
+    private static IReadOnlyList<List<Point>> TraceBoundaryLoops(
+        IReadOnlyCollection<VoronoiEdge> boundaryEdges,
+        IReadOnlyDictionary<VoronoiPoint, List<VoronoiEdge>> edgesByVertex
+    )
+    {
+        var remaining = new HashSet<VoronoiEdge>(boundaryEdges);
+        var loops = new List<List<Point>>();
+        while (remaining.Count > 0)
+        {
+            var first = remaining.First();
+            var start = first.Start;
+            var entry = start;
+            var current = first;
+            var points = new List<Point>();
+            while (true)
+            {
+                remaining.Remove(current);
+                var exit = current.Start == entry ? current.End : current.Start;
+                points.Add(new Point((int)exit.X, (int)exit.Y));
+                if (exit == start)
+                {
+                    break;
+                }
+
+                current = edgesByVertex[exit].Single(edge => remaining.Contains(edge));
+                entry = exit;
+            }
+
+            if (points.Count < 3)
+            {
+                throw new InvalidOperationException(
+                    "Country boundary walk did not form a closed polygon"
+                );
+            }
+
+            loops.Add(points);
+        }
+
+        return loops;
+    }
+
+    private static double PolygonArea(IReadOnlyList<Point> points) =>
+        Math.Abs(
+            points
+                .Zip(points.Skip(1).Append(points[0]))
+                .Sum(pair => pair.First.X * pair.Second.Y - pair.Second.X * pair.First.Y)
+        );
 
     private static bool IsBoundaryEdge(
         this VoronoiEdge edge,

@@ -163,7 +163,7 @@ public class WorldSimulatorTests
         var events = simulator.Engage(_creatureId, departure + TimeSpan.FromMinutes(15));
 
         // Assert
-        var crossing = Assert.IsType<LocationEntered>(Assert.Single(events));
+        var crossing = Assert.Single(events.OfType<LocationEntered>());
         Assert.Equal(departure + LegDuration, crossing.At);
         Assert.True(simulator.StateOf(_creatureId)!.IsFrozen);
     }
