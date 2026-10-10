@@ -110,18 +110,6 @@ internal sealed class ContinuousWorldProcessor(
         if (lane == ContinuousWorldLane.Frequent)
         {
             await FlushPlayerPoses(players, cancellationToken);
-            await services
-                .GetRequiredService<ICommandHandler<SyncActiveLocationTravelersCommand>>()
-                .Handle(
-                    new SyncActiveLocationTravelersCommand
-                    {
-                        WorldId = worldId,
-                        Players = players,
-                        GameTime = gameTime,
-                    },
-                    cancellationToken
-                );
-
             await TickEffects(worldId, players, gameTime, cancellationToken);
             await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
             await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);

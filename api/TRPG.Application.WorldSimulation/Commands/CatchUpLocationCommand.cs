@@ -13,7 +13,6 @@ public class CatchUpLocationCommand
 }
 
 internal class CatchUpLocationCommandHandler(
-    ICommandHandler<SyncLocationTravelersCommand> syncLocationTravelers,
     ICommandHandler<SyncLocationRoutinesCommand, SyncLocationRoutinesResult> syncLocationRoutines
 ) : ICommandHandler<CatchUpLocationCommand>
 {
@@ -22,16 +21,6 @@ internal class CatchUpLocationCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        await syncLocationTravelers.Handle(
-            new SyncLocationTravelersCommand
-            {
-                WorldId = command.WorldId,
-                LocationId = command.LocationId,
-                GameTime = command.GameTime,
-            },
-            cancellationToken
-        );
-
         await syncLocationRoutines.Handle(
             new SyncLocationRoutinesCommand
             {
