@@ -77,7 +77,13 @@ internal class PlanCircuitJourneyCommandHandler(
                         ToNodeId = leg.ToNodeId,
                         ConnectorId = leg.ConnectorId,
                         Distance = leg.Distance,
-                        Path = leg.Path,
+                        Path = new Polyline
+                        {
+                            Points =
+                            [
+                                .. leg.Path.Points.Select(point => new Point(point.X, point.Y)),
+                            ],
+                        },
                         DwellAfter = circuitLegs[index].DwellAfter,
                     }
             )

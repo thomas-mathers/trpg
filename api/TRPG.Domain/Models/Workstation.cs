@@ -17,7 +17,6 @@ public enum WorkstationType
 
 public class Workstation : Prop
 {
-    public Guid? AssignedCreatureId { get; set; }
     public Guid? OccupantId { get; set; }
     public WorkstationType WorkstationType { get; init; }
 }

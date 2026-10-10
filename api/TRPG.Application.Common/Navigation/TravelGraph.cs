@@ -252,6 +252,7 @@ public sealed class TravelGraph
         {
             PointConnector point => PointPath(point, edge),
             LocationConnector location when location.Path is not null => location.Path.Points,
+            LocationConnector => [_nodes.Single(node => node.Id == edge.To).Position],
             _ => [],
         };
 
@@ -260,9 +261,12 @@ public sealed class TravelGraph
 
     private IReadOnlyList<Point> PointPath(PointConnector connector, GraphEdge edge)
     {
-        var points = new List<Point> { _nodes.Single(node => node.Id == edge.From).Position };
+        var points = new List<Point>
+        {
+            _nodes.Single(node => node.Id == connector.OriginNodeId).Position,
+        };
         points.AddRange(connector.Waypoints.Points);
-        points.Add(_nodes.Single(node => node.Id == edge.To).Position);
+        points.Add(_nodes.Single(node => node.Id == connector.DestinationNodeId).Position);
 
         return edge.From == connector.OriginNodeId
             ? points

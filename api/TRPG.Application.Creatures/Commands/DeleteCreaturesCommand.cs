@@ -165,14 +165,6 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
 
         await context
             .Set<Workstation>()
-            .Where(w => w.AssignedCreatureId != null && ids.Contains(w.AssignedCreatureId.Value))
-            .ExecuteUpdateAsync(
-                s => s.SetProperty(w => w.AssignedCreatureId, (Guid?)null),
-                cancellationToken
-            );
-
-        await context
-            .Set<Workstation>()
             .Where(w => w.OccupantId != null && ids.Contains(w.OccupantId.Value))
             .ExecuteUpdateAsync(
                 s => s.SetProperty(w => w.OccupantId, (Guid?)null),

@@ -602,11 +602,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.Property<string>("behavior_type").HasColumnType("text");
             entity.HasIndex(p => p.LocationId);
             entity.HasIndex(p => p.WorldId);
-            entity
-                .HasOne<TravelNode>()
-                .WithMany()
-                .HasForeignKey(p => p.ApproachNodeId)
-                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Cell and Container each declare their own ILockableProp properties rather than
@@ -810,7 +805,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
             entity.HasIndex(journey => journey.WorldId);
             entity.HasIndex(journey => journey.TravelCircuitId);
             entity.HasIndex(journey => journey.DestinationJobId);
-            entity.HasIndex(journey => journey.DestinationPropId);
             entity
                 .HasOne<World>()
                 .WithMany()
@@ -825,11 +819,6 @@ public class TrpgDbContext(DbContextOptions<TrpgDbContext> options)
                 .HasOne<CreatureJob>()
                 .WithMany()
                 .HasForeignKey(journey => journey.DestinationJobId)
-                .OnDelete(DeleteBehavior.Restrict);
-            entity
-                .HasOne<Prop>()
-                .WithMany()
-                .HasForeignKey(journey => journey.DestinationPropId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

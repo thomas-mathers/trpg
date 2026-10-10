@@ -24,7 +24,6 @@ public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixtu
     private readonly TravelNode _homeNode;
     private readonly TravelNode _exitNode;
     private readonly TravelNode _arrivalNode;
-    private readonly TravelNode _workstationNode;
 
     public PlanRoutineJourneyCommandTests(DatabaseFixture db)
     {
@@ -32,7 +31,6 @@ public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixtu
         _homeNode = Builders.MakeTravelNode(_homeLocationId, worldId: _world.Id);
         _exitNode = Builders.MakeTravelNode(_homeLocationId, x: 2, worldId: _world.Id);
         _arrivalNode = Builders.MakeTravelNode(_workLocationId, worldId: _world.Id);
-        _workstationNode = Builders.MakeTravelNode(_workLocationId, x: 2, worldId: _world.Id);
         _worker = Builders.MakeCreature(_world.Id, locationId: _homeLocationId, movementSpeed: 50);
         _worker.CurrentTravelNodeId = _homeNode.Id;
     }
@@ -49,13 +47,6 @@ public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixtu
             2,
             _world.Id
         );
-        var workWalk = Builders.MakePointConnector(
-            _workLocationId,
-            _arrivalNode.Id,
-            _workstationNode.Id,
-            2,
-            _world.Id
-        );
         var job = Builders.MakeCreatureJob(
             _worker.Id,
             action: CreatureJobAction.Work,
@@ -64,21 +55,20 @@ public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixtu
             locationId: _workLocationId,
             worldId: _world.Id
         );
-        var workstation = Builders.MakeWorkstation(
-            _world.Id,
-            _workLocationId,
-            assignedCreatureId: _worker.Id,
-            approachNodeId: _workstationNode.Id
-        );
-
         _context = db.CreateContext();
         _context.Worlds.Add(_world);
         _context.Creatures.Add(_worker);
-        _context.TravelNodes.AddRange(_homeNode, _exitNode, _arrivalNode, _workstationNode);
+        _context.TravelNodes.AddRange(_homeNode, _exitNode, _arrivalNode);
         _context.LocationConnectors.Add(door);
-        _context.PointConnectors.AddRange(homeWalk, workWalk);
+        _context.PointConnectors.Add(homeWalk);
+        _context.Props.Add(
+            Builders.MakeWorkstation(
+                _world.Id,
+                _workLocationId,
+                workstationType: WorkstationType.Trade
+            )
+        );
         _context.CreatureJobs.Add(job);
-        _context.Props.Add(workstation);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
@@ -95,7 +85,7 @@ public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixtu
     }
 
     [Fact]
-    public async Task Handle_PersistsDirectedLegSnapshotsToTheAssignedWorkstation()
+    public async Task Handle_RoutesWorkOnlyToTheDestinationLocationNetwork()
     {
         // Arrange
         var command = new PlanRoutineJourneyCommand
@@ -119,8 +109,8 @@ public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixtu
             .OrderBy(leg => leg.Index)
             .ToArrayAsync(TestContext.Current.CancellationToken);
         Assert.Equal(JourneyStatus.Planned, journey.Status);
-        Assert.Equal(_workstationNode.Id, legs[^1].ToNodeId);
-        Assert.Equal(3, legs.Length);
+        Assert.Equal(_arrivalNode.Id, legs[^1].ToNodeId);
+        Assert.Equal(2, legs.Length);
         Assert.Equal(_homeNode.Id, legs[0].FromNodeId);
     }
 }

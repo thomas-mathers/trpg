@@ -98,7 +98,7 @@ public class CreatureLayoutGeneratorTests
             LocationId = workstation.LocationId,
             WorldId = workstation.WorldId,
         };
-        workstation.AssignedCreatureId = worker.Id;
+        workstation.OccupantId = worker.Id;
 
         // Act
         CreatureLayoutGenerator.Place(LayoutInput(world, [worker]));
@@ -124,7 +124,7 @@ public class CreatureLayoutGeneratorTests
                 && candidate.WorkstationType == WorkstationType.Trade
             );
         var worker = new Creature { LocationId = counter.LocationId, WorldId = counter.WorldId };
-        counter.AssignedCreatureId = worker.Id;
+        counter.OccupantId = worker.Id;
 
         // Act
         CreatureLayoutGenerator.Place(LayoutInput(world, [worker]));

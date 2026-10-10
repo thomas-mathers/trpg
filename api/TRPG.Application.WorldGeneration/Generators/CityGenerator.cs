@@ -501,21 +501,13 @@ public class CityGenerator(
         var type = buildingResult.Building.BuildingType;
         var groundFloorLocationId = buildingResult.Rooms.First(r => r.FloorNumber == 0).LocationId;
 
-        StaffingSchedule schedule;
-        if (type == BuildingType.Inn)
-        {
-            schedule = InnStaffingPolicy.Generate();
-        }
-        else
-        {
-            var staffableWorkstationCount = Math.Max(
-                1,
-                buildingResult
-                    .Props.OfType<Workstation>()
-                    .Count(w => w.WorkstationType != WorkstationType.Reading)
-            );
-            schedule = ShopStaffingPolicy.Generate(type, staffableWorkstationCount);
-        }
+        var staffableWorkstationCount = buildingResult
+            .Props.OfType<Workstation>()
+            .Count(w => w.WorkstationType != WorkstationType.Reading);
+        var schedule =
+            type == BuildingType.Inn
+                ? InnStaffingPolicy.Generate(staffableWorkstationCount)
+                : ShopStaffingPolicy.Generate(type, staffableWorkstationCount);
 
         AssignShiftsToWorkspace(workspace, schedule, ownerId, groundFloorLocationId);
     }
@@ -529,23 +521,26 @@ public class CityGenerator(
     {
         var worldId = workspace.Input.WorldId;
 
-        workspace.Jobs.Add(
-            CreatureJobGenerator.GenerateWork(
+        if (schedule.OwnerShift is { } ownerShift)
+        {
+            workspace.Jobs.Add(
+                CreatureJobGenerator.GenerateWork(
+                    ownerId,
+                    groundFloorLocationId,
+                    worldId,
+                    ownerShift.WorkHours
+                )
+            );
+            CreatureJobGenerator.ApplySleepOverride(
                 ownerId,
-                groundFloorLocationId,
+                ownerShift.WorkHours,
                 worldId,
-                schedule.OwnerShift.WorkHours
-            )
-        );
-        CreatureJobGenerator.ApplySleepOverride(
-            ownerId,
-            schedule.OwnerShift.WorkHours,
-            worldId,
-            workspace.Jobs
-        );
-        workspace.ShopOwnerAssignments.Add(
-            new StaffDayOff(ownerId, schedule.OwnerShift.DaysOff, schedule.OwnerShift.WorkHours)
-        );
+                workspace.Jobs
+            );
+            workspace.ShopOwnerAssignments.Add(
+                new StaffDayOff(ownerId, ownerShift.DaysOff, ownerShift.WorkHours)
+            );
+        }
 
         foreach (var shift in schedule.EmployeeShifts)
         {

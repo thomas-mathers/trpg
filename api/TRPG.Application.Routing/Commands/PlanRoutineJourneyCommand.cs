@@ -20,7 +20,6 @@ public class PlanRoutineJourneyCommand
 internal class PlanRoutineJourneyCommandHandler(
     ICreaturesDbContext creatures,
     ICreatureJobsDbContext creatureJobs,
-    IPropsDbContext props,
     IWorldsDbContext worlds,
     IRoutingDbContext routing
 ) : ICommandHandler<PlanRoutineJourneyCommand, Guid?>
@@ -55,14 +54,7 @@ internal class PlanRoutineJourneyCommandHandler(
             return null;
         }
 
-        var target = await ResolveTarget(
-            transition.Destination,
-            creature.Id,
-            topology,
-            graph,
-            originNodeId.Value,
-            cancellationToken
-        );
+        var target = ResolveTarget(transition.Destination, topology, graph, originNodeId.Value);
         if (target is null)
         {
             return null;
@@ -129,67 +121,29 @@ internal class PlanRoutineJourneyCommandHandler(
             ?.Id;
     }
 
-    private async Task<JourneyTarget?> ResolveTarget(
+    private static JourneyTarget? ResolveTarget(
         CreatureJob job,
-        Guid creatureId,
         TravelTopology topology,
         TravelGraph graph,
-        Guid originNodeId,
-        CancellationToken cancellationToken
+        Guid originNodeId
     )
     {
-        var targetProps = await TargetProps(job, creatureId, cancellationToken);
-        var propTargets = targetProps
-            .Where(prop => prop.ApproachNodeId is not null)
-            .Select(prop => new TargetNode(prop.ApproachNodeId!.Value, prop.Id));
-        var anchoredTarget = BestReachable(graph, originNodeId, propTargets);
-        if (anchoredTarget is not null)
-        {
-            return anchoredTarget;
-        }
-
         var nodeTargets = topology
             .Nodes.Where(node => node.LocationId == job.LocationId)
-            .Select(node => new TargetNode(node.Id, null));
+            .Select(node => node.Id);
 
         return BestReachable(graph, originNodeId, nodeTargets);
     }
 
-    private Task<Prop[]> TargetProps(
-        CreatureJob job,
-        Guid creatureId,
-        CancellationToken cancellationToken
-    ) =>
-        job.Action switch
-        {
-            CreatureJobAction.Sleep => props
-                .Props.OfType<Bed>()
-                .Where(bed => bed.AssignedCreatureId == creatureId)
-                .Cast<Prop>()
-                .ToArrayAsync(cancellationToken),
-            CreatureJobAction.Work => props
-                .Props.OfType<Workstation>()
-                .Where(workstation => workstation.AssignedCreatureId == creatureId)
-                .Cast<Prop>()
-                .ToArrayAsync(cancellationToken),
-            CreatureJobAction.Idle => props
-                .Props.OfType<Seat>()
-                .Where(seat => seat.LocationId == job.LocationId && seat.OccupantId == null)
-                .Cast<Prop>()
-                .ToArrayAsync(cancellationToken),
-            _ => Task.FromResult<Prop[]>([]),
-        };
-
     private static JourneyTarget? BestReachable(
         TravelGraph graph,
         Guid originNodeId,
-        IEnumerable<TargetNode> targets
+        IEnumerable<Guid> targets
     ) =>
         targets
             .Select(target => new JourneyTarget(
-                target.NodeId,
-                target.PropId,
-                graph.FindShortestPath(originNodeId, target.NodeId)
+                target,
+                graph.FindShortestPath(originNodeId, target)
             ))
             .Where(target => target.Legs.Count > 0 || target.NodeId == originNodeId)
             .OrderBy(target => target.Legs.Sum(leg => leg.Distance))
@@ -213,7 +167,6 @@ internal class PlanRoutineJourneyCommandHandler(
         {
             WorldId = creature.WorldId,
             DestinationJobId = transition.Destination.Id,
-            DestinationPropId = target.PropId,
             ArrivalActivity = transition.Destination.Activity,
             Status = JourneyStatus.Planned,
             PlannedAt = command.PlannedAt,
@@ -238,11 +191,14 @@ internal class PlanRoutineJourneyCommandHandler(
                         ToNodeId = leg.ToNodeId,
                         ConnectorId = leg.ConnectorId,
                         Distance = leg.Distance,
-                        Path = leg.Path,
+                        Path = CopyPath(leg.Path),
                         DwellAfter = TimeSpan.Zero,
                     }
             )
             .ToArray();
+
+    private static Polyline CopyPath(Polyline path) =>
+        new() { Points = [.. path.Points.Select(point => new Point(point.X, point.Y))] };
 
     private static RoutineTransition? FindNextTransition(
         IReadOnlyList<CreatureJob> jobs,
@@ -280,6 +236,11 @@ internal class PlanRoutineJourneyCommandHandler(
         TimeSpan arrivalStagger
     )
     {
+        if (transition.IsOpen)
+        {
+            return transition.At;
+        }
+
         var jitter = StableUnitInterval(creatureId, transition);
         if (transition.Destination.Action == CreatureJobAction.Eat)
         {
@@ -317,13 +278,7 @@ internal class PlanRoutineJourneyCommandHandler(
     private static double Distance(Point first, Point second) =>
         Math.Sqrt(Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
 
-    private sealed record TargetNode(Guid NodeId, Guid? PropId);
-
-    private sealed record JourneyTarget(
-        Guid NodeId,
-        Guid? PropId,
-        IReadOnlyList<DirectedTravelLeg> Legs
-    );
+    private sealed record JourneyTarget(Guid NodeId, IReadOnlyList<DirectedTravelLeg> Legs);
 
     private sealed record RoutineTransition(
         CreatureJob Destination,

@@ -1,4 +1,6 @@
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.CreatureJobs;
+using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -107,6 +109,45 @@ public sealed class WorldSimulator
     public SimCreatureState? StateOf(Guid creatureId) =>
         _creaturesById.GetValueOrDefault(creatureId)?.ToState();
 
+    public bool IsSchedulerSleeping(Guid creatureId, GameInstant now) =>
+        _creaturesById.GetValueOrDefault(creatureId) is { } creature
+        && !creature.IsWalking
+        && !creature.IsFrozen
+        && creature.NextUpdate > now;
+
+    public void SleepUntilNextRoutineChange(Guid creatureId, GameInstant now)
+    {
+        if (_creaturesById.GetValueOrDefault(creatureId) is not { } creature || creature.IsWalking)
+        {
+            return;
+        }
+
+        creature.NextUpdate = NextRoutineChange(creature.Jobs, now);
+    }
+
+    public IReadOnlyList<SimEvent> StartLocalMove(LocalMovePlan plan, GameInstant at)
+    {
+        if (!_creaturesById.TryGetValue(plan.CreatureId, out var creature) || creature.IsFrozen)
+        {
+            return [];
+        }
+
+        creature.LocalMove = new LocalMoveExecution(plan);
+        creature.IsWalking = true;
+        creature.LastUpdate = at;
+        creature.NextUpdate = creature.TimeToLocalMoveEnd(at);
+        return
+        [
+            new LocalMoveStarted(
+                creature.Id,
+                at,
+                creature.LocationId,
+                plan,
+                creature.MetersPerGameSecond
+            ),
+        ];
+    }
+
     public IReadOnlyList<SimEvent> Step(GameInstant now)
     {
         var events = new List<SimEvent>();
@@ -131,7 +172,24 @@ public sealed class WorldSimulator
             return events;
         }
 
-        if (creature.IsWalking)
+        if (creature.LocalMove is not null)
+        {
+            LocalMoveWalker.Advance(creature, at, events);
+            if (creature.LocalMove is { } localMove)
+            {
+                events.Add(
+                    new LocalMoveInterrupted(
+                        creature.Id,
+                        at,
+                        creature.LocationId,
+                        LocalMoveWalker.Position(localMove)
+                    )
+                );
+                creature.LocalMove = null;
+                creature.IsWalking = false;
+            }
+        }
+        else if (creature.IsWalking)
         {
             JourneyWalker.Advance(creature, at, events);
             if (creature.Journey is { } journey)
@@ -187,6 +245,12 @@ public sealed class WorldSimulator
 
     private void Step(SimulatedCreature creature, GameInstant now, ICollection<SimEvent> events)
     {
+        if (creature.LocalMove is not null)
+        {
+            LocalMoveWalker.Advance(creature, now, events);
+            return;
+        }
+
         if (creature.IsWalking)
         {
             JourneyWalker.Advance(creature, now, events);
@@ -198,5 +262,21 @@ public sealed class WorldSimulator
             JourneyWalker.Begin(creature, events);
             JourneyWalker.Advance(creature, now, events);
         }
+    }
+
+    private static GameInstant NextRoutineChange(
+        IReadOnlyCollection<CreatureJob> jobs,
+        GameInstant now
+    )
+    {
+        var scheduled = CreatureJobScheduling.FindCurrentOrNextJob(jobs, now);
+        if (scheduled is null)
+        {
+            return new GameInstant(DateTime.MaxValue);
+        }
+
+        return scheduled.IsActive
+            ? JobTransition.FindWindowEnd(jobs.ToArray(), scheduled.Job, now)
+            : scheduled.StartsAtGameTime;
     }
 }

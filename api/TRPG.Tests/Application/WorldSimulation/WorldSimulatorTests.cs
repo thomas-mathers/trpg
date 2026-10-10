@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -38,6 +39,46 @@ public class WorldSimulatorTests
         var started = Assert.IsType<JourneyStarted>(events[0]);
         Assert.Equal(WorkStart - LegDuration, started.At);
         Assert.Equal(_locationC, started.DestinationLocationId);
+    }
+
+    [Fact]
+    public void SleepUntilNextRoutineChange_WakesAtTheCurrentJobsEnd()
+    {
+        // Arrange
+        var simulator = CreateSimulator(1);
+        AddCommuter(simulator);
+
+        // Act
+        simulator.SleepUntilNextRoutineChange(_creatureId, Morning);
+
+        // Assert
+        var state = simulator.StateOf(_creatureId)!;
+        Assert.True(simulator.IsSchedulerSleeping(_creatureId, Morning));
+        Assert.Equal(WorkStart, state.NextUpdateAt);
+    }
+
+    [Fact]
+    public void Step_CompletesATransientLocalMoveWithoutCreatingAJourney()
+    {
+        var simulator = CreateSimulator(1);
+        simulator.Add(new SimCreatureSeed(_creatureId, _locationA, MovementSpeed, []), Morning);
+        var move = new LocalMovePlan(
+            _creatureId,
+            _locationA,
+            Guid.NewGuid(),
+            CreatureJobAction.Work,
+            LocalMoveTargetKind.Workstation,
+            Guid.NewGuid(),
+            [new Point(1, 1), new Point(4, 1)]
+        );
+        var started = Assert.Single(simulator.StartLocalMove(move, Morning));
+
+        var events = simulator.Step(Morning + TimeSpan.FromHours(1));
+
+        Assert.IsType<LocalMoveStarted>(started);
+        var completed = Assert.Single(events.OfType<LocalMoveCompleted>());
+        Assert.Equal(new Point(4, 1), completed.StopPosition);
+        Assert.False(simulator.StateOf(_creatureId)!.IsWalking);
     }
 
     [Fact]

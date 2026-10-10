@@ -102,6 +102,21 @@ public class NavigationGridTests
         Assert.Equal([new Point(1.25, 1.25), new Point(8.25, 8.25)], path);
     }
 
+    [Fact]
+    public void FindReachablePath_ReturnsNull_WhenTheGoalIsWalledOff()
+    {
+        var grid = new NavigationGrid(
+            10,
+            10,
+            Cell,
+            point => point.X is > 5 and < 5.5 || point.Y is > 5 and < 5.5
+        );
+
+        var path = grid.FindReachablePath(new Point(1.25, 1.25), new Point(8.25, 8.25));
+
+        Assert.Null(path);
+    }
+
     private static IEnumerable<Point> Segments(IReadOnlyList<Point> path)
     {
         for (var index = 1; index < path.Count; index++)

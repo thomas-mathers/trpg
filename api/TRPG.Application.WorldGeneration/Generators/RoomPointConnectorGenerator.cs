@@ -25,7 +25,8 @@ internal static class RoomPointConnectorGenerator
                     context,
                     location,
                     nodeById,
-                    (from, to) => PathLength(grid.FindPath(from.Position, to.Position))
+                    (from, to) =>
+                        new LocalPointConnectors.Path(grid.FindPath(from.Position, to.Position))
                 )
             );
         }
@@ -38,13 +39,4 @@ internal static class RoomPointConnectorGenerator
         && !BuildingTypes.Dungeon.Contains(
             context.BuildingById[context.RoomByLocationId[location.Id].BuildingId].BuildingType
         );
-
-    private static double PathLength(IReadOnlyList<Point> path) =>
-        path.Zip(path.Skip(1))
-            .Sum(pair =>
-                Math.Sqrt(
-                    Math.Pow(pair.Second.X - pair.First.X, 2)
-                        + Math.Pow(pair.Second.Y - pair.First.Y, 2)
-                )
-            );
 }

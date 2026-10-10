@@ -16,9 +16,7 @@ internal static class CreatureAnchorFinder
             return new CreatureAnchor(occupied, IsOccupied: true);
         }
 
-        var assigned =
-            props.FirstOrDefault(prop => prop is Workstation && AssignedId(prop) == creature.Id)
-            ?? props.FirstOrDefault(prop => prop is Bed && AssignedId(prop) == creature.Id);
+        var assigned = props.FirstOrDefault(prop => prop is Bed && AssignedId(prop) == creature.Id);
 
         return assigned is null ? null : new CreatureAnchor(assigned, IsOccupied: false);
     }
@@ -36,7 +34,6 @@ internal static class CreatureAnchorFinder
         prop switch
         {
             Bed bed => bed.AssignedCreatureId,
-            Workstation workstation => workstation.AssignedCreatureId,
             _ => null,
         };
 }

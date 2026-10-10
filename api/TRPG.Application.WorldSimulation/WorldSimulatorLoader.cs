@@ -192,7 +192,6 @@ public sealed class WorldSimulatorLoader(
             journey.CheckpointedAt,
             legs,
             destinationJob,
-            journey.DestinationPropId,
             locationsByNode
         );
     }

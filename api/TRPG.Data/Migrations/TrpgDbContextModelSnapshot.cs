@@ -1915,10 +1915,6 @@ namespace TRPG.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("destination_job_id");
 
-                    b.Property<Guid?>("DestinationPropId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("destination_prop_id");
-
                     b.Property<DateTime?>("PausedAt")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("paused_at");
@@ -1949,9 +1945,6 @@ namespace TRPG.Migrations
 
                     b.HasIndex("DestinationJobId")
                         .HasDatabaseName("ix_journeys_destination_job_id");
-
-                    b.HasIndex("DestinationPropId")
-                        .HasDatabaseName("ix_journeys_destination_prop_id");
 
                     b.HasIndex("TravelCircuitId")
                         .HasDatabaseName("ix_journeys_travel_circuit_id");
@@ -2244,10 +2237,6 @@ namespace TRPG.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("angle");
 
-                    b.Property<Guid?>("ApproachNodeId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("approach_node_id");
-
                     b.Property<double>("Depth")
                         .HasColumnType("double precision")
                         .HasColumnName("depth");
@@ -2294,9 +2283,6 @@ namespace TRPG.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_props");
-
-                    b.HasIndex("ApproachNodeId")
-                        .HasDatabaseName("ix_props_approach_node_id");
 
                     b.HasIndex("LocationId")
                         .HasDatabaseName("ix_props_location_id");
@@ -3980,10 +3966,6 @@ namespace TRPG.Migrations
                 {
                     b.HasBaseType("TRPG.Domain.Models.Prop");
 
-                    b.Property<Guid?>("AssignedCreatureId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("assigned_creature_id");
-
                     b.Property<Guid?>("OccupantId")
                         .HasColumnType("uuid")
                         .HasColumnName("occupant_id");
@@ -3995,9 +3977,6 @@ namespace TRPG.Migrations
 
                     b.ToTable("props", null, t =>
                         {
-                            t.Property("AssignedCreatureId")
-                                .HasColumnName("workstation_assigned_creature_id");
-
                             t.Property("OccupantId")
                                 .HasColumnName("workstation_occupant_id");
                         });
@@ -4429,12 +4408,6 @@ namespace TRPG.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_journeys_creature_jobs_destination_job_id");
 
-                    b.HasOne("TRPG.Domain.Models.Prop", null)
-                        .WithMany()
-                        .HasForeignKey("DestinationPropId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_journeys_props_destination_prop_id");
-
                     b.HasOne("TRPG.Domain.Models.TravelCircuit", null)
                         .WithMany()
                         .HasForeignKey("TravelCircuitId")
@@ -4537,15 +4510,6 @@ namespace TRPG.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_journey_members_journeys_journey_id");
-                });
-
-            modelBuilder.Entity("TRPG.Domain.Models.Prop", b =>
-                {
-                    b.HasOne("TRPG.Domain.Models.TravelNode", null)
-                        .WithMany()
-                        .HasForeignKey("ApproachNodeId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_props_travel_nodes_approach_node_id");
                 });
 
             modelBuilder.Entity("TRPG.Domain.Models.QuestReputationReward", b =>

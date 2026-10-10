@@ -11,7 +11,6 @@ public abstract class Prop
     public double X { get; set; }
     public double Y { get; set; }
     public double Angle { get; set; }
-    public Guid? ApproachNodeId { get; set; }
     public double Width { get; set; }
     public double Depth { get; set; }
 }

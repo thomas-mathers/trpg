@@ -30,18 +30,23 @@ public sealed class NavigationGrid
 
     public IReadOnlyList<Point> FindPath(Point from, Point to)
     {
+        return FindReachablePath(from, to) ?? [from, to];
+    }
+
+    public IReadOnlyList<Point>? FindReachablePath(Point from, Point to)
+    {
         var start = NearestFree(from);
         var goal = NearestFree(to);
 
         if (start.Column == NoCell || goal.Column == NoCell)
         {
-            return [from, to];
+            return null;
         }
 
         var cells = Graphs.ShortestPath(start, goal, FreeNeighbors, Distance);
         if (cells.Count == 0)
         {
-            return [from, to];
+            return null;
         }
 
         return Straighten(from, to, cells, start, goal);
@@ -51,6 +56,12 @@ public sealed class NavigationGrid
     {
         var cell = NearestFree(point);
         return cell.Column == NoCell ? point : CentreOf(cell);
+    }
+
+    public bool IsWalkable(Point point)
+    {
+        var cell = CellOf(point);
+        return IsFree(cell);
     }
 
     private IReadOnlyList<Point> Straighten(

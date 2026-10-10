@@ -64,7 +64,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
             worldId,
             room.LocationId,
             occupantId: target.Id,
-            assignedCreatureId: target.Id,
             workstationType: WorkstationType.Cooking
         );
         _context.Props.AddRange(bed, workstation);
@@ -189,7 +188,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
         var updatedWorkstation = await verifyContext
             .Set<Workstation>()
             .SingleAsync(x => x.Id == workstation.Id, cancellationToken);
-        Assert.Null(updatedWorkstation.AssignedCreatureId);
         Assert.Null(updatedWorkstation.OccupantId);
 
         Assert.False(
@@ -306,7 +304,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
             worldId,
             locationId,
             occupantId: employee.Id,
-            assignedCreatureId: employee.Id,
             ownerCreatureId: owner.Id,
             workstationType: WorkstationType.Cooking
         );
@@ -343,7 +340,6 @@ public sealed class DeleteCreaturesCommandTests(DatabaseFixture db)
 
         Assert.Null(updatedContainer.OwnerCreatureId);
         Assert.Null(updatedWorkstation.OwnerCreatureId);
-        Assert.Equal(employee.Id, updatedWorkstation.AssignedCreatureId);
         Assert.Equal(employee.Id, updatedWorkstation.OccupantId);
         Assert.Equal(employee.Id, updatedEmployeeOwnedContainer.OwnerCreatureId);
     }

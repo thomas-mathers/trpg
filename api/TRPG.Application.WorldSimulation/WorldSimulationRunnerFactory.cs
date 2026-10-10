@@ -1,12 +1,16 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Concurrency;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation;
 
 public sealed class WorldSimulationRunnerFactory(
     IServiceScopeFactory serviceScopeFactory,
-    IWorldMutationGate mutationGate
+    IWorldMutationGate mutationGate,
+    TransientCreatureWalkRegistry transientWalks,
+    ILogger<WorldSimulationRunner> logger
 )
 {
     public async Task<WorldSimulationRunner> Create(
@@ -20,7 +24,14 @@ public sealed class WorldSimulationRunnerFactory(
             .ServiceProvider.GetRequiredService<WorldSimulatorLoader>()
             .Load(worldId, now, cancellationToken);
 
-        var runner = new WorldSimulationRunner(worldId, loaded, serviceScopeFactory, mutationGate);
+        var runner = new WorldSimulationRunner(
+            worldId,
+            loaded,
+            serviceScopeFactory,
+            mutationGate,
+            transientWalks,
+            logger
+        );
         await runner.RefreshWeather(now, cancellationToken);
 
         return runner;

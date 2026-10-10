@@ -155,7 +155,7 @@ internal class ApplyCreaturePoseUpdatesCommandHandler(
     )
     {
         var relocatedByLocation = updates
-            .Where(update => update.PreviousLocationId != null)
+            .Where(update => update.PreviousLocationId != null && update.StandAt == null)
             .GroupBy(update => update.LocationId);
 
         foreach (var group in relocatedByLocation)

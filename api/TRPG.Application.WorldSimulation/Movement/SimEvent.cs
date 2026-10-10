@@ -1,3 +1,4 @@
+using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -35,6 +36,14 @@ public sealed record LocationEntered(
     Guid? ArrivalNodeId = null
 ) : SimEvent(CreatureId, At);
 
+public sealed record JourneyLegCompleted(
+    Guid CreatureId,
+    GameInstant At,
+    Guid LocationId,
+    Point StopPosition,
+    Guid ArrivalNodeId
+) : SimEvent(CreatureId, At);
+
 public sealed record JourneyCompleted(
     Guid CreatureId,
     GameInstant At,
@@ -42,6 +51,31 @@ public sealed record JourneyCompleted(
     Guid JobId,
     CreatureJobAction Action,
     Guid? ArrivalNodeId = null,
-    Guid? DestinationPropId = null,
     Guid? JourneyId = null
+) : SimEvent(CreatureId, At)
+{
+    public Point? StopPosition { get; init; }
+}
+
+public sealed record LocalMoveStarted(
+    Guid CreatureId,
+    GameInstant At,
+    Guid LocationId,
+    LocalMovePlan Move,
+    double MetersPerGameSecond
+) : SimEvent(CreatureId, At);
+
+public sealed record LocalMoveCompleted(
+    Guid CreatureId,
+    GameInstant At,
+    Guid LocationId,
+    LocalMovePlan Move,
+    Point StopPosition
+) : SimEvent(CreatureId, At);
+
+public sealed record LocalMoveInterrupted(
+    Guid CreatureId,
+    GameInstant At,
+    Guid LocationId,
+    Point StopPosition
 ) : SimEvent(CreatureId, At);

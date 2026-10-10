@@ -44,7 +44,8 @@ internal sealed class SceneCreatureInfoBuilder(
     IQueryHandler<
         GetCreatureJourneyPositionsQuery,
         IReadOnlyDictionary<Guid, CreatureJourneyPosition>
-    > getCreatureJourneyPositions
+    > getCreatureJourneyPositions,
+    TransientCreatureWalkRegistry transientWalks
 )
 {
     public async Task<IReadOnlyCollection<SceneCreatureInfo>> BuildNearbyPeopleInfos(
@@ -69,6 +70,15 @@ internal sealed class SceneCreatureInfoBuilder(
             },
             cancellationToken
         );
+        journeyPositions = nearby
+            .ToDictionary(
+                creature => creature.Id,
+                creature =>
+                    transientWalks.Find(creature.Id, locationId, query.GameTime)
+                    ?? journeyPositions.GetValueOrDefault(creature.Id)
+            )
+            .Where(entry => entry.Value is not null)
+            .ToDictionary(entry => entry.Key, entry => entry.Value!);
         var present = nearby;
         if (present.Count == 0)
         {

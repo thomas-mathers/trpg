@@ -49,25 +49,44 @@ function signatureOf({ placement, walk, seated }: Inputs): string {
 }
 
 function logWalkChange(
-  name: string,
+  current: Inputs,
   previous: CreatureWalkSnapshot | undefined,
-  next: CreatureWalkSnapshot | undefined,
   gapMeters: number,
+  nowUnixMilliseconds: number,
 ) {
-  const describe = (walk: CreatureWalkSnapshot | undefined) =>
-    walk
-      ? {
-          startedAt: walk.startedAtGameTimeMilliseconds,
-          pausedAt: walk.pausedAtGameTimeMilliseconds,
-          pace: walk.metersPerGameSecond,
-          from: walk.points[0],
-          to: walk.points[walk.points.length - 1],
-          leavesAtEnd: walk.leavesAtEnd,
-        }
-      : null;
-  console.debug(`[walk] ${name} changed, gap ${gapMeters.toFixed(2)} m`, {
+  const gameTimeMilliseconds = gameTimeMillisecondsAt(current.clock, nowUnixMilliseconds);
+  const describe = (walk: CreatureWalkSnapshot | undefined) => {
+    if (!walk) return null;
+
+    const walkedMeters = walkedDistance(walk, gameTimeMilliseconds);
+    const pose = walkPoseAt(walk.points, walkedMeters);
+    const pathMeters = walk.points
+      .slice(1)
+      .reduce(
+        (total, point, index) =>
+          total + Math.hypot(point.x - walk.points[index].x, point.y - walk.points[index].y),
+        0,
+      );
+    return {
+      startedAt: walk.startedAtGameTimeMilliseconds,
+      pausedAt: walk.pausedAtGameTimeMilliseconds,
+      pace: walk.metersPerGameSecond,
+      pointCount: walk.points.length,
+      pathMeters,
+      walkedMeters,
+      from: walk.points[0],
+      to: walk.points[walk.points.length - 1],
+      projectedPose: pose,
+      leavesAtEnd: walk.leavesAtEnd,
+    };
+  };
+  console.debug(`[walk] ${current.debugName} changed, gap ${gapMeters.toFixed(2)} m`, {
+    receivedAtUnixMilliseconds: nowUnixMilliseconds,
+    gameTimeMilliseconds,
+    placement: current.placement,
+    seated: current.seated,
     previous: describe(previous),
-    next: describe(next),
+    next: describe(current.walk),
   });
 }
 
@@ -89,9 +108,13 @@ export function useCreaturePosition(
   });
 
   useLayoutEffect(() => {
-    const target = targetAt(latest.current, Date.now());
+    const now = Date.now();
+    const target = targetAt(latest.current, now);
     group.current?.position.set(...toScenePosition(target.x, target.y));
     displayed.current = target;
+    if (import.meta.env.DEV && latest.current.walk) {
+      logWalkChange(latest.current, undefined, 0, now);
+    }
     // Initial placement only; useFrame drives all later movement.
   }, []);
 
@@ -110,7 +133,7 @@ export function useCreaturePosition(
       blendStartedAt.current = now;
       if (import.meta.env.DEV) {
         const gap = from ? Math.hypot(from.x - target.x, from.y - target.y) : 0;
-        logWalkChange(current.debugName, shownWalk.current, current.walk, gap);
+        logWalkChange(current, shownWalk.current, gap, now);
       }
       shownWalk.current = current.walk;
     }

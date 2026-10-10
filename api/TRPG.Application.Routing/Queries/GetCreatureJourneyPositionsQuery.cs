@@ -140,7 +140,7 @@ internal sealed class GetCreatureJourneyPositionsQueryHandler(
             return null;
         }
 
-        var path = RemainingPath(locationLegs, projection.LegIndex, position);
+        var path = RemainingPath(locationLegs, projection.LegProgressMeters, position);
         if (path.Count < 2)
         {
             return null;
@@ -181,15 +181,57 @@ internal sealed class GetCreatureJourneyPositionsQueryHandler(
 
     private static IReadOnlyList<Point> RemainingPath(
         IReadOnlyList<JourneyLeg> locationLegs,
-        int currentLegIndex,
+        double currentLegProgressMeters,
         Point currentPosition
-    ) =>
-        [
-            currentPosition,
-            .. locationLegs
-                .SelectMany((leg, index) => index == 0 ? leg.Path.Points.Skip(1) : leg.Path.Points)
-                .Distinct(),
-        ];
+    )
+    {
+        var path = new List<Point> { currentPosition };
+        AppendPoints(path, UntravelledPoints(locationLegs[0], currentLegProgressMeters));
+        foreach (var leg in locationLegs.Skip(1))
+        {
+            AppendPoints(path, leg.Path.Points);
+        }
+
+        return path;
+    }
+
+    private static IEnumerable<Point> UntravelledPoints(JourneyLeg leg, double progressMeters)
+    {
+        var points = leg.Path.Points;
+        var remaining =
+            leg.Distance <= 0
+                ? 0
+                : Math.Clamp(progressMeters / leg.Distance, 0, 1) * PathLength(points);
+        for (var index = 0; index < points.Count - 1; index++)
+        {
+            var segmentLength = Distance(points[index], points[index + 1]);
+            if (remaining < segmentLength)
+            {
+                return points.Skip(index + 1);
+            }
+
+            remaining -= segmentLength;
+        }
+
+        return [];
+    }
+
+    private static void AppendPoints(List<Point> path, IEnumerable<Point> points)
+    {
+        foreach (var point in points)
+        {
+            if (path[^1] != point)
+            {
+                path.Add(point);
+            }
+        }
+    }
+
+    private static double PathLength(IReadOnlyList<Point> points) =>
+        points.Zip(points.Skip(1)).Sum(segment => Distance(segment.First, segment.Second));
+
+    private static double Distance(Point first, Point second) =>
+        Math.Sqrt(Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
 
     private sealed record CreaturePosition(Guid CreatureId, CreatureJourneyPosition Position);
 }

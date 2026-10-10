@@ -37,7 +37,7 @@ internal static class JourneyWalker
         creature.LastUpdate = until;
         if (journey.IsOngoing)
         {
-            creature.NextUpdate = creature.TimeToNextEvent(until);
+            creature.NextUpdate = creature.TimeToNextJourneyEvent(until);
             return;
         }
 
@@ -47,7 +47,7 @@ internal static class JourneyWalker
     public static void Resume(SimulatedCreature creature, GameInstant at)
     {
         creature.LastUpdate = at;
-        creature.NextUpdate = creature.TimeToNextEvent(at);
+        creature.NextUpdate = creature.TimeToNextJourneyEvent(at);
     }
 
     private static GameInstant WalkLegs(
@@ -86,6 +86,7 @@ internal static class JourneyWalker
     )
     {
         var leg = journey.CurrentLeg;
+        var stopPosition = leg.Path.Points[^1];
         var destinationLocationId = journey.LocationOf(leg.ToNodeId);
         var crossedLocation = creature.LocationId != destinationLocationId;
         var originLocationId = creature.LocationId;
@@ -104,10 +105,22 @@ internal static class JourneyWalker
                     destinationLocationId,
                     leg.ConnectorId,
                     journey.IsOngoing ? journey.CurrentLeg.ConnectorId : null,
+                    StopPosition: stopPosition,
                     ArrivalNodeId: leg.ToNodeId
                 )
             );
+            return;
         }
+
+        events.Add(
+            new JourneyLegCompleted(
+                creature.Id,
+                crossedAt,
+                creature.LocationId,
+                stopPosition,
+                leg.ToNodeId
+            )
+        );
     }
 
     private static void Complete(
@@ -128,9 +141,11 @@ internal static class JourneyWalker
                 job?.Id ?? Guid.Empty,
                 job?.Action ?? CreatureJobAction.Idle,
                 creature.CurrentTravelNodeId,
-                journey.DestinationPropId,
                 journey.Id
             )
+            {
+                StopPosition = journey.Legs.Count == 0 ? null : journey.Legs[^1].Path.Points[^1],
+            }
         );
         creature.Journey = null;
         creature.IsWalking = false;

@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -24,11 +25,15 @@ public sealed record JourneyExecutionSeed(
     GameInstant CheckpointedAt,
     IReadOnlyList<JourneyLeg> Legs,
     CreatureJob? DestinationJob,
-    Guid? DestinationPropId,
     IReadOnlyDictionary<Guid, Guid> LocationIdByNodeId
 );
 
-public sealed record SimCreatureState(Guid LocationId, bool IsWalking, bool IsFrozen);
+public sealed record SimCreatureState(
+    Guid LocationId,
+    bool IsWalking,
+    bool IsFrozen,
+    GameInstant NextUpdateAt
+);
 
 internal sealed class JourneyExecution(JourneyExecutionSeed seed)
 {
@@ -37,7 +42,6 @@ internal sealed class JourneyExecution(JourneyExecutionSeed seed)
     public GameInstant DepartureAt { get; } = seed.DepartureAt;
     public IReadOnlyList<JourneyLeg> Legs { get; } = seed.Legs;
     public CreatureJob? DestinationJob { get; } = seed.DestinationJob;
-    public Guid? DestinationPropId { get; } = seed.DestinationPropId;
     public IReadOnlyDictionary<Guid, Guid> LocationIdByNodeId { get; } = seed.LocationIdByNodeId;
     public int LegIndex { get; set; } = seed.CheckpointLegIndex;
     public double LegWalkedMeters { get; set; } = seed.CheckpointLegProgressMeters;
@@ -50,6 +54,18 @@ internal sealed class JourneyExecution(JourneyExecutionSeed seed)
     public Guid LocationOf(Guid nodeId) => LocationIdByNodeId[nodeId];
 }
 
+internal sealed class LocalMoveExecution(LocalMovePlan plan)
+{
+    public LocalMovePlan Plan { get; } = plan;
+    public double WalkedMeters { get; set; }
+    public double Distance { get; } =
+        plan.Path.Zip(plan.Path.Skip(1)).Sum(pair => PointDistance(pair.First, pair.Second));
+    public double RemainingMeters => Math.Max(0, Distance - WalkedMeters);
+
+    private static double PointDistance(Point first, Point second) =>
+        Math.Sqrt(Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
+}
+
 internal sealed class SimulatedCreature
 {
     public required Guid Id { get; init; }
@@ -59,13 +75,17 @@ internal sealed class SimulatedCreature
     public Guid? CurrentTravelNodeId { get; set; }
     public Guid? ShelterLocationId { get; init; }
     public JourneyExecution? Journey { get; set; }
+    public LocalMoveExecution? LocalMove { get; set; }
     public bool IsWalking { get; set; }
     public bool IsFrozen { get; set; }
     public GameInstant NextUpdate { get; set; }
     public GameInstant LastUpdate { get; set; }
 
-    public GameInstant TimeToNextEvent(GameInstant from) =>
+    public GameInstant TimeToNextJourneyEvent(GameInstant from) =>
         from + TimeSpan.FromSeconds(Journey!.MetersToNextEvent / MetersPerGameSecond);
 
-    public SimCreatureState ToState() => new(LocationId, IsWalking, IsFrozen);
+    public GameInstant TimeToLocalMoveEnd(GameInstant from) =>
+        from + TimeSpan.FromSeconds(LocalMove!.RemainingMeters / MetersPerGameSecond);
+
+    public SimCreatureState ToState() => new(LocationId, IsWalking, IsFrozen, NextUpdate);
 }

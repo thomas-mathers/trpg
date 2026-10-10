@@ -28,7 +28,7 @@ public sealed class ProposeTradeCommandHandlerTests(DatabaseFixture db)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ProposeTradeCommandHandler>();
 
-        _workstation = Builders.MakeWorkstation(WorldId, assignedCreatureId: _shopkeeper.Id);
+        _workstation = Builders.MakeWorkstation(WorldId, ownerCreatureId: _shopkeeper.Id);
         _context.Creatures.AddRange(_player, _shopkeeper);
         _context.Props.Add(_workstation);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);

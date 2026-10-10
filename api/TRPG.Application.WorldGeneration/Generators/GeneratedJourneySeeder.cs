@@ -77,7 +77,7 @@ public sealed class GeneratedJourneySeeder(CreatureGroupGenerator creatureGroupG
                 };
                 journeys.Add(journey);
                 journeyLegs.AddRange(
-                    legs.Select((leg, index) => JourneyLeg(journey.Id, index, leg))
+                    legs.Select((leg, index) => SnapshotJourneyLeg(journey.Id, index, leg))
                 );
                 foreach (var member in group)
                 {
@@ -159,7 +159,11 @@ public sealed class GeneratedJourneySeeder(CreatureGroupGenerator creatureGroupG
             DwellAfter = TimeSpan.Zero,
         };
 
-    private static JourneyLeg JourneyLeg(Guid journeyId, int index, DirectedTravelLeg leg) =>
+    internal static JourneyLeg SnapshotJourneyLeg(
+        Guid journeyId,
+        int index,
+        DirectedTravelLeg leg
+    ) =>
         new()
         {
             JourneyId = journeyId,
@@ -168,7 +172,10 @@ public sealed class GeneratedJourneySeeder(CreatureGroupGenerator creatureGroupG
             ToNodeId = leg.ToNodeId,
             ConnectorId = leg.ConnectorId,
             Distance = leg.Distance,
-            Path = leg.Path,
+            Path = new Polyline
+            {
+                Points = [.. leg.Path.Points.Select(point => new Point(point.X, point.Y))],
+            },
             DwellAfter = TimeSpan.Zero,
         };
 }

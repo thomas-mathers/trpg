@@ -131,6 +131,6 @@ public sealed class TryOccupyAnyAvailableSeatCommandTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Equal(new Placement(X: 2.5, Y: 3.5, Angle: 0.75), claimed);
+        Assert.Equal(new Placement(X: 2.5, Y: 3.5, Angle: 0.75), claimed?.Placement);
     }
 }

@@ -434,10 +434,8 @@ internal static class Builders
         Guid? worldId = null,
         Guid? locationId = null,
         Guid? occupantId = null,
-        Guid? assignedCreatureId = null,
         Guid? ownerCreatureId = null,
-        WorkstationType workstationType = WorkstationType.Trade,
-        Guid? approachNodeId = null
+        WorkstationType workstationType = WorkstationType.Trade
     ) =>
         new()
         {
@@ -447,17 +445,14 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
             WorkstationType = workstationType,
             OccupantId = occupantId,
-            AssignedCreatureId = assignedCreatureId,
             OwnerCreatureId = ownerCreatureId,
-            ApproachNodeId = approachNodeId,
         };
 
     public static Bed MakeBed(
         Guid? worldId = null,
         Guid? locationId = null,
         Guid? occupantId = null,
-        Guid? assignedCreatureId = null,
-        Guid? approachNodeId = null
+        Guid? assignedCreatureId = null
     ) =>
         new()
         {
@@ -467,7 +462,6 @@ internal static class Builders
             LocationId = locationId ?? Guid.NewGuid(),
             OccupantId = occupantId,
             AssignedCreatureId = assignedCreatureId,
-            ApproachNodeId = approachNodeId,
         };
 
     public static Seat MakeSeat(

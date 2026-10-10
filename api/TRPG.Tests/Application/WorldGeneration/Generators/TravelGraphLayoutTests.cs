@@ -175,38 +175,28 @@ public class TravelGraphLayoutTests
     }
 
     [Fact]
-    public void Generate_CreatesWalkableApproachNodesForRoutableProps()
+    public void Generate_PersistsRoomDetoursAsConnectorWaypoints()
     {
         // Arrange
-        var world = MiniLayoutWorldBuilder.BuildHouseWorld([Guid.NewGuid()]);
+        var world = MiniLayoutWorldBuilder.BuildWorld(1);
 
         // Act
         var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var anchors = world
-            .Input.Props.Concat(layout.Props)
-            .Where(prop =>
-                prop
-                    is Seat
-                        or Bed { AssignedCreatureId: not null }
-                        or Workstation { AssignedCreatureId: not null }
-            )
-            .ToArray();
-        var nodeIds = layout.TravelNodes.Select(node => node.Id).ToHashSet();
-        Assert.NotEmpty(anchors);
-        Assert.All(
-            anchors,
-            anchor =>
-            {
-                Assert.NotNull(anchor.ApproachNodeId);
-                Assert.Contains(anchor.ApproachNodeId.Value, nodeIds);
-            }
+        var roomIds = world
+            .Input.Locations.Where(location => location.Kind == LocationKind.Room)
+            .Select(location => location.Id)
+            .ToHashSet();
+        Assert.Contains(
+            layout.PointConnectors,
+            connector =>
+                roomIds.Contains(connector.LocationId) && connector.Waypoints.Points.Count > 0
         );
     }
 
     [Fact]
-    public void Generate_JoinsEveryApproachNodeToTheGraphWithABidirectionalWalk()
+    public void Generate_DoesNotAddPropSpecificNodesToRoomTravelNetworks()
     {
         // Arrange
         var world = MiniLayoutWorldBuilder.BuildHouseWorld([Guid.NewGuid()]);
@@ -215,22 +205,18 @@ public class TravelGraphLayoutTests
         var layout = LocationLayoutGenerator.Generate(world.Input);
 
         // Assert
-        var anchors = world
-            .Input.Props.Concat(layout.Props)
-            .Where(prop => prop.ApproachNodeId is not null)
-            .ToArray();
-        Assert.NotEmpty(anchors);
+        var roomIds = world
+            .Input.Locations.Where(location => location.Kind == LocationKind.Room)
+            .Select(location => location.Id)
+            .ToHashSet();
+        var connectorNodeIds = world
+            .Input.Connectors.SelectMany(connector =>
+                new[] { connector.OriginNodeId, connector.DestinationNodeId }
+            )
+            .ToHashSet();
         Assert.All(
-            anchors,
-            anchor =>
-                Assert.Contains(
-                    layout.PointConnectors,
-                    connector =>
-                        connector.Bidirectional
-                        && connector.OriginNodeId == anchor.ApproachNodeId
-                        && connector.RoadClass is null
-                        && connector.Distance > 0
-                )
+            layout.TravelNodes.Where(node => roomIds.Contains(node.LocationId)),
+            node => Assert.Contains(node.Id, connectorNodeIds)
         );
     }
 
@@ -264,6 +250,40 @@ public class TravelGraphLayoutTests
                         reverse.OriginNodeId == connector.DestinationNodeId
                         && reverse.DestinationNodeId == connector.OriginNodeId
                 )
+        );
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Generate_SharesOnePortNodePerLocationSideOfReciprocalConnectors(int iteration)
+    {
+        // Arrange
+        var world = MiniLayoutWorldBuilder.BuildWorld(iteration);
+
+        // Act
+        LocationLayoutGenerator.Generate(world.Input);
+
+        // Assert
+        Assert.All(
+            world.Input.Connectors,
+            connector =>
+            {
+                if (connector.StairDirection is not null)
+                {
+                    return;
+                }
+
+                var reverse = world.Input.Connectors.FirstOrDefault(candidate =>
+                    candidate.OriginLocationId == connector.DestinationLocationId
+                    && candidate.DestinationLocationId == connector.OriginLocationId
+                    && candidate.Name == connector.Name
+                );
+                if (reverse is not null)
+                {
+                    Assert.Equal(reverse.OriginNodeId, connector.DestinationNodeId);
+                }
+            }
         );
     }
 

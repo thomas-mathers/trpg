@@ -26,8 +26,9 @@ internal class ExecuteCreatureJobCommandHandler(
     ICommandHandler<RestoreStandingPoseCommand> restoreStandingPose,
     IQueryHandler<GetBedByLocationIdQuery, Bed?> getBedByLocationId,
     ICommandHandler<SetBedOccupantCommand> setBedOccupant,
-    ICommandHandler<TryOccupyAnyAvailableSeatCommand, Placement?> tryOccupyAnyAvailableSeat,
-    ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat
+    ICommandHandler<TryOccupyAnyAvailableSeatCommand, SeatClaim?> tryOccupyAnyAvailableSeat,
+    ICommandHandler<VacateCreatureSeatCommand> vacateCreatureSeat,
+    ICommandHandler<ClearWorkstationOccupantsCommand> clearWorkstationOccupants
 ) : ICommandHandler<ExecuteCreatureJobCommand>
 {
     public async Task Handle(
@@ -49,6 +50,14 @@ internal class ExecuteCreatureJobCommandHandler(
         {
             await Sleep(command, cancellationToken);
             return;
+        }
+
+        if (command.CreatureJobAction != CreatureJobAction.Work)
+        {
+            await clearWorkstationOccupants.Handle(
+                new ClearWorkstationOccupantsCommand { CreatureIds = [command.CreatureId] },
+                cancellationToken
+            );
         }
 
         await StayAwake(command, cancellationToken);
@@ -136,16 +145,16 @@ internal class ExecuteCreatureJobCommandHandler(
                 {
                     CreatureId = command.CreatureId,
                     LocationId = command.JobLocationId,
-                    X = seat.X,
-                    Y = seat.Y,
-                    Angle = seat.Angle,
+                    X = seat.Placement.X,
+                    Y = seat.Placement.Y,
+                    Angle = seat.Placement.Angle,
                 },
                 cancellationToken
             );
         }
     }
 
-    private Task<Placement?> TryOccupyAvailableSeat(
+    private Task<SeatClaim?> TryOccupyAvailableSeat(
         ExecuteCreatureJobCommand command,
         CancellationToken cancellationToken
     ) =>
