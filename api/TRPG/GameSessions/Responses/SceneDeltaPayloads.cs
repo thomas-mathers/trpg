@@ -80,4 +80,9 @@ public record ClockReanchoredPayload(
 );
 
 [TranspilationSource]
-public record PlayerCorrectedPayload(Guid PlayerId, Guid LocationId, double X, double Y);
+public record PlayerCorrectedPayload(
+    Guid PlayerId,
+    Guid LocationId,
+    double OffsetX,
+    double OffsetY
+);

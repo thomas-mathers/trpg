@@ -152,7 +152,7 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
 
         // Assert
         var correction = Assert.Single(Events().OfType<PlayerCorrectedEvent>());
-        Assert.Equal((player.Id, location.Id, 50d, 50d), Describe(correction));
+        Assert.Equal((player.Id, location.Id, -3d, 0d), Describe(correction));
     }
 
     [Fact]
@@ -242,7 +242,7 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         );
 
     private static (Guid, Guid, double, double) Describe(PlayerCorrectedEvent correction) =>
-        (correction.PlayerId, correction.LocationId, correction.X, correction.Y);
+        (correction.PlayerId, correction.LocationId, correction.OffsetX, correction.OffsetY);
 
     private static (Guid, double, double, double, bool) Describe(PlayerPose? pose) =>
         (pose!.LocationId, pose.X, pose.Y, pose.Angle, pose.IsDirty);

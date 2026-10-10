@@ -10,8 +10,8 @@ internal sealed class PlayerCorrectedEventMapper : GameClientEventMapper<PlayerC
             new PlayerCorrectedPayload(
                 gameEvent.PlayerId,
                 gameEvent.LocationId,
-                gameEvent.X,
-                gameEvent.Y
+                gameEvent.OffsetX,
+                gameEvent.OffsetY
             ),
             static (client, arguments) => client.PlayerCorrected(arguments)
         );

@@ -96,7 +96,9 @@ export function FpsController({
     () =>
       gameEventBus.on('PlayerCorrected', (correction) => {
         if (correction.locationId !== locationId) return;
-        camera.position.set(...toScenePosition(correction.x, correction.y, EYE_HEIGHT));
+        const [dx, , dz] = toScenePosition(correction.offsetX, correction.offsetY);
+        camera.position.x += dx;
+        camera.position.z += dz;
       }),
     [camera, locationId],
   );

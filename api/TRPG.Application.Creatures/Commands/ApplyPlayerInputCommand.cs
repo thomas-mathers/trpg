@@ -94,8 +94,8 @@ internal class ApplyPlayerInputCommandHandler(
                     command.WorldId,
                     command.PlayerId,
                     command.LocationId,
-                    position.X,
-                    position.Y
+                    position.X - command.ClientPosition.X,
+                    position.Y - command.ClientPosition.Y
                 )
             );
         }
