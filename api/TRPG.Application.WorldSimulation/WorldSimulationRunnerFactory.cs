@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain;
@@ -8,8 +10,10 @@ namespace TRPG.Application.WorldSimulation;
 
 public sealed class WorldSimulationRunnerFactory(
     IServiceScopeFactory serviceScopeFactory,
+    IWorldClock worldClock,
     IWorldMutationGate mutationGate,
     TransientCreatureWalkRegistry transientWalks,
+    IOptions<WorldSimulationOptions> options,
     ILogger<WorldSimulationRunner> logger
 )
 {
@@ -27,6 +31,8 @@ public sealed class WorldSimulationRunnerFactory(
         var runner = new WorldSimulationRunner(
             worldId,
             loaded,
+            options.Value,
+            worldClock,
             serviceScopeFactory,
             mutationGate,
             transientWalks,

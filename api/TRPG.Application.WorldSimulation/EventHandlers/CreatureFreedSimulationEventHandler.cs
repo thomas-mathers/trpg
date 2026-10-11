@@ -5,13 +5,15 @@ namespace TRPG.Application.WorldSimulation.EventHandlers;
 internal sealed class CreatureFreedSimulationEventHandler(WorldSimulationCoordinator coordinator)
     : IDomainEventConsumer<CreatureFreedEvent>
 {
-    public Task Handle(
+    public async Task Handle(
         CreatureFreedEvent domainEvent,
         CancellationToken cancellationToken = default
     )
     {
-        coordinator.Post(domainEvent.WorldId, new TrackCreature(domainEvent.CreatureId));
-
-        return Task.CompletedTask;
+        await coordinator.PostIfLoaded(
+            domainEvent.WorldId,
+            new TrackCreature(domainEvent.CreatureId),
+            cancellationToken
+        );
     }
 }

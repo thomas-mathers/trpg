@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures;
 using TRPG.Application.Scenes;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Movement;
+using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -22,6 +24,9 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
     private readonly Guid _worldId = Guid.NewGuid();
     private Guid _playerId;
+    private readonly SwitchableOptions _options = new(
+        new WorldSimulationOptions { RouteSearchesPerTick = 1 }
+    );
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
@@ -35,15 +40,13 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
-            .AddSingleton<IOptions<WorldSimulationOptions>>(
-                Options.Create(new WorldSimulationOptions { RouteSearchesPerTick = 1 })
-            )
+            .AddSingleton<IOptions<WorldSimulationOptions>>(_options)
             .WithScopedDbContexts(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
-        _context.Worlds.Add(Builders.MakeWorld(_worldId));
+        _context.Worlds.Add(Builders.MakeWorld(_worldId, Now));
         _home = Builders.MakeLocation(_worldId, state.Id);
         _workplace = Builders.MakeLocation(_worldId, state.Id);
         _door = Builders.MakeLocationConnector(_home.Id, _workplace.Id, worldId: _worldId);
@@ -389,6 +392,168 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         // Assert
         var player = await db.ReadCreature(_playerId);
         Assert.Equal(0d, player.Angle);
+    }
+
+    [Fact]
+    public async Task Tick_LeavesTheRestOfTheMailboxQueued_WhenTheMessageCapIsReached()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        _options.Current = new WorldSimulationOptions
+        {
+            RouteSearchesPerTick = 1,
+            MessagesPerTick = 1,
+        };
+        await StartRunner();
+        _runner.Post(new EngageCreature(worker.Id));
+        _runner.Post(new ReleaseCreature(worker.Id));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_home.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_LeavesTheRestOfTheMailboxQueued_WhenTheTimeBudgetIsSpent()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        _options.Current = new WorldSimulationOptions
+        {
+            RouteSearchesPerTick = 1,
+            MessageTimeBudget = TimeSpan.Zero,
+        };
+        await StartRunner();
+        _runner.Post(new EngageCreature(worker.Id));
+        _runner.Post(new ReleaseCreature(worker.Id));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_home.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_ReloadsFromTheDatabase_WhenAMessageFails()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _runner.Post(new EngageCreature(worker.Id));
+        _runner.Post(new SimulationRequest(FailingWork));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_RejectsQueuedRequests_WhenTheReloadFails()
+    {
+        // Arrange
+        await StartRunner();
+        _options.IsBroken = true;
+        Exception? rejection = null;
+        _runner.Post(new SimulationRequest(FailingWork));
+        _runner.Post(
+            new SimulationRequest((_, _) => Task.CompletedTask, error => rejection = error)
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<WorldUnavailableException>(rejection);
+    }
+
+    [Fact]
+    public async Task Post_Throws_WhenTheReloadFailed()
+    {
+        // Arrange
+        await StartRunner();
+        _options.IsBroken = true;
+        _runner.Post(new SimulationRequest(FailingWork));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        Assert.Throws<WorldUnavailableException>(() =>
+            _runner.Post(new ForgetPlayerPose(Guid.NewGuid()))
+        );
+    }
+
+    [Fact]
+    public async Task Tick_Recovers_WhenTheReloadSucceedsLater()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _options.IsBroken = true;
+        _runner.Post(new SimulationRequest(FailingWork));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _options.IsBroken = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_PlansAtTheInstantAfterARequest_WhenTheRequestAdvancedTheClock()
+    {
+        // Arrange
+        var worker = Builders.MakeCreature(_worldId, locationId: _home.Id, movementSpeed: 50);
+        _context.Creatures.Add(worker);
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                worker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 20,
+                endHour: 22,
+                locationId: _workplace.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await StartRunner();
+        var clock = _serviceProvider.GetRequiredService<IWorldClock>();
+        _runner.Post(
+            new SimulationRequest(
+                async (_, cancellationToken) =>
+                    await clock.Advance(_worldId, TimeSpan.FromHours(8), cancellationToken)
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    private static Task FailingWork(LivePlayerPoses poses, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("boom");
+
+    private sealed class SwitchableOptions(WorldSimulationOptions current)
+        : IOptions<WorldSimulationOptions>
+    {
+        public WorldSimulationOptions Current { get; set; } = current;
+
+        public bool IsBroken { get; set; }
+
+        public WorldSimulationOptions Value =>
+            IsBroken ? throw new InvalidOperationException("Options are unavailable.") : Current;
     }
 
     private async Task AddPlayerAt(Location location, double x = 0, double y = 0)

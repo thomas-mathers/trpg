@@ -112,7 +112,10 @@ internal sealed class ChatHub(
         {
             try
             {
-                simulation.Post(session.WorldId, new PlayerDisconnected(session.PlayerId));
+                await simulation.PostIfLoaded(
+                    session.WorldId,
+                    new PlayerDisconnected(session.PlayerId)
+                );
             }
             finally
             {
@@ -161,9 +164,9 @@ internal sealed class ChatHub(
     public Task<ActionResult> SendMove(Guid connectorId) =>
         Result(gameTurnRunner.Move(Session, connectorId, Context.ConnectionAborted));
 
-    public Task SendMovementInput(PlayerMovementInput input)
+    public async Task SendMovementInput(PlayerMovementInput input)
     {
-        simulation.Post(
+        await simulation.Post(
             Session.WorldId,
             new PlayerInput(
                 Session.PlayerId,
@@ -171,10 +174,9 @@ internal sealed class ChatHub(
                 new MovementInput(input.Forward, input.Strafe, input.Heading),
                 new Point(input.X, input.Y),
                 timeProvider.GetUtcNow()
-            )
+            ),
+            Context.ConnectionAborted
         );
-
-        return Task.CompletedTask;
     }
 
     public Task<ActionResult> SendFlee() =>

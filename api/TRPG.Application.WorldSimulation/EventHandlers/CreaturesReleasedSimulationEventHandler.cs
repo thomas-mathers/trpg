@@ -6,16 +6,18 @@ internal sealed class CreaturesReleasedSimulationEventHandler(
     WorldSimulationCoordinator coordinator
 ) : IDomainEventConsumer<CreaturesReleasedEvent>
 {
-    public Task Handle(
+    public async Task Handle(
         CreaturesReleasedEvent domainEvent,
         CancellationToken cancellationToken = default
     )
     {
         foreach (var creatureId in domainEvent.CreatureIds)
         {
-            coordinator.Post(domainEvent.WorldId, new ReleaseCreature(creatureId));
+            await coordinator.PostIfLoaded(
+                domainEvent.WorldId,
+                new ReleaseCreature(creatureId),
+                cancellationToken
+            );
         }
-
-        return Task.CompletedTask;
     }
 }

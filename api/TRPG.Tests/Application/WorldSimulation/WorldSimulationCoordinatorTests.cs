@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
@@ -225,20 +227,165 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Request_RunsDirectly_WhenTheWorldHasNoRunner()
+    public async Task Request_LoadsTheRunnerOnDemand_WhenTheWorldHasNoRunner()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        var request = coordinator.Request(
+            _worldId,
+            (_, _) => Task.FromResult(7),
+            TestContext.Current.CancellationToken
+        );
+        while (!request.IsCompleted)
+        {
+            await coordinator.Tick(TestContext.Current.CancellationToken);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        var result = await request;
+
+        // Assert
+        Assert.Equal(7, result);
+    }
+
+    [Fact]
+    public async Task Request_Completes_WhenTheWorldIsPaused()
     {
         // Arrange
         var coordinator = MakeCoordinator(activeWorldIds: []);
-
-        // Act
-        var result = await coordinator.Request(
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var request = coordinator.Request(
             _worldId,
             (_, _) => Task.FromResult(7),
             TestContext.Current.CancellationToken
         );
 
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
         // Assert
-        Assert.Equal(7, result);
+        Assert.Equal(7, await request);
+    }
+
+    [Fact]
+    public async Task Request_DoesNotRunTheWork_WhenTheCallerCancelledBeforeTheTick()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        using var cancellation = new CancellationTokenSource();
+        var ran = false;
+        var request = coordinator.Request(
+            _worldId,
+            (_, _) =>
+            {
+                ran = true;
+                return Task.FromResult(7);
+            },
+            cancellation.Token
+        );
+        await cancellation.CancelAsync();
+
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.False(ran);
+    }
+
+    [Fact]
+    public async Task Post_Throws_WhenTheWorldIsUnavailable()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        coordinator.MarkUnavailable(_worldId);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<WorldUnavailableException>(() =>
+            coordinator.Post(
+                _worldId,
+                new ForgetPlayerPose(Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Post_ThrowsWorldUnavailableAndAllowsARetry_WhenTheLoadFails()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now) { FailToReadTime = true };
+        var coordinator = MakeCoordinator([], clock);
+
+        // Act
+        await Assert.ThrowsAsync<WorldUnavailableException>(() =>
+            coordinator.Post(
+                _worldId,
+                new ForgetPlayerPose(Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.False(coordinator.IsUnavailable(_worldId));
+    }
+
+    [Fact]
+    public async Task PostIfLoaded_LoadsNothing_WhenTheWorldHasNoRunner()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now) { WorldIsMissing = true };
+        var coordinator = MakeCoordinator([], clock);
+
+        // Act
+        await coordinator.PostIfLoaded(
+            _worldId,
+            new ForgetPlayerPose(Guid.NewGuid()),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(coordinator.IsUnavailable(_worldId));
+    }
+
+    [Fact]
+    public async Task Post_ThrowsNotFound_WhenTheWorldDoesNotExist()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now) { WorldIsMissing = true };
+        var coordinator = MakeCoordinator([], clock);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            coordinator.Post(
+                _worldId,
+                new ForgetPlayerPose(Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Tick_RejectsPendingRequests_WhenTheWorldWasDeleted()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now);
+        var coordinator = MakeCoordinator([], clock);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var request = coordinator.Request(
+            _worldId,
+            (_, _) => Task.FromResult(7),
+            TestContext.Current.CancellationToken
+        );
+        clock.WorldIsMissing = true;
+
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() => request);
     }
 
     [Fact]
@@ -293,8 +440,10 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         clock ??= new FixedWorldClock(activeWorldIds, Now);
         var factory = new WorldSimulationRunnerFactory(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
+            clock,
             _serviceProvider.GetRequiredService<IWorldMutationGate>(),
             new TransientCreatureWalkRegistry(),
+            Options.Create(new WorldSimulationOptions()),
             NullLogger<WorldSimulationRunner>.Instance
         );
 
@@ -314,15 +463,17 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
 
         public bool FailToReadTime { get; set; }
 
+        public bool WorldIsMissing { get; set; }
+
         public IReadOnlyCollection<Guid> GetActiveWorldIds() => ActiveWorldIds;
 
         public Task<GameInstant> GetCurrent(
             Guid worldId,
             CancellationToken cancellationToken = default
         ) =>
-            FailToReadTime
-                ? throw new InvalidOperationException("The clock is unavailable.")
-                : Task.FromResult(Now);
+            WorldIsMissing ? throw new EntityNotFoundException("World", worldId)
+            : FailToReadTime ? throw new InvalidOperationException("The clock is unavailable.")
+            : Task.FromResult(Now);
 
         public Task<GameInstant> ResumeWorld(
             Guid worldId,

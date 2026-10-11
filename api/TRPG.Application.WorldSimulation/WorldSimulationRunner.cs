@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Threading.Channels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
@@ -22,6 +23,8 @@ namespace TRPG.Application.WorldSimulation;
 public sealed class WorldSimulationRunner(
     Guid worldId,
     LoadedWorldSimulation loaded,
+    WorldSimulationOptions options,
+    IWorldClock worldClock,
     IServiceScopeFactory serviceScopeFactory,
     IWorldMutationGate mutationGate,
     TransientCreatureWalkRegistry transientWalks,
@@ -44,38 +47,68 @@ public sealed class WorldSimulationRunner(
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
     private readonly List<LocalMoveCompleted> _unexecutedLocalArrivals = [];
     private readonly Dictionary<Guid, HashSet<Guid>> _unpublishedCreatureIdsByLocationId = [];
+    private LoadedWorldSimulation _loaded = loaded;
+    private volatile bool _isRecovering;
     private Guid? _lastPlannedCreatureId;
     private PlanningSweep? _planningSweep;
 
     public Guid WorldId => worldId;
 
-    public void Post(WorldSimulationMessage message) => _mailbox.Writer.TryWrite(message);
+    public bool HasPendingWork => _isRecovering || _mailbox.Reader.TryPeek(out _);
+
+    public void Post(WorldSimulationMessage message)
+    {
+        if (_isRecovering)
+        {
+            throw new WorldUnavailableException(worldId);
+        }
+
+        _mailbox.Writer.TryWrite(message);
+    }
 
     public async Task RefreshWeather(GameInstant now, CancellationToken cancellationToken = default)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var exposed = await scope
             .ServiceProvider.GetRequiredService<WeatherExposureProvider>()
-            .FindExposedLocationIds([.. loaded.Simulator.IdleLocationIds()], cancellationToken);
+            .FindExposedLocationIds([.. _loaded.Simulator.IdleLocationIds()], cancellationToken);
 
-        loaded.Simulator.SetExposedLocations(exposed, now);
+        _loaded.Simulator.SetExposedLocations(exposed, now);
         _lastWeatherRefresh = Stopwatch.GetTimestamp();
+    }
+
+    public async Task ServiceMailbox(GameInstant now, CancellationToken cancellationToken = default)
+    {
+        if (await EnsureHealthy(now, cancellationToken))
+        {
+            await DrainMailbox(now, cancellationToken);
+        }
     }
 
     public async Task Tick(GameInstant now, CancellationToken cancellationToken = default)
     {
         var tickStartedAt = Stopwatch.GetTimestamp();
+        if (!await EnsureHealthy(now, cancellationToken))
+        {
+            return;
+        }
+
         if (Stopwatch.GetElapsedTime(_lastWeatherRefresh) >= WeatherRefreshInterval)
         {
             await RefreshWeather(now, cancellationToken);
         }
 
-        await DrainMailbox(now, cancellationToken);
+        now = await DrainMailbox(now, cancellationToken);
+        if (_isRecovering)
+        {
+            return;
+        }
+
         await FlushPlayerPoses(cancellationToken);
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
         var planningElapsed = Stopwatch.GetElapsedTime(planningStartedAt);
-        _unwrittenEvents.AddRange(loaded.Simulator.Step(now));
+        _unwrittenEvents.AddRange(_loaded.Simulator.Step(now));
         var eventCount = _unwrittenEvents.Count;
         if (
             _unwrittenEvents.Count == 0
@@ -96,11 +129,109 @@ public sealed class WorldSimulationRunner(
         LogTick(now, planning, planningElapsed, eventCount, tickStartedAt);
     }
 
-    private async Task DrainMailbox(GameInstant now, CancellationToken cancellationToken)
+    private async Task<GameInstant> DrainMailbox(
+        GameInstant now,
+        CancellationToken cancellationToken
+    )
+    {
+        var drainStartedAt = Stopwatch.GetTimestamp();
+        var handled = 0;
+        while (
+            handled < options.MessagesPerTick
+            && (
+                handled == 0 || Stopwatch.GetElapsedTime(drainStartedAt) < options.MessageTimeBudget
+            )
+            && _mailbox.Reader.TryRead(out var message)
+        )
+        {
+            handled++;
+            now = await ApplyOrRecover(message, now, cancellationToken);
+            if (_isRecovering)
+            {
+                break;
+            }
+        }
+
+        return now;
+    }
+
+    private async Task<GameInstant> ApplyOrRecover(
+        WorldSimulationMessage message,
+        GameInstant now,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await Apply(message, now, cancellationToken);
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(
+                exception,
+                "Simulation message {MessageType} failed in world {WorldId}; reloading from the database",
+                message.GetType().Name,
+                worldId
+            );
+            _isRecovering = true;
+            await EnsureHealthy(now, cancellationToken);
+
+            return now;
+        }
+
+        return message is SimulationRequest
+            ? await worldClock.GetCurrent(worldId, cancellationToken)
+            : now;
+    }
+
+    private async Task<bool> EnsureHealthy(GameInstant now, CancellationToken cancellationToken)
+    {
+        if (!_isRecovering)
+        {
+            return true;
+        }
+
+        try
+        {
+            await Reload(now, cancellationToken);
+            _isRecovering = false;
+
+            return true;
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(
+                exception,
+                "World {WorldId} failed to reload its simulation and stays unavailable until it can",
+                worldId
+            );
+            RejectQueuedMessages(new WorldUnavailableException(worldId));
+
+            return false;
+        }
+    }
+
+    private async Task Reload(GameInstant now, CancellationToken cancellationToken)
+    {
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        _loaded = await scope
+            .ServiceProvider.GetRequiredService<WorldSimulatorLoader>()
+            .Load(worldId, now, cancellationToken);
+        _unwrittenEvents.Clear();
+        _planningSweep = null;
+        _lastPlannedCreatureId = null;
+
+        await RefreshWeather(now, cancellationToken);
+    }
+
+    public void RejectQueuedMessages(Exception reason)
     {
         while (_mailbox.Reader.TryRead(out var message))
         {
-            await Apply(message, now, cancellationToken);
+            if (message is SimulationRequest request)
+            {
+                request.Reject(reason);
+            }
         }
     }
 
@@ -138,7 +269,7 @@ public sealed class WorldSimulationRunner(
         CancellationToken cancellationToken
     )
     {
-        var awaitingCreatureIds = loaded.Simulator.CreaturesAwaitingJourneyPlanning(now);
+        var awaitingCreatureIds = _loaded.Simulator.CreaturesAwaitingJourneyPlanning(now);
         RefreshPlanningSweep(awaitingCreatureIds, now);
         if (awaitingCreatureIds.Count == 0)
         {
@@ -165,13 +296,13 @@ public sealed class WorldSimulationRunner(
             );
             if (local.Move is { } localMove)
             {
-                _unwrittenEvents.AddRange(loaded.Simulator.StartLocalMove(localMove, now));
+                _unwrittenEvents.AddRange(_loaded.Simulator.StartLocalMove(localMove, now));
                 localMoves++;
                 continue;
             }
             if (local.Handled)
             {
-                loaded.Simulator.SleepUntilNextRoutineChange(creatureId, now);
+                _loaded.Simulator.SleepUntilNextRoutineChange(creatureId, now);
                 continue;
             }
 
@@ -180,8 +311,8 @@ public sealed class WorldSimulationRunner(
                 {
                     CreatureId = creatureId,
                     PlannedAt = now,
-                    TimeScale = loaded.Simulator.Options.TimeScale,
-                    ArrivalStagger = loaded.Simulator.Options.ArrivalStagger,
+                    TimeScale = _loaded.Simulator.Options.TimeScale,
+                    ArrivalStagger = _loaded.Simulator.Options.ArrivalStagger,
                 },
                 cancellationToken
             );
@@ -192,7 +323,7 @@ public sealed class WorldSimulationRunner(
                 continue;
             }
 
-            loaded.Simulator.SleepUntilNextRoutineChange(creatureId, now);
+            _loaded.Simulator.SleepUntilNextRoutineChange(creatureId, now);
         }
 
         CompletePlanningSweep(creatureIds, localMoves, journeys, now);
@@ -273,7 +404,7 @@ public sealed class WorldSimulationRunner(
     {
         var lastIndex = _lastPlannedCreatureId is { } last ? IndexOf(candidates, last) : -1;
         var startIndex = lastIndex < 0 ? 0 : (lastIndex + 1) % candidates.Count;
-        var count = Math.Min(loaded.Simulator.Options.RouteSearchesPerTick, candidates.Count);
+        var count = Math.Min(_loaded.Simulator.Options.RouteSearchesPerTick, candidates.Count);
         var selected = Enumerable
             .Range(0, count)
             .Select(offset => candidates[(startIndex + offset) % candidates.Count])
@@ -381,16 +512,16 @@ public sealed class WorldSimulationRunner(
         switch (message)
         {
             case EngageCreature engage:
-                _unwrittenEvents.AddRange(loaded.Simulator.Engage(engage.CreatureId, now));
+                _unwrittenEvents.AddRange(_loaded.Simulator.Engage(engage.CreatureId, now));
                 break;
             case ReleaseCreature release:
-                _unwrittenEvents.AddRange(loaded.Simulator.Release(release.CreatureId, now));
+                _unwrittenEvents.AddRange(_loaded.Simulator.Release(release.CreatureId, now));
                 break;
             case SpawnCreature spawn:
-                loaded.Simulator.Add(spawn.Seed, now);
+                _loaded.Simulator.Add(spawn.Seed, now);
                 break;
             case RemoveCreature remove:
-                loaded.Simulator.Remove(remove.CreatureId);
+                _loaded.Simulator.Remove(remove.CreatureId);
                 transientWalks.Remove(remove.CreatureId);
                 break;
             case TrackCreature track:
@@ -462,10 +593,10 @@ public sealed class WorldSimulationRunner(
             .ServiceProvider.GetRequiredService<WorldSimulatorLoader>()
             .LoadSeed(worldId, creatureId, cancellationToken);
 
-        loaded.Simulator.Remove(creatureId);
+        _loaded.Simulator.Remove(creatureId);
         if (seed != null)
         {
-            loaded.Simulator.Add(seed, now);
+            _loaded.Simulator.Add(seed, now);
         }
     }
 
@@ -518,7 +649,7 @@ public sealed class WorldSimulationRunner(
             .Handle(
                 new ApplyCreaturePoseUpdatesCommand
                 {
-                    Updates = loaded.PoseMapper.Map(
+                    Updates = _loaded.PoseMapper.Map(
                         _unwrittenEvents
                             .OfType<SimEvent>()
                             .Where(simEvent => simEvent is not JourneyCheckpoint)
@@ -575,7 +706,7 @@ public sealed class WorldSimulationRunner(
             var arrivalAt = _unexecutedArrivals
                 .First(arrival => arrival.CreatureId == move.CreatureId)
                 .At;
-            _unwrittenEvents.AddRange(loaded.Simulator.StartLocalMove(move, arrivalAt));
+            _unwrittenEvents.AddRange(_loaded.Simulator.StartLocalMove(move, arrivalAt));
         }
     }
 
@@ -599,7 +730,7 @@ public sealed class WorldSimulationRunner(
             );
             if (retry is not null)
             {
-                _unwrittenEvents.AddRange(loaded.Simulator.StartLocalMove(retry, arrival.At));
+                _unwrittenEvents.AddRange(_loaded.Simulator.StartLocalMove(retry, arrival.At));
             }
         }
     }

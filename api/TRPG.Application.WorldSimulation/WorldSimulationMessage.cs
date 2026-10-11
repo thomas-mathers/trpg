@@ -29,9 +29,13 @@ public sealed record PlayerInput(
     DateTimeOffset ReceivedAt
 ) : WorldSimulationMessage;
 
-public sealed record SimulationRequest(Func<LivePlayerPoses, CancellationToken, Task> Work)
-    : WorldSimulationMessage
+public sealed record SimulationRequest(
+    Func<LivePlayerPoses, CancellationToken, Task> Work,
+    Action<Exception>? OnRejected = null
+) : WorldSimulationMessage
 {
     public Task Run(LivePlayerPoses poses, CancellationToken cancellationToken) =>
         Work(poses, cancellationToken);
+
+    public void Reject(Exception exception) => OnRejected?.Invoke(exception);
 }
