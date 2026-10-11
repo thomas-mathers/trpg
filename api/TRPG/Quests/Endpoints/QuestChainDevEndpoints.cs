@@ -8,7 +8,7 @@ using TRPG.Application.WorldSimulation;
 
 namespace TRPG.Quests.Endpoints;
 
-// Manual-testing endpoint: exercises the real SeedLlmQuestChainCommand -> TickerQ job pipeline
+// Manual-testing endpoint: exercises the real SeedLlmQuestChainCommand -> background job pipeline
 // end to end against a real world/location, exactly as SyncQuestSeedScheduleCommand would trigger
 // it in play. Not used by the SPA. Generation takes 50-70 seconds and runs in the background — the
 // response only reports whether a generation request was scheduled, not the result. Once the job

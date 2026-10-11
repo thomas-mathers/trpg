@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TRPG.Data;
-using TRPG.Jobs.Mappers;
 using TRPG.Jobs.Responses;
 
 namespace TRPG.Jobs.Endpoints;
@@ -14,24 +12,20 @@ internal static class JobEndpoints
         app.MapGet("/jobs/{id:guid}", GetJob).WithName("GetJob");
     }
 
-    private static async Task<Results<NotFound, Ok<JobStatusResponse>>> GetJob(
-        Guid id,
-        TrpgTickerQDbContext context,
-        CancellationToken cancellationToken
-    )
+    private static Results<NotFound, Ok<JobStatusResponse>> GetJob(Guid id, JobRunner jobRunner)
     {
-        var ticker = await context.TimeTickers.FindAsync([id], cancellationToken);
-        if (ticker is null)
+        var snapshot = jobRunner.Get(id);
+        if (snapshot is null)
         {
             return TypedResults.NotFound();
         }
 
         return TypedResults.Ok(
             new JobStatusResponse(
-                ticker.Id,
-                ticker.Status.ToJobStatus(),
-                ticker.ResultJson,
-                ticker.ExceptionMessage
+                snapshot.JobId,
+                snapshot.Status,
+                snapshot.ResultJson,
+                snapshot.ErrorMessage
             )
         );
     }

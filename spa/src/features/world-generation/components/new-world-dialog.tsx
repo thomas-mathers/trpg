@@ -232,24 +232,28 @@ export function NewWorldDialog() {
     enabled: jobId !== null,
     refetchInterval: (query) => {
       const currentStatus = query.state.data?.status;
-      return currentStatus === 'Done' || currentStatus === 'Failed' || currentStatus === 'Cancelled'
+      return currentStatus === 'Done' ||
+        currentStatus === 'Failed' ||
+        query.state.status === 'error'
         ? false
         : 1000;
     },
   });
 
   useEffect(() => {
+    if (jobStatus.isError) {
+      setStatus('error');
+      setErrorMessage('World generation was interrupted. Try again.');
+    }
+  }, [jobStatus.isError]);
+
+  useEffect(() => {
     const data = jobStatus.data;
-    if (
-      !data ||
-      data.status === 'Idle' ||
-      data.status === 'Queued' ||
-      data.status === 'InProgress'
-    ) {
+    if (!data || data.status === 'Queued' || data.status === 'InProgress') {
       return;
     }
 
-    if (data.status === 'Failed' || data.status === 'Cancelled') {
+    if (data.status === 'Failed') {
       setStatus('error');
       setErrorMessage(data.errorMessage ?? 'World generation failed.');
       return;

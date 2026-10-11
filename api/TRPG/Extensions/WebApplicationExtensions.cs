@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TickerQ.DependencyInjection;
 using TRPG.Abilities.Endpoints;
 using TRPG.Books.Endpoints;
 using TRPG.CreatureGeneration.Endpoints;
@@ -27,7 +26,6 @@ internal static class WebApplicationExtensions
         app.UseStatusCodePages();
         app.UseCors(ServiceCollectionExtensions.LocalDevFrontendCorsPolicy);
         app.UseResponseCompression();
-        app.UseTickerQ();
 
         _ = Task.Run(async () =>
         {

@@ -39,7 +39,6 @@ import {
   GiHobbitDoor,
   GiHeartBeats,
   GiHolySymbol,
-  GiHorseHead,
   GiHouse,
   GiLever,
   GiMedievalGate,
@@ -61,7 +60,7 @@ import {
   GiWoodenSign,
 } from 'react-icons/gi';
 
-import type { BuildingType, DistrictType, NearbyCaravanSnapshot, OwnerType } from '@/api/client';
+import type { BuildingType, DistrictType, OwnerType } from '@/api/client';
 import type {
   CreatureStatusSnapshot,
   CreatureType,
@@ -80,7 +79,6 @@ import { BookshelfDialog } from '@/features/books/components/bookshelf-dialog';
 import { EffectBadges } from '@/features/combat/components/effect-badges';
 import { StatBar } from '@/features/combat/components/stat-bar';
 import { isDangerous } from '@/features/combat/threat-level';
-import { CaravanDialog } from '@/features/game/components/caravan-dialog';
 import { EntityTooltip } from '@/features/game/components/entity-tooltip';
 import { ExitDirectionArrow } from '@/features/game/components/exit-direction-arrow';
 import { ExitFamiliarity } from '@/features/game/components/exit-familiarity';
@@ -180,7 +178,6 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
     id: string;
     name: string;
   } | null>(null);
-  const [caravan, setCaravan] = useState<NearbyCaravanSnapshot | null>(null);
   const [sign, setSign] = useState<{ id: string; name: string } | null>(null);
 
   const nearbyBuildings = scene.nearbyBuildings.map((b) => ({
@@ -367,28 +364,6 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
         </Section>
       )}
 
-      {scene.nearbyCaravans.length > 0 && (
-        <Section title="Caravans">
-          {scene.nearbyCaravans.map((nearbyCaravan) => (
-            <div
-              key={nearbyCaravan.caravanId}
-              className="flex items-center justify-between gap-2 py-1.5"
-            >
-              <span className="flex min-w-0 items-center gap-1.5">
-                <GiHorseHead className="text-muted-foreground size-[18px] shrink-0" />
-                <button
-                  type="button"
-                  onClick={() => setCaravan(nearbyCaravan)}
-                  className="cursor-pointer truncate font-medium underline decoration-dotted underline-offset-2"
-                >
-                  {nearbyCaravan.routeName}
-                </button>
-              </span>
-            </div>
-          ))}
-        </Section>
-      )}
-
       {nearbyBuildings.length > 0 && (
         <Section title="Nearby Buildings">
           {nearbyBuildings.map((poi) => {
@@ -425,8 +400,6 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
       />
       <SleepDialog open={isSleepOpen} onClose={() => setIsSleepOpen(false)} />
 
-      <CaravanDialog caravan={caravan} onClose={() => setCaravan(null)} />
-
       <BookshelfDialog
         playerId={scene.playerStatus.id}
         workstationId={bookshelf?.id ?? null}
@@ -436,7 +409,6 @@ export function NearbyPanel({ scene, onOpenQuestJournal, onTheftEncounter }: Nea
       />
 
       <SignDialog
-        worldId={scene.worldId}
         signId={sign?.id ?? null}
         name={sign?.name ?? ''}
         open={sign !== null}

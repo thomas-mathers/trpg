@@ -12,9 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OllamaSharp;
-using TickerQ.DependencyInjection;
-using TickerQ.EntityFrameworkCore.DependencyInjection;
-using TickerQ.Utilities.Enums;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Serialization;
@@ -31,6 +28,7 @@ using TRPG.GameSessions.ChatClients;
 using TRPG.GameSessions.Filters;
 using TRPG.GameSessions.Hubs;
 using TRPG.Inventory.Tools;
+using TRPG.Jobs;
 using TRPG.NpcConversations.Tools;
 using TRPG.Quests.Jobs;
 using TRPG.RoomBookings.Tools;
@@ -66,7 +64,7 @@ internal static class ServiceCollectionExtensions
             .AddHostedService<WorldClockCheckpointService>()
             .AddHostedService<WorldSimulationStartup>()
             .AddHostedService<WorldSimulationService>()
-            .AddTrpgJobs(configuration)
+            .AddTrpgJobs()
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<InventoryTool>()
             .AddGameTool<StartFightTool>()
@@ -262,41 +260,15 @@ internal static class ServiceCollectionExtensions
             );
     }
 
-    public static IServiceCollection AddTrpgJobs(
-        this IServiceCollection serviceCollection,
-        IConfiguration configuration
-    )
+    public static IServiceCollection AddTrpgJobs(this IServiceCollection serviceCollection)
     {
-        var connectionString = configuration.GetConnectionString("Trpg");
-        serviceCollection.AddHostedService<QuestChainGenerationStartupRecovery>();
-        serviceCollection.AddTickerQ<TrpgTimeTicker, TrpgCronTicker>(options =>
-        {
-            options.AddOperationalStore(ef =>
-            {
-                ef.UseTickerQDbContext<TrpgTickerQDbContext>(db =>
-                    db.UseNpgsql(
-                        connectionString,
-                        sql =>
-                        {
-                            sql.MigrationsAssembly("TRPG.Data");
-                            sql.MigrationsHistoryTable("__TickerQMigrationsHistory");
-                            sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
-                        }
-                    )
-                );
-            });
-        });
-        serviceCollection
-            .MapTicker<CreateWorldJob, CreateWorldCommand>()
-            .WithPriority(TickerTaskPriority.LongRunning);
-        serviceCollection
-            .MapTicker<GenerateQuestChainJob, GenerateQuestChainCommand>()
-            .WithPriority(TickerTaskPriority.LongRunning);
-        serviceCollection.AddScoped<
-            IQuestChainGenerationScheduler,
-            TickerQuestChainGenerationScheduler
-        >();
-        return serviceCollection;
+        return serviceCollection
+            .AddHostedService<QuestChainGenerationStartupRecovery>()
+            .AddSingleton<JobRunner>()
+            .AddHostedService(serviceProvider => serviceProvider.GetRequiredService<JobRunner>())
+            .AddScoped<CreateWorldJob>()
+            .AddScoped<GenerateQuestChainJob>()
+            .AddScoped<IQuestChainGenerationScheduler, JobRunnerQuestChainGenerationScheduler>();
     }
 
     public static IServiceCollection AddLlmChatClients(this IServiceCollection serviceCollection)

@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-import {
-  beginCaravanInteraction,
-  beginCreatureInteraction,
-  endCaravanInteraction,
-  endCreatureInteraction,
-} from '@/api/client';
+import { beginCreatureInteraction, endCreatureInteraction } from '@/api/client';
 
 interface InteractionTarget {
   key: string;
@@ -89,34 +84,6 @@ export function useCreatureInteraction({
           key: `${worldId}:${playerId}:${creatureId}`,
           begin: () => beginCreatureInteraction(request),
           end: () => endCreatureInteraction(request),
-        }
-      : undefined,
-  );
-}
-
-interface CaravanInteractionOptions {
-  playerId: string;
-  worldId: string;
-  caravanId: string | undefined;
-}
-
-export function useCaravanInteraction({
-  playerId,
-  worldId,
-  caravanId,
-}: CaravanInteractionOptions): InteractionLifecycle {
-  const request = caravanId && {
-    path: { playerId, caravanId },
-    query: { worldId },
-    throwOnError: true as const,
-  };
-
-  return useInteractionLifecycle(
-    request
-      ? {
-          key: `${worldId}:${playerId}:${caravanId}`,
-          begin: () => beginCaravanInteraction(request),
-          end: () => endCaravanInteraction(request),
         }
       : undefined,
   );

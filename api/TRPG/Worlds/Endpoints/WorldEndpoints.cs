@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using TickerQ.Utilities;
-using TickerQ.Utilities.Interfaces.Managers;
+using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Narration.Commands;
@@ -13,6 +12,7 @@ using TRPG.Application.Worlds.Queries;
 using TRPG.Creatures.Mappers;
 using TRPG.Data;
 using TRPG.Domain.Models;
+using TRPG.Jobs;
 using TRPG.Jobs.Responses;
 using TRPG.Worlds.Jobs;
 using TRPG.Worlds.Requests;
@@ -31,10 +31,9 @@ internal static class WorldEndpoints
             .WithName("PrefetchDungeonPremises");
     }
 
-    private static async Task<Accepted<EnqueueJobResponse>> CreateWorld(
+    private static Accepted<EnqueueJobResponse> CreateWorld(
         CreateWorldRequest request,
-        ITimeTickerManager<TrpgTimeTicker> timeTicker,
-        CancellationToken cancellationToken
+        JobRunner jobRunner
     )
     {
         var command = new CreateWorldCommand
@@ -60,19 +59,10 @@ internal static class WorldEndpoints
             StartingAttributeAllocation = request.StartingAttributeAllocation.ToDictionary(),
         };
 
-        var result = await timeTicker.AddAsync(
-            new TrpgTimeTicker
-            {
-                Request = TickerHelper.CreateTickerRequest(command),
-                ExecutionTime = DateTime.UtcNow,
-                Function = TickerFunctionProvider.GetFunctionName<CreateWorldJob>(),
-                Retries = 3,
-                RetryIntervals = [1, 2, 4],
-            },
-            cancellationToken
+        var jobId = jobRunner.Schedule(
+            (services, token) => services.GetRequiredService<CreateWorldJob>().Run(command, token)
         );
 
-        var jobId = result.Result.Id;
         return TypedResults.Accepted($"/jobs/{jobId}", new EnqueueJobResponse(jobId));
     }
 
