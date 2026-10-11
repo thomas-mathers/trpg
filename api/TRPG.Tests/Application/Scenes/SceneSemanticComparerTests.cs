@@ -22,52 +22,7 @@ public class SceneSemanticComparerTests
     private static readonly Guid DestinationId = Guid.NewGuid();
 
     [Fact]
-    public void ScenePublisher_EnqueuesAnUnchangedSceneOnlyOnce()
-    {
-        var events = new RecordingGameClientEventSink();
-        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
-        var scene = MakeScene();
-
-        publisher.PublishIfChanged(WorldId, PlayerId, scene, MakeStamp(1));
-        publisher.PublishIfChanged(WorldId, PlayerId, scene, MakeStamp(2));
-
-        Assert.Single(events.Events);
-    }
-
-    [Fact]
-    public void ScenePublisher_EmitsGranularEventsForSameLocationChanges()
-    {
-        var events = new RecordingGameClientEventSink();
-        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
-        publisher.Publish(
-            WorldId,
-            PlayerId,
-            MakeScene(weather: WeatherCondition.Clear),
-            MakeStamp(1)
-        );
-        events.Events.Clear();
-
-        publisher.PublishIfChanged(
-            WorldId,
-            PlayerId,
-            MakeScene(
-                creatures: [MakeCreature(VillagerId)],
-                caravans: [MakeCaravan(minutesUntilDeparture: 30)],
-                weather: WeatherCondition.Rain
-            ),
-            MakeStamp(2)
-        );
-
-        var arrival = Assert.IsType<CreaturesArrivedEvent>(events.Events[0]);
-        Assert.Equal(VillagerId, Assert.Single(arrival.Creatures).Id);
-        Assert.Equal(2, arrival.Stamp.Version);
-        Assert.IsType<CaravansArrivedEvent>(events.Events[1]);
-        Assert.IsType<WeatherChangedEvent>(events.Events[2]);
-        Assert.Equal(3, events.Events.Count);
-    }
-
-    [Fact]
-    public void ScenePublisher_UpdatesStatusWithPlacementWithoutAlsoSendingMovement()
+    public void PublishCreatureChanges_UpdatesStatusWithPlacementWithoutAlsoSendingMovement()
     {
         var events = new RecordingGameClientEventSink();
         var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
@@ -79,8 +34,7 @@ public class SceneSemanticComparerTests
         );
         events.Events.Clear();
 
-        publisher.PublishIfChanged(
-            WorldId,
+        publisher.PublishCreatureChanges(
             PlayerId,
             MakeScene(
                 creatures:
@@ -100,7 +54,7 @@ public class SceneSemanticComparerTests
     }
 
     [Fact]
-    public void ScenePublisher_SendsMovementWithoutResendingUnchangedStatus()
+    public void PublishCreatureChanges_SendsMovementWithoutResendingUnchangedStatus()
     {
         var events = new RecordingGameClientEventSink();
         var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
@@ -112,8 +66,7 @@ public class SceneSemanticComparerTests
         );
         events.Events.Clear();
 
-        publisher.PublishIfChanged(
-            WorldId,
+        publisher.PublishCreatureChanges(
             PlayerId,
             MakeScene(creatures: [MakeCreature(VillagerId, placement: new Placement(6, 4, 0))]),
             MakeStamp(2)
@@ -121,65 +74,6 @@ public class SceneSemanticComparerTests
 
         var moved = Assert.IsType<CreaturesMovedEvent>(Assert.Single(events.Events));
         Assert.Equal(new Placement(6, 4, 0), moved.CreaturePlacements[VillagerId]);
-    }
-
-    [Fact]
-    public void ScenePublisher_SendsFullSnapshotWhenLocationChanges()
-    {
-        var events = new RecordingGameClientEventSink();
-        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
-        var scene = MakeScene();
-        publisher.Publish(WorldId, PlayerId, scene, MakeStamp(1));
-        events.Events.Clear();
-
-        publisher.PublishIfChanged(
-            WorldId,
-            PlayerId,
-            scene with
-            {
-                LocationId = Guid.NewGuid(),
-            },
-            MakeStamp(2)
-        );
-
-        Assert.IsType<SceneUpdatedEvent>(Assert.Single(events.Events));
-    }
-
-    [Fact]
-    public void ScenePublisher_SendsOnlyFullSnapshotWhenUnsupportedAndSupportedFieldsChange()
-    {
-        var events = new RecordingGameClientEventSink();
-        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
-        publisher.Publish(
-            WorldId,
-            PlayerId,
-            MakeScene(weather: WeatherCondition.Clear),
-            MakeStamp(1)
-        );
-        events.Events.Clear();
-
-        publisher.PublishIfChanged(
-            WorldId,
-            PlayerId,
-            MakeScene(weather: WeatherCondition.Rain, exits: [MakeExit(isLocked: false)]),
-            MakeStamp(2)
-        );
-
-        Assert.IsType<SceneUpdatedEvent>(Assert.Single(events.Events));
-    }
-
-    [Fact]
-    public void ScenePublisher_ReanchorsClockAfterTimeAdvanceWithoutOtherChanges()
-    {
-        var events = new RecordingGameClientEventSink();
-        var publisher = new ScenePublisher(events, new PublishedSceneRegistry());
-        var scene = MakeScene();
-        publisher.Publish(WorldId, PlayerId, scene, MakeStamp(1));
-        events.Events.Clear();
-
-        publisher.PublishAfterTimeAdvance(PlayerId, scene, MakeStamp(2));
-
-        Assert.IsType<ClockReanchoredEvent>(Assert.Single(events.Events));
     }
 
     [Fact]

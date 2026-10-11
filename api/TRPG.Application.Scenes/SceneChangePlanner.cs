@@ -6,34 +6,8 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes;
 
-internal record SceneChangePlan(bool RequiresSnapshot, IReadOnlyCollection<GameClientEvent> Events);
-
 internal static class SceneChangePlanner
 {
-    internal static SceneChangePlan Plan(
-        SceneResult? previous,
-        SceneResult current,
-        WorldStateStamp stamp
-    )
-    {
-        if (previous is null || SceneSemanticComparer.HasStaticChange(previous, current))
-        {
-            return new SceneChangePlan(true, []);
-        }
-
-        var events = new List<GameClientEvent>();
-        AddCreatureEvents(previous, current, stamp, events);
-        AddCaravanEvents(previous, current, stamp, events);
-        if (previous.Weather != current.Weather)
-        {
-            events.Add(
-                new WeatherChangedEvent(current.WorldId, current.LocationId, stamp, current.Weather)
-            );
-        }
-
-        return new SceneChangePlan(false, events.ToArray());
-    }
-
     internal static IReadOnlyCollection<GameClientEvent> PlanCreatureChanges(
         SceneResult previous,
         SceneResult current,
@@ -43,26 +17,6 @@ internal static class SceneChangePlanner
         var events = new List<GameClientEvent>();
         AddCreatureEvents(previous, current, stamp, events);
         return events;
-    }
-
-    internal static SceneChangePlan PlanAfterTimeAdvance(
-        SceneResult? previous,
-        SceneResult current,
-        WorldStateStamp stamp
-    )
-    {
-        var plan = Plan(previous, current, stamp);
-        if (plan.RequiresSnapshot)
-        {
-            return plan;
-        }
-
-        return plan with
-        {
-            Events = plan
-                .Events.Append(new ClockReanchoredEvent(current.WorldId, current.LocationId, stamp))
-                .ToArray(),
-        };
     }
 
     private static void AddCreatureEvents(
@@ -139,44 +93,6 @@ internal static class SceneChangePlanner
         if (moved.Count > 0)
         {
             events.Add(new CreaturesMovedEvent(current.WorldId, current.LocationId, stamp, moved));
-        }
-    }
-
-    private static void AddCaravanEvents(
-        SceneResult previous,
-        SceneResult current,
-        WorldStateStamp stamp,
-        List<GameClientEvent> events
-    )
-    {
-        var oldCaravans = previous.NearbyCaravans.ToDictionary(x => x.CaravanId);
-        var newCaravans = current.NearbyCaravans.ToDictionary(x => x.CaravanId);
-        var left = oldCaravans.Keys.Except(newCaravans.Keys).ToHashSet();
-        var arrived = newCaravans
-            .Values.Where(x => !oldCaravans.ContainsKey(x.CaravanId))
-            .ToArray();
-        var updated = newCaravans
-            .Values.Where(x =>
-                oldCaravans.TryGetValue(x.CaravanId, out var old)
-                && !SceneSemanticComparer.CaravanStatusEquivalent(old, x)
-            )
-            .ToArray();
-
-        if (left.Count > 0)
-        {
-            events.Add(new CaravansLeftEvent(current.WorldId, current.LocationId, stamp, left));
-        }
-        if (arrived.Length > 0)
-        {
-            events.Add(
-                new CaravansArrivedEvent(current.WorldId, current.LocationId, stamp, arrived)
-            );
-        }
-        if (updated.Length > 0)
-        {
-            events.Add(
-                new CaravansUpdatedEvent(current.WorldId, current.LocationId, stamp, updated)
-            );
         }
     }
 

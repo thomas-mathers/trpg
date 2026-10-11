@@ -271,7 +271,8 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR F: runner-sourced arrived, left, moved
 - [x] PR G: remaining fields (equipment, factions, quest markers, effect visuals, nearby vitals, weather, caravans, props, the player's own status), one category per PR
 - [x] PR H1: delete the continuous pass (processor, service, `PublishAmbientSceneCommand`)
-- [ ] PR H2: delete the per-action diff (`TurnSceneDiffer` diff calls, `PublishIfChanged`, `PublishAfterTimeAdvance`)
+- [x] PR H2: delete the per-action diff (`TurnSceneDiffer` diff calls, `PublishIfChanged`, `PublishAfterTimeAdvance`)
+  - H2 kept the static-change snapshot (`HasStaticChange`) in `ActionSceneAnnouncer`: relocations and in-place lock, lever and prop changes still rely on it, so H3 needs deltas for those before it can go.
 - [ ] PR H3: delete the snapshot fallback and unused planner/comparer paths
 - [ ] Weather shelter PR (standalone, before I1)
 - [ ] PR I1: creature simulator extraction and planning renames

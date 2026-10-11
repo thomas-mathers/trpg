@@ -15,7 +15,7 @@ public static class SceneSemanticComparer
         || !CreaturesAreEquivalent(previous.NearbyCreatures, current.NearbyCreatures)
         || !CaravansAreEquivalent(previous.NearbyCaravans, current.NearbyCaravans);
 
-    internal static bool HasStaticChange(SceneResult previous, SceneResult current) =>
+    public static bool HasStaticChange(SceneResult previous, SceneResult current) =>
         previous.WorldId != current.WorldId
         || previous.LocationId != current.LocationId
         || previous.Player.Id != current.Player.Id

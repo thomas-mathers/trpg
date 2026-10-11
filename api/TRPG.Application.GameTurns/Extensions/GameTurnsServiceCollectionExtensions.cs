@@ -9,7 +9,7 @@ public static class GameTurnsServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddTransient<LlmConversationClient>()
-            .AddTransient<TurnSceneDiffer>()
+            .AddTransient<TurnSceneReader>()
             .AddTransient<SeatingAnnouncer>()
             .AddTransient<GameTurnStreamer>()
             .AddTransient<GameActionRunner>()

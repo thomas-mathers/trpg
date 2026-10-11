@@ -1,11 +1,16 @@
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Poses;
+using TRPG.Application.WorldSimulation.Publishing;
+using TRPG.Domain;
 
 namespace TRPG.Application.GameTurns;
 
 internal class GameActionRunner(
-    TurnSceneDiffer sceneDiffer,
+    IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
+    IActionSceneAnnouncer actionSceneAnnouncer,
     IGameClientEventDispatcher eventDispatcher,
     WorldSimulationCoordinator simulation
 )
@@ -44,16 +49,39 @@ internal class GameActionRunner(
 
         if (outcome.Succeeded)
         {
-            if (outcome.AdvancedGameTime is not null)
-            {
-                await sceneDiffer.EnqueueTimeAdvance(session, cancellationToken);
-            }
-            else
-            {
-                await sceneDiffer.EnqueueChange(session, cancellationToken);
-            }
+            await Announce(session, outcome, cancellationToken);
         }
 
         return outcome;
+    }
+
+    private async Task Announce(
+        GameTurnSession session,
+        ActionOutcome outcome,
+        CancellationToken cancellationToken
+    )
+    {
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+
+        if (outcome.AdvancedGameTime is not null)
+        {
+            await actionSceneAnnouncer.AnnounceTimeAdvance(
+                session.WorldId,
+                session.PlayerId,
+                gameTime,
+                cancellationToken
+            );
+            return;
+        }
+
+        await actionSceneAnnouncer.AnnounceActionChanges(
+            session.WorldId,
+            session.PlayerId,
+            gameTime,
+            cancellationToken
+        );
     }
 }

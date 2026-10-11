@@ -50,17 +50,6 @@ public sealed class ScenePublisher(
         gameEvents.Enqueue(seating);
     }
 
-    public bool PublishIfChanged(
-        Guid worldId,
-        Guid playerId,
-        SceneResult scene,
-        WorldStateStamp stamp
-    )
-    {
-        var previous = publishedScenes.Find(playerId);
-        return PublishPlan(playerId, scene, stamp, SceneChangePlanner.Plan(previous, scene, stamp));
-    }
-
     public bool PublishCreatureChanges(Guid playerId, SceneResult current, WorldStateStamp stamp)
     {
         var previous = publishedScenes.Find(playerId);
@@ -117,36 +106,6 @@ public sealed class ScenePublisher(
         return true;
     }
 
-    public bool PublishAfterTimeAdvance(Guid playerId, SceneResult scene, WorldStateStamp stamp)
-    {
-        var previous = publishedScenes.Find(playerId);
-        return PublishPlan(
-            playerId,
-            scene,
-            stamp,
-            SceneChangePlanner.PlanAfterTimeAdvance(previous, scene, stamp)
-        );
-    }
-
-    private bool PublishPlan(
-        Guid playerId,
-        SceneResult scene,
-        WorldStateStamp stamp,
-        SceneChangePlan plan
-    )
-    {
-        publishedScenes.Record(playerId, scene);
-        if (plan.RequiresSnapshot)
-        {
-            gameEvents.Enqueue(new SceneUpdatedEvent(scene.WorldId, scene, stamp));
-            return true;
-        }
-
-        foreach (var gameEvent in plan.Events)
-        {
-            gameEvents.Enqueue(gameEvent);
-        }
-
-        return plan.Events.Count > 0;
-    }
+    public void PublishClockReanchored(Guid worldId, Guid locationId, WorldStateStamp stamp) =>
+        gameEvents.Enqueue(new ClockReanchoredEvent(worldId, locationId, stamp));
 }

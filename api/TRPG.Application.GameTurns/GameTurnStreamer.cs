@@ -18,6 +18,7 @@ using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -37,7 +38,8 @@ internal class GameTurnStreamer(
     > getLoreAnchorAutomatonByWorld,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
-    TurnSceneDiffer sceneDiffer,
+    TurnSceneReader sceneReader,
+    IActionSceneAnnouncer actionSceneAnnouncer,
     IGameClientEventDispatcher eventDispatcher,
     WorldSimulationCoordinator simulation,
     ILogger<GameTurnStreamer> logger
@@ -147,7 +149,7 @@ internal class GameTurnStreamer(
             session.WorldId,
             async (_, token) =>
             {
-                return await sceneDiffer.Capture(session, token);
+                return await sceneReader.Capture(session, token);
             },
             cancellationToken
         );
@@ -162,11 +164,25 @@ internal class GameTurnStreamer(
             session.WorldId,
             async (_, token) =>
             {
-                await sceneDiffer.EnqueueChange(session, token);
+                await AnnounceChanges(session, token);
             },
             cancellationToken
         );
         await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
+    }
+
+    private async Task AnnounceChanges(GameTurnSession session, CancellationToken cancellationToken)
+    {
+        var gameTime = await getGameTime.Handle(
+            new GetGameTimeQuery { SessionId = session.SessionId },
+            cancellationToken
+        );
+        await actionSceneAnnouncer.AnnounceActionChanges(
+            session.WorldId,
+            session.PlayerId,
+            gameTime,
+            cancellationToken
+        );
     }
 
     private Task BeginTurn(GameTurnSession session, CancellationToken cancellationToken)
