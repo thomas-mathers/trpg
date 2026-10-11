@@ -36,54 +36,54 @@ public sealed class WeatherExposureProviderTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task FindExposedLocationIds_ReturnsOutdoorLocations_InAStorm()
+    public async Task FindSevereWeatherLocationIds_ReturnsOutdoorLocations_InAStorm()
     {
         // Arrange
         var street = await AddLocation(LocationKind.District);
         await SetWeather(WeatherCondition.Storm);
 
         // Act
-        var exposed = await _provider.FindExposedLocationIds(
+        var severe = await _provider.FindSevereWeatherLocationIds(
             [street.Id],
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Equal([street.Id], exposed);
+        Assert.Equal([street.Id], severe);
     }
 
     [Fact]
-    public async Task FindExposedLocationIds_ExcludesRooms_InAStorm()
+    public async Task FindSevereWeatherLocationIds_ExcludesRooms_InAStorm()
     {
         // Arrange
         var room = await AddLocation(LocationKind.Room);
         await SetWeather(WeatherCondition.Storm);
 
         // Act
-        var exposed = await _provider.FindExposedLocationIds(
+        var severe = await _provider.FindSevereWeatherLocationIds(
             [room.Id],
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Empty(exposed);
+        Assert.Empty(severe);
     }
 
     [Fact]
-    public async Task FindExposedLocationIds_ReturnsNothing_InClearWeather()
+    public async Task FindSevereWeatherLocationIds_ReturnsNothing_InClearWeather()
     {
         // Arrange
         var street = await AddLocation(LocationKind.District);
         await SetWeather(WeatherCondition.Clear);
 
         // Act
-        var exposed = await _provider.FindExposedLocationIds(
+        var severe = await _provider.FindSevereWeatherLocationIds(
             [street.Id],
             TestContext.Current.CancellationToken
         );
 
         // Assert
-        Assert.Empty(exposed);
+        Assert.Empty(severe);
     }
 
     private async Task<Location> AddLocation(LocationKind kind)

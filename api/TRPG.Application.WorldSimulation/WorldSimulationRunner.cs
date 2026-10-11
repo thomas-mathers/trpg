@@ -83,11 +83,14 @@ public sealed class WorldSimulationRunner(
     public async Task RefreshWeather(GameInstant now, CancellationToken cancellationToken = default)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var exposed = await scope
+        var severe = await scope
             .ServiceProvider.GetRequiredService<WeatherExposureProvider>()
-            .FindExposedLocationIds([.. _loaded.Simulator.IdleLocationIds()], cancellationToken);
+            .FindSevereWeatherLocationIds(
+                [.. _loaded.Simulator.IdleLocationIds()],
+                cancellationToken
+            );
 
-        _loaded.Simulator.SetExposedLocations(exposed, now);
+        _loaded.Simulator.SetSevereWeatherLocations(severe, now);
         _weatherRefresh.Restart(now);
     }
 
@@ -308,7 +311,13 @@ public sealed class WorldSimulationRunner(
         foreach (var creatureId in creatureIds)
         {
             var local = await planLocal.Handle(
-                new PlanCurrentLocalActivityCommand { CreatureId = creatureId, At = now },
+                new PlanCurrentLocalActivityCommand
+                {
+                    CreatureId = creatureId,
+                    At = now,
+                    ShelterLocationId = _loaded.Simulator.ShelterLocationOf(creatureId),
+                    SevereWeatherLocationIds = _loaded.Simulator.SevereWeatherLocationIds,
+                },
                 cancellationToken
             );
             if (local.Move is { } localMove)
@@ -330,6 +339,8 @@ public sealed class WorldSimulationRunner(
                     PlannedAt = now,
                     TimeScale = _loaded.Simulator.Options.TimeScale,
                     ArrivalStagger = _loaded.Simulator.Options.ArrivalStagger,
+                    ShelterLocationId = _loaded.Simulator.ShelterLocationOf(creatureId),
+                    SevereWeatherLocationIds = _loaded.Simulator.SevereWeatherLocationIds,
                 },
                 cancellationToken
             );

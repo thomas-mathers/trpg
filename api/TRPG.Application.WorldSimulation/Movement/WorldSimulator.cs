@@ -15,7 +15,7 @@ public sealed record WorldSimulatorOptions(
 public sealed class WorldSimulator
 {
     private readonly WorldSimulatorOptions _options;
-    private readonly WeatherShelter _shelter = new();
+    private IReadOnlySet<Guid> _severeWeatherLocationIds = new HashSet<Guid>();
     private readonly List<SimulatedCreature> _creatures = [];
     private readonly Dictionary<Guid, SimulatedCreature> _creaturesById = [];
 
@@ -44,12 +44,22 @@ public sealed class WorldSimulator
 
     public WorldSimulatorOptions Options => _options;
 
-    public void SetExposedLocations(IReadOnlySet<Guid> exposedLocationIds, GameInstant now)
+    public IReadOnlySet<Guid> SevereWeatherLocationIds => _severeWeatherLocationIds;
+
+    public Guid? ShelterLocationOf(Guid creatureId) =>
+        _creaturesById.GetValueOrDefault(creatureId)?.ShelterLocationId;
+
+    public void SetSevereWeatherLocations(
+        IReadOnlySet<Guid> severeWeatherLocationIds,
+        GameInstant now
+    )
     {
-        if (!_shelter.Update(exposedLocationIds))
+        if (_severeWeatherLocationIds.SetEquals(severeWeatherLocationIds))
         {
             return;
         }
+
+        _severeWeatherLocationIds = severeWeatherLocationIds;
 
         foreach (var creature in _creatures.Where(creature => !creature.IsWalking))
         {

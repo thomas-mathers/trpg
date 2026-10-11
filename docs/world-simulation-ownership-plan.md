@@ -54,7 +54,7 @@ Memory holds only state that is high-frequency or derivable. The database is the
 - Boundary rules: a creature entering a watched location is caught up before its arrival is announced, then joins the ticked set; one leaving drops out and is caught up next time. A catch-up DoT can kill: effects are resolved at the catch-up instant and at the creature's current place (the same rule as a time skip today), so a 1 HP creature with a DoT that follows the player into a watched location arrives dead, with the corpse, loot, reputation, quest and route-cancellation consequences applied there. No history of earlier positions is retained; reconstructing death at the historical instant and place is a separate decision, not part of this refactor. Fight participants are excluded from regeneration and handled by the fight path, as today.
 - Player visibility (requirement): effect and regen change events at a watched location project to `CreatureVitalsUpdated` for the player and NPCs alike (renamed from `PlayerVitalsUpdated` in I3; see I3 and I4), so DoT ticks and regen on nearby creatures are visible, one update per 5 s pass. Changes beyond vitals (effect added or expired, death) still go through `CreaturesUpdated`. Today the diff produces these through `CurrentHp` in `SceneSemanticComparer`; deleting the diff must not lose it.
 - Due schedule: per creature and concern, a next-due time (movement every tick, effects and regen 5 s, location maintenance 30 s). Most creatures are skipped most ticks. This is how the loop avoids loading the whole world 5 times a second.
-- Weather exposure (the 30 s refresh feeding NPC sheltering) is an input to movement decisions, not its own concern, and emits no client event. The weather state change itself comes from the world-level decision and announces `WeatherChanged`. Caveat: sheltering is not wired today. `WeatherShelter.Apply` has no caller, so a change to the exposed set only resets `NextUpdate` and forces a replan; no NPC is redirected (see Open decisions).
+- Weather exposure (the 30 s refresh feeding NPC sheltering) is an input to movement decisions, not its own concern, and emits no client event. The weather state change itself comes from the world-level decision and announces `WeatherChanged`.
 
 ### Working state and ordering
 
@@ -274,7 +274,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR H2: delete the per-action diff (`TurnSceneDiffer` diff calls, `PublishIfChanged`, `PublishAfterTimeAdvance`)
   - H2 kept the static-change snapshot (`HasStaticChange`) in `ActionSceneAnnouncer`: relocations and in-place lock, lever and prop changes still rely on it, so H3 needs deltas for those before it can go.
 - [x] PR H3: guard test that confines scene snapshots to the entry, resync and static-change paths (the snapshot fallback itself stays until in-place lock, lever and prop changes and relocation get their own events)
-- [ ] Weather shelter PR (standalone, before I1)
+- [x] Weather shelter PR (standalone, before I1)
 - [ ] PR I1: creature simulator extraction and planning renames
 - [ ] PR I2: applier (failed-batch, marker and reload tests)
 - [ ] PR I3: regeneration concern and `CreatureVitalsUpdated`

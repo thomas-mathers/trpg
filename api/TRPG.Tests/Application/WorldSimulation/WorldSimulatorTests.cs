@@ -69,6 +69,50 @@ public class WorldSimulatorTests
     }
 
     [Fact]
+    public void ShelterLocationOf_ReturnsTheFirstSleepJobLocation_WhenTheCreatureSeeksShelter()
+    {
+        // Arrange
+        var simulator = CreateSimulator(1);
+        simulator.Add(SeedWithSleepAtA(seeksShelter: true), Morning);
+
+        // Act
+        var shelter = simulator.ShelterLocationOf(_creatureId);
+
+        // Assert
+        Assert.Equal(_locationA, shelter);
+    }
+
+    [Fact]
+    public void ShelterLocationOf_ReturnsNull_WhenTheCreatureDoesNotSeekShelter()
+    {
+        // Arrange
+        var simulator = CreateSimulator(1);
+        simulator.Add(SeedWithSleepAtA(seeksShelter: false), Morning);
+
+        // Act
+        var shelter = simulator.ShelterLocationOf(_creatureId);
+
+        // Assert
+        Assert.Null(shelter);
+    }
+
+    [Fact]
+    public void SetSevereWeatherLocations_WakesAStationaryCreature_WhenTheWeatherClears()
+    {
+        // Arrange
+        var simulator = CreateSimulator(1);
+        simulator.Add(SeedWithSleepAtA(seeksShelter: true), Morning);
+        simulator.SetSevereWeatherLocations(new HashSet<Guid> { _locationB }, Morning);
+        simulator.SleepUntilNextRoutineChange(_creatureId, Morning);
+
+        // Act
+        simulator.SetSevereWeatherLocations(new HashSet<Guid>(), Morning);
+
+        // Assert
+        Assert.False(simulator.IsSchedulerSleeping(_creatureId, Morning));
+    }
+
+    [Fact]
     public void Step_CompletesATransientLocalMoveWithoutCreatingAJourney()
     {
         var simulator = CreateSimulator(1);
@@ -344,6 +388,18 @@ public class WorldSimulatorTests
             startHour: startHour,
             endHour: endHour,
             locationId: locationId
+        );
+
+    private SimCreatureSeed SeedWithSleepAtA(bool seeksShelter) =>
+        new(
+            _creatureId,
+            _locationA,
+            MovementSpeed,
+            [
+                Job(CreatureJobAction.Sleep, 20, 12, _locationA),
+                Job(CreatureJobAction.Idle, 12, 20, _locationB),
+            ],
+            seeksShelter
         );
 
     private static GameInstant At(int hour, int minute) =>
