@@ -1,6 +1,6 @@
 import type {
   CharacterLevelUp,
-  PlayerVitalsUpdated,
+  CreatureVitalsUpdated,
   SkillLevelUp,
 } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
@@ -42,7 +42,7 @@ type SceneDeltaAction = {
 export type SceneAction =
   | SceneDeltaAction
   | { type: 'SceneSnapshot'; payload: SceneSnapshot }
-  | { type: 'PlayerVitalsUpdated'; payload: PlayerVitalsUpdated }
+  | { type: 'CreatureVitalsUpdated'; payload: CreatureVitalsUpdated }
   | { type: 'SkillLevelUp'; payload: SkillLevelUp }
   | { type: 'CharacterLevelUp'; payload: CharacterLevelUp }
   | { type: 'Reset' };
@@ -60,7 +60,7 @@ export function initialSceneState(): SceneState {
 export function reduceSceneState(state: SceneState, action: SceneAction): SceneState {
   if (action.type === 'Reset') return initialSceneState();
   if (action.type === 'SceneSnapshot') return applySnapshot(state, action.payload);
-  if (action.type === 'PlayerVitalsUpdated') return applyVitals(state, action.payload);
+  if (action.type === 'CreatureVitalsUpdated') return applyVitals(state, action.payload);
   if (action.type === 'SkillLevelUp') return applySkillLevel(state, action.payload);
   if (action.type === 'CharacterLevelUp') return applyCharacterLevel(state, action.payload);
 
@@ -86,30 +86,32 @@ function applySnapshot(state: SceneState, snapshot: SceneSnapshot): SceneState {
   return { scene: snapshot, hasSnapshot: true, baselineVersion: snapshot.version };
 }
 
-function applyVitals(state: SceneState, vitals: PlayerVitalsUpdated): SceneState {
+function applyVitals(state: SceneState, vitals: CreatureVitalsUpdated): SceneState {
   const { scene } = state;
   if (
     !state.hasSnapshot ||
-    vitals.playerId !== scene.playerStatus.id ||
+    vitals.worldId !== scene.worldId ||
+    vitals.locationId !== scene.locationId ||
     vitals.version < scene.version ||
     vitals.version <= state.baselineVersion
   )
     return state;
+
+  const entriesById = new Map(vitals.entries.map((entry) => [entry.creatureId, entry]));
+  const withVitals = (creature: CreatureStatusSnapshot): CreatureStatusSnapshot => {
+    const entry = entriesById.get(creature.id);
+    if (!entry) return creature;
+    const { creatureId: _creatureId, ...stats } = entry;
+    return { ...creature, ...stats };
+  };
 
   return {
     ...state,
     scene: {
       ...scene,
       version: vitals.version,
-      playerStatus: {
-        ...scene.playerStatus,
-        currentHp: vitals.currentHp,
-        maximumHp: vitals.maximumHp,
-        currentAp: vitals.currentAp,
-        maximumAp: vitals.maximumAp,
-        currentMp: vitals.currentMp,
-        maximumMp: vitals.maximumMp,
-      },
+      playerStatus: withVitals(scene.playerStatus),
+      nearbyCreatures: scene.nearbyCreatures.map(withVitals),
     },
   };
 }

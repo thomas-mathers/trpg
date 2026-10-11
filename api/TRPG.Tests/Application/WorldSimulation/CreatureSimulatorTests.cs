@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.Configuration;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Domain;
@@ -268,7 +269,9 @@ public class CreatureSimulatorTests
     }
 
     private CreatureSimulator CreateSimulator(int plansPerTick) =>
-        new(new CreatureSimulatorOptions(1, plansPerTick, TimeSpan.Zero));
+        new(
+            new CreatureSimulatorOptions(1, plansPerTick, TimeSpan.Zero, new CreatureRegenOptions())
+        );
 
     private void AddCommuter(CreatureSimulator simulator) => AddWorker(simulator, _locationC);
 

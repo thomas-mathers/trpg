@@ -17,7 +17,6 @@ internal sealed class ActiveLocationPasses(
 )
 {
     private readonly DueEntry _effects = new(cadence.ActiveLocationPass);
-    private readonly DueEntry _regeneration = new(cadence.ActiveLocationPass);
     private readonly DueEntry _maintenance = new(cadence.LocationMaintenance);
 
     public async Task<IReadOnlyCollection<TouchedCreatures>> Run(
@@ -25,11 +24,7 @@ internal sealed class ActiveLocationPasses(
         CancellationToken cancellationToken
     )
     {
-        var due = new DuePasses(
-            _effects.TakeIfDue(now),
-            _regeneration.TakeIfDue(now),
-            _maintenance.TakeIfDue(now)
-        );
+        var due = new DuePasses(_effects.TakeIfDue(now), _maintenance.TakeIfDue(now));
         if (!due.Any)
         {
             return [];
@@ -101,33 +96,6 @@ internal sealed class ActiveLocationPasses(
             );
         }
 
-        if (due.Regeneration)
-        {
-            touched.AddRange(
-                await Isolate(
-                    "regeneration",
-                    () =>
-                        services
-                            .GetRequiredService<
-                                ICommandHandler<
-                                    SyncActiveLocationRegenerationCommand,
-                                    IReadOnlyCollection<TouchedCreatures>
-                                >
-                            >()
-                            .Handle(
-                                new SyncActiveLocationRegenerationCommand
-                                {
-                                    WorldId = worldId,
-                                    Players = players,
-                                    GameTime = now,
-                                },
-                                cancellationToken
-                            ),
-                    cancellationToken
-                )
-            );
-        }
-
         if (due.Maintenance)
         {
             await Isolate(
@@ -180,8 +148,8 @@ internal sealed class ActiveLocationPasses(
         }
     }
 
-    private readonly record struct DuePasses(bool Effects, bool Regeneration, bool Maintenance)
+    private readonly record struct DuePasses(bool Effects, bool Maintenance)
     {
-        public bool Any => Effects || Regeneration || Maintenance;
+        public bool Any => Effects || Maintenance;
     }
 }

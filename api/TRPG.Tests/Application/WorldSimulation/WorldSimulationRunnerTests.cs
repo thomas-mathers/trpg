@@ -739,6 +739,56 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_RegeneratesABystander_AndPublishesItsVitalsToThePlayersScene()
+    {
+        // Arrange
+        var bystander = Builders.MakeCreature(_worldId, locationId: _home.Id, currentHp: 1);
+        _context.Creatures.Add(bystander);
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var published = _serviceProvider
+            .GetRequiredService<PublishedSceneRegistry>()
+            .Find(_playerId);
+        var announced = published!.NearbyCreatures.Single(creature => creature.Id == bystander.Id);
+        var stored = await db.ReadCreature(bystander.Id);
+        Assert.True(stored.CurrentHp > 1);
+        Assert.Equal(stored.CurrentHp, announced.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotRegenerateFightCombatants_WhenTheIntervalElapsed()
+    {
+        // Arrange
+        var enemy = Builders.MakeCreature(_worldId, locationId: _home.Id, currentHp: 1);
+        _context.Creatures.Add(enemy);
+        await AddPlayerAt(_home, currentHp: 1);
+        _context.Encounters.Add(Builders.MakeFight(_worldId, _playerId, [_playerId, enemy.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        var storedEnemy = await db.ReadCreature(enemy.Id);
+        Assert.Equal((1, 1), (player.CurrentHp, storedEnemy.CurrentHp));
+    }
+
+    [Fact]
     public async Task Tick_FlushesTheWorldEvents_WhenTheActivePassesRan()
     {
         // Arrange

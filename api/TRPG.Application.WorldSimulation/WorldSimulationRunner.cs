@@ -17,6 +17,7 @@ using TRPG.Application.WorldSimulation.Persistence;
 using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Application.WorldSimulation.Subscriptions;
+using TRPG.Application.WorldSimulation.Vitals;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -52,8 +53,15 @@ public sealed class WorldSimulationRunner(
     );
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
     private readonly List<LocalMoveCompleted> _unexecutedLocalArrivals = [];
+    private readonly List<CreatureRegenerated> _unpublishedVitals = [];
     private readonly Dictionary<Guid, HashSet<Guid>> _unpublishedCreatureIdsByLocationId = [];
     private readonly ActiveLocationPasses _activeLocationPasses = new(
+        worldId,
+        cadence,
+        serviceScopeFactory,
+        logger
+    );
+    private readonly RegenerationPass _regeneration = new(
         worldId,
         cadence,
         serviceScopeFactory,
@@ -134,12 +142,14 @@ public sealed class WorldSimulationRunner(
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
         var planningElapsed = Stopwatch.GetElapsedTime(planningStartedAt);
+        _applier.Enqueue(await _regeneration.Run(_loaded.Simulator, now, cancellationToken));
         _applier.Enqueue(_loaded.Simulator.Step(now));
         var eventCount = _applier.PendingCount;
         if (
             !_applier.HasPending
             && _unexecutedArrivals.Count == 0
             && _unexecutedLocalArrivals.Count == 0
+            && _unpublishedVitals.Count == 0
             && _unpublishedCreatureIdsByLocationId.Count == 0
         )
         {
@@ -704,6 +714,7 @@ public sealed class WorldSimulationRunner(
         LogMovementEvents(now, committed);
         _unexecutedArrivals.AddRange(committed.OfType<JourneyCompleted>());
         _unexecutedLocalArrivals.AddRange(committed.OfType<LocalMoveCompleted>());
+        _unpublishedVitals.AddRange(committed.OfType<CreatureRegenerated>());
         UpdateTransientWalks(committed);
         RememberUnpublishedCreatures(committed);
     }
@@ -808,14 +819,47 @@ public sealed class WorldSimulationRunner(
 
     private async Task PublishScenes(GameInstant now, CancellationToken cancellationToken)
     {
-        if (_unpublishedCreatureIdsByLocationId.Count == 0)
+        if (_unpublishedCreatureIdsByLocationId.Count == 0 && _unpublishedVitals.Count == 0)
         {
             return;
         }
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
+        await PublishVitals(scope.ServiceProvider, cancellationToken);
+        await PublishCreatureChanges(scope.ServiceProvider, now, cancellationToken);
+
+        // Flushing inside the lease keeps the scene ordered with the mutations it describes.
         await scope
-            .ServiceProvider.GetRequiredService<CreatureChangeAnnouncer>()
+            .ServiceProvider.GetRequiredService<IGameClientEventDispatcher>()
+            .FlushAsync(worldId, cancellationToken);
+    }
+
+    private async Task PublishVitals(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        if (_unpublishedVitals.Count == 0)
+        {
+            return;
+        }
+
+        await services
+            .GetRequiredService<VitalsAnnouncer>()
+            .Announce(worldId, _unpublishedVitals, cancellationToken);
+        _unpublishedVitals.Clear();
+    }
+
+    private async Task PublishCreatureChanges(
+        IServiceProvider services,
+        GameInstant now,
+        CancellationToken cancellationToken
+    )
+    {
+        if (_unpublishedCreatureIdsByLocationId.Count == 0)
+        {
+            return;
+        }
+
+        await services
+            .GetRequiredService<CreatureChangeAnnouncer>()
             .Announce(
                 worldId,
                 now,
@@ -825,18 +869,13 @@ public sealed class WorldSimulationRunner(
                 ),
                 cancellationToken
             );
-        await scope
-            .ServiceProvider.GetRequiredService<PropOccupancyAnnouncer>()
+        await services
+            .GetRequiredService<PropOccupancyAnnouncer>()
             .Announce(
                 worldId,
                 _unpublishedCreatureIdsByLocationId.Keys.ToArray(),
                 cancellationToken
             );
-
-        // Flushing inside the lease keeps the scene ordered with the mutations it describes.
-        await scope
-            .ServiceProvider.GetRequiredService<IGameClientEventDispatcher>()
-            .FlushAsync(worldId, cancellationToken);
         _unpublishedCreatureIdsByLocationId.Clear();
     }
 

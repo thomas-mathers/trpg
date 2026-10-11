@@ -59,8 +59,8 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
       gameEventBus.on('PropOccupancyChanged', (payload) =>
         dispatch({ type: 'PropOccupancyChanged', payload }),
       ),
-      gameEventBus.on('PlayerVitalsUpdated', (payload) =>
-        dispatch({ type: 'PlayerVitalsUpdated', payload }),
+      gameEventBus.on('CreatureVitalsUpdated', (payload) =>
+        dispatch({ type: 'CreatureVitalsUpdated', payload }),
       ),
       gameEventBus.on('SkillLevelUp', (payload) => dispatch({ type: 'SkillLevelUp', payload })),
       gameEventBus.on('CharacterLevelUp', (payload) =>

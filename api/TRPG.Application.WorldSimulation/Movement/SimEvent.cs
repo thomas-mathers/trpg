@@ -1,3 +1,4 @@
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -78,4 +79,12 @@ public sealed record LocalMoveInterrupted(
     GameInstant At,
     Guid LocationId,
     Point StopPosition
+) : SimEvent(CreatureId, At);
+
+public sealed record CreatureRegenerated(
+    Guid CreatureId,
+    GameInstant At,
+    Guid LocationId,
+    CreatureVitals Vitals,
+    GameInstant LastRegenAt
 ) : SimEvent(CreatureId, At);

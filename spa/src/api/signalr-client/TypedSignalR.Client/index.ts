@@ -7,7 +7,7 @@ import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
 import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, SeatingChangedPayload, PropOccupancyChangedPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
-import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
+import type { CreatureVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
 
@@ -275,7 +275,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __trapEncounterResolved = (...args: [TrapEncounterResolutionFact]) => receiver.trapEncounterResolved(...args);
         const __theftEncounterStarted = (...args: [TheftEncounterState]) => receiver.theftEncounterStarted(...args);
         const __theftEncounterResolved = (...args: [TheftEncounterResolutionFact]) => receiver.theftEncounterResolved(...args);
-        const __playerVitalsUpdated = (...args: [PlayerVitalsUpdated]) => receiver.playerVitalsUpdated(...args);
+        const __creatureVitalsUpdated = (...args: [CreatureVitalsUpdated]) => receiver.creatureVitalsUpdated(...args);
         const __playerCorrected = (...args: [PlayerCorrectedPayload]) => receiver.playerCorrected(...args);
         const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
         const __characterLevelUp = (...args: [CharacterLevelUp]) => receiver.characterLevelUp(...args);
@@ -310,7 +310,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("TrapEncounterResolved", __trapEncounterResolved);
         connection.on("TheftEncounterStarted", __theftEncounterStarted);
         connection.on("TheftEncounterResolved", __theftEncounterResolved);
-        connection.on("PlayerVitalsUpdated", __playerVitalsUpdated);
+        connection.on("CreatureVitalsUpdated", __creatureVitalsUpdated);
         connection.on("PlayerCorrected", __playerCorrected);
         connection.on("SkillLevelUp", __skillLevelUp);
         connection.on("CharacterLevelUp", __characterLevelUp);
@@ -346,7 +346,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "TrapEncounterResolved", method: __trapEncounterResolved },
             { methodName: "TheftEncounterStarted", method: __theftEncounterStarted },
             { methodName: "TheftEncounterResolved", method: __theftEncounterResolved },
-            { methodName: "PlayerVitalsUpdated", method: __playerVitalsUpdated },
+            { methodName: "CreatureVitalsUpdated", method: __creatureVitalsUpdated },
             { methodName: "PlayerCorrected", method: __playerCorrected },
             { methodName: "SkillLevelUp", method: __skillLevelUp },
             { methodName: "CharacterLevelUp", method: __characterLevelUp },

@@ -6,7 +6,7 @@ import type { IStreamResult, Subject } from '@microsoft/signalr';
 import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, SeatingChangedPayload, PropOccupancyChangedPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
-import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
+import type { CreatureVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
 import type { QuestObjectiveCompleted, QuestJournalUpdated } from '../TRPG.Quests.Responses';
 
 export type IChatHub = {
@@ -318,10 +318,10 @@ export type IGameClient = {
     */
     theftEncounterResolved(fact: TheftEncounterResolutionFact): Promise<void>;
     /**
-    * @param vitals Transpiled from TRPG.Creatures.Responses.PlayerVitalsUpdated
+    * @param vitals Transpiled from TRPG.Creatures.Responses.CreatureVitalsUpdated
     * @returns Transpiled from System.Threading.Tasks.Task
     */
-    playerVitalsUpdated(vitals: PlayerVitalsUpdated): Promise<void>;
+    creatureVitalsUpdated(vitals: CreatureVitalsUpdated): Promise<void>;
     /**
     * @param correction Transpiled from TRPG.GameSessions.Responses.PlayerCorrectedPayload
     * @returns Transpiled from System.Threading.Tasks.Task

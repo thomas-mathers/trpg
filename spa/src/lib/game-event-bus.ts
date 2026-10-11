@@ -1,7 +1,7 @@
 import type { CombatStarted, CombatUpdated } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type {
   CharacterLevelUp,
-  PlayerVitalsUpdated,
+  CreatureVitalsUpdated,
   SkillLevelUp,
 } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
@@ -72,7 +72,7 @@ interface GameEventMap {
   TheftEncounterResolved: TheftEncounterResolutionFact;
   TrapEncounterStarted: TrapEncounterState;
   TrapEncounterResolved: TrapEncounterResolutionFact;
-  PlayerVitalsUpdated: PlayerVitalsUpdated;
+  CreatureVitalsUpdated: CreatureVitalsUpdated;
   PlayerCorrected: PlayerCorrectedPayload;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;

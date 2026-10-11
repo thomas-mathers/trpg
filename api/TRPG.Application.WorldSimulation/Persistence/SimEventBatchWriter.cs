@@ -25,6 +25,7 @@ internal sealed class SimEventBatchWriter(Guid worldId, IServiceScopeFactory ser
         await WriteCheckpoints(scope.ServiceProvider, events, cancellationToken);
         await WriteStarts(scope.ServiceProvider, events, cancellationToken);
         await WritePoses(scope.ServiceProvider, events, cancellationToken);
+        await WriteVitals(scope.ServiceProvider, events, cancellationToken);
         await scope
             .ServiceProvider.GetRequiredService<
                 ICommandHandler<StampWorldStateCommand, WorldStateStamp>
@@ -97,6 +98,29 @@ internal sealed class SimEventBatchWriter(Guid worldId, IServiceScopeFactory ser
             );
     }
 
+    private static async Task WriteVitals(
+        IServiceProvider services,
+        IReadOnlyList<SimEvent> events,
+        CancellationToken cancellationToken
+    )
+    {
+        var writes = events
+            .OfType<CreatureRegenerated>()
+            .Select(regenerated => new CreatureVitalsWrite(
+                regenerated.Vitals,
+                regenerated.LastRegenAt
+            ))
+            .ToArray();
+        if (writes.Length == 0)
+        {
+            return;
+        }
+
+        await services
+            .GetRequiredService<ICommandHandler<ApplyCreatureVitalsCommand>>()
+            .Handle(new ApplyCreatureVitalsCommand { Writes = writes }, cancellationToken);
+    }
+
     private async Task WritePoses(
         IServiceProvider services,
         IReadOnlyList<SimEvent> events,
@@ -109,7 +133,9 @@ internal sealed class SimEventBatchWriter(Guid worldId, IServiceScopeFactory ser
                 new ApplyCreaturePoseUpdatesCommand
                 {
                     Updates = _poseMapper.Map(
-                        events.Where(simEvent => simEvent is not JourneyCheckpoint)
+                        events.Where(simEvent =>
+                            simEvent is not (JourneyCheckpoint or CreatureRegenerated)
+                        )
                     ),
                 },
                 cancellationToken

@@ -277,7 +277,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] Weather shelter PR (standalone, before I1)
 - [x] PR I1: creature simulator extraction and planning renames (the due schedule stays as each creature's `NextUpdate`; `SimulationContext.SevereWeatherLocationIds` is carried for the I3 to I6 concerns)
 - [x] PR I2: applier (failed-batch, marker and reload tests)
-- [ ] PR I3: regeneration concern and `CreatureVitalsUpdated`
+- [x] PR I3: regeneration concern and `CreatureVitalsUpdated`
 - [ ] PR I4: active effects concern
 - [ ] PR I5: ambient encounters and location maintenance
 - [ ] PR I6: weather as a world-level decision, `SimEvent` hierarchy split

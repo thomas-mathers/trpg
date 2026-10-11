@@ -27,6 +27,7 @@ public sealed class WorldSimulatorLoader(
     IQueryHandler<GetTravelGraphQuery, TravelGraph> getTravelGraph,
     IOptions<WorldClockOptions> clockOptions,
     IOptions<WorldSimulationOptions> simulationOptions,
+    IOptions<CreatureRegenOptions> regenOptions,
     IRoutingDbContext routing
 )
 {
@@ -45,7 +46,8 @@ public sealed class WorldSimulatorLoader(
             new CreatureSimulatorOptions(
                 clockOptions.Value.TimeScale,
                 simulationOptions.Value.RoutinePlansPerTick,
-                simulationOptions.Value.ArrivalStagger
+                simulationOptions.Value.ArrivalStagger,
+                regenOptions.Value
             )
         );
         foreach (var seed in await LoadSeeds(worldId, graph, null, cancellationToken))

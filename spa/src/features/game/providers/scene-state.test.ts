@@ -263,21 +263,29 @@ describe('scene state', () => {
     expect(state.scene).toMatchObject({ version: 6, weather: 'Snow' });
   });
 
-  it('applies player vitals alongside same-version sibling deltas but not at the baseline', () => {
+  it('applies vitals alongside same-version sibling deltas but not at the baseline', () => {
     const vitals = {
-      playerId: 'player',
-      currentHp: 3,
-      maximumHp: 10,
-      currentAp: 1,
-      maximumAp: 2,
-      currentMp: 0,
-      maximumMp: 0,
+      ...scope,
+      entries: [
+        {
+          creatureId: 'player',
+          currentHp: 3,
+          maximumHp: 10,
+          currentAp: 1,
+          maximumAp: 2,
+          currentMp: 0,
+          maximumMp: 0,
+        },
+      ],
     };
     const state = apply(
       { type: 'SceneSnapshot', payload: snapshot({ version: 5 }) },
-      { type: 'PlayerVitalsUpdated', payload: { ...vitals, version: 5, currentHp: 9 } },
+      {
+        type: 'CreatureVitalsUpdated',
+        payload: { ...vitals, version: 5, entries: [{ ...vitals.entries[0], currentHp: 9 }] },
+      },
       { type: 'WeatherChanged', payload: { ...scope, version: 6, weather: 'Rain' } },
-      { type: 'PlayerVitalsUpdated', payload: { ...vitals, version: 6 } },
+      { type: 'CreatureVitalsUpdated', payload: { ...vitals, version: 6 } },
     );
 
     expect(state.scene.playerStatus.currentHp).toBe(3);

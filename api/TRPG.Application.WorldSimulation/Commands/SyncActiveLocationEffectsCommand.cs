@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
+using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation.Commands;
@@ -30,7 +31,7 @@ internal class SyncActiveLocationEffectsCommandHandler(
         AdvanceCreatureEffectsCommand,
         IReadOnlyCollection<CreatureVitals>
     > advanceCreatureEffects,
-    PlayerVitalsPublisher playerVitalsPublisher
+    CreatureVitalsPublisher creatureVitalsPublisher
 ) : ICommandHandler<SyncActiveLocationEffectsCommand, IReadOnlyCollection<TouchedCreatures>>
 {
     public async Task<IReadOnlyCollection<TouchedCreatures>> Handle(
@@ -104,12 +105,14 @@ internal class SyncActiveLocationEffectsCommandHandler(
             cancellationToken
         );
 
-        await playerVitalsPublisher.Publish(
+        await creatureVitalsPublisher.Publish(
             command.WorldId,
-            command
-                .Players.Where(player => player.LocationId == locationId)
-                .Select(player => player.PlayerId)
-                .ToHashSet(),
+            locationId,
+            [
+                .. command
+                    .Players.Where(player => player.LocationId == locationId)
+                    .Select(player => player.PlayerId),
+            ],
             changedVitals,
             cancellationToken
         );

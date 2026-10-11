@@ -1,6 +1,9 @@
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.Configuration;
 using TRPG.Application.CreatureJobs;
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.WorldSimulation.LocalActivities;
+using TRPG.Application.WorldSimulation.Vitals;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -9,7 +12,8 @@ namespace TRPG.Application.WorldSimulation.Movement;
 public sealed record CreatureSimulatorOptions(
     double TimeScale,
     int RoutinePlansPerTick,
-    TimeSpan ArrivalStagger
+    TimeSpan ArrivalStagger,
+    CreatureRegenOptions Regeneration
 );
 
 public sealed class CreatureSimulator
@@ -150,6 +154,11 @@ public sealed class CreatureSimulator
             ),
         ];
     }
+
+    public IReadOnlyList<SimEvent> Regenerate(
+        IEnumerable<CreatureVitalState> states,
+        GameInstant now
+    ) => RegenerationConcern.Tick(states, now, _options.Regeneration);
 
     public IReadOnlyList<SimEvent> Engage(Guid creatureId, GameInstant at) =>
         _creaturesById.TryGetValue(creatureId, out var creature)

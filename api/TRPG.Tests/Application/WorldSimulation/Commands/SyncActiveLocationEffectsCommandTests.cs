@@ -118,9 +118,9 @@ public sealed class SyncActiveLocationEffectsCommandTests(DatabaseFixture db)
 
         // Assert
         var reloaded = await Reload(_player.Id);
-        var vitals = Assert.Single(Published<PlayerVitalsChangedEvent>());
+        var vitals = Assert.Single(Published<CreatureVitalsChangedEvent>());
         Assert.True(reloaded.CurrentHp < 50);
-        Assert.Equal(reloaded.CurrentHp, vitals.Vitals.CurrentHp);
+        Assert.Equal(reloaded.CurrentHp, Assert.Single(vitals.Vitals).CurrentHp);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed class SyncActiveLocationEffectsCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_TicksBystandersWithoutPublishingTheirVitals()
+    public async Task Handle_PublishesBystanderVitalsToTheWatchingPlayer()
     {
         // Arrange
         var bystander = await SeedBurning();
@@ -146,8 +146,13 @@ public sealed class SyncActiveLocationEffectsCommandTests(DatabaseFixture db)
         await Sync();
 
         // Assert
-        Assert.True((await Reload(bystander.Id)).CurrentHp < 50);
-        Assert.Empty(Published<PlayerVitalsChangedEvent>());
+        var reloaded = await Reload(bystander.Id);
+        var vitals = Assert.Single(Published<CreatureVitalsChangedEvent>());
+        Assert.True(reloaded.CurrentHp < 50);
+        Assert.Equal(
+            reloaded.CurrentHp,
+            vitals.Vitals.Single(entry => entry.CreatureId == bystander.Id).CurrentHp
+        );
     }
 
     [Fact]
@@ -200,6 +205,6 @@ public sealed class SyncActiveLocationEffectsCommandTests(DatabaseFixture db)
         // Assert
         var update = Assert.Single(Published<CombatUpdatedEvent>());
         Assert.Equal(CombatOutcome.Victory, update.Outcome);
-        Assert.Empty(Published<PlayerVitalsChangedEvent>());
+        Assert.Empty(Published<CreatureVitalsChangedEvent>());
     }
 }
