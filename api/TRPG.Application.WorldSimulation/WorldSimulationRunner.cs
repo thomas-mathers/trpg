@@ -10,6 +10,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Routing.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation.Arrivals;
+using TRPG.Application.WorldSimulation.Climate;
 using TRPG.Application.WorldSimulation.Commands;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
@@ -62,6 +63,7 @@ public sealed class WorldSimulationRunner(
         logger
     );
     private readonly VitalsPass _vitals = new(worldId, cadence, serviceScopeFactory, logger);
+    private readonly WeatherPass _weather = new(worldId, serviceScopeFactory, logger);
     private readonly SceneResync _sceneResync = new(
         worldId,
         subscriptions,
@@ -71,6 +73,8 @@ public sealed class WorldSimulationRunner(
     );
     private LoadedWorldSimulation _loaded = loaded;
     private volatile bool _isRecovering;
+    private bool _exposureStale;
+    private bool _weatherUnannounced;
     private Guid? _lastPlannedCreatureId;
     private PlanningSweep? _planningSweep;
 
@@ -91,6 +95,13 @@ public sealed class WorldSimulationRunner(
 
     public async Task RefreshWeather(GameInstant now, CancellationToken cancellationToken = default)
     {
+        _applier.Enqueue(await _weather.Run(now, cancellationToken));
+        await RefreshExposure(now, cancellationToken);
+        _weatherRefresh.Restart(now);
+    }
+
+    private async Task RefreshExposure(GameInstant now, CancellationToken cancellationToken)
+    {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var severe = await scope
             .ServiceProvider.GetRequiredService<WeatherExposureProvider>()
@@ -100,7 +111,7 @@ public sealed class WorldSimulationRunner(
             );
 
         _loaded.Simulator.SetSevereWeatherLocations(severe, now);
-        _weatherRefresh.Restart(now);
+        _exposureStale = false;
     }
 
     public async Task ServiceMailbox(GameInstant now, CancellationToken cancellationToken = default)
@@ -129,6 +140,10 @@ public sealed class WorldSimulationRunner(
         {
             await RefreshWeather(now, cancellationToken);
         }
+        else if (_exposureStale)
+        {
+            await RefreshExposure(now, cancellationToken);
+        }
 
         await _sceneResync.Run(cancellationToken);
         await _activeLocationPasses.Run(now, cancellationToken);
@@ -144,6 +159,7 @@ public sealed class WorldSimulationRunner(
             && _unexecutedArrivals.Count == 0
             && _unexecutedLocalArrivals.Count == 0
             && _unpublishedVitals.Count == 0
+            && !_weatherUnannounced
             && _unpublishedCreatureIdsByLocationId.Count == 0
         )
         {
@@ -473,7 +489,7 @@ public sealed class WorldSimulationRunner(
         return -1;
     }
 
-    private void LogMovementEvents(GameInstant now, IEnumerable<SimEvent> events)
+    private void LogMovementEvents(GameInstant now, IEnumerable<CreatureSimEvent> events)
     {
         foreach (var simEvent in events.Where(simEvent => simEvent is not JourneyCheckpoint))
         {
@@ -705,12 +721,22 @@ public sealed class WorldSimulationRunner(
             return;
         }
 
-        LogMovementEvents(now, committed);
+        LogMovementEvents(now, committed.OfType<CreatureSimEvent>());
         _unexecutedArrivals.AddRange(committed.OfType<JourneyCompleted>());
         _unexecutedLocalArrivals.AddRange(committed.OfType<LocalMoveCompleted>());
         _unpublishedVitals.AddRange(committed.OfType<CreatureVitalsEvent>());
+        NoteWeatherChanges(committed);
         UpdateTransientWalks(committed);
         RememberUnpublishedCreatures(committed);
+    }
+
+    private void NoteWeatherChanges(IReadOnlyList<SimEvent> committed)
+    {
+        if (committed.OfType<WeatherChanged>().Any())
+        {
+            _weatherUnannounced = true;
+            _exposureStale = true;
+        }
     }
 
     private async Task ExecuteArrivals(CancellationToken cancellationToken)
@@ -813,7 +839,11 @@ public sealed class WorldSimulationRunner(
 
     private async Task PublishScenes(GameInstant now, CancellationToken cancellationToken)
     {
-        if (_unpublishedCreatureIdsByLocationId.Count == 0 && _unpublishedVitals.Count == 0)
+        if (
+            _unpublishedCreatureIdsByLocationId.Count == 0
+            && _unpublishedVitals.Count == 0
+            && !_weatherUnannounced
+        )
         {
             return;
         }
@@ -821,11 +851,26 @@ public sealed class WorldSimulationRunner(
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         await PublishVitals(scope.ServiceProvider, cancellationToken);
         await PublishCreatureChanges(scope.ServiceProvider, now, cancellationToken);
+        await PublishWeather(scope.ServiceProvider, cancellationToken);
 
         // Flushing inside the lease keeps the scene ordered with the mutations it describes.
         await scope
             .ServiceProvider.GetRequiredService<IGameClientEventDispatcher>()
             .FlushAsync(worldId, cancellationToken);
+    }
+
+    private async Task PublishWeather(
+        IServiceProvider services,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!_weatherUnannounced)
+        {
+            return;
+        }
+
+        await services.GetRequiredService<WeatherAnnouncer>().Announce(worldId, cancellationToken);
+        _weatherUnannounced = false;
     }
 
     private async Task PublishVitals(IServiceProvider services, CancellationToken cancellationToken)
@@ -875,7 +920,7 @@ public sealed class WorldSimulationRunner(
 
     private void RememberUnpublishedCreatures(IReadOnlyList<SimEvent> committed)
     {
-        foreach (var simEvent in committed)
+        foreach (var simEvent in committed.OfType<CreatureSimEvent>())
         {
             foreach (var locationId in SimEventLocations.Touched(simEvent))
             {
@@ -929,7 +974,7 @@ public sealed class WorldSimulationRunner(
         double PathMeters
     )
     {
-        public static MovementDiagnostic From(SimEvent simEvent) =>
+        public static MovementDiagnostic From(CreatureSimEvent simEvent) =>
             simEvent switch
             {
                 JourneyStarted started => new(

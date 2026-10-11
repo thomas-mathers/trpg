@@ -2,8 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Creatures;
 using TRPG.Application.Encounters.Events;
-using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Events;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Commands;
 using TRPG.Data;
@@ -177,88 +175,6 @@ public sealed class SyncActiveLocationRoutinesCommandTests(DatabaseFixture db)
             GameTime = gameTime,
             Players = [new ActiveLocationPlayer(player.LocationId, player.Id, player.Level)],
         };
-
-    [Fact]
-    public async Task Handle_AnnouncesTheWeather_WhenTheOutdoorSceneHadNone()
-    {
-        // Arrange
-        await SeedWorld();
-        var player = await SeedWatchedPlayer(spawnerLastSyncGameTime: GameClock.Epoch);
-        RecordPublishedScene(player, weather: null);
-
-        // Act
-        await _handler.Handle(
-            MakeWatchCommand(player, GameClock.Epoch),
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var changed = Assert.Single(
-            _serviceProvider
-                .GetRequiredService<TestGameClientEventSink>()
-                .EnqueuedEvents.OfType<WeatherChangedEvent>()
-        );
-        Assert.NotNull(changed.WeatherCondition);
-        Assert.Equal(
-            changed.WeatherCondition,
-            _serviceProvider.GetRequiredService<PublishedSceneRegistry>().Find(player.Id)!.Weather
-        );
-    }
-
-    [Fact]
-    public async Task Handle_AnnouncesNoWeather_WhenTheConditionIsUnchanged()
-    {
-        // Arrange
-        await SeedWorld();
-        var player = await SeedWatchedPlayer(spawnerLastSyncGameTime: GameClock.Epoch);
-        var location = await _context.Locations.SingleAsync(
-            location => location.Id == player.LocationId,
-            TestContext.Current.CancellationToken
-        );
-        _context.WeatherStates.Add(
-            new WeatherState
-            {
-                WorldId = _worldId,
-                StateId = location.StateId,
-                Condition = WeatherCondition.Clear,
-                NextChangeGameTime = GameClock.Epoch + TimeSpan.FromDays(1),
-            }
-        );
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        RecordPublishedScene(player, WeatherCondition.Clear);
-
-        // Act
-        await _handler.Handle(
-            MakeWatchCommand(player, GameClock.Epoch),
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Empty(
-            _serviceProvider
-                .GetRequiredService<TestGameClientEventSink>()
-                .EnqueuedEvents.OfType<WeatherChangedEvent>()
-        );
-    }
-
-    private async Task SeedWorld()
-    {
-        _context.Worlds.Add(Builders.MakeWorld(_worldId));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-    }
-
-    private void RecordPublishedScene(Creature player, WeatherCondition? weather) =>
-        _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Record(
-                player.Id,
-                SceneResultBuilder.MakeScene() with
-                {
-                    WorldId = _worldId,
-                    LocationId = player.LocationId,
-                    Weather = weather,
-                }
-            );
 
     private async Task<Creature> SeedWatchedPlayer(GameInstant spawnerLastSyncGameTime)
     {

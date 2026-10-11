@@ -1,6 +1,5 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Encounters.Commands;
-using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation.Commands;
@@ -14,8 +13,7 @@ public class SyncActiveLocationRoutinesCommand
 
 internal class SyncActiveLocationRoutinesCommandHandler(
     ICommandHandler<SyncLocationRoutinesCommand, SyncLocationRoutinesResult> syncLocationRoutines,
-    ICommandHandler<EvaluateAmbientEncounterCommand> evaluateAmbientEncounter,
-    WeatherAnnouncer weatherAnnouncer
+    ICommandHandler<EvaluateAmbientEncounterCommand> evaluateAmbientEncounter
 ) : ICommandHandler<SyncActiveLocationRoutinesCommand>
 {
     public async Task Handle(
@@ -49,7 +47,5 @@ internal class SyncActiveLocationRoutinesCommandHandler(
                 cancellationToken
             );
         }
-
-        await weatherAnnouncer.Announce(command.WorldId, command.Players, cancellationToken);
     }
 }

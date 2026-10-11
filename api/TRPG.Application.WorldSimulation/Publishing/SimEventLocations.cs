@@ -4,7 +4,7 @@ namespace TRPG.Application.WorldSimulation.Publishing;
 
 internal static class SimEventLocations
 {
-    public static IEnumerable<Guid> Touched(SimEvent simEvent) =>
+    public static IEnumerable<Guid> Touched(CreatureSimEvent simEvent) =>
         simEvent switch
         {
             JourneyStarted started => [started.OriginLocationId],

@@ -280,5 +280,5 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR I3: regeneration concern and `CreatureVitalsUpdated`
 - [x] PR I4: active effects concern (`GetCreatureEffectAdvancesQuery` computes the advance, so the advancer stays internal to Creatures; fight effects stay a command, `SyncActiveFightEffectsCommand`)
 - [x] PR I5: ambient encounters and location maintenance (decided to stay commands: `SyncLocationRoutinesCommand` composes six module-owned writers (weather, front-door lock, creature spawner, restock policy, quest seed schedule) and the ambient evaluation consumes the group ids the spawner just created, so there is no cheap batch-loadable input or single event stream to model; J classifies them as runner-only writers)
-- [ ] PR I6: weather as a world-level decision, `SimEvent` hierarchy split
+- [x] PR I6: weather as a world-level decision, `SimEvent` hierarchy split (`CreatureSimEvent`), `EnsureWeatherCommand`, event-driven `WeatherAnnouncer`
 - [ ] PR J: single-writer enforcement

@@ -8,7 +8,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Weather.Commands;
 
-public sealed class SyncWeatherCommandTests(DatabaseFixture db)
+public sealed class EnsureWeatherCommandTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -16,36 +16,24 @@ public sealed class SyncWeatherCommandTests(DatabaseFixture db)
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private SyncWeatherCommandHandler _handler = null!;
+    private EnsureWeatherCommandHandler _handler = null!;
 
-    public async ValueTask InitializeAsync()
+    public ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
 
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<SyncWeatherCommandHandler>();
+        _handler = _serviceProvider.GetRequiredService<EnsureWeatherCommandHandler>();
+
+        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
     {
         await _serviceProvider.DisposeAsync();
         await _context.DisposeAsync();
-    }
-
-    private async Task<WeatherState> SeedWeatherState(Guid stateId, GameInstant nextChangeGameTime)
-    {
-        var weatherState = new WeatherState
-        {
-            WorldId = WorldId,
-            StateId = stateId,
-            Condition = WeatherCondition.Clear,
-            NextChangeGameTime = nextChangeGameTime,
-        };
-        _context.WeatherStates.Add(weatherState);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return weatherState;
     }
 
     [Fact]
@@ -56,7 +44,7 @@ public sealed class SyncWeatherCommandTests(DatabaseFixture db)
 
         // Act
         await _handler.Handle(
-            new SyncWeatherCommand
+            new EnsureWeatherCommand
             {
                 WorldId = WorldId,
                 StateId = stateId,
@@ -75,20 +63,28 @@ public sealed class SyncWeatherCommandTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_DoesNothing_WhenNotYetDue()
+    public async Task Handle_LeavesTheStateAlone_WhenOneExistsAndIsDue()
     {
         // Arrange
         var stateId = Guid.NewGuid();
-        var farFuture = GameClock.Epoch + TimeSpan.FromDays(30);
-        await SeedWeatherState(stateId, farFuture);
-
-        // Act
-        await _handler.Handle(
-            new SyncWeatherCommand
+        _context.WeatherStates.Add(
+            new WeatherState
             {
                 WorldId = WorldId,
                 StateId = stateId,
-                CurrentGameTime = GameClock.Epoch,
+                Condition = WeatherCondition.Clear,
+                NextChangeGameTime = GameClock.Epoch,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new EnsureWeatherCommand
+            {
+                WorldId = WorldId,
+                StateId = stateId,
+                CurrentGameTime = GameClock.Epoch + TimeSpan.FromHours(1),
             },
             TestContext.Current.CancellationToken
         );
@@ -99,35 +95,9 @@ public sealed class SyncWeatherCommandTests(DatabaseFixture db)
             w => w.StateId == stateId,
             TestContext.Current.CancellationToken
         );
-        Assert.Equal(WeatherCondition.Clear, weatherState.Condition);
-        Assert.Equal(farFuture, weatherState.NextChangeGameTime);
-    }
-
-    [Fact]
-    public async Task Handle_AdvancesTheNextChangeGameTime_WhenDue()
-    {
-        // Arrange
-        var stateId = Guid.NewGuid();
-        await SeedWeatherState(stateId, GameClock.Epoch);
-        var currentGameTime = GameClock.Epoch + TimeSpan.FromHours(1);
-
-        // Act
-        await _handler.Handle(
-            new SyncWeatherCommand
-            {
-                WorldId = WorldId,
-                StateId = stateId,
-                CurrentGameTime = currentGameTime,
-            },
-            TestContext.Current.CancellationToken
+        Assert.Equal(
+            (WeatherCondition.Clear, GameClock.Epoch),
+            (weatherState.Condition, weatherState.NextChangeGameTime)
         );
-
-        // Assert
-        await using var verifyContext = db.CreateContext();
-        var weatherState = await verifyContext.WeatherStates.SingleAsync(
-            w => w.StateId == stateId,
-            TestContext.Current.CancellationToken
-        );
-        Assert.True(weatherState.NextChangeGameTime > currentGameTime);
     }
 }

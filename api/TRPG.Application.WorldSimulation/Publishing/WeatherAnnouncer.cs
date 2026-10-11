@@ -4,11 +4,16 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Weather.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Application.WorldSimulation.Queries;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Publishing;
 
 internal class WeatherAnnouncer(
+    IQueryHandler<
+        GetActiveLocationPlayersQuery,
+        IReadOnlyCollection<ActiveLocationPlayer>
+    > getActiveLocationPlayers,
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?> getWeatherByStateId,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
@@ -16,12 +21,12 @@ internal class WeatherAnnouncer(
     ScenePublisher scenePublisher
 )
 {
-    public async Task Announce(
-        Guid worldId,
-        IReadOnlyCollection<ActiveLocationPlayer> players,
-        CancellationToken cancellationToken
-    )
+    public async Task Announce(Guid worldId, CancellationToken cancellationToken)
     {
+        var players = await getActiveLocationPlayers.Handle(
+            new GetActiveLocationPlayersQuery { WorldId = worldId },
+            cancellationToken
+        );
         foreach (var player in players)
         {
             var previous = publishedScenes.Find(player.PlayerId);

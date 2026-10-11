@@ -930,6 +930,56 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_AdvancesDueWeather_AndAnnouncesItToThePlayersScene()
+    {
+        // Arrange
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await AddWeather(nextChangeAt: Now + TimeSpan.FromMinutes(1));
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + TimeSpan.FromMinutes(2), TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await ReadWeather();
+        var announced = _serviceProvider
+            .GetRequiredService<PublishedSceneRegistry>()
+            .Find(_playerId)!
+            .Weather;
+        Assert.Equal(
+            (true, stored.Condition),
+            (stored.NextChangeGameTime > Now + TimeSpan.FromMinutes(2), announced)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_LeavesTheWeatherAlone_BeforeItIsDue()
+    {
+        // Arrange
+        var nextChangeAt = Now + TimeSpan.FromHours(5);
+        await AddWeather(nextChangeAt);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + MaintenanceInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await ReadWeather();
+        Assert.Equal(
+            (WeatherCondition.Clear, nextChangeAt),
+            (stored.Condition, stored.NextChangeGameTime)
+        );
+    }
+
+    [Fact]
     public async Task Tick_SkipsTheActivePasses_WhenTheWorldHasNoPlayer()
     {
         // Arrange
@@ -1011,6 +1061,29 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             .Worlds.Where(world => world.Id == _worldId)
             .Select(world => world.StateVersion)
             .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task AddWeather(GameInstant nextChangeAt)
+    {
+        _context.WeatherStates.Add(
+            new WeatherState
+            {
+                WorldId = _worldId,
+                StateId = _stateId,
+                Condition = WeatherCondition.Clear,
+                NextChangeGameTime = nextChangeAt,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<WeatherState> ReadWeather()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext.WeatherStates.SingleAsync(
+            weather => weather.StateId == _stateId,
+            TestContext.Current.CancellationToken
+        );
     }
 
     private async Task<bool> WeatherExists()
