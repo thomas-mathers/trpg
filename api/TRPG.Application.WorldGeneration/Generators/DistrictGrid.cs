@@ -62,11 +62,6 @@ internal static class DistrictGrid
         }
     }
 
-    internal static CompassDirection? DirectionBetween(GridCell from, GridCell to) =>
-        Edges
-            .Select(edge => (CompassDirection?)edge)
-            .FirstOrDefault(edge => from.Step(edge!.Value) == to);
-
     private static GridCell NextCell(HashSet<GridCell> taken) =>
         taken
             .SelectMany(cell => Edges.Select(cell.Step))

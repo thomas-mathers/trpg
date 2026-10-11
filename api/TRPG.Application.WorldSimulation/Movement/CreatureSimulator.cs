@@ -123,12 +123,6 @@ public sealed class CreatureSimulator
     public SimCreatureState? StateOf(Guid creatureId) =>
         _creaturesById.GetValueOrDefault(creatureId)?.ToState();
 
-    public bool IsSchedulerSleeping(Guid creatureId, GameInstant now) =>
-        _creaturesById.GetValueOrDefault(creatureId) is { } creature
-        && !creature.IsWalking
-        && !creature.IsFrozen
-        && creature.NextUpdate > now;
-
     public void DeferUntilNextRoutineChange(Guid creatureId, GameInstant now)
     {
         if (_creaturesById.GetValueOrDefault(creatureId) is not { } creature || creature.IsWalking)

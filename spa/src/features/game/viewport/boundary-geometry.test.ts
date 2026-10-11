@@ -4,7 +4,6 @@ import {
   apronQuads,
   extrudedQuad,
   isOnOpenEdge,
-  openEdgeSegment,
   outwardNormal,
   roadRenderOrder,
   roadRibbon,
@@ -70,38 +69,6 @@ describe('isOnOpenEdge', () => {
 
     // Assert
     expect(open).toBe(false);
-  });
-});
-
-describe('openEdgeSegment', () => {
-  it('spans the full width along the north edge', () => {
-    // Act
-    const segment = openEdgeSegment('North', size);
-
-    // Assert
-    expect(segment).toEqual([
-      { x: 0, y: 0 },
-      { x: 40, y: 0 },
-    ]);
-  });
-
-  it('spans the full depth along the east edge', () => {
-    // Act
-    const segment = openEdgeSegment('East', size);
-
-    // Assert
-    expect(segment).toEqual([
-      { x: 40, y: 0 },
-      { x: 40, y: 30 },
-    ]);
-  });
-
-  it('has no segment for a diagonal direction', () => {
-    // Act
-    const segment = openEdgeSegment('Northeast', size);
-
-    // Assert
-    expect(segment).toBeUndefined();
   });
 });
 

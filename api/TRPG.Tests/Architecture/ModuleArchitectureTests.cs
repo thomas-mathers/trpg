@@ -20,8 +20,6 @@ public sealed partial class ModuleArchitectureTests
 
     private static readonly IReadOnlySet<string> ForeignContextAllowlist = new HashSet<string>
     {
-        "TRPG.Application.Routing/Commands/PlanCircuitJourneyCommand.cs:ICreaturesDbContext",
-        "TRPG.Application.Routing/Commands/PlanCircuitJourneyCommand.cs:IWorldsDbContext",
         "TRPG.Application.Routing/Commands/PlanRoutineJourneyCommand.cs:ICreatureJobsDbContext",
         "TRPG.Application.Routing/Commands/PlanRoutineJourneyCommand.cs:ICreaturesDbContext",
         "TRPG.Application.Routing/Queries/GetCreatureJourneyPositionsQuery.cs:ICreaturesDbContext",

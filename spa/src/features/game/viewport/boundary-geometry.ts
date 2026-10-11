@@ -39,36 +39,6 @@ export function isOnOpenEdge(
   return openEdges.includes(direction);
 }
 
-export function openEdgeSegment(
-  direction: CompassDirection,
-  { width, depth }: FootprintWire,
-): [PlanarPoint, PlanarPoint] | undefined {
-  switch (direction) {
-    case 'North':
-      return [
-        { x: 0, y: 0 },
-        { x: width, y: 0 },
-      ];
-    case 'South':
-      return [
-        { x: 0, y: depth },
-        { x: width, y: depth },
-      ];
-    case 'West':
-      return [
-        { x: 0, y: 0 },
-        { x: 0, y: depth },
-      ];
-    case 'East':
-      return [
-        { x: width, y: 0 },
-        { x: width, y: depth },
-      ];
-    default:
-      return undefined;
-  }
-}
-
 export function extrudedQuad(
   from: PlanarPoint,
   to: PlanarPoint,

@@ -17,6 +17,4 @@ internal readonly record struct PlanRect(double X, double Y, double Width, doubl
         && point.X <= Right + Tolerance
         && point.Y >= Y - Tolerance
         && point.Y <= Bottom + Tolerance;
-
-    internal OrientedBox ToBox() => new(CenterX, CenterY, Width, Depth, 0);
 }

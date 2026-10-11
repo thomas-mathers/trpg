@@ -65,27 +65,6 @@ public static class CreatureJobScheduling
             .FirstOrDefault();
     }
 
-    public static GameInstant FindMostRecentEndGameTime(CreatureJob job, GameInstant gameTime)
-    {
-        var currentDateTime = GameClock.GetCurrentInGameDateTime(gameTime);
-        for (var dayOffset = 0; dayOffset <= 7; dayOffset++)
-        {
-            var start = currentDateTime.Date.AddDays(-dayOffset).AddHours(job.StartHour);
-            if (job.SpecificDay != null && job.SpecificDay != start.DayOfWeek)
-            {
-                continue;
-            }
-
-            var end = start.AddHours((job.EndHour - job.StartHour + 24) % 24);
-            if (end <= currentDateTime)
-            {
-                return gameTime + TimeSpan.FromHours(1) * (end - currentDateTime).TotalHours;
-            }
-        }
-
-        throw new InvalidOperationException("A scheduled job has no prior end time.");
-    }
-
     private static DateTime ResolveActiveStart(CreatureJob job, DateTime currentDateTime)
     {
         var start = currentDateTime.Date.AddHours(job.StartHour);

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation.Commands;
@@ -16,9 +15,7 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
 {
     private static readonly Guid WorldId = Guid.NewGuid();
 
-    private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private AddCreatureCommandHandler _addCreature = null!;
-    private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private SyncScheduleLocksCommandHandler _handler = null!;
@@ -32,9 +29,7 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
-        _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
         _handler = _serviceProvider.GetRequiredService<SyncScheduleLocksCommandHandler>();
         _setCreatureActivity =
             _serviceProvider.GetRequiredService<SetCreatureActivityCommandHandler>();
@@ -47,11 +42,11 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
         await _context.DisposeAsync();
     }
 
-    private Task AddJob(CreatureJob job) =>
-        _addJob.Handle(
-            new AddCreatureJobCommand { CreatureJob = job },
-            TestContext.Current.CancellationToken
-        );
+    private async Task AddJob(CreatureJob job)
+    {
+        _context.CreatureJobs.Add(job);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 
     private Task<DoorConnector> GetFrontDoor(Guid doorConnectorId) =>
         _context
@@ -405,11 +400,10 @@ public sealed class SyncScheduleLocksCommandTests(DatabaseFixture db)
     {
         var building = Builders.MakeBuilding(worldId: WorldId, buildingType: buildingType);
         _context.Buildings.Add(building);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addBuildingOwner.Handle(
-            new AddBuildingOwnerCommand { BuildingId = building.Id, OwnerId = ownerId },
-            TestContext.Current.CancellationToken
+        _context.BuildingOwners.Add(
+            Builders.MakeBuildingOwner(building.Id, ownerId, worldId: WorldId)
         );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return building;
     }
 

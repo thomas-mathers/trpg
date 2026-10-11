@@ -1,30 +1,9 @@
-using TRPG.Application.Common.Navigation;
 using TRPG.Application.Configuration;
 
 namespace TRPG.Tests.Application.Configuration;
 
 public sealed class ContinuousTimeBalanceTests
 {
-    [Fact]
-    public void CaravanSpeed_IsThreeTimesWalkingPace_WhenDefault()
-    {
-        // Act
-        var options = new CaravanOptions();
-
-        // Assert
-        Assert.Equal((float)InLocationPace.BaseMovementSpeed * 3, options.SpeedUnitsPerHour);
-    }
-
-    [Fact]
-    public void CaravanLinger_IsTwentyRealMinutes_WhenDefault()
-    {
-        // Act
-        var options = new CaravanOptions();
-
-        // Assert
-        Assert.Equal(TimeSpan.FromMinutes(20), TimeSpan.FromHours(options.DefaultLingerHours));
-    }
-
     [Fact]
     public void ActionPointsRegeneration_RefillsFromEmptyInFiftySeconds_WhenDefault()
     {
