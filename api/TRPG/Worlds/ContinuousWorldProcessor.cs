@@ -8,17 +8,10 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.WorldSimulation;
-using TRPG.Application.WorldSimulation.Commands;
 using TRPG.Application.WorldSimulation.Queries;
 using TRPG.Domain;
 
 namespace TRPG.Worlds;
-
-internal enum ContinuousWorldLane
-{
-    Frequent,
-    Routines,
-}
 
 internal sealed class ContinuousWorldProcessor(
     IServiceScopeFactory serviceScopeFactory,
@@ -27,36 +20,21 @@ internal sealed class ContinuousWorldProcessor(
     ILogger<ContinuousWorldProcessor> logger
 )
 {
-    private readonly ConcurrentDictionary<WorldLane, byte> _runningPasses = new();
+    private readonly ConcurrentDictionary<Guid, byte> _runningPasses = new();
 
-    public Task ProcessFrequent(CancellationToken cancellationToken = default) =>
-        ProcessActiveWorlds(ContinuousWorldLane.Frequent, cancellationToken);
-
-    public Task ProcessRoutines(CancellationToken cancellationToken = default) =>
-        ProcessActiveWorlds(ContinuousWorldLane.Routines, cancellationToken);
-
-    private async Task ProcessActiveWorlds(
-        ContinuousWorldLane lane,
-        CancellationToken cancellationToken
-    ) =>
+    public async Task Process(CancellationToken cancellationToken = default) =>
         await Task.WhenAll(
             worldClock
                 .GetActiveWorldIds()
-                .Select(worldId => ProcessWorld(worldId, lane, cancellationToken))
+                .Select(worldId => ProcessWorld(worldId, cancellationToken))
         );
 
-    private async Task ProcessWorld(
-        Guid worldId,
-        ContinuousWorldLane lane,
-        CancellationToken cancellationToken
-    )
+    private async Task ProcessWorld(Guid worldId, CancellationToken cancellationToken)
     {
-        var pass = new WorldLane(worldId, lane);
-        if (!_runningPasses.TryAdd(pass, 0))
+        if (!_runningPasses.TryAdd(worldId, 0))
         {
             logger.LogDebug(
-                "Skipping {Lane} simulation for world {WorldId}: the previous pass is still running",
-                lane,
+                "Skipping ambient publish for world {WorldId}: the previous pass is still running",
                 worldId
             );
             return;
@@ -64,32 +42,23 @@ internal sealed class ContinuousWorldProcessor(
 
         try
         {
-            await SyncWorld(worldId, lane, cancellationToken);
+            await SyncWorld(worldId, cancellationToken);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
-            logger.LogError(
-                exception,
-                "Failed {Lane} simulation for world {WorldId}",
-                lane,
-                worldId
-            );
+            logger.LogError(exception, "Failed ambient publish for world {WorldId}", worldId);
         }
         finally
         {
-            _runningPasses.TryRemove(pass, out _);
+            _runningPasses.TryRemove(worldId, out _);
         }
     }
 
-    private async Task SyncWorld(
-        Guid worldId,
-        ContinuousWorldLane lane,
-        CancellationToken cancellationToken
-    )
+    private async Task SyncWorld(Guid worldId, CancellationToken cancellationToken)
     {
         var mutatedWorld = await simulation.Request(
             worldId,
-            (_, token) => RunPass(worldId, lane, token),
+            (_, token) => RunPass(worldId, token),
             cancellationToken
         );
         if (!mutatedWorld)
@@ -104,11 +73,7 @@ internal sealed class ContinuousWorldProcessor(
             .FlushAsync(worldId, cancellationToken);
     }
 
-    private async Task<bool> RunPass(
-        Guid worldId,
-        ContinuousWorldLane lane,
-        CancellationToken cancellationToken
-    )
+    private async Task<bool> RunPass(Guid worldId, CancellationToken cancellationToken)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
 
@@ -126,39 +91,9 @@ internal sealed class ContinuousWorldProcessor(
             return false;
         }
 
-        if (lane == ContinuousWorldLane.Routines)
-        {
-            await SyncRoutines(
-                scope.ServiceProvider,
-                worldId,
-                players,
-                gameTime,
-                cancellationToken
-            );
-        }
-
         await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
         return true;
     }
-
-    private static Task SyncRoutines(
-        IServiceProvider services,
-        Guid worldId,
-        IReadOnlyCollection<ActiveLocationPlayer> players,
-        GameInstant gameTime,
-        CancellationToken cancellationToken
-    ) =>
-        services
-            .GetRequiredService<ICommandHandler<SyncActiveLocationRoutinesCommand>>()
-            .Handle(
-                new SyncActiveLocationRoutinesCommand
-                {
-                    WorldId = worldId,
-                    Players = players,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
 
     private async Task PublishAmbientScenes(
         Guid worldId,
@@ -186,6 +121,4 @@ internal sealed class ContinuousWorldProcessor(
             );
         }
     }
-
-    private readonly record struct WorldLane(Guid WorldId, ContinuousWorldLane Lane);
 }

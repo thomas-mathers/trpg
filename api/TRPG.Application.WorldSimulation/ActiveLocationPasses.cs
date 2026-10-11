@@ -11,26 +11,30 @@ namespace TRPG.Application.WorldSimulation;
 
 internal sealed class ActiveLocationPasses(
     Guid worldId,
-    TimeSpan interval,
+    SimulationCadence cadence,
     IServiceScopeFactory serviceScopeFactory,
     ILogger logger
 )
 {
-    private readonly DueEntry _effects = new(interval);
-    private readonly DueEntry _regeneration = new(interval);
+    private readonly DueEntry _effects = new(cadence.ActiveLocationPass);
+    private readonly DueEntry _regeneration = new(cadence.ActiveLocationPass);
+    private readonly DueEntry _maintenance = new(cadence.LocationMaintenance);
 
     public async Task Run(GameInstant now, CancellationToken cancellationToken)
     {
-        var effectsDue = _effects.TakeIfDue(now);
-        var regenerationDue = _regeneration.TakeIfDue(now);
-        if (!effectsDue && !regenerationDue)
+        var due = new DuePasses(
+            _effects.TakeIfDue(now),
+            _regeneration.TakeIfDue(now),
+            _maintenance.TakeIfDue(now)
+        );
+        if (!due.Any)
         {
             return;
         }
 
         try
         {
-            await RunDue(effectsDue, regenerationDue, now, cancellationToken);
+            await RunDue(due, now, cancellationToken);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -42,12 +46,7 @@ internal sealed class ActiveLocationPasses(
         }
     }
 
-    private async Task RunDue(
-        bool effectsDue,
-        bool regenerationDue,
-        GameInstant now,
-        CancellationToken cancellationToken
-    )
+    private async Task RunDue(DuePasses due, GameInstant now, CancellationToken cancellationToken)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var services = scope.ServiceProvider;
@@ -65,7 +64,7 @@ internal sealed class ActiveLocationPasses(
             return;
         }
 
-        if (effectsDue)
+        if (due.Effects)
         {
             await Isolate(
                 "effects",
@@ -85,7 +84,7 @@ internal sealed class ActiveLocationPasses(
             );
         }
 
-        if (regenerationDue)
+        if (due.Regeneration)
         {
             await Isolate(
                 "regeneration",
@@ -96,6 +95,26 @@ internal sealed class ActiveLocationPasses(
                         >()
                         .Handle(
                             new SyncActiveLocationRegenerationCommand
+                            {
+                                WorldId = worldId,
+                                Players = players,
+                                GameTime = now,
+                            },
+                            cancellationToken
+                        ),
+                cancellationToken
+            );
+        }
+
+        if (due.Maintenance)
+        {
+            await Isolate(
+                "maintenance",
+                () =>
+                    services
+                        .GetRequiredService<ICommandHandler<SyncActiveLocationRoutinesCommand>>()
+                        .Handle(
+                            new SyncActiveLocationRoutinesCommand
                             {
                                 WorldId = worldId,
                                 Players = players,
@@ -127,5 +146,10 @@ internal sealed class ActiveLocationPasses(
                 worldId
             );
         }
+    }
+
+    private readonly record struct DuePasses(bool Effects, bool Regeneration, bool Maintenance)
+    {
+        public bool Any => Effects || Regeneration || Maintenance;
     }
 }

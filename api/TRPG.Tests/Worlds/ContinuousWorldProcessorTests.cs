@@ -1,9 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Creatures.Events;
 using TRPG.Application.Scenes.Events;
 using TRPG.Application.Worlds;
 using TRPG.Application.WorldSimulation;
@@ -30,7 +28,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     private WorldClock _worldClock = null!;
     private ContinuousWorldProcessor _processor = null!;
     private World _world = null!;
-    private Guid _stateId;
     private Creature _player = null!;
 
     public async ValueTask InitializeAsync()
@@ -56,7 +53,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         _world = Builders.MakeWorld();
         var country = Builders.MakeCountry(_world.Id);
         var state = Builders.MakeState(country.Id);
-        _stateId = state.Id;
         var location = Builders.MakeLocation(_world.Id, state.Id, kind: LocationKind.Wilderness);
         _player = Builders.MakeCreature(_world.Id, locationId: location.Id, currentHp: 1);
         _world.PlayerId = _player.Id;
@@ -75,62 +71,23 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessRoutines_AppliesRoutines_WhenWorldIsActive()
-    {
-        // Arrange
-        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-
-        // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.True(await WeatherExists());
-    }
-
-    [Fact]
-    public async Task ProcessRoutines_LeavesWorldUntouched_WhenWorldIsPaused()
+    public async Task Process_LeavesWorldUntouched_WhenWorldIsPaused()
     {
         // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.False(await WeatherExists());
-    }
-
-    [Fact]
-    public async Task ProcessFrequent_LeavesPlayerUntouched_WhenWorldIsPaused()
-    {
-        // Act
-        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(1, await ReadPlayerHp());
         Assert.Empty(_flushedEvents);
     }
 
     [Fact]
-    public async Task ProcessRoutines_DoesNotRegenerate_WhenWorldIsActive()
-    {
-        // Arrange
-        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        _timeProvider.Advance(TimeSpan.FromSeconds(10));
-
-        // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(1, await ReadPlayerHp());
-        Assert.Empty(_flushedEvents.OfType<PlayerVitalsChangedEvent>());
-    }
-
-    [Fact]
-    public async Task ProcessRoutines_PublishesVersionedScene_WhenNoSceneWasPublishedYet()
+    public async Task Process_PublishesVersionedScene_WhenNoSceneWasPublishedYet()
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
 
         // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.True(_logger.Errors.Count == 0, string.Join(Environment.NewLine, _logger.Errors));
@@ -140,34 +97,34 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessRoutines_PublishesNothing_WhenSceneHasNoPlayerVisibleChange()
+    public async Task Process_PublishesNothing_WhenSceneHasNoPlayerVisibleChange()
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
         _flushedEvents.Clear();
         _timeProvider.Advance(TimeSpan.FromSeconds(30));
 
         // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(_flushedEvents.OfType<SceneUpdatedEvent>());
     }
 
     [Fact]
-    public async Task ProcessRoutines_PublishesScene_WhenACreatureArrivesAtTheLocation()
+    public async Task Process_PublishesScene_WhenACreatureArrivesAtTheLocation()
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
         _flushedEvents.Clear();
         _context.Creatures.Add(Builders.MakeCreature(_world.Id, locationId: _player.LocationId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         _timeProvider.Advance(TimeSpan.FromSeconds(30));
 
         // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
         var creaturesArrived = Assert.Single(_flushedEvents.OfType<CreaturesArrivedEvent>());
@@ -176,7 +133,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessRoutines_RunsAfterTheRunnersCurrentRequest_WhenOneIsInFlight()
+    public async Task Process_RunsAfterTheRunnersCurrentRequest_WhenOneIsInFlight()
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
@@ -199,20 +156,20 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         );
 
         // Act
-        var pass = _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        var pass = _processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
         await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.False(pass.IsCompleted);
-        Assert.False(await WeatherExists());
+        Assert.Empty(_flushedEvents);
         release.SetResult();
         await inFlight;
         await pass;
-        Assert.True(await WeatherExists());
+        Assert.Single(_flushedEvents.OfType<SceneUpdatedEvent>());
     }
 
     [Fact]
-    public async Task ProcessRoutines_SkipsPass_WhenPreviousPassForWorldIsStillRunning()
+    public async Task Process_SkipsPass_WhenPreviousPassForWorldIsStillRunning()
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
@@ -232,10 +189,10 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
             TimeSpan.FromSeconds(5),
             TestContext.Current.CancellationToken
         );
-        var stalePass = _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        var stalePass = _processor.Process(TestContext.Current.CancellationToken);
 
         // Act
-        var overlappingPass = _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        var overlappingPass = _processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
         await overlappingPass.WaitAsync(
@@ -249,24 +206,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessRoutines_RunsNextPass_AfterPreviousPassFinishes()
-    {
-        // Arrange
-        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
-        await _context
-            .WeatherStates.Where(weather => weather.StateId == _stateId)
-            .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
-
-        // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.True(await WeatherExists());
-    }
-
-    [Fact]
-    public async Task ProcessRoutines_LogsFailureWithoutThrowing_WhenWorldPassFails()
+    public async Task Process_LogsFailureWithoutThrowing_WhenWorldPassFails()
     {
         // Arrange
         var processor = new ContinuousWorldProcessor(
@@ -277,28 +217,10 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         );
 
         // Act
-        await processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains(_logger.Errors, error => error.Contains(_world.Id.ToString()));
-    }
-
-    private async Task<bool> WeatherExists()
-    {
-        await using var verifyContext = db.CreateContext();
-        return await verifyContext.WeatherStates.AnyAsync(
-            weather => weather.StateId == _stateId,
-            TestContext.Current.CancellationToken
-        );
-    }
-
-    private async Task<int> ReadPlayerHp()
-    {
-        await using var verifyContext = db.CreateContext();
-        return await verifyContext
-            .Creatures.Where(creature => creature.Id == _player.Id)
-            .Select(creature => creature.CurrentHp)
-            .SingleAsync(TestContext.Current.CancellationToken);
     }
 
     private sealed class RecordingGameClientEventDispatcher(

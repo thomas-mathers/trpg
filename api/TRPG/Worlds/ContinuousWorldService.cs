@@ -9,27 +9,16 @@ internal sealed class ContinuousWorldService(
     ILogger<ContinuousWorldService> logger
 ) : BackgroundService
 {
-    public static readonly TimeSpan FrequentCadence = TimeSpan.FromSeconds(5);
-    public static readonly TimeSpan RoutineCadence = TimeSpan.FromSeconds(30);
+    public static readonly TimeSpan Cadence = TimeSpan.FromSeconds(5);
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        Task.WhenAll(
-            RunEvery(FrequentCadence, processor.ProcessFrequent, stoppingToken),
-            RunEvery(RoutineCadence, processor.ProcessRoutines, stoppingToken)
-        );
-
-    private async Task RunEvery(
-        TimeSpan cadence,
-        Func<CancellationToken, Task> pass,
-        CancellationToken stoppingToken
-    )
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using var timer = new PeriodicTimer(cadence, timeProvider);
+        using var timer = new PeriodicTimer(Cadence, timeProvider);
         try
         {
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                await RunPass(pass, stoppingToken);
+                await RunPass(stoppingToken);
             }
         }
         catch (OperationCanceledException)
@@ -38,11 +27,11 @@ internal sealed class ContinuousWorldService(
         }
     }
 
-    private async Task RunPass(Func<CancellationToken, Task> pass, CancellationToken stoppingToken)
+    private async Task RunPass(CancellationToken stoppingToken)
     {
         try
         {
-            await pass(stoppingToken);
+            await processor.Process(stoppingToken);
         }
         catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
         {

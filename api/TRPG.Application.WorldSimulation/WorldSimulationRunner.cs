@@ -23,20 +23,19 @@ public sealed class WorldSimulationRunner(
     Guid worldId,
     LoadedWorldSimulation loaded,
     WorldSimulationOptions options,
-    TimeSpan activeLocationPassInterval,
+    SimulationCadence cadence,
     IWorldClock worldClock,
     IServiceScopeFactory serviceScopeFactory,
     TransientCreatureWalkRegistry transientWalks,
     ILogger<WorldSimulationRunner> logger
 )
 {
-    private static readonly TimeSpan WeatherRefreshInterval = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan SlowTickThreshold = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan LateMovementThreshold = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan NoteworthyPlanningSweepThreshold = TimeSpan.FromSeconds(1);
     private const int NoteworthyPlanningSweepCreatureCount = 32;
 
-    private long _lastWeatherRefresh = Stopwatch.GetTimestamp();
+    private readonly DueEntry _weatherRefresh = new(cadence.WeatherRefresh);
     private readonly Channel<WorldSimulationMessage> _mailbox =
         Channel.CreateUnbounded<WorldSimulationMessage>(
             new UnboundedChannelOptions { SingleReader = true }
@@ -48,7 +47,7 @@ public sealed class WorldSimulationRunner(
     private readonly Dictionary<Guid, HashSet<Guid>> _unpublishedCreatureIdsByLocationId = [];
     private readonly ActiveLocationPasses _activeLocationPasses = new(
         worldId,
-        activeLocationPassInterval,
+        cadence,
         serviceScopeFactory,
         logger
     );
@@ -79,7 +78,7 @@ public sealed class WorldSimulationRunner(
             .FindExposedLocationIds([.. _loaded.Simulator.IdleLocationIds()], cancellationToken);
 
         _loaded.Simulator.SetExposedLocations(exposed, now);
-        _lastWeatherRefresh = Stopwatch.GetTimestamp();
+        _weatherRefresh.Restart(now);
     }
 
     public async Task ServiceMailbox(GameInstant now, CancellationToken cancellationToken = default)
@@ -98,15 +97,15 @@ public sealed class WorldSimulationRunner(
             return;
         }
 
-        if (Stopwatch.GetElapsedTime(_lastWeatherRefresh) >= WeatherRefreshInterval)
-        {
-            await RefreshWeather(now, cancellationToken);
-        }
-
         now = await DrainMailbox(now, cancellationToken);
         if (_isRecovering)
         {
             return;
+        }
+
+        if (_weatherRefresh.TakeIfDue(now))
+        {
+            await RefreshWeather(now, cancellationToken);
         }
 
         await _activeLocationPasses.Run(now, cancellationToken);

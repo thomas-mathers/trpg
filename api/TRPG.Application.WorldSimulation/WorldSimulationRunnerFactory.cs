@@ -32,7 +32,7 @@ public sealed class WorldSimulationRunnerFactory(
             worldId,
             loaded,
             options.Value,
-            options.Value.ActiveLocationPassInterval * clockOptions.Value.TimeScale,
+            SimulationCadence.Scaled(options.Value, clockOptions.Value.TimeScale),
             worldClock,
             serviceScopeFactory,
             transientWalks,

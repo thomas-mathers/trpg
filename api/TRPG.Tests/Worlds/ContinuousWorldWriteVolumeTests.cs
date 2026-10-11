@@ -75,30 +75,15 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessFrequent_WritesNothing_WhenNothingChanges()
+    public async Task Process_WritesNothing_WhenNothingIsDue()
     {
         // Arrange
-        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
         _timeProvider.Advance(TimeSpan.FromSeconds(5));
         _interceptor.Clear();
 
         // Act
-        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Empty(_interceptor.Writes);
-    }
-
-    [Fact]
-    public async Task ProcessRoutines_WritesNothing_WhenNothingIsDue()
-    {
-        // Arrange
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
-        _timeProvider.Advance(TimeSpan.FromSeconds(30));
-        _interceptor.Clear();
-
-        // Act
-        await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+        await _processor.Process(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(_interceptor.Writes);

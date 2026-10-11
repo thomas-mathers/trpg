@@ -7,16 +7,21 @@ internal sealed class DueEntry(TimeSpan interval)
     private GameInstant? _lastObserved;
     private GameInstant _nextDue;
 
+    public void Restart(GameInstant now)
+    {
+        _lastObserved = now;
+        _nextDue = now + interval;
+    }
+
     public bool TakeIfDue(GameInstant now)
     {
-        var restart = _lastObserved is not { } last || now < last;
-        _lastObserved = now;
-
-        if (restart)
+        if (_lastObserved is not { } last || now < last)
         {
-            _nextDue = now + interval;
+            Restart(now);
             return false;
         }
+
+        _lastObserved = now;
 
         if (now < _nextDue)
         {

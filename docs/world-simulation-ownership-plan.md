@@ -262,7 +262,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
   - [x] 0b-4 streamer and tool calls
 - [x] PR 0c: delete the mutation gate
 - [x] PR A: runner owns time, part 1 (effects, regen)
-- [ ] PR B: runner owns time, part 2 (maintenance, ambient, weather refresh)
+- [x] PR B: runner owns time, part 2 (maintenance, ambient, weather refresh)
 - [ ] PR C: deferred (optional pure move of scene events after H)
 - [ ] PR D: event queue, projector, scene subscriptions, enter message, resync
 - [ ] PR E: seating and sneak emit events

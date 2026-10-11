@@ -8,4 +8,6 @@ public sealed class WorldSimulationOptions
     public int MessagesPerTick { get; init; } = 32;
     public TimeSpan MessageTimeBudget { get; init; } = TimeSpan.FromMilliseconds(100);
     public TimeSpan ActiveLocationPassInterval { get; init; } = TimeSpan.FromSeconds(5);
+    public TimeSpan LocationMaintenanceInterval { get; init; } = TimeSpan.FromSeconds(30);
+    public TimeSpan WeatherRefreshInterval { get; init; } = TimeSpan.FromSeconds(30);
 }

@@ -50,7 +50,7 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         );
 
         await _service.StartAsync(TestContext.Current.CancellationToken);
-        await WaitFor(() => _timeProvider.TimerCount == 2);
+        await WaitFor(() => _timeProvider.TimerCount == 1);
     }
 
     public async ValueTask DisposeAsync()
@@ -62,31 +62,14 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Service_RunsFrequentPassEveryFiveSeconds_WithoutRunningRoutinePass()
+    public async Task Service_RunsPassEveryFiveSeconds()
     {
         // Act
-        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
+        _timeProvider.Advance(ContinuousWorldService.Cadence);
 
         // Assert
         await WaitFor(() => _worldClock.CurrentCount == 1);
         Assert.Equal(1, _worldClock.CurrentCount);
-    }
-
-    [Fact]
-    public async Task Service_RunsRoutinePassEveryThirtySeconds()
-    {
-        // Act
-        for (var pass = 1; pass <= 5; pass++)
-        {
-            _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
-            var expectedPasses = pass;
-            await WaitFor(() => _worldClock.CurrentCount == expectedPasses);
-        }
-        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
-
-        // Assert
-        await WaitFor(() => _worldClock.CurrentCount == 7);
-        Assert.Equal(7, _worldClock.CurrentCount);
     }
 
     [Fact]
@@ -96,14 +79,14 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         _worldClock.FailReads = true;
 
         // Act
-        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
+        _timeProvider.Advance(ContinuousWorldService.Cadence);
         await WaitFor(() => _worldClock.CurrentCount == 1);
 
         // Assert
         await WaitFor(() =>
         {
             // A tick that lands while the failed pass is still unwinding is skipped, so keep ticking.
-            _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
+            _timeProvider.Advance(ContinuousWorldService.Cadence);
             return _worldClock.CurrentCount >= 2;
         });
     }

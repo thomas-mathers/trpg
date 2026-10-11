@@ -22,8 +22,10 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 {
     private static readonly GameInstant Now = new(new DateTime(2000, 1, 3, 13, 0, 0));
     private static readonly TimeSpan ActivePassInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan MaintenanceInterval = TimeSpan.FromSeconds(30);
 
     private readonly Guid _worldId = Guid.NewGuid();
+    private Guid _stateId;
     private Guid _playerId;
     private readonly SwitchableOptions _options = new(
         new WorldSimulationOptions { RouteSearchesPerTick = 1 }
@@ -48,6 +50,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
+        _stateId = state.Id;
         _context.Worlds.Add(Builders.MakeWorld(_worldId, Now));
         _home = Builders.MakeLocation(_worldId, state.Id);
         _workplace = Builders.MakeLocation(_worldId, state.Id);
@@ -611,6 +614,55 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_DoesNotRunLocationMaintenance_BeforeTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(
+            Now + MaintenanceInterval - TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(await WeatherExists());
+    }
+
+    [Fact]
+    public async Task Tick_RunsLocationMaintenance_WhenTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + MaintenanceInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(await WeatherExists());
+    }
+
+    [Fact]
+    public async Task Tick_RunsMaintenanceAndRegenerationAtTheResultingInstant_WhenTheClockSkipsHours()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + TimeSpan.FromHours(3), TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal((player.MaximumHp, true), (player.CurrentHp, await WeatherExists()));
+    }
+
+    [Fact]
     public async Task Tick_SkipsTheActivePasses_WhenTheWorldHasNoPlayer()
     {
         // Arrange
@@ -648,6 +700,15 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
         public WorldSimulationOptions Value =>
             IsBroken ? throw new InvalidOperationException("Options are unavailable.") : Current;
+    }
+
+    private async Task<bool> WeatherExists()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext.WeatherStates.AnyAsync(
+            weather => weather.StateId == _stateId,
+            TestContext.Current.CancellationToken
+        );
     }
 
     private async Task AddPlayerAt(
