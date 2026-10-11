@@ -21,12 +21,14 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
     private CompleteQuestCommandHandler _handler = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId);
     private readonly Creature _giver = Builders.MakeCreature(WorldId);
+    private readonly RecordingDomainEventConsumer<QuestMarkersChangedEvent> _markersChanged = new();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .AddSingleton<IDomainEventConsumer<QuestMarkersChangedEvent>>(_markersChanged)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<CompleteQuestCommandHandler>();
         _context.Creatures.AddRange(_player, _giver);
@@ -71,6 +73,22 @@ public sealed class CompleteQuestCommandHandlerTests(DatabaseFixture db)
             );
         Assert.Equal(creatureQuest.Quest.GoldReward, gold.Quantity);
         Assert.Equal(_player.Id, gold.Ownership.OwnerId);
+    }
+
+    [Fact]
+    public async Task Handle_PublishesQuestMarkersChanged_WhenQuestIsCompleted()
+    {
+        // Arrange
+        var creatureQuest = await SeedQuest(QuestStatus.ReadyToComplete);
+
+        // Act
+        await Complete(creatureQuest);
+
+        // Assert
+        Assert.Equal(
+            new QuestMarkersChangedEvent(_player.Id, WorldId),
+            Assert.Single(_markersChanged.Events)
+        );
     }
 
     [Fact]

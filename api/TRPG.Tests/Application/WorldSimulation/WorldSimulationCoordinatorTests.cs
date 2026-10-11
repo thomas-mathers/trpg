@@ -8,7 +8,9 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Creatures.Results;
 using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Quests.Commands;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
@@ -279,6 +281,71 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
             creature => creature.Id == bystander.Id
         );
         Assert.NotEmpty(announced.Equipment);
+    }
+
+    [Fact]
+    public async Task Tick_AnnouncesTheMarkerChange_WhenTheQuestIsAccepted()
+    {
+        // Arrange
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var giver = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var quest = Builders.MakeQuest(giver.Id, _worldId);
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.AddRange(player, giver);
+        _context.Quests.Add(quest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<PublishAmbientSceneCommandHandler>()
+            .Handle(
+                new PublishAmbientSceneCommand
+                {
+                    WorldId = _worldId,
+                    PlayerId = player.Id,
+                    GameTime = Now,
+                },
+                TestContext.Current.CancellationToken
+            );
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<AcceptQuestCommandHandler>()
+            .Handle(
+                new AcceptQuestCommand
+                {
+                    PlayerId = player.Id,
+                    QuestId = quest.Id,
+                    WorldId = _worldId,
+                },
+                TestContext.Current.CancellationToken
+            );
+        var handler = new QuestMarkersChangedSimulationEventHandler(
+            coordinator,
+            _serviceProvider.GetRequiredService<IQueryHandler<GetCreatureByIdQuery, Creature?>>(),
+            _serviceProvider.GetRequiredService<
+                IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>>
+            >()
+        );
+
+        // Act
+        await handler.Handle(
+            new QuestMarkersChangedEvent(player.Id, _worldId),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        var published = _serviceProvider
+            .GetRequiredService<PublishedSceneRegistry>()
+            .Find(player.Id);
+        var announced = Assert.Single(
+            published!.NearbyCreatures,
+            creature => creature.Id == giver.Id
+        );
+        Assert.Empty(announced.QuestMarkers);
     }
 
     [Fact]

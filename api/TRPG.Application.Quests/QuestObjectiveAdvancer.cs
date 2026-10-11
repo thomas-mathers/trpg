@@ -11,6 +11,7 @@ namespace TRPG.Application.Quests;
 internal sealed class QuestObjectiveAdvancer(
     ICommandHandler<MarkQuestsReadyToCompleteCommand> markQuestsReadyToComplete,
     IGameClientEventSink gameEvents,
+    IDomainEventPublisher<QuestMarkersChangedEvent> questMarkersChanged,
     IQuestsDbContext context
 )
 {
@@ -73,6 +74,11 @@ internal sealed class QuestObjectiveAdvancer(
         }
 
         gameEvents.Enqueue(new QuestJournalUpdatedEvent(worldId));
+
+        await questMarkersChanged.Publish(
+            new QuestMarkersChangedEvent(playerId, worldId),
+            cancellationToken
+        );
     }
 
     private static bool CanAdvance(CreatureQuestObjective objective) =>

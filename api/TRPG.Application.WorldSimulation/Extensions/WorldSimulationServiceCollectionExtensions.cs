@@ -64,6 +64,10 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<CreatureEquipmentChangedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreatureEquipmentChangedSimulationEventHandler>()
             )
+            .AddTransient<QuestMarkersChangedSimulationEventHandler>()
+            .AddTransient<IDomainEventConsumer<QuestMarkersChangedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<QuestMarkersChangedSimulationEventHandler>()
+            )
             .AddTransient<CreaturesSpawnedSimulationEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesSpawnedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreaturesSpawnedSimulationEventHandler>()

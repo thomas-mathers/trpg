@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Quests.Commands;
 using TRPG.Data;
@@ -19,12 +20,14 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
     private AcceptQuestCommandHandler _handler = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId);
     private readonly Creature _giver = Builders.MakeCreature(WorldId);
+    private readonly RecordingDomainEventConsumer<QuestMarkersChangedEvent> _markersChanged = new();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .AddSingleton<IDomainEventConsumer<QuestMarkersChangedEvent>>(_markersChanged)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<AcceptQuestCommandHandler>();
         _context.Creatures.AddRange(_player, _giver);
@@ -77,6 +80,32 @@ public sealed class AcceptQuestCommandHandlerTests(DatabaseFixture db)
         Assert.True(creatureQuest.IsTracked);
         Assert.Equal(objective.Id, progress.ObjectiveId);
         Assert.Equal(0, progress.Amount);
+    }
+
+    [Fact]
+    public async Task Handle_PublishesQuestMarkersChanged_WhenQuestIsAccepted()
+    {
+        // Arrange
+        var quest = Builders.MakeQuest(_giver.Id, WorldId);
+        _context.Quests.Add(quest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(
+            new AcceptQuestCommand
+            {
+                PlayerId = _player.Id,
+                QuestId = quest.Id,
+                WorldId = WorldId,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(
+            new QuestMarkersChangedEvent(_player.Id, WorldId),
+            Assert.Single(_markersChanged.Events)
+        );
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Factions.Queries;
@@ -28,7 +29,8 @@ internal class AcceptQuestCommandHandler(
     > getFactionIdsByCreatureIds,
     ICommandHandler<SetItemsCanTradeCommand> setItemsCanTrade,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
-    ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory
+    ICommandHandler<ReceivePlayerInventoryCommand> receivePlayerInventory,
+    IDomainEventPublisher<QuestMarkersChangedEvent> questMarkersChanged
 ) : ICommandHandler<AcceptQuestCommand>
 {
     public async Task Handle(
@@ -189,6 +191,11 @@ internal class AcceptQuestCommandHandler(
             command,
             quest.GiverId,
             giverHandoffItemIds,
+            cancellationToken
+        );
+
+        await questMarkersChanged.Publish(
+            new QuestMarkersChangedEvent(command.PlayerId, command.WorldId),
             cancellationToken
         );
     }
