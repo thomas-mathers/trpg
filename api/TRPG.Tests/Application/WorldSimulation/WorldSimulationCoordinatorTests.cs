@@ -349,6 +349,59 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_AnnouncesTheSeatTaken_WhenACreatureSitsAtThePlayersLocation()
+    {
+        // Arrange
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var sitter = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var seat = Builders.MakeSeat(_worldId, _home.Id);
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.AddRange(player, sitter);
+        _context.Props.Add(seat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<PublishAmbientSceneCommandHandler>()
+            .Handle(
+                new PublishAmbientSceneCommand
+                {
+                    WorldId = _worldId,
+                    PlayerId = player.Id,
+                    GameTime = Now,
+                },
+                TestContext.Current.CancellationToken
+            );
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        await _context
+            .Props.OfType<Seat>()
+            .Where(prop => prop.Id == seat.Id)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(prop => prop.OccupantId, sitter.Id),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        await coordinator.PostIfLoaded(
+            _worldId,
+            new RefreshCreatureStatus(_home.Id, sitter.Id),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        var published = _serviceProvider
+            .GetRequiredService<PublishedSceneRegistry>()
+            .Find(player.Id);
+        var announced = Assert.Single(published!.NearbyProps, prop => prop.Id == seat.Id);
+        Assert.True(announced.IsOccupied);
+        Assert.False(announced.IsOccupiedByPlayer);
+    }
+
+    [Fact]
     public async Task EnsureRunner_MarksTheWorldUnavailable_WhenTheLoadFails()
     {
         // Arrange

@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
-import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, SeatingChangedPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, SeatingChangedPayload, PropOccupancyChangedPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -260,6 +260,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __weatherChanged = (...args: [WeatherChangedPayload]) => receiver.weatherChanged(...args);
         const __clockReanchored = (...args: [ClockReanchoredPayload]) => receiver.clockReanchored(...args);
         const __seatingChanged = (...args: [SeatingChangedPayload]) => receiver.seatingChanged(...args);
+        const __propOccupancyChanged = (...args: [PropOccupancyChangedPayload]) => receiver.propOccupancyChanged(...args);
         const __combatStarted = (...args: [CombatStarted]) => receiver.combatStarted(...args);
         const __combatUpdated = (...args: [CombatUpdated]) => receiver.combatUpdated(...args);
         const __hostileEncounterStarted = (...args: [HostileEncounterState]) => receiver.hostileEncounterStarted(...args);
@@ -294,6 +295,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("WeatherChanged", __weatherChanged);
         connection.on("ClockReanchored", __clockReanchored);
         connection.on("SeatingChanged", __seatingChanged);
+        connection.on("PropOccupancyChanged", __propOccupancyChanged);
         connection.on("CombatStarted", __combatStarted);
         connection.on("CombatUpdated", __combatUpdated);
         connection.on("HostileEncounterStarted", __hostileEncounterStarted);
@@ -329,6 +331,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "WeatherChanged", method: __weatherChanged },
             { methodName: "ClockReanchored", method: __clockReanchored },
             { methodName: "SeatingChanged", method: __seatingChanged },
+            { methodName: "PropOccupancyChanged", method: __propOccupancyChanged },
             { methodName: "CombatStarted", method: __combatStarted },
             { methodName: "CombatUpdated", method: __combatUpdated },
             { methodName: "HostileEncounterStarted", method: __hostileEncounterStarted },

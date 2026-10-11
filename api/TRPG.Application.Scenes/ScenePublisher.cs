@@ -94,6 +94,29 @@ public sealed class ScenePublisher(
         return true;
     }
 
+    public bool PublishPropOccupancy(
+        Guid playerId,
+        IReadOnlyCollection<PropOccupancy> changes,
+        WorldStateStamp stamp
+    )
+    {
+        var previous = publishedScenes.Find(playerId);
+        if (previous is null || changes.Count == 0)
+        {
+            return false;
+        }
+
+        var change = new PropOccupancyChangedEvent(
+            previous.WorldId,
+            previous.LocationId,
+            stamp,
+            changes
+        );
+        publishedScenes.Record(playerId, PropOccupancyProjection.Apply(previous, change));
+        gameEvents.Enqueue(change);
+        return true;
+    }
+
     public bool PublishAfterTimeAdvance(Guid playerId, SceneResult scene, WorldStateStamp stamp)
     {
         var previous = publishedScenes.Find(playerId);

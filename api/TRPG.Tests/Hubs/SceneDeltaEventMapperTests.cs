@@ -104,4 +104,34 @@ public sealed class SceneDeltaEventMapperTests
         Assert.Equal(TRPG.GameSessions.Responses.CreaturePosture.Sitting, received.Posture);
         Assert.Equal(new PlacementWire(3, 4, 0.5), received.Placement);
     }
+
+    [Fact]
+    public async Task PropOccupancyChanged_MapsEachPropsOccupancyAndVersion()
+    {
+        var worldId = Guid.NewGuid();
+        var locationId = Guid.NewGuid();
+        var propId = Guid.NewGuid();
+        var stamp = new WorldStateStamp(11, GameClock.Epoch, DateTimeOffset.UnixEpoch, 1);
+        PropOccupancyChangedPayload? received = null;
+        var client = new TestGameClient
+        {
+            Connection = new HubConnectionBuilder().WithUrl("http://localhost").Build(),
+            OnPropOccupancyChanged = payload => received = payload,
+        };
+
+        await new PropOccupancyChangedEventMapper()
+            .Map(
+                new PropOccupancyChangedEvent(
+                    worldId,
+                    locationId,
+                    stamp,
+                    [new PropOccupancy(propId, true, false)]
+                )
+            )
+            .Invoke(client);
+
+        Assert.NotNull(received);
+        Assert.Equal(11, received.Version);
+        Assert.Equal(new PropOccupancySnapshot(propId, true, false), Assert.Single(received.Props));
+    }
 }

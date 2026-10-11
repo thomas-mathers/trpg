@@ -154,3 +154,24 @@ internal sealed class SeatingChangedEventMapper : GameClientEventMapper<SeatingC
             static (client, payload) => client.SeatingChanged(payload)
         );
 }
+
+internal sealed class PropOccupancyChangedEventMapper
+    : GameClientEventMapper<PropOccupancyChangedEvent>
+{
+    protected override IGameClientCall Map(PropOccupancyChangedEvent gameEvent) =>
+        new GameClientCall<PropOccupancyChangedPayload>(
+            new(
+                gameEvent.WorldId,
+                gameEvent.LocationId,
+                gameEvent.Stamp.Version,
+                gameEvent
+                    .Props.Select(prop => new PropOccupancySnapshot(
+                        prop.PropId,
+                        prop.IsOccupied,
+                        prop.IsOccupiedByPlayer
+                    ))
+                    .ToArray()
+            ),
+            static (client, payload) => client.PropOccupancyChanged(payload)
+        );
+}

@@ -802,6 +802,13 @@ public sealed class WorldSimulationRunner(
                 ),
                 cancellationToken
             );
+        await scope
+            .ServiceProvider.GetRequiredService<PropOccupancyAnnouncer>()
+            .Announce(
+                worldId,
+                _unpublishedCreatureIdsByLocationId.Keys.ToArray(),
+                cancellationToken
+            );
 
         // Flushing inside the lease keeps the scene ordered with the mutations it describes.
         await scope

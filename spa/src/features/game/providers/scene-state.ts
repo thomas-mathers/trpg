@@ -14,6 +14,7 @@ import type {
   CreaturesUpdatedPayload,
   CreatureStatusSnapshot,
   NearbyPropSnapshot,
+  PropOccupancyChangedPayload,
   SceneSnapshot,
   SeatingChangedPayload,
   WeatherChangedPayload,
@@ -31,6 +32,7 @@ type SceneDeltaPayloads = {
   WeatherChanged: WeatherChangedPayload;
   ClockReanchored: ClockReanchoredPayload;
   SeatingChanged: SeatingChangedPayload;
+  PropOccupancyChanged: PropOccupancyChangedPayload;
 };
 
 type SceneDeltaAction = {
@@ -177,6 +179,8 @@ function applySceneDelta(scene: SceneSnapshot, action: SceneDeltaAction): SceneS
       };
     case 'SeatingChanged':
       return applySeating(scene, action.payload);
+    case 'PropOccupancyChanged':
+      return applyPropOccupancy(scene, action.payload);
   }
 }
 
@@ -190,6 +194,26 @@ function applySeating(scene: SceneSnapshot, seating: SeatingChangedPayload): Sce
       creature.id === creatureId ? { ...creature, posture, placement } : creature,
     ),
     nearbyProps: scene.nearbyProps.map((prop) => applySeatOccupancy(prop, seating, isPlayer)),
+  };
+}
+
+function applyPropOccupancy(
+  scene: SceneSnapshot,
+  { props }: PropOccupancyChangedPayload,
+): SceneSnapshot {
+  const occupancyByPropId = new Map(props.map((occupancy) => [occupancy.propId, occupancy]));
+  return {
+    ...scene,
+    nearbyProps: scene.nearbyProps.map((prop) => {
+      const occupancy = occupancyByPropId.get(prop.id);
+      return occupancy
+        ? {
+            ...prop,
+            isOccupied: occupancy.isOccupied,
+            isOccupiedByPlayer: occupancy.isOccupiedByPlayer,
+          }
+        : prop;
+    }),
   };
 }
 

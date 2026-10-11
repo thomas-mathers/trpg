@@ -224,6 +224,24 @@ describe('scene state', () => {
     expect(state.scene.playerStatus.posture).toBe(player.posture);
   });
 
+  it('updates seat occupancy from an occupancy change', () => {
+    const state = apply(
+      { type: 'SceneSnapshot', payload: snapshot({ nearbyProps: [seatProp()] }) },
+      {
+        type: 'PropOccupancyChanged',
+        payload: {
+          ...scope,
+          version: 2,
+          props: [{ propId: 'seat', isOccupied: true, isOccupiedByPlayer: false }],
+        },
+      },
+    );
+
+    expect(state.scene.nearbyProps).toMatchObject([
+      { id: 'seat', isOccupied: true, isOccupiedByPlayer: false },
+    ]);
+  });
+
   it('replaces state with a same-version snapshot after a partially delivered batch', () => {
     const state = apply(
       { type: 'SceneSnapshot', payload: snapshot() },
