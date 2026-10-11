@@ -60,6 +60,24 @@ public sealed class ScenePublisher(
         return PublishPlan(playerId, scene, stamp, SceneChangePlanner.Plan(previous, scene, stamp));
     }
 
+    public bool PublishCreatureChanges(Guid playerId, SceneResult current, WorldStateStamp stamp)
+    {
+        var previous = publishedScenes.Find(playerId);
+        if (previous is null)
+        {
+            return false;
+        }
+
+        publishedScenes.Record(playerId, current);
+        var events = SceneChangePlanner.PlanCreatureChanges(previous, current, stamp);
+        foreach (var gameEvent in events)
+        {
+            gameEvents.Enqueue(gameEvent);
+        }
+
+        return events.Count > 0;
+    }
+
     public bool PublishAfterTimeAdvance(Guid playerId, SceneResult scene, WorldStateStamp stamp)
     {
         var previous = publishedScenes.Find(playerId);

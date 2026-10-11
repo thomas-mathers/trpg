@@ -34,6 +34,17 @@ internal static class SceneChangePlanner
         return new SceneChangePlan(false, events.ToArray());
     }
 
+    internal static IReadOnlyCollection<GameClientEvent> PlanCreatureChanges(
+        SceneResult previous,
+        SceneResult current,
+        WorldStateStamp stamp
+    )
+    {
+        var events = new List<GameClientEvent>();
+        AddCreatureEvents(previous, current, stamp, events);
+        return events;
+    }
+
     internal static SceneChangePlan PlanAfterTimeAdvance(
         SceneResult? previous,
         SceneResult current,

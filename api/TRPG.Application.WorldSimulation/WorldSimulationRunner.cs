@@ -787,18 +787,14 @@ public sealed class WorldSimulationRunner(
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         await scope
-            .ServiceProvider.GetRequiredService<ICommandHandler<PublishSimulationScenesCommand>>()
-            .Handle(
-                new PublishSimulationScenesCommand
-                {
-                    WorldId = worldId,
-                    GameTime = now,
-                    ChangedCreatureIdsByLocationId =
-                        _unpublishedCreatureIdsByLocationId.ToDictionary(
-                            entry => entry.Key,
-                            entry => (IReadOnlySet<Guid>)entry.Value
-                        ),
-                },
+            .ServiceProvider.GetRequiredService<CreatureChangeAnnouncer>()
+            .Announce(
+                worldId,
+                now,
+                _unpublishedCreatureIdsByLocationId.ToDictionary(
+                    entry => entry.Key,
+                    entry => (IReadOnlySet<Guid>)entry.Value
+                ),
                 cancellationToken
             );
 

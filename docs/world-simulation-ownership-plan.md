@@ -114,7 +114,7 @@ Entering a location (connect, reconnect, `PlayerMoved`, or an explicit refresh r
   - Location maintenance lane (30 s, the code calls it the routine lane): `SyncActiveLocationRoutinesCommand` (location maintenance plus `EvaluateAmbientEncounterCommand`), an event flush, then the ambient scene publish.
   - Each world pass holds the gate, flushes events inside it, skips a world whose previous pass for the lane is still running, and logs and swallows failures.
   - The three `SyncActiveLocation*Command` handlers live in `api/TRPG.Application.WorldSimulation/Commands/`. They take `WorldId`, `Players` (from `GetActiveLocationPlayersQuery`) and `GameTime`.
-- Scene diffing today: `SceneChangePlanner.Plan` (Scenes) returns either a snapshot or granular events from `SceneSemanticComparer` comparisons; `ScenePublisher` + `PublishedSceneRegistry` record the last published scene per player. Callers: `TurnSceneDiffer` (GameTurns; used by `GameActionRunner` and `GameTurnStreamer`), `PublishAmbientSceneCommand`, `PublishSceneCreatureChangesCommand` (used by `PublishSimulationScenesCommand` from the runner), `PublishSessionStateCommand`.
+- Scene diffing today: `SceneChangePlanner.Plan` (Scenes) returns either a snapshot or granular events from `SceneSemanticComparer` comparisons; `ScenePublisher` + `PublishedSceneRegistry` record the last published scene per player. Callers: `TurnSceneDiffer` (GameTurns; used by `GameActionRunner` and `GameTurnStreamer`), `PublishAmbientSceneCommand`, `CreatureChangeAnnouncer` (WorldSimulation, via `ScenePublisher.PublishCreatureChanges`), `PublishSessionStateCommand`.
 - Granular events live in `api/TRPG.Application.Scenes/Events/`: `CreaturesArrived/Left/Moved/Updated`, `CaravansArrived/Left/Updated`, `WeatherChanged`, `ClockReanchored`, `SceneUpdated` (snapshot). Each carries a per-world state version from `StampWorldStateCommand`; the SPA reducer (`spa/src/features/game/providers/scene-state.ts`) accepts same-version siblings and rejects older versions or other locations.
 - Seat occupancy (`IsOccupied`, `IsOccupiedByPlayer`) is part of `NearbyProps`, so any sit/stand currently forces a full snapshot (`SceneSemanticComparer.HasStaticChange`).
 - Dependency direction: WorldSimulation references Scenes; Scenes must not reference WorldSimulation or GameTurns.
@@ -183,7 +183,7 @@ Each step is its own PR off `main`. Do them in order. Commit, push and open the 
 
 ### PR F: runner-sourced creature arrived, left, moved
 
-- `SimEvent`s the runner already produces (via `SimEventLocations.Touched`) drive `CreaturesArrived/Left/Moved` directly instead of re-diffing the location. These are the first events produced by decision logic rather than a command. An NPC arriving at a watched location is caught up (owed effects, then regeneration) before its `CreaturesArrived` is projected; a kill during catch-up is announced instead of the arrival. Remove `PublishSimulationScenesCommand` and `PublishSceneCreatureChangesCommand` when nothing uses them.
+- `SimEvent`s the runner already produces (via `SimEventLocations.Touched`) drive `CreaturesArrived/Left/Moved` directly instead of re-diffing the location. These are the first events produced by decision logic rather than a command. An NPC arriving at a watched location is caught up (owed effects, then regeneration) before its `CreaturesArrived` is projected; a kill during catch-up is announced instead of the arrival.
 
 ### PR G: remaining fields, one category per PR
 
@@ -266,7 +266,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [ ] PR C: deferred (optional pure move of scene events after H)
 - [x] PR D: event queue, projector, scene subscriptions, enter message, resync
 - [x] PR E: seating and sneak emit events
-- [ ] PR F: runner-sourced arrived, left, moved
+- [x] PR F: runner-sourced arrived, left, moved
 - [ ] PR G: remaining fields (equipment, factions, quest markers, effect visuals, nearby vitals, weather, caravans, props), one category per PR
 - [ ] PR H: delete the diff and the continuous pass
 - [ ] Weather shelter PR (standalone, before I1)

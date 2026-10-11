@@ -6,6 +6,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures;
 using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
@@ -212,20 +213,32 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Tick_PublishesTheScene_WhenAWorkerArrivesAtThePlayersLocation()
+    public async Task Tick_AnnouncesTheArrival_WhenAWorkerArrivesAtThePlayersLocation()
     {
         // Arrange
-        await AddWorker();
+        var worker = await AddWorker();
         await AddPlayerAt(_workplace);
+        await _serviceProvider
+            .GetRequiredService<PublishAmbientSceneCommandHandler>()
+            .Handle(
+                new PublishAmbientSceneCommand
+                {
+                    WorldId = _worldId,
+                    PlayerId = _playerId,
+                    GameTime = Now,
+                },
+                TestContext.Current.CancellationToken
+            );
         await StartRunner();
 
         // Act
         await _runner.Tick(Now, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.NotNull(
-            _serviceProvider.GetRequiredService<PublishedSceneRegistry>().Find(_playerId)
-        );
+        var published = _serviceProvider
+            .GetRequiredService<PublishedSceneRegistry>()
+            .Find(_playerId);
+        Assert.Contains(published!.NearbyCreatures, creature => creature.Id == worker.Id);
     }
 
     [Fact]
