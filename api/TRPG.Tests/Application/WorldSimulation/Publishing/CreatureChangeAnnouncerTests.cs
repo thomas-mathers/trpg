@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
+using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Events;
 using TRPG.Application.WorldSimulation.Publishing;
@@ -176,6 +177,46 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Announce_PublishesAnUpdateOfThePlayer_WhenThePlayerEquipsGear()
+    {
+        // Arrange
+        await PublishBaselineScene();
+        await EquipChestArmor(_player);
+
+        // Act
+        await _announcer.Announce(
+            _worldId,
+            GameClock.Epoch,
+            Changed(_player.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = Assert.IsType<CreaturesUpdatedEvent>(Assert.Single(_events.EnqueuedEvents));
+        var creature = Assert.Single(updated.Creatures);
+        Assert.Equal(_player.Id, creature.Id);
+        Assert.Single(creature.Equipment);
+    }
+
+    [Fact]
+    public async Task Announce_PublishesNothing_WhenThePlayerIsUnchanged()
+    {
+        // Arrange
+        await PublishBaselineScene();
+
+        // Act
+        await _announcer.Announce(
+            _worldId,
+            GameClock.Epoch,
+            Changed(_player.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Empty(_events.EnqueuedEvents);
+    }
+
+    [Fact]
     public async Task Announce_PublishesNothing_WhenTheCreaturesAreUnchanged()
     {
         // Arrange
@@ -240,6 +281,27 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
         );
         Assert.True(persisted!.CurrentHp > 1);
         Assert.Equal(visitor.Id, Assert.Single(arrived.Creatures).Id);
+    }
+
+    private async Task EquipChestArmor(Creature creature)
+    {
+        var armor = Builders.MakeArmor(worldId: _worldId);
+        armor.Quantity = 1;
+        armor.Ownership.OwnerId = creature.Id;
+        armor.Ownership.OwnerType = OwnerType.Creature;
+        _context.Items.Add(armor);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<EquipInventoryItemCommandHandler>()
+            .Handle(
+                new EquipInventoryItemCommand
+                {
+                    CreatureId = creature.Id,
+                    ItemId = armor.Id,
+                    Slot = EquipmentSlot.Chest,
+                },
+                TestContext.Current.CancellationToken
+            );
     }
 
     private IReadOnlyDictionary<Guid, IReadOnlySet<Guid>> Changed(params Guid[] creatureIds) =>

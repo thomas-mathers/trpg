@@ -182,6 +182,33 @@ internal sealed class SceneCreatureInfoBuilder(
                 position.PausedAt is null ? null : now
             );
 
+    public async Task<SceneCreatureInfo> BuildPlayerInfo(
+        CreatureResult player,
+        int currentYear,
+        IReadOnlyList<Item> equippedItems,
+        CancellationToken cancellationToken
+    )
+    {
+        var xpTotals = await getTotalCharacterXpFromSkills.Handle(
+            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = [player.Id] },
+            cancellationToken
+        );
+
+        return BuildSceneCreatureInfo(
+            player,
+            currentYear,
+            factionNames: [],
+            player.Condition,
+            player.Activity,
+            player.Posture,
+            player.Movement,
+            reputation: null,
+            xpTotals.GetValueOrDefault(player.Id, 0),
+            placement: new Placement(player.X, player.Y, player.Angle),
+            equipment: equippedItems.ToVisualEquipment()
+        );
+    }
+
     public static SceneCreatureInfo BuildSceneCreatureInfo(
         CreatureResult creature,
         int currentYear,

@@ -39,20 +39,26 @@ internal class GetSceneCreaturesQueryHandler(
             .Where(creature => creature.Id != query.PlayerId)
             .Where(creature => query.CreatureIds.Contains(creature.Id))
             .ToArray();
+        var includesPlayer = query.CreatureIds.Contains(query.PlayerId);
         var equippedItemsByCreature = await getEquippedItemsByOwners.Handle(
             new GetEquippedItemsByOwnersQuery
             {
-                CreatureIds = requested.Select(creature => creature.Id).ToArray(),
+                CreatureIds =
+                [
+                    .. requested.Select(creature => creature.Id),
+                    .. includesPlayer ? [query.PlayerId] : Array.Empty<Guid>(),
+                ],
             },
             cancellationToken
         );
+        var currentDate = GameClock.GetCurrentInGameDate(query.GameTime);
 
-        return await creatureInfoBuilder.BuildNearbyPeopleInfos(
+        var nearbyInfos = await creatureInfoBuilder.BuildNearbyPeopleInfos(
             new GetSceneQuery
             {
                 WorldId = query.WorldId,
                 PlayerId = query.PlayerId,
-                CurrentDate = GameClock.GetCurrentInGameDate(query.GameTime),
+                CurrentDate = currentDate,
                 GameTime = query.GameTime,
             },
             player.LocationId,
@@ -60,5 +66,18 @@ internal class GetSceneCreaturesQueryHandler(
             equippedItemsByCreature,
             cancellationToken
         );
+        if (!includesPlayer)
+        {
+            return nearbyInfos;
+        }
+
+        var playerInfo = await creatureInfoBuilder.BuildPlayerInfo(
+            player,
+            currentDate.Year,
+            equippedItemsByCreature.GetValueOrDefault(player.Id, []),
+            cancellationToken
+        );
+
+        return [.. nearbyInfos, playerInfo];
     }
 }

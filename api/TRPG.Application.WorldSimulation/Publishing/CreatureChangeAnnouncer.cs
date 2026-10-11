@@ -60,6 +60,7 @@ internal class CreatureChangeAnnouncer(
 
         var refreshed = await Refresh(worldId, now, player, creatureIds, cancellationToken);
         var arrivedIds = refreshed
+            .Where(creature => creature.Id != player.PlayerId)
             .Select(creature => creature.Id)
             .Except(previous.NearbyCreatures.Select(creature => creature.Id))
             .ToArray();
@@ -75,15 +76,19 @@ internal class CreatureChangeAnnouncer(
             refreshed = await Refresh(worldId, now, player, creatureIds, cancellationToken);
         }
 
+        var refreshedNearby = refreshed.Where(creature => creature.Id != player.PlayerId).ToArray();
         var current = previous with
         {
+            Player =
+                refreshed.SingleOrDefault(creature => creature.Id == player.PlayerId)
+                ?? previous.Player,
             NearbyCreatures =
             [
                 .. previous.NearbyCreatures.Where(creature => !creatureIds.Contains(creature.Id)),
-                .. refreshed,
+                .. refreshedNearby,
             ],
         };
-        MovementSnapshotLog.Write(logger, player.LocationId, now, refreshed);
+        MovementSnapshotLog.Write(logger, player.LocationId, now, refreshedNearby);
         if (!SceneSemanticComparer.HasPlayerVisibleChange(previous, current))
         {
             return;

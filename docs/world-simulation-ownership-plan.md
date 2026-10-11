@@ -267,7 +267,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR D: event queue, projector, scene subscriptions, enter message, resync
 - [x] PR E: seating and sneak emit events
 - [x] PR F: runner-sourced arrived, left, moved
-- [ ] PR G: remaining fields (equipment, factions, quest markers, effect visuals, nearby vitals, weather, caravans, props), one category per PR
+- [x] PR G: remaining fields (equipment, factions, quest markers, effect visuals, nearby vitals, weather, caravans, props, the player's own status), one category per PR
 - [ ] PR H: delete the diff and the continuous pass
 - [ ] Weather shelter PR (standalone, before I1)
 - [ ] PR I1: creature simulator extraction and planning renames
