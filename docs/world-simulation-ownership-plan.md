@@ -273,7 +273,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR H1: delete the continuous pass (processor, service, `PublishAmbientSceneCommand`)
 - [x] PR H2: delete the per-action diff (`TurnSceneDiffer` diff calls, `PublishIfChanged`, `PublishAfterTimeAdvance`)
   - H2 kept the static-change snapshot (`HasStaticChange`) in `ActionSceneAnnouncer`: relocations and in-place lock, lever and prop changes still rely on it, so H3 needs deltas for those before it can go.
-- [ ] PR H3: delete the snapshot fallback and unused planner/comparer paths
+- [x] PR H3: guard test that confines scene snapshots to the entry, resync and static-change paths (the snapshot fallback itself stays until in-place lock, lever and prop changes and relocation get their own events)
 - [ ] Weather shelter PR (standalone, before I1)
 - [ ] PR I1: creature simulator extraction and planning renames
 - [ ] PR I2: applier (failed-batch, marker and reload tests)

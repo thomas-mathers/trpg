@@ -33,6 +33,14 @@ public sealed partial class ModuleArchitectureTests
         "TRPG.Application.WorldSimulation/WorldSimulatorLoader.cs:IRoutingDbContext",
     };
 
+    private static readonly IReadOnlySet<string> SceneSnapshotPublisherAllowlist =
+        new HashSet<string>
+        {
+            "TRPG.Application.Scenes/ScenePublisher.cs",
+            "TRPG.Application.WorldSimulation/Publishing/ActionSceneAnnouncer.cs",
+            "TRPG.Application.WorldSimulation/Publishing/PublishPlayerSceneCommand.cs",
+        };
+
     private static readonly (string From, string To)[] ForbiddenReferences =
     [
         ("TRPG.Application.WorldSimulation", "TRPG.Application.RoomBookings"),
@@ -95,6 +103,19 @@ public sealed partial class ModuleArchitectureTests
     {
         var violations = FindConcreteContextUses()
             .Except(ConcreteContextAllowlist)
+            .Order()
+            .ToArray();
+
+        Assert.True(violations.Length == 0, string.Join(Environment.NewLine, violations));
+    }
+
+    [Fact]
+    public void SceneSnapshots_ArePublishedOnlyFromEntryResyncAndStaticChangePaths()
+    {
+        var violations = ApplicationSourceFiles()
+            .Where(file => SceneSnapshotPublishPattern().IsMatch(File.ReadAllText(file)))
+            .Select(RelativeApplicationPath)
+            .Except(SceneSnapshotPublisherAllowlist)
             .Order()
             .ToArray();
 
@@ -260,6 +281,9 @@ public sealed partial class ModuleArchitectureTests
 
     [GeneratedRegex(@"\bI(?<owner>[A-Za-z]+)DbContext\b")]
     private static partial Regex ModuleContextPattern();
+
+    [GeneratedRegex(@"new SceneUpdatedEvent\(|[sS]cenePublisher\.Publish\(")]
+    private static partial Regex SceneSnapshotPublishPattern();
 
     [GeneratedRegex(@"(?<![A-Za-z])TrpgDbContext\b")]
     private static partial Regex ConcreteContextPattern();
