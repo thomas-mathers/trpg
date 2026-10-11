@@ -10,7 +10,6 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
-using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Encounters;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
@@ -65,7 +64,6 @@ public interface IChatHub
 internal sealed class ChatHub(
     GameTurnRunner gameTurnRunner,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
-    ICommandHandler<FlushPlayerPoseCommand> flushPlayerPose,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     PendingSessionEndRegistry pendingSessionEnds,
     WorldSimulationCoordinator simulation,
@@ -113,10 +111,7 @@ internal sealed class ChatHub(
         {
             try
             {
-                await flushPlayerPose.Handle(
-                    new FlushPlayerPoseCommand { PlayerId = session.PlayerId },
-                    CancellationToken.None
-                );
+                simulation.Post(session.WorldId, new FlushPlayerPose(session.PlayerId));
             }
             finally
             {

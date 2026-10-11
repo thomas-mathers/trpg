@@ -95,7 +95,12 @@ public class PlayerMovementIntegratorTests
         var space = new MovementSpace(20, 20, [Crate]);
 
         // Act
-        var position = Advance(new Point(10, 9.5), new MovementInput(0, 0, 0), space, 0.01);
+        var position = Advance(
+            new Point(10, 9.5),
+            new MovementInput(0, 0, 0),
+            space,
+            PlayerMovementIntegrator.StepSeconds
+        );
 
         // Assert
         AssertAt(10, 9 - PlayerMovementIntegrator.PlayerRadius, position);
@@ -132,7 +137,12 @@ public class PlayerMovementIntegratorTests
         var space = new MovementSpace(0.2, 0.2, []);
 
         // Act
-        var position = Advance(new Point(3, 3), new MovementInput(0, 0, 0), space, 0.01);
+        var position = Advance(
+            new Point(3, 3),
+            new MovementInput(0, 0, 0),
+            space,
+            PlayerMovementIntegrator.StepSeconds
+        );
 
         // Assert
         AssertAt(0.1, 0.1, position);

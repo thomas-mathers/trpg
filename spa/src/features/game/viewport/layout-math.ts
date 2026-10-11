@@ -21,6 +21,12 @@ export interface Obstacle {
   footprint: FootprintWire;
 }
 
+export interface WalkerState {
+  previous: PlanarPoint;
+  current: PlanarPoint;
+  leftover: number;
+}
+
 export interface MovementInput {
   heading: number;
   forward: number;
@@ -29,11 +35,14 @@ export interface MovementInput {
   deltaSeconds: number;
 }
 
+export const SIMULATION_STEP_SECONDS = 1 / 60;
 export const EYE_HEIGHT = 1.7;
 export const PLAYER_RADIUS = 0.35;
 export const INTERACT_RANGE = 2.5;
 const BOUNDS_MARGIN = 0.3;
 const RESOLVE_PASSES = 2;
+const STEP_TOLERANCE_SECONDS = 1e-7;
+const MAX_ADVANCE_SECONDS = 1;
 const WALL_THICKNESS = 0.2;
 export const WALL_HEIGHT = 3;
 export const DOOR_HEIGHT = 2.64;
@@ -69,6 +78,36 @@ export function computeMovement({
   return {
     x: (forward * sin + strafe * cos) * distance,
     y: (-forward * cos + strafe * sin) * distance,
+  };
+}
+
+export function seedWalker(position: PlanarPoint): WalkerState {
+  return { previous: position, current: position, leftover: 0 };
+}
+
+export function advanceWalker(
+  state: WalkerState,
+  input: MovementInput,
+  obstacles: Obstacle[],
+  size: FootprintWire,
+): WalkerState {
+  let { previous, current } = state;
+  let leftover = state.leftover + Math.min(input.deltaSeconds, MAX_ADVANCE_SECONDS);
+  while (leftover + STEP_TOLERANCE_SECONDS >= SIMULATION_STEP_SECONDS) {
+    const delta = computeMovement({ ...input, deltaSeconds: SIMULATION_STEP_SECONDS });
+    const attempted = { x: current.x + delta.x, y: current.y + delta.y };
+    previous = current;
+    current = clampToBounds(pushOutOfObstacles(attempted, obstacles), size);
+    leftover -= SIMULATION_STEP_SECONDS;
+  }
+  return { previous, current, leftover: Math.max(0, leftover) };
+}
+
+export function interpolateWalker({ previous, current, leftover }: WalkerState): PlanarPoint {
+  const blend = leftover / SIMULATION_STEP_SECONDS;
+  return {
+    x: previous.x + (current.x - previous.x) * blend,
+    y: previous.y + (current.y - previous.y) * blend,
   };
 }
 

@@ -70,7 +70,8 @@ internal class ApplyPlayerInputCommandHandler(
         }
 
         var previous = poseStore.Find(command.PlayerId);
-        var position = IntegratePrevious(command, player, previous, space);
+        var advance = IntegratePrevious(command, player, previous, space);
+        var position = advance.Position;
 
         poseStore.Set(
             command.PlayerId,
@@ -84,6 +85,7 @@ internal class ApplyPlayerInputCommandHandler(
             )
             {
                 Input = command.Input,
+                Leftover = advance.Leftover,
             }
         );
 
@@ -145,7 +147,7 @@ internal class ApplyPlayerInputCommandHandler(
         return MovementSpaceBuilder.Build(location, props, buildings, connectors);
     }
 
-    private static Point IntegratePrevious(
+    private static MovementAdvance IntegratePrevious(
         ApplyPlayerInputCommand command,
         WalkState player,
         PlayerPose? previous,
@@ -154,26 +156,24 @@ internal class ApplyPlayerInputCommandHandler(
     {
         if (previous?.LocationId != command.LocationId)
         {
-            return player.Position;
+            return new MovementAdvance(player.Position, TimeSpan.Zero);
         }
 
         var start = new Point(previous.X, previous.Y);
-        if (previous.Input is null)
-        {
-            return start;
-        }
-
         var elapsed = command.ReceivedAt - previous.ReportedAt;
-        if (elapsed <= TimeSpan.Zero)
+        if (previous.Input is null || elapsed <= TimeSpan.Zero)
         {
-            return start;
+            return new MovementAdvance(start, previous.Leftover);
         }
 
-        return PlayerMovementIntegrator.Advance(
+        var gap = elapsed < MaximumIntegrationGap ? elapsed : MaximumIntegrationGap;
+
+        return PlayerMovementIntegrator.AdvanceTurning(
             start,
             previous.Input,
+            command.Input.Heading,
             InLocationPace.MetersPerRealSecond(player.MovementSpeed),
-            elapsed < MaximumIntegrationGap ? elapsed : MaximumIntegrationGap,
+            gap + previous.Leftover,
             space
         );
     }

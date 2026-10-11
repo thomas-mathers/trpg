@@ -10,6 +10,10 @@ import type {
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
 import {
+  advanceWalker,
+  interpolateWalker,
+  seedWalker,
+  SIMULATION_STEP_SECONDS,
   buildEntityNames,
   boundaryTowers,
   boundaryWalls,
@@ -108,6 +112,98 @@ describe('computeMovement', () => {
 
     // Assert
     expect(delta.y).toBeCloseTo(-1.5);
+  });
+});
+
+describe('advanceWalker', () => {
+  const size = { width: 100, depth: 100 };
+  const walkNorth = { heading: 0, forward: 1, strafe: 0, speed: 2 };
+  const stepDistance = 2 * SIMULATION_STEP_SECONDS;
+
+  it('covers the whole frame time when the frame is slow', () => {
+    // Arrange
+    const state = seedWalker({ x: 50, y: 50 });
+
+    // Act
+    const end = advanceWalker(state, { ...walkNorth, deltaSeconds: 0.4 }, [], size);
+
+    // Assert
+    expect(end.current.y).toBeCloseTo(49.2, 6);
+  });
+
+  it('takes only whole steps and carries the remainder', () => {
+    // Arrange
+    const state = seedWalker({ x: 50, y: 50 });
+
+    // Act
+    const end = advanceWalker(state, { ...walkNorth, deltaSeconds: 0.026 }, [], size);
+
+    // Assert
+    expect(end.current.y).toBeCloseTo(50 - stepDistance, 9);
+    expect(end.leftover).toBeCloseTo(0.026 - SIMULATION_STEP_SECONDS, 9);
+  });
+
+  it('spends the carried remainder on the next frame', () => {
+    // Arrange
+    const first = advanceWalker(
+      seedWalker({ x: 50, y: 50 }),
+      { ...walkNorth, deltaSeconds: 0.026 },
+      [],
+      size,
+    );
+
+    // Act
+    const end = advanceWalker(first, { ...walkNorth, deltaSeconds: 0.024 }, [], size);
+
+    // Assert
+    expect(end.current.y).toBeCloseTo(50 - stepDistance * 3, 9);
+  });
+
+  it('does not move when the frame is shorter than a step', () => {
+    // Arrange
+    const state = seedWalker({ x: 50, y: 50 });
+
+    // Act
+    const end = advanceWalker(state, { ...walkNorth, deltaSeconds: 0.005 }, [], size);
+
+    // Assert
+    expect(end.current).toEqual({ x: 50, y: 50 });
+  });
+
+  it('does not tunnel through a thin obstacle on a slow frame', () => {
+    // Arrange
+    const wall = {
+      placement: { x: 50, y: 49, angle: 0 },
+      footprint: { width: 4, depth: 0.1 },
+    };
+
+    // Act
+    const end = advanceWalker(
+      seedWalker({ x: 50, y: 50 }),
+      { ...walkNorth, deltaSeconds: 1 },
+      [wall],
+      size,
+    );
+
+    // Assert
+    expect(end.current.y).toBeGreaterThan(49.3);
+  });
+});
+
+describe('interpolateWalker', () => {
+  it('shows a point between the last two steps in proportion to the remainder', () => {
+    // Arrange
+    const state = {
+      previous: { x: 10, y: 10 },
+      current: { x: 12, y: 10 },
+      leftover: SIMULATION_STEP_SECONDS / 2,
+    };
+
+    // Act
+    const shown = interpolateWalker(state);
+
+    // Assert
+    expect(shown).toEqual({ x: 11, y: 10 });
   });
 });
 

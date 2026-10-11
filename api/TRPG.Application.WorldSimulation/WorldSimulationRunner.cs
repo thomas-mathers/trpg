@@ -38,6 +38,7 @@ public sealed class WorldSimulationRunner(
         Channel.CreateUnbounded<WorldSimulationMessage>(
             new UnboundedChannelOptions { SingleReader = true }
         );
+    private readonly HashSet<Guid> _dirtyPlayerIds = [];
     private readonly List<SimEvent> _unwrittenEvents = [];
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
     private readonly List<LocalMoveCompleted> _unexecutedLocalArrivals = [];
@@ -69,6 +70,7 @@ public sealed class WorldSimulationRunner(
         }
 
         await DrainMailbox(now, cancellationToken);
+        await FlushPlayerPoses(cancellationToken);
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
         var planningElapsed = Stopwatch.GetElapsedTime(planningStartedAt);
@@ -99,6 +101,28 @@ public sealed class WorldSimulationRunner(
         {
             await Apply(message, now, cancellationToken);
         }
+    }
+
+    private async Task FlushPlayerPoses(CancellationToken cancellationToken)
+    {
+        if (_dirtyPlayerIds.Count == 0)
+        {
+            return;
+        }
+
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var flushPlayerPose = scope.ServiceProvider.GetRequiredService<
+            ICommandHandler<FlushPlayerPoseCommand>
+        >();
+        foreach (var playerId in _dirtyPlayerIds)
+        {
+            await flushPlayerPose.Handle(
+                new FlushPlayerPoseCommand { PlayerId = playerId },
+                cancellationToken
+            );
+        }
+
+        _dirtyPlayerIds.Clear();
     }
 
     private async Task<MovementPlanningSummary> PlanMovements(
@@ -367,6 +391,9 @@ public sealed class WorldSimulationRunner(
             case PlayerInput input:
                 await ApplyPlayerInput(input, cancellationToken);
                 break;
+            case FlushPlayerPose flush:
+                _dirtyPlayerIds.Add(flush.PlayerId);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(message));
         }
@@ -394,6 +421,7 @@ public sealed class WorldSimulationRunner(
             await scope
                 .ServiceProvider.GetRequiredService<IGameClientEventDispatcher>()
                 .FlushAsync(worldId, cancellationToken);
+            _dirtyPlayerIds.Add(input.PlayerId);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

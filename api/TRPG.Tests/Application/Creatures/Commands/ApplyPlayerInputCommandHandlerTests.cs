@@ -98,6 +98,103 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Handle_AdvancesInWholeSteps_WhenTheGapIsNotAMultipleOfTheStep()
+    {
+        // Arrange
+        var location = await SeedLocation();
+        var player = await SeedPlayer(location.Id);
+        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+
+        // Act
+        await Apply(
+            player.Id,
+            location.Id,
+            WalkingNorth,
+            Start.AddSeconds(0.026),
+            new Point(50, 50)
+        );
+
+        // Assert
+        var pose = _poseStore.Find(player.Id);
+        Assert.Equal(50 - (WalkSpeed * PlayerMovementIntegrator.StepSeconds), pose!.Y, 6);
+    }
+
+    [Fact]
+    public async Task Handle_CarriesTheLeftoverTimeIntoTheNextGap()
+    {
+        // Arrange
+        var location = await SeedLocation();
+        var player = await SeedPlayer(location.Id);
+        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        await Apply(
+            player.Id,
+            location.Id,
+            WalkingNorth,
+            Start.AddSeconds(0.026),
+            new Point(50, 50)
+        );
+
+        // Act
+        await Apply(player.Id, location.Id, Standing, Start.AddSeconds(0.05), new Point(50, 50));
+
+        // Assert
+        var pose = _poseStore.Find(player.Id);
+        Assert.Equal(50 - (WalkSpeed * PlayerMovementIntegrator.StepSeconds * 3), pose!.Y, 6);
+    }
+
+    [Fact]
+    public async Task Handle_TurnsTheHeadingGraduallyAcrossTheGap_WhenTheHeadingChanged()
+    {
+        // Arrange
+        var location = await SeedLocation();
+        var player = await SeedPlayer(location.Id);
+        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+
+        // Act
+        await Apply(
+            player.Id,
+            location.Id,
+            new MovementInput(1, 0, Math.PI / 2),
+            Start.AddSeconds(0.5),
+            new Point(50, 50)
+        );
+
+        // Assert
+        var swept = WalkSpeed * 0.5 * 2 / Math.PI;
+        var pose = _poseStore.Find(player.Id);
+        Assert.InRange(pose!.X, 50 + swept - 0.01, 50 + swept + 0.01);
+        Assert.InRange(pose.Y, 50 - swept - 0.01, 50 - swept + 0.01);
+    }
+
+    [Fact]
+    public async Task Handle_TurnsTheShortWayRound_WhenTheHeadingCrossesTheAntiNorthSeam()
+    {
+        // Arrange
+        var location = await SeedLocation();
+        var player = await SeedPlayer(location.Id);
+        await Apply(
+            player.Id,
+            location.Id,
+            new MovementInput(1, 0, Math.PI - 0.1),
+            Start,
+            new Point(50, 50)
+        );
+
+        // Act
+        await Apply(
+            player.Id,
+            location.Id,
+            new MovementInput(1, 0, -Math.PI + 0.1),
+            Start.AddSeconds(0.5),
+            new Point(50, 50)
+        );
+
+        // Assert
+        var pose = _poseStore.Find(player.Id);
+        Assert.True(pose!.Y > 50);
+    }
+
+    [Fact]
     public async Task Handle_CapsTheIntegrationGap_WhenInputsAreFarApart()
     {
         // Arrange

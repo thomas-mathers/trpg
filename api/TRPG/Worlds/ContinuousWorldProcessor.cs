@@ -6,7 +6,6 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Creatures.Commands;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.Scenes.Commands;
 using TRPG.Application.WorldSimulation;
@@ -109,7 +108,6 @@ internal sealed class ContinuousWorldProcessor(
 
         if (lane == ContinuousWorldLane.Frequent)
         {
-            await FlushPlayerPoses(players, cancellationToken);
             await TickEffects(worldId, players, gameTime, cancellationToken);
             await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
             await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
@@ -133,25 +131,6 @@ internal sealed class ContinuousWorldProcessor(
             .GetRequiredService<IGameClientEventDispatcher>()
             .FlushAsync(worldId, cancellationToken);
         await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
-    }
-
-    private async Task FlushPlayerPoses(
-        IReadOnlyCollection<ActiveLocationPlayer> players,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var flushPlayerPose = scope.ServiceProvider.GetRequiredService<
-            ICommandHandler<FlushPlayerPoseCommand>
-        >();
-
-        foreach (var player in players)
-        {
-            await flushPlayerPose.Handle(
-                new FlushPlayerPoseCommand { PlayerId = player.PlayerId },
-                cancellationToken
-            );
-        }
     }
 
     private async Task PublishAmbientScenes(
