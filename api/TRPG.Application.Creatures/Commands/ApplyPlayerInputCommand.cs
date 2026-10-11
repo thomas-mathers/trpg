@@ -26,6 +26,7 @@ public class ApplyPlayerInputCommand
     public required MovementInput Input { get; init; }
     public required Point ClientPosition { get; init; }
     public required DateTimeOffset ReceivedAt { get; init; }
+    public PlayerPose? Previous { get; init; }
 }
 
 internal class ApplyPlayerInputCommandHandler(
@@ -40,55 +41,36 @@ internal class ApplyPlayerInputCommandHandler(
         GetPlacedConnectorsByLocationIdQuery,
         IReadOnlyCollection<PlacedConnector>
     > getConnectorsByLocation,
-    PlayerPoseStore poseStore,
     IGameClientEventSink eventSink
-) : ICommandHandler<ApplyPlayerInputCommand>
+) : ICommandHandler<ApplyPlayerInputCommand, PlayerPose?>
 {
     private const double DriftToleranceMeters = 0.5;
     private static readonly TimeSpan MaximumIntegrationGap = TimeSpan.FromSeconds(1);
 
-    public async Task Handle(
+    public async Task<PlayerPose?> Handle(
         ApplyPlayerInputCommand command,
         CancellationToken cancellationToken = default
     )
     {
         if (!IsFinite(command))
         {
-            return;
+            return null;
         }
 
         var player = await LoadPlayer(command.PlayerId, cancellationToken);
         if (player is null || !CanWalkIn(player, command.LocationId))
         {
-            return;
+            return null;
         }
 
         var space = await LoadSpace(command.LocationId, cancellationToken);
         if (space is null)
         {
-            return;
+            return null;
         }
 
-        var previous = poseStore.Find(command.PlayerId);
-        var advance = IntegratePrevious(command, player, previous, space);
+        var advance = IntegratePrevious(command, player, space);
         var position = advance.Position;
-
-        poseStore.Set(
-            command.PlayerId,
-            new PlayerPose(
-                command.LocationId,
-                position.X,
-                position.Y,
-                command.Input.Heading,
-                LatestOf(previous, command.ReceivedAt),
-                IsDirty: true
-            )
-            {
-                Input = command.Input,
-                Leftover = advance.Leftover,
-            }
-        );
-
         if (Distance(position, command.ClientPosition) > DriftToleranceMeters)
         {
             eventSink.Enqueue(
@@ -101,6 +83,14 @@ internal class ApplyPlayerInputCommandHandler(
                 )
             );
         }
+
+        return new PlayerPose(
+            command.LocationId,
+            position,
+            LatestOf(command.Previous, command.ReceivedAt),
+            command.Input,
+            advance.Leftover
+        );
     }
 
     private Task<WalkState?> LoadPlayer(Guid playerId, CancellationToken cancellationToken) =>
@@ -150,26 +140,25 @@ internal class ApplyPlayerInputCommandHandler(
     private static MovementAdvance IntegratePrevious(
         ApplyPlayerInputCommand command,
         WalkState player,
-        PlayerPose? previous,
         MovementSpace space
     )
     {
+        var previous = command.Previous;
         if (previous?.LocationId != command.LocationId)
         {
             return new MovementAdvance(player.Position, TimeSpan.Zero);
         }
 
-        var start = new Point(previous.X, previous.Y);
         var elapsed = command.ReceivedAt - previous.ReportedAt;
-        if (previous.Input is null || elapsed <= TimeSpan.Zero)
+        if (elapsed <= TimeSpan.Zero)
         {
-            return new MovementAdvance(start, previous.Leftover);
+            return new MovementAdvance(previous.Position, previous.Leftover);
         }
 
         var gap = elapsed < MaximumIntegrationGap ? elapsed : MaximumIntegrationGap;
 
         return PlayerMovementIntegrator.AdvanceTurning(
-            start,
+            previous.Position,
             previous.Input,
             command.Input.Heading,
             InLocationPace.MetersPerRealSecond(player.MovementSpeed),

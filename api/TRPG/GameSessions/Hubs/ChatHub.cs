@@ -111,7 +111,7 @@ internal sealed class ChatHub(
         {
             try
             {
-                simulation.Post(session.WorldId, new FlushPlayerPose(session.PlayerId));
+                simulation.Post(session.WorldId, new PlayerDisconnected(session.PlayerId));
             }
             finally
             {

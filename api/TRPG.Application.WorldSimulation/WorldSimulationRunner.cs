@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Routing.Commands;
 using TRPG.Application.Scenes.Queries;
@@ -38,6 +39,7 @@ public sealed class WorldSimulationRunner(
         Channel.CreateUnbounded<WorldSimulationMessage>(
             new UnboundedChannelOptions { SingleReader = true }
         );
+    private readonly Dictionary<Guid, PlayerPose> _playerPoses = [];
     private readonly HashSet<Guid> _dirtyPlayerIds = [];
     private readonly List<SimEvent> _unwrittenEvents = [];
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
@@ -111,15 +113,25 @@ public sealed class WorldSimulationRunner(
         }
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var flushPlayerPose = scope.ServiceProvider.GetRequiredService<
-            ICommandHandler<FlushPlayerPoseCommand>
+        var savePlayerPose = scope.ServiceProvider.GetRequiredService<
+            ICommandHandler<SavePlayerPoseCommand>
         >();
         foreach (var playerId in _dirtyPlayerIds)
         {
-            await flushPlayerPose.Handle(
-                new FlushPlayerPoseCommand { PlayerId = playerId },
-                cancellationToken
-            );
+            if (_playerPoses.TryGetValue(playerId, out var pose))
+            {
+                await savePlayerPose.Handle(
+                    new SavePlayerPoseCommand
+                    {
+                        PlayerId = playerId,
+                        LocationId = pose.LocationId,
+                        X = pose.Position.X,
+                        Y = pose.Position.Y,
+                        Angle = pose.Input.Heading,
+                    },
+                    cancellationToken
+                );
+            }
         }
 
         _dirtyPlayerIds.Clear();
@@ -391,8 +403,13 @@ public sealed class WorldSimulationRunner(
             case PlayerInput input:
                 await ApplyPlayerInput(input, cancellationToken);
                 break;
-            case FlushPlayerPose flush:
-                _dirtyPlayerIds.Add(flush.PlayerId);
+            case PlayerDisconnected disconnected:
+                await FlushPlayerPoses(cancellationToken);
+                _playerPoses.Remove(disconnected.PlayerId);
+                break;
+            case ForgetPlayerPose forget:
+                _playerPoses.Remove(forget.PlayerId);
+                _dirtyPlayerIds.Remove(forget.PlayerId);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(message));
@@ -404,8 +421,10 @@ public sealed class WorldSimulationRunner(
         try
         {
             await using var scope = serviceScopeFactory.CreateAsyncScope();
-            await scope
-                .ServiceProvider.GetRequiredService<ICommandHandler<ApplyPlayerInputCommand>>()
+            var pose = await scope
+                .ServiceProvider.GetRequiredService<
+                    ICommandHandler<ApplyPlayerInputCommand, PlayerPose?>
+                >()
                 .Handle(
                     new ApplyPlayerInputCommand
                     {
@@ -415,13 +434,18 @@ public sealed class WorldSimulationRunner(
                         Input = input.Input,
                         ClientPosition = input.ClientPosition,
                         ReceivedAt = input.ReceivedAt,
+                        Previous = _playerPoses.GetValueOrDefault(input.PlayerId),
                     },
                     cancellationToken
                 );
             await scope
                 .ServiceProvider.GetRequiredService<IGameClientEventDispatcher>()
                 .FlushAsync(worldId, cancellationToken);
-            _dirtyPlayerIds.Add(input.PlayerId);
+            if (pose is not null)
+            {
+                _playerPoses[input.PlayerId] = pose;
+                _dirtyPlayerIds.Add(input.PlayerId);
+            }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

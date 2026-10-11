@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -8,7 +7,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.Creatures.Commands;
 
-public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
+public sealed class SavePlayerPoseCommandHandlerTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -17,8 +16,7 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
     private readonly Guid _stateId = Guid.NewGuid();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private FlushPlayerPoseCommandHandler _handler = null!;
-    private PlayerPoseStore _poseStore = null!;
+    private SavePlayerPoseCommandHandler _handler = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -26,8 +24,7 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _handler = _serviceProvider.GetRequiredService<FlushPlayerPoseCommandHandler>();
-        _poseStore = _serviceProvider.GetRequiredService<PlayerPoseStore>();
+        _handler = _serviceProvider.GetRequiredService<SavePlayerPoseCommandHandler>();
 
         _context.States.Add(Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: _stateId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -40,7 +37,7 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_WritesTheLivePoseToTheCreatureRow()
+    public async Task Handle_WritesThePoseToTheCreatureRow()
     {
         // Arrange
         var location = Builders.MakeLocation(WorldId, _stateId, width: 50, depth: 50);
@@ -48,49 +45,16 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
         _context.Locations.Add(location);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        _poseStore.Set(player.Id, MakePose(location.Id, x: 12, y: 7, angle: 2));
 
         // Act
         await _handler.Handle(
-            new FlushPlayerPoseCommand { PlayerId = player.Id },
+            MakeCommand(player.Id, location.Id),
             TestContext.Current.CancellationToken
         );
 
         // Assert
         var stored = await ReadCreature(player.Id);
         Assert.Equal((12d, 7d, 2d), (stored.X, stored.Y, stored.Angle));
-    }
-
-    [Fact]
-    public async Task Handle_WritesNothingTwice_WhenThePoseHasNotChangedSinceTheLastFlush()
-    {
-        // Arrange
-        var location = Builders.MakeLocation(WorldId, _stateId, width: 50, depth: 50);
-        var player = Builders.MakeCreature(WorldId, locationId: location.Id);
-        _context.Locations.Add(location);
-        _context.Creatures.Add(player);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        _poseStore.Set(player.Id, MakePose(location.Id, x: 12, y: 7, angle: 2));
-        await _handler.Handle(
-            new FlushPlayerPoseCommand { PlayerId = player.Id },
-            TestContext.Current.CancellationToken
-        );
-        await _context
-            .Creatures.Where(creature => creature.Id == player.Id)
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(creature => creature.X, 40d),
-                TestContext.Current.CancellationToken
-            );
-
-        // Act
-        await _handler.Handle(
-            new FlushPlayerPoseCommand { PlayerId = player.Id },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        var stored = await ReadCreature(player.Id);
-        Assert.Equal(40d, stored.X);
     }
 
     [Fact]
@@ -103,11 +67,10 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
         _context.Locations.AddRange(location, newLocation);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        _poseStore.Set(player.Id, MakePose(location.Id, x: 12, y: 7, angle: 2));
 
         // Act
         await _handler.Handle(
-            new FlushPlayerPoseCommand { PlayerId = player.Id },
+            MakeCommand(player.Id, location.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -131,11 +94,10 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
         _context.Locations.Add(location);
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        _poseStore.Set(player.Id, MakePose(location.Id, x: 12, y: 7, angle: 2));
 
         // Act
         await _handler.Handle(
-            new FlushPlayerPoseCommand { PlayerId = player.Id },
+            MakeCommand(player.Id, location.Id),
             TestContext.Current.CancellationToken
         );
 
@@ -143,6 +105,16 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
         var stored = await ReadCreature(player.Id);
         Assert.Equal((3d, 4d), (stored.X, stored.Y));
     }
+
+    private static SavePlayerPoseCommand MakeCommand(Guid playerId, Guid locationId) =>
+        new()
+        {
+            PlayerId = playerId,
+            LocationId = locationId,
+            X = 12,
+            Y = 7,
+            Angle = 2,
+        };
 
     private async Task<Creature> ReadCreature(Guid id)
     {
@@ -152,7 +124,4 @@ public sealed class FlushPlayerPoseCommandHandlerTests(DatabaseFixture db)
             .Creatures.AsNoTracking()
             .SingleAsync(creature => creature.Id == id, TestContext.Current.CancellationToken);
     }
-
-    private static PlayerPose MakePose(Guid locationId, double x, double y, double angle) =>
-        new(locationId, x, y, angle, DateTimeOffset.UnixEpoch, IsDirty: true);
 }

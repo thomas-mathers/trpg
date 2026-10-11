@@ -1,11 +1,13 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.WorldSimulation;
 
 namespace TRPG.Application.GameTurns;
 
 internal class StandUpActionHandler(
     GameActionRunner actionRunner,
-    ICommandHandler<StandUpCommand, StandUpResult> standUp
+    ICommandHandler<StandUpCommand, StandUpResult> standUp,
+    WorldSimulationCoordinator simulation
 )
 {
     public Task<ActionOutcome> Handle(
@@ -20,6 +22,11 @@ internal class StandUpActionHandler(
                     new StandUpCommand { PlayerId = session.PlayerId },
                     ct
                 );
+                if (result == StandUpResult.Success)
+                {
+                    simulation.Post(session.WorldId, new ForgetPlayerPose(session.PlayerId));
+                }
+
                 return result switch
                 {
                     StandUpResult.Success => ActionOutcome.Success,

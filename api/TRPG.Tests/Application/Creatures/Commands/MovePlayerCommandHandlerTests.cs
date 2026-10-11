@@ -230,37 +230,6 @@ public sealed class MovePlayerCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_DiscardsTheLivePose_WhenThePlayerMoves()
-    {
-        // Arrange
-        var oldLocation = Builders.MakeLocation(WorldId, _stateId);
-        var newLocation = Builders.MakeLocation(WorldId, _stateId);
-        var player = Builders.MakeCreature(WorldId, locationId: oldLocation.Id);
-        _context.Locations.AddRange(oldLocation, newLocation);
-        _context.Creatures.Add(player);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var poseStore = _serviceProvider.GetRequiredService<PlayerPoseStore>();
-        poseStore.Set(
-            player.Id,
-            new PlayerPose(oldLocation.Id, 4, 5, 1, DateTimeOffset.UnixEpoch, IsDirty: true)
-        );
-
-        // Act
-        await _handler.Handle(
-            new MovePlayerCommand
-            {
-                PlayerId = player.Id,
-                DestinationLocationId = newLocation.Id,
-                GameTime = GameClock.Epoch,
-            },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        Assert.Null(poseStore.Find(player.Id));
-    }
-
-    [Fact]
     public async Task Handle_CreatesAnActiveEncounter_WhenMovingIntoALocationWithAnEngagingGroup()
     {
         // Arrange
