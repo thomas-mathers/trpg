@@ -7,6 +7,7 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.WorldSimulation;
 using TRPG.Creatures.Mappers;
 using TRPG.Domain.Models;
 using TRPG.Quests.Mappers;
@@ -60,16 +61,22 @@ internal static class QuestEndpoints
         Guid questId,
         Guid worldId,
         [FromServices] ICommandHandler<AcceptQuestCommand> acceptQuest,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await acceptQuest.Handle(
-            new AcceptQuestCommand
-            {
-                PlayerId = playerId,
-                QuestId = questId,
-                WorldId = worldId,
-            },
+        await simulation.Request(
+            worldId,
+            (_, token) =>
+                acceptQuest.Handle(
+                    new AcceptQuestCommand
+                    {
+                        PlayerId = playerId,
+                        QuestId = questId,
+                        WorldId = worldId,
+                    },
+                    token
+                ),
             cancellationToken
         );
         return TypedResults.NoContent();
@@ -80,16 +87,22 @@ internal static class QuestEndpoints
         Guid questId,
         Guid worldId,
         [FromServices] ICommandHandler<CompleteQuestCommand> completeQuest,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await completeQuest.Handle(
-            new CompleteQuestCommand
-            {
-                PlayerId = playerId,
-                QuestId = questId,
-                WorldId = worldId,
-            },
+        await simulation.Request(
+            worldId,
+            (_, token) =>
+                completeQuest.Handle(
+                    new CompleteQuestCommand
+                    {
+                        PlayerId = playerId,
+                        QuestId = questId,
+                        WorldId = worldId,
+                    },
+                    token
+                ),
             cancellationToken
         );
         return TypedResults.NoContent();
@@ -101,17 +114,23 @@ internal static class QuestEndpoints
         Guid worldId,
         SetQuestTrackingRequest request,
         [FromServices] ICommandHandler<SetQuestTrackingCommand> setQuestTracking,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await setQuestTracking.Handle(
-            new SetQuestTrackingCommand
-            {
-                PlayerId = playerId,
-                QuestId = questId,
-                WorldId = worldId,
-                IsTracked = request.IsTracked,
-            },
+        await simulation.Request(
+            worldId,
+            (_, token) =>
+                setQuestTracking.Handle(
+                    new SetQuestTrackingCommand
+                    {
+                        PlayerId = playerId,
+                        QuestId = questId,
+                        WorldId = worldId,
+                        IsTracked = request.IsTracked,
+                    },
+                    token
+                ),
             cancellationToken
         );
         return TypedResults.NoContent();

@@ -252,15 +252,24 @@ internal static class CreatureEndpoints
         Guid creatureId,
         AllocateAttributePointsRequest request,
         [FromServices] ICommandHandler<AllocateAttributePointsCommand> allocateAttributePoints,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await allocateAttributePoints.Handle(
-            new AllocateAttributePointsCommand
-            {
-                CreatureId = creatureId,
-                Deltas = request.Deltas.ToDictionary(),
-            },
+        var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
+
+        await simulation.Request(
+            creature.WorldId,
+            (_, token) =>
+                allocateAttributePoints.Handle(
+                    new AllocateAttributePointsCommand
+                    {
+                        CreatureId = creatureId,
+                        Deltas = request.Deltas.ToDictionary(),
+                    },
+                    token
+                ),
             cancellationToken
         );
 
@@ -272,18 +281,24 @@ internal static class CreatureEndpoints
         EquipItemRequest request,
         [FromServices] ICommandHandler<EquipInventoryItemCommand> equipInventoryItem,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await EnsureCreatureExists(creatureId, getCreatureById, cancellationToken);
+        var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
 
-        await equipInventoryItem.Handle(
-            new EquipInventoryItemCommand
-            {
-                CreatureId = creatureId,
-                ItemId = request.ItemId,
-                Slot = request.Slot.ToDataModel(),
-            },
+        await simulation.Request(
+            creature.WorldId,
+            (_, token) =>
+                equipInventoryItem.Handle(
+                    new EquipInventoryItemCommand
+                    {
+                        CreatureId = creatureId,
+                        ItemId = request.ItemId,
+                        Slot = request.Slot.ToDataModel(),
+                    },
+                    token
+                ),
             cancellationToken
         );
 
@@ -295,13 +310,23 @@ internal static class CreatureEndpoints
         TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices] ICommandHandler<UnequipInventoryItemCommand> unequipInventoryItem,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await EnsureCreatureExists(creatureId, getCreatureById, cancellationToken);
+        var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
 
-        await unequipInventoryItem.Handle(
-            new UnequipInventoryItemCommand { CreatureId = creatureId, Slot = slot.ToDataModel() },
+        await simulation.Request(
+            creature.WorldId,
+            (_, token) =>
+                unequipInventoryItem.Handle(
+                    new UnequipInventoryItemCommand
+                    {
+                        CreatureId = creatureId,
+                        Slot = slot.ToDataModel(),
+                    },
+                    token
+                ),
             cancellationToken
         );
 
@@ -708,7 +733,7 @@ internal static class CreatureEndpoints
             progress.ExperienceToNextLevel
         );
 
-    private static async Task EnsureCreatureExists(
+    private static async Task<Creature> GetExistingCreature(
         Guid creatureId,
         IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         CancellationToken cancellationToken
@@ -722,6 +747,8 @@ internal static class CreatureEndpoints
         {
             throw new EntityNotFoundException(nameof(Creature), creatureId);
         }
+
+        return creature;
     }
 
     private static async Task<NoContent> BeginCreatureInteraction(

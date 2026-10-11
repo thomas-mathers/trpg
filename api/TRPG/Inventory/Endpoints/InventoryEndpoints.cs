@@ -16,6 +16,7 @@ using TRPG.Application.Inventory.Results;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Quests.Queries;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Application.WorldSimulation;
 using TRPG.Creatures.Mappers;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -109,6 +110,7 @@ internal static class InventoryEndpoints
         [FromServices] ICommandHandler<ReceivePlayerInventoryCommand> receiveInventory,
         [FromServices] ICommandHandler<AttemptTheftCommand, TheftAttemptResult> attemptTheft,
         [FromServices] ICommandHandler<TransferPlayerInventoryCommand> transferInventory,
+        [FromServices] WorldSimulationCoordinator simulation,
         [FromServices] IQueryHandler<GetGameTimeByWorldIdQuery, GameInstant> getGameTimeByWorldId,
         GameClientEventDispatcher eventDispatcher,
         CancellationToken cancellationToken
@@ -166,81 +168,152 @@ internal static class InventoryEndpoints
             );
         }
 
-        var response = new InventoryTransferResponse(null);
+        var execution = await simulation.Request(
+            from.Value.WorldId,
+            (_, token) =>
+                ExecuteTransfer(
+                    playerId,
+                    from.Value.WorldId,
+                    request,
+                    new TransferHandlers(
+                        getCreatureById,
+                        getInventoryItemsByOwner,
+                        getItemsByIdsForOwner,
+                        receiveInventory,
+                        attemptTheft,
+                        transferInventory,
+                        getGameTimeByWorldId
+                    ),
+                    token
+                ),
+            cancellationToken
+        );
+        if (execution.Problem != null)
+        {
+            return execution.Problem;
+        }
+
+        await eventDispatcher.FlushAsync(from.Value.WorldId, cancellationToken);
+
+        return TypedResults.Ok(execution.Response);
+    }
+
+    private sealed record TransferHandlers(
+        IQueryHandler<GetCreatureByIdQuery, Creature?> GetCreatureById,
+        IQueryHandler<GetInventoryItemsByOwnerQuery, IReadOnlyList<Item>> GetInventoryItemsByOwner,
+        IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> GetItemsByIdsForOwner,
+        ICommandHandler<ReceivePlayerInventoryCommand> ReceiveInventory,
+        ICommandHandler<AttemptTheftCommand, TheftAttemptResult> AttemptTheft,
+        ICommandHandler<TransferPlayerInventoryCommand> TransferInventory,
+        IQueryHandler<GetGameTimeByWorldIdQuery, GameInstant> GetGameTimeByWorldId
+    );
+
+    private sealed record TransferExecution(
+        ProblemHttpResult? Problem,
+        InventoryTransferResponse Response
+    );
+
+    private static async Task<TransferExecution> ExecuteTransfer(
+        Guid playerId,
+        Guid worldId,
+        InventoryTransferRequest request,
+        TransferHandlers handlers,
+        CancellationToken cancellationToken
+    )
+    {
         if (request.From.Id == playerId && request.From.Type == OwnerType.Creature)
         {
-            await transferInventory.Handle(
+            await handlers.TransferInventory.Handle(
                 new TransferPlayerInventoryCommand
                 {
-                    WorldId = from.Value.WorldId,
+                    WorldId = worldId,
                     To = new ItemOwnerReference(request.To.Id, request.To.Type),
                     Items = request.Items,
                     PlayerId = playerId,
                 },
                 cancellationToken
             );
-        }
-        else if (request.To.Id == playerId && request.To.Type == OwnerType.Creature)
-        {
-            var gameTime = await getGameTimeByWorldId.Handle(
-                new GetGameTimeByWorldIdQuery { WorldId = from.Value.WorldId },
-                cancellationToken
-            );
-            var theftAttempt = await attemptTheft.Handle(
-                new AttemptTheftCommand
-                {
-                    From = new ItemOwnerReference(request.From.Id, request.From.Type),
-                    Items = request.Items,
-                    PlayerId = playerId,
-                    WorldId = from.Value.WorldId,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
-            if (theftAttempt.Outcome == TheftAttemptOutcome.NotTheft)
-            {
-                var hasCapacity = await DestinationHasCapacity(
-                    playerId,
-                    new ItemOwnerReference(request.From.Id, request.From.Type),
-                    request.Items,
-                    getCreatureById,
-                    getInventoryItemsByOwner,
-                    getItemsByIdsForOwner,
-                    cancellationToken
-                );
-                if (!hasCapacity)
-                {
-                    return TypedResults.Problem(
-                        statusCode: StatusCodes.Status409Conflict,
-                        title: "Carrying capacity exceeded",
-                        detail: "You cannot carry any more weight."
-                    );
-                }
 
-                await receiveInventory.Handle(
-                    new ReceivePlayerInventoryCommand
-                    {
-                        From = new ItemOwnerReference(request.From.Id, request.From.Type),
-                        Items = request.Items,
-                        PlayerId = playerId,
-                        WorldId = from.Value.WorldId,
-                    },
-                    cancellationToken
-                );
-            }
-            response = new InventoryTransferResponse(theftAttempt.EncounterId);
+            return new TransferExecution(null, new InventoryTransferResponse(null));
         }
-        else
+
+        if (request.To.Id == playerId && request.To.Type == OwnerType.Creature)
         {
-            return TypedResults.Problem(
+            return await ExecuteReceive(playerId, worldId, request, handlers, cancellationToken);
+        }
+
+        return new TransferExecution(
+            TypedResults.Problem(
                 statusCode: StatusCodes.Status400BadRequest,
                 title: "Inventory transfers must involve the player"
+            ),
+            new InventoryTransferResponse(null)
+        );
+    }
+
+    private static async Task<TransferExecution> ExecuteReceive(
+        Guid playerId,
+        Guid worldId,
+        InventoryTransferRequest request,
+        TransferHandlers handlers,
+        CancellationToken cancellationToken
+    )
+    {
+        var from = new ItemOwnerReference(request.From.Id, request.From.Type);
+        var gameTime = await handlers.GetGameTimeByWorldId.Handle(
+            new GetGameTimeByWorldIdQuery { WorldId = worldId },
+            cancellationToken
+        );
+        var theftAttempt = await handlers.AttemptTheft.Handle(
+            new AttemptTheftCommand
+            {
+                From = from,
+                Items = request.Items,
+                PlayerId = playerId,
+                WorldId = worldId,
+                GameTime = gameTime,
+            },
+            cancellationToken
+        );
+        var response = new InventoryTransferResponse(theftAttempt.EncounterId);
+        if (theftAttempt.Outcome != TheftAttemptOutcome.NotTheft)
+        {
+            return new TransferExecution(null, response);
+        }
+
+        var hasCapacity = await DestinationHasCapacity(
+            playerId,
+            from,
+            request.Items,
+            handlers.GetCreatureById,
+            handlers.GetInventoryItemsByOwner,
+            handlers.GetItemsByIdsForOwner,
+            cancellationToken
+        );
+        if (!hasCapacity)
+        {
+            return new TransferExecution(
+                TypedResults.Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Carrying capacity exceeded",
+                    detail: "You cannot carry any more weight."
+                ),
+                response
             );
         }
 
-        await eventDispatcher.FlushAsync(from.Value.WorldId, cancellationToken);
+        await handlers.ReceiveInventory.Handle(
+            new ReceivePlayerInventoryCommand
+            {
+                From = from,
+                Items = request.Items,
+                PlayerId = playerId,
+                WorldId = worldId,
+            },
+            cancellationToken
+        );
 
-        return TypedResults.Ok(response);
+        return new TransferExecution(null, response);
     }
 
     private static async Task<NoContent> DropInventoryItem(
@@ -248,16 +321,25 @@ internal static class InventoryEndpoints
         Guid itemId,
         DropInventoryItemRequest request,
         [FromServices] ICommandHandler<DropInventoryItemCommand> dropInventoryItem,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await dropInventoryItem.Handle(
-            new DropInventoryItemCommand
-            {
-                PlayerId = playerId,
-                ItemId = itemId,
-                Quantity = request.Quantity,
-            },
+        var player = await GetExistingCreature(playerId, getCreatureById, cancellationToken);
+
+        await simulation.Request(
+            player.WorldId,
+            (_, token) =>
+                dropInventoryItem.Handle(
+                    new DropInventoryItemCommand
+                    {
+                        PlayerId = playerId,
+                        ItemId = itemId,
+                        Quantity = request.Quantity,
+                    },
+                    token
+                ),
             cancellationToken
         );
 
@@ -434,7 +516,7 @@ internal static class InventoryEndpoints
         CancellationToken cancellationToken
     )
     {
-        await EnsureCreatureExists(playerId, getCreatureById, cancellationToken);
+        await GetExistingCreature(playerId, getCreatureById, cancellationToken);
 
         var outcome = await proposeTrade.Handle(
             new ProposeTradeCommand
@@ -455,6 +537,7 @@ internal static class InventoryEndpoints
         Guid worldId,
         TradeRequest request,
         [FromServices] ICommandHandler<CompleteTradeCommand> completeTrade,
+        [FromServices] WorldSimulationCoordinator simulation,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices]
             IQueryHandler<
@@ -466,7 +549,7 @@ internal static class InventoryEndpoints
         CancellationToken cancellationToken
     )
     {
-        await EnsureCreatureExists(playerId, getCreatureById, cancellationToken);
+        await GetExistingCreature(playerId, getCreatureById, cancellationToken);
 
         var hasCapacity = await DestinationHasCapacity(
             playerId,
@@ -486,21 +569,26 @@ internal static class InventoryEndpoints
             );
         }
 
-        await completeTrade.Handle(
-            new CompleteTradeCommand
-            {
-                PlayerId = playerId,
-                WorldId = worldId,
-                WorkstationId = workstationId,
-                PlayerOffer = request.PlayerOffer,
-                ShopOffer = request.ShopOffer,
-            },
+        await simulation.Request(
+            worldId,
+            (_, token) =>
+                completeTrade.Handle(
+                    new CompleteTradeCommand
+                    {
+                        PlayerId = playerId,
+                        WorldId = worldId,
+                        WorkstationId = workstationId,
+                        PlayerOffer = request.PlayerOffer,
+                        ShopOffer = request.ShopOffer,
+                    },
+                    token
+                ),
             cancellationToken
         );
         return TypedResults.NoContent();
     }
 
-    private static async Task EnsureCreatureExists(
+    private static async Task<Creature> GetExistingCreature(
         Guid creatureId,
         IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         CancellationToken cancellationToken
@@ -514,5 +602,7 @@ internal static class InventoryEndpoints
         {
             throw new EntityNotFoundException(nameof(Creature), creatureId);
         }
+
+        return creature;
     }
 }
