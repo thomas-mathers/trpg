@@ -21,6 +21,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private static readonly GameInstant Now = new(new DateTime(2000, 1, 3, 13, 0, 0));
+    private static readonly TimeSpan ActivePassInterval = TimeSpan.FromSeconds(5);
 
     private readonly Guid _worldId = Guid.NewGuid();
     private Guid _playerId;
@@ -28,6 +29,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         new WorldSimulationOptions { RouteSearchesPerTick = 1 }
     );
 
+    private readonly RecordingDispatcher _dispatcher = new();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private WorldSimulationRunner _runner = null!;
@@ -42,7 +44,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .AddSingleton<IOptions<WorldSimulationOptions>>(_options)
             .WithScopedDbContexts(db.ConnectionString)
-            .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
+            .AddScoped<IGameClientEventDispatcher>(_ => _dispatcher)
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
@@ -542,8 +544,100 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         Assert.Equal(_workplace.Id, updated.LocationId);
     }
 
+    [Fact]
+    public async Task Tick_DoesNotRegenerateThePlayer_OnTheFirstTick()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal(1, player.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotRegenerateThePlayer_BeforeTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(
+            Now + ActivePassInterval - TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal(1, player.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_RegeneratesThePlayer_WhenTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.True(player.CurrentHp > 1);
+    }
+
+    [Fact]
+    public async Task Tick_FlushesTheWorldEvents_WhenTheActivePassesRan()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var flushesBefore = _dispatcher.FlushedWorldIds.Count(id => id == _worldId);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(_dispatcher.FlushedWorldIds.Count(id => id == _worldId) > flushesBefore);
+    }
+
+    [Fact]
+    public async Task Tick_SkipsTheActivePasses_WhenTheWorldHasNoPlayer()
+    {
+        // Arrange
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var flushesBefore = _dispatcher.FlushedWorldIds.Count;
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(flushesBefore, _dispatcher.FlushedWorldIds.Count);
+    }
+
     private static Task FailingWork(LivePlayerPoses poses, CancellationToken cancellationToken) =>
         throw new InvalidOperationException("boom");
+
+    private sealed class RecordingDispatcher : IGameClientEventDispatcher
+    {
+        public List<Guid> FlushedWorldIds { get; } = [];
+
+        public Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default)
+        {
+            FlushedWorldIds.Add(worldId);
+            return Task.FromResult(false);
+        }
+    }
 
     private sealed class SwitchableOptions(WorldSimulationOptions current)
         : IOptions<WorldSimulationOptions>
@@ -556,14 +650,20 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             IsBroken ? throw new InvalidOperationException("Options are unavailable.") : Current;
     }
 
-    private async Task AddPlayerAt(Location location, double x = 0, double y = 0)
+    private async Task AddPlayerAt(
+        Location location,
+        double x = 0,
+        double y = 0,
+        int? currentHp = null
+    )
     {
         var player = Builders.MakeCreature(
             _worldId,
             locationId: location.Id,
             movementSpeed: 50,
             x: x,
-            y: y
+            y: y,
+            currentHp: currentHp
         );
         _playerId = player.Id;
         var world = await _context.Worlds.SingleAsync(

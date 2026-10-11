@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Configuration;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
@@ -442,6 +443,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
             clock,
             new TransientCreatureWalkRegistry(),
             Options.Create(new WorldSimulationOptions()),
+            Options.Create(new WorldClockOptions()),
             NullLogger<WorldSimulationRunner>.Instance
         );
 

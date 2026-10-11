@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
+using TRPG.Application.Configuration;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Domain;
 
@@ -12,6 +13,7 @@ public sealed class WorldSimulationRunnerFactory(
     IWorldClock worldClock,
     TransientCreatureWalkRegistry transientWalks,
     IOptions<WorldSimulationOptions> options,
+    IOptions<WorldClockOptions> clockOptions,
     ILogger<WorldSimulationRunner> logger
 )
 {
@@ -30,6 +32,7 @@ public sealed class WorldSimulationRunnerFactory(
             worldId,
             loaded,
             options.Value,
+            options.Value.ActiveLocationPassInterval * clockOptions.Value.TimeScale,
             worldClock,
             serviceScopeFactory,
             transientWalks,

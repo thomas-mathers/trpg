@@ -98,23 +98,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessFrequent_RegeneratesPlayerAndFlushesVitals_WhenWorldIsActive()
-    {
-        // Arrange
-        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        _timeProvider.Advance(TimeSpan.FromSeconds(10));
-
-        // Act
-        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
-
-        // Assert
-        var vitalsChanged = Assert.Single(_flushedEvents.OfType<PlayerVitalsChangedEvent>());
-        Assert.Equal(_player.Id, vitalsChanged.Vitals.CreatureId);
-        Assert.Equal(await ReadPlayerHp(), vitalsChanged.Vitals.CurrentHp);
-        Assert.True(vitalsChanged.Vitals.CurrentHp > 1);
-    }
-
-    [Fact]
     public async Task ProcessFrequent_LeavesPlayerUntouched_WhenWorldIsPaused()
     {
         // Act
@@ -134,23 +117,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
 
         // Act
         await _processor.ProcessRoutines(TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.Equal(1, await ReadPlayerHp());
-        Assert.Empty(_flushedEvents.OfType<PlayerVitalsChangedEvent>());
-    }
-
-    [Fact]
-    public async Task ProcessFrequent_DoesNotRegeneratePlayer_WhenPlayerIsInAnActiveFight()
-    {
-        // Arrange
-        _context.Encounters.Add(Builders.MakeFight(_world.Id, _player.Id, [_player.Id]));
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        _timeProvider.Advance(TimeSpan.FromMinutes(5));
-
-        // Act
-        await _processor.ProcessFrequent(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(1, await ReadPlayerHp());

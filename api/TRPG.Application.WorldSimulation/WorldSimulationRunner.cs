@@ -23,6 +23,7 @@ public sealed class WorldSimulationRunner(
     Guid worldId,
     LoadedWorldSimulation loaded,
     WorldSimulationOptions options,
+    TimeSpan activeLocationPassInterval,
     IWorldClock worldClock,
     IServiceScopeFactory serviceScopeFactory,
     TransientCreatureWalkRegistry transientWalks,
@@ -45,6 +46,12 @@ public sealed class WorldSimulationRunner(
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
     private readonly List<LocalMoveCompleted> _unexecutedLocalArrivals = [];
     private readonly Dictionary<Guid, HashSet<Guid>> _unpublishedCreatureIdsByLocationId = [];
+    private readonly ActiveLocationPasses _activeLocationPasses = new(
+        worldId,
+        activeLocationPassInterval,
+        serviceScopeFactory,
+        logger
+    );
     private LoadedWorldSimulation _loaded = loaded;
     private volatile bool _isRecovering;
     private Guid? _lastPlannedCreatureId;
@@ -102,6 +109,7 @@ public sealed class WorldSimulationRunner(
             return;
         }
 
+        await _activeLocationPasses.Run(now, cancellationToken);
         await FlushPlayerPoses(cancellationToken);
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);

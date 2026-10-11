@@ -7,4 +7,5 @@ public sealed class WorldSimulationOptions
     public TimeSpan ArrivalStagger { get; init; } = TimeSpan.FromMinutes(10);
     public int MessagesPerTick { get; init; } = 32;
     public TimeSpan MessageTimeBudget { get; init; } = TimeSpan.FromMilliseconds(100);
+    public TimeSpan ActiveLocationPassInterval { get; init; } = TimeSpan.FromSeconds(5);
 }

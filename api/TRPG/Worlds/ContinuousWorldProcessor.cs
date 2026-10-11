@@ -126,12 +126,7 @@ internal sealed class ContinuousWorldProcessor(
             return false;
         }
 
-        if (lane == ContinuousWorldLane.Frequent)
-        {
-            await TickEffects(worldId, players, gameTime, cancellationToken);
-            await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
-        }
-        else
+        if (lane == ContinuousWorldLane.Routines)
         {
             await SyncRoutines(
                 scope.ServiceProvider,
@@ -190,52 +185,6 @@ internal sealed class ContinuousWorldProcessor(
                 cancellationToken
             );
         }
-    }
-
-    private async Task TickEffects(
-        Guid worldId,
-        IReadOnlyCollection<ActiveLocationPlayer> players,
-        GameInstant gameTime,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var services = scope.ServiceProvider;
-
-        await services
-            .GetRequiredService<ICommandHandler<SyncActiveLocationEffectsCommand>>()
-            .Handle(
-                new SyncActiveLocationEffectsCommand
-                {
-                    WorldId = worldId,
-                    Players = players,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
-    }
-
-    private async Task RegenerateCreatures(
-        Guid worldId,
-        IReadOnlyCollection<ActiveLocationPlayer> players,
-        GameInstant gameTime,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var services = scope.ServiceProvider;
-
-        await services
-            .GetRequiredService<ICommandHandler<SyncActiveLocationRegenerationCommand>>()
-            .Handle(
-                new SyncActiveLocationRegenerationCommand
-                {
-                    WorldId = worldId,
-                    Players = players,
-                    GameTime = gameTime,
-                },
-                cancellationToken
-            );
     }
 
     private readonly record struct WorldLane(Guid WorldId, ContinuousWorldLane Lane);
