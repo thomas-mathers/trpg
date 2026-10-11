@@ -14,11 +14,13 @@ import { useScene } from '../contexts/scene-context';
 import {
   EYE_HEIGHT,
   type Obstacle,
-  clampToBounds,
-  computeMovement,
+  type PlanarPoint,
+  type WalkerState,
+  advanceWalker,
   findConnectorInRange,
   headingToYaw,
-  pushOutOfObstacles,
+  interpolateWalker,
+  seedWalker,
   toScenePosition,
   yawToHeading,
 } from './layout-math';
@@ -26,8 +28,6 @@ import { findSeatInRange, type ViewportSeat } from './seat-interaction';
 import { useDebugTeleport } from './use-debug-teleport';
 import { type InputFrame, useInputReporter } from './use-input-reporter';
 import { useSeatedCamera } from './use-seated-camera';
-
-const MAX_FRAME_SECONDS = 0.1;
 
 const FORWARD_KEYS = ['KeyW', 'ArrowUp'];
 const BACKWARD_KEYS = ['KeyS', 'ArrowDown'];
@@ -87,6 +87,8 @@ export function FpsController({
     movementLocked,
   });
   const latestStart = useRef(start);
+  const walker = useRef<WalkerState | undefined>(undefined);
+  const shown = useRef<PlanarPoint | undefined>(undefined);
 
   const { scene, setMovementSpeed } = useScene();
   const { locationId } = scene;
@@ -169,6 +171,7 @@ export function FpsController({
 
   useFrame((_, deltaSeconds) => {
     if (seated || movementLocked || cameraHeld.current) {
+      walker.current = undefined;
       haltInput();
       return;
     }
@@ -176,16 +179,21 @@ export function FpsController({
     const heading = yawToHeading(camera.rotation.y);
     const forward = axis(keys, FORWARD_KEYS, BACKWARD_KEYS);
     const strafe = axis(keys, RIGHT_KEYS, LEFT_KEYS);
-    const delta = computeMovement({
-      heading,
-      forward,
-      strafe,
-      speed: walkSpeed,
-      deltaSeconds: Math.min(deltaSeconds, MAX_FRAME_SECONDS),
-    });
-    const attempted = { x: camera.position.x + delta.x, y: camera.position.z + delta.y };
-    const next = clampToBounds(pushOutOfObstacles(attempted, obstacles), size);
-    camera.position.set(next.x, EYE_HEIGHT, next.y);
+    const lastShown = shown.current;
+    const cameraMoved = lastShown?.x !== camera.position.x || lastShown?.y !== camera.position.z;
+    const state = advanceWalker(
+      cameraMoved || !walker.current
+        ? seedWalker({ x: camera.position.x, y: camera.position.z })
+        : walker.current,
+      { heading, forward, strafe, speed: walkSpeed, deltaSeconds },
+      obstacles,
+      size,
+    );
+    const view = interpolateWalker(state);
+    const next = state.current;
+    walker.current = state;
+    shown.current = view;
+    camera.position.set(view.x, EYE_HEIGHT, view.y);
     trackInput({ forward, strafe, heading, x: next.x, y: next.y }, performance.now());
 
     const seat = findSeatInRange(next, seats);

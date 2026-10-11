@@ -13,6 +13,7 @@ internal sealed record PlayerPose(
 )
 {
     public MovementInput? Input { get; init; }
+    public TimeSpan Leftover { get; init; }
 }
 
 internal sealed class PlayerPoseStore

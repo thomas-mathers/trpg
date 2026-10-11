@@ -12,13 +12,16 @@ public record MovementSpace(
     IReadOnlyCollection<MovementObstacle> Obstacles
 );
 
+public record MovementAdvance(Point Position, TimeSpan Leftover);
+
 public static class PlayerMovementIntegrator
 {
     public const double PlayerRadius = 0.35;
+    public const double StepSeconds = 1.0 / 60;
 
     private const double BoundsMargin = 0.3;
     private const int ResolvePasses = 2;
-    private const double MaximumStepSeconds = 1.0 / 30;
+    private const double TickToleranceSeconds = 1e-7;
 
     public static Point Advance(
         Point position,
@@ -26,17 +29,41 @@ public static class PlayerMovementIntegrator
         double speed,
         TimeSpan elapsed,
         MovementSpace space
+    ) => AdvanceTurning(position, input, input.Heading, speed, elapsed, space).Position;
+
+    public static MovementAdvance AdvanceTurning(
+        Point position,
+        MovementInput input,
+        double finalHeading,
+        double speed,
+        TimeSpan elapsed,
+        MovementSpace space
     )
     {
-        var remaining = elapsed.TotalSeconds;
-        while (remaining > 0)
+        var total = elapsed.TotalSeconds;
+        var steps = (int)Math.Floor((total + TickToleranceSeconds) / StepSeconds);
+        var turn = ShortestTurn(input.Heading, finalHeading);
+        for (var step = 0; step < steps; step++)
         {
-            var step = Math.Min(remaining, MaximumStepSeconds);
-            position = Step(position, input, speed * step, space);
-            remaining -= step;
+            var heading = input.Heading + (turn * (step + 0.5) / steps);
+            position = Step(position, input with { Heading = heading }, speed * StepSeconds, space);
         }
 
-        return position;
+        var leftover = Math.Max(0, total - (steps * StepSeconds));
+
+        return new MovementAdvance(position, TimeSpan.FromSeconds(leftover));
+    }
+
+    private static double ShortestTurn(double from, double to)
+    {
+        var turn = (to - from) % (2 * Math.PI);
+
+        return turn switch
+        {
+            > Math.PI => turn - (2 * Math.PI),
+            <= -Math.PI => turn + (2 * Math.PI),
+            _ => turn,
+        };
     }
 
     private static Point Step(
