@@ -148,6 +148,34 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Announce_PublishesAnUpdate_WhenANearbyCreaturesVitalsChanged()
+    {
+        // Arrange
+        var resident = await SeedCreatureAt(_locationId);
+        await PublishBaselineScene();
+        await _context
+            .Creatures.Where(creature => creature.Id == resident.Id)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(creature => creature.CurrentHp, 1),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        await _announcer.Announce(
+            _worldId,
+            GameClock.Epoch,
+            Changed(resident.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = Assert.IsType<CreaturesUpdatedEvent>(Assert.Single(_events.EnqueuedEvents));
+        var creature = Assert.Single(updated.Creatures);
+        Assert.Equal(resident.Id, creature.Id);
+        Assert.Equal(1, creature.CurrentHp);
+    }
+
+    [Fact]
     public async Task Announce_PublishesNothing_WhenTheCreaturesAreUnchanged()
     {
         // Arrange

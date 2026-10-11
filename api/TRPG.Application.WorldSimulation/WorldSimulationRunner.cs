@@ -10,6 +10,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Routing.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation.Arrivals;
+using TRPG.Application.WorldSimulation.Commands;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
@@ -118,7 +119,8 @@ public sealed class WorldSimulationRunner(
         }
 
         await _sceneResync.Run(cancellationToken);
-        await _activeLocationPasses.Run(now, cancellationToken);
+        var touchedByPasses = await _activeLocationPasses.Run(now, cancellationToken);
+        RememberTouchedByPasses(touchedByPasses);
         await FlushPlayerPoses(cancellationToken);
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
@@ -811,20 +813,28 @@ public sealed class WorldSimulationRunner(
         {
             foreach (var locationId in SimEventLocations.Touched(simEvent))
             {
-                if (
-                    !_unpublishedCreatureIdsByLocationId.TryGetValue(
-                        locationId,
-                        out var creatureIds
-                    )
-                )
-                {
-                    creatureIds = [];
-                    _unpublishedCreatureIdsByLocationId[locationId] = creatureIds;
-                }
-
-                creatureIds.Add(simEvent.CreatureId);
+                UnpublishedCreatureIds(locationId).Add(simEvent.CreatureId);
             }
         }
+    }
+
+    private void RememberTouchedByPasses(IReadOnlyCollection<TouchedCreatures> touched)
+    {
+        foreach (var location in touched.Where(location => location.CreatureIds.Count > 0))
+        {
+            UnpublishedCreatureIds(location.LocationId).UnionWith(location.CreatureIds);
+        }
+    }
+
+    private HashSet<Guid> UnpublishedCreatureIds(Guid locationId)
+    {
+        if (!_unpublishedCreatureIdsByLocationId.TryGetValue(locationId, out var creatureIds))
+        {
+            creatureIds = [];
+            _unpublishedCreatureIdsByLocationId[locationId] = creatureIds;
+        }
+
+        return creatureIds;
     }
 
     private sealed record MovementPlanningSummary(

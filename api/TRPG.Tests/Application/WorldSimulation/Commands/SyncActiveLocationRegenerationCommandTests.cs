@@ -99,6 +99,23 @@ public sealed class SyncActiveLocationRegenerationCommandTests(DatabaseFixture d
     }
 
     [Fact]
+    public async Task Handle_ReportsTheCreaturesThatRegenerated()
+    {
+        // Arrange
+        var bystander = Builders.MakeCreature(_worldId, locationId: _locationId, currentHp: 1);
+        _context.Creatures.Add(bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var touched = await _handler.Handle(MakeCommand(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var location = Assert.Single(touched);
+        Assert.Equal(_locationId, location.LocationId);
+        Assert.Contains(bystander.Id, location.CreatureIds);
+    }
+
+    [Fact]
     public async Task Handle_SuppressesRegeneration_WhenCreatureIsInAnActiveFight()
     {
         // Arrange

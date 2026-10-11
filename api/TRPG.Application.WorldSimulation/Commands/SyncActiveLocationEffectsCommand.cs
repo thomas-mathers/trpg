@@ -31,9 +31,9 @@ internal class SyncActiveLocationEffectsCommandHandler(
         IReadOnlyCollection<CreatureVitals>
     > advanceCreatureEffects,
     PlayerVitalsPublisher playerVitalsPublisher
-) : ICommandHandler<SyncActiveLocationEffectsCommand>
+) : ICommandHandler<SyncActiveLocationEffectsCommand, IReadOnlyCollection<TouchedCreatures>>
 {
-    public async Task Handle(
+    public async Task<IReadOnlyCollection<TouchedCreatures>> Handle(
         SyncActiveLocationEffectsCommand command,
         CancellationToken cancellationToken = default
     )
@@ -57,13 +57,23 @@ internal class SyncActiveLocationEffectsCommandHandler(
             );
         }
 
+        var touched = new List<TouchedCreatures>();
         foreach (var locationId in command.Players.Select(player => player.LocationId).Distinct())
         {
-            await AdvanceLocationEffects(command, locationId, fightCombatantIds, cancellationToken);
+            touched.Add(
+                await AdvanceLocationEffects(
+                    command,
+                    locationId,
+                    fightCombatantIds,
+                    cancellationToken
+                )
+            );
         }
+
+        return touched;
     }
 
-    private async Task AdvanceLocationEffects(
+    private async Task<TouchedCreatures> AdvanceLocationEffects(
         SyncActiveLocationEffectsCommand command,
         Guid locationId,
         IReadOnlyCollection<Guid> fightCombatantIds,
@@ -81,7 +91,7 @@ internal class SyncActiveLocationEffectsCommandHandler(
         );
         if (creatureIds.Count == 0)
         {
-            return;
+            return new TouchedCreatures(locationId, []);
         }
 
         var changedVitals = await advanceCreatureEffects.Handle(
@@ -102,6 +112,11 @@ internal class SyncActiveLocationEffectsCommandHandler(
                 .ToHashSet(),
             changedVitals,
             cancellationToken
+        );
+
+        return new TouchedCreatures(
+            locationId,
+            changedVitals.Select(vitals => vitals.CreatureId).ToArray()
         );
     }
 }

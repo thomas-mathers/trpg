@@ -78,7 +78,7 @@ public sealed class SyncActiveLocationEffectsCommandTests(DatabaseFixture db)
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
-    private Task Sync() =>
+    private Task<IReadOnlyCollection<TouchedCreatures>> Sync() =>
         _handler.Handle(
             new SyncActiveLocationEffectsCommand
             {
@@ -148,6 +148,21 @@ public sealed class SyncActiveLocationEffectsCommandTests(DatabaseFixture db)
         // Assert
         Assert.True((await Reload(bystander.Id)).CurrentHp < 50);
         Assert.Empty(Published<PlayerVitalsChangedEvent>());
+    }
+
+    [Fact]
+    public async Task Handle_ReportsTheCreaturesWhoseEffectsAdvanced()
+    {
+        // Arrange
+        var bystander = await SeedBurning();
+
+        // Act
+        var touched = await Sync();
+
+        // Assert
+        var location = Assert.Single(touched);
+        Assert.Equal(_locationId, location.LocationId);
+        Assert.Equal(bystander.Id, Assert.Single(location.CreatureIds));
     }
 
     [Fact]

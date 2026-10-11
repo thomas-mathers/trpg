@@ -24,9 +24,9 @@ internal class SyncActiveLocationRegenerationCommandHandler(
         IReadOnlyCollection<CreatureVitals>
     > regenerateCreatures,
     PlayerVitalsPublisher playerVitalsPublisher
-) : ICommandHandler<SyncActiveLocationRegenerationCommand>
+) : ICommandHandler<SyncActiveLocationRegenerationCommand, IReadOnlyCollection<TouchedCreatures>>
 {
-    public async Task Handle(
+    public async Task<IReadOnlyCollection<TouchedCreatures>> Handle(
         SyncActiveLocationRegenerationCommand command,
         CancellationToken cancellationToken = default
     )
@@ -37,6 +37,7 @@ internal class SyncActiveLocationRegenerationCommandHandler(
             cancellationToken
         );
 
+        var touched = new List<TouchedCreatures>();
         foreach (var locationId in command.Players.Select(player => player.LocationId).Distinct())
         {
             var changedVitals = await regenerateCreatures.Handle(
@@ -59,6 +60,15 @@ internal class SyncActiveLocationRegenerationCommandHandler(
                 changedVitals,
                 cancellationToken
             );
+
+            touched.Add(
+                new TouchedCreatures(
+                    locationId,
+                    changedVitals.Select(vitals => vitals.CreatureId).ToArray()
+                )
+            );
         }
+
+        return touched;
     }
 }
