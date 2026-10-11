@@ -6,6 +6,7 @@ using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameSessions.Commands;
 using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.Narration.Commands;
+using TRPG.Application.WorldSimulation;
 using TRPG.Domain.Models;
 
 namespace TRPG.GameSessions.Commands;
@@ -18,6 +19,7 @@ internal class EndGameSessionCommand
 internal class EndGameSessionCommandHandler(
     IWorldClock worldClock,
     IWorldMutationGate mutationGate,
+    WorldSimulationCoordinator simulation,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     ICommandHandler<DeleteGameSessionCommand> deleteGameSession,
     ICommandHandler<ClearNonEncounterEngagementsCommand> clearNonEncounterEngagements,
@@ -34,26 +36,35 @@ internal class EndGameSessionCommandHandler(
             cancellationToken
         );
 
-        await using var lease = await mutationGate.Acquire(snapshot.WorldId, cancellationToken);
+        await simulation.Request(
+            snapshot.WorldId,
+            (_, token) => EndUnderGate(command.SessionId, snapshot.WorldId, token),
+            cancellationToken
+        );
+    }
 
-        var gameTime = await worldClock.GetCurrent(snapshot.WorldId, cancellationToken);
+    private async Task EndUnderGate(
+        Guid sessionId,
+        Guid worldId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
+
+        var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
 
         await clearNonEncounterEngagements.Handle(
-            new ClearNonEncounterEngagementsCommand
-            {
-                WorldId = snapshot.WorldId,
-                GameTime = gameTime,
-            },
+            new ClearNonEncounterEngagementsCommand { WorldId = worldId, GameTime = gameTime },
             cancellationToken
         );
 
         await deleteGameSession.Handle(
-            new DeleteGameSessionCommand { SessionId = command.SessionId },
+            new DeleteGameSessionCommand { SessionId = sessionId },
             cancellationToken
         );
 
         await invalidateWorldLoreAnchors.Handle(
-            new InvalidateWorldLoreAnchorsCommand { WorldId = snapshot.WorldId },
+            new InvalidateWorldLoreAnchorsCommand { WorldId = worldId },
             cancellationToken
         );
     }

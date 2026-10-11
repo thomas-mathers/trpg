@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Narration.Queries;
+using TRPG.Application.WorldSimulation;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Commands;
@@ -26,7 +27,9 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .BuildServiceProvider();
+        _serviceProvider.GetRequiredService<SimulationPump>();
         _handler = _serviceProvider.GetRequiredService<EndGameSessionCommandHandler>();
 
         _session = Builders.MakeGameSession(_world.Id, _player.Id);
@@ -61,6 +64,48 @@ public sealed class EndGameSessionCommandTests(DatabaseFixture db)
         // Assert
         Assert.False(cache.TryGetValue(loreAnchorsKey, out _));
         Assert.False(cache.TryGetValue(automatonKey, out _));
+    }
+
+    [Fact]
+    public async Task Handle_WaitsForTheRunnersCurrentRequest_WhenOneIsInFlight()
+    {
+        // Arrange
+        var coordinator = _serviceProvider.GetRequiredService<WorldSimulationCoordinator>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inFlight = coordinator.Request(
+            _world.Id,
+            async (_, _) =>
+            {
+                started.SetResult();
+                await release.Task;
+            },
+            TestContext.Current.CancellationToken
+        );
+        await started.Task.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        var ending = _handler.Handle(
+            new EndGameSessionCommand { SessionId = _session.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        Assert.False(ending.IsCompleted);
+        release.SetResult();
+        await inFlight;
+        await ending;
+        await using var verifyContext = db.CreateContext();
+        Assert.False(
+            await verifyContext.GameSessions.AnyAsync(
+                session => session.Id == _session.Id,
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 
     [Fact]

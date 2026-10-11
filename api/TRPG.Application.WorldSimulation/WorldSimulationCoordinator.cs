@@ -50,6 +50,21 @@ public sealed class WorldSimulationCoordinator(
         }
     }
 
+    public async Task Request(
+        Guid worldId,
+        Func<LivePlayerPoses, CancellationToken, Task> work,
+        CancellationToken cancellationToken
+    ) =>
+        await Request(
+            worldId,
+            async (poses, token) =>
+            {
+                await work(poses, token);
+                return true;
+            },
+            cancellationToken
+        );
+
     public async Task<T> Request<T>(
         Guid worldId,
         Func<LivePlayerPoses, CancellationToken, Task<T>> work,

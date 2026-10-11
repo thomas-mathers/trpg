@@ -12,6 +12,7 @@ using TRPG.Application.Narration.Queries;
 using TRPG.Application.Narration.Results;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
+using TRPG.Application.WorldSimulation;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Mappers;
@@ -67,6 +68,7 @@ internal static class GameSessionEndpoints
         [FromServices] ICommandHandler<RefreshSceneCommand, RefreshSceneResult> refreshScene,
         [FromServices] ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
         [FromServices] IWorldMutationGate mutationGate,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
@@ -75,30 +77,39 @@ internal static class GameSessionEndpoints
             cancellationToken
         );
 
-        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
-
-        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
-        var stamp = await stampWorldState.Handle(
-            new StampWorldStateCommand { WorldId = session.WorldId },
-            cancellationToken
-        );
-
-        var gameTime = await getGameTime.Handle(
-            new GetGameTimeQuery { SessionId = sessionId },
-            cancellationToken
-        );
-
-        var refreshed = await refreshScene.Handle(
-            new RefreshSceneCommand
+        var snapshot = await simulation.Request(
+            session.WorldId,
+            async (_, token) =>
             {
-                WorldId = session.WorldId,
-                PlayerId = session.PlayerId,
-                GameTime = gameTime,
+                await using var lease = await mutationGate.Acquire(session.WorldId, token);
+
+                // Stamped before the scene is read so a later-numbered snapshot never describes older state.
+                var stamp = await stampWorldState.Handle(
+                    new StampWorldStateCommand { WorldId = session.WorldId },
+                    token
+                );
+
+                var gameTime = await getGameTime.Handle(
+                    new GetGameTimeQuery { SessionId = sessionId },
+                    token
+                );
+
+                var refreshed = await refreshScene.Handle(
+                    new RefreshSceneCommand
+                    {
+                        WorldId = session.WorldId,
+                        PlayerId = session.PlayerId,
+                        GameTime = gameTime,
+                    },
+                    token
+                );
+
+                return refreshed.Scene.ToSnapshot(stamp);
             },
             cancellationToken
         );
 
-        return TypedResults.Ok(refreshed.Scene.ToSnapshot(stamp));
+        return TypedResults.Ok(snapshot);
     }
 
     private static async Task<Ok<LoreAnchor[]>> GetLoreAnchors(

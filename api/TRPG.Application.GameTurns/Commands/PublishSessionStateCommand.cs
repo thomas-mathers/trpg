@@ -9,6 +9,7 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -30,7 +31,8 @@ internal class PublishSessionStateCommandHandler(
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IWorldMutationGate mutationGate
+    IWorldMutationGate mutationGate,
+    WorldSimulationCoordinator simulation
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -38,10 +40,11 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        await using (await mutationGate.Acquire(command.WorldId, cancellationToken))
-        {
-            await EnqueueSessionState(command, cancellationToken);
-        }
+        await simulation.Request(
+            command.WorldId,
+            (_, token) => EnqueueSessionState(command, token),
+            cancellationToken
+        );
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
     }
@@ -51,6 +54,8 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken
     )
     {
+        await using var lease = await mutationGate.Acquire(command.WorldId, cancellationToken);
+
         // Stamped before the scene is read so a later-numbered snapshot never describes older state.
         var stamp = await stampWorldState.Handle(
             new StampWorldStateCommand { WorldId = command.WorldId },
