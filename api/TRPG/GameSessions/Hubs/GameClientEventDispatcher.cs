@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Events;
+using TRPG.Application.WorldSimulation.Subscriptions;
 
 namespace TRPG.GameSessions.Hubs;
 
@@ -8,6 +9,7 @@ internal sealed class GameClientEventDispatcher(
     IGameClientEventDrain gameClientEventDrain,
     IHubContext<ChatHub, IGameClient> hubContext,
     IEnumerable<IGameClientEventMapper> eventMappers,
+    SceneEventProjector sceneEventProjector,
     ILogger<GameClientEventDispatcher> logger
 ) : IGameClientEventDispatcher
 {
@@ -30,7 +32,8 @@ internal sealed class GameClientEventDispatcher(
 
     private async Task<bool> SendPendingAsync(Guid worldId)
     {
-        var pendingEvents = gameClientEventDrain.Drain(worldId);
+        var drainedEvents = gameClientEventDrain.Drain(worldId);
+        var pendingEvents = sceneEventProjector.Select(worldId, drainedEvents);
 
         if (pendingEvents.Count == 0)
         {
@@ -41,27 +44,50 @@ internal sealed class GameClientEventDispatcher(
 
         foreach (var gameEvent in pendingEvents)
         {
-            var mapper =
-                _eventMappers.GetValueOrDefault(gameEvent.GetType())
-                ?? throw new InvalidOperationException(
-                    $"No client event mapper is registered for {gameEvent.GetType().Name}."
-                );
-
-            logger.LogDebug(
-                "Sending client event {EventType} to world {WorldId}",
-                gameEvent.GetType().Name,
-                worldId
-            );
-
-            await mapper.Map(gameEvent).Invoke(client);
-
-            logger.LogDebug(
-                "Sent client event {EventType} to world {WorldId}",
-                gameEvent.GetType().Name,
-                worldId
-            );
+            await SendIsolated(worldId, client, gameEvent);
         }
 
         return true;
+    }
+
+    private async Task SendIsolated(Guid worldId, IGameClient client, GameClientEvent gameEvent)
+    {
+        try
+        {
+            await Send(worldId, client, gameEvent);
+        }
+        catch (Exception exception) when (sceneEventProjector.IsSceneEvent(gameEvent))
+        {
+            logger.LogError(
+                exception,
+                "Sending scene event {EventType} to world {WorldId} failed; resyncing the scene",
+                gameEvent.GetType().Name,
+                worldId
+            );
+            sceneEventProjector.RecordSendFailure(gameEvent);
+        }
+    }
+
+    private async Task Send(Guid worldId, IGameClient client, GameClientEvent gameEvent)
+    {
+        var mapper =
+            _eventMappers.GetValueOrDefault(gameEvent.GetType())
+            ?? throw new InvalidOperationException(
+                $"No client event mapper is registered for {gameEvent.GetType().Name}."
+            );
+
+        logger.LogDebug(
+            "Sending client event {EventType} to world {WorldId}",
+            gameEvent.GetType().Name,
+            worldId
+        );
+
+        await mapper.Map(gameEvent).Invoke(client);
+
+        logger.LogDebug(
+            "Sent client event {EventType} to world {WorldId}",
+            gameEvent.GetType().Name,
+            worldId
+        );
     }
 }

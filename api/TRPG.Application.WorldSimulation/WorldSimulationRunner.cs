@@ -14,6 +14,7 @@ using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Application.WorldSimulation.Publishing;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -27,6 +28,7 @@ public sealed class WorldSimulationRunner(
     IWorldClock worldClock,
     IServiceScopeFactory serviceScopeFactory,
     TransientCreatureWalkRegistry transientWalks,
+    SceneSubscriptions subscriptions,
     ILogger<WorldSimulationRunner> logger
 )
 {
@@ -48,6 +50,13 @@ public sealed class WorldSimulationRunner(
     private readonly ActiveLocationPasses _activeLocationPasses = new(
         worldId,
         cadence,
+        serviceScopeFactory,
+        logger
+    );
+    private readonly SceneResync _sceneResync = new(
+        worldId,
+        subscriptions,
+        options,
         serviceScopeFactory,
         logger
     );
@@ -108,6 +117,7 @@ public sealed class WorldSimulationRunner(
             await RefreshWeather(now, cancellationToken);
         }
 
+        await _sceneResync.Run(cancellationToken);
         await _activeLocationPasses.Run(now, cancellationToken);
         await FlushPlayerPoses(cancellationToken);
         var planningStartedAt = Stopwatch.GetTimestamp();
@@ -178,6 +188,7 @@ public sealed class WorldSimulationRunner(
                 worldId
             );
             _isRecovering = true;
+            subscriptions.MarkWorldForResync(worldId);
             await EnsureHealthy(now, cancellationToken);
 
             return now;

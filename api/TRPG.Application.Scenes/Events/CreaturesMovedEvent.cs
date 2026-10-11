@@ -9,4 +9,4 @@ public record CreaturesMovedEvent(
     Guid LocationId,
     WorldStateStamp Stamp,
     IReadOnlyDictionary<Guid, Placement> CreaturePlacements
-) : GameClientEvent(WorldId);
+) : GameClientEvent(WorldId), ILocationScopedEvent;

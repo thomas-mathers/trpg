@@ -9,4 +9,4 @@ public record CreaturesArrivedEvent(
     Guid LocationId,
     WorldStateStamp Stamp,
     IReadOnlyCollection<SceneCreatureInfo> Creatures
-) : GameClientEvent(WorldId);
+) : GameClientEvent(WorldId), ILocationScopedEvent;

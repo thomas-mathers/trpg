@@ -8,6 +8,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -442,6 +443,10 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             clock,
             new TransientCreatureWalkRegistry(),
+            new SceneSubscriptions(
+                Options.Create(new WorldSimulationOptions()),
+                TimeProvider.System
+            ),
             Options.Create(new WorldSimulationOptions()),
             Options.Create(new WorldClockOptions()),
             NullLogger<WorldSimulationRunner>.Instance

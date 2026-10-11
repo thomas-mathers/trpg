@@ -8,4 +8,4 @@ public record CreaturesLeftEvent(
     Guid LocationId,
     WorldStateStamp Stamp,
     IReadOnlySet<Guid> CreatureIds
-) : GameClientEvent(WorldId);
+) : GameClientEvent(WorldId), ILocationScopedEvent;

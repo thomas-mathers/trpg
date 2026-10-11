@@ -22,6 +22,7 @@ using TRPG.Application.Configuration;
 using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Combat.Tools;
 using TRPG.Configuration;
 using TRPG.Data;
@@ -256,7 +257,11 @@ internal static class ServiceCollectionExtensions
             .AddScoped<IGameClientEventDispatcher>(sp =>
                 sp.GetRequiredService<GameClientEventDispatcher>()
             )
-            .AddSingleton<PendingSessionEndRegistry>();
+            .AddSingleton<PendingSessionEndRegistry>()
+            .AddSingleton<PlayerConnectionRegistry>()
+            .AddSingleton<IPlayerConnectionCloser>(sp =>
+                sp.GetRequiredService<PlayerConnectionRegistry>()
+            );
     }
 
     public static IServiceCollection AddTrpgJobs(

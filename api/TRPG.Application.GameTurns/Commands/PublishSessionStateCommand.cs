@@ -4,11 +4,8 @@ using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Scenes.Results;
-using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -22,10 +19,8 @@ public class PublishSessionStateCommand
 }
 
 internal class PublishSessionStateCommandHandler(
-    ScenePublisher scenePublisher,
     IGameClientEventDispatcher eventDispatcher,
-    ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
-    IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
+    ICommandHandler<PublishPlayerSceneCommand> publishPlayerScene,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
@@ -52,27 +47,19 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
-        var stamp = await stampWorldState.Handle(
-            new StampWorldStateCommand { WorldId = command.WorldId },
-            cancellationToken
-        );
-
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
-        var scene = await getCurrentScene.Handle(
-            new GetCurrentSceneQuery
+        await publishPlayerScene.Handle(
+            new PublishPlayerSceneCommand
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                GameTime = gameTime,
             },
             cancellationToken
         );
-        scenePublisher.Publish(command.WorldId, command.PlayerId, scene, stamp);
 
         await publishCombatState.Handle(
             new PublishCombatStateCommand { PlayerId = command.PlayerId },

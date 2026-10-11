@@ -149,4 +149,45 @@ describe('scene state', () => {
     });
     expect(left.scene.nearbyCaravans).toEqual([]);
   });
+  it('replaces state with a same-version snapshot after a partially delivered batch', () => {
+    const state = apply(
+      { type: 'SceneSnapshot', payload: snapshot() },
+      { type: 'WeatherChanged', payload: { ...scope, version: 2, weather: 'Rain' } },
+      { type: 'SceneSnapshot', payload: snapshot({ version: 2, weather: 'Snow' }) },
+    );
+
+    expect(state.scene).toMatchObject({ version: 2, weather: 'Snow' });
+  });
+
+  it('drops deltas at or below the snapshot baseline and applies later ones', () => {
+    const state = apply(
+      { type: 'SceneSnapshot', payload: snapshot({ version: 5, weather: 'Clear' }) },
+      { type: 'WeatherChanged', payload: { ...scope, version: 5, weather: 'Rain' } },
+      { type: 'WeatherChanged', payload: { ...scope, version: 4, weather: 'Fog' } },
+      { type: 'WeatherChanged', payload: { ...scope, version: 6, weather: 'Snow' } },
+    );
+
+    expect(state.scene).toMatchObject({ version: 6, weather: 'Snow' });
+  });
+
+  it('applies player vitals alongside same-version sibling deltas but not at the baseline', () => {
+    const vitals = {
+      playerId: 'player',
+      currentHp: 3,
+      maximumHp: 10,
+      currentAp: 1,
+      maximumAp: 2,
+      currentMp: 0,
+      maximumMp: 0,
+    };
+    const state = apply(
+      { type: 'SceneSnapshot', payload: snapshot({ version: 5 }) },
+      { type: 'PlayerVitalsUpdated', payload: { ...vitals, version: 5, currentHp: 9 } },
+      { type: 'WeatherChanged', payload: { ...scope, version: 6, weather: 'Rain' } },
+      { type: 'PlayerVitalsUpdated', payload: { ...vitals, version: 6 } },
+    );
+
+    expect(state.scene.playerStatus.currentHp).toBe(3);
+    expect(state.scene.weather).toBe('Rain');
+  });
 });

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Configuration;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation;
@@ -12,6 +13,7 @@ public sealed class WorldSimulationRunnerFactory(
     IServiceScopeFactory serviceScopeFactory,
     IWorldClock worldClock,
     TransientCreatureWalkRegistry transientWalks,
+    SceneSubscriptions subscriptions,
     IOptions<WorldSimulationOptions> options,
     IOptions<WorldClockOptions> clockOptions,
     ILogger<WorldSimulationRunner> logger
@@ -36,6 +38,7 @@ public sealed class WorldSimulationRunnerFactory(
             worldClock,
             serviceScopeFactory,
             transientWalks,
+            subscriptions,
             logger
         );
         await runner.RefreshWeather(now, cancellationToken);

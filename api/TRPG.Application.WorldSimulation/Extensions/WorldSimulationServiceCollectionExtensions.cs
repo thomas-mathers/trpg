@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.WorldSimulation.EventHandlers;
 using TRPG.Application.WorldSimulation.LocalActivities;
+using TRPG.Application.WorldSimulation.Subscriptions;
 
 namespace TRPG.Application.WorldSimulation.Extensions;
 
@@ -37,6 +38,8 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddScoped<LocalActivityPlanner>()
             .AddScoped<LocalActivityCompleter>()
             .AddSingleton<WorldSimulationRunnerFactory>()
+            .AddSingleton<SceneSubscriptions>()
+            .AddSingleton<SceneEventProjector>()
             .AddSingleton<WorldSimulationCoordinator>()
             .AddTransient<CreaturesEngagedSimulationEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesEngagedEvent>>(serviceProvider =>

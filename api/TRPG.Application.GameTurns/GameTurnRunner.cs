@@ -27,6 +27,7 @@ public class GameTurnRunner
     private readonly CombatActionHandler _combatActionHandler;
     private readonly CastAbilityActionHandler _castAbilityActionHandler;
     private readonly MoveActionHandler _moveActionHandler;
+    private readonly RefreshSceneHandler _refreshSceneHandler;
 
     internal GameTurnRunner(
         StreamChatTurnHandler streamChatTurn,
@@ -50,7 +51,8 @@ public class GameTurnRunner
         TheftEncounterActionHandler theftEncounterActionHandler,
         CombatActionHandler combatActionHandler,
         CastAbilityActionHandler castAbilityActionHandler,
-        MoveActionHandler moveActionHandler
+        MoveActionHandler moveActionHandler,
+        RefreshSceneHandler refreshSceneHandler
     )
     {
         _streamChatTurn = streamChatTurn;
@@ -75,6 +77,7 @@ public class GameTurnRunner
         _combatActionHandler = combatActionHandler;
         _castAbilityActionHandler = castAbilityActionHandler;
         _moveActionHandler = moveActionHandler;
+        _refreshSceneHandler = refreshSceneHandler;
     }
 
     public IAsyncEnumerable<string> StreamChat(
@@ -207,4 +210,9 @@ public class GameTurnRunner
         Guid connectorId,
         CancellationToken cancellationToken = default
     ) => _moveActionHandler.Handle(session, connectorId, cancellationToken);
+
+    public Task RefreshScene(
+        GameTurnSession session,
+        CancellationToken cancellationToken = default
+    ) => _refreshSceneHandler.Handle(session, cancellationToken);
 }

@@ -9,4 +9,4 @@ public record WeatherChangedEvent(
     Guid LocationId,
     WorldStateStamp Stamp,
     WeatherCondition? WeatherCondition
-) : GameClientEvent(WorldId);
+) : GameClientEvent(WorldId), ILocationScopedEvent;

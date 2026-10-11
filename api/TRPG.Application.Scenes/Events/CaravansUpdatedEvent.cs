@@ -9,4 +9,4 @@ public record CaravansUpdatedEvent(
     Guid LocationId,
     WorldStateStamp Stamp,
     IReadOnlyCollection<SceneCaravanInfo> Caravans
-) : GameClientEvent(WorldId);
+) : GameClientEvent(WorldId), ILocationScopedEvent;

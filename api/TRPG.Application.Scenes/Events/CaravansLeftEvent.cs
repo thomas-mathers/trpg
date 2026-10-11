@@ -8,4 +8,4 @@ public record CaravansLeftEvent(
     Guid LocationId,
     WorldStateStamp Stamp,
     IReadOnlySet<Guid> CaravanIds
-) : GameClientEvent(WorldId);
+) : GameClientEvent(WorldId), ILocationScopedEvent;

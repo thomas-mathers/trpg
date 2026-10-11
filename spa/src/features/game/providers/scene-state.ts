@@ -45,10 +45,11 @@ export type SceneAction =
 export interface SceneState {
   scene: SceneSnapshot;
   hasSnapshot: boolean;
+  baselineVersion: number;
 }
 
 export function initialSceneState(): SceneState {
-  return { scene: createSceneSnapshot(), hasSnapshot: false };
+  return { scene: createSceneSnapshot(), hasSnapshot: false, baselineVersion: 0 };
 }
 
 export function reduceSceneState(state: SceneState, action: SceneAction): SceneState {
@@ -64,7 +65,8 @@ export function reduceSceneState(state: SceneState, action: SceneAction): SceneS
     !state.hasSnapshot ||
     payload.worldId !== scene.worldId ||
     payload.locationId !== scene.locationId ||
-    payload.version < scene.version
+    payload.version < scene.version ||
+    payload.version <= state.baselineVersion
   )
     return state;
 
@@ -75,8 +77,8 @@ export function reduceSceneState(state: SceneState, action: SceneAction): SceneS
 }
 
 function applySnapshot(state: SceneState, snapshot: SceneSnapshot): SceneState {
-  if (state.hasSnapshot && snapshot.version <= state.scene.version) return state;
-  return { scene: snapshot, hasSnapshot: true };
+  if (state.hasSnapshot && snapshot.version < state.scene.version) return state;
+  return { scene: snapshot, hasSnapshot: true, baselineVersion: snapshot.version };
 }
 
 function applyVitals(state: SceneState, vitals: PlayerVitalsUpdated): SceneState {
@@ -84,7 +86,8 @@ function applyVitals(state: SceneState, vitals: PlayerVitalsUpdated): SceneState
   if (
     !state.hasSnapshot ||
     vitals.playerId !== scene.playerStatus.id ||
-    vitals.version <= scene.version
+    vitals.version < scene.version ||
+    vitals.version <= state.baselineVersion
   )
     return state;
 

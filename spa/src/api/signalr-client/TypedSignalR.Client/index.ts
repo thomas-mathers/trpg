@@ -144,6 +144,10 @@ class IChatHub_HubProxy implements IChatHub {
         return await this.connection.invoke("SendMovementInput", input);
     }
 
+    public readonly sendRefreshScene = async (): Promise<void> => {
+        return await this.connection.invoke("SendRefreshScene");
+    }
+
     public readonly sendFlee = async (): Promise<ActionResult> => {
         return await this.connection.invoke("SendFlee");
     }

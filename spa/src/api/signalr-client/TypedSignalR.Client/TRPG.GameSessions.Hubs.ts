@@ -87,6 +87,10 @@ export type IChatHub = {
     */
     sendMovementInput(input: PlayerMovementInput): Promise<void>;
     /**
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    sendRefreshScene(): Promise<void>;
+    /**
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
     sendFlee(): Promise<ActionResult>;

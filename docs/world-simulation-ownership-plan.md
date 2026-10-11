@@ -264,7 +264,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR A: runner owns time, part 1 (effects, regen)
 - [x] PR B: runner owns time, part 2 (maintenance, ambient, weather refresh)
 - [ ] PR C: deferred (optional pure move of scene events after H)
-- [ ] PR D: event queue, projector, scene subscriptions, enter message, resync
+- [x] PR D: event queue, projector, scene subscriptions, enter message, resync
 - [ ] PR E: seating and sneak emit events
 - [ ] PR F: runner-sourced arrived, left, moved
 - [ ] PR G: remaining fields (equipment, factions, quest markers, effect visuals, nearby vitals, weather, caravans, props), one category per PR
