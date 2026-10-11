@@ -249,7 +249,7 @@ describe('SceneProvider', () => {
       locationId: 'location-id',
       playerStatus: { id: 'player-id', currentHp: 1, maximumHp: 40 },
       version: 0,
-    } as SceneSnapshot;
+    } as unknown as SceneSnapshot;
 
     it('applies a vitals update to the player status of the current scene', async () => {
       render(
