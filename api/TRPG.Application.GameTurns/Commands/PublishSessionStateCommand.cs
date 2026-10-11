@@ -11,6 +11,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;
 
+[ExemptFromWorldWriteGuard("Enqueues the session state inside its own runner request.")]
 public class PublishSessionStateCommand
 {
     public required Guid WorldId { get; init; }

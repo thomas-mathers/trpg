@@ -21,7 +21,7 @@ public class CreateWorldJob(
         CancellationToken cancellationToken
     )
     {
-        var result = await handler.Handle(context.Request, cancellationToken);
+        var result = await CreateWorld(context.Request, cancellationToken);
         await simulation.EnsureRunner(result.WorldId, cancellationToken);
 
         var ticker = await tickerContext.TimeTickers.FindAsync([context.Id], cancellationToken);
@@ -33,5 +33,15 @@ public class CreateWorldJob(
             );
             await tickerContext.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private async Task<CreateWorldResult> CreateWorld(
+        CreateWorldCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        // No runner has loaded a world that is still being generated.
+        using var writeScope = WorldWriteScope.Enter();
+        return await handler.Handle(command, cancellationToken);
     }
 }

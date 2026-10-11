@@ -74,6 +74,8 @@ internal sealed class WorldSimulationStartup(
 
     private async Task ClearAbandonedEngagements(Guid worldId, CancellationToken cancellationToken)
     {
+        // Runs before this world has a runner, so nothing else can be writing it.
+        using var writeScope = WorldWriteScope.Enter();
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();

@@ -10,6 +10,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.GameSessions.Commands;
 
+[ExemptFromWorldWriteGuard("Runs its world writes inside its own simulation request.")]
 internal class EndGameSessionCommand
 {
     public required Guid SessionId { get; init; }

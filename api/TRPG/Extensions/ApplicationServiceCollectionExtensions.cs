@@ -101,6 +101,16 @@ public static class ApplicationServiceCollectionExtensions
             .Decorate(typeof(IQueryHandler<,>), typeof(LoggedQueryHandlerDecorator<,>));
     }
 
+    public static IServiceCollection AddWorldWriteGuard(
+        this IServiceCollection serviceCollection
+    ) =>
+        serviceCollection
+            .Decorate(typeof(ICommandHandler<>), typeof(WorldWriteGuardCommandHandlerDecorator<>))
+            .Decorate(
+                typeof(ICommandHandler<,>),
+                typeof(WorldWriteGuardCommandHandlerDecorator<,>)
+            );
+
     internal static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)
         where T : class, IGameTool =>
         serviceCollection

@@ -6,6 +6,9 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Worlds.Commands;
 
+[ExemptFromWorldWriteGuard(
+    "Saves generated premise text no runner decision reads, and holds an LLM call."
+)]
 public class EnsureDungeonPremiseCommand
 {
     public required Guid BuildingId { get; init; }

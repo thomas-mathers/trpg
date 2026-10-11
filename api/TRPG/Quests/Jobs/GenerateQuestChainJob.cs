@@ -14,7 +14,12 @@ public class GenerateQuestChainJob(ICommandHandler<GenerateQuestChainCommand, bo
     public async Task ExecuteAsync(
         TickerFunctionContext<GenerateQuestChainCommand> context,
         CancellationToken cancellationToken
-    ) => await handler.Handle(context.Request, cancellationToken);
+    )
+    {
+        // Inserts quest rows that no runner decision reads, and holds an LLM call no world request may wait on.
+        using var writeScope = WorldWriteScope.Enter();
+        await handler.Handle(context.Request, cancellationToken);
+    }
 }
 
 internal class TickerQuestChainGenerationScheduler(ITimeTickerManager<TrpgTimeTicker> timeTicker)

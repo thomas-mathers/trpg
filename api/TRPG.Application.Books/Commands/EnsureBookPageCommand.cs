@@ -10,6 +10,9 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Books.Commands;
 
+[ExemptFromWorldWriteGuard(
+    "Saves generated book text no runner decision reads, and holds an LLM call."
+)]
 public class EnsureBookPageCommand
 {
     public required Guid WorkId { get; init; }

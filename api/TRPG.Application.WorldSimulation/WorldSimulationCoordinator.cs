@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.WorldSimulation.Poses;
 
@@ -157,6 +158,7 @@ public sealed class WorldSimulationCoordinator(
 
         try
         {
+            using var writeScope = WorldWriteScope.Enter();
             var now = await worldClock.GetCurrent(worldId, cancellationToken);
             if (isActive)
             {

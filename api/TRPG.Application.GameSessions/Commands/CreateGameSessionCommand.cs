@@ -5,6 +5,7 @@ using GameSession = TRPG.Domain.Models.GameSession;
 
 namespace TRPG.Application.GameSessions.Commands;
 
+[ExemptFromWorldWriteGuard("Writes only the session row, which no runner decision reads.")]
 public class CreateGameSessionCommand
 {
     public required Guid WorldId { get; init; }
