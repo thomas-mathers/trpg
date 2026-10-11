@@ -4,7 +4,6 @@ using TRPG.Application.Books.Extensions;
 using TRPG.Application.Chat.Extensions;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
@@ -106,7 +105,7 @@ public static class ApplicationServiceCollectionExtensions
         where T : class, IGameTool =>
         serviceCollection
             .AddScoped<T>()
-            .AddScoped<AIFunction>(sp => new WorldMutationGatedFunction(
+            .AddScoped<AIFunction>(sp => new WorldRequestFunction(
                 AIFunctionFactory.Create(
                     sp.GetRequiredService<T>().Invoke,
                     new AIFunctionFactoryOptions
@@ -119,7 +118,6 @@ public static class ApplicationServiceCollectionExtensions
                     }
                 ),
                 sp.GetRequiredService<GameTurnContext>(),
-                sp.GetRequiredService<IWorldMutationGate>(),
                 sp.GetRequiredService<WorldSimulationCoordinator>()
             ));
 }

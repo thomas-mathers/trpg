@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TRPG.Application.Common.Clocks;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Configuration;
 using TRPG.Application.Worlds;
@@ -24,7 +23,6 @@ public static class WorldsServiceCollectionExtensions
         serviceCollection.AddOptions<WorldClockOptions>();
         serviceCollection.TryAddSingleton(TimeProvider.System);
         serviceCollection.TryAddSingleton<IWorldClock, WorldClock>();
-        serviceCollection.TryAddSingleton<IWorldMutationGate, WorldMutationGate>();
         return serviceCollection;
     }
 }

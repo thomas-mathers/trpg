@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.GameTurns.Commands;
@@ -24,7 +23,6 @@ internal enum ContinuousWorldLane
 internal sealed class ContinuousWorldProcessor(
     IServiceScopeFactory serviceScopeFactory,
     IWorldClock worldClock,
-    IWorldMutationGate mutationGate,
     WorldSimulationCoordinator simulation,
     ILogger<ContinuousWorldProcessor> logger
 )
@@ -112,7 +110,6 @@ internal sealed class ContinuousWorldProcessor(
         CancellationToken cancellationToken
     )
     {
-        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         await using var scope = serviceScopeFactory.CreateAsyncScope();
 
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);

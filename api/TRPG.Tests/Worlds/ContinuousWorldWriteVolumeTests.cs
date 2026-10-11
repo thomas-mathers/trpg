@@ -50,7 +50,6 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
         _processor = new ContinuousWorldProcessor(
             scopeFactory,
             _worldClock,
-            new WorldMutationGate(),
             _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
             NullLogger<ContinuousWorldProcessor>.Instance
         );

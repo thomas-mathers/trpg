@@ -4,8 +4,8 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Serialization;
+using TRPG.Application.WorldSimulation;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;
@@ -164,13 +164,27 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
     }
 
     [Fact]
-    public async Task GetScene_WaitsForTheWorldMutationLease_WhenAnotherOperationHoldsIt()
+    public async Task GetScene_WaitsForTheRunnersCurrentRequest_WhenOneIsInFlight()
     {
         // Arrange
         var sessionId = await StartSession();
         await using var scope = fixture.CreateScope();
-        var mutationGate = scope.ServiceProvider.GetRequiredService<IWorldMutationGate>();
-        var lease = await mutationGate.Acquire(_worldId, TestContext.Current.CancellationToken);
+        var coordinator = scope.ServiceProvider.GetRequiredService<WorldSimulationCoordinator>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inFlight = coordinator.Request(
+            _worldId,
+            async (_, _) =>
+            {
+                started.SetResult();
+                await release.Task;
+            },
+            TestContext.Current.CancellationToken
+        );
+        await started.Task.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken
+        );
 
         // Act
         var pendingResponse = _client.GetAsync(
@@ -182,7 +196,8 @@ public sealed class GameSessionEndpointsTests(EndpointTestFixture fixture) : IAs
         // Assert
         await Task.Delay(200, TestContext.Current.CancellationToken);
         Assert.False(pendingResponse.IsCompleted);
-        await lease.DisposeAsync();
+        release.SetResult();
+        await inFlight;
         var response = await pendingResponse;
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

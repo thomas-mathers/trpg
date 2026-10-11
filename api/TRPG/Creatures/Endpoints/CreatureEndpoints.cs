@@ -7,7 +7,6 @@ using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
@@ -730,7 +729,6 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid worldId,
         [FromServices] IWorldClock worldClock,
-        [FromServices] IWorldMutationGate mutationGate,
         [FromServices] ICommandHandler<ReleaseOpenInteractionsCommand> releaseOpenInteractions,
         [FromServices] ICommandHandler<BeginCreatureInteractionCommand> beginInteraction,
         [FromServices] WorldSimulationCoordinator simulation,
@@ -741,7 +739,6 @@ internal static class CreatureEndpoints
             worldId,
             async (_, token) =>
             {
-                await using var lease = await mutationGate.Acquire(worldId, token);
                 var gameTime = await worldClock.GetCurrent(worldId, token);
                 await releaseOpenInteractions.Handle(
                     new ReleaseOpenInteractionsCommand { WorldId = worldId, GameTime = gameTime },
@@ -768,7 +765,6 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid worldId,
         [FromServices] IWorldClock worldClock,
-        [FromServices] IWorldMutationGate mutationGate,
         [FromServices] ICommandHandler<EndCreatureInteractionCommand> endInteraction,
         [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
@@ -778,7 +774,6 @@ internal static class CreatureEndpoints
             worldId,
             async (_, token) =>
             {
-                await using var lease = await mutationGate.Acquire(worldId, token);
                 var gameTime = await worldClock.GetCurrent(worldId, token);
                 await endInteraction.Handle(
                     new EndCreatureInteractionCommand

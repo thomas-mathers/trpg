@@ -40,7 +40,6 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         var processor = new ContinuousWorldProcessor(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             _worldClock,
-            new WorldMutationGate(),
             _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
             NullLogger<ContinuousWorldProcessor>.Instance
         );

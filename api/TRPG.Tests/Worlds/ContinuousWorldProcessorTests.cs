@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Scenes.Events;
@@ -30,7 +29,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private WorldClock _worldClock = null!;
     private ContinuousWorldProcessor _processor = null!;
-    private IWorldMutationGate _gate = null!;
     private World _world = null!;
     private Guid _stateId;
     private Creature _player = null!;
@@ -46,13 +44,11 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
             .AddScoped<IGameClientEventDispatcher, RecordingGameClientEventDispatcher>()
             .BuildServiceProvider();
         var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
-        _gate = _serviceProvider.GetRequiredService<IWorldMutationGate>();
         _serviceProvider.GetRequiredService<SimulationPump>();
         _worldClock = new WorldClock(scopeFactory, _timeProvider);
         _processor = new ContinuousWorldProcessor(
             scopeFactory,
             _worldClock,
-            _gate,
             _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
             _logger
         );
@@ -214,25 +210,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task ProcessRoutines_WaitsForMutationLease_WhenGameplayOperationIsRunning()
-    {
-        // Arrange
-        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        var lease = await _gate.Acquire(_world.Id, TestContext.Current.CancellationToken);
-
-        // Act
-        var pass = _processor.ProcessRoutines(TestContext.Current.CancellationToken);
-
-        // Assert
-        await Task.Delay(50, TestContext.Current.CancellationToken);
-        Assert.False(pass.IsCompleted);
-        Assert.False(await WeatherExists());
-        await lease.DisposeAsync();
-        await pass;
-        Assert.True(await WeatherExists());
-    }
-
-    [Fact]
     public async Task ProcessRoutines_RunsAfterTheRunnersCurrentRequest_WhenOneIsInFlight()
     {
         // Arrange
@@ -273,7 +250,22 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     {
         // Arrange
         await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
-        var lease = await _gate.Acquire(_world.Id, TestContext.Current.CancellationToken);
+        var coordinator = _serviceProvider.GetRequiredService<WorldSimulationCoordinator>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inFlight = coordinator.Request(
+            _world.Id,
+            async (_, _) =>
+            {
+                started.SetResult();
+                await release.Task;
+            },
+            TestContext.Current.CancellationToken
+        );
+        await started.Task.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken
+        );
         var stalePass = _processor.ProcessRoutines(TestContext.Current.CancellationToken);
 
         // Act
@@ -285,7 +277,8 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         Assert.False(stalePass.IsCompleted);
-        await lease.DisposeAsync();
+        release.SetResult();
+        await inFlight;
         await stalePass;
     }
 
@@ -313,7 +306,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         var processor = new ContinuousWorldProcessor(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             new FailingWorldClock(_world.Id),
-            _gate,
             _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
             _logger
         );

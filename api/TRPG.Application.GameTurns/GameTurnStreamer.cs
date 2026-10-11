@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Commands;
@@ -40,7 +39,6 @@ internal class GameTurnStreamer(
     IQueryHandler<GetOpenNpcConversationsQuery, Dictionary<string, Guid>> getOpenNpcConversations,
     TurnSceneDiffer sceneDiffer,
     IGameClientEventDispatcher eventDispatcher,
-    IWorldMutationGate mutationGate,
     WorldSimulationCoordinator simulation,
     ILogger<GameTurnStreamer> logger
 )
@@ -149,8 +147,6 @@ internal class GameTurnStreamer(
             session.WorldId,
             async (_, token) =>
             {
-                await using var lease = await mutationGate.Acquire(session.WorldId, token);
-
                 return await sceneDiffer.Capture(session, token);
             },
             cancellationToken
@@ -166,8 +162,6 @@ internal class GameTurnStreamer(
             session.WorldId,
             async (_, token) =>
             {
-                await using var lease = await mutationGate.Acquire(session.WorldId, token);
-
                 await sceneDiffer.EnqueueChange(session, token);
             },
             cancellationToken
@@ -190,8 +184,6 @@ internal class GameTurnStreamer(
 
     private async Task ApplyTurnRegen(GameTurnSession session, CancellationToken cancellationToken)
     {
-        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
-
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = turnContext.SessionId },
             cancellationToken

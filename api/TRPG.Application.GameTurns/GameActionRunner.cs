@@ -1,4 +1,3 @@
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Poses;
@@ -8,7 +7,6 @@ namespace TRPG.Application.GameTurns;
 internal class GameActionRunner(
     TurnSceneDiffer sceneDiffer,
     IGameClientEventDispatcher eventDispatcher,
-    IWorldMutationGate mutationGate,
     WorldSimulationCoordinator simulation
 )
 {
@@ -26,7 +24,7 @@ internal class GameActionRunner(
     {
         var outcome = await simulation.Request(
             session.WorldId,
-            (poses, token) => RunUnderGate(session, poses, action, token),
+            (poses, token) => Execute(session, poses, action, token),
             cancellationToken
         );
 
@@ -35,15 +33,13 @@ internal class GameActionRunner(
         return outcome;
     }
 
-    private async Task<ActionOutcome> RunUnderGate(
+    private async Task<ActionOutcome> Execute(
         GameTurnSession session,
         LivePlayerPoses poses,
         Func<LivePlayerPoses, CancellationToken, Task<ActionOutcome>> action,
         CancellationToken cancellationToken
     )
     {
-        await using var lease = await mutationGate.Acquire(session.WorldId, cancellationToken);
-
         var outcome = await action(poses, cancellationToken);
 
         if (outcome.Succeeded)

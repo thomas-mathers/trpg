@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
@@ -26,7 +25,6 @@ public sealed class WorldSimulationRunner(
     WorldSimulationOptions options,
     IWorldClock worldClock,
     IServiceScopeFactory serviceScopeFactory,
-    IWorldMutationGate mutationGate,
     TransientCreatureWalkRegistry transientWalks,
     ILogger<WorldSimulationRunner> logger
 )
@@ -121,7 +119,6 @@ public sealed class WorldSimulationRunner(
             return;
         }
 
-        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         await WritePoses(now, cancellationToken);
         await ExecuteArrivals(cancellationToken);
         await WritePoses(now, cancellationToken);

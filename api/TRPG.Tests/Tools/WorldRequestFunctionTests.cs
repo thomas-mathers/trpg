@@ -1,6 +1,5 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.GameTurns;
 using TRPG.Application.WorldSimulation;
 using TRPG.Data;
@@ -10,7 +9,7 @@ using TRPG.Tools;
 
 namespace TRPG.Tests.Tools;
 
-public sealed class WorldMutationGatedFunctionTests(DatabaseFixture db)
+public sealed class WorldRequestFunctionTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -18,7 +17,6 @@ public sealed class WorldMutationGatedFunctionTests(DatabaseFixture db)
 
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
-    private IWorldMutationGate _gate = null!;
     private WorldSimulationCoordinator _coordinator = null!;
     private GameTurnContext _turnContext = null!;
 
@@ -30,7 +28,6 @@ public sealed class WorldMutationGatedFunctionTests(DatabaseFixture db)
             .WithSimulationPump(db.ConnectionString)
             .BuildServiceProvider();
         _serviceProvider.GetRequiredService<SimulationPump>();
-        _gate = _serviceProvider.GetRequiredService<IWorldMutationGate>();
         _coordinator = _serviceProvider.GetRequiredService<WorldSimulationCoordinator>();
         _turnContext = new GameTurnContext { WorldId = _world.Id };
 
@@ -45,7 +42,7 @@ public sealed class WorldMutationGatedFunctionTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task InvokeAsync_ReturnsInnerResult_WhenWorldIsNotHeld()
+    public async Task InvokeAsync_ReturnsInnerResult_WhenToolReturns()
     {
         // Arrange
         var function = MakeGatedFunction(() => "looked");
@@ -70,26 +67,6 @@ public sealed class WorldMutationGatedFunctionTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(1, _turnContext.ToolInvocations);
-    }
-
-    [Fact]
-    public async Task InvokeAsync_WaitsForWorldRelease_WhenBackgroundPassHoldsWorld()
-    {
-        // Arrange
-        var function = MakeGatedFunction(() => "looked");
-        var lease = await _gate.Acquire(_world.Id, TestContext.Current.CancellationToken);
-
-        // Act
-        var invocation = function
-            .InvokeAsync(cancellationToken: TestContext.Current.CancellationToken)
-            .AsTask();
-
-        // Assert
-        await Task.Delay(50, TestContext.Current.CancellationToken);
-        Assert.False(invocation.IsCompleted);
-        await lease.DisposeAsync();
-        var result = await invocation;
-        Assert.Equal("looked", result?.ToString());
     }
 
     [Fact]
@@ -128,27 +105,6 @@ public sealed class WorldMutationGatedFunctionTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task InvokeAsync_ReleasesWorld_WhenInnerFunctionThrows()
-    {
-        // Arrange
-        var function = MakeGatedFunction(() =>
-            throw new InvalidOperationException("The tool failed.")
-        );
-        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await function.InvokeAsync(cancellationToken: TestContext.Current.CancellationToken)
-        );
-
-        // Act
-        var acquiring = _gate.Acquire(_world.Id, TestContext.Current.CancellationToken);
-
-        // Assert
-        await using var lease = await acquiring.WaitAsync(
-            TimeSpan.FromSeconds(5),
-            TestContext.Current.CancellationToken
-        );
-    }
-
-    [Fact]
     public async Task InvokeAsync_KeepsTheRunnerUsable_WhenInnerFunctionThrows()
     {
         // Arrange
@@ -173,6 +129,6 @@ public sealed class WorldMutationGatedFunctionTests(DatabaseFixture db)
         );
     }
 
-    private WorldMutationGatedFunction MakeGatedFunction(Func<string> tool) =>
-        new(AIFunctionFactory.Create(tool, "tool"), _turnContext, _gate, _coordinator);
+    private WorldRequestFunction MakeGatedFunction(Func<string> tool) =>
+        new(AIFunctionFactory.Create(tool, "tool"), _turnContext, _coordinator);
 }

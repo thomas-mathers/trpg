@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Scenes.Queries;
@@ -441,7 +440,6 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         var factory = new WorldSimulationRunnerFactory(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             clock,
-            _serviceProvider.GetRequiredService<IWorldMutationGate>(),
             new TransientCreatureWalkRegistry(),
             Options.Create(new WorldSimulationOptions()),
             NullLogger<WorldSimulationRunner>.Instance

@@ -1,15 +1,13 @@
 using System.Runtime.ExceptionServices;
 using Microsoft.Extensions.AI;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.GameTurns;
 using TRPG.Application.WorldSimulation;
 
 namespace TRPG.Tools;
 
-internal sealed class WorldMutationGatedFunction(
+internal sealed class WorldRequestFunction(
     AIFunction inner,
     GameTurnContext turnContext,
-    IWorldMutationGate mutationGate,
     WorldSimulationCoordinator simulation
 ) : DelegatingAIFunction(inner)
 {
@@ -20,7 +18,7 @@ internal sealed class WorldMutationGatedFunction(
     {
         var invocation = await simulation.Request(
             turnContext.WorldId,
-            (_, token) => InvokeUnderGate(arguments, token),
+            (_, token) => Invoke(arguments, token),
             cancellationToken
         );
 
@@ -29,13 +27,11 @@ internal sealed class WorldMutationGatedFunction(
         return invocation.Result;
     }
 
-    private async Task<ToolInvocation> InvokeUnderGate(
+    private async Task<ToolInvocation> Invoke(
         AIFunctionArguments arguments,
         CancellationToken cancellationToken
     )
     {
-        await using var lease = await mutationGate.Acquire(turnContext.WorldId, cancellationToken);
-
         try
         {
             var result = await base.InvokeCoreAsync(arguments, cancellationToken);
