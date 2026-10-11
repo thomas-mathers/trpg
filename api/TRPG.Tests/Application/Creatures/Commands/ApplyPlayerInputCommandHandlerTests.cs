@@ -24,7 +24,6 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private ApplyPlayerInputCommandHandler _handler = null!;
-    private PlayerPoseStore _poseStore = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -33,7 +32,6 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<ApplyPlayerInputCommandHandler>();
-        _poseStore = _serviceProvider.GetRequiredService<PlayerPoseStore>();
 
         _context.States.Add(Builders.MakeState(Guid.NewGuid(), worldId: WorldId, id: _stateId));
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -46,18 +44,23 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Handle_StartsFromTheStoredPosition_WhenThereIsNoPreviousInput()
+    public async Task Handle_StartsFromTheStoredPosition_WhenThereIsNoPreviousPose()
     {
         // Arrange
         var location = await SeedLocation();
         var player = await SeedPlayer(location.Id);
 
         // Act
-        await Apply(player.Id, location.Id, new MovementInput(1, 0, 1.5), Start, new Point(80, 80));
+        var pose = await Apply(
+            player.Id,
+            location.Id,
+            new MovementInput(1, 0, 1.5),
+            Start,
+            new Point(80, 80)
+        );
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.Equal((location.Id, 50d, 50d, 1.5d, true), Describe(pose));
+        Assert.Equal((location.Id, 50d, 50d, 1.5d), Describe(pose));
     }
 
     [Fact]
@@ -68,11 +71,10 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         var player = await SeedPlayer(location.Id);
 
         // Act
-        await Apply(player.Id, location.Id, Standing, Start, new Point(80, 80));
+        var pose = await Apply(player.Id, location.Id, Standing, Start, new Point(80, 80));
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.Equal((50d, 50d), (pose!.X, pose.Y));
+        Assert.Equal((50d, 50d), (pose!.Position.X, pose.Position.Y));
     }
 
     [Fact]
@@ -81,20 +83,20 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var location = await SeedLocation();
         var player = await SeedPlayer(location.Id);
-        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        var previous = await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
 
         // Act
-        await Apply(
+        var pose = await Apply(
             player.Id,
             location.Id,
             Standing,
             Start.AddSeconds(0.5),
-            new Point(50, 50 - (WalkSpeed * 0.5))
+            new Point(50, 50 - (WalkSpeed * 0.5)),
+            previous
         );
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.Equal(50 - (WalkSpeed * 0.5), pose!.Y, 3);
+        Assert.Equal(50 - (WalkSpeed * 0.5), pose!.Position.Y, 3);
     }
 
     [Fact]
@@ -103,20 +105,20 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var location = await SeedLocation();
         var player = await SeedPlayer(location.Id);
-        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        var previous = await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
 
         // Act
-        await Apply(
+        var pose = await Apply(
             player.Id,
             location.Id,
             WalkingNorth,
             Start.AddSeconds(0.026),
-            new Point(50, 50)
+            new Point(50, 50),
+            previous
         );
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.Equal(50 - (WalkSpeed * PlayerMovementIntegrator.StepSeconds), pose!.Y, 6);
+        Assert.Equal(50 - (WalkSpeed * PlayerMovementIntegrator.StepSeconds), pose!.Position.Y, 6);
     }
 
     [Fact]
@@ -125,21 +127,32 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var location = await SeedLocation();
         var player = await SeedPlayer(location.Id);
-        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
-        await Apply(
+        var first = await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        var second = await Apply(
             player.Id,
             location.Id,
             WalkingNorth,
             Start.AddSeconds(0.026),
-            new Point(50, 50)
+            new Point(50, 50),
+            first
         );
 
         // Act
-        await Apply(player.Id, location.Id, Standing, Start.AddSeconds(0.05), new Point(50, 50));
+        var pose = await Apply(
+            player.Id,
+            location.Id,
+            Standing,
+            Start.AddSeconds(0.05),
+            new Point(50, 50),
+            second
+        );
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.Equal(50 - (WalkSpeed * PlayerMovementIntegrator.StepSeconds * 3), pose!.Y, 6);
+        Assert.Equal(
+            50 - (WalkSpeed * PlayerMovementIntegrator.StepSeconds * 3),
+            pose!.Position.Y,
+            6
+        );
     }
 
     [Fact]
@@ -148,22 +161,22 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var location = await SeedLocation();
         var player = await SeedPlayer(location.Id);
-        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        var previous = await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
 
         // Act
-        await Apply(
+        var pose = await Apply(
             player.Id,
             location.Id,
             new MovementInput(1, 0, Math.PI / 2),
             Start.AddSeconds(0.5),
-            new Point(50, 50)
+            new Point(50, 50),
+            previous
         );
 
         // Assert
         var swept = WalkSpeed * 0.5 * 2 / Math.PI;
-        var pose = _poseStore.Find(player.Id);
-        Assert.InRange(pose!.X, 50 + swept - 0.01, 50 + swept + 0.01);
-        Assert.InRange(pose.Y, 50 - swept - 0.01, 50 - swept + 0.01);
+        Assert.InRange(pose!.Position.X, 50 + swept - 0.01, 50 + swept + 0.01);
+        Assert.InRange(pose.Position.Y, 50 - swept - 0.01, 50 - swept + 0.01);
     }
 
     [Fact]
@@ -172,7 +185,7 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var location = await SeedLocation();
         var player = await SeedPlayer(location.Id);
-        await Apply(
+        var previous = await Apply(
             player.Id,
             location.Id,
             new MovementInput(1, 0, Math.PI - 0.1),
@@ -181,17 +194,17 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         );
 
         // Act
-        await Apply(
+        var pose = await Apply(
             player.Id,
             location.Id,
             new MovementInput(1, 0, -Math.PI + 0.1),
             Start.AddSeconds(0.5),
-            new Point(50, 50)
+            new Point(50, 50),
+            previous
         );
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.True(pose!.Y > 50);
+        Assert.True(pose!.Position.Y > 50);
     }
 
     [Fact]
@@ -200,14 +213,49 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         // Arrange
         var location = await SeedLocation();
         var player = await SeedPlayer(location.Id);
-        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        var previous = await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
 
         // Act
-        await Apply(player.Id, location.Id, Standing, Start.AddSeconds(30), new Point(50, 50));
+        var pose = await Apply(
+            player.Id,
+            location.Id,
+            Standing,
+            Start.AddSeconds(30),
+            new Point(50, 50),
+            previous
+        );
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.Equal(50 - WalkSpeed, pose!.Y, 3);
+        Assert.Equal(50 - WalkSpeed, pose!.Position.Y, 3);
+    }
+
+    [Fact]
+    public async Task Handle_StartsFromTheStoredPosition_WhenThePreviousPoseIsInAnotherLocation()
+    {
+        // Arrange
+        var location = await SeedLocation();
+        var otherLocation = await SeedLocation();
+        var player = await SeedPlayer(location.Id);
+        var previous = new PlayerPose(
+            otherLocation.Id,
+            new Point(10, 10),
+            Start,
+            WalkingNorth,
+            default
+        );
+
+        // Act
+        var pose = await Apply(
+            player.Id,
+            location.Id,
+            Standing,
+            Start.AddSeconds(0.5),
+            new Point(50, 50),
+            previous
+        );
+
+        // Assert
+        Assert.Equal((50d, 50d), (pose!.Position.X, pose.Position.Y));
     }
 
     [Fact]
@@ -227,14 +275,20 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
             )
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        var previous = await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
 
         // Act
-        await Apply(player.Id, location.Id, Standing, Start.AddSeconds(1), new Point(50, 50));
+        var pose = await Apply(
+            player.Id,
+            location.Id,
+            Standing,
+            Start.AddSeconds(1),
+            new Point(50, 50),
+            previous
+        );
 
         // Assert
-        var pose = _poseStore.Find(player.Id);
-        Assert.True(pose!.Y > 48.8);
+        Assert.True(pose!.Position.Y > 48.8);
     }
 
     [Fact]
@@ -275,10 +329,10 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         var player = await SeedPlayer(location.Id);
 
         // Act
-        await Apply(player.Id, otherLocation.Id, Standing, Start, new Point(50, 50));
+        var pose = await Apply(player.Id, otherLocation.Id, Standing, Start, new Point(50, 50));
 
         // Assert
-        Assert.Null(_poseStore.Find(player.Id));
+        Assert.Null(pose);
     }
 
     [Fact]
@@ -289,10 +343,10 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         var player = await SeedPlayer(location.Id, CreaturePosture.Sitting);
 
         // Act
-        await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
+        var pose = await Apply(player.Id, location.Id, WalkingNorth, Start, new Point(50, 50));
 
         // Assert
-        Assert.Null(_poseStore.Find(player.Id));
+        Assert.Null(pose);
     }
 
     [Fact]
@@ -303,7 +357,7 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         var player = await SeedPlayer(location.Id);
 
         // Act
-        await Apply(
+        var pose = await Apply(
             player.Id,
             location.Id,
             new MovementInput(double.NaN, 0, 0),
@@ -312,18 +366,19 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Null(_poseStore.Find(player.Id));
+        Assert.Null(pose);
     }
 
     private IReadOnlyList<GameClientEvent> Events() =>
         [.. _serviceProvider.GetRequiredService<TestGameClientEventSink>().EnqueuedEvents];
 
-    private async Task Apply(
+    private async Task<PlayerPose?> Apply(
         Guid playerId,
         Guid locationId,
         MovementInput input,
         DateTimeOffset receivedAt,
-        Point clientPosition
+        Point clientPosition,
+        PlayerPose? previous = null
     ) =>
         await _handler.Handle(
             new ApplyPlayerInputCommand
@@ -334,6 +389,7 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
                 Input = input,
                 ClientPosition = clientPosition,
                 ReceivedAt = receivedAt,
+                Previous = previous,
             },
             TestContext.Current.CancellationToken
         );
@@ -341,8 +397,8 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
     private static (Guid, Guid, double, double) Describe(PlayerCorrectedEvent correction) =>
         (correction.PlayerId, correction.LocationId, correction.OffsetX, correction.OffsetY);
 
-    private static (Guid, double, double, double, bool) Describe(PlayerPose? pose) =>
-        (pose!.LocationId, pose.X, pose.Y, pose.Angle, pose.IsDirty);
+    private static (Guid, double, double, double) Describe(PlayerPose? pose) =>
+        (pose!.LocationId, pose.Position.X, pose.Position.Y, pose.Input.Heading);
 
     private async Task<Location> SeedLocation()
     {

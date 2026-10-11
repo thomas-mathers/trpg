@@ -257,25 +257,67 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Tick_PersistsTheStoredPose_WhenAPoseFlushWasPosted()
+    public async Task Tick_PersistsTheLivePose_WhenThePlayerDisconnected()
     {
         // Arrange
-        await AddPlayerAt(_home);
+        _home.Width = 100;
+        _home.Depth = 100;
+        await AddPlayerAt(_home, x: 50, y: 50);
         await StartRunner();
-        _serviceProvider
-            .GetRequiredService<PlayerPoseStore>()
-            .Set(
+        _runner.Post(
+            new PlayerInput(
                 _playerId,
-                new PlayerPose(_home.Id, 60, 70, 1.5, DateTimeOffset.UtcNow, IsDirty: true)
-            );
-        _runner.Post(new FlushPlayerPose(_playerId));
+                _home.Id,
+                new MovementInput(0, 0, 1.5),
+                new Point(50, 50),
+                DateTimeOffset.UtcNow
+            )
+        );
+        _runner.Post(new PlayerDisconnected(_playerId));
 
         // Act
         await _runner.Tick(Now, TestContext.Current.CancellationToken);
 
         // Assert
         var player = await db.ReadCreature(_playerId);
-        Assert.Equal((60d, 70d, 1.5d), (player.X, player.Y, player.Angle));
+        Assert.Equal((50d, 50d, 1.5d), (player.X, player.Y, player.Angle));
+    }
+
+    [Fact]
+    public async Task Tick_StartsFromTheStoredPosition_WhenThePoseWasForgotten()
+    {
+        // Arrange
+        _home.Width = 100;
+        _home.Depth = 100;
+        await AddPlayerAt(_home, x: 50, y: 50);
+        await StartRunner();
+        var receivedAt = DateTimeOffset.UtcNow;
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(1, 0, 0),
+                new Point(50, 50),
+                receivedAt
+            )
+        );
+        _runner.Post(new ForgetPlayerPose(_playerId));
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(0, 0, 0),
+                new Point(50, 50),
+                receivedAt.AddSeconds(1)
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal(50d, player.Y);
     }
 
     private async Task AddPlayerAt(Location location, double x = 0, double y = 0)

@@ -12,14 +12,23 @@ import { SEATED_EYE_HEIGHT, type ViewportSeat } from './seat-interaction';
 const renderer = vi.hoisted(() => ({
   frame: (_: unknown, _delta: number) => {},
   camera: null as unknown,
+  cameraWhenFrameSwapped: [] as number[][],
 }));
-vi.mock('@react-three/fiber', () => ({
-  useThree: (select: (state: { camera: unknown }) => unknown) =>
-    select({ camera: renderer.camera }),
-  useFrame: (frame: typeof renderer.frame) => {
-    renderer.frame = frame;
-  },
-}));
+vi.mock('@react-three/fiber', async () => {
+  const { useLayoutEffect } = await import('react');
+  return {
+    useThree: (select: (state: { camera: unknown }) => unknown) =>
+      select({ camera: renderer.camera }),
+    useFrame: (frame: typeof renderer.frame) => {
+      useLayoutEffect(() => {
+        renderer.frame = frame;
+        renderer.cameraWhenFrameSwapped.push(
+          (renderer.camera as PerspectiveCamera).position.toArray(),
+        );
+      });
+    },
+  };
+});
 vi.mock('@react-three/drei', () => ({ PointerLockControls: () => null }));
 const chair: ViewportSeat = {
   id: 'chair',
@@ -56,6 +65,7 @@ function setup(overrides: Partial<ComponentProps<typeof FpsController>> = {}) {
 }
 beforeEach(() => {
   renderer.camera = new PerspectiveCamera();
+  renderer.cameraWhenFrameSwapped = [];
   Object.defineProperty(document, 'pointerLockElement', {
     configurable: true,
     value: document.body,
@@ -97,6 +107,15 @@ describe('chair interaction', () => {
     );
     rerender(<FpsController {...props} />);
     expect(camera.position.toArray()).toEqual([5, EYE_HEIGHT, 6]);
+  });
+  it('is already at the standing pose when the new frame callback goes live after standing', () => {
+    const { props, rerender } = setup();
+    rerender(
+      <FpsController {...props} seated seatedPlacement={chair.placement} start={chair.placement} />,
+    );
+    renderer.cameraWhenFrameSwapped = [];
+    rerender(<FpsController {...props} />);
+    expect(renderer.cameraWhenFrameSwapped.at(-1)).toEqual([5, EYE_HEIGHT, 6]);
   });
   it('stands at the server pose after loading while already seated', () => {
     const { props, rerender } = setup({

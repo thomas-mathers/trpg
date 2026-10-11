@@ -12,7 +12,6 @@ public static class CreaturesServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddSingleton<IChanceRoller, ChanceRoller>()
-            .AddSingleton<PlayerPoseStore>()
             .AddTransient<SkillCheckService>()
             .AddTransient<CreatureEffectAdvancer>()
             .AddTransient<SneakDetectionService>()

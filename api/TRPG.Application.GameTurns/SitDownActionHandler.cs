@@ -1,11 +1,13 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.GameTurns.Commands;
+using TRPG.Application.WorldSimulation;
 
 namespace TRPG.Application.GameTurns;
 
 internal class SitDownActionHandler(
     GameActionRunner actionRunner,
-    ICommandHandler<SitDownCommand, SitDownResult> sitDown
+    ICommandHandler<SitDownCommand, SitDownResult> sitDown,
+    WorldSimulationCoordinator simulation
 )
 {
     public Task<ActionOutcome> Handle(
@@ -21,6 +23,11 @@ internal class SitDownActionHandler(
                     new SitDownCommand { PlayerId = session.PlayerId, SeatId = seatId },
                     ct
                 );
+                if (result == SitDownResult.Success)
+                {
+                    simulation.Post(session.WorldId, new ForgetPlayerPose(session.PlayerId));
+                }
+
                 return result switch
                 {
                     SitDownResult.Success => ActionOutcome.Success,

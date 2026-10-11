@@ -1,6 +1,6 @@
 import { PointerLockControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 import { toggleCreatureSneaking } from '@/api/client';
 import type {
@@ -105,7 +105,7 @@ export function FpsController({
     [camera, locationId],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     handlers.current = {
       onEnterConnector,
       onSeatInteraction,
@@ -115,7 +115,8 @@ export function FpsController({
     latestStart.current = start;
   }, [onEnterConnector, onSeatInteraction, seated, movementLocked, start]);
 
-  useEffect(() => {
+  // Layout phase so no frame can report the stale seated camera before the snap.
+  useLayoutEffect(() => {
     camera.rotation.order = 'YXZ';
     if (seated) return;
     const { x, y, angle } = latestStart.current;
