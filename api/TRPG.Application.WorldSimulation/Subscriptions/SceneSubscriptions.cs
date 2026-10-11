@@ -1,4 +1,7 @@
 using Microsoft.Extensions.Options;
+using TRPG.Application.Scenes.Events;
+using TRPG.Application.Scenes.Results;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Subscriptions;
 
@@ -9,6 +12,13 @@ public enum ResyncState
     Sent,
     Exhausted,
 }
+
+public sealed record WatchSnapshot(
+    Guid LocationId,
+    IReadOnlySet<Guid> KnownCreatureIds,
+    IReadOnlyDictionary<Guid, PropOccupancy> Seats,
+    WeatherCondition? Weather
+);
 
 public sealed class SceneSubscriptions(
     IOptions<WorldSimulationOptions> options,
@@ -23,13 +33,100 @@ public sealed class SceneSubscriptions(
         lock (_gate)
         {
             var key = new WatchKey(worldId, playerId);
-            if (_watches.TryGetValue(key, out var watch))
+            if (!_watches.TryGetValue(key, out var watch))
             {
-                watch.LocationId = locationId;
+                _watches[key] = new Subscription(locationId);
                 return;
             }
 
-            _watches[key] = new Subscription(locationId);
+            if (watch.LocationId != locationId)
+            {
+                watch.Forget();
+                watch.LocationId = locationId;
+            }
+        }
+    }
+
+    public void Watch(Guid worldId, Guid playerId, SceneResult scene)
+    {
+        lock (_gate)
+        {
+            var key = new WatchKey(worldId, playerId);
+            if (!_watches.TryGetValue(key, out var watch))
+            {
+                watch = new Subscription(scene.LocationId);
+                _watches[key] = watch;
+            }
+
+            watch.LocationId = scene.LocationId;
+            watch.Learn(scene);
+        }
+    }
+
+    public WatchSnapshot? SnapshotOf(Guid worldId, Guid playerId)
+    {
+        lock (_gate)
+        {
+            return _watches.TryGetValue(new WatchKey(worldId, playerId), out var watch)
+                ? watch.Snapshot()
+                : null;
+        }
+    }
+
+    public void RecordCreatureMembership(
+        Guid worldId,
+        Guid playerId,
+        IReadOnlyCollection<Guid> arrivedIds,
+        IReadOnlyCollection<Guid> leftIds
+    )
+    {
+        lock (_gate)
+        {
+            if (_watches.TryGetValue(new WatchKey(worldId, playerId), out var watch))
+            {
+                watch.KnownCreatureIds.UnionWith(arrivedIds);
+                watch.KnownCreatureIds.ExceptWith(leftIds);
+            }
+        }
+    }
+
+    public void RecordSeats(
+        Guid worldId,
+        Guid playerId,
+        IReadOnlyCollection<PropOccupancy> occupancies
+    )
+    {
+        lock (_gate)
+        {
+            if (_watches.TryGetValue(new WatchKey(worldId, playerId), out var watch))
+            {
+                foreach (var occupancy in occupancies)
+                {
+                    watch.Seats[occupancy.PropId] = occupancy;
+                }
+            }
+        }
+    }
+
+    public void RecordPlayerSeat(Guid worldId, Guid playerId, Guid? seatId)
+    {
+        lock (_gate)
+        {
+            if (_watches.TryGetValue(new WatchKey(worldId, playerId), out var watch))
+            {
+                watch.SeatPlayer(seatId);
+            }
+        }
+    }
+
+    public void RecordWeather(Guid worldId, Guid playerId, WeatherCondition? weather)
+    {
+        lock (_gate)
+        {
+            if (_watches.TryGetValue(new WatchKey(worldId, playerId), out var watch))
+            {
+                watch.Weather = weather;
+            }
         }
     }
 
@@ -224,5 +321,52 @@ public sealed class SceneSubscriptions(
         public ResyncState State { get; set; }
         public int Attempts { get; set; }
         public DateTimeOffset WindowStartedAt { get; set; }
+        public HashSet<Guid> KnownCreatureIds { get; } = [];
+        public Dictionary<Guid, PropOccupancy> Seats { get; } = [];
+        public WeatherCondition? Weather { get; set; }
+
+        public void Learn(SceneResult scene)
+        {
+            Forget();
+            KnownCreatureIds.UnionWith(scene.NearbyCreatures.Select(creature => creature.Id));
+            foreach (var prop in scene.NearbyProps)
+            {
+                Seats[prop.Id] = new PropOccupancy(
+                    prop.Id,
+                    prop.IsOccupied,
+                    prop.IsOccupiedByPlayer
+                );
+            }
+
+            Weather = scene.Weather;
+        }
+
+        public void Forget()
+        {
+            KnownCreatureIds.Clear();
+            Seats.Clear();
+            Weather = null;
+        }
+
+        public void SeatPlayer(Guid? seatId)
+        {
+            foreach (var seat in Seats.Values.Where(seat => seat.IsOccupiedByPlayer).ToArray())
+            {
+                Seats[seat.PropId] = seat with { IsOccupied = false, IsOccupiedByPlayer = false };
+            }
+
+            if (seatId is { } seated)
+            {
+                Seats[seated] = new PropOccupancy(seated, true, true);
+            }
+        }
+
+        public WatchSnapshot Snapshot() =>
+            new(
+                LocationId,
+                KnownCreatureIds.ToHashSet(),
+                new Dictionary<Guid, PropOccupancy>(Seats),
+                Weather
+            );
     }
 }

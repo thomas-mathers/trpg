@@ -6,6 +6,7 @@ using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation.Queries;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation.Publishing;
@@ -18,7 +19,7 @@ internal class CreatureChangeAnnouncer(
     IQueryHandler<GetSceneCreaturesQuery, IReadOnlyCollection<SceneCreatureInfo>> getSceneCreatures,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     ArrivalCatchUp arrivalCatchUp,
-    PublishedSceneRegistry publishedScenes,
+    SceneSubscriptions subscriptions,
     ScenePublisher scenePublisher,
     ILogger<CreatureChangeAnnouncer> logger
 )
@@ -52,17 +53,16 @@ internal class CreatureChangeAnnouncer(
         CancellationToken cancellationToken
     )
     {
-        var previous = publishedScenes.Find(player.PlayerId);
-        if (previous is null || previous.LocationId != player.LocationId)
+        var watch = subscriptions.SnapshotOf(worldId, player.PlayerId);
+        if (watch is null || watch.LocationId != player.LocationId)
         {
             return;
         }
 
         var refreshed = await Refresh(worldId, now, player, creatureIds, cancellationToken);
-        var arrivedIds = refreshed
-            .Where(creature => creature.Id != player.PlayerId)
+        var arrivedIds = NearbyOf(refreshed, player)
             .Select(creature => creature.Id)
-            .Except(previous.NearbyCreatures.Select(creature => creature.Id))
+            .Except(watch.KnownCreatureIds)
             .ToArray();
         if (arrivedIds.Length > 0)
         {
@@ -76,20 +76,21 @@ internal class CreatureChangeAnnouncer(
             refreshed = await Refresh(worldId, now, player, creatureIds, cancellationToken);
         }
 
-        var refreshedNearby = refreshed.Where(creature => creature.Id != player.PlayerId).ToArray();
-        var current = previous with
-        {
-            Player =
-                refreshed.SingleOrDefault(creature => creature.Id == player.PlayerId)
-                ?? previous.Player,
-            NearbyCreatures =
-            [
-                .. previous.NearbyCreatures.Where(creature => !creatureIds.Contains(creature.Id)),
-                .. refreshedNearby,
-            ],
-        };
-        MovementSnapshotLog.Write(logger, player.LocationId, now, refreshedNearby);
-        if (!SceneSemanticComparer.HasPlayerVisibleChange(previous, current))
+        var nearby = NearbyOf(refreshed, player);
+        MovementSnapshotLog.Write(logger, player.LocationId, now, nearby);
+        var arrived = nearby
+            .Where(creature => !watch.KnownCreatureIds.Contains(creature.Id))
+            .ToArray();
+        var leftIds = creatureIds
+            .Where(id => watch.KnownCreatureIds.Contains(id))
+            .Except(nearby.Select(creature => creature.Id))
+            .ToHashSet();
+        var updated = refreshed
+            .Where(creature =>
+                creature.Id == player.PlayerId || watch.KnownCreatureIds.Contains(creature.Id)
+            )
+            .ToArray();
+        if (arrived.Length == 0 && leftIds.Count == 0 && updated.Length == 0)
         {
             return;
         }
@@ -98,8 +99,26 @@ internal class CreatureChangeAnnouncer(
             new StampWorldStateCommand { WorldId = worldId },
             cancellationToken
         );
-        scenePublisher.PublishCreatureChanges(player.PlayerId, current, stamp);
+        scenePublisher.PublishCreatureChanges(
+            worldId,
+            player.LocationId,
+            stamp,
+            leftIds,
+            arrived,
+            updated
+        );
+        subscriptions.RecordCreatureMembership(
+            worldId,
+            player.PlayerId,
+            arrived.Select(creature => creature.Id).ToArray(),
+            leftIds
+        );
     }
+
+    private static SceneCreatureInfo[] NearbyOf(
+        IReadOnlyCollection<SceneCreatureInfo> creatures,
+        ActiveLocationPlayer player
+    ) => [.. creatures.Where(creature => creature.Id != player.PlayerId)];
 
     private Task<IReadOnlyCollection<SceneCreatureInfo>> Refresh(
         Guid worldId,

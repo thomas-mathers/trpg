@@ -5,6 +5,7 @@ using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Events;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
@@ -12,7 +13,8 @@ namespace TRPG.Application.GameTurns;
 internal class SeatingAnnouncer(
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
-    ScenePublisher scenePublisher
+    ScenePublisher scenePublisher,
+    SceneSubscriptions subscriptions
 )
 {
     public async Task Announce(
@@ -33,7 +35,6 @@ internal class SeatingAnnouncer(
             ) ?? throw new EntityNotFoundException(nameof(Creature), session.PlayerId);
 
         scenePublisher.PublishSeating(
-            session.PlayerId,
             new SeatingChangedEvent(
                 session.WorldId,
                 player.LocationId,
@@ -44,5 +45,6 @@ internal class SeatingAnnouncer(
                 new Placement(player.X, player.Y, player.Angle)
             )
         );
+        subscriptions.RecordPlayerSeat(session.WorldId, session.PlayerId, seatId);
     }
 }

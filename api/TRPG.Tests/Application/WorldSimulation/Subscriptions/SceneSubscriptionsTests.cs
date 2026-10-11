@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Options;
+using TRPG.Application.Scenes.Events;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Subscriptions;
+using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.WorldSimulation.Subscriptions;
@@ -226,5 +228,106 @@ public sealed class SceneSubscriptionsTests
 
         // Assert
         Assert.Equal([PlayerId], _subscriptions.TakePending(WorldId));
+    }
+
+    [Fact]
+    public void RecordCreatureMembership_AddsArrivedAndRemovesLeft()
+    {
+        // Arrange
+        var stayed = Guid.NewGuid();
+        var left = Guid.NewGuid();
+        var arrived = Guid.NewGuid();
+        _subscriptions.RecordCreatureMembership(WorldId, PlayerId, [stayed, left], []);
+
+        // Act
+        _subscriptions.RecordCreatureMembership(WorldId, PlayerId, [arrived], [left]);
+
+        // Assert
+        var watch = _subscriptions.SnapshotOf(WorldId, PlayerId);
+        Assert.Equivalent(new[] { stayed, arrived }, watch!.KnownCreatureIds);
+    }
+
+    [Fact]
+    public void RecordSeats_ReplacesTheRecordedOccupancy()
+    {
+        // Arrange
+        var seatId = Guid.NewGuid();
+        _subscriptions.RecordSeats(WorldId, PlayerId, [new PropOccupancy(seatId, true, false)]);
+
+        // Act
+        _subscriptions.RecordSeats(WorldId, PlayerId, [new PropOccupancy(seatId, false, false)]);
+
+        // Assert
+        var watch = _subscriptions.SnapshotOf(WorldId, PlayerId);
+        Assert.Equal(new PropOccupancy(seatId, false, false), watch!.Seats[seatId]);
+    }
+
+    [Fact]
+    public void RecordPlayerSeat_MovesThePlayerFromTheOldSeatToTheNewOne()
+    {
+        // Arrange
+        var oldSeatId = Guid.NewGuid();
+        var newSeatId = Guid.NewGuid();
+        _subscriptions.RecordSeats(WorldId, PlayerId, [new PropOccupancy(oldSeatId, true, true)]);
+
+        // Act
+        _subscriptions.RecordPlayerSeat(WorldId, PlayerId, newSeatId);
+
+        // Assert
+        var watch = _subscriptions.SnapshotOf(WorldId, PlayerId);
+        Assert.Equal(new PropOccupancy(oldSeatId, false, false), watch!.Seats[oldSeatId]);
+        Assert.Equal(new PropOccupancy(newSeatId, true, true), watch.Seats[newSeatId]);
+    }
+
+    [Fact]
+    public void RecordWeather_StoresTheAnnouncedWeather()
+    {
+        // Act
+        _subscriptions.RecordWeather(WorldId, PlayerId, WeatherCondition.Storm);
+
+        // Assert
+        Assert.Equal(WeatherCondition.Storm, _subscriptions.SnapshotOf(WorldId, PlayerId)!.Weather);
+    }
+
+    [Fact]
+    public void Watch_ForgetsWhatTheClientKnew_WhenTheLocationChanges()
+    {
+        // Arrange
+        _subscriptions.RecordCreatureMembership(WorldId, PlayerId, [Guid.NewGuid()], []);
+        _subscriptions.RecordWeather(WorldId, PlayerId, WeatherCondition.Rain);
+        var newLocationId = Guid.NewGuid();
+
+        // Act
+        _subscriptions.Watch(WorldId, PlayerId, newLocationId);
+
+        // Assert
+        var watch = _subscriptions.SnapshotOf(WorldId, PlayerId);
+        Assert.Equal(newLocationId, watch!.LocationId);
+        Assert.Empty(watch.KnownCreatureIds);
+        Assert.Null(watch.Weather);
+    }
+
+    [Fact]
+    public void Watch_KeepsWhatTheClientKnew_WhenTheLocationIsUnchanged()
+    {
+        // Arrange
+        var known = Guid.NewGuid();
+        _subscriptions.RecordCreatureMembership(WorldId, PlayerId, [known], []);
+
+        // Act
+        _subscriptions.Watch(WorldId, PlayerId, LocationId);
+
+        // Assert
+        Assert.Equal([known], _subscriptions.SnapshotOf(WorldId, PlayerId)!.KnownCreatureIds);
+    }
+
+    [Fact]
+    public void SnapshotOf_ReturnsNull_WhenThePlayerIsNotWatched()
+    {
+        // Act
+        var watch = _subscriptions.SnapshotOf(WorldId, Guid.NewGuid());
+
+        // Assert
+        Assert.Null(watch);
     }
 }

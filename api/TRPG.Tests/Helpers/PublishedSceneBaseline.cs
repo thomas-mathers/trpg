@@ -35,9 +35,7 @@ internal static class PublishedSceneBaseline
             .GetRequiredService<ICommandHandler<StampWorldStateCommand, WorldStateStamp>>()
             .Handle(new StampWorldStateCommand { WorldId = worldId }, cancellationToken);
 
-        services.GetRequiredService<ScenePublisher>().Publish(worldId, playerId, scene, stamp);
-        services
-            .GetRequiredService<SceneSubscriptions>()
-            .Watch(worldId, playerId, scene.LocationId);
+        services.GetRequiredService<ScenePublisher>().Publish(worldId, scene, stamp);
+        services.GetRequiredService<SceneSubscriptions>().Watch(worldId, playerId, scene);
     }
 }

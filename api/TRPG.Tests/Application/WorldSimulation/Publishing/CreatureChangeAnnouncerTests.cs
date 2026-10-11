@@ -119,6 +119,33 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Announce_PublishesAnUpdateNotAnArrival_WhenTheSameCreatureIsAnnouncedAgain()
+    {
+        // Arrange
+        await PublishBaselineScene();
+        var visitor = await SeedCreatureAt(_locationId);
+        await _announcer.Announce(
+            _worldId,
+            GameClock.Epoch,
+            Changed(visitor.Id),
+            TestContext.Current.CancellationToken
+        );
+        _events.EnqueuedEvents.Clear();
+
+        // Act
+        await _announcer.Announce(
+            _worldId,
+            GameClock.Epoch,
+            Changed(visitor.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var updated = Assert.IsType<CreaturesUpdatedEvent>(Assert.Single(_events.EnqueuedEvents));
+        Assert.Equal(visitor.Id, Assert.Single(updated.Creatures).Id);
+    }
+
+    [Fact]
     public async Task Announce_PublishesOnlyADeparture_WhenACreatureLeavesThePlayersLocation()
     {
         // Arrange
@@ -195,7 +222,7 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Announce_PublishesNothing_WhenThePlayerIsUnchanged()
+    public async Task Announce_PublishesOnlyAnUpdateOfThePlayer_WhenThePlayerIsUnchanged()
     {
         // Arrange
         await PublishBaselineScene();
@@ -209,11 +236,12 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Empty(_events.EnqueuedEvents);
+        var updated = Assert.IsType<CreaturesUpdatedEvent>(Assert.Single(_events.EnqueuedEvents));
+        Assert.Equal(_player.Id, Assert.Single(updated.Creatures).Id);
     }
 
     [Fact]
-    public async Task Announce_PublishesNothing_WhenTheCreaturesAreUnchanged()
+    public async Task Announce_PublishesOnlyAnUpdate_WhenAKnownCreatureIsUnchanged()
     {
         // Arrange
         var resident = await SeedCreatureAt(_locationId);
@@ -228,7 +256,8 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Empty(_events.EnqueuedEvents);
+        var updated = Assert.IsType<CreaturesUpdatedEvent>(Assert.Single(_events.EnqueuedEvents));
+        Assert.Equal(resident.Id, Assert.Single(updated.Creatures).Id);
     }
 
     [Fact]

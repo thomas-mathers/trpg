@@ -9,7 +9,9 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.Scenes;
+using TRPG.Application.Creatures.Events;
+using TRPG.Application.Creatures.Results;
+using TRPG.Application.Scenes.Events;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Movement;
@@ -53,6 +55,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             .AddSingleton<IOptions<WorldSimulationOptions>>(_options)
             .WithScopedDbContexts(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher>(_ => _dispatcher)
+            .AddRecordingGameClientEvents()
             .Decorate<ICommandHandler<ApplyCreaturePoseUpdatesCommand>>(
                 (inner, _) => FaultingProxy.Wrap(inner, _poseWrites)
             )
@@ -238,10 +241,10 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         await _runner.Tick(Now, TestContext.Current.CancellationToken);
 
         // Assert
-        var published = _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Find(_playerId);
-        Assert.Contains(published!.NearbyCreatures, creature => creature.Id == worker.Id);
+        Assert.Contains(
+            Published<CreaturesArrivedEvent>().SelectMany(arrived => arrived.Creatures),
+            creature => creature.Id == worker.Id
+        );
     }
 
     [Fact]
@@ -785,10 +788,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
 
         // Assert
-        var published = _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Find(_playerId);
-        var announced = published!.NearbyCreatures.Single(creature => creature.Id == bystander.Id);
+        var announced = LastAnnouncedVitals(bystander.Id);
         var stored = await db.ReadCreature(bystander.Id);
         Assert.True(stored.CurrentHp > 1);
         Assert.Equal(stored.CurrentHp, announced.CurrentHp);
@@ -835,7 +835,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
         // Assert
         var stored = await db.ReadCreature(bystander.Id);
-        var announced = PublishedCreature(bystander.Id);
+        var announced = LastAnnouncedVitals(bystander.Id);
         Assert.True(stored.CurrentHp < 50);
         Assert.Equal(stored.CurrentHp, announced.CurrentHp);
     }
@@ -861,7 +861,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         // Assert
         var stored = await db.ReadCreature(bystander.Id);
         Assert.Equal(CreatureCondition.Dead, stored.Condition);
-        Assert.Equal(CreatureCondition.Dead, PublishedCreature(bystander.Id).Condition);
+        Assert.Equal(CreatureCondition.Dead, LastAnnouncedCreature(bystander.Id).Condition);
     }
 
     [Fact]
@@ -949,10 +949,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
         // Assert
         var stored = await ReadWeather();
-        var announced = _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Find(_playerId)!
-            .Weather;
+        var announced = Published<WeatherChangedEvent>().Last().WeatherCondition;
         Assert.Equal(
             (true, stored.Condition),
             (stored.NextChangeGameTime > Now + TimeSpan.FromMinutes(2), announced)
@@ -1114,11 +1111,19 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         return bystander;
     }
 
-    private SceneCreatureInfo PublishedCreature(Guid creatureId) =>
-        _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Find(_playerId)!
-            .NearbyCreatures.Single(creature => creature.Id == creatureId);
+    private IEnumerable<TEvent> Published<TEvent>()
+        where TEvent : GameClientEvent =>
+        _serviceProvider.GetRequiredService<RecordingGameClientEventSink>().Events.OfType<TEvent>();
+
+    private SceneCreatureInfo LastAnnouncedCreature(Guid creatureId) =>
+        Published<CreaturesUpdatedEvent>()
+            .SelectMany(updated => updated.Creatures)
+            .Last(creature => creature.Id == creatureId);
+
+    private CreatureVitals LastAnnouncedVitals(Guid creatureId) =>
+        Published<CreatureVitalsChangedEvent>()
+            .SelectMany(changed => changed.Vitals)
+            .Last(vitals => vitals.CreatureId == creatureId);
 
     private async Task AddPlayerAt(
         Location location,

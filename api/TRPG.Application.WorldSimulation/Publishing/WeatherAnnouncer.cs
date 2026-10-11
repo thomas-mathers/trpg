@@ -5,6 +5,7 @@ using TRPG.Application.Weather.Queries;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.WorldSimulation.Queries;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Publishing;
@@ -17,7 +18,7 @@ internal class WeatherAnnouncer(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
     IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?> getWeatherByStateId,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
-    PublishedSceneRegistry publishedScenes,
+    SceneSubscriptions subscriptions,
     ScenePublisher scenePublisher
 )
 {
@@ -29,14 +30,14 @@ internal class WeatherAnnouncer(
         );
         foreach (var player in players)
         {
-            var previous = publishedScenes.Find(player.PlayerId);
-            if (previous is null || previous.LocationId != player.LocationId)
+            var watch = subscriptions.SnapshotOf(worldId, player.PlayerId);
+            if (watch is null || watch.LocationId != player.LocationId)
             {
                 continue;
             }
 
             var weather = await CurrentWeather(player.LocationId, cancellationToken);
-            if (weather == previous.Weather)
+            if (weather == watch.Weather)
             {
                 continue;
             }
@@ -45,7 +46,8 @@ internal class WeatherAnnouncer(
                 new StampWorldStateCommand { WorldId = worldId },
                 cancellationToken
             );
-            scenePublisher.PublishWeather(player.PlayerId, weather, stamp);
+            scenePublisher.PublishWeather(worldId, player.LocationId, stamp, weather);
+            subscriptions.RecordWeather(worldId, player.PlayerId, weather);
         }
     }
 

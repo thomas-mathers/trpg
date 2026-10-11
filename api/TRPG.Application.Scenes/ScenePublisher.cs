@@ -6,105 +6,51 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes;
 
-public sealed class PublishedSceneRegistry
+public sealed class ScenePublisher(IGameClientEventSink gameEvents)
 {
-    private readonly object _gate = new();
-    private readonly Dictionary<Guid, SceneResult> _scenes = [];
-
-    public void Record(Guid playerId, SceneResult scene)
-    {
-        lock (_gate)
-        {
-            _scenes[playerId] = scene;
-        }
-    }
-
-    public SceneResult? Find(Guid playerId)
-    {
-        lock (_gate)
-        {
-            return _scenes.GetValueOrDefault(playerId);
-        }
-    }
-}
-
-public sealed class ScenePublisher(
-    IGameClientEventSink gameEvents,
-    PublishedSceneRegistry publishedScenes
-)
-{
-    public void Publish(Guid worldId, Guid playerId, SceneResult scene, WorldStateStamp stamp)
-    {
-        publishedScenes.Record(playerId, scene);
+    public void Publish(Guid worldId, SceneResult scene, WorldStateStamp stamp) =>
         gameEvents.Enqueue(new SceneUpdatedEvent(worldId, scene, stamp));
-    }
 
-    public void PublishSeating(Guid playerId, SeatingChangedEvent seating)
-    {
-        var previous = publishedScenes.Find(playerId);
-        if (previous is not null)
-        {
-            publishedScenes.Record(playerId, SeatingProjection.Apply(previous, seating));
-        }
+    public void PublishSeating(SeatingChangedEvent seating) => gameEvents.Enqueue(seating);
 
-        gameEvents.Enqueue(seating);
-    }
-
-    public bool PublishCreatureChanges(Guid playerId, SceneResult current, WorldStateStamp stamp)
-    {
-        var previous = publishedScenes.Find(playerId);
-        if (previous is null)
-        {
-            return false;
-        }
-
-        publishedScenes.Record(playerId, current);
-        var events = SceneChangePlanner.PlanCreatureChanges(previous, current, stamp);
-        foreach (var gameEvent in events)
-        {
-            gameEvents.Enqueue(gameEvent);
-        }
-
-        return events.Count > 0;
-    }
-
-    public bool PublishWeather(Guid playerId, WeatherCondition? weather, WorldStateStamp stamp)
-    {
-        var previous = publishedScenes.Find(playerId);
-        if (previous is null || previous.Weather == weather)
-        {
-            return false;
-        }
-
-        publishedScenes.Record(playerId, previous with { Weather = weather });
-        gameEvents.Enqueue(
-            new WeatherChangedEvent(previous.WorldId, previous.LocationId, stamp, weather)
-        );
-        return true;
-    }
-
-    public bool PublishPropOccupancy(
-        Guid playerId,
-        IReadOnlyCollection<PropOccupancy> changes,
-        WorldStateStamp stamp
+    public void PublishCreatureChanges(
+        Guid worldId,
+        Guid locationId,
+        WorldStateStamp stamp,
+        IReadOnlySet<Guid> leftIds,
+        IReadOnlyCollection<SceneCreatureInfo> arrived,
+        IReadOnlyCollection<SceneCreatureInfo> updated
     )
     {
-        var previous = publishedScenes.Find(playerId);
-        if (previous is null || changes.Count == 0)
+        if (leftIds.Count > 0)
         {
-            return false;
+            gameEvents.Enqueue(new CreaturesLeftEvent(worldId, locationId, stamp, leftIds));
         }
 
-        var change = new PropOccupancyChangedEvent(
-            previous.WorldId,
-            previous.LocationId,
-            stamp,
-            changes
-        );
-        publishedScenes.Record(playerId, PropOccupancyProjection.Apply(previous, change));
-        gameEvents.Enqueue(change);
-        return true;
+        if (arrived.Count > 0)
+        {
+            gameEvents.Enqueue(new CreaturesArrivedEvent(worldId, locationId, stamp, arrived));
+        }
+
+        if (updated.Count > 0)
+        {
+            gameEvents.Enqueue(new CreaturesUpdatedEvent(worldId, locationId, stamp, updated));
+        }
     }
+
+    public void PublishWeather(
+        Guid worldId,
+        Guid locationId,
+        WorldStateStamp stamp,
+        WeatherCondition? weather
+    ) => gameEvents.Enqueue(new WeatherChangedEvent(worldId, locationId, stamp, weather));
+
+    public void PublishPropOccupancy(
+        Guid worldId,
+        Guid locationId,
+        WorldStateStamp stamp,
+        IReadOnlyCollection<PropOccupancy> changes
+    ) => gameEvents.Enqueue(new PropOccupancyChangedEvent(worldId, locationId, stamp, changes));
 
     public void PublishClockReanchored(Guid worldId, Guid locationId, WorldStateStamp stamp) =>
         gameEvents.Enqueue(new ClockReanchoredEvent(worldId, locationId, stamp));

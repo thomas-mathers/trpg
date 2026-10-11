@@ -12,7 +12,9 @@ using TRPG.Application.Creatures.Results;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Events;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
 using TRPG.Application.WorldSimulation.Subscriptions;
@@ -44,6 +46,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .WithScopedDbContexts(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
+            .AddRecordingGameClientEvents()
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
@@ -267,13 +270,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         await coordinator.Tick(TestContext.Current.CancellationToken);
 
         // Assert
-        var published = _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Find(player.Id);
-        var announced = Assert.Single(
-            published!.NearbyCreatures,
-            creature => creature.Id == bystander.Id
-        );
+        var announced = Assert.Single(UpdatedCreatures(), creature => creature.Id == bystander.Id);
         Assert.NotEmpty(announced.Equipment);
     }
 
@@ -327,13 +324,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         await coordinator.Tick(TestContext.Current.CancellationToken);
 
         // Assert
-        var published = _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Find(player.Id);
-        var announced = Assert.Single(
-            published!.NearbyCreatures,
-            creature => creature.Id == giver.Id
-        );
+        var announced = Assert.Single(UpdatedCreatures(), creature => creature.Id == giver.Id);
         Assert.Empty(announced.QuestMarkers);
     }
 
@@ -452,12 +443,12 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         await coordinator.Tick(TestContext.Current.CancellationToken);
 
         // Assert
-        var published = _serviceProvider
-            .GetRequiredService<PublishedSceneRegistry>()
-            .Find(player.Id);
-        var announced = Assert.Single(published!.NearbyProps, prop => prop.Id == seat.Id);
-        Assert.True(announced.IsOccupied);
-        Assert.False(announced.IsOccupiedByPlayer);
+        var change = Assert.Single(
+            _serviceProvider
+                .GetRequiredService<RecordingGameClientEventSink>()
+                .Events.OfType<PropOccupancyChangedEvent>()
+        );
+        Assert.Equal([new PropOccupancy(seat.Id, true, false)], change.Props);
     }
 
     [Fact]
@@ -681,6 +672,12 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         // Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => request);
     }
+
+    private IEnumerable<SceneCreatureInfo> UpdatedCreatures() =>
+        _serviceProvider
+            .GetRequiredService<RecordingGameClientEventSink>()
+            .Events.OfType<CreaturesUpdatedEvent>()
+            .SelectMany(updated => updated.Creatures);
 
     private async Task<Creature> SeedWatchedPlayer()
     {

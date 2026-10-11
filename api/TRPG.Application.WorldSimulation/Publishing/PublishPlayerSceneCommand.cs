@@ -5,6 +5,7 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Subscriptions;
 
 namespace TRPG.Application.WorldSimulation.Publishing;
 
@@ -16,6 +17,7 @@ public class PublishPlayerSceneCommand
 
 internal class PublishPlayerSceneCommandHandler(
     ScenePublisher scenePublisher,
+    SceneSubscriptions subscriptions,
     IWorldClock worldClock,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene
@@ -42,6 +44,7 @@ internal class PublishPlayerSceneCommandHandler(
             cancellationToken
         );
 
-        scenePublisher.Publish(command.WorldId, command.PlayerId, scene, stamp);
+        scenePublisher.Publish(command.WorldId, scene, stamp);
+        subscriptions.Watch(command.WorldId, command.PlayerId, scene);
     }
 }

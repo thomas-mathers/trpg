@@ -30,7 +30,6 @@ internal sealed class ActionSceneAnnouncer(
     IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     CreatureChangeAnnouncer creatureChangeAnnouncer,
-    PublishedSceneRegistry publishedScenes,
     SceneSubscriptions subscriptions,
     ScenePublisher scenePublisher
 ) : IActionSceneAnnouncer
@@ -81,34 +80,31 @@ internal sealed class ActionSceneAnnouncer(
             },
             cancellationToken
         );
-        var previous = publishedScenes.Find(playerId);
-        if (previous is null || subscriptions.LocationOf(worldId, playerId) != scene.LocationId)
+        var watch = subscriptions.SnapshotOf(worldId, playerId);
+        if (watch is null || watch.LocationId != scene.LocationId)
         {
-            scenePublisher.Publish(worldId, playerId, scene, stamp);
-            subscriptions.Watch(worldId, playerId, scene.LocationId);
+            scenePublisher.Publish(worldId, scene, stamp);
+            subscriptions.Watch(worldId, playerId, scene);
             return new AnnouncedScene(scene.LocationId, PublishedSnapshot: true);
         }
 
-        await AnnounceCreatureChanges(worldId, playerId, previous, now, cancellationToken);
+        await AnnounceCreatureChanges(worldId, playerId, watch, now, cancellationToken);
         return new AnnouncedScene(scene.LocationId, PublishedSnapshot: false);
     }
 
     private Task AnnounceCreatureChanges(
         Guid worldId,
         Guid playerId,
-        SceneResult published,
+        WatchSnapshot watch,
         GameInstant now,
         CancellationToken cancellationToken
     )
     {
-        var creatureIds = published
-            .NearbyCreatures.Select(creature => creature.Id)
-            .Append(playerId)
-            .ToHashSet();
+        var creatureIds = watch.KnownCreatureIds.Append(playerId).ToHashSet();
         return creatureChangeAnnouncer.Announce(
             worldId,
             now,
-            new Dictionary<Guid, IReadOnlySet<Guid>> { [published.LocationId] = creatureIds },
+            new Dictionary<Guid, IReadOnlySet<Guid>> { [watch.LocationId] = creatureIds },
             cancellationToken
         );
     }

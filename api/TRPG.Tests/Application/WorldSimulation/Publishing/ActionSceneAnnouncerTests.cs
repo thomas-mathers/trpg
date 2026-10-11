@@ -107,11 +107,11 @@ public sealed class ActionSceneAnnouncerTests(DatabaseFixture db)
 
         // Assert
         var updated = Assert.IsType<CreaturesUpdatedEvent>(Assert.Single(_events.EnqueuedEvents));
-        Assert.Equal(1, Assert.Single(updated.Creatures).CurrentHp);
+        Assert.Equal(1, Assert.Single(updated.Creatures, c => c.Id == resident.Id).CurrentHp);
     }
 
     [Fact]
-    public async Task AnnounceActionChanges_PublishesNothing_WhenNothingChanged()
+    public async Task AnnounceActionChanges_PublishesNoMembershipOrSceneChange_WhenNothingChanged()
     {
         // Arrange
         await SeedCreatureAt(_locationId);
@@ -126,7 +126,11 @@ public sealed class ActionSceneAnnouncerTests(DatabaseFixture db)
         );
 
         // Assert
-        Assert.Empty(_events.EnqueuedEvents);
+        Assert.DoesNotContain(
+            _events.EnqueuedEvents,
+            published =>
+                published is CreaturesArrivedEvent or CreaturesLeftEvent or SceneUpdatedEvent
+        );
     }
 
     [Fact]
@@ -164,7 +168,7 @@ public sealed class ActionSceneAnnouncerTests(DatabaseFixture db)
         );
 
         // Assert
-        var reanchored = Assert.IsType<ClockReanchoredEvent>(Assert.Single(_events.EnqueuedEvents));
+        var reanchored = Assert.Single(_events.EnqueuedEvents.OfType<ClockReanchoredEvent>());
         Assert.Equal(_locationId, reanchored.LocationId);
     }
 

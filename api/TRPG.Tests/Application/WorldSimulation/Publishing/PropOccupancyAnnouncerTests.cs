@@ -116,6 +116,21 @@ public sealed class PropOccupancyAnnouncerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Announce_PublishesTheChangeOnce_WhenAnnouncedTwice()
+    {
+        // Arrange
+        await PublishBaselineScene();
+        await SetOccupant(Guid.NewGuid());
+        await _announcer.Announce(_worldId, [_locationId], TestContext.Current.CancellationToken);
+
+        // Act
+        await _announcer.Announce(_worldId, [_locationId], TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Single(_events.EnqueuedEvents);
+    }
+
+    [Fact]
     public async Task Announce_PublishesNothing_WhenOccupancyIsUnchanged()
     {
         // Arrange
