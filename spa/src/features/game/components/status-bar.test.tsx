@@ -40,7 +40,7 @@ function scene(gameTimeMilliseconds: number): SceneSnapshot {
 
 function renderStatusBar(current: SceneSnapshot) {
   return renderWithProviders(
-    <SceneContext.Provider value={{ scene: current, setMovementSpeed: () => {} }}>
+    <SceneContext.Provider value={{ scene: current }}>
       <StatusBar connectionStatus={HubConnectionState.Connected} controls={null} />
     </SceneContext.Provider>,
   );

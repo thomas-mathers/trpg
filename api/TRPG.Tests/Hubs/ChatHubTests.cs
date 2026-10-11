@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Clocks;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Serialization;
 using TRPG.Application.Configuration;
 using TRPG.Application.WorldGeneration;
@@ -650,6 +651,34 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
         Assert.False(standingProp.IsOccupied);
         Assert.False(standingProp.IsOccupiedByPlayer);
         Assert.True(standing.Version > seated.Version);
+    }
+
+    [Fact]
+    public async Task SendToggleSneaking_PublishesTheNewSneakStateAndWalkPace()
+    {
+        // Arrange
+        var sessionId = await StartSession();
+        var connected = await ConnectAndAwaitInitialSnapshot(sessionId, []);
+        await using var gameHub = connected.Connection;
+        var creaturesUpdated = new TaskCompletionSource<CreaturesUpdatedPayload>();
+        connected.Client.OnCreaturesUpdated = payload => creaturesUpdated.TrySetResult(payload);
+
+        // Act
+        var result = await Act(gameHub, "SendToggleSneaking");
+
+        // Assert
+        Assert.True(result.Succeeded);
+        var update = await creaturesUpdated.Task.WaitAsync(
+            PushTimeout,
+            TestContext.Current.CancellationToken
+        );
+        var player = Assert.Single(update.Creatures, c => c.Id == _playerId);
+        Assert.True(player.IsSneaking);
+        Assert.Equal(
+            (float)InLocationPace.MetersPerRealSecond(player.MovementSpeed),
+            player.WalkMetersPerSecond,
+            0.001f
+        );
     }
 
     [Fact]

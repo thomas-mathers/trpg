@@ -17,9 +17,7 @@ function scene(gameTimeMilliseconds: number, anchoredAtUnixMilliseconds: number)
 
 function sceneWrapper(current: SceneSnapshot) {
   return ({ children }: { children: ReactNode }) => (
-    <SceneContext.Provider value={{ scene: current, setMovementSpeed: () => {} }}>
-      {children}
-    </SceneContext.Provider>
+    <SceneContext.Provider value={{ scene: current }}>{children}</SceneContext.Provider>
   );
 }
 

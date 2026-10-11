@@ -2,6 +2,7 @@ using System.Transactions;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Props.Commands;
@@ -14,6 +15,7 @@ public class SitDownCommand
 {
     public required Guid PlayerId { get; init; }
     public required Guid SeatId { get; init; }
+    public PlayerPose? LivePose { get; init; }
 }
 
 public enum SitDownResult
@@ -66,6 +68,7 @@ internal class SitDownCommandHandler(
             return SitDownResult.PlayerNotIdle;
         }
 
+        var livePose = command.LivePose?.LocationId == player.LocationId ? command.LivePose : null;
         var occupied = await tryOccupySeat.Handle(
             new TryOccupySeatCommand { SeatId = command.SeatId, CreatureId = command.PlayerId },
             cancellationToken
@@ -83,6 +86,9 @@ internal class SitDownCommandHandler(
                 X = prop.X,
                 Y = prop.Y,
                 Angle = prop.Angle,
+                StandingX = livePose?.Position.X,
+                StandingY = livePose?.Position.Y,
+                StandingAngle = livePose?.Input.Heading,
             },
             cancellationToken
         );

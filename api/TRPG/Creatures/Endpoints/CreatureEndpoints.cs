@@ -9,7 +9,6 @@ using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Exceptions;
-using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
 using TRPG.Application.Creatures.Commands;
@@ -58,8 +57,6 @@ internal static class CreatureEndpoints
             .WithName("EquipCreatureItem");
         app.MapDelete("/creatures/{creatureId:guid}/equipment/{slot}", UnequipItem)
             .WithName("UnequipCreatureItem");
-        app.MapPut("/creatures/{creatureId:guid}/sneaking", ToggleSneaking)
-            .WithName("ToggleCreatureSneaking");
         app.MapGet("/creatures/{creatureId:guid}/equipment/preview", GetEquipItemStats)
             .WithName("PreviewCreatureEquipment");
         app.MapGet(
@@ -309,28 +306,6 @@ internal static class CreatureEndpoints
         );
 
         return TypedResults.NoContent();
-    }
-
-    private static async Task<Ok<ToggleSneakingResponse>> ToggleSneaking(
-        Guid creatureId,
-        [FromServices]
-            ICommandHandler<ToggleSneakingCommand, ToggleSneakingCommandResult> toggleSneaking,
-        CancellationToken cancellationToken
-    )
-    {
-        var result = await toggleSneaking.Handle(
-            new ToggleSneakingCommand { CreatureId = creatureId },
-            cancellationToken
-        );
-
-        return TypedResults.Ok(
-            new ToggleSneakingResponse(
-                CreatureId: result.CreatureId,
-                IsSneaking: result.IsSneaking,
-                MovementSpeed: result.MovementSpeed,
-                WalkMetersPerSecond: (float)InLocationPace.MetersPerRealSecond(result.MovementSpeed)
-            )
-        );
     }
 
     private static async Task<Ok<BaseAttributesResponse>> GetBaseAttributes(

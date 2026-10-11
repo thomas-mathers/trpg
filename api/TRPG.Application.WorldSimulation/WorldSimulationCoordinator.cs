@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
+using TRPG.Application.WorldSimulation.Poses;
 
 namespace TRPG.Application.WorldSimulation;
 
@@ -19,6 +20,51 @@ public sealed class WorldSimulationCoordinator(
         if (TryGetRunner(worldId, out var runner))
         {
             runner.Post(message);
+        }
+    }
+
+    public Task<T> Request<T>(
+        Guid worldId,
+        Func<LivePlayerPoses, CancellationToken, Task<T>> work,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TryGetRunner(worldId, out var runner))
+        {
+            return work(new LivePlayerPoses(), cancellationToken);
+        }
+
+        var completion = new TaskCompletionSource<T>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        runner.Post(
+            new SimulationRequest(
+                (poses, _) => Complete(completion, poses, work, cancellationToken)
+            )
+        );
+
+        return completion.Task.WaitAsync(cancellationToken);
+    }
+
+    private static async Task Complete<T>(
+        TaskCompletionSource<T> completion,
+        LivePlayerPoses poses,
+        Func<LivePlayerPoses, CancellationToken, Task<T>> work,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            completion.SetResult(await work(poses, cancellationToken));
+        }
+        catch (OperationCanceledException)
+        {
+            completion.SetCanceled(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            completion.SetException(exception);
         }
     }
 

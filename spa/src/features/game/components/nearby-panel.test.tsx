@@ -92,7 +92,7 @@ function renderPanel(
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={{ scene: sceneSnapshot, setMovementSpeed: () => {} }}>
+    <SceneContext.Provider value={{ scene: sceneSnapshot }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <NearbyPanel
           scene={sceneSnapshot}

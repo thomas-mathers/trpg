@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TRPG.Application.Common.Navigation;
+using TRPG.Application.Creatures;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -83,6 +85,66 @@ public sealed class SitDownCommandTests(DatabaseFixture db)
 
         await handler.Handle(
             new SitDownCommand { PlayerId = _player.Id, SeatId = _seat.Id },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal((1d, 2d, 0.25), (player.StandingX, player.StandingY, player.StandingAngle));
+    }
+
+    [Fact]
+    public async Task Handle_RemembersTheLivePose_WhenItLagsTheStoredRow()
+    {
+        var handler = _services.GetRequiredService<SitDownCommandHandler>();
+        var livePose = new PlayerPose(
+            _player.LocationId,
+            new Point(8, 9),
+            DateTimeOffset.UtcNow,
+            new MovementInput(0, 0, 2.5),
+            TimeSpan.Zero
+        );
+
+        await handler.Handle(
+            new SitDownCommand
+            {
+                PlayerId = _player.Id,
+                SeatId = _seat.Id,
+                LivePose = livePose,
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        await using var verifyContext = db.CreateContext();
+        var player = await verifyContext.Creatures.SingleAsync(
+            creature => creature.Id == _player.Id,
+            TestContext.Current.CancellationToken
+        );
+        Assert.Equal((8d, 9d, 2.5), (player.StandingX, player.StandingY, player.StandingAngle));
+    }
+
+    [Fact]
+    public async Task Handle_IgnoresTheLivePose_WhenItIsFromAnotherLocation()
+    {
+        var handler = _services.GetRequiredService<SitDownCommandHandler>();
+        var stalePose = new PlayerPose(
+            Guid.NewGuid(),
+            new Point(8, 9),
+            DateTimeOffset.UtcNow,
+            new MovementInput(0, 0, 2.5),
+            TimeSpan.Zero
+        );
+
+        await handler.Handle(
+            new SitDownCommand
+            {
+                PlayerId = _player.Id,
+                SeatId = _seat.Id,
+                LivePose = stalePose,
+            },
             TestContext.Current.CancellationToken
         );
 

@@ -30,6 +30,7 @@ public interface IChatHub
     Task<ActionResult> SendWait(int hours, int minutes);
     Task<ActionResult> SendSitDown(Guid seatId);
     Task<ActionResult> SendStandUp();
+    Task<ActionResult> SendToggleSneaking();
     Task<ActionResult> SendSleep(int hours, int minutes);
     Task<ActionResult> SendActivateTrigger(Guid triggerId);
     Task<ActionResult> SendAcceptQuest(Guid questId);
@@ -138,6 +139,9 @@ internal sealed class ChatHub(
 
     public Task<ActionResult> SendStandUp() =>
         Result(gameTurnRunner.StandUp(Session, Context.ConnectionAborted));
+
+    public Task<ActionResult> SendToggleSneaking() =>
+        Result(gameTurnRunner.ToggleSneaking(Session, Context.ConnectionAborted));
 
     public Task<ActionResult> SendSleep(int hours, int minutes) =>
         Result(gameTurnRunner.Sleep(Session, hours, minutes, Context.ConnectionAborted));

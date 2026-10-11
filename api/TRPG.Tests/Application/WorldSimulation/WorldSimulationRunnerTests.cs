@@ -320,6 +320,77 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         Assert.Equal(50d, player.Y);
     }
 
+    [Fact]
+    public async Task Tick_HandsARequestTheLivePose_WhenInputPrecedesIt()
+    {
+        // Arrange
+        _home.Width = 100;
+        _home.Depth = 100;
+        await AddPlayerAt(_home, x: 50, y: 50);
+        await StartRunner();
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(0, 0, 1.5),
+                new Point(50, 50),
+                DateTimeOffset.UtcNow
+            )
+        );
+        PlayerPose? seen = null;
+        _runner.Post(
+            new SimulationRequest(
+                (poses, _) =>
+                {
+                    seen = poses.Find(_playerId);
+                    poses.Forget(_playerId);
+                    return Task.CompletedTask;
+                }
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(1.5, seen?.Input.Heading);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotSaveTheLivePose_WhenARequestForgotIt()
+    {
+        // Arrange
+        _home.Width = 100;
+        _home.Depth = 100;
+        await AddPlayerAt(_home, x: 50, y: 50);
+        await StartRunner();
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(0, 0, 1.5),
+                new Point(50, 50),
+                DateTimeOffset.UtcNow
+            )
+        );
+        _runner.Post(
+            new SimulationRequest(
+                (poses, _) =>
+                {
+                    poses.Forget(_playerId);
+                    return Task.CompletedTask;
+                }
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal(0d, player.Angle);
+    }
+
     private async Task AddPlayerAt(Location location, double x = 0, double y = 0)
     {
         var player = Builders.MakeCreature(

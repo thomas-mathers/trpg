@@ -7,7 +7,6 @@ export const PlayerIdContext = createContext<string | undefined>(undefined);
 
 export interface SceneContextType {
   scene: SceneSnapshot;
-  setMovementSpeed: (movementSpeed: number, walkMetersPerSecond: number) => void;
 }
 
 export const createSceneSnapshot = (): SceneSnapshot => ({
@@ -74,7 +73,6 @@ export const createSceneSnapshot = (): SceneSnapshot => ({
 
 export const SceneContext = createContext<SceneContextType>({
   scene: createSceneSnapshot(),
-  setMovementSpeed: () => {},
 });
 
 export function useSessionId() {

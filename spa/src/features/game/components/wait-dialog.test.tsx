@@ -67,7 +67,7 @@ function renderDialog({
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={{ scene: scene(hour, minute), setMovementSpeed: () => {} }}>
+    <SceneContext.Provider value={{ scene: scene(hour, minute) }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <WaitDialog open={open} onClose={onClose} />
       </GameHubConnectionContext.Provider>
@@ -137,7 +137,7 @@ describe('WaitDialog', () => {
     };
 
     renderWithProviders(
-      <SceneContext.Provider value={{ scene: notSitting, setMovementSpeed: () => {} }}>
+      <SceneContext.Provider value={{ scene: notSitting }}>
         <GameHubConnectionContext.Provider
           value={{
             connectionStatus: HubConnectionState.Connected,

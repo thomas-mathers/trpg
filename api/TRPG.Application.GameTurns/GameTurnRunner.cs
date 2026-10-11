@@ -9,6 +9,7 @@ public class GameTurnRunner
     private readonly WaitActionHandler _waitActionHandler;
     private readonly SitDownActionHandler _sitDownActionHandler;
     private readonly StandUpActionHandler _standUpActionHandler;
+    private readonly ToggleSneakingActionHandler _toggleSneakingActionHandler;
     private readonly SleepActionHandler _sleepActionHandler;
     private readonly ActivateTriggerActionHandler _activateTriggerActionHandler;
     private readonly AcceptQuestActionHandler _acceptQuestActionHandler;
@@ -32,6 +33,7 @@ public class GameTurnRunner
         WaitActionHandler waitActionHandler,
         SitDownActionHandler sitDownActionHandler,
         StandUpActionHandler standUpActionHandler,
+        ToggleSneakingActionHandler toggleSneakingActionHandler,
         SleepActionHandler sleepActionHandler,
         ActivateTriggerActionHandler activateTriggerActionHandler,
         AcceptQuestActionHandler acceptQuestActionHandler,
@@ -55,6 +57,7 @@ public class GameTurnRunner
         _waitActionHandler = waitActionHandler;
         _sitDownActionHandler = sitDownActionHandler;
         _standUpActionHandler = standUpActionHandler;
+        _toggleSneakingActionHandler = toggleSneakingActionHandler;
         _sleepActionHandler = sleepActionHandler;
         _activateTriggerActionHandler = activateTriggerActionHandler;
         _acceptQuestActionHandler = acceptQuestActionHandler;
@@ -97,6 +100,11 @@ public class GameTurnRunner
         GameTurnSession session,
         CancellationToken cancellationToken = default
     ) => _standUpActionHandler.Handle(session, cancellationToken);
+
+    public Task<ActionOutcome> ToggleSneaking(
+        GameTurnSession session,
+        CancellationToken cancellationToken = default
+    ) => _toggleSneakingActionHandler.Handle(session, cancellationToken);
 
     public Task<ActionOutcome> Sleep(
         GameTurnSession session,

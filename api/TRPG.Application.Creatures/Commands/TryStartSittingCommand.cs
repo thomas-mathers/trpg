@@ -12,6 +12,9 @@ public class TryStartSittingCommand
     public required double X { get; init; }
     public required double Y { get; init; }
     public required double Angle { get; init; }
+    public double? StandingX { get; init; }
+    public double? StandingY { get; init; }
+    public double? StandingAngle { get; init; }
 }
 
 internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
@@ -34,9 +37,18 @@ internal class TryStartSittingCommandHandler(ICreaturesDbContext context)
                 setters =>
                     setters
                         .SetProperty(creature => creature.Posture, CreaturePosture.Sitting)
-                        .SetProperty(creature => creature.StandingX, creature => creature.X)
-                        .SetProperty(creature => creature.StandingY, creature => creature.Y)
-                        .SetProperty(creature => creature.StandingAngle, creature => creature.Angle)
+                        .SetProperty(
+                            creature => creature.StandingX,
+                            creature => command.StandingX ?? creature.X
+                        )
+                        .SetProperty(
+                            creature => creature.StandingY,
+                            creature => command.StandingY ?? creature.Y
+                        )
+                        .SetProperty(
+                            creature => creature.StandingAngle,
+                            creature => command.StandingAngle ?? creature.Angle
+                        )
                         .SetProperty(creature => creature.X, command.X)
                         .SetProperty(creature => creature.Y, command.Y)
                         .SetProperty(creature => creature.Angle, command.Angle),
