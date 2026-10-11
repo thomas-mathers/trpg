@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Abilities;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
@@ -9,6 +10,7 @@ using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
@@ -240,6 +242,31 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             .GetRequiredService<PublishedSceneRegistry>()
             .Find(_playerId);
         Assert.Contains(published!.NearbyCreatures, creature => creature.Id == worker.Id);
+    }
+
+    [Fact]
+    public async Task Tick_KillsAWorkerOnArrival_WhenItsEffectsWereLethalOnTheWay()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        worker.CurrentHp = 1;
+        worker.ActiveDots = [BurningDot(amount: 1000)];
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await AddPlayerAt(_workplace);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(CreatureCondition.Dead, updated.Condition);
     }
 
     [Fact]
@@ -789,6 +816,55 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_AdvancesABystandersDot_AndPublishesItsVitalsToThePlayersScene()
+    {
+        // Arrange
+        var bystander = await AddBurningBystander(amount: 5);
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await db.ReadCreature(bystander.Id);
+        var announced = PublishedCreature(bystander.Id);
+        Assert.True(stored.CurrentHp < 50);
+        Assert.Equal(stored.CurrentHp, announced.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_KillsABystander_AndAnnouncesTheDeathToThePlayersScene()
+    {
+        // Arrange
+        var bystander = await AddBurningBystander(amount: 1000);
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await db.ReadCreature(bystander.Id);
+        Assert.Equal(CreatureCondition.Dead, stored.Condition);
+        Assert.Equal(CreatureCondition.Dead, PublishedCreature(bystander.Id).Condition);
+    }
+
+    [Fact]
     public async Task Tick_FlushesTheWorldEvents_WhenTheActivePassesRan()
     {
         // Arrange
@@ -945,6 +1021,31 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
     }
+
+    private static ActiveDot BurningDot(int amount) =>
+        new()
+        {
+            AbilityName = "Ignite",
+            Amount = amount,
+            DamageType = nameof(DamageType.Fire),
+            NextTickAt = Now,
+            ExpiresAt = Now + TimeSpan.FromHours(1),
+        };
+
+    private async Task<Creature> AddBurningBystander(int amount)
+    {
+        var bystander = Builders.MakeCreature(_worldId, locationId: _home.Id, currentHp: 50);
+        bystander.ActiveDots = [BurningDot(amount)];
+        _context.Creatures.Add(bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return bystander;
+    }
+
+    private SceneCreatureInfo PublishedCreature(Guid creatureId) =>
+        _serviceProvider
+            .GetRequiredService<PublishedSceneRegistry>()
+            .Find(_playerId)!
+            .NearbyCreatures.Single(creature => creature.Id == creatureId);
 
     private async Task AddPlayerAt(
         Location location,

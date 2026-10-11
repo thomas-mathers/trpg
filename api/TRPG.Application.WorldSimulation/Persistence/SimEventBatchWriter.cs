@@ -25,6 +25,7 @@ internal sealed class SimEventBatchWriter(Guid worldId, IServiceScopeFactory ser
         await WriteCheckpoints(scope.ServiceProvider, events, cancellationToken);
         await WriteStarts(scope.ServiceProvider, events, cancellationToken);
         await WritePoses(scope.ServiceProvider, events, cancellationToken);
+        await WriteEffects(scope.ServiceProvider, events, cancellationToken);
         await WriteVitals(scope.ServiceProvider, events, cancellationToken);
         await scope
             .ServiceProvider.GetRequiredService<
@@ -98,6 +99,26 @@ internal sealed class SimEventBatchWriter(Guid worldId, IServiceScopeFactory ser
             );
     }
 
+    private static async Task WriteEffects(
+        IServiceProvider services,
+        IReadOnlyList<SimEvent> events,
+        CancellationToken cancellationToken
+    )
+    {
+        var updates = events
+            .OfType<CreatureEffectsAdvanced>()
+            .Select(advanced => advanced.Update)
+            .ToArray();
+        if (updates.Length == 0)
+        {
+            return;
+        }
+
+        await services
+            .GetRequiredService<ICommandHandler<PersistCreatureStatesCommand>>()
+            .Handle(new PersistCreatureStatesCommand { Updates = updates }, cancellationToken);
+    }
+
     private static async Task WriteVitals(
         IServiceProvider services,
         IReadOnlyList<SimEvent> events,
@@ -134,7 +155,7 @@ internal sealed class SimEventBatchWriter(Guid worldId, IServiceScopeFactory ser
                 {
                     Updates = _poseMapper.Map(
                         events.Where(simEvent =>
-                            simEvent is not (JourneyCheckpoint or CreatureRegenerated)
+                            simEvent is not (JourneyCheckpoint or CreatureVitalsEvent)
                         )
                     ),
                 },

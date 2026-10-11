@@ -14,7 +14,7 @@ internal class VitalsAnnouncer(
 {
     public async Task Announce(
         Guid worldId,
-        IReadOnlyCollection<CreatureRegenerated> regenerated,
+        IReadOnlyCollection<CreatureVitalsEvent> changed,
         CancellationToken cancellationToken
     )
     {
@@ -23,7 +23,7 @@ internal class VitalsAnnouncer(
             cancellationToken
         );
 
-        foreach (var location in regenerated.GroupBy(simEvent => simEvent.LocationId))
+        foreach (var location in changed.GroupBy(simEvent => simEvent.LocationId))
         {
             await vitalsPublisher.Publish(
                 worldId,

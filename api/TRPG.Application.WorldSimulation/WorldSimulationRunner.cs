@@ -53,7 +53,7 @@ public sealed class WorldSimulationRunner(
     );
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
     private readonly List<LocalMoveCompleted> _unexecutedLocalArrivals = [];
-    private readonly List<CreatureRegenerated> _unpublishedVitals = [];
+    private readonly List<CreatureVitalsEvent> _unpublishedVitals = [];
     private readonly Dictionary<Guid, HashSet<Guid>> _unpublishedCreatureIdsByLocationId = [];
     private readonly ActiveLocationPasses _activeLocationPasses = new(
         worldId,
@@ -61,12 +61,7 @@ public sealed class WorldSimulationRunner(
         serviceScopeFactory,
         logger
     );
-    private readonly RegenerationPass _regeneration = new(
-        worldId,
-        cadence,
-        serviceScopeFactory,
-        logger
-    );
+    private readonly VitalsPass _vitals = new(worldId, cadence, serviceScopeFactory, logger);
     private readonly SceneResync _sceneResync = new(
         worldId,
         subscriptions,
@@ -136,13 +131,12 @@ public sealed class WorldSimulationRunner(
         }
 
         await _sceneResync.Run(cancellationToken);
-        var touchedByPasses = await _activeLocationPasses.Run(now, cancellationToken);
-        RememberTouchedByPasses(touchedByPasses);
+        await _activeLocationPasses.Run(now, cancellationToken);
         await FlushPlayerPoses(cancellationToken);
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
         var planningElapsed = Stopwatch.GetElapsedTime(planningStartedAt);
-        _applier.Enqueue(await _regeneration.Run(_loaded.Simulator, now, cancellationToken));
+        _applier.Enqueue(await _vitals.Run(_loaded.Simulator, now, cancellationToken));
         _applier.Enqueue(_loaded.Simulator.Step(now));
         var eventCount = _applier.PendingCount;
         if (
@@ -714,7 +708,7 @@ public sealed class WorldSimulationRunner(
         LogMovementEvents(now, committed);
         _unexecutedArrivals.AddRange(committed.OfType<JourneyCompleted>());
         _unexecutedLocalArrivals.AddRange(committed.OfType<LocalMoveCompleted>());
-        _unpublishedVitals.AddRange(committed.OfType<CreatureRegenerated>());
+        _unpublishedVitals.AddRange(committed.OfType<CreatureVitalsEvent>());
         UpdateTransientWalks(committed);
         RememberUnpublishedCreatures(committed);
     }
@@ -887,14 +881,6 @@ public sealed class WorldSimulationRunner(
             {
                 UnpublishedCreatureIds(locationId).Add(simEvent.CreatureId);
             }
-        }
-    }
-
-    private void RememberTouchedByPasses(IReadOnlyCollection<TouchedCreatures> touched)
-    {
-        foreach (var location in touched.Where(location => location.CreatureIds.Count > 0))
-        {
-            UnpublishedCreatureIds(location.LocationId).UnionWith(location.CreatureIds);
         }
     }
 

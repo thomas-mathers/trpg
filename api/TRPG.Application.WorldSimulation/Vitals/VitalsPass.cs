@@ -10,7 +10,7 @@ using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation.Vitals;
 
-internal sealed class RegenerationPass(
+internal sealed class VitalsPass(
     Guid worldId,
     SimulationCadence cadence,
     IServiceScopeFactory serviceScopeFactory,
@@ -32,15 +32,15 @@ internal sealed class RegenerationPass(
 
         try
         {
-            var states = await LoadStates(cancellationToken);
+            var inputs = await Load(now, cancellationToken);
 
-            return simulator.Regenerate(states, now);
+            return simulator.TickVitals(inputs.Advances, inputs.States, now);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             logger.LogError(
                 exception,
-                "Regeneration pass failed in world {WorldId}; retrying when next due",
+                "Vitals pass failed in world {WorldId}; retrying when next due",
                 worldId
             );
 
@@ -48,9 +48,7 @@ internal sealed class RegenerationPass(
         }
     }
 
-    private async Task<IReadOnlyCollection<CreatureVitalState>> LoadStates(
-        CancellationToken cancellationToken
-    )
+    private async Task<VitalsInputs> Load(GameInstant now, CancellationToken cancellationToken)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var services = scope.ServiceProvider;
@@ -64,10 +62,10 @@ internal sealed class RegenerationPass(
             .Handle(new GetActiveLocationPlayersQuery { WorldId = worldId }, cancellationToken);
         if (players.Count == 0)
         {
-            return [];
+            return VitalsInputs.None;
         }
 
-        // A fight advances only through submitted actions and effect ticks, so waiting inside one must not heal anyone.
+        // A fight advances only through submitted actions and effect ticks, so neither healing nor the out-of-combat effect path may touch its combatants.
         var fightCombatantIds = await services
             .GetRequiredService<
                 IQueryHandler<GetActiveFightCombatantIdsByWorldQuery, IReadOnlyCollection<Guid>>
@@ -76,8 +74,26 @@ internal sealed class RegenerationPass(
                 new GetActiveFightCombatantIdsByWorldQuery { WorldId = worldId },
                 cancellationToken
             );
+        var locationIds = players.Select(player => player.LocationId).Distinct().ToArray();
 
-        return await services
+        var advances = await services
+            .GetRequiredService<
+                IQueryHandler<
+                    GetCreatureEffectAdvancesQuery,
+                    IReadOnlyCollection<CreatureEffectAdvance>
+                >
+            >()
+            .Handle(
+                new GetCreatureEffectAdvancesQuery
+                {
+                    WorldId = worldId,
+                    LocationIds = locationIds,
+                    GameTime = now,
+                    ExcludedCreatureIds = fightCombatantIds,
+                },
+                cancellationToken
+            );
+        var states = await services
             .GetRequiredService<
                 IQueryHandler<
                     GetRegeneratingCreaturesQuery,
@@ -88,10 +104,20 @@ internal sealed class RegenerationPass(
                 new GetRegeneratingCreaturesQuery
                 {
                     WorldId = worldId,
-                    LocationIds = [.. players.Select(player => player.LocationId).Distinct()],
+                    LocationIds = locationIds,
                     ExcludedCreatureIds = fightCombatantIds,
                 },
                 cancellationToken
             );
+
+        return new VitalsInputs(advances, states);
+    }
+
+    private sealed record VitalsInputs(
+        IReadOnlyCollection<CreatureEffectAdvance> Advances,
+        IReadOnlyCollection<CreatureVitalState> States
+    )
+    {
+        public static VitalsInputs None { get; } = new([], []);
     }
 }

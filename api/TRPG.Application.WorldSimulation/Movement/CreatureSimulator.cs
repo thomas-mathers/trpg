@@ -155,10 +155,21 @@ public sealed class CreatureSimulator
         ];
     }
 
-    public IReadOnlyList<SimEvent> Regenerate(
-        IEnumerable<CreatureVitalState> states,
+    public IReadOnlyList<SimEvent> TickVitals(
+        IEnumerable<CreatureEffectAdvance> advances,
+        IEnumerable<CreatureVitalState> regeneratingStates,
         GameInstant now
-    ) => RegenerationConcern.Tick(states, now, _options.Regeneration);
+    )
+    {
+        var effects = EffectsConcern.Tick(advances, now);
+        var regenerated = RegenerationConcern.Tick(
+            EffectsConcern.Settle(regeneratingStates, effects),
+            now,
+            _options.Regeneration
+        );
+
+        return [.. effects, .. regenerated];
+    }
 
     public IReadOnlyList<SimEvent> Engage(Guid creatureId, GameInstant at) =>
         _creaturesById.TryGetValue(creatureId, out var creature)

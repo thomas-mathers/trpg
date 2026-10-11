@@ -13,6 +13,7 @@ internal static class SimEventLocations
             LocalMoveStarted started => [started.LocationId],
             LocalMoveCompleted completed => [completed.LocationId],
             LocalMoveInterrupted interrupted => [interrupted.LocationId],
+            CreatureEffectsAdvanced advanced => [advanced.LocationId],
             _ => [],
         };
 }

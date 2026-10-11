@@ -16,23 +16,20 @@ internal sealed class ActiveLocationPasses(
     ILogger logger
 )
 {
-    private readonly DueEntry _effects = new(cadence.ActiveLocationPass);
+    private readonly DueEntry _fightEffects = new(cadence.ActiveLocationPass);
     private readonly DueEntry _maintenance = new(cadence.LocationMaintenance);
 
-    public async Task<IReadOnlyCollection<TouchedCreatures>> Run(
-        GameInstant now,
-        CancellationToken cancellationToken
-    )
+    public async Task Run(GameInstant now, CancellationToken cancellationToken)
     {
-        var due = new DuePasses(_effects.TakeIfDue(now), _maintenance.TakeIfDue(now));
+        var due = new DuePasses(_fightEffects.TakeIfDue(now), _maintenance.TakeIfDue(now));
         if (!due.Any)
         {
-            return [];
+            return;
         }
 
         try
         {
-            return await RunDue(due, now, cancellationToken);
+            await RunDue(due, now, cancellationToken);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -41,15 +38,11 @@ internal sealed class ActiveLocationPasses(
                 "Active location passes failed in world {WorldId}; retrying when next due",
                 worldId
             );
-            return [];
+            return;
         }
     }
 
-    private async Task<IReadOnlyCollection<TouchedCreatures>> RunDue(
-        DuePasses due,
-        GameInstant now,
-        CancellationToken cancellationToken
-    )
+    private async Task RunDue(DuePasses due, GameInstant now, CancellationToken cancellationToken)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         var services = scope.ServiceProvider;
@@ -64,35 +57,26 @@ internal sealed class ActiveLocationPasses(
             .Handle(new GetActiveLocationPlayersQuery { WorldId = worldId }, cancellationToken);
         if (players.Count == 0)
         {
-            return [];
+            return;
         }
 
-        var touched = new List<TouchedCreatures>();
-
-        if (due.Effects)
+        if (due.FightEffects)
         {
-            touched.AddRange(
-                await Isolate(
-                    "effects",
-                    () =>
-                        services
-                            .GetRequiredService<
-                                ICommandHandler<
-                                    SyncActiveLocationEffectsCommand,
-                                    IReadOnlyCollection<TouchedCreatures>
-                                >
-                            >()
-                            .Handle(
-                                new SyncActiveLocationEffectsCommand
-                                {
-                                    WorldId = worldId,
-                                    Players = players,
-                                    GameTime = now,
-                                },
-                                cancellationToken
-                            ),
-                    cancellationToken
-                )
+            await Isolate(
+                "fight effects",
+                () =>
+                    services
+                        .GetRequiredService<ICommandHandler<SyncActiveFightEffectsCommand>>()
+                        .Handle(
+                            new SyncActiveFightEffectsCommand
+                            {
+                                WorldId = worldId,
+                                Players = players,
+                                GameTime = now,
+                            },
+                            cancellationToken
+                        ),
+                cancellationToken
             );
         }
 
@@ -100,9 +84,8 @@ internal sealed class ActiveLocationPasses(
         {
             await Isolate(
                 "maintenance",
-                async () =>
-                {
-                    await services
+                () =>
+                    services
                         .GetRequiredService<ICommandHandler<SyncActiveLocationRoutinesCommand>>()
                         .Handle(
                             new SyncActiveLocationRoutinesCommand
@@ -112,9 +95,7 @@ internal sealed class ActiveLocationPasses(
                                 GameTime = now,
                             },
                             cancellationToken
-                        );
-                    return Array.Empty<TouchedCreatures>();
-                },
+                        ),
                 cancellationToken
             );
         }
@@ -122,19 +103,13 @@ internal sealed class ActiveLocationPasses(
         await services
             .GetRequiredService<IGameClientEventDispatcher>()
             .FlushAsync(worldId, cancellationToken);
-
-        return touched;
     }
 
-    private async Task<IReadOnlyCollection<TouchedCreatures>> Isolate(
-        string pass,
-        Func<Task<IReadOnlyCollection<TouchedCreatures>>> work,
-        CancellationToken cancellationToken
-    )
+    private async Task Isolate(string pass, Func<Task> work, CancellationToken cancellationToken)
     {
         try
         {
-            return await work();
+            await work();
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -144,12 +119,12 @@ internal sealed class ActiveLocationPasses(
                 pass,
                 worldId
             );
-            return [];
+            return;
         }
     }
 
-    private readonly record struct DuePasses(bool Effects, bool Maintenance)
+    private readonly record struct DuePasses(bool FightEffects, bool Maintenance)
     {
-        public bool Any => Effects || Maintenance;
+        public bool Any => FightEffects || Maintenance;
     }
 }
