@@ -1,34 +1,28 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Creatures.Commands;
-using TRPG.Application.WorldSimulation;
 
 namespace TRPG.Application.GameTurns;
 
 internal class ToggleSneakingActionHandler(
     GameActionRunner actionRunner,
-    ICommandHandler<ToggleSneakingCommand, ToggleSneakingCommandResult> toggleSneaking,
-    WorldSimulationCoordinator simulation
+    ICommandHandler<ToggleSneakingCommand, ToggleSneakingCommandResult> toggleSneaking
 )
 {
-    public async Task<ActionOutcome> Handle(
+    public Task<ActionOutcome> Handle(
         GameTurnSession session,
         CancellationToken cancellationToken = default
+    ) => actionRunner.Run(session, ct => ToggleSneaking(session, ct), cancellationToken);
+
+    private async Task<ActionOutcome> ToggleSneaking(
+        GameTurnSession session,
+        CancellationToken cancellationToken
     )
     {
-        await simulation.Request(
-            session.WorldId,
-            (_, ct) =>
-                toggleSneaking.Handle(
-                    new ToggleSneakingCommand { CreatureId = session.PlayerId },
-                    ct
-                ),
+        await toggleSneaking.Handle(
+            new ToggleSneakingCommand { CreatureId = session.PlayerId },
             cancellationToken
         );
 
-        return await actionRunner.Run(
-            session,
-            _ => Task.FromResult(ActionOutcome.Success),
-            cancellationToken
-        );
+        return ActionOutcome.Success;
     }
 }

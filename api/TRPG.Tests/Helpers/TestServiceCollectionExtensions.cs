@@ -10,6 +10,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Configuration;
 using TRPG.Application.QuestGeneration.Commands;
+using TRPG.Application.WorldSimulation;
 using TRPG.Combat.Tools;
 using TRPG.Data;
 using TRPG.Domain;
@@ -67,6 +68,41 @@ internal static class TestServiceCollectionExtensions
         services
             .RemoveAll<TrpgDbContext>()
             .AddDbContext<TrpgDbContext>(options => options.UseNpgsql(connectionString));
+
+    // Gameplay actions are mailbox requests, so something has to tick the runner for them to complete.
+    public static IServiceCollection WithSimulationPump(
+        this IServiceCollection services,
+        string connectionString
+    ) => services.WithScopedDbContexts(connectionString).AddSingleton<SimulationPump>();
+}
+
+internal sealed class SimulationPump : IAsyncDisposable
+{
+    private readonly CancellationTokenSource _stop = new();
+    private readonly Task _loop;
+
+    public SimulationPump(WorldSimulationCoordinator coordinator) =>
+        _loop = Task.Run(() => Pump(coordinator));
+
+    public async ValueTask DisposeAsync()
+    {
+        await _stop.CancelAsync();
+        await _loop;
+        _stop.Dispose();
+    }
+
+    private async Task Pump(WorldSimulationCoordinator coordinator)
+    {
+        try
+        {
+            while (!_stop.IsCancellationRequested)
+            {
+                await coordinator.Tick(_stop.Token);
+                await Task.Delay(TimeSpan.FromMilliseconds(10), _stop.Token);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
 }
 
 internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock

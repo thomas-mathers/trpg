@@ -27,10 +27,12 @@ public sealed class GuardEncounterActionHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .Configure<GuardEncounterOptions>(new ConfigurationBuilder().Build())
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<GuardEncounterActionHandler>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
 
         var countryId = Guid.NewGuid();
         var state = Builders.MakeState(countryId, _worldId);

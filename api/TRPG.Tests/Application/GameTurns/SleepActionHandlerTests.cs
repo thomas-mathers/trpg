@@ -24,9 +24,11 @@ public sealed class SleepActionHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<SleepActionHandler>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
         var location = Builders.MakeLocation(_worldId, state.Id);

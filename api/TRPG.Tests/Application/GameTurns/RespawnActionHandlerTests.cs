@@ -25,9 +25,11 @@ public sealed class RespawnActionHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<RespawnActionHandler>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
 
         var player = Builders.MakeCreature(
             _worldId,

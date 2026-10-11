@@ -28,6 +28,7 @@ public sealed class FleeActionHandlerFlowTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .AddSingleton<IOptionsSnapshot<FleeOptions>>(
                 new TestOptionsSnapshot<FleeOptions>(
                     new FleeOptions { MinimumCatchChance = 0f, MaximumCatchChance = 0f }
@@ -36,6 +37,7 @@ public sealed class FleeActionHandlerFlowTests(DatabaseFixture db)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<FleeActionHandler>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
 
         var countryId = Guid.NewGuid();
         var state = Builders.MakeState(countryId, _worldId);

@@ -131,6 +131,8 @@ Each step is its own PR off `main`. Do them in order. Commit, push and open the 
 ### PR 0b: move every world writer behind the mailbox
 
 - First audit for world writers that never took the gate (TickerQ jobs such as `GenerateQuestChainJob`, `WorldClockCheckpointService`, any endpoint not listed below) and decide for each whether it posts a message or writes rows that no runner decision reads.
+- Audit result: the only ungated writers are `GenerateQuestChainJob` (inserts quest rows and runs an LLM call, so it must not hold a world lease, and no runner decision reads those rows) and `WorldClockCheckpointService` (persists only the world clock, which the runner re-reads after every message). Both stay as they are. `CreateWorldJob` writes a world no runner has loaded. Every other gate site is in the list below.
+- Sub-PRs: 0b-1 game-turn actions (`GameActionRunner` is a mailbox request, and sit/stand collapse to one request); 0b-2 `ContinuousWorldProcessor` passes; 0b-3 session start/end and the creature interaction endpoints; 0b-4 the streamer and tool calls.
 - Migrate the sites below. While any site is unmigrated, a migrated message may still take the gate inside its closure so the remaining sites stay serialized. `ContinuousWorldProcessor` passes become mailbox messages in this PR.
 
 ### PR 0c: delete the mutation gate
@@ -252,7 +254,12 @@ Equipment, faction names, quest markers, effect visuals, vitals of nearby creatu
 Tick a box in the PR that lands the step. Order is the sequence above; the weather shelter PR can land any time before I1.
 
 - [x] PR 0a: mailbox lifecycle and fairness
-- [ ] PR 0b: move every world writer behind the mailbox (starts with the ungated-writer audit)
+- [ ] PR 0b: move every world writer behind the mailbox
+  - [x] audit of ungated writers
+  - [x] 0b-1 game-turn actions
+  - [ ] 0b-2 `ContinuousWorldProcessor` passes
+  - [ ] 0b-3 session start/end and creature endpoints
+  - [ ] 0b-4 streamer and tool calls
 - [ ] PR 0c: delete the mutation gate
 - [ ] PR A: runner owns time, part 1 (effects, regen)
 - [ ] PR B: runner owns time, part 2 (maintenance, ambient, weather refresh)

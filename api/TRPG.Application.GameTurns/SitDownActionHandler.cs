@@ -1,49 +1,47 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Poses;
 
 namespace TRPG.Application.GameTurns;
 
 internal class SitDownActionHandler(
     GameActionRunner actionRunner,
-    ICommandHandler<SitDownCommand, SitDownResult> sitDown,
-    WorldSimulationCoordinator simulation
+    ICommandHandler<SitDownCommand, SitDownResult> sitDown
 )
 {
-    public async Task<ActionOutcome> Handle(
+    public Task<ActionOutcome> Handle(
         GameTurnSession session,
         Guid seatId,
         CancellationToken cancellationToken = default
+    ) =>
+        actionRunner.Run(
+            session,
+            (poses, token) => SitDown(session, seatId, poses, token),
+            cancellationToken
+        );
+
+    private async Task<ActionOutcome> SitDown(
+        GameTurnSession session,
+        Guid seatId,
+        LivePlayerPoses poses,
+        CancellationToken cancellationToken
     )
     {
-        var result = await simulation.Request(
-            session.WorldId,
-            async (poses, ct) =>
+        var result = await sitDown.Handle(
+            new SitDownCommand
             {
-                var sat = await sitDown.Handle(
-                    new SitDownCommand
-                    {
-                        PlayerId = session.PlayerId,
-                        SeatId = seatId,
-                        LivePose = poses.Find(session.PlayerId),
-                    },
-                    ct
-                );
-                if (sat == SitDownResult.Success)
-                {
-                    poses.Forget(session.PlayerId);
-                }
-
-                return sat;
+                PlayerId = session.PlayerId,
+                SeatId = seatId,
+                LivePose = poses.Find(session.PlayerId),
             },
             cancellationToken
         );
+        if (result == SitDownResult.Success)
+        {
+            poses.Forget(session.PlayerId);
+        }
 
-        return await actionRunner.Run(
-            session,
-            _ => Task.FromResult(ToOutcome(result)),
-            cancellationToken
-        );
+        return ToOutcome(result);
     }
 
     private static ActionOutcome ToOutcome(SitDownResult result) =>

@@ -27,9 +27,11 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<WaitActionHandler>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
         _events = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
