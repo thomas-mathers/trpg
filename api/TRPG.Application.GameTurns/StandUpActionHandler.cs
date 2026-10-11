@@ -10,32 +10,41 @@ internal class StandUpActionHandler(
     WorldSimulationCoordinator simulation
 )
 {
-    public Task<ActionOutcome> Handle(
+    public async Task<ActionOutcome> Handle(
         GameTurnSession session,
         CancellationToken cancellationToken = default
-    ) =>
-        actionRunner.Run(
-            session,
-            async ct =>
+    )
+    {
+        var result = await simulation.Request(
+            session.WorldId,
+            async (poses, ct) =>
             {
-                var result = await standUp.Handle(
+                var stood = await standUp.Handle(
                     new StandUpCommand { PlayerId = session.PlayerId },
                     ct
                 );
-                if (result == StandUpResult.Success)
+                if (stood == StandUpResult.Success)
                 {
-                    simulation.Post(session.WorldId, new ForgetPlayerPose(session.PlayerId));
+                    poses.Forget(session.PlayerId);
                 }
 
-                return result switch
-                {
-                    StandUpResult.Success => ActionOutcome.Success,
-                    StandUpResult.PlayerNotSitting => ActionOutcome.Failed(
-                        ActionFailure.NotSitting
-                    ),
-                    _ => throw new InvalidOperationException($"Unhandled stand result {result}."),
-                };
+                return stood;
             },
             cancellationToken
         );
+
+        return await actionRunner.Run(
+            session,
+            _ => Task.FromResult(ToOutcome(result)),
+            cancellationToken
+        );
+    }
+
+    private static ActionOutcome ToOutcome(StandUpResult result) =>
+        result switch
+        {
+            StandUpResult.Success => ActionOutcome.Success,
+            StandUpResult.PlayerNotSitting => ActionOutcome.Failed(ActionFailure.NotSitting),
+            _ => throw new InvalidOperationException($"Unhandled stand result {result}."),
+        };
 }

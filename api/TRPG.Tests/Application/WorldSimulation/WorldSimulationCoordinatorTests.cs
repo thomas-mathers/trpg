@@ -224,6 +224,67 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         Assert.True(coordinator.IsUnavailable(_worldId));
     }
 
+    [Fact]
+    public async Task Request_RunsDirectly_WhenTheWorldHasNoRunner()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+
+        // Act
+        var result = await coordinator.Request(
+            _worldId,
+            (_, _) => Task.FromResult(7),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(7, result);
+    }
+
+    [Fact]
+    public async Task Request_WaitsForTheNextTick_WhenTheWorldHasARunner()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var ran = false;
+
+        // Act
+        var request = coordinator.Request(
+            _worldId,
+            (_, _) =>
+            {
+                ran = true;
+                return Task.FromResult(7);
+            },
+            TestContext.Current.CancellationToken
+        );
+        var ranBeforeTick = ran;
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal((false, 7), (ranBeforeTick, await request));
+    }
+
+    [Fact]
+    public async Task Request_FailsTheCaller_WhenTheWorkThrows()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var request = coordinator.Request<int>(
+            _worldId,
+            (_, _) => throw new InvalidOperationException("boom"),
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => request);
+    }
+
     private WorldSimulationCoordinator MakeCoordinator(
         IReadOnlyCollection<Guid> activeWorldIds,
         FixedWorldClock? clock = null

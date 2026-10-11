@@ -1,5 +1,6 @@
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.WorldSimulation.Movement;
+using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation;
@@ -27,3 +28,10 @@ public sealed record PlayerInput(
     Point ClientPosition,
     DateTimeOffset ReceivedAt
 ) : WorldSimulationMessage;
+
+public sealed record SimulationRequest(Func<LivePlayerPoses, CancellationToken, Task> Work)
+    : WorldSimulationMessage
+{
+    public Task Run(LivePlayerPoses poses, CancellationToken cancellationToken) =>
+        Work(poses, cancellationToken);
+}

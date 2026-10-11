@@ -68,7 +68,7 @@ function renderDialog(
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={{ scene, setMovementSpeed: () => {} }}>
+    <SceneContext.Provider value={{ scene }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <CaravanDialog caravan={selectedCaravan} onClose={onClose} />
       </GameHubConnectionContext.Provider>

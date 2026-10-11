@@ -19,6 +19,7 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<WaitActionHandler>()
             .AddTransient<SitDownActionHandler>()
             .AddTransient<StandUpActionHandler>()
+            .AddTransient<ToggleSneakingActionHandler>()
             .AddTransient<SleepActionHandler>()
             .AddTransient<ActivateTriggerActionHandler>()
             .AddTransient<AcceptQuestActionHandler>()
@@ -41,6 +42,7 @@ public static class GameTurnsServiceCollectionExtensions
                 serviceProvider.GetRequiredService<WaitActionHandler>(),
                 serviceProvider.GetRequiredService<SitDownActionHandler>(),
                 serviceProvider.GetRequiredService<StandUpActionHandler>(),
+                serviceProvider.GetRequiredService<ToggleSneakingActionHandler>(),
                 serviceProvider.GetRequiredService<SleepActionHandler>(),
                 serviceProvider.GetRequiredService<ActivateTriggerActionHandler>(),
                 serviceProvider.GetRequiredService<AcceptQuestActionHandler>(),

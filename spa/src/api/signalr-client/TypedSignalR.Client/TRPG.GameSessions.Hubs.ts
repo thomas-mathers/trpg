@@ -36,6 +36,10 @@ export type IChatHub = {
     */
     sendStandUp(): Promise<ActionResult>;
     /**
+    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
+    */
+    sendToggleSneaking(): Promise<ActionResult>;
+    /**
     * @param hours Transpiled from int
     * @param minutes Transpiled from int
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>

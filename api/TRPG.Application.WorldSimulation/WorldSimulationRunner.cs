@@ -39,8 +39,7 @@ public sealed class WorldSimulationRunner(
         Channel.CreateUnbounded<WorldSimulationMessage>(
             new UnboundedChannelOptions { SingleReader = true }
         );
-    private readonly Dictionary<Guid, PlayerPose> _playerPoses = [];
-    private readonly HashSet<Guid> _dirtyPlayerIds = [];
+    private readonly LivePlayerPoses _playerPoses = new();
     private readonly List<SimEvent> _unwrittenEvents = [];
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
     private readonly List<LocalMoveCompleted> _unexecutedLocalArrivals = [];
@@ -107,7 +106,7 @@ public sealed class WorldSimulationRunner(
 
     private async Task FlushPlayerPoses(CancellationToken cancellationToken)
     {
-        if (_dirtyPlayerIds.Count == 0)
+        if (!_playerPoses.HasUnsavedPoses)
         {
             return;
         }
@@ -116,25 +115,22 @@ public sealed class WorldSimulationRunner(
         var savePlayerPose = scope.ServiceProvider.GetRequiredService<
             ICommandHandler<SavePlayerPoseCommand>
         >();
-        foreach (var playerId in _dirtyPlayerIds)
+        foreach (var (playerId, pose) in _playerPoses.Unsaved())
         {
-            if (_playerPoses.TryGetValue(playerId, out var pose))
-            {
-                await savePlayerPose.Handle(
-                    new SavePlayerPoseCommand
-                    {
-                        PlayerId = playerId,
-                        LocationId = pose.LocationId,
-                        X = pose.Position.X,
-                        Y = pose.Position.Y,
-                        Angle = pose.Input.Heading,
-                    },
-                    cancellationToken
-                );
-            }
+            await savePlayerPose.Handle(
+                new SavePlayerPoseCommand
+                {
+                    PlayerId = playerId,
+                    LocationId = pose.LocationId,
+                    X = pose.Position.X,
+                    Y = pose.Position.Y,
+                    Angle = pose.Input.Heading,
+                },
+                cancellationToken
+            );
         }
 
-        _dirtyPlayerIds.Clear();
+        _playerPoses.MarkAllSaved();
     }
 
     private async Task<MovementPlanningSummary> PlanMovements(
@@ -405,11 +401,13 @@ public sealed class WorldSimulationRunner(
                 break;
             case PlayerDisconnected disconnected:
                 await FlushPlayerPoses(cancellationToken);
-                _playerPoses.Remove(disconnected.PlayerId);
+                _playerPoses.Forget(disconnected.PlayerId);
                 break;
             case ForgetPlayerPose forget:
-                _playerPoses.Remove(forget.PlayerId);
-                _dirtyPlayerIds.Remove(forget.PlayerId);
+                _playerPoses.Forget(forget.PlayerId);
+                break;
+            case SimulationRequest request:
+                await request.Run(_playerPoses, cancellationToken);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(message));
@@ -434,7 +432,7 @@ public sealed class WorldSimulationRunner(
                         Input = input.Input,
                         ClientPosition = input.ClientPosition,
                         ReceivedAt = input.ReceivedAt,
-                        Previous = _playerPoses.GetValueOrDefault(input.PlayerId),
+                        Previous = _playerPoses.Find(input.PlayerId),
                     },
                     cancellationToken
                 );
@@ -443,8 +441,7 @@ public sealed class WorldSimulationRunner(
                 .FlushAsync(worldId, cancellationToken);
             if (pose is not null)
             {
-                _playerPoses[input.PlayerId] = pose;
-                _dirtyPlayerIds.Add(input.PlayerId);
+                _playerPoses.Set(input.PlayerId, pose);
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

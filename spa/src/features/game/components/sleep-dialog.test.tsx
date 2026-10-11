@@ -58,7 +58,7 @@ function renderDialog({
   };
 
   const result = renderWithProviders(
-    <SceneContext.Provider value={{ scene: scene(hour, minute), setMovementSpeed: () => {} }}>
+    <SceneContext.Provider value={{ scene: scene(hour, minute) }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
         <SleepDialog open={open} onClose={onClose} />
       </GameHubConnectionContext.Provider>

@@ -104,6 +104,10 @@ class IChatHub_HubProxy implements IChatHub {
         return await this.connection.invoke("SendStandUp");
     }
 
+    public readonly sendToggleSneaking = async (): Promise<ActionResult> => {
+        return await this.connection.invoke("SendToggleSneaking");
+    }
+
     public readonly sendSleep = async (hours: number, minutes: number): Promise<ActionResult> => {
         return await this.connection.invoke("SendSleep", hours, minutes);
     }

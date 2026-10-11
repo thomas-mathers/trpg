@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, type ReactNode } from 'react';
+import { useEffect, useReducer, useRef, type ReactNode } from 'react';
 
 import { prefetchDungeonPremises, type BuildingType } from '@/api/client';
 import {
@@ -78,18 +78,10 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
     void prefetchDungeonPremises({ body: { buildingIds } }).catch(() => {});
   }, [scene.nearbyBuildings]);
 
-  const setMovementSpeed = useCallback(
-    (movementSpeed: number, walkMetersPerSecond: number) =>
-      dispatch({ type: 'MovementSpeedChanged', movementSpeed, walkMetersPerSecond }),
-    [],
-  );
-
   return (
     <SessionContext.Provider value={sessionId}>
       <PlayerIdContext.Provider value={scene.playerStatus.id}>
-        <SceneContext.Provider value={{ scene, setMovementSpeed }}>
-          {children}
-        </SceneContext.Provider>
+        <SceneContext.Provider value={{ scene }}>{children}</SceneContext.Provider>
       </PlayerIdContext.Provider>
     </SessionContext.Provider>
   );

@@ -30,6 +30,11 @@ vi.mock('@react-three/fiber', async () => {
   };
 });
 vi.mock('@react-three/drei', () => ({ PointerLockControls: () => null }));
+const chatHub = vi.hoisted(() => ({ sendToggleSneaking: vi.fn() }));
+vi.mock('../hooks/use-game-hub-connection', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../hooks/use-game-hub-connection')>()),
+  useChatHub: () => chatHub,
+}));
 const chair: ViewportSeat = {
   id: 'chair',
   name: 'Chair',
@@ -64,6 +69,7 @@ function setup(overrides: Partial<ComponentProps<typeof FpsController>> = {}) {
   return { props, ...renderWithProviders(<FpsController {...props} />) };
 }
 beforeEach(() => {
+  chatHub.sendToggleSneaking.mockResolvedValue({ succeeded: true });
   renderer.camera = new PerspectiveCamera();
   renderer.cameraWhenFrameSwapped = [];
   Object.defineProperty(document, 'pointerLockElement', {
@@ -139,5 +145,12 @@ describe('chair interaction', () => {
     Object.defineProperty(document, 'pointerLockElement', { configurable: true, value: null });
     fireEvent.keyDown(window, { code: 'KeyE' });
     expect(props.onSeatInteraction).not.toHaveBeenCalled();
+  });
+});
+describe('sneaking', () => {
+  it('asks the server to toggle sneaking when the sneak key is pressed', () => {
+    setup();
+    fireEvent.keyDown(window, { code: 'ControlLeft' });
+    expect(chatHub.sendToggleSneaking).toHaveBeenCalledOnce();
   });
 });

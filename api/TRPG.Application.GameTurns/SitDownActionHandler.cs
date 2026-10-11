@@ -10,37 +10,49 @@ internal class SitDownActionHandler(
     WorldSimulationCoordinator simulation
 )
 {
-    public Task<ActionOutcome> Handle(
+    public async Task<ActionOutcome> Handle(
         GameTurnSession session,
         Guid seatId,
         CancellationToken cancellationToken = default
-    ) =>
-        actionRunner.Run(
-            session,
-            async ct =>
+    )
+    {
+        var result = await simulation.Request(
+            session.WorldId,
+            async (poses, ct) =>
             {
-                var result = await sitDown.Handle(
-                    new SitDownCommand { PlayerId = session.PlayerId, SeatId = seatId },
+                var sat = await sitDown.Handle(
+                    new SitDownCommand
+                    {
+                        PlayerId = session.PlayerId,
+                        SeatId = seatId,
+                        LivePose = poses.Find(session.PlayerId),
+                    },
                     ct
                 );
-                if (result == SitDownResult.Success)
+                if (sat == SitDownResult.Success)
                 {
-                    simulation.Post(session.WorldId, new ForgetPlayerPose(session.PlayerId));
+                    poses.Forget(session.PlayerId);
                 }
 
-                return result switch
-                {
-                    SitDownResult.Success => ActionOutcome.Success,
-                    SitDownResult.SeatOccupied => ActionOutcome.Failed(ActionFailure.SeatOccupied),
-                    SitDownResult.SeatNotNearby => ActionOutcome.Failed(
-                        ActionFailure.SeatNotNearby
-                    ),
-                    SitDownResult.PlayerNotIdle => ActionOutcome.Failed(
-                        ActionFailure.PlayerNotIdle
-                    ),
-                    _ => throw new InvalidOperationException($"Unhandled sit result {result}."),
-                };
+                return sat;
             },
             cancellationToken
         );
+
+        return await actionRunner.Run(
+            session,
+            _ => Task.FromResult(ToOutcome(result)),
+            cancellationToken
+        );
+    }
+
+    private static ActionOutcome ToOutcome(SitDownResult result) =>
+        result switch
+        {
+            SitDownResult.Success => ActionOutcome.Success,
+            SitDownResult.SeatOccupied => ActionOutcome.Failed(ActionFailure.SeatOccupied),
+            SitDownResult.SeatNotNearby => ActionOutcome.Failed(ActionFailure.SeatNotNearby),
+            SitDownResult.PlayerNotIdle => ActionOutcome.Failed(ActionFailure.PlayerNotIdle),
+            _ => throw new InvalidOperationException($"Unhandled sit result {result}."),
+        };
 }

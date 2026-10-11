@@ -2,7 +2,6 @@ import { PointerLockControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 
-import { toggleCreatureSneaking } from '@/api/client';
 import type {
   FootprintWire,
   NearbyExitSnapshot,
@@ -11,6 +10,8 @@ import type {
 import { gameEventBus } from '@/lib/game-event-bus';
 
 import { useScene } from '../contexts/scene-context';
+import { useChatHub } from '../hooks/use-game-hub-connection';
+import { runAction } from '../run-action';
 import {
   EYE_HEIGHT,
   type Obstacle,
@@ -90,7 +91,8 @@ export function FpsController({
   const walker = useRef<WalkerState | undefined>(undefined);
   const shown = useRef<PlanarPoint | undefined>(undefined);
 
-  const { scene, setMovementSpeed } = useScene();
+  const { scene } = useScene();
+  const chatHub = useChatHub();
   const { locationId } = scene;
   const { track: trackInput, halt: haltInput } = useInputReporter(locationId, onInputChange);
 
@@ -145,15 +147,7 @@ export function FpsController({
       }
 
       if (SNEAK_KEYS.includes(event.code)) {
-        toggleCreatureSneaking({ path: { creatureId: scene.playerStatus.id } }).then((response) => {
-          if (!response.data) {
-            return;
-          }
-
-          const { movementSpeed, walkMetersPerSecond } = response.data;
-
-          setMovementSpeed(movementSpeed, walkMetersPerSecond);
-        });
+        void runAction(chatHub.sendToggleSneaking());
       }
 
       keys.add(event.code);
@@ -168,7 +162,7 @@ export function FpsController({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [scene.playerStatus.id, setMovementSpeed]);
+  }, [chatHub]);
 
   useFrame((_, deltaSeconds) => {
     if (seated || movementLocked || cameraHeld.current) {
