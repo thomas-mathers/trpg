@@ -57,6 +57,35 @@ function tick() {
 }
 
 describe('creature focus controller', () => {
+  it('focuses the rendered creature instead of its old snapshot placement', () => {
+    const handlers = props();
+    const stale = [{ ...statuses[0], placement: { x: 8, y: -2, angle: 0 } }];
+    renderWithProviders(<CreatureFocusController {...handlers} statuses={stale} />);
+
+    fireEvent.keyDown(window, { code: 'KeyE' });
+
+    expect(handlers.onFocus).toHaveBeenCalledWith(
+      expect.objectContaining({ x: 0, y: -2, facing: -Math.PI }),
+    );
+  });
+
+  it('keeps the rendered face centered while the creature settles into its paused position', () => {
+    const camera = runtime.camera as PerspectiveCamera;
+    const npc = (runtime.scene as Scene).children[0];
+    const focus = { id: 'npc', x: 8, y: -2, headHeight: 1.63, facing: Math.PI };
+    renderWithProviders(<CreatureFocusController {...props()} focus={focus} />);
+    tick();
+    const expected = camera.clone();
+    expected.lookAt(0, 1.48, -2);
+    expect(camera.quaternion.angleTo(expected.quaternion)).toBeLessThan(0.002);
+
+    npc.position.set(1, 0, -2);
+    tick();
+    expected.lookAt(1, 1.48, -2);
+    expect(camera.quaternion.angleTo(expected.quaternion)).toBeLessThan(0.002);
+    expect(camera.position.toArray()).toEqual([0, 0, 0]);
+  });
+
   it('captures E and releases pointer lock to open the selected NPC', () => {
     const handlers = props();
     renderWithProviders(<CreatureFocusController {...handlers} />);

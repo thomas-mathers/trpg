@@ -7,6 +7,7 @@ internal static class SimEventLocations
     public static IEnumerable<Guid> Touched(CreatureSimEvent simEvent) =>
         simEvent switch
         {
+            JourneyCheckpoint checkpoint => [checkpoint.LocationId],
             JourneyStarted started => [started.OriginLocationId],
             LocationEntered entered => [entered.FromLocationId, entered.ToLocationId],
             JourneyCompleted completed => [completed.LocationId],

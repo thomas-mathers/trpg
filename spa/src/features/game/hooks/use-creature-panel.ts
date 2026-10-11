@@ -24,7 +24,7 @@ function usePanelContext({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const startIndex = useRef(messages.length);
-  const { release } = useCreatureInteraction({
+  const { release, handOff } = useCreatureInteraction({
     playerId: playerStatus.id,
     worldId,
     creatureId: mode === 'actions' && condition !== 'Dead' ? id : undefined,
@@ -51,6 +51,7 @@ function usePanelContext({
     setError,
     startIndex,
     release,
+    handOff,
   };
 }
 
@@ -98,16 +99,22 @@ async function beginAction({ setBusy, release, setMode }: PanelContext, next: Mo
   setBusy(false);
 }
 
-async function talk(context: PanelContext) {
-  const { startIndex, messages, submitNarratedTurn, chatHub, name, setError } = context;
-  await beginAction(context, 'talk');
+function talk(context: PanelContext) {
+  const { startIndex, messages, submitNarratedTurn, chatHub, name, setError, setMode, handOff } =
+    context;
+  // Releasing here would let the creature walk off until the model's start_conversation call re-engages it.
+  const endHandedOff = handOff();
+  setMode('talk');
   startIndex.current = messages.length;
   submitNarratedTurn(
     null,
     chatHub.sendChat(
       `I begin a conversation with ${JSON.stringify(name)}. Greet me as this person.`,
     ),
-    () => setError('Could not start the conversation. Please try again.'),
+    () => {
+      void endHandedOff();
+      setError('Could not start the conversation. Please try again.');
+    },
   );
 }
 

@@ -55,7 +55,7 @@ describe('useCreatureInteraction', () => {
     );
   });
 
-  it('never begins again before the release has finished when reselected at once', async () => {
+  it('sends one begin when reselected before the begin goes out', async () => {
     const { calls } = recordInteractions();
     const { rerender, unmount } = renderHook(
       ({ creatureId }: { creatureId: string | undefined }) =>
@@ -65,17 +65,22 @@ describe('useCreatureInteraction', () => {
 
     rerender({ creatureId: undefined });
     rerender({ creatureId: 'a' });
-    await waitFor(() => expect(calls).toHaveLength(3));
+    await waitFor(() => expect(calls).toEqual(['begin:creature:a']));
     unmount();
 
-    await waitFor(() =>
-      expect(calls).toEqual([
-        'begin:creature:a',
-        'end:creature:a',
-        'begin:creature:a',
-        'end:creature:a',
-      ]),
+    await waitFor(() => expect(calls).toEqual(['begin:creature:a', 'end:creature:a']));
+  });
+
+  it('sends a single begin and no release under a StrictMode remount', async () => {
+    const { calls } = recordInteractions();
+
+    renderHook(
+      () => useCreatureInteraction({ playerId: 'player-id', worldId: 'world-id', creatureId: 'a' }),
+      { reactStrictMode: true },
     );
+    await idle();
+
+    expect(calls).toEqual(['begin:creature:a']);
   });
 
   it('releases immediately on request and does not release a second time on unmount', async () => {
@@ -88,6 +93,38 @@ describe('useCreatureInteraction', () => {
     await result.current.release();
     unmount();
     await idle();
+
+    expect(calls).toEqual(['begin:creature:a', 'end:creature:a']);
+  });
+
+  it('keeps the engagement through a hand-off when the selection clears', async () => {
+    const { calls } = recordInteractions();
+    const { result, rerender } = renderHook(
+      ({ creatureId }: { creatureId: string | undefined }) =>
+        useCreatureInteraction({ playerId: 'player-id', worldId: 'world-id', creatureId }),
+      { initialProps: { creatureId: 'a' as string | undefined } },
+    );
+    await waitFor(() => expect(calls).toEqual(['begin:creature:a']));
+
+    result.current.handOff();
+    rerender({ creatureId: undefined });
+    await idle();
+
+    expect(calls).toEqual(['begin:creature:a']);
+  });
+
+  it('ends a handed-off engagement on request', async () => {
+    const { calls } = recordInteractions();
+    const { result, rerender } = renderHook(
+      ({ creatureId }: { creatureId: string | undefined }) =>
+        useCreatureInteraction({ playerId: 'player-id', worldId: 'world-id', creatureId }),
+      { initialProps: { creatureId: 'a' as string | undefined } },
+    );
+    await waitFor(() => expect(calls).toEqual(['begin:creature:a']));
+    const endHandedOff = result.current.handOff();
+    rerender({ creatureId: undefined });
+
+    await endHandedOff();
 
     expect(calls).toEqual(['begin:creature:a', 'end:creature:a']);
   });

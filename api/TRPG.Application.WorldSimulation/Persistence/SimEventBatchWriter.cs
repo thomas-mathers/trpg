@@ -21,6 +21,7 @@ internal sealed class SimEventBatchWriter(Guid worldId, IServiceScopeFactory ser
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
+            new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
             TransactionScopeAsyncFlowOption.Enabled
         );
         await WriteCheckpoints(scope.ServiceProvider, events, cancellationToken);

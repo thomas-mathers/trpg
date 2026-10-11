@@ -164,6 +164,33 @@ public sealed class StartConversationToolTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Invoke_OpensTheConversation_WhenThePanelInteractionAlreadyEngagedBoth()
+    {
+        // Arrange
+        var npc = Builders.MakeCreature(
+            _worldId,
+            locationId: _locationId,
+            name: "Mara",
+            isEngaged: true
+        );
+        _context.Creatures.Add(npc);
+        _player.IsEngaged = true;
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var invoke = (Func<string, CancellationToken, Task<object?>>)_tool.Invoke;
+
+        // Act
+        var result = await invoke(npc.Name, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsNotType<ToolError>(result);
+        _context.ChangeTracker.Clear();
+        var participants = await _context
+            .Creatures.Where(creature => creature.Id == _player.Id || creature.Id == npc.Id)
+            .ToArrayAsync(TestContext.Current.CancellationToken);
+        Assert.All(participants, creature => Assert.True(creature.IsEngaged));
+    }
+
+    [Fact]
     public async Task Invoke_Refuses_WhenThePlayerIsEngagedByAnUnrelatedInteraction()
     {
         // Arrange

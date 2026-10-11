@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { CreatureWalkSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-import { blendOffset, walkedDistance, walkPoseAt, walkSignature } from './walk-playback';
+import {
+  blendOffset,
+  pausedHold,
+  walkedDistance,
+  walkPoseAt,
+  walkSignature,
+} from './walk-playback';
 
 function walkOf(overrides: Partial<CreatureWalkSnapshot> = {}): CreatureWalkSnapshot {
   return {
@@ -107,6 +113,20 @@ describe('walkSignature', () => {
     expect(walkSignature(walkOf())).not.toBe(
       walkSignature(walkOf({ startedAtGameTimeMilliseconds: 2000 })),
     );
+  });
+});
+
+describe('pausedHold', () => {
+  it('keeps the rendered spot when the pause lands nearby', () => {
+    expect(pausedHold({ x: 1, y: 0 }, { x: 0, y: 0 })).toEqual({ x: 1, y: 0 });
+  });
+
+  it('gives up the held spot when the pause is far away', () => {
+    expect(pausedHold({ x: 20, y: 0 }, { x: 0, y: 0 })).toBeNull();
+  });
+
+  it('holds nothing before the first position is known', () => {
+    expect(pausedHold(null, { x: 5, y: 5 })).toBeNull();
   });
 });
 
