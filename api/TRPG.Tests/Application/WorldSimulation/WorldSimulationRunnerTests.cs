@@ -1,10 +1,13 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures;
+using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Scenes;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Movement;
@@ -32,6 +35,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     );
 
     private readonly RecordingDispatcher _dispatcher = new();
+    private readonly PoseWriteFault _poseWrites = new();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private WorldSimulationRunner _runner = null!;
@@ -47,6 +51,9 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
             .AddSingleton<IOptions<WorldSimulationOptions>>(_options)
             .WithScopedDbContexts(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher>(_ => _dispatcher)
+            .Decorate<ICommandHandler<ApplyCreaturePoseUpdatesCommand>>(
+                (inner, _) => FaultingProxy.Wrap(inner, _poseWrites)
+            )
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
@@ -468,6 +475,133 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_WritesTheFailedBatchOnTheNextTick_WhenThePersistFails()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _poseWrites.Fails = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_HoldsQueuedRequests_UntilTheFailedBatchCommits()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var ran = false;
+        _runner.Post(
+            new SimulationRequest(
+                (_, _) =>
+                {
+                    ran = true;
+                    return Task.CompletedTask;
+                }
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.False(ran);
+    }
+
+    [Fact]
+    public async Task Tick_RunsQueuedRequests_AfterTheFailedBatchCommits()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var ran = false;
+        _runner.Post(
+            new SimulationRequest(
+                (_, _) =>
+                {
+                    ran = true;
+                    return Task.CompletedTask;
+                }
+            )
+        );
+        _poseWrites.Fails = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(ran);
+    }
+
+    [Fact]
+    public async Task Tick_ReloadsFromTheDatabase_AfterConsecutiveBatchFailures()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _options.Current = new WorldSimulationOptions
+        {
+            RoutinePlansPerTick = 1,
+            MaximumConsecutiveBatchFailures = 2,
+        };
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _poseWrites.Fails = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+        Assert.False(_runner.HasPendingWork);
+    }
+
+    [Fact]
+    public async Task Tick_AdvancesTheWorldStateVersion_WhenABatchIsWritten()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        var before = await ReadStateVersion();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(await ReadStateVersion() > before);
+    }
+
+    [Fact]
+    public async Task Tick_LeavesTheWorldStateVersion_WhenTheBatchFails()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        var before = await ReadStateVersion();
+        _poseWrites.Fails = true;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(before, await ReadStateVersion());
+    }
+
+    [Fact]
     public async Task Tick_RejectsQueuedRequests_WhenTheReloadFails()
     {
         // Arrange
@@ -698,6 +832,41 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         }
     }
 
+    private sealed class PoseWriteFault
+    {
+        public bool Fails { get; set; }
+    }
+
+    // A proxy keeps the fault out of the host's handler assembly scan, which would register a class implementing the handler interface.
+    private class FaultingProxy : DispatchProxy
+    {
+        public object Inner { get; set; } = null!;
+        public PoseWriteFault Fault { get; set; } = null!;
+
+        public static ICommandHandler<ApplyCreaturePoseUpdatesCommand> Wrap(
+            ICommandHandler<ApplyCreaturePoseUpdatesCommand> inner,
+            PoseWriteFault fault
+        )
+        {
+            var proxy = Create<ICommandHandler<ApplyCreaturePoseUpdatesCommand>, FaultingProxy>();
+            var faulting = (FaultingProxy)(object)proxy;
+            faulting.Inner = inner;
+            faulting.Fault = fault;
+
+            return proxy;
+        }
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            if (Fault.Fails)
+            {
+                throw new InvalidOperationException("Pose write failed.");
+            }
+
+            return targetMethod!.Invoke(Inner, args);
+        }
+    }
+
     private sealed class SwitchableOptions(WorldSimulationOptions current)
         : IOptions<WorldSimulationOptions>
     {
@@ -707,6 +876,15 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
         public WorldSimulationOptions Value =>
             IsBroken ? throw new InvalidOperationException("Options are unavailable.") : Current;
+    }
+
+    private async Task<long> ReadStateVersion()
+    {
+        await using var readContext = db.CreateContext();
+        return await readContext
+            .Worlds.Where(world => world.Id == _worldId)
+            .Select(world => world.StateVersion)
+            .SingleAsync(TestContext.Current.CancellationToken);
     }
 
     private async Task<bool> WeatherExists()

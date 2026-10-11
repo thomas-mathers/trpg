@@ -10,6 +10,7 @@ public sealed class WorldSimulationOptions
     public TimeSpan ActiveLocationPassInterval { get; init; } = TimeSpan.FromSeconds(5);
     public TimeSpan LocationMaintenanceInterval { get; init; } = TimeSpan.FromSeconds(30);
     public TimeSpan WeatherRefreshInterval { get; init; } = TimeSpan.FromSeconds(30);
+    public int MaximumConsecutiveBatchFailures { get; init; } = 3;
     public int ResyncAttempts { get; init; } = 3;
     public TimeSpan ResyncWindow { get; init; } = TimeSpan.FromSeconds(5);
 }

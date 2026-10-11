@@ -13,6 +13,7 @@ using TRPG.Application.WorldSimulation.Arrivals;
 using TRPG.Application.WorldSimulation.Commands;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
+using TRPG.Application.WorldSimulation.Persistence;
 using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Application.WorldSimulation.Subscriptions;
@@ -44,7 +45,11 @@ public sealed class WorldSimulationRunner(
             new UnboundedChannelOptions { SingleReader = true }
         );
     private readonly LivePlayerPoses _playerPoses = new();
-    private readonly List<SimEvent> _unwrittenEvents = [];
+    private readonly SimEventApplier _applier = SimEventApplier.ForWorld(
+        worldId,
+        serviceScopeFactory,
+        options.MaximumConsecutiveBatchFailures
+    );
     private readonly List<JourneyCompleted> _unexecutedArrivals = [];
     private readonly List<LocalMoveCompleted> _unexecutedLocalArrivals = [];
     private readonly Dictionary<Guid, HashSet<Guid>> _unpublishedCreatureIdsByLocationId = [];
@@ -68,7 +73,8 @@ public sealed class WorldSimulationRunner(
 
     public Guid WorldId => worldId;
 
-    public bool HasPendingWork => _isRecovering || _mailbox.Reader.TryPeek(out _);
+    public bool HasPendingWork =>
+        _isRecovering || _applier.IsBlocked || _mailbox.Reader.TryPeek(out _);
 
     public void Post(WorldSimulationMessage message)
     {
@@ -96,7 +102,7 @@ public sealed class WorldSimulationRunner(
 
     public async Task ServiceMailbox(GameInstant now, CancellationToken cancellationToken = default)
     {
-        if (await EnsureHealthy(now, cancellationToken))
+        if (await EnsureWritable(now, cancellationToken))
         {
             await DrainMailbox(now, cancellationToken);
         }
@@ -105,7 +111,7 @@ public sealed class WorldSimulationRunner(
     public async Task Tick(GameInstant now, CancellationToken cancellationToken = default)
     {
         var tickStartedAt = Stopwatch.GetTimestamp();
-        if (!await EnsureHealthy(now, cancellationToken))
+        if (!await EnsureWritable(now, cancellationToken))
         {
             return;
         }
@@ -128,10 +134,10 @@ public sealed class WorldSimulationRunner(
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
         var planningElapsed = Stopwatch.GetElapsedTime(planningStartedAt);
-        _unwrittenEvents.AddRange(_loaded.Simulator.Step(now));
-        var eventCount = _unwrittenEvents.Count;
+        _applier.Enqueue(_loaded.Simulator.Step(now));
+        var eventCount = _applier.PendingCount;
         if (
-            _unwrittenEvents.Count == 0
+            !_applier.HasPending
             && _unexecutedArrivals.Count == 0
             && _unexecutedLocalArrivals.Count == 0
             && _unpublishedCreatureIdsByLocationId.Count == 0
@@ -141,9 +147,17 @@ public sealed class WorldSimulationRunner(
             return;
         }
 
-        await WritePoses(now, cancellationToken);
+        if (!await TryCommit(now, cancellationToken))
+        {
+            return;
+        }
+
         await ExecuteArrivals(cancellationToken);
-        await WritePoses(now, cancellationToken);
+        if (!await TryCommit(now, cancellationToken))
+        {
+            return;
+        }
+
         await PublishScenes(now, cancellationToken);
         LogTick(now, planning, planningElapsed, eventCount, tickStartedAt);
     }
@@ -192,9 +206,7 @@ public sealed class WorldSimulationRunner(
                 message.GetType().Name,
                 worldId
             );
-            _isRecovering = true;
-            subscriptions.MarkWorldForResync(worldId);
-            await EnsureHealthy(now, cancellationToken);
+            await BeginRecovery(now, cancellationToken);
 
             return now;
         }
@@ -233,11 +245,13 @@ public sealed class WorldSimulationRunner(
 
     private async Task Reload(GameInstant now, CancellationToken cancellationToken)
     {
+        var committed = await _applier.ResolveUncertain(cancellationToken);
+        OnCommitted(committed, now);
+
         await using var scope = serviceScopeFactory.CreateAsyncScope();
         _loaded = await scope
             .ServiceProvider.GetRequiredService<WorldSimulatorLoader>()
             .Load(worldId, now, cancellationToken);
-        _unwrittenEvents.Clear();
         _planningSweep = null;
         _lastPlannedCreatureId = null;
 
@@ -322,7 +336,7 @@ public sealed class WorldSimulationRunner(
             );
             if (local.Move is { } localMove)
             {
-                _unwrittenEvents.AddRange(_loaded.Simulator.StartLocalMove(localMove, now));
+                _applier.Enqueue(_loaded.Simulator.StartLocalMove(localMove, now));
                 localMoves++;
                 continue;
             }
@@ -540,10 +554,10 @@ public sealed class WorldSimulationRunner(
         switch (message)
         {
             case EngageCreature engage:
-                _unwrittenEvents.AddRange(_loaded.Simulator.Engage(engage.CreatureId, now));
+                _applier.Enqueue(_loaded.Simulator.Engage(engage.CreatureId, now));
                 break;
             case ReleaseCreature release:
-                _unwrittenEvents.AddRange(_loaded.Simulator.Release(release.CreatureId, now));
+                _applier.Enqueue(_loaded.Simulator.Release(release.CreatureId, now));
                 break;
             case SpawnCreature spawn:
                 _loaded.Simulator.Add(spawn.Seed, now);
@@ -631,69 +645,67 @@ public sealed class WorldSimulationRunner(
         }
     }
 
-    private async Task WritePoses(GameInstant now, CancellationToken cancellationToken)
+    private async Task<bool> EnsureWritable(GameInstant now, CancellationToken cancellationToken)
     {
-        if (_unwrittenEvents.Count == 0)
+        if (!await EnsureHealthy(now, cancellationToken))
+        {
+            return false;
+        }
+
+        return !_applier.IsBlocked || await TryCommit(now, cancellationToken);
+    }
+
+    private async Task<bool> TryCommit(GameInstant now, CancellationToken cancellationToken)
+    {
+        if (!_applier.HasPending)
+        {
+            return true;
+        }
+
+        try
+        {
+            var committed = await _applier.Commit(cancellationToken);
+            OnCommitted(committed, now);
+
+            return true;
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(
+                exception,
+                "Simulation batch write failed in world {WorldId} (failure {Failures} of {Maximum})",
+                worldId,
+                _applier.ConsecutiveFailures,
+                options.MaximumConsecutiveBatchFailures
+            );
+            if (_applier.RetriesExhausted)
+            {
+                await BeginRecovery(now, cancellationToken);
+            }
+
+            return false;
+        }
+    }
+
+    private async Task BeginRecovery(GameInstant now, CancellationToken cancellationToken)
+    {
+        _isRecovering = true;
+        subscriptions.MarkWorldForResync(worldId);
+        await EnsureHealthy(now, cancellationToken);
+    }
+
+    private void OnCommitted(IReadOnlyList<SimEvent> committed, GameInstant now)
+    {
+        if (committed.Count == 0)
         {
             return;
         }
 
-        LogMovementEvents(now, _unwrittenEvents);
-        await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var checkpoints = _unwrittenEvents.OfType<JourneyCheckpoint>().ToArray();
-        if (checkpoints.Length > 0)
-        {
-            await scope
-                .ServiceProvider.GetRequiredService<ICommandHandler<CheckpointJourneysCommand>>()
-                .Handle(
-                    new CheckpointJourneysCommand
-                    {
-                        Updates = checkpoints
-                            .Select(checkpoint => new JourneyCheckpointUpdate(
-                                checkpoint.JourneyId,
-                                checkpoint.Status,
-                                checkpoint.LegIndex,
-                                checkpoint.LegProgressMeters,
-                                checkpoint.At,
-                                checkpoint.PausedAt
-                            ))
-                            .ToArray(),
-                    },
-                    cancellationToken
-                );
-        }
-        var startedCreatureIds = _unwrittenEvents
-            .OfType<JourneyStarted>()
-            .Select(started => started.CreatureId)
-            .ToArray();
-        if (startedCreatureIds.Length > 0)
-        {
-            await scope
-                .ServiceProvider.GetRequiredService<ICommandHandler<StartJourneysCommand>>()
-                .Handle(
-                    new StartJourneysCommand { CreatureIds = startedCreatureIds },
-                    cancellationToken
-                );
-        }
-        await scope
-            .ServiceProvider.GetRequiredService<ICommandHandler<ApplyCreaturePoseUpdatesCommand>>()
-            .Handle(
-                new ApplyCreaturePoseUpdatesCommand
-                {
-                    Updates = _loaded.PoseMapper.Map(
-                        _unwrittenEvents
-                            .OfType<SimEvent>()
-                            .Where(simEvent => simEvent is not JourneyCheckpoint)
-                    ),
-                },
-                cancellationToken
-            );
-
-        _unexecutedArrivals.AddRange(_unwrittenEvents.OfType<JourneyCompleted>());
-        _unexecutedLocalArrivals.AddRange(_unwrittenEvents.OfType<LocalMoveCompleted>());
-        UpdateTransientWalks();
-        RememberUnpublishedCreatures();
-        _unwrittenEvents.Clear();
+        LogMovementEvents(now, committed);
+        _unexecutedArrivals.AddRange(committed.OfType<JourneyCompleted>());
+        _unexecutedLocalArrivals.AddRange(committed.OfType<LocalMoveCompleted>());
+        UpdateTransientWalks(committed);
+        RememberUnpublishedCreatures(committed);
     }
 
     private async Task ExecuteArrivals(CancellationToken cancellationToken)
@@ -737,7 +749,7 @@ public sealed class WorldSimulationRunner(
             var arrivalAt = _unexecutedArrivals
                 .First(arrival => arrival.CreatureId == move.CreatureId)
                 .At;
-            _unwrittenEvents.AddRange(_loaded.Simulator.StartLocalMove(move, arrivalAt));
+            _applier.Enqueue(_loaded.Simulator.StartLocalMove(move, arrivalAt));
         }
     }
 
@@ -761,14 +773,14 @@ public sealed class WorldSimulationRunner(
             );
             if (retry is not null)
             {
-                _unwrittenEvents.AddRange(_loaded.Simulator.StartLocalMove(retry, arrival.At));
+                _applier.Enqueue(_loaded.Simulator.StartLocalMove(retry, arrival.At));
             }
         }
     }
 
-    private void UpdateTransientWalks()
+    private void UpdateTransientWalks(IReadOnlyList<SimEvent> committed)
     {
-        foreach (var simEvent in _unwrittenEvents)
+        foreach (var simEvent in committed)
         {
             switch (simEvent)
             {
@@ -828,9 +840,9 @@ public sealed class WorldSimulationRunner(
         _unpublishedCreatureIdsByLocationId.Clear();
     }
 
-    private void RememberUnpublishedCreatures()
+    private void RememberUnpublishedCreatures(IReadOnlyList<SimEvent> committed)
     {
-        foreach (var simEvent in _unwrittenEvents)
+        foreach (var simEvent in committed)
         {
             foreach (var locationId in SimEventLocations.Touched(simEvent))
             {

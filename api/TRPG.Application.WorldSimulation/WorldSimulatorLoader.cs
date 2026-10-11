@@ -7,17 +7,13 @@ using TRPG.Application.CreatureJobs.Queries;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Application.WorldSimulation.Movement;
-using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation;
 
-public sealed record LoadedWorldSimulation(
-    CreatureSimulator Simulator,
-    CreaturePoseMapper PoseMapper
-);
+public sealed record LoadedWorldSimulation(CreatureSimulator Simulator);
 
 public sealed class WorldSimulatorLoader(
     IQueryHandler<
@@ -57,7 +53,7 @@ public sealed class WorldSimulatorLoader(
             simulator.Add(seed, now);
         }
 
-        return new LoadedWorldSimulation(simulator, new CreaturePoseMapper());
+        return new LoadedWorldSimulation(simulator);
     }
 
     public async Task<SimCreatureSeed?> LoadSeed(
