@@ -66,17 +66,6 @@ export type IChatHub = {
     */
     sendDeliverItem(recipientId: string): Promise<ActionResult>;
     /**
-    * @param caravanId Transpiled from System.Guid
-    * @param destinationLocationId Transpiled from System.Guid
-    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
-    */
-    sendPurchaseCaravanTicket(caravanId: string, destinationLocationId: string): Promise<ActionResult>;
-    /**
-    * @param caravanId Transpiled from System.Guid
-    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
-    */
-    sendBoardCaravan(caravanId: string): Promise<ActionResult>;
-    /**
     * @param connectorId Transpiled from System.Guid
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */

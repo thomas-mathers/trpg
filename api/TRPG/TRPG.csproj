@@ -65,8 +65,6 @@
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.6" />
     <PackageReference Include="OllamaSharp" Version="5.4.30" />
     <PackageReference Include="Scrutor" Version="7.0.0" />
-    <PackageReference Include="TickerQ" Version="10.4.0" />
-    <PackageReference Include="TickerQ.EntityFrameworkCore" Version="10.4.0" />
     <PackageReference Include="TypedSignalR.Client.TypeScript.Attributes" Version="1.17.0" />
     <PackageReference
       Include="TypedSignalR.Client.TypeScript.Analyzer"

@@ -12,16 +12,15 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 export interface SignDialogProps {
-  worldId: string;
   signId: string | null;
   name: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function SignDialog({ worldId, signId, name, open, onClose }: SignDialogProps) {
+export function SignDialog({ signId, name, open, onClose }: SignDialogProps) {
   const sign = useQuery({
-    ...getSignTextOptions({ path: { signId: signId ?? '' }, query: { worldId } }),
+    ...getSignTextOptions({ path: { signId: signId ?? '' } }),
     enabled: open && signId !== null,
   });
 

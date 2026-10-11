@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { acceptQuest, allocateCreatureAttributePoints, beginCaravanInteraction, beginCreatureInteraction, completeQuest, completeTrade, createSession, createWorld, dropInventoryItem, dropWorld, endCaravanInteraction, endCreatureInteraction, equipCreatureItem, getAbilitiesBySkill, getContainerInventory, getCreatureAbilities, getCreatureAttributePoints, getCreatureAttributes, getCreatureBaseAttributes, getCreatureBasicAttackDamage, getCreatureConsumables, getCreatureGenerationOptions, getCreatureInventory, getCreatureLevel, getCreatureSkills, getDeliverItemDialog, getJob, getLocalMap, getNearbyCorpses, getPlayerAbilityAvailability, getPlayerFight, getQuestDialog, getQuestJournal, getSessionItem, getSessionLoreAnchor, getSessionScene, getSignText, getTheftDetectionChance, getTrade, getWorkstationInventory, getWorldMap, listSessionLoreAnchors, listWorlds, type Options, prefetchBookPage, prefetchDungeonPremises, previewCreatureBasicAttackDamage, previewCreatureEquipment, proposeTrade, readBookPage, setQuestTracking, toggleCreatureSneaking, transferInventory, unequipCreatureItem } from '../sdk.gen';
-import type { AcceptQuestData, AcceptQuestError, AcceptQuestResponse, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponse, BeginCaravanInteractionData, BeginCaravanInteractionResponse, BeginCreatureInteractionData, BeginCreatureInteractionResponse, CompleteQuestData, CompleteQuestError, CompleteQuestResponse, CompleteTradeData, CompleteTradeResponse, CreateSessionData, CreateSessionResponse, CreateWorldData, CreateWorldResponse, DropInventoryItemData, DropInventoryItemError, DropInventoryItemResponse, DropWorldData, DropWorldResponse, EndCaravanInteractionData, EndCaravanInteractionResponse, EndCreatureInteractionData, EndCreatureInteractionResponse, EquipCreatureItemData, EquipCreatureItemResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetContainerInventoryData, GetContainerInventoryResponse, GetCreatureAbilitiesData, GetCreatureAbilitiesResponse, GetCreatureAttributePointsData, GetCreatureAttributePointsResponse, GetCreatureAttributesData, GetCreatureAttributesResponse, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponse, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponse, GetCreatureConsumablesData, GetCreatureConsumablesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreatureInventoryData, GetCreatureInventoryResponse, GetCreatureLevelData, GetCreatureLevelResponse, GetCreatureSkillsData, GetCreatureSkillsResponse, GetDeliverItemDialogData, GetDeliverItemDialogResponse, GetJobData, GetJobResponse, GetLocalMapData, GetLocalMapResponse, GetNearbyCorpsesData, GetNearbyCorpsesResponse, GetPlayerAbilityAvailabilityData, GetPlayerAbilityAvailabilityResponse, GetPlayerFightData, GetPlayerFightResponse, GetQuestDialogData, GetQuestDialogResponse, GetQuestJournalData, GetQuestJournalResponse, GetSessionItemData, GetSessionItemResponse, GetSessionLoreAnchorData, GetSessionLoreAnchorResponse, GetSessionSceneData, GetSessionSceneResponse, GetSignTextData, GetSignTextError, GetSignTextResponse, GetTheftDetectionChanceData, GetTheftDetectionChanceResponse, GetTradeData, GetTradeResponse, GetWorkstationInventoryData, GetWorkstationInventoryResponse, GetWorldMapData, GetWorldMapResponse, ListSessionLoreAnchorsData, ListSessionLoreAnchorsResponse, ListWorldsData, ListWorldsResponse, PrefetchBookPageData, PrefetchBookPageError, PrefetchBookPageResponse, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponse, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponse, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponse, ProposeTradeData, ProposeTradeResponse, ReadBookPageData, ReadBookPageError, ReadBookPageResponse, SetQuestTrackingData, SetQuestTrackingError, SetQuestTrackingResponse, ToggleCreatureSneakingData, ToggleCreatureSneakingResponse, TransferInventoryData, TransferInventoryError, TransferInventoryResponse, UnequipCreatureItemData, UnequipCreatureItemResponse } from '../types.gen';
+import { acceptQuest, allocateCreatureAttributePoints, beginCreatureInteraction, completeQuest, completeTrade, createSession, createWorld, dropInventoryItem, dropWorld, endCreatureInteraction, equipCreatureItem, getAbilitiesBySkill, getContainerInventory, getCreatureAbilities, getCreatureAttributePoints, getCreatureAttributes, getCreatureBaseAttributes, getCreatureBasicAttackDamage, getCreatureConsumables, getCreatureGenerationOptions, getCreatureInventory, getCreatureLevel, getCreatureSkills, getDeliverItemDialog, getJob, getLocalMap, getNearbyCorpses, getPlayerAbilityAvailability, getPlayerFight, getQuestDialog, getQuestJournal, getSessionItem, getSessionLoreAnchor, getSessionScene, getSignText, getTheftDetectionChance, getTrade, getWorkstationInventory, getWorldMap, listSessionLoreAnchors, listWorlds, type Options, prefetchBookPage, prefetchDungeonPremises, previewCreatureBasicAttackDamage, previewCreatureEquipment, proposeTrade, readBookPage, setQuestTracking, transferInventory, unequipCreatureItem } from '../sdk.gen';
+import type { AcceptQuestData, AcceptQuestError, AcceptQuestResponse, AllocateCreatureAttributePointsData, AllocateCreatureAttributePointsResponse, BeginCreatureInteractionData, BeginCreatureInteractionResponse, CompleteQuestData, CompleteQuestError, CompleteQuestResponse, CompleteTradeData, CompleteTradeResponse, CreateSessionData, CreateSessionResponse, CreateWorldData, CreateWorldResponse, DropInventoryItemData, DropInventoryItemError, DropInventoryItemResponse, DropWorldData, DropWorldResponse, EndCreatureInteractionData, EndCreatureInteractionResponse, EquipCreatureItemData, EquipCreatureItemResponse, GetAbilitiesBySkillData, GetAbilitiesBySkillResponse, GetContainerInventoryData, GetContainerInventoryResponse, GetCreatureAbilitiesData, GetCreatureAbilitiesResponse, GetCreatureAttributePointsData, GetCreatureAttributePointsResponse, GetCreatureAttributesData, GetCreatureAttributesResponse, GetCreatureBaseAttributesData, GetCreatureBaseAttributesResponse, GetCreatureBasicAttackDamageData, GetCreatureBasicAttackDamageResponse, GetCreatureConsumablesData, GetCreatureConsumablesResponse, GetCreatureGenerationOptionsData, GetCreatureGenerationOptionsResponse, GetCreatureInventoryData, GetCreatureInventoryResponse, GetCreatureLevelData, GetCreatureLevelResponse, GetCreatureSkillsData, GetCreatureSkillsResponse, GetDeliverItemDialogData, GetDeliverItemDialogResponse, GetJobData, GetJobResponse, GetLocalMapData, GetLocalMapResponse, GetNearbyCorpsesData, GetNearbyCorpsesResponse, GetPlayerAbilityAvailabilityData, GetPlayerAbilityAvailabilityResponse, GetPlayerFightData, GetPlayerFightResponse, GetQuestDialogData, GetQuestDialogResponse, GetQuestJournalData, GetQuestJournalResponse, GetSessionItemData, GetSessionItemResponse, GetSessionLoreAnchorData, GetSessionLoreAnchorResponse, GetSessionSceneData, GetSessionSceneResponse, GetSignTextData, GetSignTextError, GetSignTextResponse, GetTheftDetectionChanceData, GetTheftDetectionChanceResponse, GetTradeData, GetTradeResponse, GetWorkstationInventoryData, GetWorkstationInventoryResponse, GetWorldMapData, GetWorldMapResponse, ListSessionLoreAnchorsData, ListSessionLoreAnchorsResponse, ListWorldsData, ListWorldsResponse, PrefetchBookPageData, PrefetchBookPageError, PrefetchBookPageResponse, PrefetchDungeonPremisesData, PrefetchDungeonPremisesResponse, PreviewCreatureBasicAttackDamageData, PreviewCreatureBasicAttackDamageResponse, PreviewCreatureEquipmentData, PreviewCreatureEquipmentResponse, ProposeTradeData, ProposeTradeResponse, ReadBookPageData, ReadBookPageError, ReadBookPageResponse, SetQuestTrackingData, SetQuestTrackingError, SetQuestTrackingResponse, TransferInventoryData, TransferInventoryError, TransferInventoryResponse, UnequipCreatureItemData, UnequipCreatureItemResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -288,20 +288,6 @@ export const unequipCreatureItemMutation = (options?: Partial<Options<UnequipCre
     return mutationOptions;
 };
 
-export const toggleCreatureSneakingMutation = (options?: Partial<Options<ToggleCreatureSneakingData>>): UseMutationOptions<ToggleCreatureSneakingResponse, DefaultError, Options<ToggleCreatureSneakingData>> => {
-    const mutationOptions: UseMutationOptions<ToggleCreatureSneakingResponse, DefaultError, Options<ToggleCreatureSneakingData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await toggleCreatureSneaking({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
 export const previewCreatureEquipmentQueryKey = (options: Options<PreviewCreatureEquipmentData>) => createQueryKey('previewCreatureEquipment', options);
 
 export const previewCreatureEquipmentOptions = (options: Options<PreviewCreatureEquipmentData>) => queryOptions<PreviewCreatureEquipmentResponse, DefaultError, PreviewCreatureEquipmentResponse, ReturnType<typeof previewCreatureEquipmentQueryKey>>({
@@ -395,34 +381,6 @@ export const beginCreatureInteractionMutation = (options?: Partial<Options<Begin
     const mutationOptions: UseMutationOptions<BeginCreatureInteractionResponse, DefaultError, Options<BeginCreatureInteractionData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await beginCreatureInteraction({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const endCaravanInteractionMutation = (options?: Partial<Options<EndCaravanInteractionData>>): UseMutationOptions<EndCaravanInteractionResponse, DefaultError, Options<EndCaravanInteractionData>> => {
-    const mutationOptions: UseMutationOptions<EndCaravanInteractionResponse, DefaultError, Options<EndCaravanInteractionData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await endCaravanInteraction({
-                ...options,
-                ...fnOptions,
-                throwOnError: true
-            });
-            return data;
-        }
-    };
-    return mutationOptions;
-};
-
-export const beginCaravanInteractionMutation = (options?: Partial<Options<BeginCaravanInteractionData>>): UseMutationOptions<BeginCaravanInteractionResponse, DefaultError, Options<BeginCaravanInteractionData>> => {
-    const mutationOptions: UseMutationOptions<BeginCaravanInteractionResponse, DefaultError, Options<BeginCaravanInteractionData>> = {
-        mutationFn: async (fnOptions) => {
-            const { data } = await beginCaravanInteraction({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

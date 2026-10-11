@@ -10,13 +10,7 @@ import { SignDialog } from './sign-dialog';
 
 function renderDialog() {
   return renderWithProviders(
-    <SignDialog
-      worldId="world-id"
-      signId="sign-id"
-      name="Caravan Schedule"
-      open
-      onClose={vi.fn()}
-    />,
+    <SignDialog signId="sign-id" name="Caravan Schedule" open onClose={vi.fn()} />,
   );
 }
 

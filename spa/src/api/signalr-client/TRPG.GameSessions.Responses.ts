@@ -156,6 +156,18 @@ export type ClockReanchoredPayload = {
     timeScale: number;
 }
 
+/** Transpiled from TRPG.GameSessions.Responses.PlayerCorrectedPayload */
+export type PlayerCorrectedPayload = {
+    /** Transpiled from System.Guid */
+    playerId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from double */
+    offsetX: number;
+    /** Transpiled from double */
+    offsetY: number;
+}
+
 /** Transpiled from TRPG.GameSessions.Responses.PropOccupancySnapshot */
 export type PropOccupancySnapshot = {
     /** Transpiled from System.Guid */
@@ -194,18 +206,6 @@ export type SeatingChangedPayload = {
     posture: CreaturePosture;
     /** Transpiled from TRPG.GameSessions.Responses.PlacementWire */
     placement: PlacementWire;
-}
-
-/** Transpiled from TRPG.GameSessions.Responses.PlayerCorrectedPayload */
-export type PlayerCorrectedPayload = {
-    /** Transpiled from System.Guid */
-    playerId: string;
-    /** Transpiled from System.Guid */
-    locationId: string;
-    /** Transpiled from double */
-    offsetX: number;
-    /** Transpiled from double */
-    offsetY: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CreatureType */

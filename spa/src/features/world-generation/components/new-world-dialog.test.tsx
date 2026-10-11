@@ -103,6 +103,22 @@ describe('NewWorldDialog', () => {
     expect(ui.name.get()).toBeVisible();
   });
 
+  it('reports an interrupted generation when the job is no longer known to the server', async () => {
+    mockGenerationOptions();
+    server.use(
+      handleCreateWorld(() => HttpResponse.json({ jobId: 'job-1' }, { status: 202 })),
+      handleGetJob(() => new HttpResponse(null, { status: 404 })),
+    );
+    const { user } = renderDialog();
+
+    await user.click(await ui.newWorldButton.find());
+    await ui.dialog.find();
+    await user.type(ui.name.get(), 'Aria');
+    await user.click(ui.createWorld.get());
+
+    expect(await screen.findByText('World generation was interrupted. Try again.')).toBeVisible();
+  });
+
   it('pre-fills attributes for the selected class', async () => {
     mockGenerationOptions();
     const { user } = renderDialog();

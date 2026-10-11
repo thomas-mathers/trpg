@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { recordInteractions } from '@/test/interaction-handlers';
 
-import { useCaravanInteraction, useCreatureInteraction } from './use-interaction-lifecycle';
+import { useCreatureInteraction } from './use-interaction-lifecycle';
 
 const idle = () => new Promise((resolve) => setTimeout(resolve, 50));
 
@@ -104,25 +104,5 @@ describe('useCreatureInteraction', () => {
     await idle();
 
     expect(calls).toEqual(['begin:creature:a']);
-  });
-});
-
-describe('useCaravanInteraction', () => {
-  it('begins and releases the caravan interaction', async () => {
-    const { calls } = recordInteractions();
-    const { unmount } = renderHook(() =>
-      useCaravanInteraction({
-        playerId: 'player-id',
-        worldId: 'world-id',
-        caravanId: 'caravan-id',
-      }),
-    );
-    await waitFor(() => expect(calls).toEqual(['begin:caravan:caravan-id']));
-
-    unmount();
-
-    await waitFor(() =>
-      expect(calls).toEqual(['begin:caravan:caravan-id', 'end:caravan:caravan-id']),
-    );
   });
 });

@@ -206,7 +206,7 @@ public sealed class WorldEndpointsTests(EndpointTestFixture fixture) : IAsyncLif
                 new { id = jobId },
                 cancellationToken: TestContext.Current.CancellationToken
             );
-            if (status!.Status is JobStatus.Done or JobStatus.Failed or JobStatus.Cancelled)
+            if (status!.Status is JobStatus.Done or JobStatus.Failed)
             {
                 return status;
             }

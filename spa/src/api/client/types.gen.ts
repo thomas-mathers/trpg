@@ -627,7 +627,7 @@ export type ItemSelection = {
 
 export type ItemType = 'Dagger' | 'Sword' | 'Axe' | 'Mace' | 'Hammer' | 'Staff' | 'Wand' | 'Bow' | 'Crossbow' | 'Javelin' | 'GreatSword' | 'GreatAxe' | 'GreatHammer' | 'Helm' | 'Chest' | 'Boots' | 'Gloves' | 'Arrow' | 'Bolt' | 'Ring' | 'Necklace' | 'Belt' | 'Shield' | 'Consumable' | 'Gold' | 'Key' | 'Book' | 'Misc';
 
-export type JobStatus = 'Idle' | 'Queued' | 'InProgress' | 'Done' | 'Failed' | 'Cancelled';
+export type JobStatus = 'Queued' | 'InProgress' | 'Done' | 'Failed';
 
 export type JobStatusResponse = {
     jobId: string;
@@ -777,6 +777,7 @@ export type NearbyPropSnapshot = {
     model: PropModel;
     placement: PlacementWire;
     footprint: FootprintWire;
+    blocksMovement: boolean;
 };
 
 export type NeighborSnapshot = {
@@ -992,13 +993,6 @@ export type TheftDetectionChanceRequest = {
 
 export type TheftDetectionChanceResponse = {
     successChance: null | number;
-};
-
-export type ToggleSneakingResponse = {
-    creatureId: string;
-    isSneaking: boolean;
-    movementSpeed: number;
-    walkMetersPerSecond: number;
 };
 
 export type TradeProposalResponse = {
@@ -1353,24 +1347,6 @@ export type UnequipCreatureItemResponses = {
 
 export type UnequipCreatureItemResponse = UnequipCreatureItemResponses[keyof UnequipCreatureItemResponses];
 
-export type ToggleCreatureSneakingData = {
-    body?: never;
-    path: {
-        creatureId: string;
-    };
-    query?: never;
-    url: '/creatures/{creatureId}/sneaking';
-};
-
-export type ToggleCreatureSneakingResponses = {
-    /**
-     * OK
-     */
-    200: ToggleSneakingResponse;
-};
-
-export type ToggleCreatureSneakingResponse = ToggleCreatureSneakingResponses[keyof ToggleCreatureSneakingResponses];
-
 export type PreviewCreatureEquipmentData = {
     body?: never;
     path: {
@@ -1508,48 +1484,6 @@ export type BeginCreatureInteractionResponses = {
 };
 
 export type BeginCreatureInteractionResponse = BeginCreatureInteractionResponses[keyof BeginCreatureInteractionResponses];
-
-export type EndCaravanInteractionData = {
-    body?: never;
-    path: {
-        playerId: string;
-        caravanId: string;
-    };
-    query: {
-        worldId: string;
-    };
-    url: '/players/{playerId}/caravans/{caravanId}/interaction';
-};
-
-export type EndCaravanInteractionResponses = {
-    /**
-     * No Content
-     */
-    204: void;
-};
-
-export type EndCaravanInteractionResponse = EndCaravanInteractionResponses[keyof EndCaravanInteractionResponses];
-
-export type BeginCaravanInteractionData = {
-    body?: never;
-    path: {
-        playerId: string;
-        caravanId: string;
-    };
-    query: {
-        worldId: string;
-    };
-    url: '/players/{playerId}/caravans/{caravanId}/interaction';
-};
-
-export type BeginCaravanInteractionResponses = {
-    /**
-     * No Content
-     */
-    204: void;
-};
-
-export type BeginCaravanInteractionResponse = BeginCaravanInteractionResponses[keyof BeginCaravanInteractionResponses];
 
 export type GetPlayerFightData = {
     body?: never;
@@ -2174,9 +2108,7 @@ export type GetSignTextData = {
     path: {
         signId: string;
     };
-    query: {
-        worldId: string;
-    };
+    query?: never;
     url: '/signs/{signId}';
 };
 

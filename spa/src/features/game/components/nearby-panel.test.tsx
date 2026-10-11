@@ -362,39 +362,4 @@ describe('NearbyPanel', () => {
       await screen.findByText(/Clockwise: next arrival Duskday, Frostwane 6 - 15:00/),
     ).toBeVisible();
   });
-
-  it('does not show a Caravans section when no caravan is nearby', () => {
-    renderPanel(scene(undefined));
-
-    expect(screen.queryByText('Caravans')).not.toBeInTheDocument();
-  });
-
-  it('opens the caravan dialog for a lingering caravan', async () => {
-    const sceneWithCaravan = {
-      ...scene(undefined),
-      nearbyCaravans: [
-        {
-          caravanId: 'caravan-id',
-          routeName: 'The Capital Circuit',
-          ticketFeeGold: 10,
-          minutesUntilDeparture: 15,
-          passengerServiceAvailable: true,
-          destinations: [
-            {
-              locationId: 'destination-id',
-              locationName: 'Stonebridge',
-              travelTimeHours: 4,
-              hasTicket: false,
-            },
-          ],
-        },
-      ],
-    } as unknown as SceneSnapshot;
-    const { user } = renderPanel(sceneWithCaravan);
-
-    await user.click(screen.getByRole('button', { name: 'The Capital Circuit' }));
-
-    expect(await screen.findByRole('heading', { name: 'The Capital Circuit' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Buy ticket' })).toBeVisible();
-  });
 });

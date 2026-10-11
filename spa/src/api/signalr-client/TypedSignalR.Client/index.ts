@@ -128,14 +128,6 @@ class IChatHub_HubProxy implements IChatHub {
         return await this.connection.invoke("SendDeliverItem", recipientId);
     }
 
-    public readonly sendPurchaseCaravanTicket = async (caravanId: string, destinationLocationId: string): Promise<ActionResult> => {
-        return await this.connection.invoke("SendPurchaseCaravanTicket", caravanId, destinationLocationId);
-    }
-
-    public readonly sendBoardCaravan = async (caravanId: string): Promise<ActionResult> => {
-        return await this.connection.invoke("SendBoardCaravan", caravanId);
-    }
-
     public readonly sendMove = async (connectorId: string): Promise<ActionResult> => {
         return await this.connection.invoke("SendMove", connectorId);
     }

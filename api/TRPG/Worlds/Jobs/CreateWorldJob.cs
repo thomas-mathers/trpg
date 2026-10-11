@@ -1,8 +1,4 @@
-using System.Text.Json;
-using TickerQ.Utilities.Base;
-using TickerQ.Utilities.Interfaces;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Serialization;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation;
 using TRPG.Data;
@@ -10,29 +6,19 @@ using TRPG.Worlds.Responses;
 
 namespace TRPG.Worlds.Jobs;
 
-public class CreateWorldJob(
+internal sealed class CreateWorldJob(
     ICommandHandler<CreateWorldCommand, CreateWorldResult> handler,
-    TrpgTickerQDbContext tickerContext,
     WorldSimulationCoordinator simulation
-) : ITickerFunction<CreateWorldCommand>
+)
 {
-    public async Task ExecuteAsync(
-        TickerFunctionContext<CreateWorldCommand> context,
+    public async Task<CreateWorldResponse> Run(
+        CreateWorldCommand command,
         CancellationToken cancellationToken
     )
     {
-        var result = await CreateWorld(context.Request, cancellationToken);
+        var result = await CreateWorld(command, cancellationToken);
         await simulation.EnsureRunner(result.WorldId, cancellationToken);
-
-        var ticker = await tickerContext.TimeTickers.FindAsync([context.Id], cancellationToken);
-        if (ticker is not null)
-        {
-            ticker.ResultJson = JsonSerializer.Serialize(
-                new CreateWorldResponse(result.WorldId, result.PlayerId, result.WorldName),
-                TrpgJsonOptions.Default
-            );
-            await tickerContext.SaveChangesAsync(cancellationToken);
-        }
+        return new CreateWorldResponse(result.WorldId, result.PlayerId, result.WorldName);
     }
 
     private async Task<CreateWorldResult> CreateWorld(

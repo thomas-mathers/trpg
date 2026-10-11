@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Serialization;
-using TRPG.Data;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests;
@@ -75,35 +73,6 @@ public sealed class EndpointTestFixture(PostgreSqlFixture postgres) : IAsyncLife
     public async ValueTask InitializeAsync()
     {
         await _databaseFixture.InitializeAsync();
-
-        // AddTrpgJobs reads ConnectionStrings:Trpg eagerly (a plain captured string, unlike
-        // AddTrpgDbContext's per-resolution IConfiguration read), before builder.Build() runs —
-        // too early for WebApplicationFactory's ConfigureAppConfiguration override to reach it.
-        // The environment variable is picked up by WebApplicationBuilder's own
-        // AddEnvironmentVariables() call, which runs synchronously as CreateBuilder(args)'s
-        // first configuration source, so it's visible even to that eager read.
-        Environment.SetEnvironmentVariable(
-            "ConnectionStrings__Trpg",
-            _databaseFixture.ConnectionString
-        );
-
-        await using (
-            var tickerContext = new TrpgTickerQDbContext(
-                new DbContextOptionsBuilder<TrpgTickerQDbContext>()
-                    .UseNpgsql(
-                        _databaseFixture.ConnectionString,
-                        sql =>
-                        {
-                            sql.MigrationsAssembly("TRPG.Data");
-                            sql.MigrationsHistoryTable("__TickerQMigrationsHistory");
-                        }
-                    )
-                    .Options
-            )
-        )
-        {
-            await tickerContext.Database.MigrateAsync();
-        }
 
         _factory = TestWebApplicationFactory.Create(_databaseFixture.ConnectionString, ChatClient);
     }
