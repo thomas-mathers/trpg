@@ -7,6 +7,7 @@ using TRPG.Application.Combat;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
 using TRPG.Application.Creatures.Commands;
@@ -36,7 +37,7 @@ public interface IChatHub
     Task<ActionResult> SendCompleteQuest(Guid questId);
     Task<ActionResult> SendDeliverItem(Guid recipientId);
     Task<ActionResult> SendMove(Guid connectorId);
-    Task ReportPose(Guid locationId, double x, double y, double angle);
+    Task SendMovementInput(PlayerMovementInput input);
     Task<ActionResult> SendFlee();
     Task<ActionResult> SendRespawn();
     Task<ActionResult> SendCastAbility(Guid targetId, string abilityName);
@@ -64,11 +65,11 @@ public interface IChatHub
 internal sealed class ChatHub(
     GameTurnRunner gameTurnRunner,
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
-    ICommandHandler<ReportPlayerPoseCommand> reportPlayerPose,
     ICommandHandler<FlushPlayerPoseCommand> flushPlayerPose,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     PendingSessionEndRegistry pendingSessionEnds,
-    WorldSimulationCoordinator simulation
+    WorldSimulationCoordinator simulation,
+    TimeProvider timeProvider
 ) : Hub<IGameClient>, IChatHub
 {
     private const string SessionKey = "Session";
@@ -161,18 +162,21 @@ internal sealed class ChatHub(
     public Task<ActionResult> SendMove(Guid connectorId) =>
         Result(gameTurnRunner.Move(Session, connectorId, Context.ConnectionAborted));
 
-    public Task ReportPose(Guid locationId, double x, double y, double angle) =>
-        reportPlayerPose.Handle(
-            new ReportPlayerPoseCommand
-            {
-                PlayerId = Session.PlayerId,
-                LocationId = locationId,
-                X = x,
-                Y = y,
-                Angle = angle,
-            },
-            Context.ConnectionAborted
+    public Task SendMovementInput(PlayerMovementInput input)
+    {
+        simulation.Post(
+            Session.WorldId,
+            new PlayerInput(
+                Session.PlayerId,
+                input.LocationId,
+                new MovementInput(input.Forward, input.Strafe, input.Heading),
+                new Point(input.X, input.Y),
+                timeProvider.GetUtcNow()
+            )
         );
+
+        return Task.CompletedTask;
+    }
 
     public Task<ActionResult> SendFlee() =>
         Result(gameTurnRunner.Flee(Session, Context.ConnectionAborted));

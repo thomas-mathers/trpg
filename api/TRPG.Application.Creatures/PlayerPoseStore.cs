@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using TRPG.Application.Common.Navigation;
 
 namespace TRPG.Application.Creatures;
 
@@ -9,7 +10,10 @@ internal sealed record PlayerPose(
     double Angle,
     DateTimeOffset ReportedAt,
     bool IsDirty
-);
+)
+{
+    public MovementInput? Input { get; init; }
+}
 
 internal sealed class PlayerPoseStore
 {

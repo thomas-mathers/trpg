@@ -4,7 +4,7 @@
 // @ts-nocheck
 import type { HubConnection, IStreamResult, Subject } from '@microsoft/signalr';
 import type { IChatHub, IGameClient } from './TRPG.GameSessions.Hubs';
-import type { ActionResult, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -136,8 +136,8 @@ class IChatHub_HubProxy implements IChatHub {
         return await this.connection.invoke("SendMove", connectorId);
     }
 
-    public readonly reportPose = async (locationId: string, x: number, y: number, angle: number): Promise<void> => {
-        return await this.connection.invoke("ReportPose", locationId, x, y, angle);
+    public readonly sendMovementInput = async (input: PlayerMovementInput): Promise<void> => {
+        return await this.connection.invoke("SendMovementInput", input);
     }
 
     public readonly sendFlee = async (): Promise<ActionResult> => {
@@ -266,6 +266,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         const __theftEncounterStarted = (...args: [TheftEncounterState]) => receiver.theftEncounterStarted(...args);
         const __theftEncounterResolved = (...args: [TheftEncounterResolutionFact]) => receiver.theftEncounterResolved(...args);
         const __playerVitalsUpdated = (...args: [PlayerVitalsUpdated]) => receiver.playerVitalsUpdated(...args);
+        const __playerCorrected = (...args: [PlayerCorrectedPayload]) => receiver.playerCorrected(...args);
         const __skillLevelUp = (...args: [SkillLevelUp]) => receiver.skillLevelUp(...args);
         const __characterLevelUp = (...args: [CharacterLevelUp]) => receiver.characterLevelUp(...args);
         const __questObjectiveCompleted = (...args: [QuestObjectiveCompleted]) => receiver.questObjectiveCompleted(...args);
@@ -298,6 +299,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
         connection.on("TheftEncounterStarted", __theftEncounterStarted);
         connection.on("TheftEncounterResolved", __theftEncounterResolved);
         connection.on("PlayerVitalsUpdated", __playerVitalsUpdated);
+        connection.on("PlayerCorrected", __playerCorrected);
         connection.on("SkillLevelUp", __skillLevelUp);
         connection.on("CharacterLevelUp", __characterLevelUp);
         connection.on("QuestObjectiveCompleted", __questObjectiveCompleted);
@@ -331,6 +333,7 @@ class IGameClient_Binder implements ReceiverRegister<IGameClient> {
             { methodName: "TheftEncounterStarted", method: __theftEncounterStarted },
             { methodName: "TheftEncounterResolved", method: __theftEncounterResolved },
             { methodName: "PlayerVitalsUpdated", method: __playerVitalsUpdated },
+            { methodName: "PlayerCorrected", method: __playerCorrected },
             { methodName: "SkillLevelUp", method: __skillLevelUp },
             { methodName: "CharacterLevelUp", method: __characterLevelUp },
             { methodName: "QuestObjectiveCompleted", method: __questObjectiveCompleted },

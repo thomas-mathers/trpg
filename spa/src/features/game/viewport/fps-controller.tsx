@@ -8,6 +8,7 @@ import type {
   NearbyExitSnapshot,
   PlacementWire,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import { gameEventBus } from '@/lib/game-event-bus';
 
 import { useScene } from '../contexts/scene-context';
 import {
@@ -23,7 +24,7 @@ import {
 } from './layout-math';
 import { findSeatInRange, type ViewportSeat } from './seat-interaction';
 import { useDebugTeleport } from './use-debug-teleport';
-import { usePoseReporter } from './use-pose-reporter';
+import { type InputFrame, useInputReporter } from './use-input-reporter';
 import { useSeatedCamera } from './use-seated-camera';
 
 const MAX_FRAME_SECONDS = 0.1;
@@ -51,7 +52,7 @@ interface FpsControllerProps {
   onLockChange: (locked: boolean) => void;
   onNearbyConnectorChange: (connector: NearbyExitSnapshot | undefined) => void;
   onEnterConnector: (connector: NearbyExitSnapshot) => void;
-  onPoseChange: (pose: PlacementWire) => void;
+  onInputChange: (input: InputFrame) => void;
 }
 
 const axis = (keys: Set<string>, positive: string[], negative: string[]) =>
@@ -73,7 +74,7 @@ export function FpsController({
   onLockChange,
   onNearbyConnectorChange,
   onEnterConnector,
-  onPoseChange,
+  onInputChange,
 }: FpsControllerProps) {
   const camera = useThree((state) => state.camera);
   const pressed = useRef(new Set<string>());
@@ -89,7 +90,18 @@ export function FpsController({
 
   const { scene, setMovementSpeed } = useScene();
   const { locationId } = scene;
-  const trackPose = usePoseReporter(locationId, onPoseChange);
+  const { track: trackInput, halt: haltInput } = useInputReporter(locationId, onInputChange);
+
+  useEffect(
+    () =>
+      gameEventBus.on('PlayerCorrected', (correction) => {
+        if (correction.locationId !== locationId) return;
+        const [dx, , dz] = toScenePosition(correction.offsetX, correction.offsetY);
+        camera.position.x += dx;
+        camera.position.z += dz;
+      }),
+    [camera, locationId],
+  );
 
   useEffect(() => {
     handlers.current = {
@@ -156,19 +168,25 @@ export function FpsController({
   }, [scene.playerStatus.id, setMovementSpeed]);
 
   useFrame((_, deltaSeconds) => {
-    if (seated || movementLocked || cameraHeld.current) return;
+    if (seated || movementLocked || cameraHeld.current) {
+      haltInput();
+      return;
+    }
     const keys = pressed.current;
+    const heading = yawToHeading(camera.rotation.y);
+    const forward = axis(keys, FORWARD_KEYS, BACKWARD_KEYS);
+    const strafe = axis(keys, RIGHT_KEYS, LEFT_KEYS);
     const delta = computeMovement({
-      heading: yawToHeading(camera.rotation.y),
-      forward: axis(keys, FORWARD_KEYS, BACKWARD_KEYS),
-      strafe: axis(keys, RIGHT_KEYS, LEFT_KEYS),
+      heading,
+      forward,
+      strafe,
       speed: walkSpeed,
       deltaSeconds: Math.min(deltaSeconds, MAX_FRAME_SECONDS),
     });
     const attempted = { x: camera.position.x + delta.x, y: camera.position.z + delta.y };
     const next = clampToBounds(pushOutOfObstacles(attempted, obstacles), size);
     camera.position.set(next.x, EYE_HEIGHT, next.y);
-    trackPose({ ...next, angle: yawToHeading(camera.rotation.y) }, performance.now());
+    trackInput({ forward, strafe, heading, x: next.x, y: next.y }, performance.now());
 
     const seat = findSeatInRange(next, seats);
     if (

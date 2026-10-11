@@ -2,10 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { PCFShadowMap, type Scene, type WebGPURenderer } from 'three/webgpu';
 
-import type {
-  NearbyExitSnapshot,
-  PlacementWire,
-} from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
 import {
@@ -40,6 +37,7 @@ import { OutdoorLighting } from './outdoor-lighting';
 import { OutdoorSky } from './outdoor-sky';
 import { RenderDiagnostics } from './render-diagnostics';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
+import type { InputFrame } from './use-input-reporter';
 import { useSeatInteraction } from './use-seat-interaction';
 import {
   Boxes,
@@ -161,8 +159,10 @@ export function LocationViewport({
     void runAction(chatHub.sendMove(connectorId));
   };
 
-  const handlePoseChange = ({ x, y, angle }: PlacementWire) => {
-    chatHub.reportPose(scene.locationId, x, y, angle).catch(() => {});
+  const handleInputChange = ({ forward, strafe, heading, x, y }: InputFrame) => {
+    chatHub
+      .sendMovementInput({ locationId: scene.locationId, forward, strafe, heading, x, y })
+      .catch(() => {});
   };
 
   const targetCreature = scene.nearbyCreatures.find((creature) => creature.id === targetId);
@@ -251,7 +251,7 @@ export function LocationViewport({
             onLockChange={setLocked}
             onNearbyConnectorChange={(connector) => setNearbyConnectorId(connector?.connectorId)}
             onEnterConnector={handleEnterConnector}
-            onPoseChange={handlePoseChange}
+            onInputChange={handleInputChange}
           />
           {isRoomScene(scene) ? (
             <IndoorLighting size={size} props={props} />

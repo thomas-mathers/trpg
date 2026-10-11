@@ -364,8 +364,45 @@ public sealed class WorldSimulationRunner(
             case TrackCreature track:
                 await Track(track.CreatureId, now, cancellationToken);
                 break;
+            case PlayerInput input:
+                await ApplyPlayerInput(input, cancellationToken);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(message));
+        }
+    }
+
+    private async Task ApplyPlayerInput(PlayerInput input, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var scope = serviceScopeFactory.CreateAsyncScope();
+            await scope
+                .ServiceProvider.GetRequiredService<ICommandHandler<ApplyPlayerInputCommand>>()
+                .Handle(
+                    new ApplyPlayerInputCommand
+                    {
+                        WorldId = worldId,
+                        PlayerId = input.PlayerId,
+                        LocationId = input.LocationId,
+                        Input = input.Input,
+                        ClientPosition = input.ClientPosition,
+                        ReceivedAt = input.ReceivedAt,
+                    },
+                    cancellationToken
+                );
+            await scope
+                .ServiceProvider.GetRequiredService<IGameClientEventDispatcher>()
+                .FlushAsync(worldId, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogWarning(
+                exception,
+                "Dropped player input for {PlayerId} in world {WorldId}",
+                input.PlayerId,
+                worldId
+            );
         }
     }
 
