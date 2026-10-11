@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.CreatureJobs.Commands;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Props.Queries;
 using TRPG.Application.Worlds.Commands;
@@ -20,9 +19,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     private static readonly Guid WorldId = Guid.NewGuid();
     private static readonly Guid PlayerId = Guid.NewGuid();
 
-    private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private AddCreatureCommandHandler _addCreature = null!;
-    private AddCreatureJobCommandHandler _addJob = null!;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private GetWorkstationsByLocationIdQueryHandler _getWorkstationsByLocationId = null!;
@@ -35,9 +32,7 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _addJob = _serviceProvider.GetRequiredService<AddCreatureJobCommandHandler>();
         _addCreature = _serviceProvider.GetRequiredService<AddCreatureCommandHandler>();
-        _addBuildingOwner = _serviceProvider.GetRequiredService<AddBuildingOwnerCommandHandler>();
         _getWorkstationsByLocationId =
             _serviceProvider.GetRequiredService<GetWorkstationsByLocationIdQueryHandler>();
         _handler = _serviceProvider.GetRequiredService<CatchUpLocationCommandHandler>();
@@ -77,11 +72,11 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
         return creature;
     }
 
-    private Task AddJob(CreatureJob job) =>
-        _addJob.Handle(
-            new AddCreatureJobCommand { CreatureJob = job },
-            TestContext.Current.CancellationToken
-        );
+    private async Task AddJob(CreatureJob job)
+    {
+        _context.CreatureJobs.Add(job);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
 
     private async Task<LocationConnector> AddConnector(
         Guid originLocationId,
@@ -225,11 +220,10 @@ public sealed class CatchUpLocationCommandTests(DatabaseFixture db)
     {
         var building = Builders.MakeBuilding(worldId: WorldId);
         _context.Buildings.Add(building);
-        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _addBuildingOwner.Handle(
-            new AddBuildingOwnerCommand { BuildingId = building.Id, OwnerId = ownerId },
-            TestContext.Current.CancellationToken
+        _context.BuildingOwners.Add(
+            Builders.MakeBuildingOwner(building.Id, ownerId, worldId: WorldId)
         );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return building;
     }
 

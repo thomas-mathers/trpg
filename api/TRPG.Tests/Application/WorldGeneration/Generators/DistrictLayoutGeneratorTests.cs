@@ -622,3 +622,9 @@ public class DistrictLayoutGeneratorTests
         return OrientedBox.From(center, new Footprint(Width: 1.5, Depth: 1.5));
     }
 }
+
+internal static class PlanRectTestExtensions
+{
+    internal static OrientedBox ToBox(this PlanRect rectangle) =>
+        new(rectangle.CenterX, rectangle.CenterY, rectangle.Width, rectangle.Depth, 0);
+}

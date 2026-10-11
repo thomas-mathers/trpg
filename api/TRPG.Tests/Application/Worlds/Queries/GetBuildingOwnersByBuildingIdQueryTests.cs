@@ -1,4 +1,3 @@
-using TRPG.Application.Worlds.Commands;
 using TRPG.Application.Worlds.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
@@ -10,7 +9,6 @@ public sealed class GetBuildingOwnersByBuildingIdQueryTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
-    private AddBuildingOwnerCommandHandler _addBuildingOwner = null!;
     private TrpgDbContext _context = null!;
     private GetBuildingOwnersByBuildingIdQueryHandler _handler = null!;
     private readonly Building _building = Builders.MakeBuilding();
@@ -19,7 +17,6 @@ public sealed class GetBuildingOwnersByBuildingIdQueryTests(DatabaseFixture db)
     {
         _context = db.CreateContext();
         _handler = new GetBuildingOwnersByBuildingIdQueryHandler(_context);
-        _addBuildingOwner = new AddBuildingOwnerCommandHandler(_context);
 
         _context.Buildings.Add(_building);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -36,14 +33,11 @@ public sealed class GetBuildingOwnersByBuildingIdQueryTests(DatabaseFixture db)
         // Arrange
         var ownerId1 = Guid.NewGuid();
         var ownerId2 = Guid.NewGuid();
-        await _addBuildingOwner.Handle(
-            new AddBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = ownerId1 },
-            TestContext.Current.CancellationToken
+        _context.BuildingOwners.AddRange(
+            Builders.MakeBuildingOwner(_building.Id, ownerId1, worldId: _building.WorldId),
+            Builders.MakeBuildingOwner(_building.Id, ownerId2, worldId: _building.WorldId)
         );
-        await _addBuildingOwner.Handle(
-            new AddBuildingOwnerCommand { BuildingId = _building.Id, OwnerId = ownerId2 },
-            TestContext.Current.CancellationToken
-        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
         var result = await _handler.Handle(

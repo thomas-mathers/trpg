@@ -145,8 +145,6 @@ public record SceneNearbyBuildingInfo(
     int FloorCount
 );
 
-public record SceneGreenSpaceInfo(Guid Id, Placement Placement, Footprint Footprint);
-
 public record SceneCaravanDestination(
     Guid LocationId,
     string LocationName,

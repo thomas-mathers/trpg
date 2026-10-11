@@ -9,9 +9,3 @@ public record CreatureVitals(
     int CurrentMp,
     int MaximumMp
 );
-
-public static class CreatureVitalsExtensions
-{
-    public static bool HasDied(this IEnumerable<CreatureVitals> vitals, Guid creatureId) =>
-        vitals.Any(v => v.CreatureId == creatureId && v.CurrentHp <= 0);
-}

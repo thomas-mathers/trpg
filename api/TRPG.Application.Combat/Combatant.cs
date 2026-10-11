@@ -6,7 +6,6 @@ using TRPG.Domain.Models;
 using ActiveBuff = TRPG.Application.CreatureFormulas.ActiveBuff;
 using ActiveDot = TRPG.Application.Effects.ActiveDot;
 using ActiveHot = TRPG.Application.Effects.ActiveHot;
-using PersistedCombat = TRPG.Domain.Models;
 
 namespace TRPG.Application.Combat;
 
@@ -206,56 +205,6 @@ public class Combatant
         };
 
         return combatant;
-    }
-
-    public void ApplyTo(Creature creature)
-    {
-        creature.CurrentHp = CurrentHp;
-        creature.CurrentAp = CurrentAp;
-        creature.CurrentMp = CurrentMp;
-        creature.ActiveConditions = ActiveConditions.ToDictionary(
-            kv => kv.Key.ToString(),
-            kv => kv.Value
-        );
-        creature.CooldownReadyAtByAbility = new Dictionary<string, GameInstant>(
-            CooldownReadyAtByAbility
-        );
-        creature.ActiveDots = ActiveDots
-            .Select(d => new PersistedCombat.ActiveDot
-            {
-                AbilityName = d.AbilityName,
-                Amount = d.Amount,
-                DamageType = d.DamageType.ToString(),
-                NextTickAt = d.NextTickAt,
-                ExpiresAt = d.ExpiresAt,
-            })
-            .ToList();
-        creature.ActiveHots = ActiveHots
-            .Select(h => new PersistedCombat.ActiveHot
-            {
-                AbilityName = h.AbilityName,
-                Amount = h.Amount,
-                NextTickAt = h.NextTickAt,
-                ExpiresAt = h.ExpiresAt,
-            })
-            .ToList();
-        creature.ActiveBuffs = ActiveBuffs
-            .Select(b => new PersistedCombat.ActiveBuff
-            {
-                AbilityName = b.AbilityName,
-                Amount = b.Amount,
-                Attribute = b.Attribute.ToString(),
-                ExpiresAt = b.ExpiresAt,
-                AmountType = b.AmountType.ToString(),
-            })
-            .ToList();
-
-        StatFormulas.Recalculate(creature, EquippedItems);
-
-        if (!IsAlive)
-        {
-            creature.Die();
-        }
     }
 
     private float CalculateEffectiveAttribute(AttributeName attribute) =>

@@ -65,7 +65,6 @@ public class CreatureSimulatorTests
 
         // Assert
         var state = simulator.StateOf(_creatureId)!;
-        Assert.True(simulator.IsSchedulerSleeping(_creatureId, Morning));
         Assert.Equal(WorkStart, state.NextUpdateAt);
     }
 
@@ -110,7 +109,7 @@ public class CreatureSimulatorTests
         simulator.SetSevereWeatherLocations(new HashSet<Guid>(), Morning);
 
         // Assert
-        Assert.False(simulator.IsSchedulerSleeping(_creatureId, Morning));
+        Assert.Equal(Morning, simulator.StateOf(_creatureId)!.NextUpdateAt);
     }
 
     [Fact]

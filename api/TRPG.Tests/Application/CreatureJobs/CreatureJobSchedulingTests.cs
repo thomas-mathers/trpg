@@ -108,17 +108,6 @@ public class CreatureJobSchedulingTests
     }
 
     [Fact]
-    public void FindMostRecentEndGameTime_ReturnsThePreviousOvernightShiftBoundary()
-    {
-        var gameTime = GameClock.Epoch + TimeSpan.FromHours(1) * 23;
-        var job = Job(startHour: 22, endHour: 6);
-
-        var end = CreatureJobScheduling.FindMostRecentEndGameTime(job, gameTime);
-
-        Assert.Equal(GameClock.Epoch + TimeSpan.FromHours(22), end);
-    }
-
-    [Fact]
     public void FindCurrentOrNextJob_ReturnsUpcomingJobStart()
     {
         var gameTime = GameClock.Epoch;

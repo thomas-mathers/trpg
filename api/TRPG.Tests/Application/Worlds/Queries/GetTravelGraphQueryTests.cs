@@ -51,7 +51,9 @@ public sealed class GetTravelGraphQueryTests(DatabaseFixture db)
             connector =>
                 Assert.Contains(
                     connector.Id,
-                    graph.ConnectorsFrom(connector.OriginLocationId).Select(item => item.Id)
+                    graph
+                        .FindShortestPath(connector.OriginNodeId, connector.DestinationNodeId)
+                        .Select(leg => leg.ConnectorId)
                 )
         );
         Assert.All(

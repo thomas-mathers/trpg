@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.NpcConversations.Commands;
-using TRPG.Application.NpcConversations.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -18,7 +17,6 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private CloseNpcConversationCommandHandler _handler = null!;
-    private GetNpcConversationSummaryQueryHandler _getSummary = null!;
     private GameSession _session = null!;
 
     public async ValueTask InitializeAsync()
@@ -28,7 +26,6 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db)
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
             .BuildServiceProvider();
-        _getSummary = _serviceProvider.GetRequiredService<GetNpcConversationSummaryQueryHandler>();
         _handler = _serviceProvider.GetRequiredService<CloseNpcConversationCommandHandler>();
 
         _session = Builders.MakeGameSession(WorldId, PlayerId);
@@ -137,10 +134,11 @@ public sealed class CloseNpcConversationCommandHandlerTests(DatabaseFixture db)
         );
 
         // Assert
-        var summary = await _getSummary.Handle(
-            new GetNpcConversationSummaryQuery { CreatureId = PlayerId, NpcId = npcId },
-            TestContext.Current.CancellationToken
-        );
+        var summary = await _context
+            .NpcConversationHistories.AsNoTracking()
+            .Where(history => history.CreatureId == PlayerId && history.NpcId == npcId)
+            .Select(history => history.Summary)
+            .SingleAsync(TestContext.Current.CancellationToken);
         Assert.Equal("They fought briefly.", summary);
     }
 
