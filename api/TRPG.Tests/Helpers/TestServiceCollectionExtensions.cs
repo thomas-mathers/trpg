@@ -73,7 +73,18 @@ internal static class TestServiceCollectionExtensions
     public static IServiceCollection WithSimulationPump(
         this IServiceCollection services,
         string connectionString
-    ) => services.WithScopedDbContexts(connectionString).AddSingleton<SimulationPump>();
+    )
+    {
+        var clock = services
+            .Single(descriptor => descriptor.ServiceType == typeof(IWorldClock))
+            .ImplementationInstance;
+        if (clock is TestWorldClock testClock)
+        {
+            testClock.ReadConnectionString = connectionString;
+        }
+
+        return services.WithScopedDbContexts(connectionString).AddSingleton<SimulationPump>();
+    }
 }
 
 internal sealed class SimulationPump : IAsyncDisposable
@@ -93,15 +104,18 @@ internal sealed class SimulationPump : IAsyncDisposable
 
     private async Task Pump(WorldSimulationCoordinator coordinator)
     {
-        try
+        while (!_stop.IsCancellationRequested)
         {
-            while (!_stop.IsCancellationRequested)
+            try
             {
                 await coordinator.Tick(_stop.Token);
                 await Task.Delay(TimeSpan.FromMilliseconds(10), _stop.Token);
             }
+            catch (Exception)
+            {
+                // The coordinator logs its own failures; a pump that dies would hang every pending request.
+            }
         }
-        catch (OperationCanceledException) { }
     }
 }
 
@@ -109,16 +123,15 @@ internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock
 {
     private readonly Dictionary<Guid, GameInstant> _unpersistedTimes = [];
 
+    // Set when a background pump reads the clock while the test still uses the shared context.
+    public string? ReadConnectionString { get; set; }
+
     public async Task<GameInstant> GetCurrent(
         Guid worldId,
         CancellationToken cancellationToken = default
     )
     {
-        var gameTime = await context
-            .Worlds.AsNoTracking()
-            .Where(world => world.Id == worldId)
-            .Select(world => (GameInstant?)world.GameTime)
-            .SingleOrDefaultAsync(cancellationToken);
+        var gameTime = await ReadPersistedGameTime(worldId, cancellationToken);
 
         if (gameTime != null)
         {
@@ -141,6 +154,35 @@ internal sealed class TestWorldClock(TrpgDbContext context) : IWorldClock
 
         throw new EntityNotFoundException("World", worldId);
     }
+
+    private async Task<GameInstant?> ReadPersistedGameTime(
+        Guid worldId,
+        CancellationToken cancellationToken
+    )
+    {
+        if (ReadConnectionString is null)
+        {
+            return await QueryGameTime(context, worldId, cancellationToken);
+        }
+
+        var options = new DbContextOptionsBuilder<TrpgDbContext>()
+            .UseNpgsql(ReadConnectionString)
+            .Options;
+        await using var readContext = new TrpgDbContext(options);
+
+        return await QueryGameTime(readContext, worldId, cancellationToken);
+    }
+
+    private static Task<GameInstant?> QueryGameTime(
+        TrpgDbContext source,
+        Guid worldId,
+        CancellationToken cancellationToken
+    ) =>
+        source
+            .Worlds.AsNoTracking()
+            .Where(world => world.Id == worldId)
+            .Select(world => (GameInstant?)world.GameTime)
+            .SingleOrDefaultAsync(cancellationToken);
 
     public Task<GameInstant> ResumeWorld(
         Guid worldId,

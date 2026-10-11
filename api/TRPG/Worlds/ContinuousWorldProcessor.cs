@@ -25,6 +25,7 @@ internal sealed class ContinuousWorldProcessor(
     IServiceScopeFactory serviceScopeFactory,
     IWorldClock worldClock,
     IWorldMutationGate mutationGate,
+    WorldSimulationCoordinator simulation,
     ILogger<ContinuousWorldProcessor> logger
 )
 {
@@ -88,13 +89,35 @@ internal sealed class ContinuousWorldProcessor(
         CancellationToken cancellationToken
     )
     {
+        var mutatedWorld = await simulation.Request(
+            worldId,
+            (_, token) => RunPass(worldId, lane, token),
+            cancellationToken
+        );
+        if (!mutatedWorld)
+        {
+            return;
+        }
+
+        // Flushing can wait on client acks, which must never stall the world's runner.
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        await scope
+            .ServiceProvider.GetRequiredService<IGameClientEventDispatcher>()
+            .FlushAsync(worldId, cancellationToken);
+    }
+
+    private async Task<bool> RunPass(
+        Guid worldId,
+        ContinuousWorldLane lane,
+        CancellationToken cancellationToken
+    )
+    {
         await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
         await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var services = scope.ServiceProvider;
 
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
-        var players = await services
-            .GetRequiredService<
+        var players = await scope
+            .ServiceProvider.GetRequiredService<
                 IQueryHandler<
                     GetActiveLocationPlayersQuery,
                     IReadOnlyCollection<ActiveLocationPlayer>
@@ -103,18 +126,37 @@ internal sealed class ContinuousWorldProcessor(
             .Handle(new GetActiveLocationPlayersQuery { WorldId = worldId }, cancellationToken);
         if (players.Count == 0)
         {
-            return;
+            return false;
         }
 
         if (lane == ContinuousWorldLane.Frequent)
         {
             await TickEffects(worldId, players, gameTime, cancellationToken);
             await RegenerateCreatures(worldId, players, gameTime, cancellationToken);
-            await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
-            return;
+        }
+        else
+        {
+            await SyncRoutines(
+                scope.ServiceProvider,
+                worldId,
+                players,
+                gameTime,
+                cancellationToken
+            );
         }
 
-        await services
+        await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
+        return true;
+    }
+
+    private static Task SyncRoutines(
+        IServiceProvider services,
+        Guid worldId,
+        IReadOnlyCollection<ActiveLocationPlayer> players,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    ) =>
+        services
             .GetRequiredService<ICommandHandler<SyncActiveLocationRoutinesCommand>>()
             .Handle(
                 new SyncActiveLocationRoutinesCommand
@@ -125,13 +167,6 @@ internal sealed class ContinuousWorldProcessor(
                 },
                 cancellationToken
             );
-
-        // Spawn-driven encounters are queued by the routine sync; clients must see them before the scene.
-        await services
-            .GetRequiredService<IGameClientEventDispatcher>()
-            .FlushAsync(worldId, cancellationToken);
-        await PublishAmbientScenes(worldId, players, gameTime, cancellationToken);
-    }
 
     private async Task PublishAmbientScenes(
         Guid worldId,
@@ -158,11 +193,6 @@ internal sealed class ContinuousWorldProcessor(
                 cancellationToken
             );
         }
-
-        // Flushing inside the lease keeps the snapshot ordered with the mutations it describes.
-        await services
-            .GetRequiredService<IGameClientEventDispatcher>()
-            .FlushAsync(worldId, cancellationToken);
     }
 
     private async Task TickEffects(
@@ -186,11 +216,6 @@ internal sealed class ContinuousWorldProcessor(
                 },
                 cancellationToken
             );
-
-        // Flushing inside the lease keeps fight updates and vitals ordered with the mutations they describe.
-        await services
-            .GetRequiredService<IGameClientEventDispatcher>()
-            .FlushAsync(worldId, cancellationToken);
     }
 
     private async Task RegenerateCreatures(
@@ -214,11 +239,6 @@ internal sealed class ContinuousWorldProcessor(
                 },
                 cancellationToken
             );
-
-        // Flushing inside the lease keeps vitals ordered with the mutations they describe.
-        await services
-            .GetRequiredService<IGameClientEventDispatcher>()
-            .FlushAsync(worldId, cancellationToken);
     }
 
     private readonly record struct WorldLane(Guid WorldId, ContinuousWorldLane Lane);

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Worlds;
+using TRPG.Application.WorldSimulation;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Tests.Helpers;
@@ -27,8 +28,9 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
-            .WithScopedDbContexts(db.ConnectionString)
+            .WithSimulationPump(db.ConnectionString)
             .BuildServiceProvider();
+        _serviceProvider.GetRequiredService<SimulationPump>();
 
         var world = Builders.MakeWorld();
         _context.Worlds.Add(world);
@@ -39,6 +41,7 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             _worldClock,
             new WorldMutationGate(),
+            _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
             NullLogger<ContinuousWorldProcessor>.Instance
         );
         _service = new ContinuousWorldService(
@@ -96,10 +99,14 @@ public sealed class ContinuousWorldServiceTests(DatabaseFixture db)
         // Act
         _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
         await WaitFor(() => _worldClock.CurrentCount == 1);
-        _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
 
         // Assert
-        await WaitFor(() => _worldClock.CurrentCount == 2);
+        await WaitFor(() =>
+        {
+            // A tick that lands while the failed pass is still unwinding is skipped, so keep ticking.
+            _timeProvider.Advance(ContinuousWorldService.FrequentCadence);
+            return _worldClock.CurrentCount >= 2;
+        });
     }
 
     private static async Task WaitFor(Func<bool> condition)

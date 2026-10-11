@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
+using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Scenes.Events;
 using TRPG.Application.Worlds;
+using TRPG.Application.WorldSimulation;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -21,7 +23,6 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     private readonly ManualTimeProvider _timeProvider = new(
         new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
     );
-    private readonly WorldMutationGate _gate = new();
     private readonly RecordingLogger _logger = new();
     private readonly List<GameClientEvent> _flushedEvents = [];
 
@@ -29,6 +30,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private WorldClock _worldClock = null!;
     private ContinuousWorldProcessor _processor = null!;
+    private IWorldMutationGate _gate = null!;
     private World _world = null!;
     private Guid _stateId;
     private Creature _player = null!;
@@ -38,13 +40,22 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
-            .WithScopedDbContexts(db.ConnectionString)
+            .WithSimulationPump(db.ConnectionString)
             .AddSingleton(_flushedEvents)
+            .AddSingleton<TestGameClientEventSink>()
             .AddScoped<IGameClientEventDispatcher, RecordingGameClientEventDispatcher>()
             .BuildServiceProvider();
         var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
+        _gate = _serviceProvider.GetRequiredService<IWorldMutationGate>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
         _worldClock = new WorldClock(scopeFactory, _timeProvider);
-        _processor = new ContinuousWorldProcessor(scopeFactory, _worldClock, _gate, _logger);
+        _processor = new ContinuousWorldProcessor(
+            scopeFactory,
+            _worldClock,
+            _gate,
+            _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
+            _logger
+        );
 
         _world = Builders.MakeWorld();
         var country = Builders.MakeCountry(_world.Id);
@@ -222,6 +233,42 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task ProcessRoutines_RunsAfterTheRunnersCurrentRequest_WhenOneIsInFlight()
+    {
+        // Arrange
+        await _worldClock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        var coordinator = _serviceProvider.GetRequiredService<WorldSimulationCoordinator>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inFlight = coordinator.Request(
+            _world.Id,
+            async (_, _) =>
+            {
+                started.SetResult();
+                await release.Task;
+                return 0;
+            },
+            TestContext.Current.CancellationToken
+        );
+        await started.Task.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken
+        );
+
+        // Act
+        var pass = _processor.ProcessRoutines(TestContext.Current.CancellationToken);
+
+        // Assert
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+        Assert.False(pass.IsCompleted);
+        Assert.False(await WeatherExists());
+        release.SetResult();
+        await inFlight;
+        await pass;
+        Assert.True(await WeatherExists());
+    }
+
+    [Fact]
     public async Task ProcessRoutines_SkipsPass_WhenPreviousPassForWorldIsStillRunning()
     {
         // Arrange
@@ -267,6 +314,7 @@ public sealed class ContinuousWorldProcessorTests(DatabaseFixture db)
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             new FailingWorldClock(_world.Id),
             _gate,
+            _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
             _logger
         );
 

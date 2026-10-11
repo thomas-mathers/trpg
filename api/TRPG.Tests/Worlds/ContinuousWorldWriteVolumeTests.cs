@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Worlds;
+using TRPG.Application.WorldSimulation;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -40,14 +41,17 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
             .AddDbContext<TrpgDbContext>(options =>
                 options.UseNpgsql(db.ConnectionString).AddInterceptors(_interceptor)
             )
+            .AddSingleton<SimulationPump>()
             .AddScoped<IGameClientEventDispatcher, DiscardingGameClientEventDispatcher>()
             .BuildServiceProvider();
         var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
         _worldClock = new WorldClock(scopeFactory, _timeProvider);
         _processor = new ContinuousWorldProcessor(
             scopeFactory,
             _worldClock,
             new WorldMutationGate(),
+            _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
             NullLogger<ContinuousWorldProcessor>.Instance
         );
 
