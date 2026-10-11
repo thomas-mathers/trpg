@@ -6,4 +6,5 @@ public sealed class GameTurnContext
     public Guid WorldId { get; set; }
     public Guid PlayerId { get; set; }
     public bool PlayerMoved { get; set; }
+    public int ToolInvocations { get; set; }
 }

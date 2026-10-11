@@ -259,7 +259,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
   - [x] 0b-1 game-turn actions
   - [x] 0b-2 `ContinuousWorldProcessor` passes
   - [x] 0b-3 session start/end and creature endpoints
-  - [ ] 0b-4 streamer and tool calls
+  - [x] 0b-4 streamer and tool calls
 - [ ] PR 0c: delete the mutation gate
 - [ ] PR A: runner owns time, part 1 (effects, regen)
 - [ ] PR B: runner owns time, part 2 (maintenance, ambient, weather refresh)

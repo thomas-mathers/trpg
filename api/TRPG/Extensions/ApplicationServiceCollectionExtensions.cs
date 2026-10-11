@@ -27,6 +27,7 @@ using TRPG.Application.Routing.Extensions;
 using TRPG.Application.Scenes.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Application.Worlds.Extensions;
+using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Extensions;
 using TRPG.Commands;
 using TRPG.GameTurns.Tools;
@@ -118,6 +119,7 @@ public static class ApplicationServiceCollectionExtensions
                     }
                 ),
                 sp.GetRequiredService<GameTurnContext>(),
-                sp.GetRequiredService<IWorldMutationGate>()
+                sp.GetRequiredService<IWorldMutationGate>(),
+                sp.GetRequiredService<WorldSimulationCoordinator>()
             ));
 }
