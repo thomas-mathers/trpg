@@ -1,12 +1,21 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using TRPG.Application.Abilities;
+using TRPG.Application.Common.Clocks;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures;
-using TRPG.Application.Scenes;
+using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Events;
+using TRPG.Application.Creatures.Results;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Application.WorldSimulation.Movement;
+using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -19,10 +28,18 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private static readonly GameInstant Now = new(new DateTime(2000, 1, 3, 13, 0, 0));
+    private static readonly TimeSpan ActivePassInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan MaintenanceInterval = TimeSpan.FromSeconds(30);
 
     private readonly Guid _worldId = Guid.NewGuid();
+    private Guid _stateId;
     private Guid _playerId;
+    private readonly SwitchableOptions _options = new(
+        new WorldSimulationOptions { RoutinePlansPerTick = 1 }
+    );
 
+    private readonly RecordingDispatcher _dispatcher = new();
+    private readonly PoseWriteFault _poseWrites = new();
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private WorldSimulationRunner _runner = null!;
@@ -35,15 +52,18 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
-            .AddSingleton<IOptions<WorldSimulationOptions>>(
-                Options.Create(new WorldSimulationOptions { RouteSearchesPerTick = 1 })
-            )
+            .AddSingleton<IOptions<WorldSimulationOptions>>(_options)
             .WithScopedDbContexts(db.ConnectionString)
-            .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
+            .AddScoped<IGameClientEventDispatcher>(_ => _dispatcher)
+            .AddRecordingGameClientEvents()
+            .Decorate<ICommandHandler<ApplyCreaturePoseUpdatesCommand>>(
+                (inner, _) => FaultingProxy.Wrap(inner, _poseWrites)
+            )
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
-        _context.Worlds.Add(Builders.MakeWorld(_worldId));
+        _stateId = state.Id;
+        _context.Worlds.Add(Builders.MakeWorld(_worldId, Now));
         _home = Builders.MakeLocation(_worldId, state.Id);
         _workplace = Builders.MakeLocation(_worldId, state.Id);
         _door = Builders.MakeLocationConnector(_home.Id, _workplace.Id, worldId: _worldId);
@@ -204,20 +224,52 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Tick_PublishesTheScene_WhenAWorkerArrivesAtThePlayersLocation()
+    public async Task Tick_AnnouncesTheArrival_WhenAWorkerArrivesAtThePlayersLocation()
     {
         // Arrange
-        await AddWorker();
+        var worker = await AddWorker();
         await AddPlayerAt(_workplace);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
         await StartRunner();
 
         // Act
         await _runner.Tick(Now, TestContext.Current.CancellationToken);
 
         // Assert
-        Assert.NotNull(
-            _serviceProvider.GetRequiredService<PublishedSceneRegistry>().Find(_playerId)
+        Assert.Contains(
+            Published<CreaturesArrivedEvent>().SelectMany(arrived => arrived.Creatures),
+            creature => creature.Id == worker.Id
         );
+    }
+
+    [Fact]
+    public async Task Tick_KillsAWorkerOnArrival_WhenItsEffectsWereLethalOnTheWay()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        worker.CurrentHp = 1;
+        worker.ActiveDots = [BurningDot(amount: 1000)];
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await AddPlayerAt(_workplace);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(CreatureCondition.Dead, updated.Condition);
     }
 
     [Fact]
@@ -391,14 +443,702 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         Assert.Equal(0d, player.Angle);
     }
 
-    private async Task AddPlayerAt(Location location, double x = 0, double y = 0)
+    [Fact]
+    public async Task Tick_LeavesTheRestOfTheMailboxQueued_WhenTheMessageCapIsReached()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        _options.Current = new WorldSimulationOptions
+        {
+            RoutinePlansPerTick = 1,
+            MessagesPerTick = 1,
+        };
+        await StartRunner();
+        _runner.Post(new EngageCreature(worker.Id));
+        _runner.Post(new ReleaseCreature(worker.Id));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_home.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_LeavesTheRestOfTheMailboxQueued_WhenTheTimeBudgetIsSpent()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        _options.Current = new WorldSimulationOptions
+        {
+            RoutinePlansPerTick = 1,
+            MessageTimeBudget = TimeSpan.Zero,
+        };
+        await StartRunner();
+        _runner.Post(new EngageCreature(worker.Id));
+        _runner.Post(new ReleaseCreature(worker.Id));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_home.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_ReloadsFromTheDatabase_WhenAMessageFails()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _runner.Post(new EngageCreature(worker.Id));
+        _runner.Post(new SimulationRequest(FailingWork));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_WritesTheFailedBatchOnTheNextTick_WhenThePersistFails()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _poseWrites.Fails = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_HoldsQueuedRequests_UntilTheFailedBatchCommits()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var ran = false;
+        _runner.Post(
+            new SimulationRequest(
+                (_, _) =>
+                {
+                    ran = true;
+                    return Task.CompletedTask;
+                }
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.False(ran);
+    }
+
+    [Fact]
+    public async Task Tick_RunsQueuedRequests_AfterTheFailedBatchCommits()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var ran = false;
+        _runner.Post(
+            new SimulationRequest(
+                (_, _) =>
+                {
+                    ran = true;
+                    return Task.CompletedTask;
+                }
+            )
+        );
+        _poseWrites.Fails = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(ran);
+    }
+
+    [Fact]
+    public async Task Tick_ReloadsFromTheDatabase_AfterConsecutiveBatchFailures()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _options.Current = new WorldSimulationOptions
+        {
+            RoutinePlansPerTick = 1,
+            MaximumConsecutiveBatchFailures = 2,
+        };
+        _poseWrites.Fails = true;
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _poseWrites.Fails = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+        Assert.False(_runner.HasPendingWork);
+    }
+
+    [Fact]
+    public async Task Tick_AdvancesTheWorldStateVersion_WhenABatchIsWritten()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        var before = await ReadStateVersion();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(await ReadStateVersion() > before);
+    }
+
+    [Fact]
+    public async Task Tick_LeavesTheWorldStateVersion_WhenTheBatchFails()
+    {
+        // Arrange
+        await AddWorker();
+        await StartRunner();
+        var before = await ReadStateVersion();
+        _poseWrites.Fails = true;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(before, await ReadStateVersion());
+    }
+
+    [Fact]
+    public async Task Tick_RejectsQueuedRequests_WhenTheReloadFails()
+    {
+        // Arrange
+        await StartRunner();
+        _options.IsBroken = true;
+        Exception? rejection = null;
+        _runner.Post(new SimulationRequest(FailingWork));
+        _runner.Post(
+            new SimulationRequest((_, _) => Task.CompletedTask, error => rejection = error)
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.IsType<WorldUnavailableException>(rejection);
+    }
+
+    [Fact]
+    public async Task Post_Throws_WhenTheReloadFailed()
+    {
+        // Arrange
+        await StartRunner();
+        _options.IsBroken = true;
+        _runner.Post(new SimulationRequest(FailingWork));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        Assert.Throws<WorldUnavailableException>(() =>
+            _runner.Post(new ForgetPlayerPose(Guid.NewGuid()))
+        );
+    }
+
+    [Fact]
+    public async Task Tick_Recovers_WhenTheReloadSucceedsLater()
+    {
+        // Arrange
+        var worker = await AddWorker();
+        await StartRunner();
+        _options.IsBroken = true;
+        _runner.Post(new SimulationRequest(FailingWork));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _options.IsBroken = false;
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_PlansAtTheInstantAfterARequest_WhenTheRequestAdvancedTheClock()
+    {
+        // Arrange
+        var worker = Builders.MakeCreature(_worldId, locationId: _home.Id, movementSpeed: 50);
+        _context.Creatures.Add(worker);
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                worker.Id,
+                action: CreatureJobAction.Work,
+                startHour: 20,
+                endHour: 22,
+                locationId: _workplace.Id,
+                worldId: _worldId
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await StartRunner();
+        var clock = _serviceProvider.GetRequiredService<IWorldClock>();
+        _runner.Post(
+            new SimulationRequest(
+                async (_, cancellationToken) =>
+                    await clock.Advance(_worldId, TimeSpan.FromHours(8), cancellationToken)
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var updated = await db.ReadCreature(worker.Id);
+        Assert.Equal(_workplace.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotRegenerateThePlayer_OnTheFirstTick()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal(1, player.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotRegenerateThePlayer_BeforeTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(
+            Now + ActivePassInterval - TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal(1, player.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_RegeneratesThePlayer_WhenTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.True(player.CurrentHp > 1);
+    }
+
+    [Fact]
+    public async Task Tick_RegeneratesABystander_AndPublishesItsVitalsToThePlayersScene()
+    {
+        // Arrange
+        var bystander = Builders.MakeCreature(_worldId, locationId: _home.Id, currentHp: 1);
+        _context.Creatures.Add(bystander);
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var announced = LastAnnouncedVitals(bystander.Id);
+        var stored = await db.ReadCreature(bystander.Id);
+        Assert.True(stored.CurrentHp > 1);
+        Assert.Equal(stored.CurrentHp, announced.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotRegenerateFightCombatants_WhenTheIntervalElapsed()
+    {
+        // Arrange
+        var enemy = Builders.MakeCreature(_worldId, locationId: _home.Id, currentHp: 1);
+        _context.Creatures.Add(enemy);
+        await AddPlayerAt(_home, currentHp: 1);
+        _context.Encounters.Add(Builders.MakeFight(_worldId, _playerId, [_playerId, enemy.Id]));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        var storedEnemy = await db.ReadCreature(enemy.Id);
+        Assert.Equal((1, 1), (player.CurrentHp, storedEnemy.CurrentHp));
+    }
+
+    [Fact]
+    public async Task Tick_AdvancesABystandersDot_AndPublishesItsVitalsToThePlayersScene()
+    {
+        // Arrange
+        var bystander = await AddBurningBystander(amount: 5);
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await db.ReadCreature(bystander.Id);
+        var announced = LastAnnouncedVitals(bystander.Id);
+        Assert.True(stored.CurrentHp < 50);
+        Assert.Equal(stored.CurrentHp, announced.CurrentHp);
+    }
+
+    [Fact]
+    public async Task Tick_KillsABystander_AndAnnouncesTheDeathToThePlayersScene()
+    {
+        // Arrange
+        var bystander = await AddBurningBystander(amount: 1000);
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await db.ReadCreature(bystander.Id);
+        Assert.Equal(CreatureCondition.Dead, stored.Condition);
+        Assert.Equal(CreatureCondition.Dead, LastAnnouncedCreature(bystander.Id).Condition);
+    }
+
+    [Fact]
+    public async Task Tick_FlushesTheWorldEvents_WhenTheActivePassesRan()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var flushesBefore = _dispatcher.FlushedWorldIds.Count(id => id == _worldId);
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(_dispatcher.FlushedWorldIds.Count(id => id == _worldId) > flushesBefore);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotRunLocationMaintenance_BeforeTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(
+            Now + MaintenanceInterval - TimeSpan.FromSeconds(1),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(await WeatherExists());
+    }
+
+    [Fact]
+    public async Task Tick_RunsLocationMaintenance_WhenTheIntervalElapsed()
+    {
+        // Arrange
+        await AddPlayerAt(_home);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + MaintenanceInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(await WeatherExists());
+    }
+
+    [Fact]
+    public async Task Tick_RunsMaintenanceAndRegenerationAtTheResultingInstant_WhenTheClockSkipsHours()
+    {
+        // Arrange
+        await AddPlayerAt(_home, currentHp: 1);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + TimeSpan.FromHours(3), TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.Equal((player.MaximumHp, true), (player.CurrentHp, await WeatherExists()));
+    }
+
+    [Fact]
+    public async Task Tick_AdvancesDueWeather_AndAnnouncesItToThePlayersScene()
+    {
+        // Arrange
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await AddWeather(nextChangeAt: Now + TimeSpan.FromMinutes(1));
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + TimeSpan.FromMinutes(2), TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await ReadWeather();
+        var announced = Published<WeatherChangedEvent>().Last().WeatherCondition;
+        Assert.Equal(
+            (true, stored.Condition),
+            (stored.NextChangeGameTime > Now + TimeSpan.FromMinutes(2), announced)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_LeavesTheWeatherAlone_BeforeItIsDue()
+    {
+        // Arrange
+        var nextChangeAt = Now + TimeSpan.FromHours(5);
+        await AddWeather(nextChangeAt);
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + MaintenanceInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        var stored = await ReadWeather();
+        Assert.Equal(
+            (WeatherCondition.Clear, nextChangeAt),
+            (stored.Condition, stored.NextChangeGameTime)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_SkipsTheActivePasses_WhenTheWorldHasNoPlayer()
+    {
+        // Arrange
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        var flushesBefore = _dispatcher.FlushedWorldIds.Count;
+
+        // Act
+        await _runner.Tick(Now + ActivePassInterval, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(flushesBefore, _dispatcher.FlushedWorldIds.Count);
+    }
+
+    private static Task FailingWork(LivePlayerPoses poses, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("boom");
+
+    private sealed class RecordingDispatcher : IGameClientEventDispatcher
+    {
+        public List<Guid> FlushedWorldIds { get; } = [];
+
+        public Task<bool> FlushAsync(Guid worldId, CancellationToken cancellationToken = default)
+        {
+            FlushedWorldIds.Add(worldId);
+            return Task.FromResult(false);
+        }
+    }
+
+    private sealed class PoseWriteFault
+    {
+        public bool Fails { get; set; }
+    }
+
+    // A proxy keeps the fault out of the host's handler assembly scan, which would register a class implementing the handler interface.
+    private class FaultingProxy : DispatchProxy
+    {
+        public object Inner { get; set; } = null!;
+        public PoseWriteFault Fault { get; set; } = null!;
+
+        public static ICommandHandler<ApplyCreaturePoseUpdatesCommand> Wrap(
+            ICommandHandler<ApplyCreaturePoseUpdatesCommand> inner,
+            PoseWriteFault fault
+        )
+        {
+            var proxy = Create<ICommandHandler<ApplyCreaturePoseUpdatesCommand>, FaultingProxy>();
+            var faulting = (FaultingProxy)(object)proxy;
+            faulting.Inner = inner;
+            faulting.Fault = fault;
+
+            return proxy;
+        }
+
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            if (Fault.Fails)
+            {
+                throw new InvalidOperationException("Pose write failed.");
+            }
+
+            return targetMethod!.Invoke(Inner, args);
+        }
+    }
+
+    private sealed class SwitchableOptions(WorldSimulationOptions current)
+        : IOptions<WorldSimulationOptions>
+    {
+        public WorldSimulationOptions Current { get; set; } = current;
+
+        public bool IsBroken { get; set; }
+
+        public WorldSimulationOptions Value =>
+            IsBroken ? throw new InvalidOperationException("Options are unavailable.") : Current;
+    }
+
+    private async Task<long> ReadStateVersion()
+    {
+        await using var readContext = db.CreateContext();
+        return await readContext
+            .Worlds.Where(world => world.Id == _worldId)
+            .Select(world => world.StateVersion)
+            .SingleAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task AddWeather(GameInstant nextChangeAt)
+    {
+        _context.WeatherStates.Add(
+            new WeatherState
+            {
+                WorldId = _worldId,
+                StateId = _stateId,
+                Condition = WeatherCondition.Clear,
+                NextChangeGameTime = nextChangeAt,
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<WeatherState> ReadWeather()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext.WeatherStates.SingleAsync(
+            weather => weather.StateId == _stateId,
+            TestContext.Current.CancellationToken
+        );
+    }
+
+    private async Task<bool> WeatherExists()
+    {
+        await using var verifyContext = db.CreateContext();
+        return await verifyContext.WeatherStates.AnyAsync(
+            weather => weather.StateId == _stateId,
+            TestContext.Current.CancellationToken
+        );
+    }
+
+    private static ActiveDot BurningDot(int amount) =>
+        new()
+        {
+            AbilityName = "Ignite",
+            Amount = amount,
+            DamageType = nameof(DamageType.Fire),
+            NextTickAt = Now,
+            ExpiresAt = Now + TimeSpan.FromHours(1),
+        };
+
+    private async Task<Creature> AddBurningBystander(int amount)
+    {
+        var bystander = Builders.MakeCreature(_worldId, locationId: _home.Id, currentHp: 50);
+        bystander.ActiveDots = [BurningDot(amount)];
+        _context.Creatures.Add(bystander);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return bystander;
+    }
+
+    private IEnumerable<TEvent> Published<TEvent>()
+        where TEvent : GameClientEvent =>
+        _serviceProvider.GetRequiredService<RecordingGameClientEventSink>().Events.OfType<TEvent>();
+
+    private SceneCreatureInfo LastAnnouncedCreature(Guid creatureId) =>
+        Published<CreaturesUpdatedEvent>()
+            .SelectMany(updated => updated.Creatures)
+            .Last(creature => creature.Id == creatureId);
+
+    private CreatureVitals LastAnnouncedVitals(Guid creatureId) =>
+        Published<CreatureVitalsChangedEvent>()
+            .SelectMany(changed => changed.Vitals)
+            .Last(vitals => vitals.CreatureId == creatureId);
+
+    private async Task AddPlayerAt(
+        Location location,
+        double x = 0,
+        double y = 0,
+        int? currentHp = null
+    )
     {
         var player = Builders.MakeCreature(
             _worldId,
             locationId: location.Id,
             movementSpeed: 50,
             x: x,
-            y: y
+            y: y,
+            currentHp: currentHp
         );
         _playerId = player.Id;
         var world = await _context.Worlds.SingleAsync(

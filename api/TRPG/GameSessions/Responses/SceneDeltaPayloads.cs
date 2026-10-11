@@ -86,3 +86,25 @@ public record PlayerCorrectedPayload(
     double OffsetX,
     double OffsetY
 );
+
+[TranspilationSource]
+public record PropOccupancySnapshot(Guid PropId, bool IsOccupied, bool IsOccupiedByPlayer);
+
+[TranspilationSource]
+public record PropOccupancyChangedPayload(
+    Guid WorldId,
+    Guid LocationId,
+    long Version,
+    IReadOnlyCollection<PropOccupancySnapshot> Props
+);
+
+[TranspilationSource]
+public record SeatingChangedPayload(
+    Guid WorldId,
+    Guid LocationId,
+    long Version,
+    Guid CreatureId,
+    Guid? SeatId,
+    CreaturePosture Posture,
+    PlacementWire Placement
+);

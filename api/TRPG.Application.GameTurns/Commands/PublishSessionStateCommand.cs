@@ -1,19 +1,17 @@
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameSessions.Queries;
-using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Queries;
-using TRPG.Application.Scenes.Results;
-using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns.Commands;
 
+[ExemptFromWorldWriteGuard("Enqueues the session state inside its own runner request.")]
 public class PublishSessionStateCommand
 {
     public required Guid WorldId { get; init; }
@@ -22,15 +20,13 @@ public class PublishSessionStateCommand
 }
 
 internal class PublishSessionStateCommandHandler(
-    ScenePublisher scenePublisher,
     IGameClientEventDispatcher eventDispatcher,
-    ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
-    IQueryHandler<GetCurrentSceneQuery, SceneResult> getCurrentScene,
+    ICommandHandler<PublishPlayerSceneCommand> publishPlayerScene,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
     ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
-    IWorldMutationGate mutationGate
+    WorldSimulationCoordinator simulation
 ) : ICommandHandler<PublishSessionStateCommand>
 {
     public async Task Handle(
@@ -38,10 +34,11 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken = default
     )
     {
-        await using (await mutationGate.Acquire(command.WorldId, cancellationToken))
-        {
-            await EnqueueSessionState(command, cancellationToken);
-        }
+        await simulation.Request(
+            command.WorldId,
+            (_, token) => EnqueueSessionState(command, token),
+            cancellationToken
+        );
 
         await eventDispatcher.FlushAsync(command.WorldId, cancellationToken);
     }
@@ -51,27 +48,19 @@ internal class PublishSessionStateCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        // Stamped before the scene is read so a later-numbered snapshot never describes older state.
-        var stamp = await stampWorldState.Handle(
-            new StampWorldStateCommand { WorldId = command.WorldId },
-            cancellationToken
-        );
-
         var gameTime = await getGameTime.Handle(
             new GetGameTimeQuery { SessionId = command.SessionId },
             cancellationToken
         );
 
-        var scene = await getCurrentScene.Handle(
-            new GetCurrentSceneQuery
+        await publishPlayerScene.Handle(
+            new PublishPlayerSceneCommand
             {
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
-                GameTime = gameTime,
             },
             cancellationToken
         );
-        scenePublisher.Publish(command.WorldId, command.PlayerId, scene, stamp);
 
         await publishCombatState.Handle(
             new PublishCombatStateCommand { PlayerId = command.PlayerId },

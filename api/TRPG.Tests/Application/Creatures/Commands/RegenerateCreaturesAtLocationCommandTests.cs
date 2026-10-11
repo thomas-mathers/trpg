@@ -216,4 +216,28 @@ public sealed class RegenerateCreaturesAtLocationCommandTests(DatabaseFixture db
         // Assert
         Assert.Empty(result);
     }
+
+    [Fact]
+    public async Task Handle_RegeneratesOnlyIncludedCreatures_WhenIncludedCreatureIdsAreGiven()
+    {
+        // Arrange
+        var locationId = Guid.NewGuid();
+        var included = await SeedInjuredCreature(locationId);
+        await SeedInjuredCreature(locationId);
+
+        // Act
+        var result = await _handler.Handle(
+            new RegenerateCreaturesAtLocationCommand
+            {
+                WorldId = WorldId,
+                LocationId = locationId,
+                GameTime = TwelveSecondsIn,
+                IncludedCreatureIds = [included.Id],
+            },
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(included.Id, Assert.Single(result).CreatureId);
+    }
 }

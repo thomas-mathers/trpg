@@ -5,7 +5,10 @@ var builder = WebApplication.CreateBuilder(
     new WebApplicationOptions { Args = args, ContentRootPath = AppContext.BaseDirectory }
 );
 
-builder.Services.AddTrpgHostServices(builder.Configuration).AddTrpgApplicationServices();
+builder
+    .Services.AddTrpgHostServices(builder.Configuration)
+    .AddTrpgApplicationServices()
+    .AddWorldWriteGuard();
 
 var app = builder.Build();
 

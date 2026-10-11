@@ -4,7 +4,10 @@ import { byText } from 'testing-library-selector';
 import { describe, expect, it } from 'vitest';
 
 import { handlePrefetchDungeonPremises } from '@/api/client/msw.gen';
-import type { PlayerVitalsUpdated } from '@/api/signalr-client/TRPG.Creatures.Responses';
+import type {
+  CreatureVitalsEntry,
+  CreatureVitalsUpdated,
+} from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type { SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import {
   createSceneSnapshot,
@@ -43,6 +46,12 @@ function VitalsConsumer() {
   );
 }
 
+function NearbyVitalsConsumer() {
+  const { scene } = useScene();
+
+  return <output>{`nearby:${scene.nearbyCreatures[0]?.currentHp}`}</output>;
+}
+
 function StateAndVitalsConsumer() {
   const { scene } = useScene();
 
@@ -58,17 +67,27 @@ function SceneDeltaConsumer() {
   );
 }
 
-function makeVitals(overrides: Partial<PlayerVitalsUpdated>): PlayerVitalsUpdated {
+type VitalsOverrides = Partial<CreatureVitalsEntry> &
+  Partial<Pick<CreatureVitalsUpdated, 'worldId' | 'locationId' | 'version'>>;
+
+function makeVitals(overrides: VitalsOverrides = {}): CreatureVitalsUpdated {
+  const { worldId, locationId, version, ...entry } = overrides;
   return {
-    playerId: 'player-id',
-    currentHp: 10,
-    maximumHp: 40,
-    currentAp: 4,
-    maximumAp: 10,
-    currentMp: 2,
-    maximumMp: 8,
-    version: 5,
-    ...overrides,
+    worldId: worldId ?? 'world-id',
+    locationId: locationId ?? 'location-id',
+    version: version ?? 5,
+    entries: [
+      {
+        creatureId: 'player-id',
+        currentHp: 10,
+        maximumHp: 40,
+        currentAp: 4,
+        maximumAp: 10,
+        currentMp: 2,
+        maximumMp: 8,
+        ...entry,
+      },
+    ],
   };
 }
 
@@ -223,11 +242,14 @@ describe('SceneProvider', () => {
     expect(prefetchedBatches).toEqual([['crypt-id']]);
   });
 
-  describe('player vitals updates', () => {
+  describe('creature vitals updates', () => {
     const vitalsSnapshot = {
+      nearbyCreatures: [],
+      worldId: 'world-id',
+      locationId: 'location-id',
       playerStatus: { id: 'player-id', currentHp: 1, maximumHp: 40 },
       version: 0,
-    } as SceneSnapshot;
+    } as unknown as SceneSnapshot;
 
     it('applies a vitals update to the player status of the current scene', async () => {
       render(
@@ -237,7 +259,7 @@ describe('SceneProvider', () => {
       );
       gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
 
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ currentHp: 12 }));
 
       expect(await byText('hp:12/40').find()).toBeVisible();
     });
@@ -249,10 +271,10 @@ describe('SceneProvider', () => {
         </SceneProvider>,
       );
       gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 20, version: 10 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ currentHp: 20, version: 10 }));
       expect(await byText('hp:20/40').find()).toBeVisible();
 
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 15, version: 5 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ currentHp: 15, version: 5 }));
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(byText('hp:20/40').get()).toBeVisible();
@@ -266,7 +288,7 @@ describe('SceneProvider', () => {
       );
       gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, version: 8 });
 
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 30, version: 7 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ currentHp: 30, version: 7 }));
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(byText('hp:1/40').get()).toBeVisible();
@@ -279,7 +301,7 @@ describe('SceneProvider', () => {
         </SceneProvider>,
       );
       gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, version: 1 });
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12, version: 2 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ currentHp: 12, version: 2 }));
       expect(await byText('hp:12/40').find()).toBeVisible();
 
       gameEventBus.emit('SceneSnapshot', {
@@ -297,7 +319,7 @@ describe('SceneProvider', () => {
         </SceneProvider>,
       );
       gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, stateName: 'Before', version: 1 });
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 25, version: 6 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ currentHp: 25, version: 6 }));
       expect(await byText('Before|hp:25').find()).toBeVisible();
 
       gameEventBus.emit('SceneSnapshot', {
@@ -318,13 +340,32 @@ describe('SceneProvider', () => {
       );
       gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
 
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ playerId: 'someone-else' }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ creatureId: 'someone-else' }));
 
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(byText('hp:1/40').get()).toBeVisible();
     });
 
-    it('does not let another creature’s version block the player’s vitals', async () => {
+    it('applies a vitals update to a nearby creature', async () => {
+      render(
+        <SceneProvider sessionId="session-id">
+          <NearbyVitalsConsumer />
+        </SceneProvider>,
+      );
+      gameEventBus.emit('SceneSnapshot', {
+        ...vitalsSnapshot,
+        nearbyCreatures: [{ id: 'bystander-id', currentHp: 1, maximumHp: 20 }],
+      } as SceneSnapshot);
+
+      gameEventBus.emit(
+        'CreatureVitalsUpdated',
+        makeVitals({ creatureId: 'bystander-id', currentHp: 7 }),
+      );
+
+      expect(await byText('nearby:7').find()).toBeVisible();
+    });
+
+    it('ignores a vitals update for a different location', async () => {
       render(
         <SceneProvider sessionId="session-id">
           <VitalsConsumer />
@@ -332,23 +373,20 @@ describe('SceneProvider', () => {
       );
       gameEventBus.emit('SceneSnapshot', vitalsSnapshot);
 
-      gameEventBus.emit(
-        'PlayerVitalsUpdated',
-        makeVitals({ playerId: 'someone-else', version: 10 }),
-      );
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12, version: 5 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ locationId: 'elsewhere-id' }));
 
-      expect(await byText('hp:12/40').find()).toBeVisible();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(byText('hp:1/40').get()).toBeVisible();
     });
 
-    it('ignores player vitals that arrive before the first snapshot', async () => {
+    it('ignores vitals that arrive before the first snapshot', async () => {
       render(
         <SceneProvider sessionId="session-id">
           <VitalsConsumer />
         </SceneProvider>,
       );
 
-      gameEventBus.emit('PlayerVitalsUpdated', makeVitals({ currentHp: 12, version: 5 }));
+      gameEventBus.emit('CreatureVitalsUpdated', makeVitals({ currentHp: 12, version: 5 }));
       gameEventBus.emit('SceneSnapshot', { ...vitalsSnapshot, version: 4 });
 
       expect(await byText('hp:1/40').find()).toBeVisible();

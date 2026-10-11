@@ -17,6 +17,7 @@ public class RegenerateCreaturesAtLocationCommand
     public required Guid LocationId { get; init; }
     public required GameInstant GameTime { get; init; }
     public IReadOnlyCollection<Guid> ExcludedCreatureIds { get; init; } = [];
+    public IReadOnlyCollection<Guid>? IncludedCreatureIds { get; init; }
 }
 
 internal class RegenerateCreaturesAtLocationCommandHandler(
@@ -40,6 +41,10 @@ internal class RegenerateCreaturesAtLocationCommandHandler(
                     || creature.CurrentMp < creature.MaximumMp
                 )
                 && !command.ExcludedCreatureIds.AsEnumerable().Contains(creature.Id)
+                && (
+                    command.IncludedCreatureIds == null
+                    || command.IncludedCreatureIds.AsEnumerable().Contains(creature.Id)
+                )
             )
             .ToArrayAsync(cancellationToken);
 

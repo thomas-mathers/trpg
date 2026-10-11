@@ -11,6 +11,8 @@ public class PlanCurrentLocalActivityCommand
 {
     public required Guid CreatureId { get; init; }
     public required GameInstant At { get; init; }
+    public Guid? ShelterLocationId { get; init; }
+    public IReadOnlySet<Guid>? SevereWeatherLocationIds { get; init; }
 }
 
 internal sealed class PlanCurrentLocalActivityCommandHandler(
@@ -37,7 +39,13 @@ internal sealed class PlanCurrentLocalActivityCommandHandler(
             .OrderByDescending(job => job.Priority)
             .ToArrayAsync(cancellationToken);
         var job = CreatureJobScheduling.FindDueJob(
-            creatureJobs,
+            creatureJobs.Select(creatureJob =>
+                WeatherShelter.Apply(
+                    creatureJob,
+                    command.ShelterLocationId,
+                    command.SevereWeatherLocationIds
+                )
+            ),
             command.At.Value.DayOfWeek,
             command.At.Value.Hour
         );

@@ -24,7 +24,7 @@ public record SyncLocationRoutinesResult(IReadOnlyCollection<Guid> SpawnedEncoun
 
 internal class SyncLocationRoutinesCommandHandler(
     IQueryHandler<GetLocationByIdQuery, Location?> getLocationById,
-    ICommandHandler<SyncWeatherCommand> syncWeather,
+    ICommandHandler<EnsureWeatherCommand> ensureWeather,
     ICommandHandler<SyncFrontDoorLockCommand> syncFrontDoorLock,
     ICommandHandler<SyncCreatureSpawnerCommand, SyncCreatureSpawnerResult> syncCreatureSpawner,
     ICommandHandler<SyncRestockPolicyCommand> syncRestockPolicy,
@@ -45,8 +45,8 @@ internal class SyncLocationRoutinesCommandHandler(
             return SyncLocationRoutinesResult.None;
         }
 
-        await syncWeather.Handle(
-            new SyncWeatherCommand
+        await ensureWeather.Handle(
+            new EnsureWeatherCommand
             {
                 WorldId = command.WorldId,
                 StateId = location.StateId,

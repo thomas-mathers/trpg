@@ -1,6 +1,7 @@
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Events;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -15,7 +16,8 @@ public class FailExclusiveGroupSiblingsCommand
 
 internal class FailExclusiveGroupSiblingsCommandHandler(
     IQuestsDbContext context,
-    QuestInteractablePropCleaner questInteractablePropCleaner
+    QuestInteractablePropCleaner questInteractablePropCleaner,
+    IDomainEventPublisher<QuestMarkersChangedEvent> questMarkersChanged
 ) : ICommandHandler<FailExclusiveGroupSiblingsCommand>
 {
     public async Task Handle(
@@ -81,6 +83,11 @@ internal class FailExclusiveGroupSiblingsCommandHandler(
                 cancellationToken
             );
         }
+
+        await questMarkersChanged.Publish(
+            new QuestMarkersChangedEvent(command.PlayerId, command.WorldId),
+            cancellationToken
+        );
 
         transaction.Complete();
     }

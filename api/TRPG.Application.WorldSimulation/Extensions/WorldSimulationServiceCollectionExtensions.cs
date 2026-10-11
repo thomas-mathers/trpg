@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.WorldSimulation.EventHandlers;
 using TRPG.Application.WorldSimulation.LocalActivities;
+using TRPG.Application.WorldSimulation.Publishing;
+using TRPG.Application.WorldSimulation.Subscriptions;
 
 namespace TRPG.Application.WorldSimulation.Extensions;
 
@@ -11,7 +13,14 @@ public static class WorldSimulationServiceCollectionExtensions
         this IServiceCollection serviceCollection
     ) =>
         serviceCollection
-            .AddTransient<PlayerVitalsPublisher>()
+            .AddTransient<CreatureVitalsPublisher>()
+            .AddTransient<ScenePublisher>()
+            .AddTransient<VitalsAnnouncer>()
+            .AddTransient<ArrivalCatchUp>()
+            .AddTransient<CreatureChangeAnnouncer>()
+            .AddTransient<IActionSceneAnnouncer, ActionSceneAnnouncer>()
+            .AddTransient<WeatherAnnouncer>()
+            .AddTransient<PropOccupancyAnnouncer>()
             .AddTransient<PlayerMovedCorpseCleanupEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedCorpseCleanupEventHandler>()
@@ -37,6 +46,8 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddScoped<LocalActivityPlanner>()
             .AddScoped<LocalActivityCompleter>()
             .AddSingleton<WorldSimulationRunnerFactory>()
+            .AddSingleton<SceneSubscriptions>()
+            .AddSingleton<SceneEventProjector>()
             .AddSingleton<WorldSimulationCoordinator>()
             .AddTransient<CreaturesEngagedSimulationEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesEngagedEvent>>(serviceProvider =>
@@ -53,6 +64,18 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddTransient<CreaturesDiedSimulationEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesDiedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreaturesDiedSimulationEventHandler>()
+            )
+            .AddTransient<CreatureEquipmentChangedSimulationEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreatureEquipmentChangedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreatureEquipmentChangedSimulationEventHandler>()
+            )
+            .AddTransient<QuestMarkersChangedSimulationEventHandler>()
+            .AddTransient<IDomainEventConsumer<QuestMarkersChangedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<QuestMarkersChangedSimulationEventHandler>()
+            )
+            .AddTransient<DoorLocksChangedSimulationEventHandler>()
+            .AddTransient<IDomainEventConsumer<DoorLocksChangedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<DoorLocksChangedSimulationEventHandler>()
             )
             .AddTransient<CreaturesSpawnedSimulationEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesSpawnedEvent>>(serviceProvider =>

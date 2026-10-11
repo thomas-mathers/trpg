@@ -1,11 +1,22 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Configuration;
+using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Creatures.Results;
+using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Quests.Commands;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
+using TRPG.Application.WorldSimulation.Events;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -34,6 +45,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
             .AddTrpgTestServices(_context)
             .WithScopedDbContexts(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
+            .AddRecordingGameClientEvents()
             .BuildServiceProvider();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
@@ -209,6 +221,236 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_AnnouncesTheNewGear_WhenANearbyCreatureEquipsAnItem()
+    {
+        // Arrange
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var bystander = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var sword = Builders.MakeWeapon(_worldId, quantity: 1);
+        sword.Ownership.OwnerId = bystander.Id;
+        sword.Ownership.OwnerType = OwnerType.Creature;
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.AddRange(player, bystander);
+        _context.Items.Add(sword);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<EquipInventoryItemCommandHandler>()
+            .Handle(
+                new EquipInventoryItemCommand
+                {
+                    CreatureId = bystander.Id,
+                    ItemId = sword.Id,
+                    Slot = EquipmentSlot.RightHand,
+                },
+                TestContext.Current.CancellationToken
+            );
+        var handler = new CreatureEquipmentChangedSimulationEventHandler(
+            coordinator,
+            _serviceProvider.GetRequiredService<IQueryHandler<GetCreatureByIdQuery, Creature?>>()
+        );
+
+        // Act
+        await handler.Handle(
+            new CreatureEquipmentChangedEvent(bystander.Id),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        var announced = Assert.Single(UpdatedCreatures(), creature => creature.Id == bystander.Id);
+        Assert.NotEmpty(announced.Equipment);
+    }
+
+    [Fact]
+    public async Task Tick_AnnouncesTheMarkerChange_WhenTheQuestIsAccepted()
+    {
+        // Arrange
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var giver = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var quest = Builders.MakeQuest(giver.Id, _worldId);
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.AddRange(player, giver);
+        _context.Quests.Add(quest);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<AcceptQuestCommandHandler>()
+            .Handle(
+                new AcceptQuestCommand
+                {
+                    PlayerId = player.Id,
+                    QuestId = quest.Id,
+                    WorldId = _worldId,
+                },
+                TestContext.Current.CancellationToken
+            );
+        var handler = new QuestMarkersChangedSimulationEventHandler(
+            coordinator,
+            _serviceProvider.GetRequiredService<IQueryHandler<GetCreatureByIdQuery, Creature?>>(),
+            _serviceProvider.GetRequiredService<
+                IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>>
+            >()
+        );
+
+        // Act
+        await handler.Handle(
+            new QuestMarkersChangedEvent(player.Id, _worldId),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        var announced = Assert.Single(UpdatedCreatures(), creature => creature.Id == giver.Id);
+        Assert.Empty(announced.QuestMarkers);
+    }
+
+    [Fact]
+    public async Task Tick_ResendsThePlayersScene_WhenTheirQuestMarkersChanged()
+    {
+        // Arrange
+        var player = await SeedWatchedPlayer();
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var handler = new QuestMarkersChangedSimulationEventHandler(
+            coordinator,
+            _serviceProvider.GetRequiredService<IQueryHandler<GetCreatureByIdQuery, Creature?>>(),
+            _serviceProvider.GetRequiredService<
+                IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>>
+            >()
+        );
+
+        // Act
+        await handler.Handle(
+            new QuestMarkersChangedEvent(player.Id, _worldId),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(
+            ResyncState.Pending,
+            _serviceProvider.GetRequiredService<SceneSubscriptions>().StateOf(_worldId, player.Id)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_ResendsTheScene_WhenTheDoorLocksAtTheWatchedLocationChanged()
+    {
+        // Arrange
+        var player = await SeedWatchedPlayer();
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var handler = new DoorLocksChangedSimulationEventHandler(coordinator);
+
+        // Act
+        await handler.Handle(
+            new DoorLocksChangedEvent(_worldId, [_home.Id]),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(
+            ResyncState.Pending,
+            _serviceProvider.GetRequiredService<SceneSubscriptions>().StateOf(_worldId, player.Id)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_KeepsThePublishedScene_WhenTheChangedDoorsAreAtAnotherLocation()
+    {
+        // Arrange
+        var player = await SeedWatchedPlayer();
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var handler = new DoorLocksChangedSimulationEventHandler(coordinator);
+
+        // Act
+        await handler.Handle(
+            new DoorLocksChangedEvent(_worldId, [_workplace.Id]),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(
+            ResyncState.Synced,
+            _serviceProvider.GetRequiredService<SceneSubscriptions>().StateOf(_worldId, player.Id)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_AnnouncesTheSeatTaken_WhenACreatureSitsAtThePlayersLocation()
+    {
+        // Arrange
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var sitter = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var seat = Builders.MakeSeat(_worldId, _home.Id);
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.AddRange(player, sitter);
+        _context.Props.Add(seat);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        await _context
+            .Props.OfType<Seat>()
+            .Where(prop => prop.Id == seat.Id)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(prop => prop.OccupantId, sitter.Id),
+                TestContext.Current.CancellationToken
+            );
+
+        // Act
+        await coordinator.PostIfLoaded(
+            _worldId,
+            new RefreshCreatureStatus(_home.Id, sitter.Id),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        var change = Assert.Single(
+            _serviceProvider
+                .GetRequiredService<RecordingGameClientEventSink>()
+                .Events.OfType<PropOccupancyChangedEvent>()
+        );
+        Assert.Equal([new PropOccupancy(seat.Id, true, false)], change.Props);
+    }
+
+    [Fact]
     public async Task EnsureRunner_MarksTheWorldUnavailable_WhenTheLoadFails()
     {
         // Arrange
@@ -225,20 +467,165 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Request_RunsDirectly_WhenTheWorldHasNoRunner()
+    public async Task Request_LoadsTheRunnerOnDemand_WhenTheWorldHasNoRunner()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        var request = coordinator.Request(
+            _worldId,
+            (_, _) => Task.FromResult(7),
+            TestContext.Current.CancellationToken
+        );
+        while (!request.IsCompleted)
+        {
+            await coordinator.Tick(TestContext.Current.CancellationToken);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+        }
+
+        // Act
+        var result = await request;
+
+        // Assert
+        Assert.Equal(7, result);
+    }
+
+    [Fact]
+    public async Task Request_Completes_WhenTheWorldIsPaused()
     {
         // Arrange
         var coordinator = MakeCoordinator(activeWorldIds: []);
-
-        // Act
-        var result = await coordinator.Request(
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var request = coordinator.Request(
             _worldId,
             (_, _) => Task.FromResult(7),
             TestContext.Current.CancellationToken
         );
 
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
         // Assert
-        Assert.Equal(7, result);
+        Assert.Equal(7, await request);
+    }
+
+    [Fact]
+    public async Task Request_DoesNotRunTheWork_WhenTheCallerCancelledBeforeTheTick()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        using var cancellation = new CancellationTokenSource();
+        var ran = false;
+        var request = coordinator.Request(
+            _worldId,
+            (_, _) =>
+            {
+                ran = true;
+                return Task.FromResult(7);
+            },
+            cancellation.Token
+        );
+        await cancellation.CancelAsync();
+
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+        Assert.False(ran);
+    }
+
+    [Fact]
+    public async Task Post_Throws_WhenTheWorldIsUnavailable()
+    {
+        // Arrange
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        coordinator.MarkUnavailable(_worldId);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<WorldUnavailableException>(() =>
+            coordinator.Post(
+                _worldId,
+                new ForgetPlayerPose(Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Post_ThrowsWorldUnavailableAndAllowsARetry_WhenTheLoadFails()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now) { FailToReadTime = true };
+        var coordinator = MakeCoordinator([], clock);
+
+        // Act
+        await Assert.ThrowsAsync<WorldUnavailableException>(() =>
+            coordinator.Post(
+                _worldId,
+                new ForgetPlayerPose(Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+
+        // Assert
+        Assert.False(coordinator.IsUnavailable(_worldId));
+    }
+
+    [Fact]
+    public async Task PostIfLoaded_LoadsNothing_WhenTheWorldHasNoRunner()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now) { WorldIsMissing = true };
+        var coordinator = MakeCoordinator([], clock);
+
+        // Act
+        await coordinator.PostIfLoaded(
+            _worldId,
+            new ForgetPlayerPose(Guid.NewGuid()),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.False(coordinator.IsUnavailable(_worldId));
+    }
+
+    [Fact]
+    public async Task Post_ThrowsNotFound_WhenTheWorldDoesNotExist()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now) { WorldIsMissing = true };
+        var coordinator = MakeCoordinator([], clock);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() =>
+            coordinator.Post(
+                _worldId,
+                new ForgetPlayerPose(Guid.NewGuid()),
+                TestContext.Current.CancellationToken
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Tick_RejectsPendingRequests_WhenTheWorldWasDeleted()
+    {
+        // Arrange
+        var clock = new FixedWorldClock([], Now);
+        var coordinator = MakeCoordinator([], clock);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var request = coordinator.Request(
+            _worldId,
+            (_, _) => Task.FromResult(7),
+            TestContext.Current.CancellationToken
+        );
+        clock.WorldIsMissing = true;
+
+        // Act
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        await Assert.ThrowsAsync<EntityNotFoundException>(() => request);
     }
 
     [Fact]
@@ -285,6 +672,31 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         await Assert.ThrowsAsync<InvalidOperationException>(() => request);
     }
 
+    private IEnumerable<SceneCreatureInfo> UpdatedCreatures() =>
+        _serviceProvider
+            .GetRequiredService<RecordingGameClientEventSink>()
+            .Events.OfType<CreaturesUpdatedEvent>()
+            .SelectMany(updated => updated.Creatures);
+
+    private async Task<Creature> SeedWatchedPlayer()
+    {
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        return player;
+    }
+
     private WorldSimulationCoordinator MakeCoordinator(
         IReadOnlyCollection<Guid> activeWorldIds,
         FixedWorldClock? clock = null
@@ -293,8 +705,11 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         clock ??= new FixedWorldClock(activeWorldIds, Now);
         var factory = new WorldSimulationRunnerFactory(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
-            _serviceProvider.GetRequiredService<IWorldMutationGate>(),
+            clock,
             new TransientCreatureWalkRegistry(),
+            _serviceProvider.GetRequiredService<SceneSubscriptions>(),
+            Options.Create(new WorldSimulationOptions()),
+            Options.Create(new WorldClockOptions()),
             NullLogger<WorldSimulationRunner>.Instance
         );
 
@@ -314,15 +729,17 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
 
         public bool FailToReadTime { get; set; }
 
+        public bool WorldIsMissing { get; set; }
+
         public IReadOnlyCollection<Guid> GetActiveWorldIds() => ActiveWorldIds;
 
         public Task<GameInstant> GetCurrent(
             Guid worldId,
             CancellationToken cancellationToken = default
         ) =>
-            FailToReadTime
-                ? throw new InvalidOperationException("The clock is unavailable.")
-                : Task.FromResult(Now);
+            WorldIsMissing ? throw new EntityNotFoundException("World", worldId)
+            : FailToReadTime ? throw new InvalidOperationException("The clock is unavailable.")
+            : Task.FromResult(Now);
 
         public Task<GameInstant> ResumeWorld(
             Guid worldId,

@@ -4,6 +4,7 @@ using TRPG.Application.Narration.Queries;
 
 namespace TRPG.Application.Narration.Commands;
 
+[ExemptFromWorldWriteGuard("Drops an in-memory cache and writes nothing.")]
 public class InvalidateWorldLoreAnchorsCommand
 {
     public required Guid WorldId { get; init; }

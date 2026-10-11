@@ -76,4 +76,88 @@ public sealed class PlanCurrentLocalActivityCommandTests(DatabaseFixture db)
         Assert.NotNull(result.Move);
         Assert.Equal(workstation.Id, result.Move.TargetPropId);
     }
+
+    [Fact]
+    public async Task Handle_LeavesTheJourneyToTheRoutinePlanner_WhenTheIdleJobIsInSevereWeather()
+    {
+        // Arrange
+        var creature = await SeedCreatureWithIdleJob(jobAt: creatureRoom => creatureRoom);
+        var command = ShelterCommand(creature, Guid.NewGuid(), creature.LocationId);
+
+        // Act
+        var result = await Handler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.False(result.Handled);
+    }
+
+    [Fact]
+    public async Task Handle_SettlesLocally_WhenTheCreatureIsAlreadyAtItsShelter()
+    {
+        // Arrange
+        var otherRoomId = Guid.NewGuid();
+        var creature = await SeedCreatureWithIdleJob(jobAt: _ => otherRoomId);
+        var command = ShelterCommand(creature, creature.LocationId, otherRoomId);
+
+        // Act
+        var result = await Handler().Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.Handled);
+    }
+
+    private ICommandHandler<PlanCurrentLocalActivityCommand, LocalActivityPlanResult> Handler() =>
+        _services.GetRequiredService<
+            ICommandHandler<PlanCurrentLocalActivityCommand, LocalActivityPlanResult>
+        >();
+
+    private static PlanCurrentLocalActivityCommand ShelterCommand(
+        Creature creature,
+        Guid shelterLocationId,
+        Guid severeLocationId
+    ) =>
+        new()
+        {
+            CreatureId = creature.Id,
+            At = new GameInstant(new DateTime(2000, 1, 3, 10, 0, 0)),
+            ShelterLocationId = shelterLocationId,
+            SevereWeatherLocationIds = new HashSet<Guid> { severeLocationId },
+        };
+
+    private async Task<Creature> SeedCreatureWithIdleJob(Func<Guid, Guid> jobAt)
+    {
+        var world = Builders.MakeWorld();
+        var state = Builders.MakeState(Guid.NewGuid(), worldId: world.Id);
+        var room = Builders.MakeLocation(
+            world.Id,
+            state.Id,
+            roomId: Guid.NewGuid(),
+            width: 12,
+            depth: 12
+        );
+        var creature = Builders.MakeCreature(world.Id, locationId: room.Id);
+        var jobLocationId = jobAt(room.Id);
+        _context.Worlds.Add(world);
+        _context.States.Add(state);
+        _context.Locations.Add(room);
+        if (jobLocationId != room.Id)
+        {
+            _context.Locations.Add(
+                Builders.MakeLocation(world.Id, state.Id, id: jobLocationId, roomId: Guid.NewGuid())
+            );
+        }
+        _context.Creatures.Add(creature);
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                creature.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 8,
+                endHour: 17,
+                locationId: jobLocationId,
+                worldId: world.Id
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return creature;
+    }
 }

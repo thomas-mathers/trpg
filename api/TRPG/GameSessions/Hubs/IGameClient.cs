@@ -20,6 +20,8 @@ public interface IGameClient
     Task CaravansUpdated(CaravansUpdatedPayload payload);
     Task WeatherChanged(WeatherChangedPayload payload);
     Task ClockReanchored(ClockReanchoredPayload payload);
+    Task SeatingChanged(SeatingChangedPayload payload);
+    Task PropOccupancyChanged(PropOccupancyChangedPayload payload);
     Task CombatStarted(CombatStarted payload);
     Task CombatUpdated(CombatUpdated update);
     Task HostileEncounterStarted(HostileEncounterState encounter);
@@ -34,7 +36,7 @@ public interface IGameClient
     Task TrapEncounterResolved(TrapEncounterResolutionFact fact);
     Task TheftEncounterStarted(TheftEncounterState encounter);
     Task TheftEncounterResolved(TheftEncounterResolutionFact fact);
-    Task PlayerVitalsUpdated(PlayerVitalsUpdated vitals);
+    Task CreatureVitalsUpdated(CreatureVitalsUpdated vitals);
     Task PlayerCorrected(PlayerCorrectedPayload correction);
     Task SkillLevelUp(SkillLevelUp skillLevelUp);
     Task CharacterLevelUp(CharacterLevelUp characterLevelUp);

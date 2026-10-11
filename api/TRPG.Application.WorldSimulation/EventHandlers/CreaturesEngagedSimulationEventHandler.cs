@@ -5,16 +5,18 @@ namespace TRPG.Application.WorldSimulation.EventHandlers;
 internal sealed class CreaturesEngagedSimulationEventHandler(WorldSimulationCoordinator coordinator)
     : IDomainEventConsumer<CreaturesEngagedEvent>
 {
-    public Task Handle(
+    public async Task Handle(
         CreaturesEngagedEvent domainEvent,
         CancellationToken cancellationToken = default
     )
     {
         foreach (var creatureId in domainEvent.CreatureIds)
         {
-            coordinator.Post(domainEvent.WorldId, new EngageCreature(creatureId));
+            await coordinator.PostIfLoaded(
+                domainEvent.WorldId,
+                new EngageCreature(creatureId),
+                cancellationToken
+            );
         }
-
-        return Task.CompletedTask;
     }
 }

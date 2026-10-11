@@ -7,6 +7,7 @@ using TRPG.Application.Books.Queries;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.WorldSimulation;
 using TRPG.Books.Responses;
 
 namespace TRPG.Books.Endpoints;
@@ -66,6 +67,8 @@ internal static class BookEndpoints
         int pageNumber,
         [FromServices] IQueryHandler<GetBookByItemIdQuery, BookIdentity?> getBookByItemId,
         [FromServices] ICommandHandler<ReadBookPageCommand, ReadBookPageResult> readBookPage,
+        [FromServices] ICommandHandler<EnsureBookPageCommand, string> ensureBookPage,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
@@ -78,14 +81,25 @@ internal static class BookEndpoints
             throw new EntityNotFoundException("Book", itemId);
         }
 
-        var result = await readBookPage.Handle(
-            new ReadBookPageCommand
-            {
-                WorldId = book.WorldId,
-                ReaderId = playerId,
-                WorkId = book.WorkId,
-                PageNumber = pageNumber,
-            },
+        // Composing a page holds an LLM call, so it happens before the runner is occupied.
+        await ensureBookPage.Handle(
+            new EnsureBookPageCommand { WorkId = book.WorkId, PageNumber = pageNumber },
+            cancellationToken
+        );
+
+        var result = await simulation.Request(
+            book.WorldId,
+            (_, token) =>
+                readBookPage.Handle(
+                    new ReadBookPageCommand
+                    {
+                        WorldId = book.WorldId,
+                        ReaderId = playerId,
+                        WorkId = book.WorkId,
+                        PageNumber = pageNumber,
+                    },
+                    token
+                ),
             cancellationToken
         );
 

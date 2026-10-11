@@ -9,10 +9,10 @@ export type CharacterLevelUp = {
     level: number;
 }
 
-/** Transpiled from TRPG.Creatures.Responses.PlayerVitalsUpdated */
-export type PlayerVitalsUpdated = {
+/** Transpiled from TRPG.Creatures.Responses.CreatureVitalsEntry */
+export type CreatureVitalsEntry = {
     /** Transpiled from System.Guid */
-    playerId: string;
+    creatureId: string;
     /** Transpiled from int */
     currentHp: number;
     /** Transpiled from int */
@@ -25,6 +25,16 @@ export type PlayerVitalsUpdated = {
     currentMp: number;
     /** Transpiled from int */
     maximumMp: number;
+}
+
+/** Transpiled from TRPG.Creatures.Responses.CreatureVitalsUpdated */
+export type CreatureVitalsUpdated = {
+    /** Transpiled from System.Guid */
+    worldId: string;
+    /** Transpiled from System.Guid */
+    locationId: string;
+    /** Transpiled from System.Collections.Generic.IReadOnlyCollection<TRPG.Creatures.Responses.CreatureVitalsEntry> */
+    entries: CreatureVitalsEntry[];
     /** Transpiled from long */
     version: number;
 }

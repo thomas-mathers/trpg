@@ -1,4 +1,4 @@
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Domain;
 using TRPG.GameSessions.Mappers;
 using TRPG.GameSessions.Responses;
@@ -135,5 +135,43 @@ internal sealed class ClockReanchoredEventMapper : GameClientEventMapper<ClockRe
                 gameEvent.Stamp.TimeScale
             ),
             static (client, payload) => client.ClockReanchored(payload)
+        );
+}
+
+internal sealed class SeatingChangedEventMapper : GameClientEventMapper<SeatingChangedEvent>
+{
+    protected override IGameClientCall Map(SeatingChangedEvent gameEvent) =>
+        new GameClientCall<SeatingChangedPayload>(
+            new(
+                gameEvent.WorldId,
+                gameEvent.LocationId,
+                gameEvent.Stamp.Version,
+                gameEvent.CreatureId,
+                gameEvent.SeatId,
+                gameEvent.Posture.ToResponse(),
+                gameEvent.Placement.ToWire()
+            ),
+            static (client, payload) => client.SeatingChanged(payload)
+        );
+}
+
+internal sealed class PropOccupancyChangedEventMapper
+    : GameClientEventMapper<PropOccupancyChangedEvent>
+{
+    protected override IGameClientCall Map(PropOccupancyChangedEvent gameEvent) =>
+        new GameClientCall<PropOccupancyChangedPayload>(
+            new(
+                gameEvent.WorldId,
+                gameEvent.LocationId,
+                gameEvent.Stamp.Version,
+                gameEvent
+                    .Props.Select(prop => new PropOccupancySnapshot(
+                        prop.PropId,
+                        prop.IsOccupied,
+                        prop.IsOccupiedByPlayer
+                    ))
+                    .ToArray()
+            ),
+            static (client, payload) => client.PropOccupancyChanged(payload)
         );
 }

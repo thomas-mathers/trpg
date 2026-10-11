@@ -33,6 +33,7 @@ internal class CompleteQuestCommandHandler(
     IDomainEventPublisher<QuestGoldRewardedEvent> questGoldRewarded,
     IDomainEventPublisher<QuestReputationRewardedEvent> questReputationRewarded,
     IDomainEventPublisher<QuestCompletedEvent> questCompleted,
+    IDomainEventPublisher<QuestMarkersChangedEvent> questMarkersChanged,
     IQueryHandler<GetItemsByIdsForOwnerQuery, IReadOnlyList<Item>> getItemsByIdsForOwner,
     IQueryHandler<GetItemsByNameForOwnerQuery, IReadOnlyList<Item>> getItemsByNameForOwner,
     IQueryHandler<GetReportedStolenItemIdsQuery, IReadOnlySet<Guid>> getReportedStolenItemIds,
@@ -223,6 +224,11 @@ internal class CompleteQuestCommandHandler(
                 cancellationToken
             );
         }
+
+        await questMarkersChanged.Publish(
+            new QuestMarkersChangedEvent(command.PlayerId, command.WorldId),
+            cancellationToken
+        );
 
         transaction.Complete();
     }

@@ -1,43 +1,42 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.GameTurns.Commands;
-using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Poses;
 
 namespace TRPG.Application.GameTurns;
 
 internal class StandUpActionHandler(
     GameActionRunner actionRunner,
-    ICommandHandler<StandUpCommand, StandUpResult> standUp,
-    WorldSimulationCoordinator simulation
+    SeatingAnnouncer seatingAnnouncer,
+    ICommandHandler<StandUpCommand, StandUpResult> standUp
 )
 {
-    public async Task<ActionOutcome> Handle(
+    public Task<ActionOutcome> Handle(
         GameTurnSession session,
         CancellationToken cancellationToken = default
+    ) =>
+        actionRunner.Run(
+            session,
+            (poses, token) => StandUp(session, poses, token),
+            cancellationToken
+        );
+
+    private async Task<ActionOutcome> StandUp(
+        GameTurnSession session,
+        LivePlayerPoses poses,
+        CancellationToken cancellationToken
     )
     {
-        var result = await simulation.Request(
-            session.WorldId,
-            async (poses, ct) =>
-            {
-                var stood = await standUp.Handle(
-                    new StandUpCommand { PlayerId = session.PlayerId },
-                    ct
-                );
-                if (stood == StandUpResult.Success)
-                {
-                    poses.Forget(session.PlayerId);
-                }
-
-                return stood;
-            },
+        var result = await standUp.Handle(
+            new StandUpCommand { PlayerId = session.PlayerId },
             cancellationToken
         );
+        if (result == StandUpResult.Success)
+        {
+            poses.Forget(session.PlayerId);
+            await seatingAnnouncer.Announce(session, null, cancellationToken);
+        }
 
-        return await actionRunner.Run(
-            session,
-            _ => Task.FromResult(ToOutcome(result)),
-            cancellationToken
-        );
+        return ToOutcome(result);
     }
 
     private static ActionOutcome ToOutcome(StandUpResult result) =>

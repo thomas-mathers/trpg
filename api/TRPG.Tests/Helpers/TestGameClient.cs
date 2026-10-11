@@ -21,6 +21,8 @@ internal sealed class TestGameClient : IGameClient
     public Action<CaravansUpdatedPayload>? OnCaravansUpdated { get; set; }
     public Action<WeatherChangedPayload>? OnWeatherChanged { get; set; }
     public Action<ClockReanchoredPayload>? OnClockReanchored { get; set; }
+    public Action<SeatingChangedPayload>? OnSeatingChanged { get; set; }
+    public Action<PropOccupancyChangedPayload>? OnPropOccupancyChanged { get; set; }
     public Action<CombatStarted>? OnCombatStarted { get; set; }
     public Action<CombatUpdated>? OnCombatUpdated { get; set; }
     public Action<HostileEncounterState>? OnHostileEncounterStarted { get; set; }
@@ -35,7 +37,7 @@ internal sealed class TestGameClient : IGameClient
     public Action<TrapEncounterResolutionFact>? OnTrapEncounterResolved { get; set; }
     public Action<TheftEncounterState>? OnTheftEncounterStarted { get; set; }
     public Action<TheftEncounterResolutionFact>? OnTheftEncounterResolved { get; set; }
-    public Action<PlayerVitalsUpdated>? OnPlayerVitalsUpdated { get; set; }
+    public Action<CreatureVitalsUpdated>? OnCreatureVitalsUpdated { get; set; }
     public Action<PlayerCorrectedPayload>? OnPlayerCorrected { get; set; }
     public Action<SkillLevelUp>? OnSkillLevelUp { get; set; }
     public Action<CharacterLevelUp>? OnCharacterLevelUp { get; set; }
@@ -101,6 +103,18 @@ internal sealed class TestGameClient : IGameClient
     public Task ClockReanchored(ClockReanchoredPayload payload)
     {
         OnClockReanchored?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task SeatingChanged(SeatingChangedPayload payload)
+    {
+        OnSeatingChanged?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task PropOccupancyChanged(PropOccupancyChangedPayload payload)
+    {
+        OnPropOccupancyChanged?.Invoke(payload);
         return Task.CompletedTask;
     }
 
@@ -188,9 +202,9 @@ internal sealed class TestGameClient : IGameClient
         return Task.CompletedTask;
     }
 
-    public Task PlayerVitalsUpdated(PlayerVitalsUpdated vitals)
+    public Task CreatureVitalsUpdated(CreatureVitalsUpdated vitals)
     {
-        OnPlayerVitalsUpdated?.Invoke(vitals);
+        OnCreatureVitalsUpdated?.Invoke(vitals);
         return Task.CompletedTask;
     }
 

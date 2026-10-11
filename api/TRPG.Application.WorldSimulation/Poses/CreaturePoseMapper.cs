@@ -6,7 +6,7 @@ namespace TRPG.Application.WorldSimulation.Poses;
 
 public sealed class CreaturePoseMapper
 {
-    public IReadOnlyList<CreaturePoseUpdate> Map(IEnumerable<SimEvent> events) =>
+    public IReadOnlyList<CreaturePoseUpdate> Map(IEnumerable<CreatureSimEvent> events) =>
         [
             .. events
                 .Select(MapEvent)
@@ -14,7 +14,7 @@ public sealed class CreaturePoseMapper
                 .Select(group => group.Aggregate((merged, next) => merged.Then(next))),
         ];
 
-    public CreaturePoseUpdate MapEvent(SimEvent simEvent) =>
+    public CreaturePoseUpdate MapEvent(CreatureSimEvent simEvent) =>
         simEvent switch
         {
             JourneyStarted started => new CreaturePoseUpdate(

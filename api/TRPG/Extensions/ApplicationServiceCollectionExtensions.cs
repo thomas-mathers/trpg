@@ -4,7 +4,6 @@ using TRPG.Application.Books.Extensions;
 using TRPG.Application.Chat.Extensions;
 using TRPG.Application.Combat.Extensions;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
@@ -27,6 +26,7 @@ using TRPG.Application.Routing.Extensions;
 using TRPG.Application.Scenes.Extensions;
 using TRPG.Application.WorldGeneration.Extensions;
 using TRPG.Application.Worlds.Extensions;
+using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Extensions;
 using TRPG.Commands;
 using TRPG.GameTurns.Tools;
@@ -101,11 +101,21 @@ public static class ApplicationServiceCollectionExtensions
             .Decorate(typeof(IQueryHandler<,>), typeof(LoggedQueryHandlerDecorator<,>));
     }
 
+    public static IServiceCollection AddWorldWriteGuard(
+        this IServiceCollection serviceCollection
+    ) =>
+        serviceCollection
+            .Decorate(typeof(ICommandHandler<>), typeof(WorldWriteGuardCommandHandlerDecorator<>))
+            .Decorate(
+                typeof(ICommandHandler<,>),
+                typeof(WorldWriteGuardCommandHandlerDecorator<,>)
+            );
+
     internal static IServiceCollection AddGameTool<T>(this IServiceCollection serviceCollection)
         where T : class, IGameTool =>
         serviceCollection
             .AddScoped<T>()
-            .AddScoped<AIFunction>(sp => new WorldMutationGatedFunction(
+            .AddScoped<AIFunction>(sp => new WorldRequestFunction(
                 AIFunctionFactory.Create(
                     sp.GetRequiredService<T>().Invoke,
                     new AIFunctionFactoryOptions
@@ -118,6 +128,6 @@ public static class ApplicationServiceCollectionExtensions
                     }
                 ),
                 sp.GetRequiredService<GameTurnContext>(),
-                sp.GetRequiredService<IWorldMutationGate>()
+                sp.GetRequiredService<WorldSimulationCoordinator>()
             ));
 }

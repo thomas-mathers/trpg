@@ -9,7 +9,8 @@ public static class GameTurnsServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddTransient<LlmConversationClient>()
-            .AddTransient<TurnSceneDiffer>()
+            .AddTransient<TurnSceneReader>()
+            .AddTransient<SeatingAnnouncer>()
             .AddTransient<GameTurnStreamer>()
             .AddTransient<GameActionRunner>()
             .AddTransient<StreamChatTurnHandler>()
@@ -37,6 +38,7 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<CombatActionHandler>()
             .AddTransient<CastAbilityActionHandler>()
             .AddTransient<MoveActionHandler>()
+            .AddTransient<RefreshSceneHandler>()
             .AddTransient<GameTurnRunner>(serviceProvider => new GameTurnRunner(
                 serviceProvider.GetRequiredService<StreamChatTurnHandler>(),
                 serviceProvider.GetRequiredService<WaitActionHandler>(),
@@ -59,6 +61,7 @@ public static class GameTurnsServiceCollectionExtensions
                 serviceProvider.GetRequiredService<TheftEncounterActionHandler>(),
                 serviceProvider.GetRequiredService<CombatActionHandler>(),
                 serviceProvider.GetRequiredService<CastAbilityActionHandler>(),
-                serviceProvider.GetRequiredService<MoveActionHandler>()
+                serviceProvider.GetRequiredService<MoveActionHandler>(),
+                serviceProvider.GetRequiredService<RefreshSceneHandler>()
             ));
 }

@@ -106,6 +106,8 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       caravansUpdated: async (payload) => gameEventBus.emit('CaravansUpdated', payload),
       weatherChanged: async (payload) => gameEventBus.emit('WeatherChanged', payload),
       clockReanchored: async (payload) => gameEventBus.emit('ClockReanchored', payload),
+      seatingChanged: async (payload) => gameEventBus.emit('SeatingChanged', payload),
+      propOccupancyChanged: async (payload) => gameEventBus.emit('PropOccupancyChanged', payload),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
       combatUpdated: async (update) => gameEventBus.emit('CombatUpdated', update),
       hostileEncounterStarted: async (encounter) =>
@@ -128,7 +130,7 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       theftEncounterStarted: async (encounter) =>
         gameEventBus.emit('TheftEncounterStarted', encounter),
       theftEncounterResolved: async (fact) => gameEventBus.emit('TheftEncounterResolved', fact),
-      playerVitalsUpdated: async (vitals) => gameEventBus.emit('PlayerVitalsUpdated', vitals),
+      creatureVitalsUpdated: async (vitals) => gameEventBus.emit('CreatureVitalsUpdated', vitals),
       playerCorrected: async (correction) => gameEventBus.emit('PlayerCorrected', correction),
       skillLevelUp: async (skillLevelUp) => gameEventBus.emit('SkillLevelUp', skillLevelUp),
       characterLevelUp: async (characterLevelUp) =>

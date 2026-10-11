@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.QuestGeneration.Commands;
+using TRPG.Application.WorldSimulation;
 
 namespace TRPG.Quests.Endpoints;
 
@@ -26,19 +27,25 @@ internal static class QuestChainDevEndpoints
         Guid playerId,
         int playerLevel,
         [FromServices] ICommandHandler<SeedLlmQuestChainCommand, bool> seedLlmQuestChain,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken,
         Guid? giverFactionId = null
     )
     {
-        var scheduled = await seedLlmQuestChain.Handle(
-            new SeedLlmQuestChainCommand
-            {
-                WorldId = worldId,
-                PlayerId = playerId,
-                LocationId = locationId,
-                PlayerLevel = playerLevel,
-                GiverFactionId = giverFactionId,
-            },
+        var scheduled = await simulation.Request(
+            worldId,
+            (_, token) =>
+                seedLlmQuestChain.Handle(
+                    new SeedLlmQuestChainCommand
+                    {
+                        WorldId = worldId,
+                        PlayerId = playerId,
+                        LocationId = locationId,
+                        PlayerLevel = playerLevel,
+                        GiverFactionId = giverFactionId,
+                    },
+                    token
+                ),
             cancellationToken
         );
 

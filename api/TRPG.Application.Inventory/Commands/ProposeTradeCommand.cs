@@ -6,6 +6,7 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Inventory.Commands;
 
+[ExemptFromWorldWriteGuard("Evaluates an offer without writing.")]
 public class ProposeTradeCommand
 {
     public required Guid PlayerId { get; init; }

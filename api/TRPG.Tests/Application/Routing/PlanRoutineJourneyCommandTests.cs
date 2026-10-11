@@ -113,4 +113,72 @@ public sealed class PlanRoutineJourneyCommandTests : IAsyncLifetime, IClassFixtu
         Assert.Equal(2, legs.Length);
         Assert.Equal(_homeNode.Id, legs[0].FromNodeId);
     }
+
+    [Fact]
+    public async Task Handle_PlansAJourneyToTheShelter_WhenTheIdleJobIsInSevereWeather()
+    {
+        // Arrange
+        await AddIdleJobAt(_homeLocationId);
+        var command = ShelterCommand(_workLocationId, _homeLocationId);
+
+        // Act
+        var journeyId = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        var journey = await _context.Journeys.SingleAsync(
+            journey => journey.Id == journeyId,
+            TestContext.Current.CancellationToken
+        );
+        var lastLeg = await _context
+            .JourneyLegs.Where(leg => leg.JourneyId == journey.Id)
+            .OrderByDescending(leg => leg.Index)
+            .FirstAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(_arrivalNode.Id, lastLeg.ToNodeId);
+    }
+
+    [Fact]
+    public async Task Handle_PlansNoJourney_WhenTheCreatureIsAlreadyAtItsShelter()
+    {
+        // Arrange
+        await AddIdleJobAt(_workLocationId);
+        var command = ShelterCommand(_homeLocationId, _workLocationId);
+
+        // Act
+        var journeyId = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Null(journeyId);
+    }
+
+    private async Task AddIdleJobAt(Guid locationId)
+    {
+        _context.CreatureJobs.RemoveRange(
+            _context.CreatureJobs.Where(job => job.CreatureId == _worker.Id)
+        );
+        _context.CreatureJobs.Add(
+            Builders.MakeCreatureJob(
+                _worker.Id,
+                action: CreatureJobAction.Idle,
+                startHour: 0,
+                endHour: 23,
+                locationId: locationId,
+                worldId: _world.Id
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private PlanRoutineJourneyCommand ShelterCommand(
+        Guid shelterLocationId,
+        Guid severeLocationId
+    ) =>
+        new()
+        {
+            CreatureId = _worker.Id,
+            PlannedAt = Now,
+            TimeScale = 1,
+            ArrivalStagger = TimeSpan.Zero,
+            ShelterLocationId = shelterLocationId,
+            SevereWeatherLocationIds = new HashSet<Guid> { severeLocationId },
+        };
 }

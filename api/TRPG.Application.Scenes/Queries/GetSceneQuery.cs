@@ -56,10 +56,6 @@ internal class GetSceneQueryHandler(
         IReadOnlyCollection<Building>
     > getAllBuildingsByLocation,
     IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>> getNearbyCreatures,
-    IQueryHandler<
-        GetTotalCharacterXpFromSkillsQuery,
-        IReadOnlyDictionary<Guid, int>
-    > getTotalCharacterXpFromSkills,
     IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
     IQueryHandler<GetRoomsByIdsQuery, IReadOnlyDictionary<Guid, Room>> getRoomsByIds,
     IQueryHandler<GetVisitedRoomLocationIdsQuery, IReadOnlySet<Guid>> getVisitedRoomLocationIds,
@@ -136,10 +132,10 @@ internal class GetSceneQueryHandler(
             player.RoomId != null
                 ? await BuildIndoorScene(query.WorldId, player, cancellationToken)
                 : await BuildOutdoorScene(query.WorldId, player, state, cancellationToken);
-        var playerCreatureInfo = await BuildPlayerCreatureInfo(
-            query,
+        var playerCreatureInfo = await creatureInfoBuilder.BuildPlayerInfo(
             player,
-            equippedItemsByCreature.GetValueOrDefault(player.Id, []).ToVisualEquipment(),
+            query.CurrentDate.Year,
+            equippedItemsByCreature.GetValueOrDefault(player.Id, []),
             cancellationToken
         );
         var weather =
@@ -227,34 +223,6 @@ internal class GetSceneQueryHandler(
         WeatherCondition? weather,
         CancellationToken cancellationToken
     ) => Task.FromResult<IReadOnlyCollection<SceneCaravanInfo>>([]);
-
-    private async Task<SceneCreatureInfo> BuildPlayerCreatureInfo(
-        GetSceneQuery query,
-        CreatureResult player,
-        IReadOnlyCollection<SceneEquipmentVisual> equipment,
-        CancellationToken cancellationToken
-    )
-    {
-        var playerXpTotals = await getTotalCharacterXpFromSkills.Handle(
-            new GetTotalCharacterXpFromSkillsQuery { CreatureIds = [query.PlayerId] },
-            cancellationToken
-        );
-        var totalCharacterXp = playerXpTotals.GetValueOrDefault(query.PlayerId, 0);
-
-        return SceneCreatureInfoBuilder.BuildSceneCreatureInfo(
-            player,
-            query.CurrentDate.Year,
-            factionNames: [],
-            player.Condition,
-            player.Activity,
-            player.Posture,
-            player.Movement,
-            reputation: null,
-            totalCharacterXp,
-            placement: new Placement(player.X, player.Y, player.Angle),
-            equipment: equipment
-        );
-    }
 
     private async Task<SceneCityInfo?> BuildCityInfo(
         CreatureResult player,

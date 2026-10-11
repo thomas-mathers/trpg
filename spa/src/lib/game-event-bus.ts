@@ -1,7 +1,7 @@
 import type { CombatStarted, CombatUpdated } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type {
   CharacterLevelUp,
-  PlayerVitalsUpdated,
+  CreatureVitalsUpdated,
   SkillLevelUp,
 } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
@@ -23,6 +23,8 @@ import type {
   CaravansLeftPayload,
   CaravansUpdatedPayload,
   ClockReanchoredPayload,
+  PropOccupancyChangedPayload,
+  SeatingChangedPayload,
   CreaturesArrivedPayload,
   CreaturesLeftPayload,
   CreaturesMovedPayload,
@@ -50,6 +52,8 @@ interface GameEventMap {
   CaravansUpdated: CaravansUpdatedPayload;
   WeatherChanged: WeatherChangedPayload;
   ClockReanchored: ClockReanchoredPayload;
+  SeatingChanged: SeatingChangedPayload;
+  PropOccupancyChanged: PropOccupancyChangedPayload;
   CombatStarted: CombatStarted;
   CombatUpdated: CombatUpdated;
   // Fires once the round's animation finishes, so the combat UI, toasts, and respawn flow don't jump ahead of what's on screen.
@@ -68,7 +72,7 @@ interface GameEventMap {
   TheftEncounterResolved: TheftEncounterResolutionFact;
   TrapEncounterStarted: TrapEncounterState;
   TrapEncounterResolved: TrapEncounterResolutionFact;
-  PlayerVitalsUpdated: PlayerVitalsUpdated;
+  CreatureVitalsUpdated: CreatureVitalsUpdated;
   PlayerCorrected: PlayerCorrectedPayload;
   SkillLevelUp: SkillLevelUp;
   CharacterLevelUp: CharacterLevelUp;

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -25,9 +25,11 @@ public sealed class RespawnActionHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<RespawnActionHandler>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
 
         var player = Builders.MakeCreature(
             _worldId,

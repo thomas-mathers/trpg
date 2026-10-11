@@ -15,6 +15,7 @@ using TRPG.Application.GameSessions.Queries;
 using TRPG.Application.GameTurns;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Commands;
 using TRPG.GameSessions.Responses;
@@ -38,6 +39,7 @@ public interface IChatHub
     Task<ActionResult> SendDeliverItem(Guid recipientId);
     Task<ActionResult> SendMove(Guid connectorId);
     Task SendMovementInput(PlayerMovementInput input);
+    Task SendRefreshScene();
     Task<ActionResult> SendFlee();
     Task<ActionResult> SendRespawn();
     Task<ActionResult> SendCastAbility(Guid targetId, string abilityName);
@@ -67,6 +69,7 @@ internal sealed class ChatHub(
     ICommandHandler<PublishSessionStateCommand> publishSessionState,
     IQueryHandler<GetGameSessionQuery, GameSession> getGameSession,
     PendingSessionEndRegistry pendingSessionEnds,
+    PlayerConnectionRegistry playerConnections,
     WorldSimulationCoordinator simulation,
     TimeProvider timeProvider
 ) : Hub<IGameClient>, IChatHub
@@ -87,6 +90,7 @@ internal sealed class ChatHub(
         await pendingSessionEnds.Connect(snapshot.Id, snapshot.WorldId, Context.ConnectionAborted);
         var session = new GameTurnSession(snapshot.Id, snapshot.WorldId, snapshot.PlayerId);
         Context.Items[SessionKey] = session;
+        playerConnections.Register(session.PlayerId, Context);
 
         await Groups.AddToGroupAsync(
             Context.ConnectionId,
@@ -110,9 +114,13 @@ internal sealed class ChatHub(
     {
         if (Context.Items[SessionKey] is GameTurnSession session)
         {
+            playerConnections.Unregister(session.PlayerId, Context);
             try
             {
-                simulation.Post(session.WorldId, new PlayerDisconnected(session.PlayerId));
+                await simulation.PostIfLoaded(
+                    session.WorldId,
+                    new PlayerDisconnected(session.PlayerId)
+                );
             }
             finally
             {
@@ -161,9 +169,9 @@ internal sealed class ChatHub(
     public Task<ActionResult> SendMove(Guid connectorId) =>
         Result(gameTurnRunner.Move(Session, connectorId, Context.ConnectionAborted));
 
-    public Task SendMovementInput(PlayerMovementInput input)
+    public async Task SendMovementInput(PlayerMovementInput input)
     {
-        simulation.Post(
+        await simulation.Post(
             Session.WorldId,
             new PlayerInput(
                 Session.PlayerId,
@@ -171,11 +179,13 @@ internal sealed class ChatHub(
                 new MovementInput(input.Forward, input.Strafe, input.Heading),
                 new Point(input.X, input.Y),
                 timeProvider.GetUtcNow()
-            )
+            ),
+            Context.ConnectionAborted
         );
-
-        return Task.CompletedTask;
     }
+
+    public Task SendRefreshScene() =>
+        gameTurnRunner.RefreshScene(Session, Context.ConnectionAborted);
 
     public Task<ActionResult> SendFlee() =>
         Result(gameTurnRunner.Flee(Session, Context.ConnectionAborted));

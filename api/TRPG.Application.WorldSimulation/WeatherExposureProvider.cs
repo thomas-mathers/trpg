@@ -10,7 +10,7 @@ public sealed class WeatherExposureProvider(
     IQueryHandler<GetWeatherByStateIdQuery, WeatherCondition?> getWeather
 )
 {
-    public async Task<IReadOnlySet<Guid>> FindExposedLocationIds(
+    public async Task<IReadOnlySet<Guid>> FindSevereWeatherLocationIds(
         IReadOnlyCollection<Guid> locationIds,
         CancellationToken cancellationToken = default
     )
@@ -20,7 +20,7 @@ public sealed class WeatherExposureProvider(
             cancellationToken
         );
 
-        var exposed = new HashSet<Guid>();
+        var severe = new HashSet<Guid>();
         foreach (
             var stateLocations in locations
                 .Values.Where(location => location.Kind != LocationKind.Room)
@@ -33,10 +33,10 @@ public sealed class WeatherExposureProvider(
             );
             if (WeatherConditions.PreventsOptionalTravel(weather))
             {
-                exposed.UnionWith(stateLocations.Select(location => location.Id));
+                severe.UnionWith(stateLocations.Select(location => location.Id));
             }
         }
 
-        return exposed;
+        return severe;
     }
 }

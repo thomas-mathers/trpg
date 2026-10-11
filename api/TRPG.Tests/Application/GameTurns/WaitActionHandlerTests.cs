@@ -2,8 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Commands;
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
@@ -27,9 +26,11 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .AddScoped<IGameClientEventDispatcher, NoOpGameClientEventDispatcher>()
             .BuildServiceProvider();
         _handler = _serviceProvider.GetRequiredService<WaitActionHandler>();
+        _serviceProvider.GetRequiredService<SimulationPump>();
         _events = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
@@ -89,14 +90,10 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
         );
         player.ActiveDots = [];
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var publishScene = _serviceProvider.GetRequiredService<PublishAmbientSceneCommandHandler>();
-        await publishScene.Handle(
-            new PublishAmbientSceneCommand
-            {
-                WorldId = _worldId,
-                PlayerId = player.Id,
-                GameTime = GameClock.Epoch,
-            },
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            GameClock.Epoch,
             TestContext.Current.CancellationToken
         );
         _events.EnqueuedEvents.Clear();

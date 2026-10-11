@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Combat;
+using TRPG.Application.Common.Commands;
 using TRPG.Application.Encounters;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Data;
@@ -126,6 +127,7 @@ public sealed class CombatEndpointsTests(EndpointTestFixture fixture) : IAsyncLi
 
     private async Task ResolveFleeDirectly(Guid sessionId)
     {
+        using var writeScope = WorldWriteScope.Enter();
         await using var scope = fixture.CreateScope();
         var combatantLoader =
             scope.ServiceProvider.GetRequiredService<ActiveFightCombatantLoader>();

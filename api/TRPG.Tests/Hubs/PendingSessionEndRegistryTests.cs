@@ -30,7 +30,9 @@ public sealed class PendingSessionEndRegistryTests(DatabaseFixture db)
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .WithSimulationPump(db.ConnectionString)
             .BuildServiceProvider();
+        _serviceProvider.GetRequiredService<SimulationPump>();
         _worldClock = new RecordingWorldClock();
         _registry = new PendingSessionEndRegistry(
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),

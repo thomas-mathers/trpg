@@ -2,6 +2,9 @@ using TRPG.Application.Common.Commands;
 
 namespace TRPG.Application.Worlds.Commands;
 
+[ExemptFromWorldWriteGuard(
+    "Saves generated premise text no runner decision reads, and holds an LLM call."
+)]
 public class EnsureDungeonPremisesCommand
 {
     public required IReadOnlyCollection<Guid> BuildingIds { get; init; }

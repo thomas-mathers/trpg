@@ -7,7 +7,6 @@ using TRPG.Abilities.Responses;
 using TRPG.Application.Abilities;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
-using TRPG.Application.Common.Concurrency;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.CreatureFormulas;
@@ -19,6 +18,7 @@ using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Inventory.Queries;
 using TRPG.Application.Inventory.Results;
 using TRPG.Application.Quests.Queries;
+using TRPG.Application.WorldSimulation;
 using TRPG.Creatures.Mappers;
 using TRPG.Creatures.Queries;
 using TRPG.Creatures.Requests;
@@ -252,15 +252,24 @@ internal static class CreatureEndpoints
         Guid creatureId,
         AllocateAttributePointsRequest request,
         [FromServices] ICommandHandler<AllocateAttributePointsCommand> allocateAttributePoints,
+        [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await allocateAttributePoints.Handle(
-            new AllocateAttributePointsCommand
-            {
-                CreatureId = creatureId,
-                Deltas = request.Deltas.ToDictionary(),
-            },
+        var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
+
+        await simulation.Request(
+            creature.WorldId,
+            (_, token) =>
+                allocateAttributePoints.Handle(
+                    new AllocateAttributePointsCommand
+                    {
+                        CreatureId = creatureId,
+                        Deltas = request.Deltas.ToDictionary(),
+                    },
+                    token
+                ),
             cancellationToken
         );
 
@@ -272,18 +281,24 @@ internal static class CreatureEndpoints
         EquipItemRequest request,
         [FromServices] ICommandHandler<EquipInventoryItemCommand> equipInventoryItem,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await EnsureCreatureExists(creatureId, getCreatureById, cancellationToken);
+        var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
 
-        await equipInventoryItem.Handle(
-            new EquipInventoryItemCommand
-            {
-                CreatureId = creatureId,
-                ItemId = request.ItemId,
-                Slot = request.Slot.ToDataModel(),
-            },
+        await simulation.Request(
+            creature.WorldId,
+            (_, token) =>
+                equipInventoryItem.Handle(
+                    new EquipInventoryItemCommand
+                    {
+                        CreatureId = creatureId,
+                        ItemId = request.ItemId,
+                        Slot = request.Slot.ToDataModel(),
+                    },
+                    token
+                ),
             cancellationToken
         );
 
@@ -295,13 +310,23 @@ internal static class CreatureEndpoints
         TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices] ICommandHandler<UnequipInventoryItemCommand> unequipInventoryItem,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await EnsureCreatureExists(creatureId, getCreatureById, cancellationToken);
+        var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
 
-        await unequipInventoryItem.Handle(
-            new UnequipInventoryItemCommand { CreatureId = creatureId, Slot = slot.ToDataModel() },
+        await simulation.Request(
+            creature.WorldId,
+            (_, token) =>
+                unequipInventoryItem.Handle(
+                    new UnequipInventoryItemCommand
+                    {
+                        CreatureId = creatureId,
+                        Slot = slot.ToDataModel(),
+                    },
+                    token
+                ),
             cancellationToken
         );
 
@@ -708,7 +733,7 @@ internal static class CreatureEndpoints
             progress.ExperienceToNextLevel
         );
 
-    private static async Task EnsureCreatureExists(
+    private static async Task<Creature> GetExistingCreature(
         Guid creatureId,
         IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         CancellationToken cancellationToken
@@ -722,6 +747,8 @@ internal static class CreatureEndpoints
         {
             throw new EntityNotFoundException(nameof(Creature), creatureId);
         }
+
+        return creature;
     }
 
     private static async Task<NoContent> BeginCreatureInteraction(
@@ -729,25 +756,31 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid worldId,
         [FromServices] IWorldClock worldClock,
-        [FromServices] IWorldMutationGate mutationGate,
         [FromServices] ICommandHandler<ReleaseOpenInteractionsCommand> releaseOpenInteractions,
         [FromServices] ICommandHandler<BeginCreatureInteractionCommand> beginInteraction,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
-        var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
-        await releaseOpenInteractions.Handle(
-            new ReleaseOpenInteractionsCommand { WorldId = worldId, GameTime = gameTime },
-            cancellationToken
-        );
-        await beginInteraction.Handle(
-            new BeginCreatureInteractionCommand
+        await simulation.Request(
+            worldId,
+            async (_, token) =>
             {
-                WorldId = worldId,
-                PlayerId = playerId,
-                CreatureId = creatureId,
-                GameTime = gameTime,
+                var gameTime = await worldClock.GetCurrent(worldId, token);
+                await releaseOpenInteractions.Handle(
+                    new ReleaseOpenInteractionsCommand { WorldId = worldId, GameTime = gameTime },
+                    token
+                );
+                await beginInteraction.Handle(
+                    new BeginCreatureInteractionCommand
+                    {
+                        WorldId = worldId,
+                        PlayerId = playerId,
+                        CreatureId = creatureId,
+                        GameTime = gameTime,
+                    },
+                    token
+                );
             },
             cancellationToken
         );
@@ -759,20 +792,26 @@ internal static class CreatureEndpoints
         Guid creatureId,
         Guid worldId,
         [FromServices] IWorldClock worldClock,
-        [FromServices] IWorldMutationGate mutationGate,
         [FromServices] ICommandHandler<EndCreatureInteractionCommand> endInteraction,
+        [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
-        await using var lease = await mutationGate.Acquire(worldId, cancellationToken);
-        var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
-        await endInteraction.Handle(
-            new EndCreatureInteractionCommand
+        await simulation.Request(
+            worldId,
+            async (_, token) =>
             {
-                WorldId = worldId,
-                PlayerId = playerId,
-                CreatureId = creatureId,
-                GameTime = gameTime,
+                var gameTime = await worldClock.GetCurrent(worldId, token);
+                await endInteraction.Handle(
+                    new EndCreatureInteractionCommand
+                    {
+                        WorldId = worldId,
+                        PlayerId = playerId,
+                        CreatureId = creatureId,
+                        GameTime = gameTime,
+                    },
+                    token
+                );
             },
             cancellationToken
         );

@@ -1,6 +1,6 @@
 import type {
   CharacterLevelUp,
-  PlayerVitalsUpdated,
+  CreatureVitalsUpdated,
   SkillLevelUp,
 } from '@/api/signalr-client/TRPG.Creatures.Responses';
 import type {
@@ -13,7 +13,10 @@ import type {
   CreaturesMovedPayload,
   CreaturesUpdatedPayload,
   CreatureStatusSnapshot,
+  NearbyPropSnapshot,
+  PropOccupancyChangedPayload,
   SceneSnapshot,
+  SeatingChangedPayload,
   WeatherChangedPayload,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { createSceneSnapshot } from '@/features/game/contexts/scene-context';
@@ -28,6 +31,8 @@ type SceneDeltaPayloads = {
   CaravansUpdated: CaravansUpdatedPayload;
   WeatherChanged: WeatherChangedPayload;
   ClockReanchored: ClockReanchoredPayload;
+  SeatingChanged: SeatingChangedPayload;
+  PropOccupancyChanged: PropOccupancyChangedPayload;
 };
 
 type SceneDeltaAction = {
@@ -37,7 +42,7 @@ type SceneDeltaAction = {
 export type SceneAction =
   | SceneDeltaAction
   | { type: 'SceneSnapshot'; payload: SceneSnapshot }
-  | { type: 'PlayerVitalsUpdated'; payload: PlayerVitalsUpdated }
+  | { type: 'CreatureVitalsUpdated'; payload: CreatureVitalsUpdated }
   | { type: 'SkillLevelUp'; payload: SkillLevelUp }
   | { type: 'CharacterLevelUp'; payload: CharacterLevelUp }
   | { type: 'Reset' };
@@ -45,16 +50,17 @@ export type SceneAction =
 export interface SceneState {
   scene: SceneSnapshot;
   hasSnapshot: boolean;
+  baselineVersion: number;
 }
 
 export function initialSceneState(): SceneState {
-  return { scene: createSceneSnapshot(), hasSnapshot: false };
+  return { scene: createSceneSnapshot(), hasSnapshot: false, baselineVersion: 0 };
 }
 
 export function reduceSceneState(state: SceneState, action: SceneAction): SceneState {
   if (action.type === 'Reset') return initialSceneState();
   if (action.type === 'SceneSnapshot') return applySnapshot(state, action.payload);
-  if (action.type === 'PlayerVitalsUpdated') return applyVitals(state, action.payload);
+  if (action.type === 'CreatureVitalsUpdated') return applyVitals(state, action.payload);
   if (action.type === 'SkillLevelUp') return applySkillLevel(state, action.payload);
   if (action.type === 'CharacterLevelUp') return applyCharacterLevel(state, action.payload);
 
@@ -64,7 +70,8 @@ export function reduceSceneState(state: SceneState, action: SceneAction): SceneS
     !state.hasSnapshot ||
     payload.worldId !== scene.worldId ||
     payload.locationId !== scene.locationId ||
-    payload.version < scene.version
+    payload.version < scene.version ||
+    payload.version <= state.baselineVersion
   )
     return state;
 
@@ -75,33 +82,36 @@ export function reduceSceneState(state: SceneState, action: SceneAction): SceneS
 }
 
 function applySnapshot(state: SceneState, snapshot: SceneSnapshot): SceneState {
-  if (state.hasSnapshot && snapshot.version <= state.scene.version) return state;
-  return { scene: snapshot, hasSnapshot: true };
+  if (state.hasSnapshot && snapshot.version < state.scene.version) return state;
+  return { scene: snapshot, hasSnapshot: true, baselineVersion: snapshot.version };
 }
 
-function applyVitals(state: SceneState, vitals: PlayerVitalsUpdated): SceneState {
+function applyVitals(state: SceneState, vitals: CreatureVitalsUpdated): SceneState {
   const { scene } = state;
   if (
     !state.hasSnapshot ||
-    vitals.playerId !== scene.playerStatus.id ||
-    vitals.version <= scene.version
+    vitals.worldId !== scene.worldId ||
+    vitals.locationId !== scene.locationId ||
+    vitals.version < scene.version ||
+    vitals.version <= state.baselineVersion
   )
     return state;
+
+  const entriesById = new Map(vitals.entries.map((entry) => [entry.creatureId, entry]));
+  const withVitals = (creature: CreatureStatusSnapshot): CreatureStatusSnapshot => {
+    const entry = entriesById.get(creature.id);
+    if (!entry) return creature;
+    const { creatureId: _creatureId, ...stats } = entry;
+    return { ...creature, ...stats };
+  };
 
   return {
     ...state,
     scene: {
       ...scene,
       version: vitals.version,
-      playerStatus: {
-        ...scene.playerStatus,
-        currentHp: vitals.currentHp,
-        maximumHp: vitals.maximumHp,
-        currentAp: vitals.currentAp,
-        maximumAp: vitals.maximumAp,
-        currentMp: vitals.currentMp,
-        maximumMp: vitals.maximumMp,
-      },
+      playerStatus: withVitals(scene.playerStatus),
+      nearbyCreatures: scene.nearbyCreatures.map(withVitals),
     },
   };
 }
@@ -169,7 +179,57 @@ function applySceneDelta(scene: SceneSnapshot, action: SceneDeltaAction): SceneS
         anchoredAtUnixMilliseconds: action.payload.anchoredAtUnixMilliseconds,
         timeScale: action.payload.timeScale,
       };
+    case 'SeatingChanged':
+      return applySeating(scene, action.payload);
+    case 'PropOccupancyChanged':
+      return applyPropOccupancy(scene, action.payload);
   }
+}
+
+function applySeating(scene: SceneSnapshot, seating: SeatingChangedPayload): SceneSnapshot {
+  const { creatureId, posture, placement } = seating;
+  const isPlayer = creatureId === scene.playerStatus.id;
+  return {
+    ...scene,
+    playerStatus: isPlayer ? { ...scene.playerStatus, posture, placement } : scene.playerStatus,
+    nearbyCreatures: scene.nearbyCreatures.map((creature) =>
+      creature.id === creatureId ? { ...creature, posture, placement } : creature,
+    ),
+    nearbyProps: scene.nearbyProps.map((prop) => applySeatOccupancy(prop, seating, isPlayer)),
+  };
+}
+
+function applyPropOccupancy(
+  scene: SceneSnapshot,
+  { props }: PropOccupancyChangedPayload,
+): SceneSnapshot {
+  const occupancyByPropId = new Map(props.map((occupancy) => [occupancy.propId, occupancy]));
+  return {
+    ...scene,
+    nearbyProps: scene.nearbyProps.map((prop) => {
+      const occupancy = occupancyByPropId.get(prop.id);
+      return occupancy
+        ? {
+            ...prop,
+            isOccupied: occupancy.isOccupied,
+            isOccupiedByPlayer: occupancy.isOccupiedByPlayer,
+          }
+        : prop;
+    }),
+  };
+}
+
+function applySeatOccupancy(
+  prop: NearbyPropSnapshot,
+  { seatId }: SeatingChangedPayload,
+  isPlayer: boolean,
+): NearbyPropSnapshot {
+  if (seatId === undefined) {
+    return isPlayer && prop.isOccupiedByPlayer
+      ? { ...prop, isOccupied: false, isOccupiedByPlayer: false }
+      : prop;
+  }
+  return prop.id === seatId ? { ...prop, isOccupied: true, isOccupiedByPlayer: isPlayer } : prop;
 }
 
 function applyCreatureStatuses(

@@ -16,6 +16,8 @@ public class PlanRoutineJourneyCommand
     public required GameInstant PlannedAt { get; init; }
     public required double TimeScale { get; init; }
     public required TimeSpan ArrivalStagger { get; init; }
+    public Guid? ShelterLocationId { get; init; }
+    public IReadOnlySet<Guid>? SevereWeatherLocationIds { get; init; }
 }
 
 internal class PlanRoutineJourneyCommandHandler(
@@ -41,7 +43,15 @@ internal class PlanRoutineJourneyCommandHandler(
             .Where(job => job.CreatureId == creature.Id)
             .OrderByDescending(job => job.Priority)
             .ToArrayAsync(cancellationToken);
-        var transition = FindNextTransition(jobs, creature.LocationId, command.PlannedAt);
+        var shelteredJobs = jobs.Select(job =>
+                WeatherShelter.Apply(
+                    job,
+                    command.ShelterLocationId,
+                    command.SevereWeatherLocationIds
+                )
+            )
+            .ToArray();
+        var transition = FindNextTransition(shelteredJobs, creature.LocationId, command.PlannedAt);
         if (transition is null)
         {
             return null;

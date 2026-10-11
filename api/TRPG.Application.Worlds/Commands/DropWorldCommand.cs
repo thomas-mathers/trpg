@@ -6,6 +6,9 @@ using TRPG.Data;
 
 namespace TRPG.Application.Worlds.Commands;
 
+[ExemptFromWorldWriteGuard(
+    "Deletes the world, and a world whose runner failed to load must still be droppable."
+)]
 public class DropWorldCommand
 {
     public required Guid WorldId { get; init; }

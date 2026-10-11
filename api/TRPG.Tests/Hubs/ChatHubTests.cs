@@ -205,6 +205,15 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     private static Task<ActionResult> Act(HubConnection hub, string method, params object[] args) =>
         hub.InvokeCoreAsync<ActionResult>(method, args, TestContext.Current.CancellationToken);
 
+    private static async Task WaitForCount(ConcurrentQueue<string> queue, int count)
+    {
+        using var timeout = new CancellationTokenSource(PushTimeout);
+        while (queue.Count < count)
+        {
+            await Task.Delay(10, timeout.Token);
+        }
+    }
+
     private static async Task<string> Drain(IAsyncEnumerable<string> tokens)
     {
         var builder = new StringBuilder();
@@ -614,8 +623,9 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SendSitDownAndStandUp_PublishSeatAndPlayerState()
+    public async Task SendSitDownAndStandUp_PublishSeatingChanges()
     {
+        // Arrange
         var seat = Builders.MakeSeat(_worldId, _locationId);
         await using (var scope = fixture.CreateScope())
         {
@@ -624,33 +634,34 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
         var sessionId = await StartSession();
-        var snapshots = new List<SceneSnapshot>();
-        var connected = await ConnectAndAwaitInitialSnapshot(sessionId, snapshots);
+        var connected = await ConnectAndAwaitInitialSnapshot(sessionId, []);
         await using var gameHub = connected.Connection;
-        var seatedReceived = CaptureNextSnapshot(connected, snapshots);
+        var seatings = new List<SeatingChangedPayload>();
+        var seated = new TaskCompletionSource();
+        var stood = new TaskCompletionSource();
+        connected.Client.OnSeatingChanged = payload =>
+        {
+            seatings.Add(payload);
+            (payload.SeatId is null ? stood : seated).TrySetResult();
+        };
 
+        // Act
         var sitResult = await Act(gameHub, "SendSitDown", seat.Id);
-
-        Assert.True(sitResult.Succeeded);
-        await seatedReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
-        var seated = Assert.Single(snapshots);
-        Assert.Equal(ResponseCreaturePosture.Sitting, seated.PlayerStatus.Posture);
-        var seatedProp = Assert.Single(seated.NearbyProps, prop => prop.Id == seat.Id);
-        Assert.True(seatedProp.IsOccupied);
-        Assert.True(seatedProp.IsOccupiedByPlayer);
-
-        snapshots.Clear();
-        var standingReceived = CaptureNextSnapshot(connected, snapshots);
+        await seated.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
         var standResult = await Act(gameHub, "SendStandUp");
+        await stood.Task.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
 
+        // Assert
+        Assert.True(sitResult.Succeeded);
         Assert.True(standResult.Succeeded);
-        await standingReceived.WaitAsync(PushTimeout, TestContext.Current.CancellationToken);
-        var standing = Assert.Single(snapshots);
-        Assert.Equal(ResponseCreaturePosture.Standing, standing.PlayerStatus.Posture);
-        var standingProp = Assert.Single(standing.NearbyProps, prop => prop.Id == seat.Id);
-        Assert.False(standingProp.IsOccupied);
-        Assert.False(standingProp.IsOccupiedByPlayer);
-        Assert.True(standing.Version > seated.Version);
+        var sit = seatings[0];
+        Assert.Equal(_playerId, sit.CreatureId);
+        Assert.Equal(seat.Id, sit.SeatId);
+        Assert.Equal(ResponseCreaturePosture.Sitting, sit.Posture);
+        var stand = seatings[1];
+        Assert.Null(stand.SeatId);
+        Assert.Equal(ResponseCreaturePosture.Standing, stand.Posture);
+        Assert.True(stand.Version > sit.Version);
     }
 
     [Fact]
@@ -1091,7 +1102,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         await Act(connection, "SendMove", connector.Id);
 
-        Assert.Single(order);
+        await WaitForCount(order, 1);
         var player = await context
             .Creatures.AsNoTracking()
             .SingleAsync(
@@ -1117,6 +1128,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
                 TestContext.Current.CancellationToken
             );
         Assert.Equal(destination.Id, movedPlayer.LocationId);
+        await WaitForCount(order, 3);
         Assert.Equal(["encounter", "resolved", "encounter"], order.ToArray());
     }
 

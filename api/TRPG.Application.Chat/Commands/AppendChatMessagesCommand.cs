@@ -7,6 +7,9 @@ using ChatMessageRow = TRPG.Domain.Models.ChatMessage;
 
 namespace TRPG.Application.Chat.Commands;
 
+[ExemptFromWorldWriteGuard(
+    "Chat history belongs to the session, and narration appends it outside any request."
+)]
 public class AppendChatMessagesCommand
 {
     public required Guid SessionId { get; init; }

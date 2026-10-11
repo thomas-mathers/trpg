@@ -208,6 +208,9 @@ public sealed class ReceivePlayerInventoryCommandHandlerTests(DatabaseFixture db
     public async Task Handle_UpdatesCollectObjectiveAndPublishesJournalEvent_WhenPlayerReceivesQuestItem()
     {
         // Arrange
+        var location = Builders.MakeLocation(WorldId);
+        _context.Locations.Add(location);
+        _player.LocationId = location.Id;
         var item = await SeedItemOnFromCreature(quantity: 1);
         var progress = await SeedCollectItemObjective(item.Id);
 

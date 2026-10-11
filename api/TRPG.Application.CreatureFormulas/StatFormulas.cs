@@ -187,55 +187,28 @@ public static class StatFormulas
             return;
         }
 
-        if (options.TickInterval <= TimeSpan.Zero)
-        {
-            throw new InvalidOperationException("The regeneration tick interval must be positive.");
-        }
-
-        var completeTicks = (long)
-            Math.Floor((currentGameTime - creature.LastRegenGameTime) / options.TickInterval);
-        if (completeTicks <= 0)
+        var regenerated = VitalsRegeneration.Regenerate(
+            new RegenVitals(
+                creature.CurrentHp,
+                creature.MaximumHp,
+                creature.CurrentAp,
+                creature.MaximumAp,
+                creature.CurrentMp,
+                creature.MaximumMp,
+                creature.LastRegenGameTime
+            ),
+            currentGameTime,
+            options
+        );
+        if (regenerated is null)
         {
             return;
         }
 
-        creature.CurrentHp = Regen(
-            creature.CurrentHp,
-            creature.MaximumHp,
-            options.HpRegenPercentPerTick,
-            completeTicks
-        );
-        creature.CurrentAp = Regen(
-            creature.CurrentAp,
-            creature.MaximumAp,
-            options.ApRegenPercentPerTick,
-            completeTicks
-        );
-        creature.CurrentMp = Regen(
-            creature.CurrentMp,
-            creature.MaximumMp,
-            options.MpRegenPercentPerTick,
-            completeTicks
-        );
-
-        // Advancing by whole ticks keeps the partial tick banked toward the next one.
-        creature.LastRegenGameTime += options.TickInterval * completeTicks;
-    }
-
-    private static int Regen(int current, int maximum, float percentPerTick, long ticks)
-    {
-        var missing = maximum - current;
-        if (missing <= 0)
-        {
-            return current;
-        }
-
-        var amount = Math.Round(
-            maximum * (double)percentPerTick * ticks,
-            MidpointRounding.AwayFromZero
-        );
-        var minimumAmount = percentPerTick > 0 ? 1 : 0;
-        return current + (int)Math.Min(missing, Math.Max(amount, minimumAmount));
+        creature.CurrentHp = regenerated.CurrentHp;
+        creature.CurrentAp = regenerated.CurrentAp;
+        creature.CurrentMp = regenerated.CurrentMp;
+        creature.LastRegenGameTime = regenerated.LastRegenAt;
     }
 
     public static void RefreshMovementSpeed(

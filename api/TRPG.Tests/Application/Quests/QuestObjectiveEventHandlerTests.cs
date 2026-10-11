@@ -21,12 +21,14 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
     private ServiceProvider _serviceProvider = null!;
     private readonly Creature _player = Builders.MakeCreature(WorldId);
     private readonly Creature _giver = Builders.MakeCreature(WorldId);
+    private readonly RecordingDomainEventConsumer<QuestMarkersChangedEvent> _markersChanged = new();
 
     public async ValueTask InitializeAsync()
     {
         _context = db.CreateContext();
         _serviceProvider = new ServiceCollection()
             .AddTrpgTestServices(_context)
+            .AddSingleton<IDomainEventConsumer<QuestMarkersChangedEvent>>(_markersChanged)
             .BuildServiceProvider();
         _context.Creatures.AddRange(_player, _giver);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -71,6 +73,10 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
             gameEvent => Assert.IsType<QuestObjectiveCompletedEvent>(gameEvent),
             gameEvent => Assert.IsType<QuestJournalUpdatedEvent>(gameEvent)
         );
+        Assert.Equal(
+            new QuestMarkersChangedEvent(_player.Id, WorldId),
+            Assert.Single(_markersChanged.Events)
+        );
     }
 
     [Fact]
@@ -90,6 +96,7 @@ public sealed class QuestObjectiveEventHandlerTests(DatabaseFixture db)
         Assert.Equal(1, progress.Amount);
         var gameEvents = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
         Assert.Empty(gameEvents.EnqueuedEvents);
+        Assert.Empty(_markersChanged.Events);
     }
 
     [Fact]
