@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Events;
 using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Data;
@@ -28,7 +27,6 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private CreatureChangeAnnouncer _announcer = null!;
-    private PublishAmbientSceneCommandHandler _publishAmbientScene = null!;
     private TestGameClientEventSink _events = null!;
 
     public async ValueTask InitializeAsync()
@@ -48,8 +46,6 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
             )
             .BuildServiceProvider();
         _announcer = _serviceProvider.GetRequiredService<CreatureChangeAnnouncer>();
-        _publishAmbientScene =
-            _serviceProvider.GetRequiredService<PublishAmbientSceneCommandHandler>();
         _events = _serviceProvider.GetRequiredService<TestGameClientEventSink>();
 
         var country = Builders.MakeCountry(_worldId);
@@ -321,13 +317,10 @@ public sealed class CreatureChangeAnnouncerTests(DatabaseFixture db)
 
     private async Task PublishBaselineScene()
     {
-        await _publishAmbientScene.Handle(
-            new PublishAmbientSceneCommand
-            {
-                WorldId = _worldId,
-                PlayerId = _player.Id,
-                GameTime = GameClock.Epoch,
-            },
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _player.Id,
+            GameClock.Epoch,
             TestContext.Current.CancellationToken
         );
         _events.EnqueuedEvents.Clear();

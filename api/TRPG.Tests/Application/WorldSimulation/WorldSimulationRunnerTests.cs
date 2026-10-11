@@ -6,7 +6,6 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
 using TRPG.Application.Creatures;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Commands;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
@@ -218,17 +217,12 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         // Arrange
         var worker = await AddWorker();
         await AddPlayerAt(_workplace);
-        await _serviceProvider
-            .GetRequiredService<PublishAmbientSceneCommandHandler>()
-            .Handle(
-                new PublishAmbientSceneCommand
-                {
-                    WorldId = _worldId,
-                    PlayerId = _playerId,
-                    GameTime = Now,
-                },
-                TestContext.Current.CancellationToken
-            );
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
         await StartRunner();
 
         // Act

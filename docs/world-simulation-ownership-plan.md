@@ -191,6 +191,8 @@ Equipment, faction names, quest markers, effect visuals, vitals of nearby creatu
 
 ### PR H: delete the diff and the continuous pass
 
+Split into H1 (continuous pass, done), H2 (per-action diff) and H3 (planner and comparer leftovers). `PublishedSceneRegistry`, `SceneSemanticComparer.HasPlayerVisibleChange` and `SceneChangePlanner.PlanCreatureChanges` are not deleted: the G announcers compare refreshed creatures against the registry's last published scene, so they stay as the announcers' baseline. H3 removes only what no announcer uses.
+
 - Delete `SceneChangePlanner`, `SceneSemanticComparer` (and tests), `PublishedSceneRegistry`, `ScenePublisher`'s diff path, `TurnSceneDiffer`'s diff calls, `PublishAmbientSceneCommand`, and the processor and service with their DI registration (`api/TRPG/Extensions/ServiceCollectionExtensions.cs`) and tests (`ContinuousWorldProcessorTests`, `ContinuousWorldServiceTests`, `ContinuousWorldWriteVolumeTests`; rewrite the write-volume test against the runner).
 - `SceneUpdated` remains only for connect, reconnect, the player entering a new location, the explicit refresh request and the server-triggered resync after a failed projection. Wait/sleep uses the granular `ClockReanchored`.
 - Remove the snapshot fallback in the planner (`HasStaticChange`) and add a test that fails if `SceneUpdated` is published from anywhere other than the entry paths and the resync path.
@@ -268,7 +270,9 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR E: seating and sneak emit events
 - [x] PR F: runner-sourced arrived, left, moved
 - [x] PR G: remaining fields (equipment, factions, quest markers, effect visuals, nearby vitals, weather, caravans, props, the player's own status), one category per PR
-- [ ] PR H: delete the diff and the continuous pass
+- [x] PR H1: delete the continuous pass (processor, service, `PublishAmbientSceneCommand`)
+- [ ] PR H2: delete the per-action diff (`TurnSceneDiffer` diff calls, `PublishIfChanged`, `PublishAfterTimeAdvance`)
+- [ ] PR H3: delete the snapshot fallback and unused planner/comparer paths
 - [ ] Weather shelter PR (standalone, before I1)
 - [ ] PR I1: creature simulator extraction and planning renames
 - [ ] PR I2: applier (failed-batch, marker and reload tests)

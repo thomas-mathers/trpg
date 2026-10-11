@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Events;
 using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Data;
@@ -158,17 +157,12 @@ public sealed class PropOccupancyAnnouncerTests(DatabaseFixture db)
 
     private async Task PublishBaselineScene()
     {
-        await _serviceProvider
-            .GetRequiredService<PublishAmbientSceneCommandHandler>()
-            .Handle(
-                new PublishAmbientSceneCommand
-                {
-                    WorldId = _worldId,
-                    PlayerId = _player.Id,
-                    GameTime = GameClock.Epoch,
-                },
-                TestContext.Current.CancellationToken
-            );
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _player.Id,
+            GameClock.Epoch,
+            TestContext.Current.CancellationToken
+        );
         _events.EnqueuedEvents.Clear();
     }
 }

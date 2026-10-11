@@ -4,18 +4,22 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Configuration;
+using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Worlds;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
-using TRPG.Worlds;
 
 namespace TRPG.Tests.Worlds;
 
-public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
+public sealed class WorldSimulationWriteVolumeTests(DatabaseFixture db)
     : IAsyncLifetime,
         IClassFixture<DatabaseFixture>
 {
@@ -30,7 +34,7 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private WorldClock _worldClock = null!;
-    private ContinuousWorldProcessor _processor = null!;
+    private WorldSimulationCoordinator _coordinator = null!;
 
     public async ValueTask InitializeAsync()
     {
@@ -41,17 +45,25 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
             .AddDbContext<TrpgDbContext>(options =>
                 options.UseNpgsql(db.ConnectionString).AddInterceptors(_interceptor)
             )
-            .AddSingleton<SimulationPump>()
             .AddScoped<IGameClientEventDispatcher, DiscardingGameClientEventDispatcher>()
             .BuildServiceProvider();
         var scopeFactory = _serviceProvider.GetRequiredService<IServiceScopeFactory>();
-        _serviceProvider.GetRequiredService<SimulationPump>();
         _worldClock = new WorldClock(scopeFactory, _timeProvider);
-        _processor = new ContinuousWorldProcessor(
-            scopeFactory,
+        _coordinator = new WorldSimulationCoordinator(
             _worldClock,
-            _serviceProvider.GetRequiredService<WorldSimulationCoordinator>(),
-            NullLogger<ContinuousWorldProcessor>.Instance
+            new WorldSimulationRunnerFactory(
+                scopeFactory,
+                _worldClock,
+                new TransientCreatureWalkRegistry(),
+                new SceneSubscriptions(
+                    Options.Create(new WorldSimulationOptions()),
+                    TimeProvider.System
+                ),
+                Options.Create(new WorldSimulationOptions()),
+                Options.Create(new WorldClockOptions()),
+                NullLogger<WorldSimulationRunner>.Instance
+            ),
+            NullLogger<WorldSimulationCoordinator>.Instance
         );
 
         var country = Builders.MakeCountry(_world.Id);
@@ -75,15 +87,15 @@ public sealed class ContinuousWorldWriteVolumeTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Process_WritesNothing_WhenNothingIsDue()
+    public async Task Tick_WritesNothing_WhenNothingIsDue()
     {
         // Arrange
-        await _processor.Process(TestContext.Current.CancellationToken);
+        await _coordinator.Tick(TestContext.Current.CancellationToken);
         _timeProvider.Advance(TimeSpan.FromSeconds(5));
         _interceptor.Clear();
 
         // Act
-        await _processor.Process(TestContext.Current.CancellationToken);
+        await _coordinator.Tick(TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Empty(_interceptor.Writes);

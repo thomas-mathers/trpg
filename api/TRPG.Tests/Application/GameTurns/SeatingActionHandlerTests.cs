@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Events;
 using TRPG.Data;
 using TRPG.Domain;
@@ -96,14 +95,10 @@ public sealed class SeatingActionHandlerTests(DatabaseFixture db)
 
     private async Task PublishBaselineScene()
     {
-        var publishScene = _serviceProvider.GetRequiredService<PublishAmbientSceneCommandHandler>();
-        await publishScene.Handle(
-            new PublishAmbientSceneCommand
-            {
-                WorldId = _worldId,
-                PlayerId = _session.PlayerId,
-                GameTime = GameClock.Epoch,
-            },
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _session.PlayerId,
+            GameClock.Epoch,
             TestContext.Current.CancellationToken
         );
         _events.EnqueuedEvents.Clear();

@@ -65,8 +65,6 @@ internal static class ServiceCollectionExtensions
             .AddTrpgSessionState()
             .AddHostedService<WorldClockCheckpointService>()
             .AddHostedService<WorldSimulationStartup>()
-            .AddSingleton<ContinuousWorldProcessor>()
-            .AddHostedService<ContinuousWorldService>()
             .AddHostedService<WorldSimulationService>()
             .AddTrpgJobs(configuration)
             .AddGameTool<WorldInfoTool>()

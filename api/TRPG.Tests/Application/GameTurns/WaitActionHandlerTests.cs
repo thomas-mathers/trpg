@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Events;
 using TRPG.Data;
 using TRPG.Domain;
@@ -91,14 +90,10 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
         );
         player.ActiveDots = [];
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        var publishScene = _serviceProvider.GetRequiredService<PublishAmbientSceneCommandHandler>();
-        await publishScene.Handle(
-            new PublishAmbientSceneCommand
-            {
-                WorldId = _worldId,
-                PlayerId = player.Id,
-                GameTime = GameClock.Epoch,
-            },
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            GameClock.Epoch,
             TestContext.Current.CancellationToken
         );
         _events.EnqueuedEvents.Clear();

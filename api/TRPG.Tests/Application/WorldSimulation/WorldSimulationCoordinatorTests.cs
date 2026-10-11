@@ -12,7 +12,6 @@ using TRPG.Application.Creatures.Results;
 using TRPG.Application.Inventory.Commands;
 using TRPG.Application.Quests.Commands;
 using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
@@ -236,17 +235,12 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         _context.Creatures.AddRange(player, bystander);
         _context.Items.Add(sword);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _serviceProvider
-            .GetRequiredService<PublishAmbientSceneCommandHandler>()
-            .Handle(
-                new PublishAmbientSceneCommand
-                {
-                    WorldId = _worldId,
-                    PlayerId = player.Id,
-                    GameTime = Now,
-                },
-                TestContext.Current.CancellationToken
-            );
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
         var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
         await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
         await _serviceProvider
@@ -298,17 +292,12 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         _context.Creatures.AddRange(player, giver);
         _context.Quests.Add(quest);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _serviceProvider
-            .GetRequiredService<PublishAmbientSceneCommandHandler>()
-            .Handle(
-                new PublishAmbientSceneCommand
-                {
-                    WorldId = _worldId,
-                    PlayerId = player.Id,
-                    GameTime = Now,
-                },
-                TestContext.Current.CancellationToken
-            );
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
         var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
         await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
         await _serviceProvider
@@ -363,17 +352,12 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         _context.Creatures.AddRange(player, sitter);
         _context.Props.Add(seat);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        await _serviceProvider
-            .GetRequiredService<PublishAmbientSceneCommandHandler>()
-            .Handle(
-                new PublishAmbientSceneCommand
-                {
-                    WorldId = _worldId,
-                    PlayerId = player.Id,
-                    GameTime = Now,
-                },
-                TestContext.Current.CancellationToken
-            );
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
         var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
         await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
         await _context
