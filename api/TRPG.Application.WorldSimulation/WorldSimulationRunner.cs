@@ -544,6 +544,9 @@ public sealed class WorldSimulationRunner(
             case TrackCreature track:
                 await Track(track.CreatureId, now, cancellationToken);
                 break;
+            case RefreshCreatureStatus refresh:
+                UnpublishedCreatureIds(refresh.LocationId).Add(refresh.CreatureId);
+                break;
             case PlayerInput input:
                 await ApplyPlayerInput(input, cancellationToken);
                 break;

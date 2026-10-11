@@ -60,6 +60,10 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<CreaturesDiedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreaturesDiedSimulationEventHandler>()
             )
+            .AddTransient<CreatureEquipmentChangedSimulationEventHandler>()
+            .AddTransient<IDomainEventConsumer<CreatureEquipmentChangedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<CreatureEquipmentChangedSimulationEventHandler>()
+            )
             .AddTransient<CreaturesSpawnedSimulationEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesSpawnedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreaturesSpawnedSimulationEventHandler>()

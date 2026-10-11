@@ -1,10 +1,16 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Configuration;
+using TRPG.Application.Creatures.Queries;
+using TRPG.Application.Inventory.Commands;
+using TRPG.Application.Scenes;
+using TRPG.Application.Scenes.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.EventHandlers;
@@ -209,6 +215,70 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         // Assert
         var updated = await db.ReadCreature(sleeper.Id);
         Assert.Equal(_home.Id, updated.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_AnnouncesTheNewGear_WhenANearbyCreatureEquipsAnItem()
+    {
+        // Arrange
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var bystander = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var sword = Builders.MakeWeapon(_worldId, quantity: 1);
+        sword.Ownership.OwnerId = bystander.Id;
+        sword.Ownership.OwnerType = OwnerType.Creature;
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.AddRange(player, bystander);
+        _context.Items.Add(sword);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<PublishAmbientSceneCommandHandler>()
+            .Handle(
+                new PublishAmbientSceneCommand
+                {
+                    WorldId = _worldId,
+                    PlayerId = player.Id,
+                    GameTime = Now,
+                },
+                TestContext.Current.CancellationToken
+            );
+        var coordinator = MakeCoordinator(activeWorldIds: [_worldId]);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<EquipInventoryItemCommandHandler>()
+            .Handle(
+                new EquipInventoryItemCommand
+                {
+                    CreatureId = bystander.Id,
+                    ItemId = sword.Id,
+                    Slot = EquipmentSlot.RightHand,
+                },
+                TestContext.Current.CancellationToken
+            );
+        var handler = new CreatureEquipmentChangedSimulationEventHandler(
+            coordinator,
+            _serviceProvider.GetRequiredService<IQueryHandler<GetCreatureByIdQuery, Creature?>>()
+        );
+
+        // Act
+        await handler.Handle(
+            new CreatureEquipmentChangedEvent(bystander.Id),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        var published = _serviceProvider
+            .GetRequiredService<PublishedSceneRegistry>()
+            .Find(player.Id);
+        var announced = Assert.Single(
+            published!.NearbyCreatures,
+            creature => creature.Id == bystander.Id
+        );
+        Assert.NotEmpty(announced.Equipment);
     }
 
     [Fact]

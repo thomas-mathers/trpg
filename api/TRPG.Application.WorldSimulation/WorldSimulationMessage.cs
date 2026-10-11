@@ -39,3 +39,6 @@ public sealed record SimulationRequest(
 
     public void Reject(Exception exception) => OnRejected?.Invoke(exception);
 }
+
+public sealed record RefreshCreatureStatus(Guid LocationId, Guid CreatureId)
+    : WorldSimulationMessage;
