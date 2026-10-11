@@ -3,7 +3,7 @@
 /* tslint:disable */
 // @ts-nocheck
 import type { IStreamResult, Subject } from '@microsoft/signalr';
-import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
+import type { ActionResult, PlayerMovementInput, SceneSnapshot, CreaturesArrivedPayload, CreaturesLeftPayload, CreaturesMovedPayload, CreaturesUpdatedPayload, CaravansArrivedPayload, CaravansLeftPayload, CaravansUpdatedPayload, WeatherChangedPayload, ClockReanchoredPayload, SeatingChangedPayload, PlayerCorrectedPayload, CrimeNotification } from '../TRPG.GameSessions.Responses';
 import type { CombatStarted, CombatUpdated } from '../TRPG.Combat.Responses';
 import type { HostileEncounterState, HostileEncounterResolutionFact, ShakedownEncounterState, ShakedownEncounterResolutionFact, GuardEncounterState, GuardEncounterResolutionFact, SuspicionEncounterState, SuspicionEncounterResolutionFact, TrapEncounterState, TrapEncounterResolutionFact, TheftEncounterState, TheftEncounterResolutionFact } from '../TRPG.Encounters.Responses';
 import type { PlayerVitalsUpdated, SkillLevelUp, CharacterLevelUp } from '../TRPG.Creatures.Responses';
@@ -237,6 +237,11 @@ export type IGameClient = {
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     clockReanchored(payload: ClockReanchoredPayload): Promise<void>;
+    /**
+    * @param payload Transpiled from TRPG.GameSessions.Responses.SeatingChangedPayload
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    seatingChanged(payload: SeatingChangedPayload): Promise<void>;
     /**
     * @param payload Transpiled from TRPG.Combat.Responses.CombatStarted
     * @returns Transpiled from System.Threading.Tasks.Task

@@ -55,6 +55,7 @@ export function SceneProvider({ sessionId, children }: SceneProviderProps) {
       gameEventBus.on('ClockReanchored', (payload) =>
         dispatch({ type: 'ClockReanchored', payload }),
       ),
+      gameEventBus.on('SeatingChanged', (payload) => dispatch({ type: 'SeatingChanged', payload })),
       gameEventBus.on('PlayerVitalsUpdated', (payload) =>
         dispatch({ type: 'PlayerVitalsUpdated', payload }),
       ),

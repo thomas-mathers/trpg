@@ -21,6 +21,7 @@ internal sealed class TestGameClient : IGameClient
     public Action<CaravansUpdatedPayload>? OnCaravansUpdated { get; set; }
     public Action<WeatherChangedPayload>? OnWeatherChanged { get; set; }
     public Action<ClockReanchoredPayload>? OnClockReanchored { get; set; }
+    public Action<SeatingChangedPayload>? OnSeatingChanged { get; set; }
     public Action<CombatStarted>? OnCombatStarted { get; set; }
     public Action<CombatUpdated>? OnCombatUpdated { get; set; }
     public Action<HostileEncounterState>? OnHostileEncounterStarted { get; set; }
@@ -101,6 +102,12 @@ internal sealed class TestGameClient : IGameClient
     public Task ClockReanchored(ClockReanchoredPayload payload)
     {
         OnClockReanchored?.Invoke(payload);
+        return Task.CompletedTask;
+    }
+
+    public Task SeatingChanged(SeatingChangedPayload payload)
+    {
+        OnSeatingChanged?.Invoke(payload);
         return Task.CompletedTask;
     }
 

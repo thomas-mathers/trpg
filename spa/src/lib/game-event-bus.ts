@@ -23,6 +23,7 @@ import type {
   CaravansLeftPayload,
   CaravansUpdatedPayload,
   ClockReanchoredPayload,
+  SeatingChangedPayload,
   CreaturesArrivedPayload,
   CreaturesLeftPayload,
   CreaturesMovedPayload,
@@ -50,6 +51,7 @@ interface GameEventMap {
   CaravansUpdated: CaravansUpdatedPayload;
   WeatherChanged: WeatherChangedPayload;
   ClockReanchored: ClockReanchoredPayload;
+  SeatingChanged: SeatingChangedPayload;
   CombatStarted: CombatStarted;
   CombatUpdated: CombatUpdated;
   // Fires once the round's animation finishes, so the combat UI, toasts, and respawn flow don't jump ahead of what's on screen.

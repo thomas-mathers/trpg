@@ -86,3 +86,14 @@ public record PlayerCorrectedPayload(
     double OffsetX,
     double OffsetY
 );
+
+[TranspilationSource]
+public record SeatingChangedPayload(
+    Guid WorldId,
+    Guid LocationId,
+    long Version,
+    Guid CreatureId,
+    Guid? SeatId,
+    CreaturePosture Posture,
+    PlacementWire Placement
+);

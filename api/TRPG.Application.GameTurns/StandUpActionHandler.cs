@@ -6,6 +6,7 @@ namespace TRPG.Application.GameTurns;
 
 internal class StandUpActionHandler(
     GameActionRunner actionRunner,
+    SeatingAnnouncer seatingAnnouncer,
     ICommandHandler<StandUpCommand, StandUpResult> standUp
 )
 {
@@ -32,6 +33,7 @@ internal class StandUpActionHandler(
         if (result == StandUpResult.Success)
         {
             poses.Forget(session.PlayerId);
+            await seatingAnnouncer.Announce(session, null, cancellationToken);
         }
 
         return ToOutcome(result);

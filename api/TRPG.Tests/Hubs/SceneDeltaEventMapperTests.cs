@@ -67,4 +67,41 @@ public sealed class SceneDeltaEventMapperTests
         Assert.Equal(1000, received.AnchoredAtUnixMilliseconds);
         Assert.Equal(2, received.TimeScale);
     }
+
+    [Fact]
+    public async Task SeatingChanged_MapsSeatPostureAndPlacement()
+    {
+        var worldId = Guid.NewGuid();
+        var locationId = Guid.NewGuid();
+        var creatureId = Guid.NewGuid();
+        var seatId = Guid.NewGuid();
+        var stamp = new WorldStateStamp(9, GameClock.Epoch, DateTimeOffset.UnixEpoch, 1);
+        SeatingChangedPayload? received = null;
+        var client = new TestGameClient
+        {
+            Connection = new HubConnectionBuilder().WithUrl("http://localhost").Build(),
+            OnSeatingChanged = payload => received = payload,
+        };
+
+        await new SeatingChangedEventMapper()
+            .Map(
+                new SeatingChangedEvent(
+                    worldId,
+                    locationId,
+                    stamp,
+                    creatureId,
+                    seatId,
+                    global::TRPG.Domain.Models.CreaturePosture.Sitting,
+                    new Placement(3, 4, 0.5)
+                )
+            )
+            .Invoke(client);
+
+        Assert.NotNull(received);
+        Assert.Equal(9, received.Version);
+        Assert.Equal(creatureId, received.CreatureId);
+        Assert.Equal(seatId, received.SeatId);
+        Assert.Equal(TRPG.GameSessions.Responses.CreaturePosture.Sitting, received.Posture);
+        Assert.Equal(new PlacementWire(3, 4, 0.5), received.Placement);
+    }
 }

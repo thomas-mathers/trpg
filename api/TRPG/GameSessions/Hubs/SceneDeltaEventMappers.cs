@@ -137,3 +137,20 @@ internal sealed class ClockReanchoredEventMapper : GameClientEventMapper<ClockRe
             static (client, payload) => client.ClockReanchored(payload)
         );
 }
+
+internal sealed class SeatingChangedEventMapper : GameClientEventMapper<SeatingChangedEvent>
+{
+    protected override IGameClientCall Map(SeatingChangedEvent gameEvent) =>
+        new GameClientCall<SeatingChangedPayload>(
+            new(
+                gameEvent.WorldId,
+                gameEvent.LocationId,
+                gameEvent.Stamp.Version,
+                gameEvent.CreatureId,
+                gameEvent.SeatId,
+                gameEvent.Posture.ToResponse(),
+                gameEvent.Placement.ToWire()
+            ),
+            static (client, payload) => client.SeatingChanged(payload)
+        );
+}

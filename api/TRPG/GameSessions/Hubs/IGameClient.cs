@@ -20,6 +20,7 @@ public interface IGameClient
     Task CaravansUpdated(CaravansUpdatedPayload payload);
     Task WeatherChanged(WeatherChangedPayload payload);
     Task ClockReanchored(ClockReanchoredPayload payload);
+    Task SeatingChanged(SeatingChangedPayload payload);
     Task CombatStarted(CombatStarted payload);
     Task CombatUpdated(CombatUpdated update);
     Task HostileEncounterStarted(HostileEncounterState encounter);

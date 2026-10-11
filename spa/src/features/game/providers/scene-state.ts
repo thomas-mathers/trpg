@@ -13,7 +13,9 @@ import type {
   CreaturesMovedPayload,
   CreaturesUpdatedPayload,
   CreatureStatusSnapshot,
+  NearbyPropSnapshot,
   SceneSnapshot,
+  SeatingChangedPayload,
   WeatherChangedPayload,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { createSceneSnapshot } from '@/features/game/contexts/scene-context';
@@ -28,6 +30,7 @@ type SceneDeltaPayloads = {
   CaravansUpdated: CaravansUpdatedPayload;
   WeatherChanged: WeatherChangedPayload;
   ClockReanchored: ClockReanchoredPayload;
+  SeatingChanged: SeatingChangedPayload;
 };
 
 type SceneDeltaAction = {
@@ -172,7 +175,35 @@ function applySceneDelta(scene: SceneSnapshot, action: SceneDeltaAction): SceneS
         anchoredAtUnixMilliseconds: action.payload.anchoredAtUnixMilliseconds,
         timeScale: action.payload.timeScale,
       };
+    case 'SeatingChanged':
+      return applySeating(scene, action.payload);
   }
+}
+
+function applySeating(scene: SceneSnapshot, seating: SeatingChangedPayload): SceneSnapshot {
+  const { creatureId, posture, placement } = seating;
+  const isPlayer = creatureId === scene.playerStatus.id;
+  return {
+    ...scene,
+    playerStatus: isPlayer ? { ...scene.playerStatus, posture, placement } : scene.playerStatus,
+    nearbyCreatures: scene.nearbyCreatures.map((creature) =>
+      creature.id === creatureId ? { ...creature, posture, placement } : creature,
+    ),
+    nearbyProps: scene.nearbyProps.map((prop) => applySeatOccupancy(prop, seating, isPlayer)),
+  };
+}
+
+function applySeatOccupancy(
+  prop: NearbyPropSnapshot,
+  { seatId }: SeatingChangedPayload,
+  isPlayer: boolean,
+): NearbyPropSnapshot {
+  if (seatId === undefined) {
+    return isPlayer && prop.isOccupiedByPlayer
+      ? { ...prop, isOccupied: false, isOccupiedByPlayer: false }
+      : prop;
+  }
+  return prop.id === seatId ? { ...prop, isOccupied: true, isOccupiedByPlayer: isPlayer } : prop;
 }
 
 function applyCreatureStatuses(

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type {
   NearbyCaravanSnapshot,
+  NearbyPropSnapshot,
   SceneSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { createSceneSnapshot } from '@/features/game/contexts/scene-context';
@@ -18,6 +19,21 @@ function snapshot(overrides: Partial<SceneSnapshot> = {}): SceneSnapshot {
     version: 1,
     playerStatus: { ...empty.playerStatus, id: 'player' },
     ...overrides,
+  };
+}
+
+function seatProp(): NearbyPropSnapshot {
+  return {
+    id: 'seat',
+    name: 'Chair',
+    description: 'A chair.',
+    type: 'Furniture',
+    isOccupied: false,
+    isOccupiedByPlayer: false,
+    model: 'SeatChair',
+    placement: { x: 0, y: 0, angle: 0 },
+    footprint: { width: 1, depth: 1 },
+    blocksMovement: false,
   };
 }
 
@@ -149,6 +165,65 @@ describe('scene state', () => {
     });
     expect(left.scene.nearbyCaravans).toEqual([]);
   });
+  it('applies a sit and a stand as single deltas', () => {
+    const seat = seatProp();
+    const placement = { x: 4, y: 5, angle: 1 };
+    const seated = apply(
+      { type: 'SceneSnapshot', payload: snapshot({ nearbyProps: [seat] }) },
+      {
+        type: 'SeatingChanged',
+        payload: {
+          ...scope,
+          version: 2,
+          creatureId: 'player',
+          seatId: 'seat',
+          posture: 'Sitting',
+          placement,
+        },
+      },
+    );
+    expect(seated.scene.playerStatus).toMatchObject({ posture: 'Sitting', placement });
+    expect(seated.scene.nearbyProps).toMatchObject([
+      { isOccupied: true, isOccupiedByPlayer: true },
+    ]);
+
+    const stood = reduceSceneState(seated, {
+      type: 'SeatingChanged',
+      payload: { ...scope, version: 3, creatureId: 'player', posture: 'Standing', placement },
+    });
+    expect(stood.scene.playerStatus.posture).toBe('Standing');
+    expect(stood.scene.nearbyProps).toMatchObject([
+      { isOccupied: false, isOccupiedByPlayer: false },
+    ]);
+  });
+
+  it('occupies a seat without claiming it for the player when another creature sits', () => {
+    const player = snapshot().playerStatus;
+    const seat = seatProp();
+    const state = apply(
+      {
+        type: 'SceneSnapshot',
+        payload: snapshot({ nearbyProps: [seat], nearbyCreatures: [{ ...player, id: 'npc' }] }),
+      },
+      {
+        type: 'SeatingChanged',
+        payload: {
+          ...scope,
+          version: 2,
+          creatureId: 'npc',
+          seatId: 'seat',
+          posture: 'Sitting',
+          placement: { x: 1, y: 1, angle: 0 },
+        },
+      },
+    );
+    expect(state.scene.nearbyProps).toMatchObject([
+      { isOccupied: true, isOccupiedByPlayer: false },
+    ]);
+    expect(state.scene.nearbyCreatures).toMatchObject([{ id: 'npc', posture: 'Sitting' }]);
+    expect(state.scene.playerStatus.posture).toBe(player.posture);
+  });
+
   it('replaces state with a same-version snapshot after a partially delivered batch', () => {
     const state = apply(
       { type: 'SceneSnapshot', payload: snapshot() },

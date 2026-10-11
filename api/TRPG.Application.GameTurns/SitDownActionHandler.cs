@@ -6,6 +6,7 @@ namespace TRPG.Application.GameTurns;
 
 internal class SitDownActionHandler(
     GameActionRunner actionRunner,
+    SeatingAnnouncer seatingAnnouncer,
     ICommandHandler<SitDownCommand, SitDownResult> sitDown
 )
 {
@@ -39,6 +40,7 @@ internal class SitDownActionHandler(
         if (result == SitDownResult.Success)
         {
             poses.Forget(session.PlayerId);
+            await seatingAnnouncer.Announce(session, seatId, cancellationToken);
         }
 
         return ToOutcome(result);

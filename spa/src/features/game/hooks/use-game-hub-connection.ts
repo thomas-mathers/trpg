@@ -106,6 +106,7 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       caravansUpdated: async (payload) => gameEventBus.emit('CaravansUpdated', payload),
       weatherChanged: async (payload) => gameEventBus.emit('WeatherChanged', payload),
       clockReanchored: async (payload) => gameEventBus.emit('ClockReanchored', payload),
+      seatingChanged: async (payload) => gameEventBus.emit('SeatingChanged', payload),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
       combatUpdated: async (update) => gameEventBus.emit('CombatUpdated', update),
       hostileEncounterStarted: async (encounter) =>

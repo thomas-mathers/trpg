@@ -38,6 +38,17 @@ public sealed class ScenePublisher(
         gameEvents.Enqueue(new SceneUpdatedEvent(worldId, scene, stamp));
     }
 
+    public void PublishSeating(Guid playerId, SeatingChangedEvent seating)
+    {
+        var previous = publishedScenes.Find(playerId);
+        if (previous is not null)
+        {
+            publishedScenes.Record(playerId, SeatingProjection.Apply(previous, seating));
+        }
+
+        gameEvents.Enqueue(seating);
+    }
+
     public bool PublishIfChanged(
         Guid worldId,
         Guid playerId,
