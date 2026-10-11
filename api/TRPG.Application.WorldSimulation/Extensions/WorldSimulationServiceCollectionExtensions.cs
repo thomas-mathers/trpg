@@ -16,6 +16,7 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddTransient<PlayerVitalsPublisher>()
             .AddTransient<ArrivalCatchUp>()
             .AddTransient<CreatureChangeAnnouncer>()
+            .AddTransient<WeatherAnnouncer>()
             .AddTransient<PlayerMovedCorpseCleanupEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedCorpseCleanupEventHandler>()

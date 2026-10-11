@@ -2,6 +2,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Scenes.Events;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.Scenes;
 
@@ -76,6 +77,21 @@ public sealed class ScenePublisher(
         }
 
         return events.Count > 0;
+    }
+
+    public bool PublishWeather(Guid playerId, WeatherCondition? weather, WorldStateStamp stamp)
+    {
+        var previous = publishedScenes.Find(playerId);
+        if (previous is null || previous.Weather == weather)
+        {
+            return false;
+        }
+
+        publishedScenes.Record(playerId, previous with { Weather = weather });
+        gameEvents.Enqueue(
+            new WeatherChangedEvent(previous.WorldId, previous.LocationId, stamp, weather)
+        );
+        return true;
     }
 
     public bool PublishAfterTimeAdvance(Guid playerId, SceneResult scene, WorldStateStamp stamp)
