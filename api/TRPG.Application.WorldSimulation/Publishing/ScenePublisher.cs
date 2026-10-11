@@ -1,10 +1,10 @@
 using TRPG.Application.Common.Events;
-using TRPG.Application.Scenes.Events;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Scenes;
+namespace TRPG.Application.WorldSimulation.Publishing;
 
 public sealed class ScenePublisher(IGameClientEventSink gameEvents)
 {

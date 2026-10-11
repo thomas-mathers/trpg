@@ -1,11 +1,12 @@
 using TRPG.Application.Common.Events;
+using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
 
-namespace TRPG.Application.Scenes.Events;
+namespace TRPG.Application.WorldSimulation.Events;
 
-public record CaravansLeftEvent(
+public record CreaturesUpdatedEvent(
     Guid WorldId,
     Guid LocationId,
     WorldStateStamp Stamp,
-    IReadOnlySet<Guid> CaravanIds
+    IReadOnlyCollection<SceneCreatureInfo> Creatures
 ) : GameClientEvent(WorldId), ILocationScopedEvent;

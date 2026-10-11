@@ -2,11 +2,14 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Domain.Models;
 
-namespace TRPG.Application.Scenes.Events;
+namespace TRPG.Application.WorldSimulation.Events;
 
-public record WeatherChangedEvent(
+public record SeatingChangedEvent(
     Guid WorldId,
     Guid LocationId,
     WorldStateStamp Stamp,
-    WeatherCondition? WeatherCondition
+    Guid CreatureId,
+    Guid? SeatId,
+    CreaturePosture Posture,
+    Placement Placement
 ) : GameClientEvent(WorldId), ILocationScopedEvent;

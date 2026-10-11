@@ -14,6 +14,7 @@ public static class WorldSimulationServiceCollectionExtensions
     ) =>
         serviceCollection
             .AddTransient<CreatureVitalsPublisher>()
+            .AddTransient<ScenePublisher>()
             .AddTransient<VitalsAnnouncer>()
             .AddTransient<ArrivalCatchUp>()
             .AddTransient<CreatureChangeAnnouncer>()

@@ -2,9 +2,9 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures.Queries;
-using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Events;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Events;
+using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain.Models;
 

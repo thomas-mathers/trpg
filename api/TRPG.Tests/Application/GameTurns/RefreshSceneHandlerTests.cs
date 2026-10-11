@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Tests.Helpers;

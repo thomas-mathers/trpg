@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using TRPG.Application.Common.Events;
-using TRPG.Application.Scenes.Events;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain;
 using TRPG.Tests.Helpers;

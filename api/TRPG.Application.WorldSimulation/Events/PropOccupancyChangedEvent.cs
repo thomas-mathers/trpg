@@ -1,7 +1,7 @@
 using TRPG.Application.Common.Events;
 using TRPG.Application.Worlds.Commands;
 
-namespace TRPG.Application.Scenes.Events;
+namespace TRPG.Application.WorldSimulation.Events;
 
 public sealed record PropOccupancy(Guid PropId, bool IsOccupied, bool IsOccupiedByPlayer);
 

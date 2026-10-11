@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using TRPG.Application.Configuration;
 using TRPG.Application.Inventory.Commands;
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Data;
 using TRPG.Domain;

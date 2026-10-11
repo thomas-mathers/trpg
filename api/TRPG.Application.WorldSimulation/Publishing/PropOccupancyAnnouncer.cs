@@ -1,9 +1,8 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
 using TRPG.Application.Props.Queries;
-using TRPG.Application.Scenes;
-using TRPG.Application.Scenes.Events;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Application.WorldSimulation.Queries;
 using TRPG.Application.WorldSimulation.Subscriptions;
 

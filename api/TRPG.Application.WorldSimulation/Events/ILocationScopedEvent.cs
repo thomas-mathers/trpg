@@ -1,4 +1,4 @@
-namespace TRPG.Application.Scenes.Events;
+namespace TRPG.Application.WorldSimulation.Events;
 
 public interface ILocationScopedEvent
 {

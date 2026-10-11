@@ -1,5 +1,5 @@
 using TRPG.Application.Common.Events;
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 
 namespace TRPG.Application.WorldSimulation.Subscriptions;
 

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
-using TRPG.Application.Scenes.Events;
 using TRPG.Application.Scenes.Results;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Subscriptions;

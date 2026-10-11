@@ -163,7 +163,7 @@ Each step is its own PR off `main`. Do them in order. Commit, push and open the 
 ### PR C: deferred until the diff producers are gone
 
 - Decided: do not move `Scenes/Events/*` ahead of the diff. `SceneChangePlanner`, `SceneSemanticComparer` and `ScenePublisher` (Scenes) construct these events, and Scenes must not reference WorldSimulation, so moving only the events would force the forbidden reverse reference. WorldSimulation already references Scenes, so PRs D to G can emit and project the events where they are, and new events (for example `SeatingChanged`) are defined beside them.
-- After PR H deletes the producers, moving the events into WorldSimulation is an optional pure move. Skip it unless something needs it.
+- Done in PR K3: with the producers gone, the events and `ScenePublisher` moved into WorldSimulation (`Events/`, `Publishing/`), and an architecture test keeps Scenes from referencing WorldSimulation or GameTurns.
 
 ### PR D: event queue, projector, scene subscriptions, enter-location message
 
@@ -265,7 +265,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR 0c: delete the mutation gate
 - [x] PR A: runner owns time, part 1 (effects, regen)
 - [x] PR B: runner owns time, part 2 (maintenance, ambient, weather refresh)
-- [ ] PR C: deferred (optional pure move of scene events after H)
+- [x] PR C: scene events and `ScenePublisher` moved into WorldSimulation (done as PR K3)
 - [x] PR D: event queue, projector, scene subscriptions, enter message, resync
 - [x] PR E: seating and sneak emit events
 - [x] PR F: runner-sourced arrived, left, moved
@@ -285,4 +285,4 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
 - [x] PR J2: single-writer enforcement (both mechanisms: ambient `WorldWriteScope` opened only by the runner tick and three pre-runner host paths, a host command decorator that rejects world writes outside it, `[ExemptFromWorldWriteGuard]` with a reason for the audited non-world or LLM-bound commands, and `WorldWriteGuardArchitectureTests`; the plan's `IWorldWriteScope` became the ambient scope because commands are resolved from the ordinary container)
 - [x] PR K1: relocation, front-door lock and quest-marker changes refresh the scene through the resync path (`RefreshPlayerScene`, `RefreshLocationScenes` mark a watch pending; `SceneResync` sends a fresh `SceneUpdated`), so `ActionSceneAnnouncer` no longer needs `SceneSemanticComparer.HasStaticChange`
 - [x] PR K2: deleted `SceneChangePlanner`, `SceneSemanticComparer`, `PublishedSceneRegistry`, the `ScenePublisher` diff path, `SceneVitalsPatch` and the seating/prop projections; announcers compare against per-watch client knowledge in `SceneSubscriptions` (known creature ids, seat occupancy, weather) instead of a published scene. Known touched creatures now always get `CreaturesUpdated` (no semantic noise filter), and `CreaturesMovedEvent` is no longer produced
-- [ ] PR K3: move scene delta events and their publishing into WorldSimulation (plan step C) and update `api/AGENTS.md`
+- [x] PR K3: moved scene delta events and `ScenePublisher` into WorldSimulation (plan step C), added the Scenes-does-not-reference-WorldSimulation architecture test, and updated `api/AGENTS.md`. `CreaturesMovedEvent` is unproduced and its host mapper, payload and SPA handling remain as follow-up cleanup

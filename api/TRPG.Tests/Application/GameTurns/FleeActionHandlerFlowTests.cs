@@ -4,7 +4,7 @@ using TRPG.Application.Common.Events;
 using TRPG.Application.Configuration;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.GameTurns;
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Domain.Models;

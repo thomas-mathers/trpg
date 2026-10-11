@@ -1,15 +1,11 @@
 using TRPG.Application.Common.Events;
 using TRPG.Application.Worlds.Commands;
-using TRPG.Domain.Models;
 
-namespace TRPG.Application.Scenes.Events;
+namespace TRPG.Application.WorldSimulation.Events;
 
-public record SeatingChangedEvent(
+public record CreaturesLeftEvent(
     Guid WorldId,
     Guid LocationId,
     WorldStateStamp Stamp,
-    Guid CreatureId,
-    Guid? SeatId,
-    CreaturePosture Posture,
-    Placement Placement
+    IReadOnlySet<Guid> CreatureIds
 ) : GameClientEvent(WorldId), ILocationScopedEvent;

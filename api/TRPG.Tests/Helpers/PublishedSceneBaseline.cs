@@ -1,10 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
-using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain;
 

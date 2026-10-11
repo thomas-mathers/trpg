@@ -1,4 +1,4 @@
-using TRPG.Application.Scenes.Events;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Domain;
 using TRPG.GameSessions.Mappers;
 using TRPG.GameSessions.Responses;

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
-using TRPG.Application.Scenes.Events;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Events;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.GameSessions.Hubs;

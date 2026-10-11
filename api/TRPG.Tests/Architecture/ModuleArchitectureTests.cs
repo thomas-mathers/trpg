@@ -36,7 +36,7 @@ public sealed partial class ModuleArchitectureTests
     private static readonly IReadOnlySet<string> SceneSnapshotPublisherAllowlist =
         new HashSet<string>
         {
-            "TRPG.Application.Scenes/ScenePublisher.cs",
+            "TRPG.Application.WorldSimulation/Publishing/ScenePublisher.cs",
             "TRPG.Application.WorldSimulation/Publishing/ActionSceneAnnouncer.cs",
             "TRPG.Application.WorldSimulation/Publishing/PublishPlayerSceneCommand.cs",
         };
@@ -74,15 +74,14 @@ public sealed partial class ModuleArchitectureTests
         Assert.True(missing.Length == 0, string.Join(Environment.NewLine, missing));
     }
 
-    [Fact]
-    public void Scenes_DoesNotReferenceGameTurns()
+    [Theory]
+    [InlineData("TRPG.Application.GameTurns")]
+    [InlineData("TRPG.Application.WorldSimulation")]
+    public void Scenes_DoesNotReference(string forbiddenProject)
     {
         var projects = LoadProjects();
 
-        Assert.DoesNotContain(
-            "TRPG.Application.GameTurns",
-            projects["TRPG.Application.Scenes"].References
-        );
+        Assert.DoesNotContain(forbiddenProject, projects["TRPG.Application.Scenes"].References);
     }
 
     [Fact]
