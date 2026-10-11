@@ -275,7 +275,7 @@ Tick a box in the PR that lands the step. Order is the sequence above; the weath
   - H2 kept the static-change snapshot (`HasStaticChange`) in `ActionSceneAnnouncer`: relocations and in-place lock, lever and prop changes still rely on it, so H3 needs deltas for those before it can go.
 - [x] PR H3: guard test that confines scene snapshots to the entry, resync and static-change paths (the snapshot fallback itself stays until in-place lock, lever and prop changes and relocation get their own events)
 - [x] Weather shelter PR (standalone, before I1)
-- [ ] PR I1: creature simulator extraction and planning renames
+- [x] PR I1: creature simulator extraction and planning renames (the due schedule stays as each creature's `NextUpdate`; `SimulationContext.SevereWeatherLocationIds` is carried for the I3 to I6 concerns)
 - [ ] PR I2: applier (failed-batch, marker and reload tests)
 - [ ] PR I3: regeneration concern and `CreatureVitalsUpdated`
 - [ ] PR I4: active effects concern

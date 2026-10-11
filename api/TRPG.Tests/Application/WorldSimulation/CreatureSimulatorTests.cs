@@ -7,7 +7,7 @@ using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.WorldSimulation;
 
-public class WorldSimulatorTests
+public class CreatureSimulatorTests
 {
     private const float MovementSpeed = 50;
     private const double MetersPerSecond = InLocationPace.WalkMetersPerSecond;
@@ -60,7 +60,7 @@ public class WorldSimulatorTests
         );
 
         // Act
-        simulator.SleepUntilNextRoutineChange(_creatureId, Morning);
+        simulator.DeferUntilNextRoutineChange(_creatureId, Morning);
 
         // Assert
         var state = simulator.StateOf(_creatureId)!;
@@ -103,7 +103,7 @@ public class WorldSimulatorTests
         var simulator = CreateSimulator(1);
         simulator.Add(SeedWithSleepAtA(seeksShelter: true), Morning);
         simulator.SetSevereWeatherLocations(new HashSet<Guid> { _locationB }, Morning);
-        simulator.SleepUntilNextRoutineChange(_creatureId, Morning);
+        simulator.DeferUntilNextRoutineChange(_creatureId, Morning);
 
         // Act
         simulator.SetSevereWeatherLocations(new HashSet<Guid>(), Morning);
@@ -267,14 +267,14 @@ public class WorldSimulatorTests
         Assert.Equal(clientFinish, Assert.Single(events.OfType<JourneyCompleted>()).At);
     }
 
-    private WorldSimulator CreateSimulator(int searchesPerTick) =>
-        new(new TravelGraph([], []), new WorldSimulatorOptions(1, searchesPerTick, TimeSpan.Zero));
+    private CreatureSimulator CreateSimulator(int plansPerTick) =>
+        new(new CreatureSimulatorOptions(1, plansPerTick, TimeSpan.Zero));
 
-    private void AddCommuter(WorldSimulator simulator) => AddWorker(simulator, _locationC);
+    private void AddCommuter(CreatureSimulator simulator) => AddWorker(simulator, _locationC);
 
-    private void AddFarCommuter(WorldSimulator simulator) => AddWorker(simulator, _locationD);
+    private void AddFarCommuter(CreatureSimulator simulator) => AddWorker(simulator, _locationD);
 
-    private void AddWorker(WorldSimulator simulator, Guid workLocationId)
+    private void AddWorker(CreatureSimulator simulator, Guid workLocationId)
     {
         var jobs = new[]
         {
@@ -294,7 +294,7 @@ public class WorldSimulatorTests
         );
     }
 
-    private void AddAlwaysWorking(WorldSimulator simulator, Guid creatureId, Guid workLocationId)
+    private void AddAlwaysWorking(CreatureSimulator simulator, Guid creatureId, Guid workLocationId)
     {
         var job = Builders.MakeCreatureJob(
             creatureId,

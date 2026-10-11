@@ -28,7 +28,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     private Guid _stateId;
     private Guid _playerId;
     private readonly SwitchableOptions _options = new(
-        new WorldSimulationOptions { RouteSearchesPerTick = 1 }
+        new WorldSimulationOptions { RoutinePlansPerTick = 1 }
     );
 
     private readonly RecordingDispatcher _dispatcher = new();
@@ -413,7 +413,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         var worker = await AddWorker();
         _options.Current = new WorldSimulationOptions
         {
-            RouteSearchesPerTick = 1,
+            RoutinePlansPerTick = 1,
             MessagesPerTick = 1,
         };
         await StartRunner();
@@ -435,7 +435,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         var worker = await AddWorker();
         _options.Current = new WorldSimulationOptions
         {
-            RouteSearchesPerTick = 1,
+            RoutinePlansPerTick = 1,
             MessageTimeBudget = TimeSpan.Zero,
         };
         await StartRunner();

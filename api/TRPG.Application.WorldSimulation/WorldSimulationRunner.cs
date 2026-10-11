@@ -289,7 +289,7 @@ public sealed class WorldSimulationRunner(
         CancellationToken cancellationToken
     )
     {
-        var awaitingCreatureIds = _loaded.Simulator.CreaturesAwaitingJourneyPlanning(now);
+        var awaitingCreatureIds = _loaded.Simulator.CreaturesAwaitingRoutinePlanning(now);
         RefreshPlanningSweep(awaitingCreatureIds, now);
         if (awaitingCreatureIds.Count == 0)
         {
@@ -328,7 +328,7 @@ public sealed class WorldSimulationRunner(
             }
             if (local.Handled)
             {
-                _loaded.Simulator.SleepUntilNextRoutineChange(creatureId, now);
+                _loaded.Simulator.DeferUntilNextRoutineChange(creatureId, now);
                 continue;
             }
 
@@ -351,7 +351,7 @@ public sealed class WorldSimulationRunner(
                 continue;
             }
 
-            _loaded.Simulator.SleepUntilNextRoutineChange(creatureId, now);
+            _loaded.Simulator.DeferUntilNextRoutineChange(creatureId, now);
         }
 
         CompletePlanningSweep(creatureIds, localMoves, journeys, now);
@@ -432,7 +432,7 @@ public sealed class WorldSimulationRunner(
     {
         var lastIndex = _lastPlannedCreatureId is { } last ? IndexOf(candidates, last) : -1;
         var startIndex = lastIndex < 0 ? 0 : (lastIndex + 1) % candidates.Count;
-        var count = Math.Min(_loaded.Simulator.Options.RouteSearchesPerTick, candidates.Count);
+        var count = Math.Min(_loaded.Simulator.Options.RoutinePlansPerTick, candidates.Count);
         var selected = Enumerable
             .Range(0, count)
             .Select(offset => candidates[(startIndex + offset) % candidates.Count])

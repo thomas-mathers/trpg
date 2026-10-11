@@ -6,20 +6,20 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Movement;
 
-public sealed record WorldSimulatorOptions(
+public sealed record CreatureSimulatorOptions(
     double TimeScale,
-    int RouteSearchesPerTick,
+    int RoutinePlansPerTick,
     TimeSpan ArrivalStagger
 );
 
-public sealed class WorldSimulator
+public sealed class CreatureSimulator
 {
-    private readonly WorldSimulatorOptions _options;
+    private readonly CreatureSimulatorOptions _options;
     private IReadOnlySet<Guid> _severeWeatherLocationIds = new HashSet<Guid>();
     private readonly List<SimulatedCreature> _creatures = [];
     private readonly Dictionary<Guid, SimulatedCreature> _creaturesById = [];
 
-    public WorldSimulator(TravelGraph graph, WorldSimulatorOptions options)
+    public CreatureSimulator(CreatureSimulatorOptions options)
     {
         _options = options;
     }
@@ -31,7 +31,7 @@ public sealed class WorldSimulator
             .Select(job => job.LocationId)
             .ToHashSet();
 
-    public IReadOnlyList<Guid> CreaturesAwaitingJourneyPlanning(GameInstant now) =>
+    public IReadOnlyList<Guid> CreaturesAwaitingRoutinePlanning(GameInstant now) =>
         _creatures
             .Where(creature =>
                 !creature.IsFrozen
@@ -42,7 +42,7 @@ public sealed class WorldSimulator
             .Select(creature => creature.Id)
             .ToArray();
 
-    public WorldSimulatorOptions Options => _options;
+    public CreatureSimulatorOptions Options => _options;
 
     public IReadOnlySet<Guid> SevereWeatherLocationIds => _severeWeatherLocationIds;
 
@@ -125,7 +125,7 @@ public sealed class WorldSimulator
         && !creature.IsFrozen
         && creature.NextUpdate > now;
 
-    public void SleepUntilNextRoutineChange(Guid creatureId, GameInstant now)
+    public void DeferUntilNextRoutineChange(Guid creatureId, GameInstant now)
     {
         if (_creaturesById.GetValueOrDefault(creatureId) is not { } creature || creature.IsWalking)
         {
@@ -135,144 +135,31 @@ public sealed class WorldSimulator
         creature.NextUpdate = NextRoutineChange(creature.Jobs, now);
     }
 
-    public IReadOnlyList<SimEvent> StartLocalMove(LocalMovePlan plan, GameInstant at)
-    {
-        if (!_creaturesById.TryGetValue(plan.CreatureId, out var creature) || creature.IsFrozen)
-        {
-            return [];
-        }
+    public IReadOnlyList<SimEvent> StartLocalMove(LocalMovePlan plan, GameInstant at) =>
+        _creaturesById.TryGetValue(plan.CreatureId, out var creature)
+            ? MovementConcern.StartLocalMove(creature, plan, at)
+            : [];
 
-        creature.LocalMove = new LocalMoveExecution(plan);
-        creature.IsWalking = true;
-        creature.LastUpdate = at;
-        creature.NextUpdate = creature.TimeToLocalMoveEnd(at);
+    public IReadOnlyList<SimEvent> Step(GameInstant now)
+    {
+        var context = new SimulationContext(now, _severeWeatherLocationIds);
         return
         [
-            new LocalMoveStarted(
-                creature.Id,
-                at,
-                creature.LocationId,
-                plan,
-                creature.MetersPerGameSecond
+            .. _creatures.SelectMany(creature =>
+                MovementConcern.Tick(new CreatureTickInput(creature, context))
             ),
         ];
     }
 
-    public IReadOnlyList<SimEvent> Step(GameInstant now)
-    {
-        var events = new List<SimEvent>();
-        foreach (var creature in _creatures)
-        {
-            if (creature.IsFrozen || creature.NextUpdate > now)
-            {
-                continue;
-            }
+    public IReadOnlyList<SimEvent> Engage(Guid creatureId, GameInstant at) =>
+        _creaturesById.TryGetValue(creatureId, out var creature)
+            ? MovementConcern.Engage(creature, at)
+            : [];
 
-            Step(creature, now, events);
-        }
-
-        return events;
-    }
-
-    public IReadOnlyList<SimEvent> Engage(Guid creatureId, GameInstant at)
-    {
-        var events = new List<SimEvent>();
-        if (!_creaturesById.TryGetValue(creatureId, out var creature) || creature.IsFrozen)
-        {
-            return events;
-        }
-
-        if (creature.LocalMove is not null)
-        {
-            LocalMoveWalker.Advance(creature, at, events);
-            if (creature.LocalMove is { } localMove)
-            {
-                events.Add(
-                    new LocalMoveInterrupted(
-                        creature.Id,
-                        at,
-                        creature.LocationId,
-                        LocalMoveWalker.Position(localMove)
-                    )
-                );
-                creature.LocalMove = null;
-                creature.IsWalking = false;
-            }
-        }
-        else if (creature.IsWalking)
-        {
-            JourneyWalker.Advance(creature, at, events);
-            if (creature.Journey is { } journey)
-            {
-                events.Add(
-                    new JourneyCheckpoint(
-                        creature.Id,
-                        at,
-                        journey.Id,
-                        journey.Status,
-                        journey.LegIndex,
-                        journey.LegWalkedMeters,
-                        at
-                    )
-                );
-            }
-        }
-
-        creature.IsFrozen = true;
-        return events;
-    }
-
-    public IReadOnlyList<SimEvent> Release(Guid creatureId, GameInstant at)
-    {
-        var events = new List<SimEvent>();
-        if (!_creaturesById.TryGetValue(creatureId, out var creature) || !creature.IsFrozen)
-        {
-            return events;
-        }
-
-        creature.IsFrozen = false;
-        if (creature.IsWalking)
-        {
-            JourneyWalker.Resume(creature, at);
-            var journey = creature.Journey!;
-            events.Add(
-                new JourneyCheckpoint(
-                    creature.Id,
-                    at,
-                    journey.Id,
-                    journey.Status,
-                    journey.LegIndex,
-                    journey.LegWalkedMeters
-                )
-            );
-            return events;
-        }
-
-        creature.Journey = null;
-        creature.NextUpdate = at;
-        return events;
-    }
-
-    private void Step(SimulatedCreature creature, GameInstant now, ICollection<SimEvent> events)
-    {
-        if (creature.LocalMove is not null)
-        {
-            LocalMoveWalker.Advance(creature, now, events);
-            return;
-        }
-
-        if (creature.IsWalking)
-        {
-            JourneyWalker.Advance(creature, now, events);
-            return;
-        }
-
-        if (creature.Journey != null && creature.NextUpdate <= now)
-        {
-            JourneyWalker.Begin(creature, events);
-            JourneyWalker.Advance(creature, now, events);
-        }
-    }
+    public IReadOnlyList<SimEvent> Release(Guid creatureId, GameInstant at) =>
+        _creaturesById.TryGetValue(creatureId, out var creature)
+            ? MovementConcern.Release(creature, at)
+            : [];
 
     private static GameInstant NextRoutineChange(
         IReadOnlyCollection<CreatureJob> jobs,

@@ -14,7 +14,10 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation;
 
-public sealed record LoadedWorldSimulation(WorldSimulator Simulator, CreaturePoseMapper PoseMapper);
+public sealed record LoadedWorldSimulation(
+    CreatureSimulator Simulator,
+    CreaturePoseMapper PoseMapper
+);
 
 public sealed class WorldSimulatorLoader(
     IQueryHandler<
@@ -42,11 +45,10 @@ public sealed class WorldSimulatorLoader(
             cancellationToken
         );
 
-        var simulator = new WorldSimulator(
-            graph,
-            new WorldSimulatorOptions(
+        var simulator = new CreatureSimulator(
+            new CreatureSimulatorOptions(
                 clockOptions.Value.TimeScale,
-                simulationOptions.Value.RouteSearchesPerTick,
+                simulationOptions.Value.RoutinePlansPerTick,
                 simulationOptions.Value.ArrivalStagger
             )
         );
