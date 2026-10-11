@@ -72,6 +72,10 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<QuestMarkersChangedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<QuestMarkersChangedSimulationEventHandler>()
             )
+            .AddTransient<DoorLocksChangedSimulationEventHandler>()
+            .AddTransient<IDomainEventConsumer<DoorLocksChangedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<DoorLocksChangedSimulationEventHandler>()
+            )
             .AddTransient<CreaturesSpawnedSimulationEventHandler>()
             .AddTransient<IDomainEventConsumer<CreaturesSpawnedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<CreaturesSpawnedSimulationEventHandler>()

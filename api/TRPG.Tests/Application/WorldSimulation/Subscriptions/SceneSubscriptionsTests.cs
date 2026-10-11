@@ -157,4 +157,74 @@ public sealed class SceneSubscriptionsTests
         Assert.False(_subscriptions.IsWatchingLocation(WorldId, LocationId));
         Assert.True(_subscriptions.IsWatchingLocation(WorldId, newLocationId));
     }
+
+    [Fact]
+    public void LocationOf_ReturnsWatchedLocation_WhenPlayerIsWatched()
+    {
+        // Act
+        var location = _subscriptions.LocationOf(WorldId, PlayerId);
+
+        // Assert
+        Assert.Equal(LocationId, location);
+    }
+
+    [Fact]
+    public void LocationOf_ReturnsNull_WhenPlayerIsNotWatched()
+    {
+        // Act
+        var location = _subscriptions.LocationOf(WorldId, Guid.NewGuid());
+
+        // Assert
+        Assert.Null(location);
+    }
+
+    [Fact]
+    public void RequestRefresh_MakesWatchPendingWithoutCountingAFailure()
+    {
+        // Arrange
+        _subscriptions.RequestRefresh(WorldId, PlayerId);
+        _subscriptions.TakePending(WorldId);
+        _subscriptions.CompleteResync(WorldId, PlayerId);
+
+        // Act
+        _subscriptions.RequestRefresh(WorldId, PlayerId);
+        _subscriptions.TakePending(WorldId);
+        _subscriptions.RequestRefresh(WorldId, PlayerId);
+        _subscriptions.TakePending(WorldId);
+        _subscriptions.RequestRefresh(WorldId, PlayerId);
+        _subscriptions.TakePending(WorldId);
+        _subscriptions.RequestRefresh(WorldId, PlayerId);
+
+        // Assert
+        Assert.Equal(ResyncState.Pending, _subscriptions.StateOf(WorldId, PlayerId));
+    }
+
+    [Fact]
+    public void RequestRefresh_KeepsTheWatchPending_WhenASnapshotIsAlreadyInFlight()
+    {
+        // Arrange
+        _subscriptions.RequestRefresh(WorldId, PlayerId);
+        _subscriptions.TakePending(WorldId);
+        _subscriptions.RequestRefresh(WorldId, PlayerId);
+
+        // Act
+        _subscriptions.CompleteResync(WorldId, PlayerId);
+
+        // Assert
+        Assert.Equal(ResyncState.Pending, _subscriptions.StateOf(WorldId, PlayerId));
+    }
+
+    [Fact]
+    public void RequestLocationRefresh_MakesOnlyWatchersOfThatLocationPending()
+    {
+        // Arrange
+        var bystanderId = Guid.NewGuid();
+        _subscriptions.Watch(WorldId, bystanderId, Guid.NewGuid());
+
+        // Act
+        _subscriptions.RequestLocationRefresh(WorldId, LocationId);
+
+        // Assert
+        Assert.Equal([PlayerId], _subscriptions.TakePending(WorldId));
+    }
 }

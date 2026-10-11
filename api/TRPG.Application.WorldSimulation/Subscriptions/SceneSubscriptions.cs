@@ -43,6 +43,41 @@ public sealed class SceneSubscriptions(
         }
     }
 
+    public Guid? LocationOf(Guid worldId, Guid playerId)
+    {
+        lock (_gate)
+        {
+            return _watches.TryGetValue(new WatchKey(worldId, playerId), out var watch)
+                ? watch.LocationId
+                : null;
+        }
+    }
+
+    public void RequestRefresh(Guid worldId, Guid playerId)
+    {
+        lock (_gate)
+        {
+            if (_watches.TryGetValue(new WatchKey(worldId, playerId), out var watch))
+            {
+                RequestRefresh(watch);
+            }
+        }
+    }
+
+    public void RequestLocationRefresh(Guid worldId, Guid locationId)
+    {
+        lock (_gate)
+        {
+            foreach (var (key, watch) in _watches)
+            {
+                if (key.WorldId == worldId && watch.LocationId == locationId)
+                {
+                    RequestRefresh(watch);
+                }
+            }
+        }
+    }
+
     public ResyncState? StateOf(Guid worldId, Guid playerId)
     {
         lock (_gate)
@@ -141,6 +176,14 @@ public sealed class SceneSubscriptions(
             }
 
             return exhausted.Select(key => key.PlayerId).ToArray();
+        }
+    }
+
+    private static void RequestRefresh(Subscription watch)
+    {
+        if (watch.State is ResyncState.Synced or ResyncState.Sent)
+        {
+            watch.State = ResyncState.Pending;
         }
     }
 

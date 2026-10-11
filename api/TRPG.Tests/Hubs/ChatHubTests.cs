@@ -205,6 +205,15 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
     private static Task<ActionResult> Act(HubConnection hub, string method, params object[] args) =>
         hub.InvokeCoreAsync<ActionResult>(method, args, TestContext.Current.CancellationToken);
 
+    private static async Task WaitForCount(ConcurrentQueue<string> queue, int count)
+    {
+        using var timeout = new CancellationTokenSource(PushTimeout);
+        while (queue.Count < count)
+        {
+            await Task.Delay(10, timeout.Token);
+        }
+    }
+
     private static async Task<string> Drain(IAsyncEnumerable<string> tokens)
     {
         var builder = new StringBuilder();
@@ -1093,7 +1102,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
 
         await Act(connection, "SendMove", connector.Id);
 
-        Assert.Single(order);
+        await WaitForCount(order, 1);
         var player = await context
             .Creatures.AsNoTracking()
             .SingleAsync(
@@ -1119,6 +1128,7 @@ public sealed class ChatHubTests(EndpointTestFixture fixture) : IAsyncLifetime
                 TestContext.Current.CancellationToken
             );
         Assert.Equal(destination.Id, movedPlayer.LocationId);
+        await WaitForCount(order, 3);
         Assert.Equal(["encounter", "resolved", "encounter"], order.ToArray());
     }
 

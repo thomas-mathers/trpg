@@ -338,6 +338,81 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_ResendsThePlayersScene_WhenTheirQuestMarkersChanged()
+    {
+        // Arrange
+        var player = await SeedWatchedPlayer();
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var handler = new QuestMarkersChangedSimulationEventHandler(
+            coordinator,
+            _serviceProvider.GetRequiredService<IQueryHandler<GetCreatureByIdQuery, Creature?>>(),
+            _serviceProvider.GetRequiredService<
+                IQueryHandler<GetNearbyCreaturesQuery, IReadOnlyCollection<CreatureResult>>
+            >()
+        );
+
+        // Act
+        await handler.Handle(
+            new QuestMarkersChangedEvent(player.Id, _worldId),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(
+            ResyncState.Pending,
+            _serviceProvider.GetRequiredService<SceneSubscriptions>().StateOf(_worldId, player.Id)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_ResendsTheScene_WhenTheDoorLocksAtTheWatchedLocationChanged()
+    {
+        // Arrange
+        var player = await SeedWatchedPlayer();
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var handler = new DoorLocksChangedSimulationEventHandler(coordinator);
+
+        // Act
+        await handler.Handle(
+            new DoorLocksChangedEvent(_worldId, [_home.Id]),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(
+            ResyncState.Pending,
+            _serviceProvider.GetRequiredService<SceneSubscriptions>().StateOf(_worldId, player.Id)
+        );
+    }
+
+    [Fact]
+    public async Task Tick_KeepsThePublishedScene_WhenTheChangedDoorsAreAtAnotherLocation()
+    {
+        // Arrange
+        var player = await SeedWatchedPlayer();
+        var coordinator = MakeCoordinator(activeWorldIds: []);
+        await coordinator.EnsureRunner(_worldId, TestContext.Current.CancellationToken);
+        var handler = new DoorLocksChangedSimulationEventHandler(coordinator);
+
+        // Act
+        await handler.Handle(
+            new DoorLocksChangedEvent(_worldId, [_workplace.Id]),
+            TestContext.Current.CancellationToken
+        );
+        await coordinator.Tick(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(
+            ResyncState.Synced,
+            _serviceProvider.GetRequiredService<SceneSubscriptions>().StateOf(_worldId, player.Id)
+        );
+    }
+
+    [Fact]
     public async Task Tick_AnnouncesTheSeatTaken_WhenACreatureSitsAtThePlayersLocation()
     {
         // Arrange
@@ -607,6 +682,25 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
         await Assert.ThrowsAsync<InvalidOperationException>(() => request);
     }
 
+    private async Task<Creature> SeedWatchedPlayer()
+    {
+        var player = Builders.MakeCreature(_worldId, locationId: _home.Id);
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = player.Id;
+        _context.Creatures.Add(player);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            player.Id,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        return player;
+    }
+
     private WorldSimulationCoordinator MakeCoordinator(
         IReadOnlyCollection<Guid> activeWorldIds,
         FixedWorldClock? clock = null
@@ -617,10 +711,7 @@ public sealed class WorldSimulationCoordinatorTests(DatabaseFixture db)
             _serviceProvider.GetRequiredService<IServiceScopeFactory>(),
             clock,
             new TransientCreatureWalkRegistry(),
-            new SceneSubscriptions(
-                Options.Create(new WorldSimulationOptions()),
-                TimeProvider.System
-            ),
+            _serviceProvider.GetRequiredService<SceneSubscriptions>(),
             Options.Create(new WorldSimulationOptions()),
             Options.Create(new WorldClockOptions()),
             NullLogger<WorldSimulationRunner>.Instance

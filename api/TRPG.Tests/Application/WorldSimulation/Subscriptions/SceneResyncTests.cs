@@ -93,6 +93,50 @@ public sealed class SceneResyncTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_SendsAFreshSnapshot_WhenAPlayerSceneRefreshWasPosted()
+    {
+        // Arrange
+        _runner.Post(new RefreshPlayerScene(_playerId));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        await _dispatcher.FirstFlush.WaitAsync(Timeout, TestContext.Current.CancellationToken);
+        await WaitUntil(() => _subscriptions.StateOf(_worldId, _playerId) == ResyncState.Synced);
+        var snapshot = Assert.Single(_sink.Events.OfType<SceneUpdatedEvent>());
+        Assert.Equal(_location.Id, snapshot.Scene.LocationId);
+    }
+
+    [Fact]
+    public async Task Tick_SendsAFreshSnapshot_WhenALocationSceneRefreshWasPosted()
+    {
+        // Arrange
+        _runner.Post(new RefreshLocationScenes(_location.Id));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        await _dispatcher.FirstFlush.WaitAsync(Timeout, TestContext.Current.CancellationToken);
+        await WaitUntil(() => _subscriptions.StateOf(_worldId, _playerId) == ResyncState.Synced);
+        Assert.Single(_sink.Events.OfType<SceneUpdatedEvent>());
+    }
+
+    [Fact]
+    public async Task Tick_SendsNoSnapshot_WhenTheRefreshedLocationIsNotWatched()
+    {
+        // Arrange
+        _runner.Post(new RefreshLocationScenes(Guid.NewGuid()));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Empty(_sink.Events.OfType<SceneUpdatedEvent>());
+    }
+
+    [Fact]
     public async Task Tick_ReturnsBeforeTheResyncSendCompletes_WhenTheSendIsSlow()
     {
         // Arrange

@@ -42,3 +42,7 @@ public sealed record SimulationRequest(
 
 public sealed record RefreshCreatureStatus(Guid LocationId, Guid CreatureId)
     : WorldSimulationMessage;
+
+public sealed record RefreshPlayerScene(Guid PlayerId) : WorldSimulationMessage;
+
+public sealed record RefreshLocationScenes(Guid LocationId) : WorldSimulationMessage;

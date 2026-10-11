@@ -4,6 +4,7 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain;
 
 namespace TRPG.Application.WorldSimulation.Publishing;
@@ -30,6 +31,7 @@ internal sealed class ActionSceneAnnouncer(
     ICommandHandler<StampWorldStateCommand, WorldStateStamp> stampWorldState,
     CreatureChangeAnnouncer creatureChangeAnnouncer,
     PublishedSceneRegistry publishedScenes,
+    SceneSubscriptions subscriptions,
     ScenePublisher scenePublisher
 ) : IActionSceneAnnouncer
 {
@@ -80,9 +82,10 @@ internal sealed class ActionSceneAnnouncer(
             cancellationToken
         );
         var previous = publishedScenes.Find(playerId);
-        if (previous is null || SceneSemanticComparer.HasStaticChange(previous, scene))
+        if (previous is null || subscriptions.LocationOf(worldId, playerId) != scene.LocationId)
         {
             scenePublisher.Publish(worldId, playerId, scene, stamp);
+            subscriptions.Watch(worldId, playerId, scene.LocationId);
             return new AnnouncedScene(scene.LocationId, PublishedSnapshot: true);
         }
 

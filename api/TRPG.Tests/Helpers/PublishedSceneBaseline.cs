@@ -5,6 +5,7 @@ using TRPG.Application.Scenes;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.Worlds.Commands;
+using TRPG.Application.WorldSimulation.Subscriptions;
 using TRPG.Domain;
 
 namespace TRPG.Tests.Helpers;
@@ -35,5 +36,8 @@ internal static class PublishedSceneBaseline
             .Handle(new StampWorldStateCommand { WorldId = worldId }, cancellationToken);
 
         services.GetRequiredService<ScenePublisher>().Publish(worldId, playerId, scene, stamp);
+        services
+            .GetRequiredService<SceneSubscriptions>()
+            .Watch(worldId, playerId, scene.LocationId);
     }
 }

@@ -17,6 +17,12 @@ internal sealed class QuestMarkersChangedSimulationEventHandler(
         CancellationToken cancellationToken = default
     )
     {
+        await coordinator.PostIfLoaded(
+            domainEvent.WorldId,
+            new RefreshPlayerScene(domainEvent.PlayerId),
+            cancellationToken
+        );
+
         var player = await getCreatureById.Handle(
             new GetCreatureByIdQuery { Id = domainEvent.PlayerId },
             cancellationToken

@@ -592,6 +592,12 @@ public sealed class WorldSimulationRunner(
             case RefreshCreatureStatus refresh:
                 UnpublishedCreatureIds(refresh.LocationId).Add(refresh.CreatureId);
                 break;
+            case RefreshPlayerScene refreshPlayer:
+                subscriptions.RequestRefresh(worldId, refreshPlayer.PlayerId);
+                break;
+            case RefreshLocationScenes refreshLocation:
+                subscriptions.RequestLocationRefresh(worldId, refreshLocation.LocationId);
+                break;
             case PlayerInput input:
                 await ApplyPlayerInput(input, cancellationToken);
                 break;
