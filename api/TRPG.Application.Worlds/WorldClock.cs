@@ -24,18 +24,11 @@ internal sealed class WorldClock(
         CancellationToken cancellationToken = default
     )
     {
-        var state = GetState(worldId);
-        await state.Gate.WaitAsync(cancellationToken);
-        try
-        {
-            return state.Anchor is { } anchor
-                ? GetCurrent(anchor)
-                : await ReadPersisted(worldId, cancellationToken);
-        }
-        finally
-        {
-            state.Gate.Release();
-        }
+        var anchor = GetState(worldId).Anchor;
+
+        return anchor != null
+            ? GetCurrent(anchor)
+            : await ReadPersisted(worldId, cancellationToken);
     }
 
     public async Task<GameInstant> ResumeWorld(
@@ -214,7 +207,7 @@ internal sealed class WorldClock(
     private sealed class WorldClockState
     {
         public SemaphoreSlim Gate { get; } = new(1, 1);
-        public WorldClockAnchor? Anchor { get; set; }
+        public volatile WorldClockAnchor? Anchor;
     }
 
     private sealed record WorldClockAnchor(GameInstant GameTime, DateTimeOffset RealTime);

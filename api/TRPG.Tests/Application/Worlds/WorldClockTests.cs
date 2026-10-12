@@ -206,6 +206,41 @@ public sealed class WorldClockTests(DatabaseFixture db)
         Assert.Equal(checkpoint + TimeSpan.FromMinutes(10), current);
     }
 
+    [Fact]
+    public async Task GetCurrent_Completes_WhenACheckpointIsWaitingOnTheWorldRow()
+    {
+        // Arrange
+        await _clock.ResumeWorld(_world.Id, TestContext.Current.CancellationToken);
+        await using var rowHolder = db.CreateContext();
+        await using var transaction = await rowHolder.Database.BeginTransactionAsync(
+            TestContext.Current.CancellationToken
+        );
+        await rowHolder
+            .Worlds.Where(world => world.Id == _world.Id)
+            .ExecuteUpdateAsync(
+                setters =>
+                    setters.SetProperty(
+                        world => world.StateVersion,
+                        world => world.StateVersion + 1
+                    ),
+                TestContext.Current.CancellationToken
+            );
+        var checkpoint = _clock.Checkpoint(_world.Id, TestContext.Current.CancellationToken);
+        await Task.Delay(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+        var getCurrent = _clock.GetCurrent(_world.Id, TestContext.Current.CancellationToken);
+
+        // Act
+        var finished = await Task.WhenAny(
+            getCurrent,
+            Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)
+        );
+
+        // Assert
+        Assert.Same(getCurrent, finished);
+        await transaction.RollbackAsync(TestContext.Current.CancellationToken);
+        await checkpoint;
+    }
+
     private async Task<GameInstant> ReadPersistedGameTime()
     {
         await using var verifyContext = db.CreateContext();
