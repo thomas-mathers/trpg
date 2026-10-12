@@ -260,6 +260,11 @@ internal static class ConnectorPointResolver
     private static double[] SeparatePositions(double[] sortedPositions, double length)
     {
         var upper = length - EdgeEndInset;
+        if ((sortedPositions.Length - 1) * MinimumBearingSeparation > upper - EdgeEndInset)
+        {
+            return SpreadAcross(sortedPositions.Length, EdgeEndInset, upper);
+        }
+
         var positions = sortedPositions
             .Select(position => Math.Clamp(position, EdgeEndInset, upper))
             .ToArray();
@@ -278,6 +283,12 @@ internal static class ConnectorPointResolver
             ? positions.Select(position => Math.Max(EdgeEndInset, position - overflow)).ToArray()
             : positions;
     }
+
+    private static double[] SpreadAcross(int count, double start, double end) =>
+        Enumerable
+            .Range(0, count)
+            .Select(index => start + (end - start) * index / Math.Max(1, count - 1))
+            .ToArray();
 
     private static ConnectorExit PlaceDirectly(Footprint frame, ConnectorExitRequest request) =>
         request.Kind switch

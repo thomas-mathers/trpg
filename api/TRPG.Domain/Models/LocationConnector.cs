@@ -9,6 +9,7 @@ public enum StairDirection
 public class LocationConnector : Connector
 {
     public double ArrivalAngle { get; set; }
+    public double ArrivalInset { get; set; }
     public Guid DestinationLocationId { get; init; }
     public required string DestinationLabel { get; init; }
     public string Description { get; init; } = "";

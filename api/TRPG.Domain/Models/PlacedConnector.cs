@@ -14,8 +14,14 @@ public record PlacedConnector(LocationConnector Connector, Point Exit, Point Arr
             .. connectors.Select(connector => new PlacedConnector(
                 connector,
                 positionByNodeId[connector.OriginNodeId],
-                positionByNodeId[connector.DestinationNodeId]
+                ArrivalPoint(connector, positionByNodeId[connector.DestinationNodeId])
             )),
         ];
     }
+
+    private static Point ArrivalPoint(LocationConnector connector, Point destination) =>
+        new(
+            destination.X + connector.ArrivalInset * Math.Sin(connector.ArrivalAngle),
+            destination.Y - connector.ArrivalInset * Math.Cos(connector.ArrivalAngle)
+        );
 }

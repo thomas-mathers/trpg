@@ -37,7 +37,7 @@ internal static class ConnectorNodePlacer
                         context,
                         connector.OriginNodeId,
                         connector.OriginLocationId,
-                        PortPosition(context, connector.OriginLocationId, exit)
+                        new Point(exit.Point.X, exit.Point.Y)
                     )
                 );
             }
@@ -50,6 +50,7 @@ internal static class ConnectorNodePlacer
             if (reverse is not null && SharesPort(exitByConnectorId, connector, reverse))
             {
                 connector.DestinationNodeId = reverse.OriginNodeId;
+                connector.ArrivalInset = DoorArrivalInset(context, connector);
                 continue;
             }
 
@@ -67,24 +68,13 @@ internal static class ConnectorNodePlacer
         return nodes;
     }
 
-    private static Point PortPosition(
+    private static double DoorArrivalInset(
         LocationLayoutContext context,
-        Guid locationId,
-        ConnectorExit exit
-    )
-    {
-        var location = context.LocationById[locationId];
-        if (location.Kind == LocationKind.District || exit.Stairs is not null)
-        {
-            return new Point(exit.Point.X, exit.Point.Y);
-        }
-
-        var arrival = ConnectorPointResolver.KeepInside(
-            ConnectorPointResolver.ResolveArrival(exit),
-            new Footprint(location.Width, location.Depth)
-        );
-        return new Point(arrival.X, arrival.Y);
-    }
+        LocationConnector connector
+    ) =>
+        context.LocationById[connector.DestinationLocationId].Kind == LocationKind.District
+            ? 0
+            : ConnectorPointResolver.ArrivalInset;
 
     private static bool SharesPort(
         IReadOnlyDictionary<Guid, ConnectorExit> exitByConnectorId,

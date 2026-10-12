@@ -135,7 +135,7 @@ internal record WallRun(
         }
 
         var free = length - extent;
-        var cell = RoomGrid.SnapUp(extent);
+        var cell = RoomGrid.SnapUp(extent) + RoomGrid.CellSize;
         var span = (To - From) * free;
         var fits = Math.Max(1, (int)Math.Floor(span / cell + 1e-9) + 1);
 

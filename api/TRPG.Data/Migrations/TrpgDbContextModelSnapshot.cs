@@ -3063,6 +3063,10 @@ namespace TRPG.Migrations
                         .HasColumnType("double precision")
                         .HasColumnName("arrival_angle");
 
+                    b.Property<double>("ArrivalInset")
+                        .HasColumnType("double precision")
+                        .HasColumnName("arrival_inset");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text")
