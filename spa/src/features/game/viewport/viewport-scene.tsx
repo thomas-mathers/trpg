@@ -1,6 +1,7 @@
 import { useGLTF } from '@react-three/drei';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { BackSide, Mesh } from 'three';
+import { MeshLambertNodeMaterial } from 'three/webgpu';
 
 import type {
   BuildingType,
@@ -26,6 +27,7 @@ import { DoorConnector } from './door-connector';
 import { floorGeometry, terrainGeometry } from './floor-geometry';
 import { FurnitureMesh } from './furniture-mesh';
 import { isFurnitureModel } from './furniture-parts';
+import { createGrassMaterial } from './ground-material';
 import {
   DOOR_HEIGHT,
   headingToYaw,
@@ -44,26 +46,42 @@ import type { ViewportSeat } from './seat-interaction';
 import { SeatMesh } from './seat-mesh';
 import { NameBoard, SignMesh } from './sign-mesh';
 import { StairConnector } from './stair-connector';
+import { createStoneWallMaterial } from './stone-wall-material';
 
 type EntityNames = ReadonlyMap<string, string>;
 
 export const ROOM_FLOOR_COLOR = '#6e5338';
 
+function flatMaterial(color: string) {
+  const material = new MeshLambertNodeMaterial();
+  material.color.set(color);
+  return material;
+}
+
 export function Ground({
   size,
   wells = [],
-  color = OUTDOOR_FLOOR_COLOR,
+  color,
 }: {
   size: FootprintWire;
   wells?: NearbyExitSnapshot[];
   color?: string;
 }) {
   const floor = useMemo(() => floorGeometry(size, wells), [size, wells]);
+  const material = useMemo(
+    () => (color ? flatMaterial(color) : createGrassMaterial(OUTDOOR_FLOOR_COLOR)),
+    [color],
+  );
+  useEffect(() => () => material.dispose(), [material]);
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} geometry={floor} receiveShadow renderOrder={-10}>
-      <meshLambertMaterial color={color} />
-    </mesh>
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      geometry={floor}
+      material={material}
+      receiveShadow
+      renderOrder={-10}
+    />
   );
 }
 
@@ -73,16 +91,17 @@ const TERRAIN_DROP = 0.002;
 
 export function Terrain({ size }: { size: FootprintWire }) {
   const terrain = useMemo(() => terrainGeometry(size, TERRAIN_EXTENT, TERRAIN_OVERLAP), [size]);
+  const material = useMemo(() => createGrassMaterial(OUTDOOR_FLOOR_COLOR), []);
+  useEffect(() => () => material.dispose(), [material]);
 
   return (
     <mesh
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, -TERRAIN_DROP, 0]}
       geometry={terrain}
+      material={material}
       renderOrder={-11}
-    >
-      <meshLambertMaterial color={OUTDOOR_FLOOR_COLOR} />
-    </mesh>
+    />
   );
 }
 
@@ -105,6 +124,8 @@ export function Ceiling({
 const HEADER_HEIGHT = WALL_HEIGHT - DOOR_HEIGHT;
 
 const TOWER_HEIGHT = WALL_HEIGHT * 1.7;
+const WALL_COLOR = '#8a7b66';
+const TOWER_COLOR = '#756853';
 
 export function Walls({
   walls,
@@ -115,6 +136,11 @@ export function Walls({
   headers?: Obstacle[];
   towers?: Obstacle[];
 }) {
+  const wallMaterial = useMemo(() => createStoneWallMaterial(WALL_COLOR), []);
+  const towerMaterial = useMemo(() => createStoneWallMaterial(TOWER_COLOR), []);
+  useEffect(() => () => wallMaterial.dispose(), [wallMaterial]);
+  useEffect(() => () => towerMaterial.dispose(), [towerMaterial]);
+
   return (
     <>
       {walls.map(({ placement, footprint }) => (
@@ -122,11 +148,11 @@ export function Walls({
           castShadow
           receiveShadow
           key={`${placement.x}:${placement.y}`}
+          material={wallMaterial}
           position={toScenePosition(placement.x, placement.y, WALL_HEIGHT / 2)}
           rotation={[0, headingToYaw(placement.angle), 0]}
         >
           <boxGeometry args={[footprint.width, WALL_HEIGHT, footprint.depth]} />
-          <meshLambertMaterial color="#8a7b66" />
         </mesh>
       ))}
       {towers.map(({ placement, footprint }) => (
@@ -134,11 +160,11 @@ export function Walls({
           castShadow
           receiveShadow
           key={`tower:${placement.x}:${placement.y}`}
+          material={towerMaterial}
           position={toScenePosition(placement.x, placement.y, TOWER_HEIGHT / 2)}
           rotation={[0, headingToYaw(placement.angle), 0]}
         >
           <boxGeometry args={[footprint.width, TOWER_HEIGHT, footprint.depth]} />
-          <meshLambertMaterial color="#756853" />
         </mesh>
       ))}
       {headers.map(({ placement, footprint }) => (
@@ -146,10 +172,10 @@ export function Walls({
           castShadow
           receiveShadow
           key={`header:${placement.x}:${placement.y}`}
+          material={wallMaterial}
           position={toScenePosition(placement.x, placement.y, DOOR_HEIGHT + HEADER_HEIGHT / 2)}
         >
           <boxGeometry args={[footprint.width, HEADER_HEIGHT, footprint.depth]} />
-          <meshLambertMaterial color="#8a7b66" />
         </mesh>
       ))}
     </>

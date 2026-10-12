@@ -10,6 +10,7 @@ import type {
 
 import { apronQuads, roadRenderOrder, roadRibbon } from './boundary-geometry';
 import type { PlanarPoint } from './layout-math';
+import { createRoadMaterial, type RoadSurface } from './road-material';
 
 export const OUTDOOR_FLOOR_COLOR = '#6f7658';
 const ROAD_COLORS: Record<RoadClassSnapshot, string> = {
@@ -17,8 +18,21 @@ const ROAD_COLORS: Record<RoadClassSnapshot, string> = {
   Street: '#9d8e74',
   Lane: '#837358',
 };
-const APRON_COLOR = ROAD_COLORS.Avenue;
+const ROAD_SURFACES: Record<RoadClassSnapshot, RoadSurface> = {
+  Avenue: 'cobble',
+  Street: 'gravel',
+  Lane: 'dirt',
+};
 const ROAD_OFFSET_FACTOR: Record<RoadClassSnapshot, number> = { Lane: -1, Street: -2, Avenue: -3 };
+
+function layeredRoadMaterial(roadClass: RoadClassSnapshot) {
+  const material = createRoadMaterial(ROAD_SURFACES[roadClass], ROAD_COLORS[roadClass]);
+  material.depthWrite = false;
+  material.polygonOffset = true;
+  material.polygonOffsetFactor = ROAD_OFFSET_FACTOR[roadClass];
+  material.polygonOffsetUnits = ROAD_OFFSET_FACTOR[roadClass];
+  return material;
+}
 
 export function Roads({ roads }: { roads: RoadSnapshot[] }) {
   return (
@@ -45,18 +59,17 @@ function RoadMesh({ points, width, class: roadClass }: RoadSnapshot) {
     ribbon.computeVertexNormals();
     return ribbon;
   }, [points, width, roadClass]);
+  const material = useMemo(() => layeredRoadMaterial(roadClass), [roadClass]);
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
 
   return (
-    <mesh geometry={geometry} receiveShadow renderOrder={roadRenderOrder(roadClass)}>
-      <meshLambertMaterial
-        color={ROAD_COLORS[roadClass]}
-        depthWrite={false}
-        polygonOffset
-        polygonOffsetFactor={ROAD_OFFSET_FACTOR[roadClass]}
-        polygonOffsetUnits={ROAD_OFFSET_FACTOR[roadClass]}
-      />
-    </mesh>
+    <mesh
+      geometry={geometry}
+      material={material}
+      receiveShadow
+      renderOrder={roadRenderOrder(roadClass)}
+    />
   );
 }
 
@@ -85,18 +98,17 @@ function apronGeometry(corners: PlanarPoint[]): BufferGeometry {
 
 function ApronMesh({ corners }: { corners: PlanarPoint[] }) {
   const geometry = useMemo(() => apronGeometry(corners), [corners]);
+  const material = useMemo(() => layeredRoadMaterial('Avenue'), []);
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
 
   return (
-    <mesh geometry={geometry} receiveShadow renderOrder={roadRenderOrder('Avenue')}>
-      <meshLambertMaterial
-        color={APRON_COLOR}
-        depthWrite={false}
-        polygonOffset
-        polygonOffsetFactor={-3}
-        polygonOffsetUnits={-3}
-      />
-    </mesh>
+    <mesh
+      geometry={geometry}
+      material={material}
+      receiveShadow
+      renderOrder={roadRenderOrder('Avenue')}
+    />
   );
 }
 

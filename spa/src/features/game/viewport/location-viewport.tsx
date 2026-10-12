@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { PCFShadowMap, type Scene, type WebGPURenderer } from 'three/webgpu';
+import type { Scene, WebGPURenderer } from 'three/webgpu';
 
 import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
@@ -194,7 +194,7 @@ export function LocationViewport({
             rendererRef.current = gl as unknown as WebGPURenderer;
             setRenderScene(canvasScene);
           }}
-          shadows={{ type: PCFShadowMap }}
+          shadows={false}
           camera={{ fov: 75, near: 0.1, far: 500 }}
         >
           <color attach="background" args={[DEFAULT_BACKGROUND]} />

@@ -32,6 +32,40 @@ describe('roofShape', () => {
     expect(roof?.length).toBeGreaterThan(10);
   });
 
+  it('pitches the roof steeply', () => {
+    // Act
+    const roof = roofShape('id', 'House', { width: 6, depth: 10 });
+
+    // Assert
+    expect(roof!.rise).toBeGreaterThanOrEqual(roof!.span * 0.4);
+  });
+
+  it('places a chimney on hearth buildings inside the roof footprint', () => {
+    // Act
+    const roof = roofShape('inn-1', 'Inn', { width: 6, depth: 10 });
+
+    // Assert
+    expect(Math.abs(roof!.chimney!.x)).toBeLessThan(roof!.span / 2);
+    expect(Math.abs(roof!.chimney!.z)).toBeLessThan(roof!.length / 2);
+  });
+
+  it('gives storage buildings no chimney', () => {
+    // Act
+    const roof = roofShape('stable-1', 'Stable', { width: 6, depth: 10 });
+
+    // Assert
+    expect(roof!.chimney).toBeUndefined();
+  });
+
+  it('keeps the chimney in the same place for the same building', () => {
+    // Act
+    const first = roofShape('inn-1', 'Inn', { width: 6, depth: 10 });
+    const second = roofShape('inn-1', 'Inn', { width: 6, depth: 10 });
+
+    // Assert
+    expect(first!.chimney).toEqual(second!.chimney);
+  });
+
   it('keeps the roof color stable for the same building', () => {
     // Act
     const first = roofShape('house-1', 'House', { width: 6, depth: 10 });
