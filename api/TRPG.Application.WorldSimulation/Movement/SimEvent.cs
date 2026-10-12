@@ -14,6 +14,7 @@ public abstract record CreatureSimEvent(Guid CreatureId, GameInstant At) : SimEv
 public sealed record JourneyCheckpoint(
     Guid CreatureId,
     GameInstant At,
+    Guid LocationId,
     Guid JourneyId,
     JourneyStatus Status,
     int LegIndex,

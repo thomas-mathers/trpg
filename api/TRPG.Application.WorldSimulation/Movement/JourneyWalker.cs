@@ -163,6 +163,7 @@ internal static class JourneyWalker
             new JourneyCheckpoint(
                 creature.Id,
                 at,
+                creature.LocationId,
                 journey.Id,
                 journey.Status,
                 journey.LegIndex,

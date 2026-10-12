@@ -1,10 +1,15 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useRef } from 'react';
-import { PerspectiveCamera, Quaternion, Raycaster } from 'three';
+import { useEffect, useMemo, useRef } from 'react';
+import { PerspectiveCamera, Quaternion, Raycaster, Vector3 } from 'three';
 
 import type { CreatureStatusSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-import { focusCreature, pickCreature, type CreatureFocus } from './creature-focus';
+import {
+  findCreatureObject,
+  focusCreature,
+  pickCreature,
+  type CreatureFocus,
+} from './creature-focus';
 
 export function CreatureFocusController({
   focus,
@@ -43,7 +48,8 @@ export function CreatureFocusController({
       if (!creature || !status) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      onFocus(focusCreature(status, camera.position));
+      const position = findCreatureObject(scene, status.id)?.getWorldPosition(new Vector3());
+      onFocus(focusCreature(status, camera.position, position && { x: position.x, y: position.z }));
       document.exitPointerLock();
     };
     window.addEventListener('keydown', interact, true);
@@ -62,13 +68,10 @@ export function CreatureFocusController({
 function useConversationCamera(focus: CreatureFocus | null, onRestored: () => void) {
   const camera = useThree((state) => state.camera);
   const original = useRef<{ rotation: Quaternion; fov: number } | null>(null);
-  const desired = useRef(new Quaternion());
+  const desired = useFocusRotation(focus);
   useEffect(() => {
     if (!focus || !(camera instanceof PerspectiveCamera)) return;
     original.current ??= { rotation: camera.quaternion.clone(), fov: camera.fov };
-    const frame = camera.clone();
-    frame.lookAt(focus.x, focus.headHeight - 0.15, focus.y);
-    desired.current.copy(frame.quaternion);
   }, [camera, focus]);
   useFrame((_, dt) => {
     const saved = original.current;
@@ -93,4 +96,25 @@ function useConversationCamera(focus: CreatureFocus | null, onRestored: () => vo
       onRestored();
     }
   });
+}
+
+function useFocusRotation(focus: CreatureFocus | null) {
+  const { camera, scene } = useThree();
+  const frame = useMemo(() => camera.clone(), [camera]);
+  const desired = useRef(new Quaternion());
+  const position = useRef(new Vector3());
+  const creature = useMemo(
+    () => (focus ? findCreatureObject(scene, focus.id) : undefined),
+    [scene, focus?.id],
+  );
+  useFrame(() => {
+    if (!focus) return;
+    position.current.set(focus.x, 0, focus.y);
+    creature?.getWorldPosition(position.current);
+    position.current.y += focus.headHeight - 0.15;
+    frame.position.copy(camera.position);
+    frame.lookAt(position.current);
+    desired.current.copy(frame.quaternion);
+  });
+  return desired;
 }

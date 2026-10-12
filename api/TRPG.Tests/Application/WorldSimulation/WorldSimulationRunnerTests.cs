@@ -248,6 +248,39 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
+    public async Task Tick_PublishesJourneyPauseAndResumeToThePlayer()
+    {
+        var worker = await AddWalkingWorker();
+        await AddPlayerAt(_home);
+        await _serviceProvider.PublishBaselineScene(
+            _worldId,
+            _playerId,
+            Now,
+            TestContext.Current.CancellationToken
+        );
+        await StartRunner();
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        Assert.NotNull(LastAnnouncedCreature(worker.Id).Walk);
+
+        var pausedAt = Now + TimeSpan.FromSeconds(1);
+        _runner.Post(new EngageCreature(worker.Id));
+        await _runner.Tick(pausedAt, TestContext.Current.CancellationToken);
+
+        var paused = LastAnnouncedCreature(worker.Id).Walk;
+        Assert.NotNull(paused);
+        Assert.Equal(pausedAt, paused.PausedAt);
+
+        var resumedAt = pausedAt + TimeSpan.FromMinutes(1);
+        _runner.Post(new ReleaseCreature(worker.Id));
+        await _runner.Tick(resumedAt, TestContext.Current.CancellationToken);
+
+        var resumed = LastAnnouncedCreature(worker.Id).Walk;
+        Assert.NotNull(resumed);
+        Assert.Null(resumed.PausedAt);
+        Assert.Equal(paused.Path, resumed.Path);
+    }
+
+    [Fact]
     public async Task Tick_KillsAWorkerOnArrival_WhenItsEffectsWereLethalOnTheWay()
     {
         // Arrange
@@ -1185,6 +1218,31 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         );
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
+        return worker;
+    }
+
+    private async Task<Creature> AddWalkingWorker()
+    {
+        var worker = await AddWorker();
+        var origin = new TravelNode
+        {
+            WorldId = _worldId,
+            LocationId = _home.Id,
+            Position = new Point(1000, 5),
+        };
+        worker.CurrentTravelNodeId = origin.Id;
+        _context.TravelNodes.Add(origin);
+        _context.PointConnectors.Add(
+            Builders.MakePointConnector(
+                _home.Id,
+                origin.Id,
+                _door.OriginNodeId,
+                distance: 996,
+                worldId: _worldId,
+                waypoints: [origin.Position, new Point(4, 5)]
+            )
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return worker;
     }
 

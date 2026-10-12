@@ -32,8 +32,9 @@ export function pickCreature(
 export function focusCreature(
   creature: CreatureStatusSnapshot,
   player: { x: number; z: number },
+  position: { x: number; y: number } = creature.placement,
 ): CreatureFocus {
-  const { x, y } = creature.placement;
+  const { x, y } = position;
   return {
     id: creature.id,
     x,
@@ -41,4 +42,12 @@ export function focusCreature(
     headHeight: creature.posture === 'Sitting' ? 1.36 : 1.63,
     facing: Math.atan2(-(player.x - x), -(player.z - y)),
   };
+}
+
+export function findCreatureObject(scene: Scene, id: string): Object3D | undefined {
+  let creature: Object3D | undefined;
+  scene.traverse((object) => {
+    if (!creature && object.userData.creatureId === id) creature = object;
+  });
+  return creature;
 }

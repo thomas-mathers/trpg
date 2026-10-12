@@ -2,6 +2,7 @@ using TRPG.Application.Common.Navigation;
 using TRPG.Application.Configuration;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
+using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -227,6 +228,38 @@ public class CreatureSimulatorTests
 
         // Assert
         Assert.Empty(events);
+    }
+
+    [Fact]
+    public void Engage_MarksThePausedWalkForScenePublication()
+    {
+        var simulator = CreateSimulator(1);
+        AddCommuter(simulator);
+        var departure = WorkStart - LegDuration;
+        simulator.Step(departure);
+        var pausedAt = departure + TimeSpan.FromMinutes(1);
+
+        var events = simulator.Engage(_creatureId, pausedAt);
+
+        var checkpoint = Assert.Single(events.OfType<JourneyCheckpoint>());
+        Assert.Equal(pausedAt, checkpoint.PausedAt);
+        Assert.Contains(_locationB, SimEventLocations.Touched(checkpoint));
+    }
+
+    [Fact]
+    public void Release_MarksTheResumedWalkForScenePublication()
+    {
+        var simulator = CreateSimulator(1);
+        AddCommuter(simulator);
+        var departure = WorkStart - LegDuration;
+        simulator.Step(departure);
+        simulator.Engage(_creatureId, departure + TimeSpan.FromMinutes(1));
+
+        var events = simulator.Release(_creatureId, WorkStart);
+
+        var checkpoint = Assert.Single(events.OfType<JourneyCheckpoint>());
+        Assert.Null(checkpoint.PausedAt);
+        Assert.Contains(_locationB, SimEventLocations.Touched(checkpoint));
     }
 
     [Fact]

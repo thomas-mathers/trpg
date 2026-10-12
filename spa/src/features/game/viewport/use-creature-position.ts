@@ -9,7 +9,13 @@ import type {
 import { gameTimeMillisecondsAt, type GameClockAnchor } from '@/features/game/game-clock';
 
 import { toScenePosition } from './layout-math';
-import { blendOffset, walkedDistance, walkPoseAt, walkSignature } from './walk-playback';
+import {
+  blendOffset,
+  pausedHold,
+  walkedDistance,
+  walkPoseAt,
+  walkSignature,
+} from './walk-playback';
 
 const BLEND_MILLISECONDS = 200;
 
@@ -98,6 +104,7 @@ export function useCreaturePosition(
   const heading = useRef<number | undefined>(undefined);
   const displayed = useRef<Planar | null>(null);
   const offset = useRef<Planar>({ x: 0, y: 0 });
+  const held = useRef<Planar | null>(null);
   const blendStartedAt = useRef(0);
   const signature = useRef(signatureOf(inputs));
   const wasSeated = useRef(inputs.seated);
@@ -131,6 +138,9 @@ export function useCreaturePosition(
       offset.current =
         wasSeated.current === current.seated ? blendOffset(from, target) : { x: 0, y: 0 };
       blendStartedAt.current = now;
+      const paused =
+        !current.seated && typeof current.walk?.pausedAtGameTimeMilliseconds === 'number';
+      held.current = paused ? pausedHold(from, target) : null;
       if (import.meta.env.DEV) {
         const gap = from ? Math.hypot(from.x - target.x, from.y - target.y) : 0;
         logWalkChange(current, shownWalk.current, gap, now);
@@ -141,8 +151,8 @@ export function useCreaturePosition(
 
     const remaining =
       1 - MathUtils.clamp((now - blendStartedAt.current) / BLEND_MILLISECONDS, 0, 1);
-    const x = target.x + offset.current.x * remaining;
-    const y = target.y + offset.current.y * remaining;
+    const x = held.current ? held.current.x : target.x + offset.current.x * remaining;
+    const y = held.current ? held.current.y : target.y + offset.current.y * remaining;
     displayed.current = { x, y };
     heading.current = target.heading;
     group.current.position.set(...toScenePosition(x, y));

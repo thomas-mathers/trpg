@@ -81,16 +81,20 @@ internal class StartConversationTool(
         {
             return new ToolError($"No one named '{npcName}' found nearby.");
         }
-        if (npc.IsEngaged)
-        {
-            return new ToolError($"{npcName} is currently engaged in something else.");
-        }
 
         var openConversations = await getOpenNpcConversations.Handle(
             new GetOpenNpcConversationsQuery { SessionId = turnContext.SessionId },
             cancellationToken
         );
-        if (player.IsEngaged && openConversations.Count == 0)
+        // Both are already engaged by the panel the player opened; keeping that engagement
+        // avoids a release that would let the NPC walk off before the greeting.
+        var continuesPanelInteraction =
+            npc.IsEngaged && player.IsEngaged && openConversations.Count == 0;
+        if (npc.IsEngaged && !continuesPanelInteraction)
+        {
+            return new ToolError($"{npcName} is currently engaged in something else.");
+        }
+        if (player.IsEngaged && openConversations.Count == 0 && !continuesPanelInteraction)
         {
             return new ToolError("You are currently engaged in something else.");
         }
@@ -117,18 +121,21 @@ internal class StartConversationTool(
             );
         }
 
-        IReadOnlyCollection<Guid> creatureIdsToEngage = player.IsEngaged
-            ? [npc.Id]
-            : [turnContext.PlayerId, npc.Id];
-        await engageCreatures.Handle(
-            new EngageCreaturesCommand
-            {
-                WorldId = turnContext.WorldId,
-                CreatureIds = creatureIdsToEngage,
-                GameTime = gameTime,
-            },
-            cancellationToken
-        );
+        if (!continuesPanelInteraction)
+        {
+            IReadOnlyCollection<Guid> creatureIdsToEngage = player.IsEngaged
+                ? [npc.Id]
+                : [turnContext.PlayerId, npc.Id];
+            await engageCreatures.Handle(
+                new EngageCreaturesCommand
+                {
+                    WorldId = turnContext.WorldId,
+                    CreatureIds = creatureIdsToEngage,
+                    GameTime = gameTime,
+                },
+                cancellationToken
+            );
+        }
         var result = await getNpcConversationBriefing.Handle(
             new GetNpcConversationBriefingQuery
             {

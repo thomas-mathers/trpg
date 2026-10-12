@@ -71,6 +71,13 @@ function headingOf(dx: number, dy: number): number {
   return heading < 0 ? heading + FULL_TURN : heading;
 }
 
+export function pausedHold(
+  from: { x: number; y: number } | null,
+  target: { x: number; y: number },
+): { x: number; y: number } | null {
+  return from && Math.hypot(from.x - target.x, from.y - target.y) <= MAX_BLEND_METERS ? from : null;
+}
+
 export function blendOffset(
   from: { x: number; y: number } | null,
   target: { x: number; y: number },

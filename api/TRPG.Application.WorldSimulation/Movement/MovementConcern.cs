@@ -102,6 +102,7 @@ internal static class MovementConcern
             new JourneyCheckpoint(
                 creature.Id,
                 at,
+                creature.LocationId,
                 journey.Id,
                 journey.Status,
                 journey.LegIndex,
@@ -151,6 +152,7 @@ internal static class MovementConcern
             new JourneyCheckpoint(
                 creature.Id,
                 at,
+                creature.LocationId,
                 journey.Id,
                 journey.Status,
                 journey.LegIndex,

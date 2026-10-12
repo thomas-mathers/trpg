@@ -184,10 +184,11 @@ public sealed class SimEventApplierTests
 
     private static JourneyCheckpoint MakeEvent() =>
         new(
-            Guid.NewGuid(),
-            Now,
-            Guid.NewGuid(),
-            TRPG.Domain.Models.JourneyStatus.Traveling,
+            CreatureId: Guid.NewGuid(),
+            At: Now,
+            LocationId: Guid.NewGuid(),
+            JourneyId: Guid.NewGuid(),
+            Status: TRPG.Domain.Models.JourneyStatus.Traveling,
             LegIndex: 0,
             LegProgressMeters: 0
         );
