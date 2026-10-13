@@ -29,6 +29,7 @@ import {
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { SceneProvider } from '../providers/scene-provider';
+import { TargetProvider } from '../providers/target-provider';
 import { AbilityToolbar } from './ability-toolbar';
 import { ConnectionLostDialog } from './connection-lost-dialog';
 import { EncounterDialogs } from './game-chat';
@@ -167,105 +168,110 @@ function GameScreenContent({
 
   return (
     <GameChatContext.Provider value={gameChat}>
-      <CastTargetingProvider>
-        <SidebarProvider
-          open={isNearbyOpen}
-          onOpenChange={onNearbyOpenChange}
-          className="h-screen flex-col"
-        >
-          <div className="chrome-surface chrome-surface-elevated text-chrome-foreground chrome-scope px-4 py-2">
-            <StatusBar
-              connectionStatus={connectionStatus}
-              isInCombat={isInCombat}
-              controls={
-                <>
-                  {!isInCombat && <NearbyToggleButton />}
-                  <GameMenu
-                    onOpenCharacterDialog={() => onOpenDialog('character')}
-                    onOpenInventoryDialog={() => onOpenDialog('inventory')}
-                    onOpenQuestJournal={() => onOpenDialog('questJournal')}
-                    onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
-                    onOpenWaitDialog={() => onOpenDialog('wait')}
-                    onOpenMapDialog={() => onOpenDialog('map')}
-                    onQuit={onQuit}
-                  />
-                </>
-              }
-            />
-          </div>
+      <TargetProvider>
+        <CastTargetingProvider>
+          <SidebarProvider
+            open={isNearbyOpen}
+            onOpenChange={onNearbyOpenChange}
+            className="h-screen flex-col"
+          >
+            <div className="chrome-surface chrome-surface-elevated text-chrome-foreground chrome-scope px-4 py-2">
+              <StatusBar
+                connectionStatus={connectionStatus}
+                isInCombat={isInCombat}
+                controls={
+                  <>
+                    {!isInCombat && <NearbyToggleButton />}
+                    <GameMenu
+                      onOpenCharacterDialog={() => onOpenDialog('character')}
+                      onOpenInventoryDialog={() => onOpenDialog('inventory')}
+                      onOpenQuestJournal={() => onOpenDialog('questJournal')}
+                      onOpenSkillTreeDialog={() => onOpenDialog('skillTree')}
+                      onOpenWaitDialog={() => onOpenDialog('wait')}
+                      onOpenMapDialog={() => onOpenDialog('map')}
+                      onQuit={onQuit}
+                    />
+                  </>
+                }
+              />
+            </div>
 
-          <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
-            <Suspense fallback={null}>
-              <LocationViewport
+            <div className="relative flex min-h-0 flex-1 overflow-hidden will-change-transform">
+              <Suspense fallback={null}>
+                <LocationViewport
+                  onQuestDialogRequested={setQuestDialog}
+                  onDeliverItemDialogRequested={setDeliverItemDialog}
+                />
+              </Suspense>
+
+              <EncounterDialogs />
+
+              {!isInCombat && (
+                <div className="bg-background/50 absolute bottom-4 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg px-3 pt-2 shadow-lg backdrop-blur-sm">
+                  <AbilityToolbar />
+                </div>
+              )}
+
+              <NearbySidebar
+                onOpenQuestJournal={() => onOpenDialog('questJournal')}
                 onQuestDialogRequested={setQuestDialog}
                 onDeliverItemDialogRequested={setDeliverItemDialog}
               />
-            </Suspense>
+            </div>
 
-            <EncounterDialogs />
-
-            {!isInCombat && (
-              <div className="bg-background/50 absolute bottom-4 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg px-3 pt-2 shadow-lg backdrop-blur-sm">
-                <AbilityToolbar />
-              </div>
-            )}
-
-            <NearbySidebar
-              onOpenQuestJournal={() => onOpenDialog('questJournal')}
-              onQuestDialogRequested={setQuestDialog}
-              onDeliverItemDialogRequested={setDeliverItemDialog}
-            />
-          </div>
-
-          {playerId && (
-            <>
-              <CharacterDialog
-                open={openDialog === 'character'}
-                onClose={() => onOpenDialog(null)}
-              />
-              <InventoryDialog
-                playerId={playerId}
-                open={openDialog === 'inventory'}
-                onClose={() => onOpenDialog(null)}
-              />
-              <SkillTreeDialog
-                playerId={playerId}
-                open={openDialog === 'skillTree'}
-                onClose={() => onOpenDialog(null)}
-              />
-              <WaitDialog open={openDialog === 'wait'} onClose={() => onOpenDialog(null)} />
-              <MapDialog
-                playerId={playerId}
-                isInsideBuilding={Boolean(scene?.buildingName)}
-                open={openDialog === 'map'}
-                onClose={() => onOpenDialog(null)}
-              />
-              <QuestDialog
-                playerId={playerId}
-                quest={questDialog}
-                onClose={() => setQuestDialog(null)}
-              />
-              <DeliverItemDialog
-                playerId={playerId}
-                deliverable={deliverItemDialog}
-                onClose={() => setDeliverItemDialog(null)}
-              />
-              {scene && (
-                <QuestJournalDialog
-                  playerId={playerId}
-                  worldId={scene.worldId}
-                  open={openDialog === 'questJournal'}
+            {playerId && (
+              <>
+                <CharacterDialog
+                  open={openDialog === 'character'}
                   onClose={() => onOpenDialog(null)}
                 />
-              )}
-            </>
-          )}
+                <InventoryDialog
+                  playerId={playerId}
+                  open={openDialog === 'inventory'}
+                  onClose={() => onOpenDialog(null)}
+                />
+                <SkillTreeDialog
+                  playerId={playerId}
+                  open={openDialog === 'skillTree'}
+                  onClose={() => onOpenDialog(null)}
+                />
+                <WaitDialog open={openDialog === 'wait'} onClose={() => onOpenDialog(null)} />
+                <MapDialog
+                  playerId={playerId}
+                  isInsideBuilding={Boolean(scene?.buildingName)}
+                  open={openDialog === 'map'}
+                  onClose={() => onOpenDialog(null)}
+                />
+                <QuestDialog
+                  playerId={playerId}
+                  quest={questDialog}
+                  onClose={() => setQuestDialog(null)}
+                />
+                <DeliverItemDialog
+                  playerId={playerId}
+                  deliverable={deliverItemDialog}
+                  onClose={() => setDeliverItemDialog(null)}
+                />
+                {scene && (
+                  <QuestJournalDialog
+                    playerId={playerId}
+                    worldId={scene.worldId}
+                    open={openDialog === 'questJournal'}
+                    onClose={() => onOpenDialog(null)}
+                  />
+                )}
+              </>
+            )}
 
-          <ConnectionLostDialog open={isConnectionLostDialogOpen} onClose={onConnectionLostClose} />
-          <GameNotifications />
-          <DeathRespawnEffect />
-        </SidebarProvider>
-      </CastTargetingProvider>
+            <ConnectionLostDialog
+              open={isConnectionLostDialogOpen}
+              onClose={onConnectionLostClose}
+            />
+            <GameNotifications />
+            <DeathRespawnEffect />
+          </SidebarProvider>
+        </CastTargetingProvider>
+      </TargetProvider>
     </GameChatContext.Provider>
   );
 }

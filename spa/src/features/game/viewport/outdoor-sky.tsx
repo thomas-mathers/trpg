@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo } from 'react';
 import { SkyMesh } from 'three/addons/objects/SkyMesh.js';
 import { color, dot, mix, uniform, vec3, vec4 } from 'three/tsl';
 
@@ -33,12 +33,12 @@ export function OutdoorSky({ look }: { look: WeatherLook }) {
   const { daylight, sunDirection } = useMemo(() => skyStateAt(hour), [hour]);
   const sky = useMemo(createOutdoorSky, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     sky.mesh.sunPosition.value.copy(sunDirection);
     sky.daylight.value = daylight;
   }, [sky, sunDirection, daylight]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     sky.mesh.cloudCoverage.value = look.cloudCoverage;
     sky.mesh.cloudDensity.value = look.cloudDensity;
     sky.saturation.value = look.saturation;

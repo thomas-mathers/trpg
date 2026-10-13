@@ -15,6 +15,7 @@ import {
 import { useScene } from '../contexts/scene-context';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
+import { useTarget } from '../hooks/use-target';
 import { runAction } from '../run-action';
 import { AmbientOcclusion } from './ambient-occlusion';
 import { RoadAprons, Roads } from './boundary-scene';
@@ -41,6 +42,7 @@ import { RenderDiagnostics } from './render-diagnostics';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
 import type { InputFrame } from './use-input-reporter';
 import { useSeatInteraction } from './use-seat-interaction';
+import { useTabTargeting } from './use-tab-targeting';
 import {
   Boxes,
   Ceiling,
@@ -83,7 +85,7 @@ export function LocationViewport({
   );
   const [focus, setFocus] = useState<CreatureFocus | null>(null);
   const [restoring, setRestoring] = useState(false);
-  const [targetId, setTargetId] = useState<string>();
+  const [lookedAtId, setLookedAtId] = useState<string>();
   const [renderScene, setRenderScene] = useState<Scene | null>(null);
   const [weatherOverride, setWeatherOverride] = useState<WeatherCondition>();
   const weatherLook = weatherLookFor(weatherOverride ?? scene.weather);
@@ -103,8 +105,16 @@ export function LocationViewport({
       setRestoring(true);
     }
   }, [focus, selectedCreature, isInCombat, hasActiveEncounter]);
+  const { target, setTargetId } = useTarget();
   const seated = scene.playerStatus.posture === 'Sitting';
   const canInteract = seated || (!isInCombat && !hasActiveEncounter);
+  useTabTargeting({
+    enabled: !focus && !restoring && !isInCombat && !hasActiveEncounter,
+    creatures: scene.nearbyCreatures,
+    player: scene.playerStatus.placement,
+    targetId: target?.id,
+    onTarget: setTargetId,
+  });
   const handleSeatInteraction = useSeatInteraction(seated, canInteract);
   const [nearbySeat, setNearbySeat] = useState<ViewportSeat>();
   const [locked, setLocked] = useState(false);
@@ -167,9 +177,9 @@ export function LocationViewport({
       .catch(() => {});
   };
 
-  const targetCreature = scene.nearbyCreatures.find((creature) => creature.id === targetId);
-  const interactionPrompt = targetCreature
-    ? `E: Interact with ${targetCreature.name}`
+  const lookedAtCreature = scene.nearbyCreatures.find((creature) => creature.id === lookedAtId);
+  const interactionPrompt = lookedAtCreature
+    ? `E: Interact with ${lookedAtCreature.name}`
     : seated
       ? 'E: Stand up'
       : nearbySeat
@@ -217,7 +227,11 @@ export function LocationViewport({
           {!isRoomScene(scene) && <StaticTerrain size={size} />}
           {scene.neighbors && <StaticNeighborDistricts neighbors={scene.neighbors} />}
           {isRoomScene(scene) && <StaticCeiling size={size} openings={shafts} />}
-          <StaticBoxes props={props} buildings={buildings} />
+          <StaticBoxes
+            key={isRoomScene(scene) ? 'room' : 'outdoors'}
+            props={props}
+            buildings={buildings}
+          />
           <Creatures
             creatures={creatures}
             playerId={playerStatus.id}
@@ -225,6 +239,7 @@ export function LocationViewport({
             statuses={[playerStatus, ...scene.nearbyCreatures]}
             playerSeat={occupiedSeat}
             focus={focus}
+            target={target}
             clock={clock}
           />
           <StaticConnectors connectors={connectors} boundary={scene.boundary} size={size} />
@@ -234,7 +249,7 @@ export function LocationViewport({
             creatures={creatures}
             statuses={scene.nearbyCreatures}
             enabled={!isInCombat && !hasActiveEncounter && !restoring}
-            onTarget={setTargetId}
+            onTarget={setLookedAtId}
             onFocus={setFocus}
             onRestored={() => setRestoring(false)}
           />

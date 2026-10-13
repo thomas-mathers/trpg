@@ -8,19 +8,23 @@ import {
   handleGetPlayerAbilityAvailability,
   handleGetQuestJournal,
 } from '@/api/client/msw.gen';
-import type { ActionResult, SceneSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type {
+  ActionResult,
+  CreatureStatusSnapshot,
+  SceneSnapshot,
+} from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { IChatHub } from '@/api/signalr-client/TypedSignalR.Client/TRPG.GameSessions.Hubs';
 import { SceneContext } from '@/features/game/contexts/scene-context';
 import {
   GameHubConnectionContext,
   type GameHubConnection,
 } from '@/features/game/hooks/use-game-hub-connection';
+import { TargetContext } from '@/features/game/hooks/use-target';
 import { server } from '@/test/server';
 import { renderWithProviders } from '@/test/test-utils';
 
 import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { AbilityToolbar } from './ability-toolbar';
-import { NearbyPanel } from './nearby-panel';
 
 function succeeded(): Promise<ActionResult> {
   return Promise.resolve({ succeeded: true });
@@ -42,36 +46,28 @@ function ability(name: string, overrides: Partial<AbilitySummary> = {}): Ability
   };
 }
 
+const tessa = {
+  id: 'tessa-id',
+  name: 'Tessa',
+  creatureType: 'Human',
+  level: 1,
+  condition: 'Awake',
+} as unknown as CreatureStatusSnapshot;
+
 const scene = {
   worldId: 'world-id',
   exits: [],
   nearbyBuildings: [],
   nearbyProps: [],
   nearbyCaravans: [],
-  nearbyCreatures: [
-    {
-      id: 'tessa-id',
-      name: 'Tessa',
-      creatureType: 'Human',
-      level: 1,
-      condition: 'Awake',
-      movement: 'Stationary',
-      posture: 'Standing',
-      reputation: null,
-      questMarkers: [],
-      readyToDeliver: false,
-      activeConditions: {},
-      activeDots: [],
-      activeHots: [],
-      activeBuffs: [],
-    },
-  ],
+  nearbyCreatures: [tessa],
   playerStatus: { id: 'player-id', level: 1 },
 } as unknown as SceneSnapshot;
 
 function renderToolbar(
   abilities: AbilitySummary[],
   availability: AbilityAvailabilityResponse[] = [],
+  target?: CreatureStatusSnapshot,
 ) {
   server.use(
     handleGetQuestJournal({ body: [] }),
@@ -88,15 +84,11 @@ function renderToolbar(
   const result = renderWithProviders(
     <SceneContext.Provider value={{ scene: scene }}>
       <GameHubConnectionContext.Provider value={hubConnection}>
-        <CastTargetingProvider>
-          <AbilityToolbar />
-          <NearbyPanel
-            scene={scene}
-            onOpenQuestJournal={() => {}}
-            onQuestDialogRequested={() => {}}
-            onDeliverItemDialogRequested={() => {}}
-          />
-        </CastTargetingProvider>
+        <TargetContext.Provider value={{ target, setTargetId: () => {} }}>
+          <CastTargetingProvider>
+            <AbilityToolbar />
+          </CastTargetingProvider>
+        </TargetContext.Provider>
       </GameHubConnectionContext.Provider>
     </SceneContext.Provider>,
   );
@@ -105,64 +97,59 @@ function renderToolbar(
 }
 
 describe('AbilityToolbar', () => {
-  it('casts a targeted ability on the clicked creature', async () => {
-    const { user, chatHub } = renderToolbar([ability('Mend')]);
+  it('casts a targeted ability on the current target', async () => {
+    const { user, chatHub } = renderToolbar([ability('Mend')], [], tessa);
 
     await user.click(await screen.findByRole('button', { name: 'Mend' }));
-    await user.click(screen.getByText('Tessa'));
 
     expect(chatHub.sendCastAbility).toHaveBeenCalledWith('tessa-id', 'Mend');
   });
 
-  it('casts a targeted ability on the player from the Yourself button', async () => {
+  it('casts a targeted support ability on the player when nothing is targeted', async () => {
     const { user, chatHub } = renderToolbar([ability('Mend')]);
 
     await user.click(await screen.findByRole('button', { name: 'Mend' }));
-    await user.click(screen.getByRole('button', { name: 'Yourself' }));
 
     expect(chatHub.sendCastAbility).toHaveBeenCalledWith('player-id', 'Mend');
   });
 
   it('casts an ability that needs no target immediately on the player', async () => {
-    const { user, chatHub } = renderToolbar([ability('Ward', { requiresTarget: false })]);
+    const { user, chatHub } = renderToolbar(
+      [ability('Ward', { requiresTarget: false })],
+      [],
+      tessa,
+    );
 
     await user.click(await screen.findByRole('button', { name: 'Ward' }));
 
     expect(chatHub.sendCastAbility).toHaveBeenCalledWith('player-id', 'Ward');
   });
 
-  it('leaves the creature list inert until an ability is chosen', async () => {
-    const { user, chatHub } = renderToolbar([ability('Mend')]);
-    await screen.findByRole('button', { name: 'Mend' });
+  it('disables an offensive ability until a target is selected', async () => {
+    renderToolbar([ability('Slash', { category: 'Offensive' })]);
 
-    await user.click(screen.getByText('Tessa'));
-
-    expect(chatHub.sendCastAbility).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Slash' })).toBeDisabled());
   });
 
-  it('stops targeting when cancelled', async () => {
-    const { user, chatHub } = renderToolbar([ability('Mend')]);
+  it('casts an offensive ability on the current target', async () => {
+    const { user, chatHub } = renderToolbar(
+      [ability('Slash', { category: 'Offensive' })],
+      [],
+      tessa,
+    );
 
-    await user.click(await screen.findByRole('button', { name: 'Mend' }));
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    await user.click(screen.getByText('Tessa'));
+    await user.click(await screen.findByRole('button', { name: 'Slash' }));
 
-    expect(chatHub.sendCastAbility).not.toHaveBeenCalled();
+    expect(chatHub.sendCastAbility).toHaveBeenCalledWith('tessa-id', 'Slash');
   });
 
   it('disables an ability the player cannot currently use', async () => {
-    renderToolbar([ability('Mend')], [{ name: 'Mend', isUsable: false, reason: 'Not enough MP' }]);
+    renderToolbar(
+      [ability('Mend')],
+      [{ name: 'Mend', isUsable: false, reason: 'Not enough MP' }],
+      tessa,
+    );
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Mend' })).toBeDisabled());
-  });
-
-  it('lists offensive abilities and targets a clicked creature without offering Yourself', async () => {
-    const { user, chatHub } = renderToolbar([ability('Slash', { category: 'Offensive' })]);
-
-    await user.click(await screen.findByRole('button', { name: 'Slash' }));
-    expect(screen.queryByRole('button', { name: 'Yourself' })).not.toBeInTheDocument();
-    await user.click(screen.getByText('Tessa'));
-
-    expect(chatHub.sendCastAbility).toHaveBeenCalledWith('tessa-id', 'Slash');
   });
 });

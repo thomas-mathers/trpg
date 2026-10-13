@@ -348,6 +348,7 @@ export function Creatures({
   statuses,
   playerSeat,
   focus,
+  target,
   clock,
 }: {
   clock: GameClockAnchor;
@@ -358,10 +359,11 @@ export function Creatures({
     Partial<Pick<CreatureStatusSnapshot, 'condition'>>)[];
   playerSeat?: ViewportSeat;
   focus?: CreatureFocus | null;
+  target?: CreatureStatusSnapshot;
 }) {
   return (
     <>
-      {creatures.map(({ id, placement, walk, creatureType, age, equipment }) => {
+      {creatures.map(({ id, placement, walk, creatureType, age, equipment, reputation }) => {
         const status = statuses.find((creature) => creature.id === id);
         const posture = status?.posture;
         if (id === playerId && posture !== 'Sitting') {
@@ -388,7 +390,9 @@ export function Creatures({
             creatureType={creatureType}
             age={age}
             equipment={equipment}
+            reputation={reputation}
             facing={focus?.id === id && status?.condition !== 'Dead' ? focus.facing : undefined}
+            target={target?.id === id ? target : undefined}
           />
         );
       })}

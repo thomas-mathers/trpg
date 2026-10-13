@@ -108,10 +108,10 @@ function renderPanel(
 }
 
 describe('NearbyPanel', () => {
-  it('does not expose creature actions or inventory shortcuts in the sidebar', () => {
+  it('does not list nearby creatures, which are targeted in the world', () => {
     renderPanel(scene('workstation-id'));
-    expect(screen.queryByRole('button', { name: 'Actions for Tessa' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Tessa' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Tessa')).not.toBeInTheDocument();
+    expect(screen.queryByText('Nearby Creatures')).not.toBeInTheDocument();
   });
 
   beforeEach(() => {
@@ -136,68 +136,6 @@ describe('NearbyPanel', () => {
     expect(screen.queryByText('Nearby Seating')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Sit' })).not.toBeInTheDocument();
   });
-
-  it.each([
-    {
-      condition: 'Sleeping',
-      activity: undefined,
-      movement: 'Stationary',
-      posture: 'Lying',
-      labels: ['Sleeping'],
-    },
-    {
-      condition: 'Dead',
-      activity: undefined,
-      movement: 'Stationary',
-      posture: 'Lying',
-      labels: ['Dead'],
-    },
-    {
-      condition: 'Awake',
-      activity: undefined,
-      movement: 'Walking',
-      posture: 'Standing',
-      labels: ['Walking'],
-    },
-    {
-      condition: 'Awake',
-      activity: 'Eating',
-      movement: 'Stationary',
-      posture: 'Sitting',
-      labels: ['Eating', 'Sitting'],
-    },
-  ])(
-    'shows $labels for a $condition creature',
-    ({ condition, activity, movement, posture, labels }) => {
-      const sceneWithCreature = {
-        ...scene(undefined),
-        nearbyCreatures: [
-          {
-            id: 'creature-id',
-            name: 'Tessa',
-            creatureType: 'Human',
-            level: 1,
-            condition,
-            activity,
-            movement,
-            posture,
-            reputation: null,
-            activeConditions: {},
-            activeDots: [],
-            activeHots: [],
-            activeBuffs: [],
-          },
-        ],
-      } as unknown as SceneSnapshot;
-
-      renderPanel(sceneWithCreature);
-
-      for (const label of labels) {
-        expect(screen.getByText(label)).toBeVisible();
-      }
-      expect(screen.queryByText('Standing')).not.toBeInTheDocument();
-    },
-  );
 
   it('opens a nearby container inventory when clicked', async () => {
     server.use(
@@ -283,28 +221,6 @@ describe('NearbyPanel', () => {
 
     expect(await screen.findByRole('heading', { name: 'Transfer Items' })).toBeVisible();
     expect(screen.getByRole('region', { name: "Trading Counter's inventory" })).toBeVisible();
-  });
-
-  it('shows the active effects on a nearby creature', () => {
-    const sceneWithBurningCreature = {
-      ...scene(undefined),
-      nearbyCreatures: [
-        {
-          ...scene(undefined).nearbyCreatures[0],
-          activeDots: [
-            {
-              abilityName: 'Ignite',
-              amount: 3,
-              damageType: 'Fire',
-              expiresAtGameTimeMilliseconds: 60000,
-            },
-          ],
-        },
-      ],
-    } as unknown as SceneSnapshot;
-    renderPanel(sceneWithBurningCreature);
-
-    expect(screen.getByRole('button', { name: /^Ignite/ })).toBeInTheDocument();
   });
 
   it('opens the sleep dialog from a nearby bed', async () => {
