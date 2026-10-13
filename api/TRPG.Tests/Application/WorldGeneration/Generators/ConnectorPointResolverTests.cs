@@ -391,6 +391,25 @@ public class ConnectorPointResolverTests
     }
 
     [Fact]
+    public void ResolveExits_KeepsBearingExitsApartByADoorWidth_WhenTheEdgeIsTooShortForSixMeters()
+    {
+        // Arrange
+        var narrowRoom = new Footprint(Width: 8, Depth: 20);
+        var requests = Enumerable
+            .Range(0, 3)
+            .Select(_ => Request(ConnectorExitKind.Bearing))
+            .ToArray();
+
+        // Act
+        var exits = ConnectorPointResolver.ResolveExits(narrowRoom, requests);
+
+        // Assert
+        var positions = exits.Select(exit => exit.Point.X).Order().ToArray();
+        Assert.InRange(positions[1] - positions[0], 2, double.MaxValue);
+        Assert.InRange(positions[2] - positions[1], 2, double.MaxValue);
+    }
+
+    [Fact]
     public void ResolveExits_KeepsSeparatedBearingExitsInsideTheEdge_WhenTheyCrowdTheEnd()
     {
         // Arrange
