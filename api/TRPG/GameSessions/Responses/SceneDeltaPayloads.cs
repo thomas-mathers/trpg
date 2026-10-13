@@ -80,12 +80,7 @@ public record ClockReanchoredPayload(
 );
 
 [TranspilationSource]
-public record PlayerCorrectedPayload(
-    Guid PlayerId,
-    Guid LocationId,
-    double OffsetX,
-    double OffsetY
-);
+public record PlayerCorrectedPayload(Guid PlayerId, Guid LocationId, double X, double Y);
 
 [TranspilationSource]
 public record PropOccupancySnapshot(Guid PropId, bool IsOccupied, bool IsOccupiedByPlayer);
