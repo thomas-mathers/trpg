@@ -163,9 +163,9 @@ export type PlayerCorrectedPayload = {
     /** Transpiled from System.Guid */
     locationId: string;
     /** Transpiled from double */
-    offsetX: number;
+    x: number;
     /** Transpiled from double */
-    offsetY: number;
+    y: number;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.PropOccupancySnapshot */

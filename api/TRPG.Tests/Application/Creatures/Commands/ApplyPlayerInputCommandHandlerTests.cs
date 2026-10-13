@@ -299,11 +299,11 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         var player = await SeedPlayer(location.Id);
 
         // Act
-        await Apply(player.Id, location.Id, Standing, Start, new Point(53, 50));
+        await Apply(player.Id, location.Id, Standing, Start, new Point(55, 50));
 
         // Assert
         var correction = Assert.Single(Events().OfType<PlayerCorrectedEvent>());
-        Assert.Equal((player.Id, location.Id, -3d, 0d), Describe(correction));
+        Assert.Equal((player.Id, location.Id, 50d, 50d), Describe(correction));
     }
 
     [Fact]
@@ -315,6 +315,20 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
 
         // Act
         await Apply(player.Id, location.Id, Standing, Start, new Point(50.3, 50));
+
+        // Assert
+        Assert.Empty(Events().OfType<PlayerCorrectedEvent>());
+    }
+
+    [Fact]
+    public async Task Handle_EnqueuesNoCorrection_WhenTheClientIsOneMeterOff()
+    {
+        // Arrange
+        var location = await SeedLocation();
+        var player = await SeedPlayer(location.Id);
+
+        // Act
+        await Apply(player.Id, location.Id, Standing, Start, new Point(51, 50));
 
         // Assert
         Assert.Empty(Events().OfType<PlayerCorrectedEvent>());
@@ -395,7 +409,7 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         );
 
     private static (Guid, Guid, double, double) Describe(PlayerCorrectedEvent correction) =>
-        (correction.PlayerId, correction.LocationId, correction.OffsetX, correction.OffsetY);
+        (correction.PlayerId, correction.LocationId, correction.X, correction.Y);
 
     private static (Guid, double, double, double) Describe(PlayerPose? pose) =>
         (pose!.LocationId, pose.Position.X, pose.Position.Y, pose.Input.Heading);

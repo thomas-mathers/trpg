@@ -44,7 +44,7 @@ internal class ApplyPlayerInputCommandHandler(
     IGameClientEventSink eventSink
 ) : ICommandHandler<ApplyPlayerInputCommand, PlayerPose?>
 {
-    private const double DriftToleranceMeters = 0.5;
+    private const double DriftToleranceMeters = 1.5;
     private static readonly TimeSpan MaximumIntegrationGap = TimeSpan.FromSeconds(1);
 
     public async Task<PlayerPose?> Handle(
@@ -78,8 +78,8 @@ internal class ApplyPlayerInputCommandHandler(
                     command.WorldId,
                     command.PlayerId,
                     command.LocationId,
-                    position.X - command.ClientPosition.X,
-                    position.Y - command.ClientPosition.Y
+                    position.X,
+                    position.Y
                 )
             );
         }
