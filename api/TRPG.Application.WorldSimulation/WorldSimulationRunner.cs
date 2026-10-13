@@ -683,17 +683,17 @@ public sealed class WorldSimulationRunner(
         try
         {
             await using var scope = serviceScopeFactory.CreateAsyncScope();
-            var settled = await scope
+            var player = await scope
                 .ServiceProvider.GetRequiredService<
-                    IQueryHandler<GetSettledPlayerPoseQuery, SettledPlayerPose?>
+                    IQueryHandler<GetCreatureByIdQuery, Creature?>
                 >()
-                .Handle(new GetSettledPlayerPoseQuery { PlayerId = playerId }, cancellationToken);
-            if (settled is null || _playerPoses.Find(playerId)?.LocationId == settled.LocationId)
+                .Handle(new GetCreatureByIdQuery { Id = playerId }, cancellationToken);
+            if (player is null || _playerPoses.Find(playerId)?.LocationId == player.LocationId)
             {
                 return;
             }
 
-            _playerPoses.Seed(playerId, settled.ToIdlePose());
+            _playerPoses.Seed(playerId, PlayerPose.Idle(player));
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {

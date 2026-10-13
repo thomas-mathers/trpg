@@ -1,8 +1,10 @@
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Queries;
+using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.WorldSimulation.Poses;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.GameTurns;
 
@@ -10,7 +12,7 @@ internal class StandUpActionHandler(
     GameActionRunner actionRunner,
     SeatingAnnouncer seatingAnnouncer,
     ICommandHandler<StandUpCommand, StandUpResult> standUp,
-    IQueryHandler<GetSettledPlayerPoseQuery, SettledPlayerPose?> getSettledPose
+    IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById
 )
 {
     public Task<ActionOutcome> Handle(
@@ -48,17 +50,17 @@ internal class StandUpActionHandler(
         CancellationToken cancellationToken
     )
     {
-        var settled = await getSettledPose.Handle(
-            new GetSettledPlayerPoseQuery { PlayerId = playerId },
+        var player = await getCreatureById.Handle(
+            new GetCreatureByIdQuery { Id = playerId },
             cancellationToken
         );
-        if (settled is null)
+        if (player is null)
         {
             poses.Forget(playerId);
             return;
         }
 
-        poses.Seed(playerId, settled.ToIdlePose());
+        poses.Seed(playerId, PlayerPose.Idle(player));
     }
 
     private static ActionOutcome ToOutcome(StandUpResult result) =>
