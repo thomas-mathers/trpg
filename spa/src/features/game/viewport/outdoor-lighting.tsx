@@ -15,6 +15,7 @@ import { outdoorFogRange } from './outdoor-fog';
 import { useSceneHour } from './scene-hour';
 import { skyStateAt } from './sky-state';
 import { applyWeather, lightningFlashAt, type WeatherLook } from './weather-look';
+import { windowGlow } from './window-glow';
 
 const LIGHT_DISTANCE = 200;
 const LANTERN_REACH = 20;
@@ -75,6 +76,9 @@ export function OutdoorLighting({
     () => applyWeather(skyStateAt(hour), look),
     [hour, look],
   );
+  useEffect(() => {
+    windowGlow.value = 1 - skyStateAt(hour).daylight;
+  }, [hour]);
   const hemisphere = useRef<HemisphereLight>(null);
   const lanterns = useMemo(() => lightSourcesFor(props), [props]);
   const camera = useThree((state) => state.camera);
