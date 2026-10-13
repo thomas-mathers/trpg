@@ -13,6 +13,7 @@ import { useScene } from '../contexts/scene-context';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { runAction } from '../run-action';
+import { AmbientOcclusion } from './ambient-occlusion';
 import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
@@ -194,9 +195,10 @@ export function LocationViewport({
             rendererRef.current = gl as unknown as WebGPURenderer;
             setRenderScene(canvasScene);
           }}
-          shadows={false}
+          shadows
           camera={{ fov: 75, near: 0.1, far: 500 }}
         >
+          <AmbientOcclusion />
           <color attach="background" args={[DEFAULT_BACKGROUND]} />
           <StaticGround
             size={size}

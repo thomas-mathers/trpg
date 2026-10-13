@@ -8,9 +8,15 @@ import type {
   RoadSnapshot,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
-import { apronQuads, roadRenderOrder, roadRibbon } from './boundary-geometry';
+import {
+  apronQuads,
+  edgeAttribute,
+  NO_CAP_FADE,
+  roadRenderOrder,
+  roadRibbon,
+} from './boundary-geometry';
 import type { PlanarPoint } from './layout-math';
-import { createRoadMaterial, type RoadSurface } from './road-material';
+import { createRoadMaterial, ROAD_EDGE_ATTRIBUTE, type RoadSurface } from './road-material';
 
 export const OUTDOOR_FLOOR_COLOR = '#6f7658';
 const ROAD_COLORS: Record<RoadClassSnapshot, string> = {
@@ -52,9 +58,10 @@ function roadKey(points: RoadSnapshot['points']): string {
 
 function RoadMesh({ points, width, class: roadClass }: RoadSnapshot) {
   const geometry = useMemo(() => {
-    const { positions, indices } = roadRibbon(points, width);
+    const { positions, indices, edges } = roadRibbon(points, width);
     const ribbon = new BufferGeometry();
     ribbon.setAttribute('position', new Float32BufferAttribute(positions, 3));
+    ribbon.setAttribute(ROAD_EDGE_ATTRIBUTE, new Float32BufferAttribute(edges, 4));
     ribbon.setIndex(indices);
     ribbon.computeVertexNormals();
     return ribbon;
@@ -89,8 +96,16 @@ function apronGeometry(corners: PlanarPoint[]): BufferGeometry {
       3,
     ),
   );
-  geometry.setIndex([0, 1, 2, 0, 2, 3]);
   const [from, to, , back] = corners;
+  const half = Math.hypot(to.x - from.x, to.y - from.y) / 2;
+  geometry.setAttribute(
+    ROAD_EDGE_ATTRIBUTE,
+    new Float32BufferAttribute(
+      edgeAttribute(half, Math.hypot(back.x - from.x, back.y - from.y), NO_CAP_FADE, NO_CAP_FADE),
+      4,
+    ),
+  );
+  geometry.setIndex([0, 1, 2, 0, 2, 3]);
   const facesDown = (to.x - from.x) * (back.y - from.y) - (to.y - from.y) * (back.x - from.x) > 0;
   if (facesDown) geometry.setIndex([0, 2, 1, 0, 3, 2]);
   return geometry;

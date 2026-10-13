@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber';
-import { memo, useMemo, useRef, useState } from 'react';
-import { MathUtils, type Group } from 'three';
+import { memo, useMemo, useRef } from 'react';
+import type { Group } from 'three';
 
 import type {
   CreatureStatusSnapshot,
@@ -11,11 +11,14 @@ import type { GameClockAnchor } from '@/features/game/game-clock';
 
 import { creatureAppearance } from './creature-appearance';
 import { resolveGear } from './creature-gear';
+import { bystanderRig, viewerRig } from './creature-rigs';
 import { EntityLabel } from './entity-label';
 import { headingToYaw } from './layout-math';
-import { SeatedBody } from './seated-body';
-import { StandingBody } from './standing-body';
+import { SkinnedCreature } from './skinned-creature';
+import { useCreaturePose, turnTowards } from './use-creature-pose';
 import { useCreaturePosition } from './use-creature-position';
+
+const SEAT_TOP = 0.5;
 
 export const CreatureFigure = memo(function CreatureFigure({
   id,
@@ -48,10 +51,13 @@ export const CreatureFigure = memo(function CreatureFigure({
   );
   const gear = useMemo(() => resolveGear(equipment), [equipment]);
   const group = useRef<Group>(null);
-  const upper = useRef(0);
-  const [upperBodyYaw, setUpperBodyYaw] = useState(0);
   const seated = posture === 'Sitting';
+  const isPlayer = id === playerId;
   const base = headingToYaw(placement.angle);
+  const rig = useMemo(
+    () => (isPlayer ? viewerRig(appearance, gear) : bystanderRig(appearance, gear)),
+    [appearance, gear, isPlayer],
+  );
   const heading = useCreaturePosition(group, {
     placement,
     walk,
@@ -64,23 +70,21 @@ export const CreatureFigure = memo(function CreatureFigure({
     const walking = heading.current === undefined ? base : headingToYaw(heading.current);
     const target = seated ? base : (facing ?? walking);
     group.current.rotation.y = turnTowards(group.current.rotation.y, target, dt);
-    const desired = seated && facing !== undefined ? facing - base : 0;
-    upper.current = turnTowards(upper.current, desired, dt);
-    if (Math.abs(upper.current - upperBodyYaw) > 0.001) setUpperBodyYaw(upper.current);
+  });
+  useCreaturePose(group, rig, {
+    stance: seated ? 'seated' : 'walking',
+    upperYawTarget: seated && facing !== undefined ? facing - base : 0,
+    height: appearance.height,
   });
   return (
-    <group ref={group} rotation={[0, base, 0]} userData={id === playerId ? {} : { creatureId: id }}>
-      {seated ? (
-        <SeatedBody
-          appearance={appearance}
-          gear={gear}
-          perspective={id === playerId ? 'first-person' : 'third-person'}
-          upperBodyYaw={upperBodyYaw}
-        />
-      ) : (
-        <StandingBody appearance={appearance} gear={gear} />
-      )}
-      {id !== playerId && (
+    <group ref={group} rotation={[0, base, 0]} userData={isPlayer ? {} : { creatureId: id }}>
+      <SkinnedCreature
+        rig={rig}
+        gear={gear}
+        height={appearance.height}
+        lift={seated ? Math.max(0, SEAT_TOP * (1 - appearance.height)) : 0}
+      />
+      {!isPlayer && (
         <group position={[0, (seated ? 1.85 : 2.1) * appearance.height, 0]}>
           <EntityLabel text={label} />
         </group>
@@ -88,8 +92,3 @@ export const CreatureFigure = memo(function CreatureFigure({
     </group>
   );
 });
-
-function turnTowards(current: number, target: number, dt: number) {
-  const difference = Math.atan2(Math.sin(target - current), Math.cos(target - current));
-  return current + difference * MathUtils.clamp(1 - Math.exp(-10 * dt), 0, 1);
-}

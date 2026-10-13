@@ -56,7 +56,10 @@ export function CreatureFocusController({
     return () => window.removeEventListener('keydown', interact, true);
   }, [camera, scene, enabled, focus, creatures, statuses, onFocus]);
   useFrame(() => {
-    const id = enabled && !focus ? pickCreature(camera, scene, raycaster.current) : undefined;
+    const id =
+      enabled && !focus && document.pointerLockElement
+        ? pickCreature(camera, scene, raycaster.current)
+        : undefined;
     if (id !== target.current) {
       target.current = id;
       onTarget(id);

@@ -1,3 +1,4 @@
+import { Color } from 'three';
 import { describe, expect, it } from 'vitest';
 
 import { HORIZON_COLOR, NIGHT_SKY_COLOR, skyStateAt, sunDirectionAt } from './sky-state';
@@ -79,6 +80,18 @@ describe('skyStateAt', () => {
     // Assert
     expect(`#${night}`).toBe(NIGHT_SKY_COLOR);
     expect(`#${day}`).toBe(HORIZON_COLOR);
+  });
+
+  it('keeps the fog darker than a linear blend at dusk so it never outshines the sky', () => {
+    // Arrange
+    const { daylight } = skyStateAt(18.67);
+    const linear = new Color(NIGHT_SKY_COLOR).lerp(new Color(HORIZON_COLOR), daylight);
+
+    // Act
+    const { fogColor } = skyStateAt(18.67);
+
+    // Assert
+    expect(fogColor.b).toBeLessThan(linear.b);
   });
 
   it('blends the fog through intermediate colours across dusk instead of snapping', () => {

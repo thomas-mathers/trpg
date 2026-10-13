@@ -18,10 +18,10 @@ import { applyWeather, lightningFlashAt, type WeatherLook } from './weather-look
 import { windowGlow } from './window-glow';
 
 const LIGHT_DISTANCE = 200;
-const LANTERN_REACH = 20;
+const LANTERN_REACH = 32;
 const LIGHTNING_AMBIENT = 2.5;
-const CASCADES = 3;
-const SHADOW_MAP_SIZE = 2048;
+const CASCADES = 2;
+const SHADOW_MAP_SIZE = 1024;
 const SHADOW_CASTER_RANGE = 300;
 const LIGHT_MARGIN = 30;
 const SPLIT_BLEND = 0.7;
@@ -47,7 +47,8 @@ export function createOutdoorSun(maxFar: number) {
   light.shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
   light.shadow.camera.near = 0.1;
   light.shadow.camera.far = SHADOW_CASTER_RANGE;
-  light.shadow.normalBias = 0.025;
+  light.shadow.normalBias = 0.08;
+  light.shadow.bias = -0.0005;
   light.shadow.radius = 3;
   const shadowNode = new CSMShadowNode(light, {
     cascades: CASCADES,

@@ -14,12 +14,14 @@ import {
   sqrt,
   step,
   uniform,
+  vec2,
   vec3,
 } from 'three/tsl';
 import { MeshStandardNodeMaterial } from 'three/webgpu';
 
 import { band, colorUniform, hash } from './shader-noise';
 import { stoneCourses } from './stone-pattern';
+import { grainDirection, plasterSurface, timberSurface } from './wall-surface';
 import { windowGlow } from './window-glow';
 
 export interface WallMaterialSpec {
@@ -95,8 +97,9 @@ export function createWallMaterial(spec: WallMaterialSpec) {
   const hasWindow = step(1 - WINDOW_PANEL_CHANCE, hash(panelSeed, 1.7)).mul(
     step(MIN_WINDOW_PANEL, cell),
   );
+  const panelCenter = panelIndex.add(0.5).mul(cell);
   const atDoor = facingZ
-    .mul(step(abs(across.sub(length.mul(0.5))), DOOR_CLEARANCE))
+    .mul(step(abs(panelCenter.sub(length.mul(0.5))), DOOR_CLEARANCE + FRAME_HALF[0]))
     .mul(step(storey, 0.5));
   const windowAllowed = hasWindow.mul(float(1).sub(atDoor));
 
@@ -122,16 +125,21 @@ export function createWallMaterial(spec: WallMaterialSpec) {
   const glass = glassArea.mul(windowAllowed).mul(float(1).sub(mullion));
   const windowTimber = frameArea.sub(glassArea).max(glassArea.mul(mullion)).mul(windowAllowed);
 
-  const plasterTone = hash(floor(across.mul(4)).add(floor(up.mul(4)).mul(13)), 8.8)
-    .mul(0.1)
-    .add(0.94);
+  const wallAcross = across.add(faceId.mul(17));
   const timberTone = hash(panelIndex.add(storey.mul(5)), faceId)
     .mul(0.35)
     .add(0.8);
 
-  const stoneColor = stoneCourses(across, up, stone);
-  let wall = plaster.mul(plasterTone);
-  wall = mix(wall, timber.mul(timberTone), max(frame, windowTimber));
+  const stoneColor = stoneCourses(wallAcross, up, stone);
+  const upright = max(
+    band(postDistance, POST_HALF),
+    max(step(GLASS_HALF[0], windowDx), band(windowDx, MULLION_HALF)).mul(windowTimber),
+  );
+  const braceSlope = float(1).sub(diagonalFlip.mul(2)).mul(storeyHeight);
+  const direction = grainDirection(upright, brace, vec2(cell, braceSlope).normalize());
+  const timberColor = timberSurface(timber, wallAcross, up, direction, seed);
+  let wall = plasterSurface(plaster, wallAcross, up, plinth);
+  wall = mix(wall, timberColor.mul(timberTone), max(frame, windowTimber));
   wall = mix(wall, vec3(...GLASS_COLOR), glass);
   wall = mix(wall, stoneColor, step(up, plinth));
 

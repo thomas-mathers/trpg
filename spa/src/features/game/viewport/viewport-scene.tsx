@@ -20,10 +20,10 @@ import { OUTDOOR_FLOOR_COLOR } from './boundary-scene';
 import { BuildingMesh } from './building-mesh';
 import { varyColor } from './color-variation';
 import { connectorYaw } from './connector-placement';
-import { buildingNameBoards, hasDoor } from './connector-visibility';
+import { buildingNameBoards } from './connector-visibility';
 import { CreatureFigure } from './creature-figure';
 import type { CreatureFocus } from './creature-focus';
-import { DoorConnector } from './door-connector';
+import { DoorInstances } from './door-instances';
 import { floorGeometry, terrainGeometry } from './floor-geometry';
 import { FurnitureMesh } from './furniture-mesh';
 import { isFurnitureModel } from './furniture-parts';
@@ -42,6 +42,9 @@ import {
   PROP_MODEL_URLS,
   PROP_STYLES,
 } from './model-styles';
+import { PlayerBody } from './player-body';
+import { PropBatches } from './prop-batches';
+import { canBatchProp } from './prop-parts';
 import type { ViewportSeat } from './seat-interaction';
 import { SeatMesh } from './seat-mesh';
 import { NameBoard, SignMesh } from './sign-mesh';
@@ -186,22 +189,24 @@ function GltfModel({
   url,
   footprint,
   height,
+  shadows,
 }: {
   url: string;
   footprint: FootprintWire;
   height: number;
+  shadows: boolean;
 }) {
   const { scene } = useGLTF(url);
   const model = useMemo(() => {
     const clone = scene.clone();
     clone.traverse((object) => {
       if (object instanceof Mesh) {
-        object.castShadow = true;
+        object.castShadow = shadows;
         object.receiveShadow = true;
       }
     });
     return clone;
-  }, [scene]);
+  }, [scene, shadows]);
 
   return (
     <group scale={[footprint.width, height, footprint.depth]} position={[0, -height / 2, 0]}>
@@ -247,6 +252,7 @@ function Box({
   modelUrl,
   propModel,
   text,
+  shadows,
 }: {
   id: string;
   buildingType?: BuildingType;
@@ -256,10 +262,17 @@ function Box({
   modelUrl?: string;
   propModel?: PropModel;
   text?: string;
+  shadows: boolean;
 }) {
   const { height } = style;
   const fallback = buildingType ? (
-    <BuildingMesh id={id} type={buildingType} footprint={footprint} style={style} />
+    <BuildingMesh
+      id={id}
+      type={buildingType}
+      footprint={footprint}
+      style={style}
+      shadows={shadows}
+    />
   ) : (
     propFallback(id, footprint, style, propModel, text)
   );
@@ -271,7 +284,7 @@ function Box({
     >
       {modelUrl ? (
         <Suspense fallback={fallback}>
-          <GltfModel url={modelUrl} footprint={footprint} height={height} />
+          <GltfModel url={modelUrl} footprint={footprint} height={height} shadows={shadows} />
         </Suspense>
       ) : (
         fallback
@@ -288,24 +301,30 @@ function propStyle(model: PropModel, id: string): BoxStyle {
 export function Boxes({
   props,
   buildings,
+  shadows = true,
 }: {
   props: NearbyPropSnapshot[];
   buildings: NearbyBuildingSnapshot[];
+  shadows?: boolean;
 }) {
   return (
     <>
-      {props.map(({ id, model, placement, footprint, description }) => (
-        <Box
-          key={id}
-          id={id}
-          placement={placement}
-          footprint={footprint}
-          style={propStyle(model, id)}
-          propModel={model}
-          text={description}
-          modelUrl={PROP_MODEL_URLS[model]}
-        />
-      ))}
+      <PropBatches props={props} shadows={shadows} />
+      {props
+        .filter((prop) => !canBatchProp(prop))
+        .map(({ id, model, placement, footprint, description }) => (
+          <Box
+            key={id}
+            id={id}
+            placement={placement}
+            footprint={footprint}
+            style={propStyle(model, id)}
+            propModel={model}
+            text={description}
+            modelUrl={PROP_MODEL_URLS[model]}
+            shadows={shadows}
+          />
+        ))}
       {buildings.map(({ id, type, placement, footprint, floorCount }) => (
         <Box
           key={id}
@@ -315,6 +334,7 @@ export function Boxes({
           footprint={footprint}
           style={buildingStyle(type, floorCount)}
           modelUrl={BUILDING_MODEL_URLS[type]}
+          shadows={shadows}
         />
       ))}
     </>
@@ -344,7 +364,17 @@ export function Creatures({
       {creatures.map(({ id, placement, walk, creatureType, age, equipment }) => {
         const status = statuses.find((creature) => creature.id === id);
         const posture = status?.posture;
-        if (id === playerId && posture !== 'Sitting') return null;
+        if (id === playerId && posture !== 'Sitting') {
+          return (
+            <PlayerBody
+              key={id}
+              id={id}
+              creatureType={creatureType}
+              age={age}
+              equipment={equipment}
+            />
+          );
+        }
         return (
           <CreatureFigure
             key={id}
@@ -377,19 +407,18 @@ export function Connectors({
 }) {
   return (
     <>
-      {connectors.map((connector) => (
-        <group
-          key={connector.connectorId}
-          position={toScenePosition(connector.placement.x, connector.placement.y)}
-          rotation={[0, connectorYaw(connector), 0]}
-        >
-          {connector.stairs ? (
-            <StairConnector direction={connector.stairs} />
-          ) : (
-            hasDoor(connector, boundary, size) && <DoorConnector />
-          )}
-        </group>
-      ))}
+      <DoorInstances connectors={connectors} boundary={boundary} size={size} />
+      {connectors
+        .filter(({ stairs }) => stairs)
+        .map((connector) => (
+          <group
+            key={connector.connectorId}
+            position={toScenePosition(connector.placement.x, connector.placement.y)}
+            rotation={[0, connectorYaw(connector), 0]}
+          >
+            {connector.stairs && <StairConnector direction={connector.stairs} />}
+          </group>
+        ))}
     </>
   );
 }

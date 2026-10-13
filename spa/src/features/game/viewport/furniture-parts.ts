@@ -8,7 +8,7 @@ export type FurnitureModel =
 
 type Vector = [number, number, number];
 
-export type PartFinish = 'glow' | 'metal' | 'water';
+export type PartFinish = 'glow' | 'lamp' | 'metal' | 'water' | 'wood';
 
 export interface FurniturePart {
   shape: 'box' | 'cylinder' | 'sphere' | 'basin';
@@ -28,7 +28,7 @@ export interface FurnitureSize {
   id?: string;
 }
 
-const DARK_WOOD = '#5e4529';
+export const DARK_WOOD = '#5e4529';
 const DARK_STONE = '#6e6a63';
 const CLOTH = '#c9b99a';
 const WATER = '#3f86b5';
@@ -38,6 +38,10 @@ const GLOW = '#e19c51';
 
 function glowing(part: FurniturePart): FurniturePart {
   return { ...part, finish: 'glow' };
+}
+
+function lamplit(part: FurniturePart): FurniturePart {
+  return { ...part, finish: 'lamp' };
 }
 
 function watery(part: FurniturePart): FurniturePart {
@@ -172,6 +176,7 @@ function fountain({ width, height, color }: FurnitureSize): FurniturePart[] {
   const radius = width / 2;
   const rimHeight = height * 0.45;
   const poolRadius = radius * 0.88;
+  const waterRadius = poolRadius * 0.98;
   const floor = rimHeight * BASIN_FLOOR_RATIO;
   const surface = rimHeight * 0.85;
   const bowlRim = radius * 0.38;
@@ -188,8 +193,8 @@ function fountain({ width, height, color }: FurnitureSize): FurniturePart[] {
   });
   return [
     basin([0, 0, 0], [radius, poolRadius, rimHeight], color),
-    watery(cylinder([0, floor, 0], [poolRadius, poolRadius, surface - floor], WATER_DEEP, 0.55)),
-    watery(cylinder([0, surface, 0], [poolRadius, poolRadius, 0.004], WATER, 0.35)),
+    watery(cylinder([0, floor, 0], [waterRadius, waterRadius, surface - floor], WATER_DEEP, 0.55)),
+    watery(cylinder([0, surface, 0], [waterRadius, waterRadius, 0.004], WATER, 0.35)),
     watery(
       cylinder(
         [0, surface + 0.004, 0],
@@ -427,7 +432,7 @@ function moveAlongDepth(z: number) {
 function lanternCage(bottom: number, radius: number, height: number): FurniturePart[] {
   const bar = radius * 1.15;
   return [
-    glowing(cylinder([0, bottom, 0], [radius, radius, height], GLOW)),
+    lamplit(cylinder([0, bottom, 0], [radius, radius, height], GLOW)),
     metallic(box([0, bottom - 0.03, 0], [bar * 2, 0.04, bar * 2], DARK_STONE)),
     ...[-1, 1].flatMap((x) =>
       [-1, 1].map((z) =>
