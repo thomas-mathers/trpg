@@ -27,7 +27,7 @@ function createAoPipeline(renderer: WebGPURenderer, scene: Scene, camera: Camera
   occlusion.resolutionScale = AO_RESOLUTION;
   const denoised = denoise(occlusion.getTextureNode(), depth, normal, camera);
   denoised.radius.value = DENOISE_RADIUS;
-  const smooth = nodeObject(denoised);
+  const smooth = nodeObject(denoised) as unknown as ReturnType<typeof vec4>;
 
   const pipeline = new RenderPipeline(renderer);
   pipeline.outputNode = fxaa(vec4(color.rgb.mul(smooth.r), color.a));
