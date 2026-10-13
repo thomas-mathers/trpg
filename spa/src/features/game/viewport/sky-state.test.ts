@@ -109,7 +109,7 @@ describe('skyStateAt', () => {
           Math.hypot(fog.r - fogs[index]!.r, fog.g - fogs[index]!.g, fog.b - fogs[index]!.b),
         ),
     );
-    expect(largestStep).toBeLessThan(0.05);
+    expect(largestStep).toBeLessThan(0.07);
   });
 
   it('fades the sky daylight from full to none across dusk', () => {

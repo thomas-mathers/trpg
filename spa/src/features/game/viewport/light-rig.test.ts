@@ -140,13 +140,13 @@ describe('lightRig', () => {
 
   it('keeps only the nearest sources', () => {
     // Arrange
-    const sources = [5, 1, 4, 2, 3, 6].map((x) => source(`s${x}`, x, 0));
+    const sources = [9, 1, 4, 2, 7, 3, 6, 8, 5, 10].map((x) => source(`s${x}`, x, 0));
 
     // Act
     const rig = lightRig(sources, NOON, ORIGIN);
 
     // Assert
-    expect(rig.map((slot) => slot.x)).toEqual([1, 2, 3, 4]);
+    expect(rig.map((slot) => slot.x)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it('prefers a strong far source over weak near ones', () => {

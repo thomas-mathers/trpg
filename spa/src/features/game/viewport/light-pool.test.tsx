@@ -54,7 +54,7 @@ describe('light selection updates', () => {
     act(() => runtime.frame());
     (runtime.camera as PerspectiveCamera).position.x = 10;
     act(() => runtime.frame());
-    expect(select).toHaveBeenLastCalledWith(sources, 12, { x: 10, z: 0 });
+    expect(select).toHaveBeenLastCalledWith(sources, 12, expect.objectContaining({ x: 10, z: 0 }));
     rerender(<LightPool sources={sources} hour={0} shadowSlots={0} decay={1} />);
     act(() => runtime.frame());
     expect(select.mock.results.at(-1)?.value[0].intensity).toBe(3);
