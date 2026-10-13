@@ -21,6 +21,10 @@ public sealed record PlayerDisconnected(Guid PlayerId) : WorldSimulationMessage;
 
 public sealed record ForgetPlayerPose(Guid PlayerId) : WorldSimulationMessage;
 
+public sealed record SeedPlayerPose(Guid PlayerId) : WorldSimulationMessage;
+
+public sealed record InvalidateMovementSpace(Guid LocationId) : WorldSimulationMessage;
+
 public sealed record PlayerInput(
     Guid PlayerId,
     Guid LocationId,

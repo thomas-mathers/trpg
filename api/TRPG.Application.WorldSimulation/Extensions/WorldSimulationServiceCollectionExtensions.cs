@@ -37,9 +37,13 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
                 serviceProvider.GetRequiredService<PlayerMovedJoblessCaptiveCleanupEventHandler>()
             )
-            .AddTransient<PlayerMovedPoseForgetEventHandler>()
+            .AddTransient<PlayerMovedPoseSeedEventHandler>()
             .AddTransient<IDomainEventConsumer<PlayerMovedEvent>>(serviceProvider =>
-                serviceProvider.GetRequiredService<PlayerMovedPoseForgetEventHandler>()
+                serviceProvider.GetRequiredService<PlayerMovedPoseSeedEventHandler>()
+            )
+            .AddTransient<PropAddedMovementSpaceEventHandler>()
+            .AddTransient<IDomainEventConsumer<PropAddedEvent>>(serviceProvider =>
+                serviceProvider.GetRequiredService<PropAddedMovementSpaceEventHandler>()
             )
             .AddScoped<WorldSimulatorLoader>()
             .AddScoped<WeatherExposureProvider>()

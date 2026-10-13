@@ -2,11 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
-using TRPG.Application.Common.Queries;
 using TRPG.Application.Common.Validation;
 using TRPG.Application.Creatures.Events;
-using TRPG.Application.Props.Queries;
-using TRPG.Application.Worlds.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
@@ -26,21 +23,12 @@ public class ApplyPlayerInputCommand
     public required MovementInput Input { get; init; }
     public required Point ClientPosition { get; init; }
     public required DateTimeOffset ReceivedAt { get; init; }
+    public required MovementSpace Space { get; init; }
     public PlayerPose? Previous { get; init; }
 }
 
 internal class ApplyPlayerInputCommandHandler(
     ICreaturesDbContext context,
-    IQueryHandler<GetLocationsByIdsQuery, IReadOnlyDictionary<Guid, Location>> getLocationsByIds,
-    IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>> getPropsByLocation,
-    IQueryHandler<
-        GetBuildingsByLocationQuery,
-        IReadOnlyCollection<Building>
-    > getBuildingsByLocation,
-    IQueryHandler<
-        GetPlacedConnectorsByLocationIdQuery,
-        IReadOnlyCollection<PlacedConnector>
-    > getConnectorsByLocation,
     IGameClientEventSink eventSink
 ) : ICommandHandler<ApplyPlayerInputCommand, PlayerPose?>
 {
@@ -63,13 +51,7 @@ internal class ApplyPlayerInputCommandHandler(
             return null;
         }
 
-        var space = await LoadSpace(command.LocationId, cancellationToken);
-        if (space is null)
-        {
-            return null;
-        }
-
-        var advance = IntegratePrevious(command, player, space);
+        var advance = IntegratePrevious(command, player, command.Space);
         var position = advance.Position;
         if (Distance(position, command.ClientPosition) > DriftToleranceMeters)
         {
@@ -106,36 +88,6 @@ internal class ApplyPlayerInputCommandHandler(
                 creature.IsEngaged
             ))
             .FirstOrDefaultAsync(cancellationToken);
-
-    private async Task<MovementSpace?> LoadSpace(
-        Guid locationId,
-        CancellationToken cancellationToken
-    )
-    {
-        var locations = await getLocationsByIds.Handle(
-            new GetLocationsByIdsQuery { Ids = [locationId] },
-            cancellationToken
-        );
-        if (!locations.TryGetValue(locationId, out var location))
-        {
-            return null;
-        }
-
-        var props = await getPropsByLocation.Handle(
-            new GetPropsByLocationIdQuery { LocationId = locationId },
-            cancellationToken
-        );
-        var buildings = await getBuildingsByLocation.Handle(
-            new GetBuildingsByLocationQuery { LocationId = locationId },
-            cancellationToken
-        );
-        var connectors = await getConnectorsByLocation.Handle(
-            new GetPlacedConnectorsByLocationIdQuery { LocationId = locationId },
-            cancellationToken
-        );
-
-        return MovementSpaceBuilder.Build(location, props, buildings, connectors);
-    }
 
     private static MovementAdvance IntegratePrevious(
         ApplyPlayerInputCommand command,

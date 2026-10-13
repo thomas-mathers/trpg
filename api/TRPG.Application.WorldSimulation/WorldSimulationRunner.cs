@@ -5,8 +5,11 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Navigation;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Routing.Commands;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation.Arrivals;
@@ -47,6 +50,7 @@ public sealed class WorldSimulationRunner(
             new UnboundedChannelOptions { SingleReader = true }
         );
     private readonly LivePlayerPoses _playerPoses = new();
+    private readonly MovementSpaceCache _movementSpaces = new();
     private readonly SimEventApplier _applier = SimEventApplier.ForWorld(
         worldId,
         serviceScopeFactory,
@@ -608,6 +612,12 @@ public sealed class WorldSimulationRunner(
             case ForgetPlayerPose forget:
                 _playerPoses.Forget(forget.PlayerId);
                 break;
+            case SeedPlayerPose seed:
+                await SeedPlayerPose(seed.PlayerId, cancellationToken);
+                break;
+            case InvalidateMovementSpace invalidate:
+                _movementSpaces.Invalidate(invalidate.LocationId);
+                break;
             case SimulationRequest request:
                 await request.Run(_playerPoses, cancellationToken);
                 break;
@@ -621,6 +631,16 @@ public sealed class WorldSimulationRunner(
         try
         {
             await using var scope = serviceScopeFactory.CreateAsyncScope();
+            var space = await _movementSpaces.Find(
+                input.LocationId,
+                scope.ServiceProvider,
+                cancellationToken
+            );
+            if (space is null)
+            {
+                return;
+            }
+
             var pose = await scope
                 .ServiceProvider.GetRequiredService<
                     ICommandHandler<ApplyPlayerInputCommand, PlayerPose?>
@@ -634,6 +654,7 @@ public sealed class WorldSimulationRunner(
                         Input = input.Input,
                         ClientPosition = input.ClientPosition,
                         ReceivedAt = input.ReceivedAt,
+                        Space = space,
                         Previous = _playerPoses.Find(input.PlayerId),
                     },
                     cancellationToken
@@ -652,6 +673,34 @@ public sealed class WorldSimulationRunner(
                 exception,
                 "Dropped player input for {PlayerId} in world {WorldId}",
                 input.PlayerId,
+                worldId
+            );
+        }
+    }
+
+    private async Task SeedPlayerPose(Guid playerId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var scope = serviceScopeFactory.CreateAsyncScope();
+            var player = await scope
+                .ServiceProvider.GetRequiredService<
+                    IQueryHandler<GetCreatureByIdQuery, Creature?>
+                >()
+                .Handle(new GetCreatureByIdQuery { Id = playerId }, cancellationToken);
+            if (player is null || _playerPoses.Find(playerId)?.LocationId == player.LocationId)
+            {
+                return;
+            }
+
+            _playerPoses.Seed(playerId, PlayerPose.Idle(player));
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogWarning(
+                exception,
+                "Could not seed pose for {PlayerId} in world {WorldId}",
+                playerId,
                 worldId
             );
         }

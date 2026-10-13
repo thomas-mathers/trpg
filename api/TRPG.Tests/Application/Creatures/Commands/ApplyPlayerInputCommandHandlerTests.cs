@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Events;
+using TRPG.Application.Creatures.Queries;
 using TRPG.Data;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -393,8 +395,16 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
         DateTimeOffset receivedAt,
         Point clientPosition,
         PlayerPose? previous = null
-    ) =>
-        await _handler.Handle(
+    )
+    {
+        var space = await _serviceProvider
+            .GetRequiredService<IQueryHandler<GetMovementSpaceQuery, MovementSpace?>>()
+            .Handle(
+                new GetMovementSpaceQuery { LocationId = locationId },
+                TestContext.Current.CancellationToken
+            );
+
+        return await _handler.Handle(
             new ApplyPlayerInputCommand
             {
                 WorldId = WorldId,
@@ -403,10 +413,12 @@ public sealed class ApplyPlayerInputCommandHandlerTests(DatabaseFixture db)
                 Input = input,
                 ClientPosition = clientPosition,
                 ReceivedAt = receivedAt,
+                Space = space ?? new MovementSpace(0, 0, []),
                 Previous = previous,
             },
             TestContext.Current.CancellationToken
         );
+    }
 
     private static (Guid, Guid, double, double) Describe(PlayerCorrectedEvent correction) =>
         (correction.PlayerId, correction.LocationId, correction.X, correction.Y);

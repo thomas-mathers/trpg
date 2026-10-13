@@ -11,6 +11,7 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Creatures.Results;
+using TRPG.Application.Props.Commands;
 using TRPG.Application.Scenes.Results;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Events;
@@ -439,6 +440,147 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(1.5, seen?.Input.Heading);
+    }
+
+    [Fact]
+    public async Task Tick_SeedsTheLivePoseFromTheStoredPose_WhenSeedWasPosted()
+    {
+        // Arrange
+        await AddPlayerAt(_home, x: 12, y: 34);
+        await StartRunner();
+        _runner.Post(new SeedPlayerPose(_playerId));
+        PlayerPose? seen = null;
+        _runner.Post(
+            new SimulationRequest(
+                (poses, _) =>
+                {
+                    seen = poses.Find(_playerId);
+                    return Task.CompletedTask;
+                }
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal((_home.Id, 12d, 34d), (seen?.LocationId, seen?.Position.X, seen?.Position.Y));
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotMarkTheSeededPoseUnsaved_WhenSeedWasPosted()
+    {
+        // Arrange
+        await AddPlayerAt(_home, x: 12, y: 34);
+        await StartRunner();
+        _runner.Post(new SeedPlayerPose(_playerId));
+        var hasUnsavedPoses = true;
+        _runner.Post(
+            new SimulationRequest(
+                (poses, _) =>
+                {
+                    hasUnsavedPoses = poses.HasUnsavedPoses;
+                    return Task.CompletedTask;
+                }
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.False(hasUnsavedPoses);
+    }
+
+    [Fact]
+    public async Task Tick_KeepsTheNewerLivePose_WhenSeedingAPoseAlreadyLiveAtTheLocation()
+    {
+        // Arrange
+        _home.Width = 100;
+        _home.Depth = 100;
+        await AddPlayerAt(_home, x: 50, y: 50);
+        await StartRunner();
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(0, 0, 1.5),
+                new Point(50, 50),
+                DateTimeOffset.UtcNow
+            )
+        );
+        _runner.Post(new SeedPlayerPose(_playerId));
+        PlayerPose? seen = null;
+        _runner.Post(
+            new SimulationRequest(
+                (poses, _) =>
+                {
+                    seen = poses.Find(_playerId);
+                    return Task.CompletedTask;
+                }
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(1.5, seen?.Input.Heading);
+    }
+
+    [Fact]
+    public async Task Tick_BlocksTheWalkAtANewProp_WhenTheMovementSpaceWasInvalidated()
+    {
+        // Arrange
+        _home.Width = 100;
+        _home.Depth = 100;
+        await AddPlayerAt(_home, x: 50, y: 50);
+        await StartRunner();
+        var receivedAt = DateTimeOffset.UtcNow;
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(1, 0, 0),
+                new Point(50, 50),
+                receivedAt
+            )
+        );
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        await _serviceProvider
+            .GetRequiredService<ICommandHandler<AddCellCommand>>()
+            .Handle(
+                new AddCellCommand
+                {
+                    Cell = new Cell
+                    {
+                        WorldId = _worldId,
+                        LocationId = _home.Id,
+                        X = 50,
+                        Y = 49,
+                        Width = 2,
+                        Depth = 1,
+                    },
+                },
+                TestContext.Current.CancellationToken
+            );
+        _runner.Post(new InvalidateMovementSpace(_home.Id));
+        _runner.Post(
+            new PlayerInput(
+                _playerId,
+                _home.Id,
+                new MovementInput(0, 0, 0),
+                new Point(50, 49),
+                receivedAt.AddSeconds(1)
+            )
+        );
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var player = await db.ReadCreature(_playerId);
+        Assert.True(player.Y > 49.5);
     }
 
     [Fact]
