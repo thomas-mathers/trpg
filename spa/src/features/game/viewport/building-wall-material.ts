@@ -49,9 +49,9 @@ const GLASS_HALF = [0.3, 0.42] as const;
 const FRAME_HALF = [0.38, 0.5] as const;
 const MULLION_HALF = 0.022;
 const DOOR_CLEARANCE = 1.3;
-const WARM_LIGHT = [1, 0.72, 0.38] as const;
+const WARM_LIGHT = [1, 0.55, 0.2] as const;
 const GLASS_COLOR = [0.05, 0.07, 0.09] as const;
-const GLOW_INTENSITY = 1.6;
+const GLOW_INTENSITY = 0.35;
 
 export function createWallMaterial(spec: WallMaterialSpec) {
   const size = uniform(new Vector3(spec.width, spec.height, spec.depth));

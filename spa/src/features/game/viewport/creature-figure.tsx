@@ -15,10 +15,13 @@ import { bystanderRig, viewerRig } from './creature-rigs';
 import { EntityLabel } from './entity-label';
 import { headingToYaw } from './layout-math';
 import { SkinnedCreature } from './skinned-creature';
+import { targetPlate, standingColor } from './target-plate';
+import { TargetRing } from './target-ring';
 import { useCreaturePose, turnTowards } from './use-creature-pose';
 import { useCreaturePosition } from './use-creature-position';
 
 const SEAT_TOP = 0.5;
+const TARGET_RING_RADIUS = 0.6;
 
 export const CreatureFigure = memo(function CreatureFigure({
   id,
@@ -32,6 +35,8 @@ export const CreatureFigure = memo(function CreatureFigure({
   creatureType,
   age,
   equipment,
+  reputation,
+  target,
 }: {
   id: string;
   placement: PlacementWire;
@@ -44,12 +49,15 @@ export const CreatureFigure = memo(function CreatureFigure({
   creatureType: CreatureStatusSnapshot['creatureType'];
   age: number;
   equipment: CreatureStatusSnapshot['equipment'];
+  reputation?: number;
+  target?: CreatureStatusSnapshot;
 }) {
   const appearance = useMemo(
     () => creatureAppearance(id, creatureType, age),
     [id, creatureType, age],
   );
   const gear = useMemo(() => resolveGear(equipment), [equipment]);
+  const plate = useMemo(() => (target ? targetPlate(target) : undefined), [target]);
   const group = useRef<Group>(null);
   const seated = posture === 'Sitting';
   const isPlayer = id === playerId;
@@ -63,7 +71,6 @@ export const CreatureFigure = memo(function CreatureFigure({
     walk,
     clock,
     seated,
-    debugName: label ?? id,
   });
   useFrame((_, dt) => {
     if (!group.current) return;
@@ -85,9 +92,19 @@ export const CreatureFigure = memo(function CreatureFigure({
         lift={seated ? Math.max(0, SEAT_TOP * (1 - appearance.height)) : 0}
       />
       {!isPlayer && (
-        <group position={[0, (seated ? 1.85 : 2.1) * appearance.height, 0]}>
-          <EntityLabel text={label} />
+        <group position={[0, (seated ? 1.58 : 1.83) * appearance.height, 0]}>
+          <EntityLabel
+            text={plate?.title ?? label}
+            color={standingColor(reputation)}
+            plate={plate}
+          />
         </group>
+      )}
+      {target && (
+        <TargetRing
+          radius={TARGET_RING_RADIUS * appearance.height}
+          color={standingColor(target.reputation)}
+        />
       )}
     </group>
   );

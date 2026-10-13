@@ -1,4 +1,6 @@
-import { useEffect, useMemo } from 'react';
+import { useThree } from '@react-three/fiber';
+import { useEffect, useLayoutEffect, useMemo } from 'react';
+import type { Material, Mesh, Scene } from 'three';
 
 import type { FootprintWire } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
@@ -16,6 +18,13 @@ export function outdoorFogRange({ width, depth }: FootprintWire) {
   return { near, far: near + FOG_SPAN };
 }
 
+function rebuildSceneMaterials(scene: Scene) {
+  scene.traverse((object) => {
+    const { material } = object as Partial<Mesh>;
+    for (const entry of ([] as Material[]).concat(material ?? [])) entry.needsUpdate = true;
+  });
+}
+
 export function OutdoorFog({ size, look }: { size: FootprintWire; look: WeatherLook }) {
   const { near: baseNear, far: baseFar } = outdoorFogRange(size);
   const near = baseNear * look.fogScale;
@@ -23,8 +32,9 @@ export function OutdoorFog({ size, look }: { size: FootprintWire; look: WeatherL
   const hour = useSceneHour();
   const state = useMemo(() => outdoorFogStateAt(hour, look), [hour, look]);
   const fog = useMemo(createOutdoorFog, []);
+  const scene = useThree((root) => root.scene);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     fog.color.value.copy(state.color);
     fog.sunTint.value.copy(state.sunTint);
     fog.sunDirection.value.copy(state.sunDirection);
@@ -33,6 +43,11 @@ export function OutdoorFog({ size, look }: { size: FootprintWire; look: WeatherL
     fog.near.value = near;
     fog.far.value = far;
   }, [fog, state, near, far]);
+
+  useEffect(() => {
+    rebuildSceneMaterials(scene);
+    return () => rebuildSceneMaterials(scene);
+  }, [scene, fog]);
 
   return <primitive object={fog.node} attach="fogNode" />;
 }
