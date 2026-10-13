@@ -1,6 +1,8 @@
 import type { FootprintWire, PropModel } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 
+import { FurniturePartMesh } from './furniture-mesh';
 import type { BoxStyle } from './model-styles';
+import { seatParts } from './seat-parts';
 
 export function SeatMesh({
   footprint: { width, depth },
@@ -11,32 +13,12 @@ export function SeatMesh({
   style: BoxStyle;
   model: PropModel;
 }) {
-  const hasBack = model === 'SeatChair' || model === 'SeatPew' || model === 'SeatThrone';
+  const parts = seatParts(model, { width, depth, height, color });
   return (
     <group position={[0, -height / 2, 0]}>
-      <mesh castShadow receiveShadow position={[0, 0.45, 0]}>
-        <boxGeometry args={[width, 0.1, depth]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      {[-1, 1].flatMap((x) =>
-        [-1, 1].map((z) => (
-          <mesh
-            castShadow
-            receiveShadow
-            key={`${x}:${z}`}
-            position={[x * width * 0.36, 0.2, z * depth * 0.36]}
-          >
-            <boxGeometry args={[0.08, 0.4, 0.08]} />
-            <meshStandardMaterial color={color} />
-          </mesh>
-        )),
-      )}
-      {hasBack && (
-        <mesh castShadow receiveShadow position={[0, (height + 0.5) / 2, depth / 2 - 0.04]}>
-          <boxGeometry args={[width, height - 0.5, 0.08]} />
-          <meshStandardMaterial color={color} />
-        </mesh>
-      )}
+      {parts.map((part, index) => (
+        <FurniturePartMesh key={index} {...part} />
+      ))}
     </group>
   );
 }

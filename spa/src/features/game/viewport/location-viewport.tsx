@@ -2,7 +2,10 @@ import { Canvas } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type { Scene, WebGPURenderer } from 'three/webgpu';
 
-import type { NearbyExitSnapshot } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+import type {
+  NearbyExitSnapshot,
+  WeatherCondition,
+} from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import { useHasActiveEncounter } from '@/features/encounters/hooks/use-has-active-encounter';
 
 import {
@@ -13,6 +16,7 @@ import { useScene } from '../contexts/scene-context';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { runAction } from '../run-action';
+import { AmbientOcclusion } from './ambient-occlusion';
 import { RoadAprons, Roads } from './boundary-scene';
 import type { CreatureFocus } from './creature-focus';
 import { CreatureFocusController } from './creature-focus-controller';
@@ -32,9 +36,7 @@ import {
   findPlayerPlacement,
 } from './layout-math';
 import { NeighborDistricts } from './neighbor-scene';
-import { OutdoorFog } from './outdoor-fog';
-import { OutdoorLighting } from './outdoor-lighting';
-import { OutdoorSky } from './outdoor-sky';
+import { OutdoorWeather } from './outdoor-weather';
 import { RenderDiagnostics } from './render-diagnostics';
 import { buildSeats, type ViewportSeat } from './seat-interaction';
 import type { InputFrame } from './use-input-reporter';
@@ -51,7 +53,6 @@ import {
   Walls,
 } from './viewport-scene';
 import { weatherLookFor } from './weather-look';
-import { WeatherParticles } from './weather-particles';
 import { createWebGpuRenderer } from './webgpu-renderer';
 
 const CANVAS_ID = 'location-viewport-canvas';
@@ -84,7 +85,8 @@ export function LocationViewport({
   const [restoring, setRestoring] = useState(false);
   const [targetId, setTargetId] = useState<string>();
   const [renderScene, setRenderScene] = useState<Scene | null>(null);
-  const weatherLook = weatherLookFor(scene.weather);
+  const [weatherOverride, setWeatherOverride] = useState<WeatherCondition>();
+  const weatherLook = weatherLookFor(weatherOverride ?? scene.weather);
   const rendererRef = useRef<WebGPURenderer | null>(null);
   const closeInteraction = () => {
     setFocus(null);
@@ -194,9 +196,10 @@ export function LocationViewport({
             rendererRef.current = gl as unknown as WebGPURenderer;
             setRenderScene(canvasScene);
           }}
-          shadows={false}
+          shadows
           camera={{ fov: 75, near: 0.1, far: 500 }}
         >
+          <AmbientOcclusion />
           <color attach="background" args={[DEFAULT_BACKGROUND]} />
           <StaticGround
             size={size}
@@ -256,16 +259,16 @@ export function LocationViewport({
           {isRoomScene(scene) ? (
             <IndoorLighting size={size} props={props} />
           ) : (
-            <>
-              <OutdoorSky look={weatherLook} />
-              <OutdoorFog size={size} look={weatherLook} />
-              <WeatherParticles look={weatherLook} />
-              <OutdoorLighting size={size} props={props} look={weatherLook} />
-            </>
+            <OutdoorWeather size={size} props={props} target={weatherLook} />
           )}
         </Canvas>
       </div>
-      <RenderDiagnostics rendererRef={rendererRef} scene={renderScene} />
+      <RenderDiagnostics
+        rendererRef={rendererRef}
+        scene={renderScene}
+        weather={weatherOverride}
+        onWeatherChange={setWeatherOverride}
+      />
       {locked && !focus && (
         <span
           aria-hidden="true"

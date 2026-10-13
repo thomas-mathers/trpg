@@ -127,7 +127,7 @@ describe('furniture parts', () => {
     const parts = FURNITURE_BUILDERS[model]({ width, depth, height, color });
 
     // Assert
-    expect(parts.some((part) => part.finish === 'glow')).toBe(true);
+    expect(parts.some((part) => part.finish === 'glow' || part.finish === 'lamp')).toBe(true);
   });
 
   it('varies tree foliage between trees', () => {

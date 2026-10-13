@@ -11,8 +11,11 @@ import type { PlanarPoint } from './layout-math';
 export interface Ribbon {
   positions: number[];
   indices: number[];
+  edges: number[];
 }
 
+const QUAD_SIDES = [-1, 1, 1, -1] as const;
+export const NO_CAP_FADE = 1000;
 const EDGE_SNAP = 0.8;
 const ROAD_CLASS_RANK: Record<RoadClassSnapshot, number> = { Lane: 0, Street: 1, Avenue: 2 };
 const APRON_LENGTH = 150;
@@ -37,6 +40,20 @@ export function isOnOpenEdge(
   const direction: CompassDirection =
     normal.y < 0 ? 'North' : normal.y > 0 ? 'South' : normal.x < 0 ? 'West' : 'East';
   return openEdges.includes(direction);
+}
+
+// Per quad corner: signed offset from the centreline, half width, then distance to the start and end caps.
+export function edgeAttribute(
+  half: number,
+  length: number,
+  startDistance: number,
+  endDistance: number,
+): number[] {
+  return QUAD_SIDES.flatMap((side, corner) =>
+    corner < 2
+      ? [side * half, half, startDistance, length]
+      : [side * half, half, length, endDistance],
+  );
 }
 
 export function extrudedQuad(
@@ -83,7 +100,7 @@ export function roadRenderOrder(roadClass: RoadClassSnapshot): number {
 }
 
 export function roadRibbon(points: PointWire[], width: number): Ribbon {
-  const ribbon: Ribbon = { positions: [], indices: [] };
+  const ribbon: Ribbon = { positions: [], indices: [], edges: [] };
   const half = width / 2;
 
   for (let index = 1; index < points.length; index++) {
@@ -99,6 +116,8 @@ export function roadRibbon(points: PointWire[], width: number): Ribbon {
     const end = { x: to.x + along.x * half, y: to.y + along.y * half };
     const base = ribbon.positions.length / 3;
 
+    const startDistance = index > 1 ? 0 : NO_CAP_FADE;
+    ribbon.edges.push(...edgeAttribute(half, length + startReach + half, startDistance, 0));
     for (const corner of [
       { x: start.x - across.x, y: start.y - across.y },
       { x: start.x + across.x, y: start.y + across.y },

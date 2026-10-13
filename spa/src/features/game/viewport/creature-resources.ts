@@ -37,3 +37,14 @@ export function creatureMaterial(color: string) {
   }
   return material;
 }
+
+export const creatureVertexMaterial = new MeshStandardMaterial({
+  vertexColors: true,
+  roughness: 0.85,
+});
+
+export const creatureShadowOnlyMaterial = new MeshStandardMaterial({
+  vertexColors: true,
+  colorWrite: false,
+  depthWrite: false,
+});

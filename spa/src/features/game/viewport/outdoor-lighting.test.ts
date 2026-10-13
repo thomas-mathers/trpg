@@ -9,7 +9,9 @@ it('uses a cascaded shadow node with the outdoor sun', () => {
   expect(light.castShadow).toBe(true);
   expect(light.shadow.shadowNode).toBe(shadowNode);
   expect(shadowNode).toBeInstanceOf(CSMShadowNode);
-  expect(shadowNode.cascades).toBe(3);
+  expect(shadowNode.cascades).toBe(2);
+  expect(light.shadow.mapSize.width).toBe(1024);
+  expect(light.shadow.mapSize.height).toBe(1024);
   expect(shadowNode.fade).toBe(true);
 });
 

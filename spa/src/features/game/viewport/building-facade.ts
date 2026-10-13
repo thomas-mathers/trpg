@@ -47,7 +47,7 @@ export function buildingFacade(type: BuildingType): BuildingFacade {
 const WHITEWASH = '#ece3cc';
 const WHITEWASH_WEIGHT = 0.6;
 const PLINTH_STONE = '#8b867c';
-const OAK = '#3e2c1e';
+const OAK = '#5a4129';
 
 export interface FacadePalette {
   plaster: string;

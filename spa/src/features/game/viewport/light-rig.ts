@@ -8,7 +8,7 @@ import type {
 import { WALL_HEIGHT } from './layout-math';
 import { skyStateAt } from './sky-state';
 
-export const LIGHT_SLOTS = 4;
+export const LIGHT_SLOTS = 8;
 
 const HEARTH_COLOR = '#ffb56a';
 const INDOOR_FLAME_DAMPING = 0.85;
@@ -39,6 +39,16 @@ export interface LightSlotState {
 export interface Focus {
   x: number;
   z: number;
+  forward?: { x: number; z: number };
+}
+
+const BEHIND_WEIGHT = 0.25;
+const ALWAYS_RELEVANT_DISTANCE = 2;
+
+function facingWeight(source: LightSource, { x, z, forward }: Focus, distance: number) {
+  if (!forward || distance <= ALWAYS_RELEVANT_DISTANCE) return 1;
+  const alignment = ((source.x - x) * forward.x + (source.z - z) * forward.z) / distance;
+  return MathUtils.lerp(BEHIND_WEIGHT, 1, MathUtils.smoothstep(alignment, -0.5, 0.3));
 }
 
 const CANDLE_COLOR = '#ffc27a';
@@ -107,7 +117,7 @@ function wallLanternSource({ id, placement }: NearbyPropSnapshot): LightSource {
     y: WALL_LANTERN_HEIGHT,
     z: placement.y - Math.cos(placement.angle) * WALL_LANTERN_OFFSET,
     color: LANTERN_COLOR,
-    intensity: 0.8,
+    intensity: 4,
     daylightDamping: LANTERN_DAMPING,
   };
 }
@@ -147,7 +157,9 @@ export function lightRig(sources: LightSource[], hour: number, focus: Focus): Li
       return {
         source,
         intensity,
-        influence: intensity / Math.max(distance, MIN_INFLUENCE_DISTANCE),
+        influence:
+          (intensity * facingWeight(source, focus, distance)) /
+          Math.max(distance, MIN_INFLUENCE_DISTANCE),
       };
     })
     .sort((a, b) => b.influence - a.influence || a.source.id.localeCompare(b.source.id))

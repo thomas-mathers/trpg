@@ -1,10 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { Vector3 } from 'three';
 import { PointLight } from 'three/webgpu';
 
 import { LIGHT_SLOTS, type LightSource, lightRig } from './light-rig';
 
 const SHADOW_MAP_SIZE = 512;
+const direction = new Vector3();
 
 interface LightFalloff {
   shadowSlots: number;
@@ -46,9 +48,34 @@ export function LightPool({
       ),
     [shadowSlots, shadowFar, decay, distance],
   );
+  const previous = useRef<{
+    sources: LightSource[];
+    hour: number;
+    x: number;
+    z: number;
+    forwardX: number;
+    forwardZ: number;
+    lights: PointLight[];
+  }>(undefined);
 
   useFrame(() => {
-    const rig = lightRig(sources, hour, { x: camera.position.x, z: camera.position.z });
+    const { x, z } = camera.position;
+    camera.getWorldDirection(direction);
+    const heading = Math.hypot(direction.x, direction.z) || 1;
+    const forward = { x: direction.x / heading, z: direction.z / heading };
+    const last = previous.current;
+    if (
+      last?.sources === sources &&
+      last.hour === hour &&
+      last.x === x &&
+      last.z === z &&
+      last.forwardX === forward.x &&
+      last.forwardZ === forward.z &&
+      last.lights === lights
+    )
+      return;
+    previous.current = { sources, hour, x, z, forwardX: forward.x, forwardZ: forward.z, lights };
+    const rig = lightRig(sources, hour, { x, z, forward });
     rig.forEach((state, slot) => {
       const light = lights[slot]!;
       light.position.set(state.x, state.y, state.z);

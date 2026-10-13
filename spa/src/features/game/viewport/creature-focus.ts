@@ -11,6 +11,7 @@ export interface CreatureFocus {
 }
 
 const screenCenter = new Vector2();
+const INTERACTION_REACH = 3;
 
 export function pickCreature(
   camera: Camera,
@@ -18,10 +19,11 @@ export function pickCreature(
   raycaster: Raycaster,
 ): string | undefined {
   raycaster.setFromCamera(screenCenter, camera);
+  raycaster.far = INTERACTION_REACH;
   const hit = raycaster
     .intersectObjects(scene.children, true)
     .find(({ object }) => object instanceof Mesh);
-  if (!hit || hit.distance > 3) return;
+  if (!hit) return;
   let node: Object3D | null = hit.object;
   while (node) {
     if (typeof node.userData.creatureId === 'string') return node.userData.creatureId;

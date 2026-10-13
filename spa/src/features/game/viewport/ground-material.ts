@@ -13,7 +13,15 @@ export function createGrassMaterial(hex: string) {
   const broad = valueNoise(ground.mul(0.07));
   const medium = valueNoise(ground.mul(0.6));
   const fine = valueNoise(ground.mul(3.5));
-  const tone = broad.mul(0.3).add(medium.mul(0.15)).add(fine.mul(0.1)).add(0.75);
+  const blades = valueNoise(ground.mul(11));
+  const grain = valueNoise(ground.mul(29));
+  const tone = broad
+    .mul(0.3)
+    .add(medium.mul(0.15))
+    .add(fine.mul(0.1))
+    .add(blades.mul(0.09))
+    .add(grain.mul(0.07))
+    .add(0.68);
   const ragged = valueNoise(ground.mul(2.5)).mul(0.12);
   const patchField = valueNoise(ground.mul(PATCH_SCALE).add(PATCH_OFFSET)).add(ragged);
   const dirt = smoothstep(0.74, 0.8, patchField).mul(0.85);
