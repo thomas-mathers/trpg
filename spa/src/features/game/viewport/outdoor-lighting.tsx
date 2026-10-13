@@ -84,7 +84,7 @@ export function OutdoorLighting({
   const lanterns = useMemo(() => lightSourcesFor(props), [props]);
   const camera = useThree((state) => state.camera);
   const viewport = useThree((state) => state.size);
-  const maxFar = outdoorFogRange(size).near * look.fogScale;
+  const maxFar = outdoorFogRange(size).near;
   const { light, shadowNode } = useMemo(() => createOutdoorSun(maxFar), [maxFar]);
 
   useEffect(() => () => shadowNode.dispose(), [shadowNode]);

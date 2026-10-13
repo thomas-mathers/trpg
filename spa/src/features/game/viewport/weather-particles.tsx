@@ -4,7 +4,7 @@ import { Color, MathUtils, type InstancedMesh } from 'three';
 
 import { useSceneHour } from './scene-hour';
 import { skyStateAt } from './sky-state';
-import { wrapAround, type WeatherLook } from './weather-look';
+import { PARTICLE_CAPACITY, wrapAround, type WeatherLook } from './weather-look';
 
 const FIELD_RADIUS = 18;
 const FIELD_HEIGHT = 14;
@@ -26,9 +26,11 @@ function seedParticles(count: number): Float32Array {
 
 function ParticleField({ look, color }: { look: WeatherLook; color: Color }) {
   const { particles, particleCount, fallSpeed } = look;
+  const capacity = PARTICLE_CAPACITY[particles];
+  const active = Math.floor(particleCount);
   const mesh = useRef<InstancedMesh>(null);
   const elapsed = useRef(0);
-  const seeds = useMemo(() => seedParticles(particleCount), [particleCount]);
+  const seeds = useMemo(() => seedParticles(capacity), [capacity]);
 
   useFrame(({ camera }, delta) => {
     if (!mesh.current) return;
@@ -38,7 +40,7 @@ function ParticleField({ look, color }: { look: WeatherLook; color: Color }) {
     const matrices = mesh.current.instanceMatrix.array;
     const { x: camX, y: camY, z: camZ } = camera.position;
 
-    for (let index = 0; index < particleCount; index++) {
+    for (let index = 0; index < active; index++) {
       const sway = Math.sin(elapsed.current * 0.7 + seeds[index * 3] * 40) * drift;
       const base = index * MATRIX_SIZE;
       matrices[base + 12] = wrapAround(
@@ -57,13 +59,14 @@ function ParticleField({ look, color }: { look: WeatherLook; color: Color }) {
         2 * FIELD_RADIUS,
       );
     }
+    mesh.current.count = active;
     mesh.current.instanceMatrix.needsUpdate = true;
   });
 
   return (
     <instancedMesh
       ref={mesh}
-      args={[undefined, undefined, particleCount]}
+      args={[undefined, undefined, capacity]}
       frustumCulled={false}
       renderOrder={1}
     >
@@ -94,7 +97,5 @@ export function WeatherParticles({ look }: { look: WeatherLook }) {
   );
 
   if (look.particles === 'none') return null;
-  return (
-    <ParticleField key={`${look.particles}-${look.particleCount}`} look={look} color={color} />
-  );
+  return <ParticleField key={look.particles} look={look} color={color} />;
 }

@@ -1,6 +1,10 @@
 import { useEffect, useState, type RefObject } from 'react';
 import { DoubleSide, MeshBasicMaterial, type Scene, type WebGPURenderer } from 'three/webgpu';
 
+import type { WeatherCondition } from '@/api/signalr-client/TRPG.GameSessions.Responses';
+
+const WEATHER_OPTIONS: WeatherCondition[] = ['Clear', 'Cloudy', 'Rain', 'Storm', 'Snow', 'Fog'];
+
 interface RenderMetrics {
   fps: number;
   frameMs: number;
@@ -75,12 +79,41 @@ function MetricsPanel({ metrics }: { metrics: RenderMetrics | undefined }) {
   );
 }
 
+function WeatherOverride({
+  value,
+  onChange,
+}: {
+  value: WeatherCondition | undefined;
+  onChange: (weather: WeatherCondition | undefined) => void;
+}) {
+  const options = [undefined, ...WEATHER_OPTIONS];
+  return (
+    <div className="flex gap-1">
+      {options.map((option) => (
+        <button
+          key={option ?? 'auto'}
+          type="button"
+          aria-pressed={value === option}
+          onClick={() => onChange(option)}
+          className="rounded bg-black/70 px-2 py-1 font-medium text-white hover:bg-black/90 aria-pressed:bg-sky-700"
+        >
+          {option ?? 'Auto'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function RenderDiagnostics({
   rendererRef,
   scene,
+  weather,
+  onWeatherChange,
 }: {
   rendererRef: RefObject<WebGPURenderer | null>;
   scene: Scene | null;
+  weather: WeatherCondition | undefined;
+  onWeatherChange: (weather: WeatherCondition | undefined) => void;
 }) {
   const [visible, setVisible] = useState(false);
   const [wireframe, setWireframe] = useState(false);
@@ -116,6 +149,7 @@ export function RenderDiagnostics({
           <MetricsPanel metrics={metrics} />
         </div>
       )}
+      <WeatherOverride value={weather} onChange={onWeatherChange} />
       <div className="flex gap-2">
         <button
           type="button"

@@ -14,6 +14,7 @@ export interface WeatherLook {
   saturation: number;
   brightness: number;
   fogScale: number;
+  mist: number;
   particles: ParticleKind;
   particleCount: number;
   fallSpeed: number;
@@ -36,6 +37,7 @@ const LOOKS: Record<WeatherCondition, WeatherLook> = {
     saturation: 1,
     brightness: 1,
     fogScale: 1,
+    mist: 0,
     ...NO_PARTICLES,
   },
   Cloudy: {
@@ -46,6 +48,7 @@ const LOOKS: Record<WeatherCondition, WeatherLook> = {
     saturation: 0.6,
     brightness: 0.85,
     fogScale: 0.9,
+    mist: 0.4,
     ...NO_PARTICLES,
   },
   Rain: {
@@ -56,6 +59,7 @@ const LOOKS: Record<WeatherCondition, WeatherLook> = {
     saturation: 0.4,
     brightness: 0.6,
     fogScale: 0.6,
+    mist: 1,
     particles: 'rain',
     particleCount: 1800,
     fallSpeed: 14,
@@ -69,6 +73,7 @@ const LOOKS: Record<WeatherCondition, WeatherLook> = {
     saturation: 0.3,
     brightness: 0.4,
     fogScale: 0.45,
+    mist: 1.2,
     particles: 'rain',
     particleCount: 2600,
     fallSpeed: 18,
@@ -82,6 +87,7 @@ const LOOKS: Record<WeatherCondition, WeatherLook> = {
     saturation: 0.5,
     brightness: 0.85,
     fogScale: 0.55,
+    mist: 1.2,
     particles: 'snow',
     particleCount: 1800,
     fallSpeed: 1.4,
@@ -95,8 +101,19 @@ const LOOKS: Record<WeatherCondition, WeatherLook> = {
     saturation: 0.3,
     brightness: 0.8,
     fogScale: 0.25,
+    mist: 4,
     ...NO_PARTICLES,
   },
+};
+
+export const PARTICLE_CAPACITY: Record<ParticleKind, number> = {
+  none: 0,
+  rain: Math.max(
+    ...Object.values(LOOKS).map((look) => (look.particles === 'rain' ? look.particleCount : 0)),
+  ),
+  snow: Math.max(
+    ...Object.values(LOOKS).map((look) => (look.particles === 'snow' ? look.particleCount : 0)),
+  ),
 };
 
 const LIGHTNING_PERIOD = 9;
