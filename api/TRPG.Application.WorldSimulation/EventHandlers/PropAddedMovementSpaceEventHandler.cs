@@ -2,17 +2,17 @@ using TRPG.Application.Common.Events;
 
 namespace TRPG.Application.WorldSimulation.EventHandlers;
 
-internal sealed class PlayerMovedPoseForgetEventHandler(WorldSimulationCoordinator coordinator)
-    : IDomainEventConsumer<PlayerMovedEvent>
+internal sealed class PropAddedMovementSpaceEventHandler(WorldSimulationCoordinator coordinator)
+    : IDomainEventConsumer<PropAddedEvent>
 {
     public async Task Handle(
-        PlayerMovedEvent domainEvent,
+        PropAddedEvent domainEvent,
         CancellationToken cancellationToken = default
     )
     {
         await coordinator.PostIfLoaded(
             domainEvent.WorldId,
-            new ForgetPlayerPose(domainEvent.PlayerId),
+            new InvalidateMovementSpace(domainEvent.LocationId),
             cancellationToken
         );
     }

@@ -14,13 +14,15 @@ public class GetPropsByLocationIdQuery
 internal class GetPropsByLocationIdQueryHandler(IPropsDbContext context, IMemoryCache cache)
     : IQueryHandler<GetPropsByLocationIdQuery, IReadOnlyCollection<Prop>>
 {
+    public static string CacheKey(Guid locationId) => $"allProps:{locationId}";
+
     public async Task<IReadOnlyCollection<Prop>> Handle(
         GetPropsByLocationIdQuery query,
         CancellationToken cancellationToken = default
     )
     {
         var props = await cache.GetOrCreateAsync<Prop[]>(
-            $"allProps:{query.LocationId}",
+            CacheKey(query.LocationId),
             async _ =>
                 (
                     await context

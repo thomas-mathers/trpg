@@ -17,6 +17,12 @@ public sealed class LivePlayerPoses
         _dirtyPlayerIds.Add(playerId);
     }
 
+    public void Seed(Guid playerId, PlayerPose pose)
+    {
+        _poses[playerId] = pose;
+        _dirtyPlayerIds.Remove(playerId);
+    }
+
     public void Forget(Guid playerId)
     {
         _poses.Remove(playerId);

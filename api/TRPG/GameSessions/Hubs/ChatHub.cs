@@ -99,6 +99,11 @@ internal sealed class ChatHub(
 
         await base.OnConnectedAsync();
 
+        await simulation.Post(
+            session.WorldId,
+            new SeedPlayerPose(session.PlayerId),
+            Context.ConnectionAborted
+        );
         await publishSessionState.Handle(
             new PublishSessionStateCommand
             {
