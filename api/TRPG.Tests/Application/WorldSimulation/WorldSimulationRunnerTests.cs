@@ -463,15 +463,15 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Tick_KeepsTheFightHeld_WhenASecondCastFollowsInTheSameTick()
+    public async Task Tick_KeepsTheFightHeld_WhenASecondCastIsRefusedByTheGlobalCooldown()
     {
         // Arrange
         await AddKnightPlayer();
         var wolf = await AddWolf();
         await StartRunner();
-        var first = NewCastCompletion();
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", NewCastCompletion()));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
         var second = NewCastCompletion();
-        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", first));
         _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", second));
 
         // Act
