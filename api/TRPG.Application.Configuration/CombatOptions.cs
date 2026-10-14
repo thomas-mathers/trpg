@@ -2,6 +2,7 @@ namespace TRPG.Application.Configuration;
 
 public class CombatOptions
 {
+    public float UnawareDelaySeconds { get; init; } = 3f;
     public float ApRegenPercentPerRound { get; init; } = 0.25f;
     public float MpRegenPercentPerRound { get; init; } = 0.10f;
     public int BaseProficiency { get; init; } = 50;

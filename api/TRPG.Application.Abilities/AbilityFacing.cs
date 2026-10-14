@@ -6,6 +6,9 @@ public static class AbilityFacing
 {
     public const double ArcRadians = Math.PI;
 
+    public static double HeadingToward(Point origin, Point target) =>
+        Math.Atan2(target.X - origin.X, -(target.Y - origin.Y));
+
     public static bool IsFacing(Point origin, double heading, Point target)
     {
         var dx = target.X - origin.X;

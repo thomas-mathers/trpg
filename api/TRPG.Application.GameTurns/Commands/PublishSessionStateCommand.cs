@@ -23,7 +23,6 @@ internal class PublishSessionStateCommandHandler(
     IGameClientEventDispatcher eventDispatcher,
     ICommandHandler<PublishPlayerSceneCommand> publishPlayerScene,
     IQueryHandler<GetGameTimeQuery, GameInstant> getGameTime,
-    ICommandHandler<PublishCombatStateCommand> publishCombatState,
     IQueryHandler<GetActiveEncounterQuery, Encounter?> getActiveEncounter,
     ICommandHandler<PublishEncounterStartedCommand> publishEncounterStarted,
     WorldSimulationCoordinator simulation
@@ -59,11 +58,6 @@ internal class PublishSessionStateCommandHandler(
                 WorldId = command.WorldId,
                 PlayerId = command.PlayerId,
             },
-            cancellationToken
-        );
-
-        await publishCombatState.Handle(
-            new PublishCombatStateCommand { PlayerId = command.PlayerId },
             cancellationToken
         );
 

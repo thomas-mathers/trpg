@@ -12,7 +12,6 @@ public enum CombatActionOutcome
     HealOverTime,
     Buff,
     ConsumePotion,
-    FleeFailed,
 }
 
 [TranspilationSource]

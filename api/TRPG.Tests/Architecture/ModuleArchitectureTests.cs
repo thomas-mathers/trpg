@@ -24,6 +24,8 @@ public sealed partial class ModuleArchitectureTests
         "TRPG.Application.Routing/Commands/PlanRoutineJourneyCommand.cs:ICreaturesDbContext",
         "TRPG.Application.Routing/Queries/GetCreatureJourneyPositionsQuery.cs:ICreaturesDbContext",
         "TRPG.Application.Routing/Queries/GetCreatureJourneyPositionsQuery.cs:IWorldsDbContext",
+        "TRPG.Application.WorldSimulation/Fights/ChasePathPlanner.cs:IPropsDbContext",
+        "TRPG.Application.WorldSimulation/Fights/ChasePathPlanner.cs:IWorldsDbContext",
         "TRPG.Application.WorldSimulation/LocalActivities/LocalActivityPlanner.cs:IPropsDbContext",
         "TRPG.Application.WorldSimulation/LocalActivities/LocalActivityPlanner.cs:IWorldsDbContext",
         "TRPG.Application.WorldSimulation/LocalActivities/PlanCurrentLocalActivityCommand.cs:ICreatureJobsDbContext",

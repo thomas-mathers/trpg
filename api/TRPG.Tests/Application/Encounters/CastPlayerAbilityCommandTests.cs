@@ -362,6 +362,41 @@ public sealed class CastPlayerAbilityCommandTests(DatabaseFixture db)
         Assert.Single(_kills, kill => kill.CreatureId == fallen.Id);
     }
 
+    [Fact]
+    public async Task Handle_CreditsEachSwingOnce_WhenSeveralCastsLandInAHeldFight()
+    {
+        // Arrange
+        var player = await SeedKnight();
+        var target = await SeedTarget("Wolf", currentHp: 1000);
+        var opened = await _handler.Handle(
+            Cast(player, target.Id, "Strike", InRange),
+            TestContext.Current.CancellationToken
+        );
+        var proficiencyAfterOpening = await TotalProficiency(player.Id);
+        var held = new ActiveFightHolder(
+            opened.Fight,
+            TestTime.Start + CombatTiming.GlobalCooldown
+        );
+
+        // Act
+        await _handler.Handle(
+            Cast(player, target.Id, "Strike", InRange, held),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(proficiencyAfterOpening * 2, await TotalProficiency(player.Id));
+    }
+
+    private async Task<int> TotalProficiency(Guid creatureId) =>
+        await _context
+            .CreatureWeaponProficiencies.AsNoTracking()
+            .Where(proficiency => proficiency.CreatureId == creatureId)
+            .SumAsync(
+                proficiency => proficiency.Proficiency,
+                TestContext.Current.CancellationToken
+            );
+
     private async Task SeedGroup(params Guid[] creatureIds)
     {
         var group = Builders.MakeEncounterGroup(_worldId, _locationId, Guid.NewGuid());

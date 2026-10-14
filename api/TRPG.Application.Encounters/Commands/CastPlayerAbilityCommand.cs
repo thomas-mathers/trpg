@@ -62,7 +62,11 @@ internal class CastPlayerAbilityCommandHandler(
             return Refused("You can't do that right now.");
         }
 
-        Place(draft.Combatants, command);
+        FightPlacement.Apply(
+            draft.Combatants,
+            command.PlayerPlacement,
+            command.FindLiveCreaturePosition
+        );
 
         return draft.OpensFight
             ? await OpenFight(command, draft, cancellationToken)
@@ -75,7 +79,11 @@ internal class CastPlayerAbilityCommandHandler(
         CancellationToken cancellationToken
     )
     {
-        Place(fight.Combatants, command);
+        FightPlacement.Apply(
+            fight.Combatants,
+            command.PlayerPlacement,
+            command.FindLiveCreaturePosition
+        );
         var use = await castFightAbility.Handle(
             new CastFightAbilityCommand
             {
@@ -132,25 +140,6 @@ internal class CastPlayerAbilityCommandHandler(
         );
 
         return Map(use, null);
-    }
-
-    private static void Place(IReadOnlyList<Combatant> combatants, CastPlayerAbilityCommand command)
-    {
-        foreach (var combatant in combatants)
-        {
-            if (combatant.IsPlayer)
-            {
-                if (command.PlayerPlacement is { } placement)
-                {
-                    combatant.Position = placement.Position;
-                    combatant.Heading = placement.Heading;
-                }
-            }
-            else if (command.FindLiveCreaturePosition(combatant.CreatureId) is { } position)
-            {
-                combatant.Position = position;
-            }
-        }
     }
 
     private static bool IsFightOver(AbilityUseResult use) =>

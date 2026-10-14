@@ -63,8 +63,10 @@ public class Combatant
     public Point Position { get; set; } = new(0, 0);
     public double Heading { get; set; }
     public GameInstant GlobalCooldownReadyAt { get; set; }
+    public GameInstant ActsNotBefore { get; set; }
+    public GameInstant ResourceRegenAt { get; set; }
     public IReadOnlyList<Item> EquippedItems { get; init; } = [];
-    public IReadOnlyList<ConsumableItemSnapshot> ConsumableItemSnapshots { get; init; } = [];
+    public List<ConsumableItemSnapshot> ConsumableItemSnapshots { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponProficiencies { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponSwingCounts { get; init; } = [];
     public Dictionary<Skill, int> SkillUsageCounts { get; init; } = [];
@@ -75,6 +77,13 @@ public class Combatant
     public List<ActiveBuff> ActiveBuffs { get; init; } = [];
     public Dictionary<string, GameInstant> CooldownReadyAtByAbility { get; init; } = [];
     public bool IsAlive => CurrentHp > 0;
+
+    public void ClearUsageCounts()
+    {
+        WeaponSwingCounts.Clear();
+        SkillUsageCounts.Clear();
+        ItemsUsedCounts.Clear();
+    }
 
     public bool IsUnder(ConditionType condition, GameInstant now) =>
         ActiveConditions.TryGetValue(condition, out var expiresAt) && expiresAt > now;
@@ -167,7 +176,7 @@ public class Combatant
             CurrentAp = Math.Min(creature.CurrentAp, startingAttributes.MaximumAp),
             CurrentMp = Math.Min(creature.CurrentMp, startingAttributes.MaximumMp),
             EquippedItems = equippedItems,
-            ConsumableItemSnapshots = ConsumableItemSnapshot.FromItems(items),
+            ConsumableItemSnapshots = [.. ConsumableItemSnapshot.FromItems(items)],
             WeaponProficiencies = Enum.GetValues<WeaponType>()
                 .ToDictionary(type => type, weaponProficiencies.GetValueOrDefault),
             ActiveConditions = creature.ActiveConditions.ToDictionary(

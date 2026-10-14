@@ -4,6 +4,7 @@ using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Queries;
 using TRPG.Application.Creatures.Results;
 using TRPG.Application.Encounters.Commands;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.RoomBookings.Commands;
 using TRPG.Domain;
@@ -14,6 +15,7 @@ namespace TRPG.Application.GameTurns;
 internal class SleepActionHandler(
     GameActionRunner actionRunner,
     IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
+    IQueryHandler<HasActiveFightQuery, bool> hasActiveFight,
     ICommandHandler<SleepInRoomCommand, SleepInRoomResult> sleepInRoom,
     ICommandHandler<
         AdvanceCreatureEffectsCommand,
@@ -28,6 +30,15 @@ internal class SleepActionHandler(
         int minutes,
         CancellationToken cancellationToken = default
     ) => actionRunner.Run(session, ct => Resolve(session, hours, minutes, ct), cancellationToken);
+
+    private Task<bool> HasActiveFight(
+        GameTurnSession session,
+        CancellationToken cancellationToken
+    ) =>
+        hasActiveFight.Handle(
+            new HasActiveFightQuery { PlayerId = session.PlayerId },
+            cancellationToken
+        );
 
     private async Task<ActionOutcome> Resolve(
         GameTurnSession session,
@@ -44,6 +55,11 @@ internal class SleepActionHandler(
         if (delta > TimeSpan.FromHours(24))
         {
             return ActionOutcome.Failed(ActionFailure.InvalidDuration);
+        }
+
+        if (await HasActiveFight(session, cancellationToken))
+        {
+            return ActionOutcome.Failed(ActionFailure.EncounterActive);
         }
 
         var player = await getCreatureById.Handle(

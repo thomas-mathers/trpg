@@ -15,7 +15,6 @@ public class GameTurnRunner
     private readonly AcceptQuestActionHandler _acceptQuestActionHandler;
     private readonly CompleteQuestActionHandler _completeQuestActionHandler;
     private readonly DeliverItemActionHandler _deliverItemActionHandler;
-    private readonly FleeActionHandler _fleeActionHandler;
     private readonly RespawnActionHandler _respawnActionHandler;
     private readonly HostileEncounterActionHandler _hostileEncounterActionHandler;
     private readonly ShakedownEncounterActionHandler _shakedownEncounterActionHandler;
@@ -24,7 +23,6 @@ public class GameTurnRunner
     private readonly TrapEncounterActionHandler _trapEncounterActionHandler;
     private readonly StartTheftEncounterActionHandler _startTheftEncounterActionHandler;
     private readonly TheftEncounterActionHandler _theftEncounterActionHandler;
-    private readonly CombatActionHandler _combatActionHandler;
     private readonly CastAbilityActionHandler _castAbilityActionHandler;
     private readonly MoveActionHandler _moveActionHandler;
     private readonly RefreshSceneHandler _refreshSceneHandler;
@@ -40,7 +38,6 @@ public class GameTurnRunner
         AcceptQuestActionHandler acceptQuestActionHandler,
         CompleteQuestActionHandler completeQuestActionHandler,
         DeliverItemActionHandler deliverItemActionHandler,
-        FleeActionHandler fleeActionHandler,
         RespawnActionHandler respawnActionHandler,
         HostileEncounterActionHandler hostileEncounterActionHandler,
         ShakedownEncounterActionHandler shakedownEncounterActionHandler,
@@ -49,7 +46,6 @@ public class GameTurnRunner
         TrapEncounterActionHandler trapEncounterActionHandler,
         StartTheftEncounterActionHandler startTheftEncounterActionHandler,
         TheftEncounterActionHandler theftEncounterActionHandler,
-        CombatActionHandler combatActionHandler,
         CastAbilityActionHandler castAbilityActionHandler,
         MoveActionHandler moveActionHandler,
         RefreshSceneHandler refreshSceneHandler
@@ -65,7 +61,6 @@ public class GameTurnRunner
         _acceptQuestActionHandler = acceptQuestActionHandler;
         _completeQuestActionHandler = completeQuestActionHandler;
         _deliverItemActionHandler = deliverItemActionHandler;
-        _fleeActionHandler = fleeActionHandler;
         _respawnActionHandler = respawnActionHandler;
         _hostileEncounterActionHandler = hostileEncounterActionHandler;
         _shakedownEncounterActionHandler = shakedownEncounterActionHandler;
@@ -74,7 +69,6 @@ public class GameTurnRunner
         _trapEncounterActionHandler = trapEncounterActionHandler;
         _startTheftEncounterActionHandler = startTheftEncounterActionHandler;
         _theftEncounterActionHandler = theftEncounterActionHandler;
-        _combatActionHandler = combatActionHandler;
         _castAbilityActionHandler = castAbilityActionHandler;
         _moveActionHandler = moveActionHandler;
         _refreshSceneHandler = refreshSceneHandler;
@@ -140,11 +134,6 @@ public class GameTurnRunner
         CancellationToken cancellationToken = default
     ) => _deliverItemActionHandler.Handle(session, recipientId, cancellationToken);
 
-    public Task<ActionOutcome> Flee(
-        GameTurnSession session,
-        CancellationToken cancellationToken = default
-    ) => _fleeActionHandler.Handle(session, cancellationToken);
-
     public Task<ActionOutcome> Respawn(
         GameTurnSession session,
         CancellationToken cancellationToken = default
@@ -191,12 +180,6 @@ public class GameTurnRunner
         TheftEncounterAction action,
         CancellationToken cancellationToken = default
     ) => _theftEncounterActionHandler.Handle(session, action, cancellationToken);
-
-    public Task<ActionOutcome> CombatAction(
-        GameTurnSession session,
-        PlayerCombatAction action,
-        CancellationToken cancellationToken = default
-    ) => _combatActionHandler.Handle(session, action, cancellationToken);
 
     public Task<ActionOutcome> CastAbility(
         GameTurnSession session,

@@ -77,6 +77,11 @@ internal class ResolveCombatRoundCommandHandler(
         );
 
         transaction.Complete();
+        foreach (var combatant in command.Combatants)
+        {
+            combatant.ClearUsageCounts();
+        }
+
         return state.ToCombatResult();
     }
 }

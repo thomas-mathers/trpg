@@ -58,6 +58,12 @@ internal class OpenFightCommandHandler(
             return new OpenFightResult(use, null);
         }
 
+        combatEngine.BeginFight(combatants, command.GameTime);
+        if (command.Draft.HasSurpriseRound)
+        {
+            combatEngine.DelayEnemies(combatants, command.GameTime);
+        }
+
         using var transaction = new TransactionScope(
             TransactionScopeOption.Required,
             TransactionScopeAsyncFlowOption.Enabled

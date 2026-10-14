@@ -10,7 +10,7 @@ internal static class MovementConcern
         var creature = input.Creature;
         var now = input.Context.Now;
         var events = new List<SimEvent>();
-        if (creature.IsFrozen || creature.NextUpdate > now)
+        if (creature.NextUpdate > now || (creature.IsFrozen && creature.LocalMove is null))
         {
             return events;
         }
@@ -38,26 +38,35 @@ internal static class MovementConcern
         GameInstant at
     )
     {
-        if (creature.IsFrozen)
+        if (creature.IsFrozen && !CanPursue(creature, plan))
         {
             return [];
+        }
+
+        var events = new List<SimEvent>();
+        if (creature.LocalMove is not null)
+        {
+            InterruptLocalMove(creature, at, events);
         }
 
         creature.LocalMove = new LocalMoveExecution(plan);
         creature.IsWalking = true;
         creature.LastUpdate = at;
         creature.NextUpdate = creature.TimeToLocalMoveEnd(at);
-        return
-        [
+        events.Add(
             new LocalMoveStarted(
                 creature.Id,
                 at,
                 creature.LocationId,
                 plan,
                 creature.MetersPerGameSecond
-            ),
-        ];
+            )
+        );
+        return events;
     }
+
+    private static bool CanPursue(SimulatedCreature creature, LocalMovePlan plan) =>
+        plan.TargetKind == LocalMoveTargetKind.Pursuit && creature.Journey is null;
 
     public static IReadOnlyList<SimEvent> Engage(SimulatedCreature creature, GameInstant at)
     {
@@ -86,6 +95,11 @@ internal static class MovementConcern
         if (!creature.IsFrozen)
         {
             return events;
+        }
+
+        if (creature.LocalMove is not null)
+        {
+            InterruptLocalMove(creature, at, events);
         }
 
         creature.IsFrozen = false;

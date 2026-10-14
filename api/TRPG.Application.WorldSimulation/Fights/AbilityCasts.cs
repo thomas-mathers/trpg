@@ -3,6 +3,7 @@ using TRPG.Application.Common.Commands;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Fights;
 using TRPG.Application.Scenes.Queries;
+using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Domain;
@@ -16,7 +17,18 @@ internal sealed class AbilityCasts(
     TransientCreatureWalkRegistry transientWalks
 )
 {
+    private const double ChaseRepathSlack = 1.0;
+    private static readonly TimeSpan UnstartedChaseExpiry = TimeSpan.FromSeconds(2);
+
     private readonly Dictionary<Guid, ActiveFight> _fights = [];
+    private readonly Dictionary<Guid, Chase> _chases = [];
+
+    private sealed class Chase(Point destination, GameInstant issuedAt)
+    {
+        public Point Destination { get; } = destination;
+        public GameInstant IssuedAt { get; } = issuedAt;
+        public bool Started { get; set; }
+    }
 
     public async Task Cast(
         CastAbilityMessage message,
@@ -38,7 +50,193 @@ internal sealed class AbilityCasts(
         }
     }
 
-    public void End(Guid playerId) => _fights.Remove(playerId);
+    public async Task<IReadOnlyList<LocalMovePlan>> Tick(
+        LivePlayerPoses poses,
+        GameInstant now,
+        CancellationToken cancellationToken
+    )
+    {
+        var pursuits = new List<LocalMovePlan>();
+        foreach (var fight in _fights.Values.ToArray())
+        {
+            var fightPursuits = await TickFight(fight, poses, now, cancellationToken);
+            pursuits.AddRange(fightPursuits);
+        }
+
+        return pursuits;
+    }
+
+    public async Task Abandon(Guid playerId, GameInstant now, CancellationToken cancellationToken)
+    {
+        if (!_fights.ContainsKey(playerId))
+        {
+            return;
+        }
+
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        await scope
+            .ServiceProvider.GetRequiredService<ICommandHandler<AbandonFightsCommand>>()
+            .Handle(
+                new AbandonFightsCommand { WorldId = worldId, GameTime = now },
+                cancellationToken
+            );
+        End(playerId);
+    }
+
+    public void End(Guid playerId)
+    {
+        if (_fights.Remove(playerId, out var fight))
+        {
+            ForgetChases(fight);
+        }
+    }
+
+    private async Task<IReadOnlyList<LocalMovePlan>> TickFight(
+        ActiveFight fight,
+        LivePlayerPoses poses,
+        GameInstant now,
+        CancellationToken cancellationToken
+    )
+    {
+        var pose = poses.Find(fight.PlayerId);
+        await using var scope = serviceScopeFactory.CreateAsyncScope();
+        if (pose is null || pose.LocationId != fight.LocationId)
+        {
+            await scope
+                .ServiceProvider.GetRequiredService<ICommandHandler<LeaveFightCommand>>()
+                .Handle(new LeaveFightCommand { Fight = fight, GameTime = now }, cancellationToken);
+            End(fight.PlayerId);
+            return [];
+        }
+
+        MarkStartedChases(fight, now);
+        var result = await scope
+            .ServiceProvider.GetRequiredService<
+                ICommandHandler<TickFightCommand, FightTickResult>
+            >()
+            .Handle(
+                new TickFightCommand
+                {
+                    Fight = fight,
+                    GameTime = now,
+                    PlayerPlacement = new PlayerPlacement(pose.Position, pose.Input.Heading),
+                    FindLiveCreaturePosition = creatureId =>
+                        FindEnemyPosition(creatureId, fight.LocationId, now),
+                },
+                cancellationToken
+            );
+        if (result.Changed)
+        {
+            await scope
+                .ServiceProvider.GetRequiredService<IActionSceneAnnouncer>()
+                .AnnounceActionChanges(worldId, fight.PlayerId, now, cancellationToken);
+        }
+
+        if (result.Over)
+        {
+            End(fight.PlayerId);
+            return [];
+        }
+
+        return await PlanPursuits(
+            scope.ServiceProvider,
+            fight,
+            result.Chases,
+            now,
+            cancellationToken
+        );
+    }
+
+    private async Task<IReadOnlyList<LocalMovePlan>> PlanPursuits(
+        IServiceProvider services,
+        ActiveFight fight,
+        IReadOnlyList<ChaseOrder> orders,
+        GameInstant now,
+        CancellationToken cancellationToken
+    )
+    {
+        var planner = services.GetRequiredService<ChasePathPlanner>();
+        var pursuits = new List<LocalMovePlan>();
+        foreach (var order in orders.Where(order => NeedsChase(order, now)))
+        {
+            var path = await planner.Plan(
+                fight.LocationId,
+                fight.PositionOf(order.CreatureId),
+                order.Target,
+                order.StopDistance,
+                cancellationToken
+            );
+            if (path is null)
+            {
+                continue;
+            }
+
+            _chases[order.CreatureId] = new Chase(path[^1], now);
+            pursuits.Add(
+                new LocalMovePlan(
+                    order.CreatureId,
+                    fight.LocationId,
+                    Guid.Empty,
+                    CreatureJobAction.Idle,
+                    LocalMoveTargetKind.Pursuit,
+                    Guid.Empty,
+                    path
+                )
+            );
+        }
+
+        return pursuits;
+    }
+
+    private bool NeedsChase(ChaseOrder order, GameInstant now)
+    {
+        if (!_chases.TryGetValue(order.CreatureId, out var chase))
+        {
+            return true;
+        }
+
+        if (!chase.Started)
+        {
+            return now - chase.IssuedAt > UnstartedChaseExpiry;
+        }
+
+        return Distance(chase.Destination, order.Target) > order.StopDistance + ChaseRepathSlack;
+    }
+
+    private void MarkStartedChases(ActiveFight fight, GameInstant now)
+    {
+        foreach (var creatureId in fight.CombatantIds)
+        {
+            if (
+                _chases.TryGetValue(creatureId, out var chase)
+                && transientWalks.Find(creatureId, fight.LocationId, now) is not null
+            )
+            {
+                chase.Started = true;
+            }
+        }
+    }
+
+    private Point? FindEnemyPosition(Guid creatureId, Guid locationId, GameInstant now)
+    {
+        var walking = transientWalks.Find(creatureId, locationId, now);
+        if (walking is not null)
+        {
+            return walking.Position;
+        }
+
+        return _chases.TryGetValue(creatureId, out var chase) && chase.Started
+            ? chase.Destination
+            : null;
+    }
+
+    private void ForgetChases(ActiveFight fight)
+    {
+        foreach (var creatureId in fight.CombatantIds)
+        {
+            _chases.Remove(creatureId);
+        }
+    }
 
     private async Task<AbilityCastResult> Run(
         CastAbilityMessage message,
@@ -67,9 +265,7 @@ internal sealed class AbilityCasts(
                         ? null
                         : new PlayerPlacement(pose.Position, pose.Input.Heading),
                     FindLiveCreaturePosition = creatureId =>
-                        pose is null
-                            ? null
-                            : transientWalks.Find(creatureId, pose.LocationId, now)?.Position,
+                        pose is null ? null : FindEnemyPosition(creatureId, pose.LocationId, now),
                 },
                 cancellationToken
             );
@@ -87,10 +283,13 @@ internal sealed class AbilityCasts(
     {
         if (fight is null)
         {
-            _fights.Remove(playerId);
+            End(playerId);
             return;
         }
 
         _fights[playerId] = fight;
     }
+
+    private static double Distance(Point first, Point second) =>
+        Math.Sqrt(Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
 }

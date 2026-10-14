@@ -93,6 +93,32 @@ public sealed class SeatingActionHandlerTests(DatabaseFixture db)
         Assert.Equal(new Placement(1, 2, 0), seating.Placement);
     }
 
+    [Fact]
+    public async Task Sit_IsRefused_WhenAFightIsHeld()
+    {
+        // Arrange
+        _context.Encounters.Add(
+            new FightEncounter
+            {
+                WorldId = _worldId,
+                PlayerId = _session.PlayerId,
+                LocationId = _locationId,
+                CombatantIds = [_session.PlayerId],
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var outcome = await _sitDown.Handle(
+            _session,
+            _seat.Id,
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(ActionFailure.EncounterActive, outcome.Failure);
+    }
+
     private async Task PublishBaselineScene()
     {
         await _serviceProvider.PublishBaselineScene(

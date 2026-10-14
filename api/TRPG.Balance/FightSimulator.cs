@@ -23,6 +23,11 @@ public record RoundSnapshot(
 
 public class FightSimulator
 {
+    private const double FightDistance = 2.0;
+    private static readonly GameInstant StartTime = new(
+        new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)
+    );
+
     private readonly CombatEngine _engine;
     private readonly EnemyCombatActionResolver _resolver;
     private readonly CreatureGeneratorOptions _creatureGeneratorOptions;
@@ -35,7 +40,6 @@ public class FightSimulator
     {
         _combatOptions = combatOptions ?? new CombatOptions();
         var combatOptionsSnapshot = new FixedOptionsSnapshot<CombatOptions>(_combatOptions);
-        var fleeOptionsSnapshot = new FixedOptionsSnapshot<FleeOptions>(new FleeOptions());
         var hitCalculator = new HitCalculator(combatOptionsSnapshot);
         var damageCalculator = new DamageCalculator(combatOptionsSnapshot);
         _resolver = new EnemyCombatActionResolver(
@@ -45,7 +49,6 @@ public class FightSimulator
         );
         _engine = new CombatEngine(
             combatOptionsSnapshot,
-            fleeOptionsSnapshot,
             hitCalculator,
             damageCalculator,
             _resolver,
@@ -85,17 +88,18 @@ public class FightSimulator
     )
     {
         IReadOnlyList<Combatant> combatants = [player, enemy];
+        Place(player, enemy);
+        _engine.BeginFight(combatants, StartTime);
 
         var snapshots = new List<RoundSnapshot>();
         var round = 0;
-        var now = new GameInstant(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Unspecified));
+        var now = StartTime;
 
         while (round < maxRounds)
         {
             round++;
             now += CombatTiming.Round;
-            var playerAction = _resolver.Resolve(player, enemy, now);
-            var state = _engine.ProcessRound(combatants, playerAction, now);
+            var state = ResolveRound(combatants, player, enemy, now);
 
             snapshots.Add(
                 new RoundSnapshot(
@@ -120,6 +124,80 @@ public class FightSimulator
 
         var finalOutcome = snapshots[^1].Outcome;
         return snapshots.Select(s => s with { Outcome = finalOutcome }).ToArray();
+    }
+
+    private CombatState ResolveRound(
+        IReadOnlyList<Combatant> combatants,
+        Combatant player,
+        Combatant enemy,
+        GameInstant now
+    )
+    {
+        var events = new List<CombatResolution>();
+        var tick = _engine.TickFight(combatants, now);
+        events.AddRange(tick.Events);
+        var state = tick;
+
+        if (tick.Outcome == CombatOutcome.Ongoing)
+        {
+            var playerUse = ActAsPlayer(combatants, player, enemy, now);
+            if (playerUse.State is { } playerState)
+            {
+                events.AddRange(playerState.Events);
+                state = playerState;
+            }
+        }
+
+        if (state.Outcome == CombatOutcome.Ongoing)
+        {
+            var enemyUse = _engine.ActAsEnemy(combatants, enemy.CreatureId, now);
+            if (enemyUse.State is { } enemyState)
+            {
+                events.AddRange(enemyState.Events);
+                state = enemyState;
+            }
+        }
+
+        return state with
+        {
+            Events = events,
+        };
+    }
+
+    private AbilityUseResult ActAsPlayer(
+        IReadOnlyList<Combatant> combatants,
+        Combatant player,
+        Combatant enemy,
+        GameInstant now
+    )
+    {
+        var action = _resolver.Resolve(player, enemy, now);
+
+        return action switch
+        {
+            ResolvedUseAbilityAction resolved => _engine.UseAbility(
+                combatants,
+                player.CreatureId,
+                resolved.Targets[0].CreatureId,
+                resolved.Ability.Name,
+                now
+            ),
+            ResolvedUseItemAction resolved => _engine.UseItem(
+                combatants,
+                player.CreatureId,
+                resolved.Item.ItemId,
+                now
+            ),
+            _ => AbilityUseResult.Rejected(AbilityUseRejection.NotReady, "Nothing to do."),
+        };
+    }
+
+    private static void Place(Combatant player, Combatant enemy)
+    {
+        player.Position = new Point(0, 0);
+        enemy.Position = new Point(0, -FightDistance);
+        player.Heading = AbilityFacing.HeadingToward(player.Position, enemy.Position);
+        enemy.Heading = AbilityFacing.HeadingToward(enemy.Position, player.Position);
     }
 
     private static string DescribeEvent(CombatResolution combatEvent) =>

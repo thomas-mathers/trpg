@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Events;
 using TRPG.Application.WorldSimulation.EventHandlers;
+using TRPG.Application.WorldSimulation.Fights;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Publishing;
 using TRPG.Application.WorldSimulation.Subscriptions;
@@ -48,6 +49,7 @@ public static class WorldSimulationServiceCollectionExtensions
             .AddScoped<WorldSimulatorLoader>()
             .AddScoped<WeatherExposureProvider>()
             .AddScoped<LocalActivityPlanner>()
+            .AddScoped<ChasePathPlanner>()
             .AddScoped<LocalActivityCompleter>()
             .AddSingleton<WorldSimulationRunnerFactory>()
             .AddSingleton<SceneSubscriptions>()

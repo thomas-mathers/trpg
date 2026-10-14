@@ -25,7 +25,6 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<AcceptQuestActionHandler>()
             .AddTransient<CompleteQuestActionHandler>()
             .AddTransient<DeliverItemActionHandler>()
-            .AddTransient<FleeActionHandler>()
             .AddTransient<RespawnActionHandler>()
             .AddTransient<HostileEncounterActionHandler>()
             .AddTransient<ShakedownEncounterActionHandler>()
@@ -34,7 +33,6 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<TrapEncounterActionHandler>()
             .AddTransient<StartTheftEncounterActionHandler>()
             .AddTransient<TheftEncounterActionHandler>()
-            .AddTransient<CombatActionHandler>()
             .AddTransient<CastAbilityActionHandler>()
             .AddTransient<MoveActionHandler>()
             .AddTransient<RefreshSceneHandler>()
@@ -49,7 +47,6 @@ public static class GameTurnsServiceCollectionExtensions
                 serviceProvider.GetRequiredService<AcceptQuestActionHandler>(),
                 serviceProvider.GetRequiredService<CompleteQuestActionHandler>(),
                 serviceProvider.GetRequiredService<DeliverItemActionHandler>(),
-                serviceProvider.GetRequiredService<FleeActionHandler>(),
                 serviceProvider.GetRequiredService<RespawnActionHandler>(),
                 serviceProvider.GetRequiredService<HostileEncounterActionHandler>(),
                 serviceProvider.GetRequiredService<ShakedownEncounterActionHandler>(),
@@ -58,7 +55,6 @@ public static class GameTurnsServiceCollectionExtensions
                 serviceProvider.GetRequiredService<TrapEncounterActionHandler>(),
                 serviceProvider.GetRequiredService<StartTheftEncounterActionHandler>(),
                 serviceProvider.GetRequiredService<TheftEncounterActionHandler>(),
-                serviceProvider.GetRequiredService<CombatActionHandler>(),
                 serviceProvider.GetRequiredService<CastAbilityActionHandler>(),
                 serviceProvider.GetRequiredService<MoveActionHandler>(),
                 serviceProvider.GetRequiredService<RefreshSceneHandler>()

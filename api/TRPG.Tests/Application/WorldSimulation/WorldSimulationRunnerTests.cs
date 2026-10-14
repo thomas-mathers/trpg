@@ -469,6 +469,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         await AddKnightPlayer();
         var wolf = await AddWolf();
         await StartRunner();
+        _runner.Post(new SeedPlayerPose(_playerId));
         _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", NewCastCompletion()));
         await _runner.Tick(Now, TestContext.Current.CancellationToken);
         var second = NewCastCompletion();
@@ -481,6 +482,65 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         var result = await second.Task;
         Assert.Equal("You can't use another ability yet.", result.Message);
         Assert.NotNull(result.Fight);
+    }
+
+    [Fact]
+    public async Task Tick_EndsTheFightAsFled_WhenThePlayerLosesTheirLivePose()
+    {
+        // Arrange
+        await AddKnightPlayer();
+        var wolf = await AddWolf();
+        await StartRunner();
+        _runner.Post(new SeedPlayerPose(_playerId));
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", NewCastCompletion()));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _runner.Post(new ForgetPlayerPose(_playerId));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var fight = await ReadPlayerFight();
+        Assert.Equal((EncounterState.Completed, CombatOutcome.Fled), (fight.State, fight.Outcome));
+    }
+
+    [Fact]
+    public async Task Tick_EndsTheFightAsFled_WhenThePlayerDisconnects()
+    {
+        // Arrange
+        await AddKnightPlayer();
+        var wolf = await AddWolf();
+        await StartRunner();
+        _runner.Post(new SeedPlayerPose(_playerId));
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", NewCastCompletion()));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+        _runner.Post(new PlayerDisconnected(_playerId));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var fight = await ReadPlayerFight();
+        Assert.Equal((EncounterState.Completed, CombatOutcome.Fled), (fight.State, fight.Outcome));
+    }
+
+    [Fact]
+    public async Task Tick_KeepsTheFightActive_WhenThePlayerStaysInTheLocation()
+    {
+        // Arrange
+        await AddKnightPlayer();
+        var wolf = await AddWolf();
+        await StartRunner();
+        _runner.Post(new SeedPlayerPose(_playerId));
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", NewCastCompletion()));
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Act
+        await _runner.Tick(Now + TimeSpan.FromSeconds(1), TestContext.Current.CancellationToken);
+
+        // Assert
+        var fight = await ReadPlayerFight();
+        Assert.Equal(EncounterState.Active, fight.State);
     }
 
     [Fact]
@@ -1382,6 +1442,15 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
+
+    private Task<FightEncounter> ReadPlayerFight() =>
+        _context
+            .Encounters.AsNoTracking()
+            .OfType<FightEncounter>()
+            .SingleAsync(
+                fight => fight.PlayerId == _playerId,
+                TestContext.Current.CancellationToken
+            );
 
     private static TaskCompletionSource<AbilityCastResult> NewCastCompletion() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);

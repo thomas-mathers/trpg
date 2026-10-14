@@ -13,7 +13,7 @@ public class EnemyCombatActionResolver(
     HitCalculator hitCalculator
 )
 {
-    internal ResolvedCombatAction Resolve(Combatant enemy, Combatant player, GameInstant now)
+    internal ResolvedCombatAction? Resolve(Combatant enemy, Combatant player, GameInstant now)
     {
         var affordableAbilities = enemy
             .Abilities.Where(a =>
@@ -43,7 +43,9 @@ public class EnemyCombatActionResolver(
             .OfType<AttackAbility>()
             .MaxBy(a => EstimateExpectedDamage(enemy, a, player));
 
-        return new ResolvedUseAbilityAction(bestAttackAbility!, [player]);
+        return bestAttackAbility is null
+            ? null
+            : new ResolvedUseAbilityAction(bestAttackAbility, [player]);
     }
 
     private float EstimateExpectedDamage(

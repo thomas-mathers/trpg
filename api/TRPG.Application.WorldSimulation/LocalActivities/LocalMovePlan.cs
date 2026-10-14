@@ -7,6 +7,7 @@ public enum LocalMoveTargetKind
     Workstation,
     Seat,
     Bed,
+    Pursuit,
 }
 
 public sealed record LocalMovePlan(

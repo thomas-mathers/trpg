@@ -24,7 +24,6 @@ internal static class CombatNarration
             BuffApplied buff => $"{buff.SourceName} uses {buff.AbilityName} on {buff.TargetName}.",
             HealOverTimeApplied hot =>
                 $"{hot.SourceName} applies {hot.AbilityName} to {hot.TargetName}.",
-            FleeFailed failed => $"{failed.CreatureName} fails to break away.",
             _ => null,
         };
 }
