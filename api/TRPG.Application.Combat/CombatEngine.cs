@@ -91,6 +91,78 @@ public class CombatEngine(
         );
     }
 
+    public AbilityUseResult UseAbility(
+        IReadOnlyList<Combatant> combatants,
+        Guid actorId,
+        Guid targetId,
+        string abilityName,
+        GameInstant now
+    )
+    {
+        var actor = combatants.Single(c => c.CreatureId == actorId);
+        if (!actor.IsAlive)
+        {
+            return AbilityUseResult.Rejected(
+                AbilityUseRejection.Incapacitated,
+                $"{actor.Name} is dead."
+            );
+        }
+
+        var validation = AbilityUseValidator.Validate(
+            combatants,
+            actor,
+            targetId,
+            abilityName,
+            now
+        );
+        if (validation.Use is not { } use)
+        {
+            return AbilityUseResult.Rejected(validation.Rejection!.Value, validation.Message!);
+        }
+
+        var incapacitation = GetIncapacitationEvent(
+            actor,
+            new ResolvedUseAbilityAction(use.Ability, use.Targets),
+            now
+        );
+        if (incapacitation is NoAction noAction)
+        {
+            return AbilityUseResult.Rejected(
+                AbilityUseRejection.Incapacitated,
+                $"{actor.Name} cannot act while {noAction.Condition}."
+            );
+        }
+
+        var events = ProcessAbility(
+            actor,
+            new ResolvedUseAbilityAction(use.Ability, use.Targets),
+            now
+        );
+        if (use.Ability.TriggersGlobalCooldown)
+        {
+            actor.GlobalCooldownReadyAt = now + timeScale.Scale(CombatTiming.GlobalCooldown);
+        }
+
+        return AbilityUseResult.Used(ToState(combatants, events));
+    }
+
+    private static CombatState ToState(
+        IReadOnlyList<Combatant> combatants,
+        IReadOnlyList<CombatResolution> events
+    )
+    {
+        var player = combatants.Single(c => c.IsPlayer);
+
+        return new CombatState(
+            Outcome: GetCurrentOutcome(player, combatants.Where(c => !c.IsPlayer).ToArray()),
+            Combatants: ToOrderedCombatantResults(combatants),
+            Events: events,
+            WeaponSwingCounts: player.WeaponSwingCounts,
+            SkillUsageCounts: player.SkillUsageCounts,
+            EffectsChanged: true
+        );
+    }
+
     private bool IsFleeCaught(Combatant player, IReadOnlyList<Combatant> enemies)
     {
         var catchChance = EvadeChanceCalculator.CatchChance(

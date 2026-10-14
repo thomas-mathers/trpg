@@ -24,4 +24,9 @@ public class Ability
     public Skill Skill { get; init; } = Skill.General;
     public GearRequirement GearRequirement { get; init; } = GearRequirement.None;
     public List<string> Prerequisites { get; init; } = [];
+    public AbilityRange? Range { get; init; }
+    public bool TriggersGlobalCooldown { get; init; } = true;
+    public virtual bool RequiresFacing { get; init; }
+
+    public AbilityRange EffectiveRange => Range ?? AbilityRange.DefaultFor(Skill);
 }

@@ -1,4 +1,5 @@
 using TRPG.Application.Common.Navigation;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Poses;
 using TRPG.Domain.Models;
@@ -43,6 +44,13 @@ public sealed record SimulationRequest(
 
     public void Reject(Exception exception) => OnRejected?.Invoke(exception);
 }
+
+public sealed record CastAbilityMessage(
+    Guid PlayerId,
+    Guid TargetId,
+    string AbilityName,
+    TaskCompletionSource<AbilityCastResult> Completion
+) : WorldSimulationMessage;
 
 public sealed record RefreshCreatureStatus(Guid LocationId, Guid CreatureId)
     : WorldSimulationMessage;
