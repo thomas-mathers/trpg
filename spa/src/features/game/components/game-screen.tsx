@@ -26,7 +26,6 @@ import {
   useConnectToHub,
   useGameHubConnection,
 } from '../hooks/use-game-hub-connection';
-import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { CastTargetingProvider } from '../providers/cast-targeting-provider';
 import { SceneProvider } from '../providers/scene-provider';
 import { TargetProvider } from '../providers/target-provider';
@@ -50,16 +49,14 @@ function GameScreen() {
   const navigate = useNavigate();
   const { sessionId } = useParams({ from: '/session/$sessionId' });
   const hubConnection = useConnectToHub(sessionId);
-  const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
-  const isActionBlocked = isInCombat || hasActiveEncounter;
   const [isNearbyOpen, setIsNearbyOpen] = useState(true);
   const [openDialog, setOpenDialog] = useState<OpenDialog>(null);
   const [isConnectionLostDialogOpen, setIsConnectionLostDialogOpen] = useState(false);
 
   useEffect(() => {
-    setIsNearbyOpen(!isActionBlocked);
-  }, [isActionBlocked]);
+    setIsNearbyOpen(!hasActiveEncounter);
+  }, [hasActiveEncounter]);
 
   useEffect(
     () =>
@@ -95,7 +92,7 @@ function GameScreen() {
         {hubConnection.chatHub && (
           <GameScreenContent
             sessionId={sessionId}
-            isInCombat={isActionBlocked}
+            isEncounterActive={hasActiveEncounter}
             isNearbyOpen={isNearbyOpen}
             openDialog={openDialog}
             isConnectionLostDialogOpen={isConnectionLostDialogOpen}
@@ -112,7 +109,7 @@ function GameScreen() {
 
 interface GameScreenContentProps {
   sessionId: string;
-  isInCombat: boolean;
+  isEncounterActive: boolean;
   isNearbyOpen: boolean;
   openDialog: OpenDialog;
   isConnectionLostDialogOpen: boolean;
@@ -124,7 +121,7 @@ interface GameScreenContentProps {
 
 function GameScreenContent({
   sessionId,
-  isInCombat,
+  isEncounterActive,
   isNearbyOpen,
   openDialog,
   isConnectionLostDialogOpen,
@@ -178,10 +175,10 @@ function GameScreenContent({
             <div className="chrome-surface chrome-surface-elevated text-chrome-foreground chrome-scope px-4 py-2">
               <StatusBar
                 connectionStatus={connectionStatus}
-                isInCombat={isInCombat}
+                isInCombat={isEncounterActive}
                 controls={
                   <>
-                    {!isInCombat && <NearbyToggleButton />}
+                    {!isEncounterActive && <NearbyToggleButton />}
                     <GameMenu
                       onOpenCharacterDialog={() => onOpenDialog('character')}
                       onOpenInventoryDialog={() => onOpenDialog('inventory')}
@@ -206,7 +203,7 @@ function GameScreenContent({
 
               <EncounterDialogs />
 
-              {!isInCombat && (
+              {!isEncounterActive && (
                 <div className="bg-background/50 absolute bottom-4 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg px-3 pt-2 shadow-lg backdrop-blur-sm">
                   <AbilityToolbar />
                 </div>

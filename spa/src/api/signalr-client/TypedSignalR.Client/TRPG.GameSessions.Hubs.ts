@@ -82,10 +82,6 @@ export type IChatHub = {
     /**
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
-    sendFlee(): Promise<ActionResult>;
-    /**
-    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
-    */
     sendRespawn(): Promise<ActionResult>;
     /**
     * @param targetId Transpiled from System.Guid
@@ -93,17 +89,6 @@ export type IChatHub = {
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */
     sendCastAbility(targetId: string, abilityName: string): Promise<ActionResult>;
-    /**
-    * @param targetId Transpiled from System.Guid
-    * @param abilityName Transpiled from string
-    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
-    */
-    resolveUseAbilityCombatAction(targetId: string, abilityName: string): Promise<ActionResult>;
-    /**
-    * @param itemName Transpiled from string
-    * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
-    */
-    resolveUseItemCombatAction(itemName: string): Promise<ActionResult>;
     /**
     * @returns Transpiled from System.Threading.Tasks.Task<TRPG.GameSessions.Responses.ActionResult>
     */

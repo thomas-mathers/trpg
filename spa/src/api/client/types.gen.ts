@@ -133,24 +133,6 @@ export type CityMapResponse = {
     isCapital: boolean;
 };
 
-export type CombatantState = {
-    id: string;
-    name: string;
-    level: number;
-    isPlayer: boolean;
-    isAlive: boolean;
-    currentHp: number;
-    maximumHp: number;
-    currentAp: number;
-    maximumAp: number;
-    currentMp: number;
-    maximumMp: number;
-    activeConditions: ActiveConditions;
-    activeDots: Array<ActiveDot>;
-    activeHots: Array<ActiveHot>;
-    activeBuffs: Array<ActiveBuff>;
-};
-
 export type CombatSpeedType = 'IncreasedAttackSpeed' | 'FasterCastRate' | 'FasterHitRecovery';
 
 export type CompassDirection = 'North' | 'Northeast' | 'East' | 'Southeast' | 'South' | 'Southwest' | 'West' | 'Northwest';
@@ -1484,31 +1466,6 @@ export type BeginCreatureInteractionResponses = {
 };
 
 export type BeginCreatureInteractionResponse = BeginCreatureInteractionResponses[keyof BeginCreatureInteractionResponses];
-
-export type GetPlayerFightData = {
-    body?: never;
-    path: {
-        playerId: string;
-    };
-    query?: never;
-    url: '/players/{playerId}/fight';
-};
-
-export type GetPlayerFightErrors = {
-    /**
-     * Not Found
-     */
-    404: unknown;
-};
-
-export type GetPlayerFightResponses = {
-    /**
-     * OK
-     */
-    200: Array<CombatantState>;
-};
-
-export type GetPlayerFightResponse = GetPlayerFightResponses[keyof GetPlayerFightResponses];
 
 export type GetPlayerAbilityAvailabilityData = {
     body?: never;

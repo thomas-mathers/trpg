@@ -1,7 +1,6 @@
 import { HubConnectionState } from '@microsoft/signalr';
 import { useState } from 'react';
 
-import { CombatDialog } from '@/features/combat/components/combat-dialog';
 import { GuardEncounterDialog } from '@/features/encounters/components/guard-encounter-dialog';
 import { HostileEncounterDialog } from '@/features/encounters/components/hostile-encounter-dialog';
 import { ShakedownEncounterDialog } from '@/features/encounters/components/shakedown-encounter-dialog';
@@ -97,7 +96,6 @@ function GameChatControls({
 export function EncounterDialogs() {
   return (
     <>
-      <CombatDialog />
       <HostileEncounterDialog />
       <ShakedownEncounterDialog />
       <GuardEncounterDialog />
