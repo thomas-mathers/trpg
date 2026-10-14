@@ -46,10 +46,11 @@ internal class ApplyCombatRoundOutcomeCommandHandler(
 
         foreach (
             var combatant in command.Combatants.Where(combatant =>
-                combatant is { IsPlayer: false, IsAlive: false }
+                combatant is { IsPlayer: false, IsAlive: false, IsDeathReported: false }
             )
         )
         {
+            combatant.IsDeathReported = true;
             await domainEvents.Publish(
                 new CreatureKilledEvent(
                     command.PlayerId,

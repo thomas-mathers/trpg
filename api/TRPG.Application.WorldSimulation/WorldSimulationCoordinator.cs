@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using TRPG.Application.Common.Clocks;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Exceptions;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.WorldSimulation.Poses;
 
 namespace TRPG.Application.WorldSimulation;
@@ -82,6 +83,23 @@ public sealed class WorldSimulationCoordinator(
                 exception => completion.TrySetException(exception)
             )
         );
+
+        return await completion.Task.WaitAsync(cancellationToken);
+    }
+
+    public async Task<AbilityCastResult> CastAbility(
+        Guid worldId,
+        Guid playerId,
+        Guid targetId,
+        string abilityName,
+        CancellationToken cancellationToken
+    )
+    {
+        var runner = await GetRunner(worldId, cancellationToken);
+        var completion = new TaskCompletionSource<AbilityCastResult>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        runner.Post(new CastAbilityMessage(playerId, targetId, abilityName, completion));
 
         return await completion.Task.WaitAsync(cancellationToken);
     }

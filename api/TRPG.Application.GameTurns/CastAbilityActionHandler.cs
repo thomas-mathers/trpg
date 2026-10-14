@@ -1,19 +1,38 @@
+using TRPG.Application.Common.Events;
+using TRPG.Application.WorldSimulation;
+
 namespace TRPG.Application.GameTurns;
 
 internal class CastAbilityActionHandler(
-    GameActionRunner actionRunner,
-    CastAbilityTurnResolver resolver
+    WorldSimulationCoordinator simulation,
+    IGameClientEventDispatcher eventDispatcher
 )
 {
-    public Task<ActionOutcome> Handle(
+    public async Task<ActionOutcome> Handle(
         GameTurnSession session,
         Guid targetId,
         string abilityName,
         CancellationToken cancellationToken = default
-    ) =>
-        actionRunner.Run(
-            session,
-            ct => resolver.Resolve(session, targetId, abilityName, ct),
+    )
+    {
+        var result = await simulation.CastAbility(
+            session.WorldId,
+            session.PlayerId,
+            targetId,
+            abilityName,
             cancellationToken
         );
+        await eventDispatcher.FlushAsync(session.WorldId, cancellationToken);
+
+        if (result.Succeeded)
+        {
+            return ActionOutcome.Success;
+        }
+
+        return ActionOutcome.Failed(
+            result.AbilityNotFound
+                ? ActionFailure.AbilityNotFound
+                : ActionFailure.AbilityUnavailable
+        );
+    }
 }

@@ -15,7 +15,6 @@ public static class GameTurnsServiceCollectionExtensions
             .AddTransient<GameActionRunner>()
             .AddTransient<StreamChatTurnHandler>()
             .AddTransient<PlayerRespawner>()
-            .AddTransient<CastAbilityTurnResolver>()
             .AddTransient<MoveTurnResolver>()
             .AddTransient<WaitActionHandler>()
             .AddTransient<SitDownActionHandler>()

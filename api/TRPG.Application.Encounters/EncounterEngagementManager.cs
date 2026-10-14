@@ -22,7 +22,28 @@ internal sealed class EncounterEngagementManager(
         CancellationToken cancellationToken = default
     )
     {
-        var participantIds = GetParticipantIds(encounter);
+        await Engage(encounter.WorldId, GetParticipantIds(encounter), gameTime, cancellationToken);
+    }
+
+    public Task EngageOpponents(
+        FightEncounter fight,
+        GameInstant gameTime,
+        CancellationToken cancellationToken = default
+    ) =>
+        Engage(
+            fight.WorldId,
+            fight.CombatantIds.Where(id => id != fight.PlayerId).ToArray(),
+            gameTime,
+            cancellationToken
+        );
+
+    private async Task Engage(
+        Guid worldId,
+        IReadOnlyCollection<Guid> participantIds,
+        GameInstant gameTime,
+        CancellationToken cancellationToken
+    )
+    {
         var creatures = await getCreaturesByIds.Handle(
             new GetCreaturesByIdsQuery { Ids = participantIds },
             cancellationToken
@@ -33,7 +54,7 @@ internal sealed class EncounterEngagementManager(
         await engageCreatures.Handle(
             new EngageCreaturesCommand
             {
-                WorldId = encounter.WorldId,
+                WorldId = worldId,
                 CreatureIds = availableIds,
                 GameTime = gameTime,
             },

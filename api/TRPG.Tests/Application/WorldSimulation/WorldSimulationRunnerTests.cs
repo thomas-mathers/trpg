@@ -11,8 +11,10 @@ using TRPG.Application.Creatures;
 using TRPG.Application.Creatures.Commands;
 using TRPG.Application.Creatures.Events;
 using TRPG.Application.Creatures.Results;
+using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Props.Commands;
 using TRPG.Application.Scenes.Results;
+using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Events;
 using TRPG.Application.WorldSimulation.Movement;
@@ -440,6 +442,62 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
         // Assert
         Assert.Equal(1.5, seen?.Input.Heading);
+    }
+
+    [Fact]
+    public async Task Tick_CompletesTheCast_WhenACastMessageIsQueued()
+    {
+        // Arrange
+        await AddKnightPlayer();
+        var wolf = await AddWolf();
+        await StartRunner();
+        var completion = NewCastCompletion();
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", completion));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var result = await completion.Task;
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Tick_KeepsTheFightHeld_WhenASecondCastFollowsInTheSameTick()
+    {
+        // Arrange
+        await AddKnightPlayer();
+        var wolf = await AddWolf();
+        await StartRunner();
+        var first = NewCastCompletion();
+        var second = NewCastCompletion();
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", first));
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", second));
+
+        // Act
+        await _runner.Tick(Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        var result = await second.Task;
+        Assert.Equal("You can't use another ability yet.", result.Message);
+        Assert.NotNull(result.Fight);
+    }
+
+    [Fact]
+    public async Task RejectQueuedMessages_FailsTheCast_WhenACastIsStillQueued()
+    {
+        // Arrange
+        await AddKnightPlayer();
+        var wolf = await AddWolf();
+        await StartRunner();
+        var completion = NewCastCompletion();
+        _runner.Post(new CastAbilityMessage(_playerId, wolf.Id, "Strike", completion));
+
+        // Act
+        _runner.RejectQueuedMessages(new InvalidOperationException("reload failed"));
+
+        // Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => completion.Task);
     }
 
     [Fact]
@@ -1323,6 +1381,51 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
         world.PlayerId = player.Id;
         _context.Creatures.Add(player);
         await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private static TaskCompletionSource<AbilityCastResult> NewCastCompletion() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private async Task AddKnightPlayer()
+    {
+        var generated = Builders
+            .MakeCreatureGenerator()
+            .Generate(
+                new CreatureGeneratorInput(
+                    CreatureType.Human,
+                    CreatureArchetype.For(Profession.Knight),
+                    _worldId,
+                    _home.Id,
+                    MinLevel: 1,
+                    MaxLevel: 1
+                )
+            );
+        generated.Creature.LocationId = _home.Id;
+        _playerId = generated.Creature.Id;
+        var world = await _context.Worlds.SingleAsync(
+            world => world.Id == _worldId,
+            TestContext.Current.CancellationToken
+        );
+        world.PlayerId = _playerId;
+        _context.Creatures.Add(generated.Creature);
+        _context.Items.AddRange(generated.Items);
+        _context.CreatureSkills.AddRange(generated.Skills);
+        _context.GameSessions.Add(Builders.MakeGameSession(_worldId, _playerId));
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    private async Task<Creature> AddWolf()
+    {
+        var wolf = Builders.MakeCreature(
+            _worldId,
+            creatureType: CreatureType.Beast,
+            locationId: _home.Id,
+            name: "Wolf",
+            currentHp: 1000
+        );
+        _context.Creatures.Add(wolf);
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return wolf;
     }
 
     private async Task StartRunner()

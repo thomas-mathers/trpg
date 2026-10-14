@@ -15,6 +15,7 @@ using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation.Arrivals;
 using TRPG.Application.WorldSimulation.Climate;
 using TRPG.Application.WorldSimulation.Commands;
+using TRPG.Application.WorldSimulation.Fights;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Application.WorldSimulation.Persistence;
@@ -51,6 +52,7 @@ public sealed class WorldSimulationRunner(
         );
     private readonly LivePlayerPoses _playerPoses = new();
     private readonly MovementSpaceCache _movementSpaces = new();
+    private readonly AbilityCasts _abilityCasts = new(worldId, serviceScopeFactory, transientWalks);
     private readonly SimEventApplier _applier = SimEventApplier.ForWorld(
         worldId,
         serviceScopeFactory,
@@ -289,6 +291,10 @@ public sealed class WorldSimulationRunner(
             if (message is SimulationRequest request)
             {
                 request.Reject(reason);
+            }
+            else if (message is CastAbilityMessage cast)
+            {
+                cast.Completion.TrySetException(reason);
             }
         }
     }
@@ -620,6 +626,9 @@ public sealed class WorldSimulationRunner(
                 break;
             case SimulationRequest request:
                 await request.Run(_playerPoses, cancellationToken);
+                break;
+            case CastAbilityMessage cast:
+                await _abilityCasts.Cast(cast, _playerPoses, now, cancellationToken);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(message));

@@ -36,6 +36,7 @@ public class DotEffect
 
 public class AttackAbility : Ability
 {
+    public override bool RequiresFacing { get; init; } = true;
     public AttackTargetType TargetType { get; init; }
     public List<DotEffect> Dots { get; init; } = [];
     public List<StatusEffect> Conditions { get; init; } = [];

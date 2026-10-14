@@ -59,6 +59,10 @@ public class Combatant
     public int CurrentAp { get; set; }
     public int CurrentMp { get; set; }
     public bool IsSurpriseAttacker { get; set; }
+    public bool IsDeathReported { get; set; }
+    public Point Position { get; set; } = new(0, 0);
+    public double Heading { get; set; }
+    public GameInstant GlobalCooldownReadyAt { get; set; }
     public IReadOnlyList<Item> EquippedItems { get; init; } = [];
     public IReadOnlyList<ConsumableItemSnapshot> ConsumableItemSnapshots { get; init; } = [];
     public Dictionary<WeaponType, int> WeaponProficiencies { get; init; } = [];
