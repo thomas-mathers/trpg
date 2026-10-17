@@ -68,10 +68,7 @@ internal sealed class AbilityCasts(
 
     private void TargetEnemyOfCast(CastAbilityMessage message, AbilityCastResult result)
     {
-        var isEnemy = result.Fight?.Combatants.Any(combatant =>
-            combatant.CreatureId == message.TargetId && !combatant.IsPlayer
-        );
-        if (result.Succeeded && isEnemy == true)
+        if (result.Succeeded && result.Fight?.HasEnemy(message.TargetId) == true)
         {
             _targets[message.PlayerId] = message.TargetId;
         }
