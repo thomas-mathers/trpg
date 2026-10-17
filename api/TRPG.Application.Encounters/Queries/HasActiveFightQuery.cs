@@ -5,21 +5,23 @@ using TRPG.Domain.Models;
 
 namespace TRPG.Application.Encounters.Queries;
 
-public class GetActiveFightQuery
+public class HasActiveFightQuery
 {
     public required Guid PlayerId { get; init; }
 }
 
-internal class GetActiveFightQueryHandler(IEncountersDbContext context)
-    : IQueryHandler<GetActiveFightQuery, FightEncounter?>
+internal class HasActiveFightQueryHandler(IEncountersDbContext context)
+    : IQueryHandler<HasActiveFightQuery, bool>
 {
-    public async Task<FightEncounter?> Handle(
-        GetActiveFightQuery query,
+    public async Task<bool> Handle(
+        HasActiveFightQuery query,
         CancellationToken cancellationToken = default
     ) =>
         await context
             .Encounters.AsNoTracking()
             .OfType<FightEncounter>()
-            .Where(f => f.PlayerId == query.PlayerId && f.State == EncounterState.Active)
-            .FirstOrDefaultAsync(cancellationToken);
+            .AnyAsync(
+                fight => fight.PlayerId == query.PlayerId && fight.State == EncounterState.Active,
+                cancellationToken
+            );
 }

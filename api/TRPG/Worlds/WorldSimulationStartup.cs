@@ -79,6 +79,13 @@ internal sealed class WorldSimulationStartup(
         var gameTime = await worldClock.GetCurrent(worldId, cancellationToken);
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
+        var abandon = scope.ServiceProvider.GetRequiredService<
+            ICommandHandler<AbandonFightsCommand>
+        >();
+        await abandon.Handle(
+            new AbandonFightsCommand { WorldId = worldId, GameTime = gameTime },
+            cancellationToken
+        );
         var cleanup = scope.ServiceProvider.GetRequiredService<
             ICommandHandler<ClearNonEncounterEngagementsCommand>
         >();

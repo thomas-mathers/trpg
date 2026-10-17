@@ -9,13 +9,17 @@ internal sealed record ValidatedAbilityUse(Ability Ability, IReadOnlyList<Combat
 internal sealed record AbilityUseValidation(
     ValidatedAbilityUse? Use,
     AbilityUseRejection? Rejection,
-    string? Message
+    string? Message,
+    double? Reach = null
 )
 {
     public static AbilityUseValidation Valid(ValidatedAbilityUse use) => new(use, null, null);
 
     public static AbilityUseValidation Invalid(AbilityUseRejection rejection, string message) =>
         new(null, rejection, message);
+
+    public static AbilityUseValidation OutOfRange(string message, double reach) =>
+        new(null, AbilityUseRejection.OutOfRange, message, reach);
 }
 
 internal static class AbilityUseValidator
@@ -125,7 +129,7 @@ internal static class AbilityUseValidator
         var distance = Distance(actor.Position, target.Position);
         if (distance > range.Max + RangeTolerance)
         {
-            return Invalid(AbilityUseRejection.OutOfRange, $"{target.Name} is out of range.");
+            return AbilityUseValidation.OutOfRange($"{target.Name} is out of range.", range.Max);
         }
 
         if (distance < range.Min)

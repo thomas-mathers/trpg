@@ -154,6 +154,7 @@ public sealed class WorldSimulationRunner(
         await _sceneResync.Run(cancellationToken);
         await _activeLocationPasses.Run(now, cancellationToken);
         await FlushPlayerPoses(cancellationToken);
+        await TickFights(now, cancellationToken);
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
         var planningElapsed = Stopwatch.GetElapsedTime(planningStartedAt);
@@ -296,6 +297,15 @@ public sealed class WorldSimulationRunner(
             {
                 cast.Completion.TrySetException(reason);
             }
+        }
+    }
+
+    private async Task TickFights(GameInstant now, CancellationToken cancellationToken)
+    {
+        var pursuits = await _abilityCasts.Tick(_playerPoses, now, cancellationToken);
+        foreach (var pursuit in pursuits)
+        {
+            _applier.Enqueue(_loaded.Simulator.StartLocalMove(pursuit, now));
         }
     }
 
@@ -612,6 +622,7 @@ public sealed class WorldSimulationRunner(
                 await ApplyPlayerInput(input, cancellationToken);
                 break;
             case PlayerDisconnected disconnected:
+                await _abilityCasts.Abandon(disconnected.PlayerId, now, cancellationToken);
                 await FlushPlayerPoses(cancellationToken);
                 _playerPoses.Forget(disconnected.PlayerId);
                 break;
@@ -856,7 +867,11 @@ public sealed class WorldSimulationRunner(
         var completeLocal = services.GetRequiredService<
             ICommandHandler<CompleteLocalMoveCommand, LocalMovePlan?>
         >();
-        foreach (var arrival in _unexecutedLocalArrivals)
+        foreach (
+            var arrival in _unexecutedLocalArrivals.Where(arrival =>
+                arrival.Move.TargetKind != LocalMoveTargetKind.Pursuit
+            )
+        )
         {
             var retry = await completeLocal.Handle(
                 new CompleteLocalMoveCommand

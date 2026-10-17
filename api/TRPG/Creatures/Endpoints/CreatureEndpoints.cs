@@ -276,16 +276,26 @@ internal static class CreatureEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<NoContent> EquipItem(
+    private static async Task<Results<NoContent, ProblemHttpResult>> EquipItem(
         Guid creatureId,
         EquipItemRequest request,
         [FromServices] ICommandHandler<EquipInventoryItemCommand> equipInventoryItem,
+        [FromServices] IQueryHandler<HasActiveFightQuery, bool> hasActiveFight,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
         var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
+        if (
+            await hasActiveFight.Handle(
+                new HasActiveFightQuery { PlayerId = creatureId },
+                cancellationToken
+            )
+        )
+        {
+            return FightHeldProblem("Equipment can't change during a fight.");
+        }
 
         await simulation.Request(
             creature.WorldId,
@@ -305,16 +315,26 @@ internal static class CreatureEndpoints
         return TypedResults.NoContent();
     }
 
-    private static async Task<NoContent> UnequipItem(
+    private static async Task<Results<NoContent, ProblemHttpResult>> UnequipItem(
         Guid creatureId,
         TRPG.Inventory.Responses.EquipmentSlot slot,
         [FromServices] ICommandHandler<UnequipInventoryItemCommand> unequipInventoryItem,
+        [FromServices] IQueryHandler<HasActiveFightQuery, bool> hasActiveFight,
         [FromServices] IQueryHandler<GetCreatureByIdQuery, Creature?> getCreatureById,
         [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
         var creature = await GetExistingCreature(creatureId, getCreatureById, cancellationToken);
+        if (
+            await hasActiveFight.Handle(
+                new HasActiveFightQuery { PlayerId = creatureId },
+                cancellationToken
+            )
+        )
+        {
+            return FightHeldProblem("Equipment can't change during a fight.");
+        }
 
         await simulation.Request(
             creature.WorldId,
@@ -489,17 +509,35 @@ internal static class CreatureEndpoints
         return creature;
     }
 
-    private static async Task<NoContent> BeginCreatureInteraction(
+    private static ProblemHttpResult FightHeldProblem(string detail) =>
+        TypedResults.Problem(
+            statusCode: StatusCodes.Status409Conflict,
+            title: "Fight active",
+            detail: detail
+        );
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> BeginCreatureInteraction(
         Guid playerId,
         Guid creatureId,
         Guid worldId,
         [FromServices] IWorldClock worldClock,
+        [FromServices] IQueryHandler<HasActiveFightQuery, bool> hasActiveFight,
         [FromServices] ICommandHandler<ReleaseOpenInteractionsCommand> releaseOpenInteractions,
         [FromServices] ICommandHandler<BeginCreatureInteractionCommand> beginInteraction,
         [FromServices] WorldSimulationCoordinator simulation,
         CancellationToken cancellationToken
     )
     {
+        if (
+            await hasActiveFight.Handle(
+                new HasActiveFightQuery { PlayerId = playerId },
+                cancellationToken
+            )
+        )
+        {
+            return FightHeldProblem("Can't interact with anyone during a fight.");
+        }
+
         await simulation.Request(
             worldId,
             async (_, token) =>

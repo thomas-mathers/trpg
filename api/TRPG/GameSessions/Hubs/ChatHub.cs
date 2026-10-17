@@ -40,11 +40,8 @@ public interface IChatHub
     Task<ActionResult> SendMove(Guid connectorId);
     Task SendMovementInput(PlayerMovementInput input);
     Task SendRefreshScene();
-    Task<ActionResult> SendFlee();
     Task<ActionResult> SendRespawn();
     Task<ActionResult> SendCastAbility(Guid targetId, string abilityName);
-    Task<ActionResult> ResolveUseAbilityCombatAction(Guid targetId, string abilityName);
-    Task<ActionResult> ResolveUseItemCombatAction(string itemName);
     Task<ActionResult> ResolveAttackEncounterAction();
     Task<ActionResult> ResolveFleeEncounterAction();
     Task<ActionResult> ResolveIntimidateEncounterAction();
@@ -191,9 +188,6 @@ internal sealed class ChatHub(
 
     public Task SendRefreshScene() =>
         gameTurnRunner.RefreshScene(Session, Context.ConnectionAborted);
-
-    public Task<ActionResult> SendFlee() =>
-        Result(gameTurnRunner.Flee(Session, Context.ConnectionAborted));
 
     public Task<ActionResult> SendRespawn() =>
         Result(gameTurnRunner.Respawn(Session, Context.ConnectionAborted));
@@ -346,24 +340,6 @@ internal sealed class ChatHub(
             gameTurnRunner.TheftEncounterAction(
                 Session,
                 new FleeTheftEncounterAction(),
-                Context.ConnectionAborted
-            )
-        );
-
-    public Task<ActionResult> ResolveUseAbilityCombatAction(Guid targetId, string abilityName) =>
-        Result(
-            gameTurnRunner.CombatAction(
-                Session,
-                new UseAbilityAction(targetId, abilityName),
-                Context.ConnectionAborted
-            )
-        );
-
-    public Task<ActionResult> ResolveUseItemCombatAction(string itemName) =>
-        Result(
-            gameTurnRunner.CombatAction(
-                Session,
-                new UseItemAction(itemName),
                 Context.ConnectionAborted
             )
         );

@@ -15,6 +15,7 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
         IClassFixture<DatabaseFixture>
 {
     private readonly Guid _worldId = Guid.NewGuid();
+    private Guid _locationId;
     private TrpgDbContext _context = null!;
     private ServiceProvider _serviceProvider = null!;
     private WaitActionHandler _handler = null!;
@@ -35,6 +36,7 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
 
         var state = Builders.MakeState(Guid.NewGuid(), worldId: _worldId);
         var location = Builders.MakeLocation(_worldId, state.Id);
+        _locationId = location.Id;
         var player = Builders.MakeCreature(_worldId, locationId: location.Id);
         player.Posture = CreaturePosture.Sitting;
         player.ActiveDots =
@@ -102,6 +104,28 @@ public sealed class WaitActionHandlerTests(DatabaseFixture db)
 
         Assert.True(outcome.Succeeded);
         Assert.Contains(_events.EnqueuedEvents, gameEvent => gameEvent is ClockReanchoredEvent);
+    }
+
+    [Fact]
+    public async Task Handle_RefusesToWait_WhenAFightIsHeld()
+    {
+        // Arrange
+        _context.Encounters.Add(
+            new FightEncounter
+            {
+                WorldId = _worldId,
+                PlayerId = _session.PlayerId,
+                LocationId = _locationId,
+                CombatantIds = [_session.PlayerId],
+            }
+        );
+        await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act
+        var outcome = await _handler.Handle(_session, 1, 0, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(ActionFailure.EncounterActive, outcome.Failure);
     }
 
     private sealed class NoOpGameClientEventDispatcher : IGameClientEventDispatcher

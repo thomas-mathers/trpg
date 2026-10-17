@@ -16,7 +16,6 @@ namespace TRPG.Application.Combat.Events;
 [JsonDerivedType(typeof(ConsumedPotion), "ConsumedPotion")]
 [JsonDerivedType(typeof(Regenerated), "Regenerated")]
 [JsonDerivedType(typeof(ResourceStateUpdated), "ResourceStateUpdated")]
-[JsonDerivedType(typeof(FleeFailed), "FleeFailed")]
 public abstract record CombatResolution;
 
 public sealed record Hit(
@@ -128,6 +127,3 @@ public sealed record ResourceStateUpdated(
     int CurrentMp,
     int MaximumMp
 ) : CombatResolution;
-
-public sealed record FleeFailed([property: JsonIgnore] Guid CreatureId, string CreatureName)
-    : CombatResolution;

@@ -35,7 +35,6 @@ public class CombatEngineUseAbilityTests
 
         return new CombatEngine(
             snapshot,
-            new TestOptionsSnapshot<FleeOptions>(new FleeOptions()),
             hitCalculator,
             damageCalculator,
             new EnemyCombatActionResolver(snapshot, damageCalculator, hitCalculator),

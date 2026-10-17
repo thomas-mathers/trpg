@@ -1,4 +1,5 @@
 using TRPG.Application.Creatures.Commands;
+using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Movement;
 using TRPG.Domain.Models;
 
@@ -64,7 +65,9 @@ public sealed class CreaturePoseMapper
                 completed.LocationId,
                 null,
                 CreatureMovement.Stationary,
-                completed.Move.Action.ToActivity(),
+                completed.Move.TargetKind == LocalMoveTargetKind.Pursuit
+                    ? null
+                    : completed.Move.Action.ToActivity(),
                 completed.StopPosition
             ),
             LocalMoveInterrupted interrupted => new CreaturePoseUpdate(

@@ -16,7 +16,6 @@ namespace TRPG.Application.Combat;
 
 public class CombatEngine(
     IOptionsSnapshot<CombatOptions> optionsSnapshot,
-    IOptionsSnapshot<FleeOptions> fleeOptionsSnapshot,
     HitCalculator hitCalculator,
     DamageCalculator damageCalculator,
     EnemyCombatActionResolver enemyCombatActionResolver,
@@ -24,71 +23,137 @@ public class CombatEngine(
     EffectTimeScale timeScale
 )
 {
-    public CombatState ProcessRound(
-        IReadOnlyList<Combatant> combatants,
-        ResolvedCombatAction action,
-        GameInstant now,
-        bool isSurpriseRound = false
-    )
+    public void BeginFight(IReadOnlyList<Combatant> combatants, GameInstant now)
     {
-        var player = combatants.Single(c => c.IsPlayer);
-        var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
-
-        // A successful flee returns immediately below; a failed one falls through to the normal round, chasers included.
-        if (action is ResolvedFleeAction && !IsFleeCaught(player, enemies))
+        foreach (var combatant in combatants)
         {
-            return new CombatState(
-                Outcome: CombatOutcome.Fled,
-                Combatants: ToOrderedCombatantResults(combatants),
-                Events: [],
-                WeaponSwingCounts: player.WeaponSwingCounts,
-                SkillUsageCounts: player.SkillUsageCounts
-            );
+            combatant.ResourceRegenAt = now + timeScale.Round;
         }
+    }
 
-        var effects = AdvanceEffects(combatants, now);
-        var combatEvents = effects.Events.ToList();
-
-        combatEvents.AddRange(
-            isSurpriseRound
-                ? ProcessTurn(player, action, now)
-                : ProcessNormalRound(combatants, player, action, now)
+    public void DelayEnemies(IReadOnlyList<Combatant> combatants, GameInstant now)
+    {
+        var delay = timeScale.Scale(
+            TimeSpan.FromSeconds(optionsSnapshot.Value.UnawareDelaySeconds)
         );
+        foreach (var enemy in combatants.Where(c => !c.IsPlayer))
+        {
+            enemy.ActsNotBefore = now + delay;
+        }
+    }
 
-        var outcome = GetCurrentOutcome(player, enemies);
+    public CombatState Flee(IReadOnlyList<Combatant> combatants) =>
+        ToState(combatants, [], false) with
+        {
+            Outcome = CombatOutcome.Fled,
+        };
 
-        return new CombatState(
-            Outcome: outcome,
-            Combatants: ToOrderedCombatantResults(combatants),
-            Events: combatEvents,
-            WeaponSwingCounts: player.WeaponSwingCounts,
-            SkillUsageCounts: player.SkillUsageCounts,
-            EffectsChanged: effects.Changed
+    public CombatState TickFight(IReadOnlyList<Combatant> combatants, GameInstant now)
+    {
+        var effects = AdvanceEffects(combatants, now);
+        var regeneration = TickRegeneration(combatants, now);
+
+        return ToState(
+            combatants,
+            [.. effects.Events, .. regeneration],
+            effects.Changed || regeneration.Count > 0
         );
     }
 
-    public CombatState ProcessPlayerTurn(
+    public AbilityUseResult ActAsEnemy(
         IReadOnlyList<Combatant> combatants,
-        ResolvedCombatAction action,
+        Guid enemyId,
         GameInstant now
-    ) => ProcessRound(combatants, action, now, isSurpriseRound: true);
-
-    public CombatState ProcessEffectTick(IReadOnlyList<Combatant> combatants, GameInstant now)
+    )
     {
+        var enemy = combatants.Single(c => c.CreatureId == enemyId);
+        if (!enemy.IsAlive)
+        {
+            return AbilityUseResult.Rejected(
+                AbilityUseRejection.Incapacitated,
+                $"{enemy.Name} is dead."
+            );
+        }
+
+        if (enemy.ActsNotBefore > now || enemy.GlobalCooldownReadyAt > now)
+        {
+            return AbilityUseResult.Rejected(AbilityUseRejection.NotReady, "Not ready to act.");
+        }
+
         var player = combatants.Single(c => c.IsPlayer);
-        var enemies = combatants.Where(c => !c.IsPlayer).ToArray();
+        var action = enemyCombatActionResolver.Resolve(enemy, player, now);
+        if (action is null)
+        {
+            return AbilityUseResult.Rejected(AbilityUseRejection.NotReady, "Nothing to do.");
+        }
 
-        var effects = AdvanceEffects(combatants, now);
-        var combatEvents = effects.Events.ToList();
+        enemy.Heading = AbilityFacing.HeadingToward(enemy.Position, player.Position);
 
-        return new CombatState(
-            Outcome: GetCurrentOutcome(player, enemies),
-            Combatants: ToOrderedCombatantResults(combatants),
-            Events: combatEvents,
-            WeaponSwingCounts: player.WeaponSwingCounts,
-            SkillUsageCounts: player.SkillUsageCounts,
-            EffectsChanged: effects.Changed
+        return action switch
+        {
+            ResolvedUseAbilityAction resolved => UseAbility(
+                combatants,
+                enemyId,
+                resolved.Targets[0].CreatureId,
+                resolved.Ability.Name,
+                now
+            ),
+            ResolvedUseItemAction resolved => ConsumeItem(combatants, enemy, resolved.Item, now),
+            _ => AbilityUseResult.Rejected(AbilityUseRejection.NotReady, "Nothing to do."),
+        };
+    }
+
+    public AbilityUseResult UseItem(
+        IReadOnlyList<Combatant> combatants,
+        Guid actorId,
+        Guid itemId,
+        GameInstant now
+    )
+    {
+        var actor = combatants.Single(c => c.CreatureId == actorId);
+        var item = actor.ConsumableItemSnapshots.FirstOrDefault(i =>
+            i.ItemId == itemId && i.Quantity > 0
         );
+        if (item is null)
+        {
+            return AbilityUseResult.Rejected(
+                AbilityUseRejection.NotFound,
+                "You don't have that item."
+            );
+        }
+
+        return ConsumeItem(combatants, actor, item, now);
+    }
+
+    private AbilityUseResult ConsumeItem(
+        IReadOnlyList<Combatant> combatants,
+        Combatant actor,
+        ConsumableItemSnapshot item,
+        GameInstant now
+    )
+    {
+        if (!actor.IsAlive)
+        {
+            return AbilityUseResult.Rejected(
+                AbilityUseRejection.Incapacitated,
+                $"{actor.Name} is dead."
+            );
+        }
+
+        if (GetIncapacitationEvent(actor, null, now) is NoAction noAction)
+        {
+            return AbilityUseResult.Rejected(
+                AbilityUseRejection.Incapacitated,
+                $"{actor.Name} cannot act while {noAction.Condition}."
+            );
+        }
+
+        var index = actor.ConsumableItemSnapshots.IndexOf(item);
+        actor.ConsumableItemSnapshots[index] = item with { Quantity = item.Quantity - 1 };
+        var events = ProcessItem(actor, item);
+        actor.GlobalCooldownReadyAt = now + timeScale.Scale(CombatTiming.GlobalCooldown);
+
+        return AbilityUseResult.Used(ToState(combatants, events, true));
     }
 
     public AbilityUseResult UseAbility(
@@ -117,15 +182,14 @@ public class CombatEngine(
         );
         if (validation.Use is not { } use)
         {
-            return AbilityUseResult.Rejected(validation.Rejection!.Value, validation.Message!);
+            return AbilityUseResult.Rejected(
+                validation.Rejection!.Value,
+                validation.Message!,
+                validation.Reach
+            );
         }
 
-        var incapacitation = GetIncapacitationEvent(
-            actor,
-            new ResolvedUseAbilityAction(use.Ability, use.Targets),
-            now
-        );
-        if (incapacitation is NoAction noAction)
+        if (GetIncapacitationEvent(actor, use.Ability, now) is NoAction noAction)
         {
             return AbilityUseResult.Rejected(
                 AbilityUseRejection.Incapacitated,
@@ -133,22 +197,19 @@ public class CombatEngine(
             );
         }
 
-        var events = ProcessAbility(
-            actor,
-            new ResolvedUseAbilityAction(use.Ability, use.Targets),
-            now
-        );
+        var events = ProcessAbility(actor, use.Ability, use.Targets, now);
         if (use.Ability.TriggersGlobalCooldown)
         {
             actor.GlobalCooldownReadyAt = now + timeScale.Scale(CombatTiming.GlobalCooldown);
         }
 
-        return AbilityUseResult.Used(ToState(combatants, events));
+        return AbilityUseResult.Used(ToState(combatants, events, true));
     }
 
     private static CombatState ToState(
         IReadOnlyList<Combatant> combatants,
-        IReadOnlyList<CombatResolution> events
+        IReadOnlyList<CombatResolution> events,
+        bool effectsChanged
     )
     {
         var player = combatants.Single(c => c.IsPlayer);
@@ -157,20 +218,10 @@ public class CombatEngine(
             Outcome: GetCurrentOutcome(player, combatants.Where(c => !c.IsPlayer).ToArray()),
             Combatants: ToOrderedCombatantResults(combatants),
             Events: events,
-            WeaponSwingCounts: player.WeaponSwingCounts,
-            SkillUsageCounts: player.SkillUsageCounts,
-            EffectsChanged: true
+            WeaponSwingCounts: player.WeaponSwingCounts.ToDictionary(),
+            SkillUsageCounts: player.SkillUsageCounts.ToDictionary(),
+            EffectsChanged: effectsChanged
         );
-    }
-
-    private bool IsFleeCaught(Combatant player, IReadOnlyList<Combatant> enemies)
-    {
-        var catchChance = EvadeChanceCalculator.CatchChance(
-            fleeOptionsSnapshot.Value,
-            ToEvadeParticipant(player),
-            enemies.Where(e => e.IsAlive).Select(ToEvadeParticipant).ToArray()
-        );
-        return Random.Shared.NextDouble() < catchChance;
     }
 
     private static IReadOnlyList<CombatantResult> ToOrderedCombatantResults(
@@ -198,38 +249,16 @@ public class CombatEngine(
         return new AdvancedEffects(changed, events);
     }
 
-    private List<CombatResolution> ProcessNormalRound(
+    private List<CombatResolution> TickRegeneration(
         IReadOnlyList<Combatant> combatants,
-        Combatant player,
-        ResolvedCombatAction action,
         GameInstant now
     )
     {
-        var turnOrder = combatants.OrderByTurnOrder();
-
-        var combatEvents = turnOrder
-            .SelectMany(combatant =>
-                combatant == player
-                    ? ProcessTurn(player, action, now)
-                    : ProcessTurn(
-                        combatant,
-                        enemyCombatActionResolver.Resolve(combatant, player, now),
-                        now
-                    )
-            )
-            .ToList();
-
-        combatEvents.AddRange(TickRegeneration(combatants));
-
-        return combatEvents;
-    }
-
-    private List<CombatResolution> TickRegeneration(IReadOnlyList<Combatant> combatants)
-    {
         var regenerationEvents = new List<CombatResolution>();
 
-        foreach (var combatant in combatants.Where(c => c.IsAlive))
+        foreach (var combatant in combatants.Where(c => c.IsAlive && c.ResourceRegenAt <= now))
         {
+            combatant.ResourceRegenAt = now + timeScale.Round;
             var regeneration = TickInCombatResourceRegeneration(combatant);
             if (regeneration is not null)
             {
@@ -240,42 +269,13 @@ public class CombatEngine(
         return regenerationEvents;
     }
 
-    private List<CombatResolution> ProcessTurn(
-        Combatant actor,
-        ResolvedCombatAction action,
-        GameInstant now
-    )
-    {
-        if (!actor.IsAlive)
-        {
-            return [];
-        }
-
-        var incapacitationEvent = GetIncapacitationEvent(actor, action, now);
-
-        if (incapacitationEvent is not null)
-        {
-            return [incapacitationEvent];
-        }
-
-        return action switch
-        {
-            ResolvedUseAbilityAction resolved => ProcessAbility(actor, resolved, now),
-            ResolvedUseItemAction resolved => ProcessItem(actor, resolved.Item),
-            // Reached only when the flee attempt was caught — a successful escape already returned above.
-            ResolvedFleeAction => [new FleeFailed(actor.CreatureId, actor.Name)],
-            _ => [],
-        };
-    }
-
     private List<CombatResolution> ProcessAbility(
         Combatant actor,
-        ResolvedUseAbilityAction resolvedUseAbilityAction,
+        Ability ability,
+        IReadOnlyList<Combatant> targets,
         GameInstant now
     )
     {
-        var (ability, targets) = resolvedUseAbilityAction;
-
         if (ability.Cooldown > TimeSpan.Zero)
         {
             actor.CooldownReadyAtByAbility[ability.Name] = now + timeScale.Scale(ability.Cooldown);
@@ -701,7 +701,7 @@ public class CombatEngine(
 
     private static CombatResolution? GetIncapacitationEvent(
         Combatant attacker,
-        ResolvedCombatAction action,
+        Ability? ability,
         GameInstant now
     )
     {
@@ -714,10 +714,6 @@ public class CombatEngine(
         {
             return new NoAction(attacker.Name, ConditionType.Stunned);
         }
-
-        var ability = action is ResolvedUseAbilityAction resolvedAbility
-            ? resolvedAbility.Ability
-            : null;
 
         if (ability is null)
         {
@@ -769,22 +765,5 @@ public class CombatEngine(
         }
 
         return CombatOutcome.Ongoing;
-    }
-
-    private static EvadeParticipant ToEvadeParticipant(Combatant combatant) =>
-        new(
-            combatant.Dexterity,
-            combatant.CurrentHp,
-            combatant.MaximumHp,
-            combatant.CurrentAp,
-            combatant.MaximumAp
-        );
-}
-
-internal static class CombatantExtensions
-{
-    public static IReadOnlyList<Combatant> OrderByTurnOrder(this IEnumerable<Combatant> combatants)
-    {
-        return combatants.Shuffled().OrderByDescending(c => c.TurnOrder).ToArray();
     }
 }

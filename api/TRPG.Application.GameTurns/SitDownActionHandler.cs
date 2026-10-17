@@ -1,4 +1,6 @@
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
+using TRPG.Application.Encounters.Queries;
 using TRPG.Application.GameTurns.Commands;
 using TRPG.Application.WorldSimulation.Poses;
 
@@ -7,6 +9,7 @@ namespace TRPG.Application.GameTurns;
 internal class SitDownActionHandler(
     GameActionRunner actionRunner,
     SeatingAnnouncer seatingAnnouncer,
+    IQueryHandler<HasActiveFightQuery, bool> hasActiveFight,
     ICommandHandler<SitDownCommand, SitDownResult> sitDown
 )
 {
@@ -28,6 +31,15 @@ internal class SitDownActionHandler(
         CancellationToken cancellationToken
     )
     {
+        var fightHeld = await hasActiveFight.Handle(
+            new HasActiveFightQuery { PlayerId = session.PlayerId },
+            cancellationToken
+        );
+        if (fightHeld)
+        {
+            return ActionOutcome.Failed(ActionFailure.EncounterActive);
+        }
+
         var result = await sitDown.Handle(
             new SitDownCommand
             {

@@ -21,7 +21,6 @@ internal static class CombatActionResultMapper
                     HealOverTimeApplied hot => hot.ToCombatActionResult(),
                     BuffApplied buff => buff.ToCombatActionResult(),
                     ConsumedPotion potion => potion.ToCombatActionResult(),
-                    FleeFailed fleeFailed => fleeFailed.ToCombatActionResult(),
                     _ => null,
                 }
             )
@@ -179,26 +178,5 @@ internal static class CombatActionResultMapper
             null,
             null,
             CombatNarration.Describe(potion) ?? string.Empty
-        );
-
-    private static CombatActionResult ToCombatActionResult(this FleeFailed fleeFailed) =>
-        new(
-            CombatActionOutcome.FleeFailed,
-            fleeFailed.CreatureId,
-            fleeFailed.CreatureName,
-            "Flee",
-            fleeFailed.CreatureId,
-            fleeFailed.CreatureName,
-            null,
-            null,
-            null,
-            false,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            CombatNarration.Describe(fleeFailed) ?? string.Empty
         );
 }

@@ -20,7 +20,6 @@ using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Application.Worlds.Commands;
 using TRPG.Application.WorldSimulation;
 using TRPG.Application.WorldSimulation.Subscriptions;
-using TRPG.Combat.Tools;
 using TRPG.Configuration;
 using TRPG.Data;
 using TRPG.Data.ModuleContexts;
@@ -67,7 +66,6 @@ internal static class ServiceCollectionExtensions
             .AddTrpgJobs()
             .AddGameTool<WorldInfoTool>()
             .AddGameTool<InventoryTool>()
-            .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
             .AddGameTool<AskAboutFactTool>()

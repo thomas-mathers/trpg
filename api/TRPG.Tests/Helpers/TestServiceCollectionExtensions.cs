@@ -11,7 +11,6 @@ using TRPG.Application.Common.Exceptions;
 using TRPG.Application.Configuration;
 using TRPG.Application.QuestGeneration.Commands;
 using TRPG.Application.WorldSimulation;
-using TRPG.Combat.Tools;
 using TRPG.Data;
 using TRPG.Domain;
 using TRPG.Extensions;
@@ -38,7 +37,6 @@ internal static class TestServiceCollectionExtensions
         services.RemoveAll<IWorldClock>();
 
         return services
-            .AddGameTool<StartFightTool>()
             .AddGameTool<StartConversationTool>()
             .AddGameTool<EndConversationTool>()
             .AddTransient<EndGameSessionCommandHandler>()

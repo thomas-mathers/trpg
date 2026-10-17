@@ -16,12 +16,11 @@ internal sealed class ActiveLocationPasses(
     ILogger logger
 )
 {
-    private readonly DueEntry _fightEffects = new(cadence.ActiveLocationPass);
     private readonly DueEntry _maintenance = new(cadence.LocationMaintenance);
 
     public async Task Run(GameInstant now, CancellationToken cancellationToken)
     {
-        var due = new DuePasses(_fightEffects.TakeIfDue(now), _maintenance.TakeIfDue(now));
+        var due = new DuePasses(_maintenance.TakeIfDue(now));
         if (!due.Any)
         {
             return;
@@ -58,26 +57,6 @@ internal sealed class ActiveLocationPasses(
         if (players.Count == 0)
         {
             return;
-        }
-
-        if (due.FightEffects)
-        {
-            await Isolate(
-                "fight effects",
-                () =>
-                    services
-                        .GetRequiredService<ICommandHandler<SyncActiveFightEffectsCommand>>()
-                        .Handle(
-                            new SyncActiveFightEffectsCommand
-                            {
-                                WorldId = worldId,
-                                Players = players,
-                                GameTime = now,
-                            },
-                            cancellationToken
-                        ),
-                cancellationToken
-            );
         }
 
         if (due.Maintenance)
@@ -123,8 +102,8 @@ internal sealed class ActiveLocationPasses(
         }
     }
 
-    private readonly record struct DuePasses(bool FightEffects, bool Maintenance)
+    private readonly record struct DuePasses(bool Maintenance)
     {
-        public bool Any => FightEffects || Maintenance;
+        public bool Any => Maintenance;
     }
 }
