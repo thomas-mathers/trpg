@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using TRPG.Application.Common.Commands;
 using TRPG.Application.Common.Events;
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.Props.Queries;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
@@ -24,6 +25,7 @@ internal class AddCellCommandHandler(
         await context.SaveChangesAsync(cancellationToken);
 
         cache.Remove(GetPropsByLocationIdQueryHandler.CacheKey(command.Cell.LocationId));
+        cache.Remove(NavigationCacheKeys.Grid(command.Cell.LocationId));
         await propAdded.Publish(
             new PropAddedEvent(command.Cell.WorldId, command.Cell.LocationId),
             cancellationToken

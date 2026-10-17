@@ -23,7 +23,9 @@ export async function runAction(action: Promise<ActionResult>): Promise<ActionRe
   try {
     const result = await action;
     if (!result.succeeded) {
-      toastFailure(result.reason ? actionFailureCopy[result.reason] : GENERIC_FAILURE);
+      toastFailure(
+        result.detail ?? (result.reason ? actionFailureCopy[result.reason] : GENERIC_FAILURE),
+      );
     }
     return result;
   } catch (error) {

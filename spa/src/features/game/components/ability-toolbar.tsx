@@ -14,6 +14,7 @@ import { useCastTargeting } from '@/features/game/hooks/use-cast-targeting';
 import { useTarget } from '@/features/game/hooks/use-target';
 import { getAbilityIcon } from '@/features/skills/ability-visuals';
 
+import { abilityIndexForKey, hotkeyLabel } from '../ability-hotkeys';
 import { resolveCastTarget } from '../cast-target';
 
 export function AbilityToolbar() {
@@ -41,11 +42,23 @@ export function AbilityToolbar() {
   }, [scene, playerId, queryClient]);
 
   const castable = abilitiesQuery.data ?? [];
+  const availabilityByName = new Map((availabilityQuery.data ?? []).map((a) => [a.name, a]));
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const index = abilityIndexForKey(event.code);
+      const ability = index === undefined ? undefined : castable[index];
+      if (!ability || event.repeat || !document.pointerLockElement) return;
+      if (availabilityByName.get(ability.name)?.isUsable === false) return;
+      selectAbility(ability);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
+
   if (!playerId || castable.length === 0) {
     return null;
   }
-
-  const availabilityByName = new Map((availabilityQuery.data ?? []).map((a) => [a.name, a]));
 
   return (
     <TooltipProvider>
@@ -55,7 +68,7 @@ export function AbilityToolbar() {
           role="toolbar"
           aria-label="Abilities"
         >
-          {castable.map((ability) => {
+          {castable.map((ability, index) => {
             const availability = availabilityByName.get(ability.name);
             const needsTarget = resolveCastTarget(ability, target?.id, playerId) === undefined;
             const usable = !needsTarget && (availability?.isUsable ?? true);
@@ -69,10 +82,15 @@ export function AbilityToolbar() {
                       size="icon"
                       aria-label={ability.name}
                       disabled={!usable}
-                      className="size-9"
+                      className="relative size-9"
                       onClick={() => selectAbility(ability)}
                     >
                       <Icon className="size-5" />
+                      {hotkeyLabel(index) && (
+                        <span className="text-muted-foreground absolute right-0.5 bottom-0 text-[0.6rem] leading-none">
+                          {hotkeyLabel(index)}
+                        </span>
+                      )}
                     </Button>
                   </span>
                 </TooltipTrigger>

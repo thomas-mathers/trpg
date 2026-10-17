@@ -12,6 +12,8 @@ export type ActionResult = {
     succeeded: boolean;
     /** Transpiled from TRPG.GameSessions.Responses.ActionFailureReason */
     reason?: ActionFailureReason;
+    /** Transpiled from string */
+    detail?: string;
 }
 
 /** Transpiled from TRPG.GameSessions.Responses.CrimeNotification */

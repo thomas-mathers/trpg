@@ -68,7 +68,10 @@ public sealed class CreaturePoseMapper
                 completed.Move.TargetKind == LocalMoveTargetKind.Pursuit
                     ? null
                     : completed.Move.Action.ToActivity(),
-                completed.StopPosition
+                completed.StopPosition,
+                StandAngle: completed.Move.TargetKind == LocalMoveTargetKind.Pursuit
+                    ? LocalMoveWalker.Heading(completed.Move.Path, double.MaxValue)
+                    : null
             ),
             LocalMoveInterrupted interrupted => new CreaturePoseUpdate(
                 interrupted.CreatureId,
@@ -76,7 +79,8 @@ public sealed class CreaturePoseMapper
                 null,
                 CreatureMovement.Stationary,
                 null,
-                interrupted.StopPosition
+                interrupted.StopPosition,
+                StandAngle: interrupted.Heading
             ),
             _ => throw new ArgumentOutOfRangeException(nameof(simEvent)),
         };

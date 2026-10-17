@@ -1,11 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Data.ModuleContexts;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.LocalActivities;
 
-internal sealed class LocalActivityPlanner(IPropsDbContext props, IWorldsDbContext worlds)
+internal sealed class LocalActivityPlanner(IPropsDbContext props, LocationNavigationGrids grids)
 {
     public async Task<bool> IsSettled(
         Creature creature,
@@ -54,18 +53,11 @@ internal sealed class LocalActivityPlanner(IPropsDbContext props, IWorldsDbConte
         CancellationToken cancellationToken
     )
     {
-        var location = await worlds
-            .Locations.AsNoTracking()
-            .SingleAsync(location => location.Id == job.LocationId, cancellationToken);
         var localProps = await props
             .Props.AsNoTracking()
             .Where(prop => prop.LocationId == job.LocationId)
             .ToArrayAsync(cancellationToken);
-        var buildings = await worlds
-            .Buildings.AsNoTracking()
-            .Where(building => building.ExteriorLocationId == job.LocationId)
-            .ToArrayAsync(cancellationToken);
-        var grid = LocationNavigationGrid.Build(location, localProps, buildings);
+        var grid = await grids.Get(job.LocationId, cancellationToken);
 
         return Candidates(localProps, creature.Id, job.Action)
             .Select(candidate => ToPlan(creature, job, origin, candidate, grid))

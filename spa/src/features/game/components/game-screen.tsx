@@ -36,6 +36,7 @@ import { GameMenu } from './game-menu';
 import { GameNotifications } from './game-notifications';
 import { NearbySidebar } from './nearby-sidebar';
 import { NearbyToggleButton } from './nearby-toggle-button';
+import { PlayerCombatText } from './player-combat-text';
 import { StatusBar } from './status-bar';
 import { WaitDialog } from './wait-dialog';
 
@@ -202,6 +203,8 @@ function GameScreenContent({
               </Suspense>
 
               <EncounterDialogs />
+
+              {playerId && <PlayerCombatText playerId={playerId} />}
 
               {!isEncounterActive && (
                 <div className="bg-background/50 absolute bottom-4 left-1/2 z-10 w-[min(48rem,calc(100%-2rem))] -translate-x-1/2 rounded-lg px-3 pt-2 shadow-lg backdrop-blur-sm">

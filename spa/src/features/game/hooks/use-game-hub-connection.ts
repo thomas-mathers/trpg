@@ -110,6 +110,9 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       propOccupancyChanged: async (payload) => gameEventBus.emit('PropOccupancyChanged', payload),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
       combatUpdated: async (update) => {
+        if (update.actions.length > 0) {
+          gameEventBus.emit('CombatActions', update.actions);
+        }
         if (update.outcome !== 'Ongoing') {
           gameEventBus.emit('CombatResolved', update.outcome);
         }

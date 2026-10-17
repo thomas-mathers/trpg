@@ -1,10 +1,10 @@
-using TRPG.Application.WorldGeneration.Generators;
+using TRPG.Application.Common.Navigation;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
 
 namespace TRPG.Tests.Application.WorldGeneration.Generators;
 
-public class RoomNavigationGridTests
+public class NavigationGridTests
 {
     private static readonly Location Room = Builders.MakeLocation(width: 10, depth: 10);
 
@@ -12,7 +12,14 @@ public class RoomNavigationGridTests
     public void FindPath_WalksAroundAFurnitureProp_WhenItSitsOnTheStraightLine()
     {
         // Arrange
-        var grid = RoomNavigationGrid.Build(Room, [MakeFurniture(PropModel.FurnitureTable, 5, 5)]);
+        var grid = NavigationGrid.From(
+            MovementSpaceBuilder.Build(
+                Room,
+                [MakeFurniture(PropModel.FurnitureTable, 5, 5)],
+                [],
+                []
+            )
+        );
 
         // Act
         var path = grid.FindPath(new Point(1.25, 5), new Point(8.75, 5));
@@ -28,7 +35,9 @@ public class RoomNavigationGridTests
     public void FindPath_WalksStraightThrough_WhenThePropDoesNotBlockTheFloor(PropModel model)
     {
         // Arrange
-        var grid = RoomNavigationGrid.Build(Room, [MakeFurniture(model, 5, 5)]);
+        var grid = NavigationGrid.From(
+            MovementSpaceBuilder.Build(Room, [MakeFurniture(model, 5, 5)], [], [])
+        );
 
         // Act
         var path = grid.FindPath(new Point(1.25, 5), new Point(8.75, 5));
@@ -45,7 +54,7 @@ public class RoomNavigationGridTests
         prop.Width = 4;
         prop.Depth = 1;
         prop.Angle = Math.PI / 2;
-        var grid = RoomNavigationGrid.Build(Room, [prop]);
+        var grid = NavigationGrid.From(MovementSpaceBuilder.Build(Room, [prop], [], []));
 
         // Act
         var path = grid.FindPath(new Point(2, 5), new Point(8, 5));

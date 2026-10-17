@@ -1,11 +1,9 @@
-using Microsoft.EntityFrameworkCore;
-using TRPG.Application.WorldGeneration.Generators;
-using TRPG.Data.ModuleContexts;
+using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Fights;
 
-internal sealed class ChasePathPlanner(IPropsDbContext props, IWorldsDbContext worlds)
+internal sealed class ChasePathPlanner(LocationNavigationGrids grids)
 {
     public async Task<IReadOnlyList<Point>?> Plan(
         Guid locationId,
@@ -15,18 +13,7 @@ internal sealed class ChasePathPlanner(IPropsDbContext props, IWorldsDbContext w
         CancellationToken cancellationToken
     )
     {
-        var location = await worlds
-            .Locations.AsNoTracking()
-            .SingleAsync(location => location.Id == locationId, cancellationToken);
-        var localProps = await props
-            .Props.AsNoTracking()
-            .Where(prop => prop.LocationId == locationId)
-            .ToArrayAsync(cancellationToken);
-        var buildings = await worlds
-            .Buildings.AsNoTracking()
-            .Where(building => building.ExteriorLocationId == locationId)
-            .ToArrayAsync(cancellationToken);
-        var grid = LocationNavigationGrid.Build(location, localProps, buildings);
+        var grid = await grids.Get(locationId, cancellationToken);
 
         return StopShort(grid.FindPath(from, target), stopDistance);
     }

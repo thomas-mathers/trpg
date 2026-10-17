@@ -45,6 +45,7 @@ function props() {
     creatures,
     statuses,
     enabled: true,
+    engagedIds: new Set<string>(),
     onTarget: vi.fn(),
     onFocus: vi.fn(),
     onRestored: vi.fn(),
@@ -57,6 +58,15 @@ function tick() {
 }
 
 describe('creature focus controller', () => {
+  it('does not focus a creature that is in combat with the player', () => {
+    const handlers = { ...props(), engagedIds: new Set(['npc']) };
+    renderWithProviders(<CreatureFocusController {...handlers} />);
+
+    fireEvent.keyDown(window, { code: 'KeyE' });
+
+    expect(handlers.onFocus).not.toHaveBeenCalled();
+  });
+
   it('focuses the rendered creature instead of its old snapshot placement', () => {
     const handlers = props();
     const stale = [{ ...statuses[0], placement: { x: 8, y: -2, angle: 0 } }];

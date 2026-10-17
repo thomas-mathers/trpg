@@ -83,7 +83,8 @@ public sealed record LocalMoveInterrupted(
     Guid CreatureId,
     GameInstant At,
     Guid LocationId,
-    Point StopPosition
+    Point StopPosition,
+    double? Heading = null
 ) : CreatureSimEvent(CreatureId, At);
 
 public abstract record CreatureVitalsEvent(

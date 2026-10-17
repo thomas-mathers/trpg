@@ -16,6 +16,7 @@ export function CreatureFocusController({
   creatures,
   statuses,
   enabled,
+  engagedIds,
   onTarget,
   onFocus,
   onRestored,
@@ -24,6 +25,7 @@ export function CreatureFocusController({
   creatures: Pick<CreatureStatusSnapshot, 'id' | 'placement'>[];
   statuses: CreatureStatusSnapshot[];
   enabled: boolean;
+  engagedIds: ReadonlySet<string>;
   onTarget: (id: string | undefined) => void;
   onFocus: (focus: CreatureFocus) => void;
   onRestored: () => void;
@@ -43,6 +45,7 @@ export function CreatureFocusController({
       )
         return;
       const id = pickCreature(camera, scene, raycaster.current);
+      if (id && engagedIds.has(id)) return;
       const creature = creatures.find((entry) => entry.id === id);
       const status = statuses.find((entry) => entry.id === id);
       if (!creature || !status) return;
@@ -54,12 +57,13 @@ export function CreatureFocusController({
     };
     window.addEventListener('keydown', interact, true);
     return () => window.removeEventListener('keydown', interact, true);
-  }, [camera, scene, enabled, focus, creatures, statuses, onFocus]);
+  }, [camera, scene, enabled, focus, creatures, statuses, engagedIds, onFocus]);
   useFrame(() => {
-    const id =
+    const picked =
       enabled && !focus && document.pointerLockElement
         ? pickCreature(camera, scene, raycaster.current)
         : undefined;
+    const id = picked && engagedIds.has(picked) ? undefined : picked;
     if (id !== target.current) {
       target.current = id;
       onTarget(id);

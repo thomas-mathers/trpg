@@ -48,6 +48,7 @@ public static class WorldSimulationServiceCollectionExtensions
             )
             .AddScoped<WorldSimulatorLoader>()
             .AddScoped<WeatherExposureProvider>()
+            .AddScoped<LocationNavigationGrids>()
             .AddScoped<LocalActivityPlanner>()
             .AddScoped<ChasePathPlanner>()
             .AddScoped<LocalActivityCompleter>()

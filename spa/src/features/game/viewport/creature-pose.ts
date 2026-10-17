@@ -10,6 +10,7 @@ export interface PoseInputs {
   upperYaw: number;
   idleTime?: number;
   shielded?: boolean;
+  strike?: number;
 }
 
 const SEAT_DROP = 0.27;
@@ -28,6 +29,11 @@ const LOOKING_OFFHAND_FOREARM_ROLL = 1.45;
 const LOOKING_ARM_SWAY = 0.14;
 const LOOKING_FOREARM_BOB = 0.12;
 const HELD_WEAPON_TILT = -0.7;
+const STRIKE_UPPER_ARM = 1.9;
+const STRIKE_FOREARM = 0.6;
+const STRIKE_WIND_UP_END = 0.3;
+const STRIKE_FOLLOW_THROUGH_END = 0.5;
+const STRIKE_OVERSHOOT = 0.4;
 
 const THIGH_LENGTH = JOINTS.thighR[1] - JOINTS.shinR[1];
 const ANKLE_HEIGHT = JOINTS.footR[1];
@@ -108,17 +114,42 @@ function lookingPose(phase: number, amount: number, idleTime: number, shielded: 
   });
 }
 
+export function strikeSwing(progress: number): number {
+  if (progress <= 0 || progress >= 1) return 0;
+  if (progress < STRIKE_WIND_UP_END) {
+    return Math.sin((progress / STRIKE_WIND_UP_END) * (Math.PI / 2));
+  }
+  if (progress < STRIKE_FOLLOW_THROUGH_END) {
+    const t = (progress - STRIKE_WIND_UP_END) / (STRIKE_FOLLOW_THROUGH_END - STRIKE_WIND_UP_END);
+    return 1 - (1 + STRIKE_OVERSHOOT) * t;
+  }
+  const t = (progress - STRIKE_FOLLOW_THROUGH_END) / (1 - STRIKE_FOLLOW_THROUGH_END);
+  return -STRIKE_OVERSHOOT * (1 - t);
+}
+
+function withStrike(pose: LimbPitches, strike: number): LimbPitches {
+  const swing = strikeSwing(strike);
+  if (swing === 0) return pose;
+  const pitch = { ...pose.pitch };
+  pitch[boneOf('upperArm', 'R')] = (pitch[boneOf('upperArm', 'R')] ?? 0) + swing * STRIKE_UPPER_ARM;
+  pitch[boneOf('forearm', 'R')] = (pitch[boneOf('forearm', 'R')] ?? 0) + swing * STRIKE_FOREARM;
+  return withUprightHands({ ...pose, pitch });
+}
+
 export function limbPitches({
   stance,
   gaitPhase,
   gaitAmount,
   idleTime = 0,
   shielded = false,
+  strike = 0,
 }: PoseInputs): LimbPitches {
   if (stance === 'seated') return SEATED_POSE;
-  return stance === 'looking'
-    ? lookingPose(gaitPhase, gaitAmount, idleTime, shielded)
-    : walkCycle(gaitPhase, gaitAmount);
+  const base =
+    stance === 'looking'
+      ? lookingPose(gaitPhase, gaitAmount, idleTime, shielded)
+      : walkCycle(gaitPhase, gaitAmount);
+  return withStrike(base, strike);
 }
 
 export function applyPose(rig: CreatureRig, inputs: PoseInputs) {

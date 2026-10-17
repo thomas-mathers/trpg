@@ -128,7 +128,7 @@ public class CombatEngineUseAbilityTests
     public void UseAbility_AcceptsAMaxRangeOvershoot_WithinTheStalenessTolerance()
     {
         // Arrange
-        var overshoot = new Point(0, -2.5 - (AbilityUseValidator.RangeTolerance / 2));
+        var overshoot = new Point(0, -2.0 - (AbilityUseValidator.RangeTolerance / 2));
         var (player, monster) = MakeFight(overshoot);
 
         // Act

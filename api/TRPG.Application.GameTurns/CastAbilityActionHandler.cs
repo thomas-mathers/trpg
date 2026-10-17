@@ -29,10 +29,8 @@ internal class CastAbilityActionHandler(
             return ActionOutcome.Success;
         }
 
-        return ActionOutcome.Failed(
-            result.AbilityNotFound
-                ? ActionFailure.AbilityNotFound
-                : ActionFailure.AbilityUnavailable
-        );
+        return result.AbilityNotFound
+            ? ActionOutcome.Failed(ActionFailure.AbilityNotFound)
+            : ActionOutcome.Failed(ActionFailure.AbilityUnavailable, result.Message);
     }
 }

@@ -54,6 +54,30 @@ internal static class LocalMoveWalker
         return move.Plan.Path[^1];
     }
 
+    public static double? Heading(IReadOnlyList<Point> path, double walked)
+    {
+        double? heading = null;
+        var remaining = walked;
+        foreach (var pair in path.Zip(path.Skip(1)))
+        {
+            var length = Distance(pair.First, pair.Second);
+            if (length == 0)
+            {
+                continue;
+            }
+
+            heading = Math.Atan2(pair.Second.X - pair.First.X, -(pair.Second.Y - pair.First.Y));
+            if (remaining <= length)
+            {
+                break;
+            }
+
+            remaining -= length;
+        }
+
+        return heading;
+    }
+
     private static double Distance(Point first, Point second) =>
         Math.Sqrt(Math.Pow(second.X - first.X, 2) + Math.Pow(second.Y - first.Y, 2));
 }
