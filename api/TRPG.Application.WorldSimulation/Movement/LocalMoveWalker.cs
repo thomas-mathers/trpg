@@ -1,4 +1,3 @@
-using TRPG.Application.Abilities;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -67,7 +66,7 @@ internal static class LocalMoveWalker
                 continue;
             }
 
-            heading = AbilityFacing.HeadingToward(pair.First, pair.Second);
+            heading = Math.Atan2(pair.Second.X - pair.First.X, -(pair.Second.Y - pair.First.Y));
             if (remaining <= length)
             {
                 break;
