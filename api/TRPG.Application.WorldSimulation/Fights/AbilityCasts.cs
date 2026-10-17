@@ -22,6 +22,7 @@ internal sealed class AbilityCasts(
     private static readonly TimeSpan UnstartedChaseExpiry = TimeSpan.FromSeconds(2);
 
     private readonly Dictionary<Guid, ActiveFight> _fights = [];
+    private readonly Dictionary<Guid, Guid> _targets = [];
     private readonly Dictionary<Guid, Chase> _chases = [];
     private readonly Dictionary<Guid, Point> _journeyPositions = [];
 
@@ -43,12 +44,36 @@ internal sealed class AbilityCasts(
         {
             var result = await Run(message, poses, now, cancellationToken);
             Track(message.PlayerId, result.Fight);
+            TargetEnemyOfCast(message, result);
             message.Completion.TrySetResult(result);
         }
         catch (Exception exception)
         {
             message.Completion.TrySetException(exception);
             throw;
+        }
+    }
+
+    public void SelectTarget(Guid playerId, Guid? targetId)
+    {
+        if (targetId is { } id)
+        {
+            _targets[playerId] = id;
+        }
+        else
+        {
+            _targets.Remove(playerId);
+        }
+    }
+
+    private void TargetEnemyOfCast(CastAbilityMessage message, AbilityCastResult result)
+    {
+        var isEnemy = result.Fight?.Combatants.Any(combatant =>
+            combatant.CreatureId == message.TargetId && !combatant.IsPlayer
+        );
+        if (result.Succeeded && isEnemy == true)
+        {
+            _targets[message.PlayerId] = message.TargetId;
         }
     }
 
@@ -131,6 +156,9 @@ internal sealed class AbilityCasts(
                     PlayerPlacement = new PlayerPlacement(pose.Position, pose.Input.Heading),
                     FindLiveCreaturePosition = creatureId =>
                         FindEnemyPosition(creatureId, fight.LocationId, now),
+                    AutoAttackTargetId = _targets.TryGetValue(fight.PlayerId, out var targetId)
+                        ? targetId
+                        : null,
                 },
                 cancellationToken
             );

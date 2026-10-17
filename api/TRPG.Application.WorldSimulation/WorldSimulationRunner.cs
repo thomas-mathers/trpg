@@ -640,8 +640,12 @@ public sealed class WorldSimulationRunner(
             case PlayerInput input:
                 await ApplyPlayerInput(input, cancellationToken);
                 break;
+            case SelectTarget select:
+                _abilityCasts.SelectTarget(select.PlayerId, select.TargetId);
+                break;
             case PlayerDisconnected disconnected:
                 await _abilityCasts.Abandon(disconnected.PlayerId, now, cancellationToken);
+                _abilityCasts.SelectTarget(disconnected.PlayerId, null);
                 await FlushPlayerPoses(cancellationToken);
                 _playerPoses.Forget(disconnected.PlayerId);
                 break;

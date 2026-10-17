@@ -59,6 +59,11 @@ internal static class AbilityUseValidator
             return reachFailure;
         }
 
+        if (ability == AbilityCatalog.Strike && actor.NextSwingAt > now)
+        {
+            return Invalid(AbilityUseRejection.NotReady, "Still recovering from the last swing.");
+        }
+
         return AbilityUseValidation.Valid(
             new ValidatedAbilityUse(ability, ResolveTargets(combatants, actor, ability, target!))
         );

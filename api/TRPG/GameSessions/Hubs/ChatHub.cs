@@ -39,6 +39,7 @@ public interface IChatHub
     Task<ActionResult> SendDeliverItem(Guid recipientId);
     Task<ActionResult> SendMove(Guid connectorId);
     Task SendMovementInput(PlayerMovementInput input);
+    Task SendSelectTarget(Guid? targetId);
     Task SendRefreshScene();
     Task<ActionResult> SendRespawn();
     Task<ActionResult> SendCastAbility(Guid targetId, string abilityName);
@@ -185,6 +186,13 @@ internal sealed class ChatHub(
             Context.ConnectionAborted
         );
     }
+
+    public Task SendSelectTarget(Guid? targetId) =>
+        simulation.Post(
+            Session.WorldId,
+            new SelectTarget(Session.PlayerId, targetId),
+            Context.ConnectionAborted
+        );
 
     public Task SendRefreshScene() =>
         gameTurnRunner.RefreshScene(Session, Context.ConnectionAborted);

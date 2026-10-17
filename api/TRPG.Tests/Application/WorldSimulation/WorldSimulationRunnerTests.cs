@@ -463,7 +463,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
     }
 
     [Fact]
-    public async Task Tick_KeepsTheFightHeld_WhenASecondCastIsRefusedByTheGlobalCooldown()
+    public async Task Tick_KeepsTheFightHeld_WhenASecondCastIsRefusedByTheSwingTimer()
     {
         // Arrange
         await AddKnightPlayer();
@@ -480,7 +480,7 @@ public sealed class WorldSimulationRunnerTests(DatabaseFixture db)
 
         // Assert
         var result = await second.Task;
-        Assert.Equal("You can't use another ability yet.", result.Message);
+        Assert.Equal("Still recovering from the last swing.", result.Message);
         Assert.NotNull(result.Fight);
     }
 

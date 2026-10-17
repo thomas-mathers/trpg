@@ -320,10 +320,7 @@ public sealed class CastPlayerAbilityCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         var hpAfterOpening = await CurrentHp(target.Id);
-        var held = new ActiveFightHolder(
-            opened.Fight,
-            TestTime.Start + CombatTiming.GlobalCooldown
-        );
+        var held = new ActiveFightHolder(opened.Fight, TestTime.Start + TimeSpan.FromSeconds(3));
 
         // Act
         await _handler.Handle(
@@ -347,10 +344,7 @@ public sealed class CastPlayerAbilityCommandTests(DatabaseFixture db)
             Cast(player, fallen.Id, "Strike", InRange),
             TestContext.Current.CancellationToken
         );
-        var held = new ActiveFightHolder(
-            opened.Fight,
-            TestTime.Start + CombatTiming.GlobalCooldown
-        );
+        var held = new ActiveFightHolder(opened.Fight, TestTime.Start + TimeSpan.FromSeconds(3));
 
         // Act
         await _handler.Handle(
@@ -373,10 +367,7 @@ public sealed class CastPlayerAbilityCommandTests(DatabaseFixture db)
             TestContext.Current.CancellationToken
         );
         var proficiencyAfterOpening = await TotalProficiency(player.Id);
-        var held = new ActiveFightHolder(
-            opened.Fight,
-            TestTime.Start + CombatTiming.GlobalCooldown
-        );
+        var held = new ActiveFightHolder(opened.Fight, TestTime.Start + TimeSpan.FromSeconds(3));
 
         // Act
         await _handler.Handle(

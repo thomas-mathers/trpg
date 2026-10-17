@@ -24,6 +24,8 @@ public class CombatEngineUseAbilityTests
     private static readonly Point Behind = new(0, 2);
     private static readonly Point Far = new(0, -30);
 
+    private static readonly AttackAbility Slash = new() { Name = "Slash" };
+
     private readonly CombatEngine _engine = MakeEngine();
 
     private static CombatEngine MakeEngine()
@@ -142,6 +144,89 @@ public class CombatEngineUseAbilityTests
     public void UseAbility_Rejects_WhileTheGlobalCooldownIsRunning()
     {
         // Arrange
+        var (player, monster) = MakeFight(InFront, Slash);
+        Use(player, monster, monster, "Slash", TestTime.Start);
+
+        // Act
+        var result = Use(
+            player,
+            monster,
+            monster,
+            "Slash",
+            TestTime.Start + TimeSpan.FromSeconds(1)
+        );
+
+        // Assert
+        Assert.Equal(AbilityUseRejection.GlobalCooldown, result.Rejection);
+    }
+
+    [Fact]
+    public void UseAbility_Succeeds_OnceTheGlobalCooldownHasElapsed()
+    {
+        // Arrange
+        var (player, monster) = MakeFight(InFront, Slash);
+        Use(player, monster, monster, "Slash", TestTime.Start);
+
+        // Act
+        var result = Use(
+            player,
+            monster,
+            monster,
+            "Slash",
+            TestTime.Start + CombatTiming.GlobalCooldown
+        );
+
+        // Assert
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void UseAbility_IgnoresTheGlobalCooldown_ForAbilitiesThatDoNotTriggerIt()
+    {
+        // Arrange
+        var kick = new AttackAbility { Name = "Kick", TriggersGlobalCooldown = false };
+        var (player, monster) = MakeFight(InFront, Slash, kick);
+        Use(player, monster, monster, "Slash", TestTime.Start);
+
+        // Act
+        var result = Use(player, monster, monster, "Kick", TestTime.Start);
+
+        // Assert
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void UseAbility_DoesNotStartTheGlobalCooldown_WhenStriking()
+    {
+        // Arrange
+        var (player, monster) = MakeFight(InFront, Slash);
+        Use(player, monster, monster, "Strike", TestTime.Start);
+
+        // Act
+        var result = Use(player, monster, monster, "Slash", TestTime.Start);
+
+        // Assert
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void UseAbility_Strikes_DuringTheGlobalCooldown()
+    {
+        // Arrange
+        var (player, monster) = MakeFight(InFront, Slash);
+        Use(player, monster, monster, "Slash", TestTime.Start);
+
+        // Act
+        var result = Use(player, monster, monster, "Strike", TestTime.Start);
+
+        // Assert
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void UseAbility_Rejects_WhenStrikingBeforeTheSwingTimerIsReady()
+    {
+        // Arrange
         var (player, monster) = MakeFight(InFront);
         Use(player, monster, monster, "Strike", TestTime.Start);
 
@@ -155,11 +240,11 @@ public class CombatEngineUseAbilityTests
         );
 
         // Assert
-        Assert.Equal(AbilityUseRejection.GlobalCooldown, result.Rejection);
+        Assert.Equal(AbilityUseRejection.NotReady, result.Rejection);
     }
 
     [Fact]
-    public void UseAbility_Succeeds_OnceTheGlobalCooldownHasElapsed()
+    public void UseAbility_Strikes_OnceTheSwingIntervalHasElapsed()
     {
         // Arrange
         var (player, monster) = MakeFight(InFront);
@@ -171,7 +256,7 @@ public class CombatEngineUseAbilityTests
             monster,
             monster,
             "Strike",
-            TestTime.Start + CombatTiming.GlobalCooldown
+            TestTime.Start + TimeSpan.FromSeconds(Options.AutoAttackIntervalSeconds)
         );
 
         // Assert
@@ -179,18 +264,76 @@ public class CombatEngineUseAbilityTests
     }
 
     [Fact]
-    public void UseAbility_IgnoresTheGlobalCooldown_ForAbilitiesThatDoNotTriggerIt()
+    public void UseAbility_ShortensTheSwingInterval_WithIncreasedAttackSpeed()
     {
         // Arrange
-        var kick = new AttackAbility { Name = "Kick", TriggersGlobalCooldown = false };
-        var (player, monster) = MakeFight(InFront, kick);
+        var quickBlade = Builders.MakeWeapon(
+            modifiers:
+            [
+                new CombatSpeedModifier
+                {
+                    SpeedType = CombatSpeedType.IncreasedAttackSpeed,
+                    Amount = 100,
+                },
+            ]
+        );
+        var player = Builders
+            .NewCombatant()
+            .WithCombatOptions(Options)
+            .WithItem(quickBlade)
+            .AsPlayer()
+            .Build();
+        var monster = Builders.NewCombatant().WithCombatOptions(Options).Build();
+        monster.Position = InFront;
         Use(player, monster, monster, "Strike", TestTime.Start);
 
         // Act
-        var result = Use(player, monster, monster, "Kick", TestTime.Start);
+        var result = Use(
+            player,
+            monster,
+            monster,
+            "Strike",
+            TestTime.Start + TimeSpan.FromSeconds(Options.AutoAttackIntervalSeconds / 2)
+        );
 
         // Assert
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void AutoAttack_HitsTheTarget_WhenTheSwingTimerIsReady()
+    {
+        // Arrange
+        var (player, monster) = MakeFight(InFront);
+
+        // Act
+        var result = _engine.AutoAttack(
+            [player, monster],
+            player.CreatureId,
+            monster.CreatureId,
+            TestTime.Start
+        );
+
+        // Assert
+        Assert.Single(result.State!.Events.OfType<Hit>());
+    }
+
+    [Fact]
+    public void AutoAttack_Rejects_WhenTheTargetIsOutOfReach()
+    {
+        // Arrange
+        var (player, monster) = MakeFight(Far);
+
+        // Act
+        var result = _engine.AutoAttack(
+            [player, monster],
+            player.CreatureId,
+            monster.CreatureId,
+            TestTime.Start
+        );
+
+        // Assert
+        Assert.Equal(AbilityUseRejection.OutOfRange, result.Rejection);
     }
 
     [Fact]
