@@ -1,4 +1,4 @@
-import type { CombatStarted, CombatUpdated } from '@/api/signalr-client/TRPG.Combat.Responses';
+import type { CombatStarted } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type {
   CharacterLevelUp,
   CreatureVitalsUpdated,
@@ -55,11 +55,7 @@ interface GameEventMap {
   SeatingChanged: SeatingChangedPayload;
   PropOccupancyChanged: PropOccupancyChangedPayload;
   CombatStarted: CombatStarted;
-  CombatUpdated: CombatUpdated;
-  // Fires once the round's animation finishes, so the combat UI, toasts, and respawn flow don't jump ahead of what's on screen.
   CombatResolved: TerminalCombatOutcome;
-  // Fires immediately with the round data, before animation — for consumers with nothing to sequence against, like the hidden chat log's marker.
-  CombatOutcomeKnown: TerminalCombatOutcome;
   HostileEncounterStarted: HostileEncounterState;
   HostileEncounterResolved: HostileEncounterResolutionFact;
   ShakedownEncounterStarted: ShakedownEncounterState;

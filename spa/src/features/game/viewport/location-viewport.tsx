@@ -14,7 +14,6 @@ import {
 } from '../components/creature-interaction-panel';
 import { useScene } from '../contexts/scene-context';
 import { useChatHub } from '../hooks/use-game-hub-connection';
-import { useIsInCombat } from '../hooks/use-is-in-combat';
 import { useTarget } from '../hooks/use-target';
 import { runAction } from '../run-action';
 import { AmbientOcclusion } from './ambient-occlusion';
@@ -96,20 +95,19 @@ export function LocationViewport({
   };
 
   const chatHub = useChatHub();
-  const isInCombat = useIsInCombat();
   const hasActiveEncounter = useHasActiveEncounter();
   const selectedCreature = scene.nearbyCreatures.find((creature) => creature.id === focus?.id);
   useEffect(() => {
-    if (focus && (!selectedCreature || isInCombat || hasActiveEncounter)) {
+    if (focus && (!selectedCreature || hasActiveEncounter)) {
       setFocus(null);
       setRestoring(true);
     }
-  }, [focus, selectedCreature, isInCombat, hasActiveEncounter]);
+  }, [focus, selectedCreature, hasActiveEncounter]);
   const { target, setTargetId } = useTarget();
   const seated = scene.playerStatus.posture === 'Sitting';
-  const canInteract = seated || (!isInCombat && !hasActiveEncounter);
+  const canInteract = seated || !hasActiveEncounter;
   useTabTargeting({
-    enabled: !focus && !restoring && !isInCombat && !hasActiveEncounter,
+    enabled: !focus && !restoring && !hasActiveEncounter,
     creatures: scene.nearbyCreatures,
     player: scene.playerStatus.placement,
     targetId: target?.id,
@@ -248,7 +246,7 @@ export function LocationViewport({
             focus={focus}
             creatures={creatures}
             statuses={scene.nearbyCreatures}
-            enabled={!isInCombat && !hasActiveEncounter && !restoring}
+            enabled={!hasActiveEncounter && !restoring}
             onTarget={setLookedAtId}
             onFocus={setFocus}
             onRestored={() => setRestoring(false)}

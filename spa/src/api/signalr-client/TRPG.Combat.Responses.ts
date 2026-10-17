@@ -25,7 +25,7 @@ export type ActiveConditions = {
 }
 
 /** Transpiled from TRPG.Combat.Responses.CombatActionOutcome */
-export type CombatActionOutcome = "Hit" | "Miss" | "Block" | "Heal" | "HealOverTime" | "Buff" | "ConsumePotion" | "FleeFailed";
+export type CombatActionOutcome = "Hit" | "Miss" | "Block" | "Heal" | "HealOverTime" | "Buff" | "ConsumePotion";
 
 /** Transpiled from TRPG.Combat.Responses.CombatActionBuffModifier */
 export type CombatActionBuffModifier = {

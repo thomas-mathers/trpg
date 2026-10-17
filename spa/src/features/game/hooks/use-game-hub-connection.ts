@@ -109,7 +109,11 @@ export function useConnectToHub(sessionId: string): GameHubConnection {
       seatingChanged: async (payload) => gameEventBus.emit('SeatingChanged', payload),
       propOccupancyChanged: async (payload) => gameEventBus.emit('PropOccupancyChanged', payload),
       combatStarted: async (combatants) => gameEventBus.emit('CombatStarted', combatants),
-      combatUpdated: async (update) => gameEventBus.emit('CombatUpdated', update),
+      combatUpdated: async (update) => {
+        if (update.outcome !== 'Ongoing') {
+          gameEventBus.emit('CombatResolved', update.outcome);
+        }
+      },
       hostileEncounterStarted: async (encounter) =>
         gameEventBus.emit('HostileEncounterStarted', encounter),
       hostileEncounterResolved: async (fact) => gameEventBus.emit('HostileEncounterResolved', fact),

@@ -140,24 +140,12 @@ class IChatHub_HubProxy implements IChatHub {
         return await this.connection.invoke("SendRefreshScene");
     }
 
-    public readonly sendFlee = async (): Promise<ActionResult> => {
-        return await this.connection.invoke("SendFlee");
-    }
-
     public readonly sendRespawn = async (): Promise<ActionResult> => {
         return await this.connection.invoke("SendRespawn");
     }
 
     public readonly sendCastAbility = async (targetId: string, abilityName: string): Promise<ActionResult> => {
         return await this.connection.invoke("SendCastAbility", targetId, abilityName);
-    }
-
-    public readonly resolveUseAbilityCombatAction = async (targetId: string, abilityName: string): Promise<ActionResult> => {
-        return await this.connection.invoke("ResolveUseAbilityCombatAction", targetId, abilityName);
-    }
-
-    public readonly resolveUseItemCombatAction = async (itemName: string): Promise<ActionResult> => {
-        return await this.connection.invoke("ResolveUseItemCombatAction", itemName);
     }
 
     public readonly resolveAttackEncounterAction = async (): Promise<ActionResult> => {
