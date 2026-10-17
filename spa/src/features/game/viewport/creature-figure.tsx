@@ -8,11 +8,14 @@ import type {
   PlacementWire,
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { GameClockAnchor } from '@/features/game/game-clock';
+import { useCreatureCombatEffects } from '@/features/game/hooks/use-combat-effects';
 
+import { yawToward } from './combat-text';
 import { creatureAppearance } from './creature-appearance';
 import { resolveGear } from './creature-gear';
 import { bystanderRig, viewerRig } from './creature-rigs';
 import { EntityLabel } from './entity-label';
+import { FloatingCombatText } from './floating-combat-text';
 import { headingToYaw } from './layout-math';
 import { SkinnedCreature } from './skinned-creature';
 import { targetPlate, standingColor } from './target-plate';
@@ -21,6 +24,7 @@ import { useCreaturePose, turnTowards } from './use-creature-pose';
 import { useCreaturePosition } from './use-creature-position';
 
 const SEAT_TOP = 0.5;
+const WALK_TURN_RATE = 4;
 const TARGET_RING_RADIUS = 0.6;
 
 export const CreatureFigure = memo(function CreatureFigure({
@@ -37,6 +41,7 @@ export const CreatureFigure = memo(function CreatureFigure({
   equipment,
   reputation,
   target,
+  engaged = false,
 }: {
   id: string;
   placement: PlacementWire;
@@ -51,6 +56,7 @@ export const CreatureFigure = memo(function CreatureFigure({
   equipment: CreatureStatusSnapshot['equipment'];
   reputation?: number;
   target?: CreatureStatusSnapshot;
+  engaged?: boolean;
 }) {
   const appearance = useMemo(
     () => creatureAppearance(id, creatureType, age),
@@ -72,16 +78,27 @@ export const CreatureFigure = memo(function CreatureFigure({
     clock,
     seated,
   });
-  useFrame((_, dt) => {
+  const { floaters, strikeRequested } = useCreatureCombatEffects(id);
+  useFrame(({ camera }, dt) => {
     if (!group.current) return;
-    const walking = heading.current === undefined ? base : headingToYaw(heading.current);
-    const target = seated ? base : (facing ?? walking);
-    group.current.rotation.y = turnTowards(group.current.rotation.y, target, dt);
+    const pathYaw = heading.current === undefined ? undefined : headingToYaw(heading.current);
+    const position = group.current.position;
+    const towardPlayer = yawToward(position, camera.position);
+    const settled = engaged ? towardPlayer : base;
+    const target = seated ? base : (facing ?? pathYaw ?? settled);
+    const slow = pathYaw !== undefined;
+    group.current.rotation.y = turnTowards(
+      group.current.rotation.y,
+      target,
+      dt,
+      slow ? WALK_TURN_RATE : undefined,
+    );
   });
   useCreaturePose(group, rig, {
     stance: seated ? 'seated' : 'walking',
     upperYawTarget: seated && facing !== undefined ? facing - base : 0,
     height: appearance.height,
+    strikeRequested,
   });
   return (
     <group ref={group} rotation={[0, base, 0]} userData={isPlayer ? {} : { creatureId: id }}>
@@ -100,6 +117,7 @@ export const CreatureFigure = memo(function CreatureFigure({
           />
         </group>
       )}
+      <FloatingCombatText floaters={floaters} baseHeight={1.9 * appearance.height} />
       {target && (
         <TargetRing
           radius={TARGET_RING_RADIUS * appearance.height}

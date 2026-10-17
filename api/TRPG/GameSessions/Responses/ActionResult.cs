@@ -35,10 +35,14 @@ public enum ActionFailureReason
 }
 
 [TranspilationSource]
-public record ActionResult(bool Succeeded, ActionFailureReason? Reason)
+public record ActionResult(bool Succeeded, ActionFailureReason? Reason, string? Detail = null)
 {
     internal static ActionResult From(ActionOutcome outcome) =>
-        new(outcome.Succeeded, outcome.Failure is { } failure ? ToReason(failure) : null);
+        new(
+            outcome.Succeeded,
+            outcome.Failure is { } failure ? ToReason(failure) : null,
+            outcome.Detail
+        );
 
     private static ActionFailureReason ToReason(ActionFailure failure) =>
         Enum.Parse<ActionFailureReason>(failure.ToString());

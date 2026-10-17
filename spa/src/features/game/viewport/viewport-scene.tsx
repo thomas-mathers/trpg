@@ -16,6 +16,7 @@ import type {
 } from '@/api/signalr-client/TRPG.GameSessions.Responses';
 import type { GameClockAnchor } from '@/features/game/game-clock';
 
+import { useEngagedCreatureIds } from '../hooks/use-combat-effects';
 import { OUTDOOR_FLOOR_COLOR } from './boundary-scene';
 import { BuildingMesh } from './building-mesh';
 import { varyColor } from './color-variation';
@@ -361,6 +362,7 @@ export function Creatures({
   focus?: CreatureFocus | null;
   target?: CreatureStatusSnapshot;
 }) {
+  const engaged = useEngagedCreatureIds();
   return (
     <>
       {creatures.map(({ id, placement, walk, creatureType, age, equipment, reputation }) => {
@@ -393,6 +395,7 @@ export function Creatures({
             reputation={reputation}
             facing={focus?.id === id && status?.condition !== 'Dead' ? focus.facing : undefined}
             target={target?.id === id ? target : undefined}
+            engaged={engaged.has(id)}
           />
         );
       })}

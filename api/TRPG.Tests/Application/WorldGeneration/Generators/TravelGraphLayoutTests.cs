@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Application.WorldGeneration.Generators;
 using TRPG.Domain.Models;
 using TRPG.Tests.Helpers;
@@ -156,12 +157,18 @@ public class TravelGraphLayoutTests
             roomWalks,
             connector =>
             {
-                var grid = RoomNavigationGrid.Build(
-                    world.LocationById(connector.LocationId),
-                    [
-                        .. world.Input.Props.Where(prop => prop.LocationId == connector.LocationId),
-                        .. layout.Props.Where(prop => prop.LocationId == connector.LocationId),
-                    ]
+                var grid = NavigationGrid.From(
+                    MovementSpaceBuilder.Build(
+                        world.LocationById(connector.LocationId),
+                        [
+                            .. world.Input.Props.Where(prop =>
+                                prop.LocationId == connector.LocationId
+                            ),
+                            .. layout.Props.Where(prop => prop.LocationId == connector.LocationId),
+                        ],
+                        [],
+                        []
+                    )
                 );
                 var path = grid.FindPath(
                     nodeById[connector.OriginNodeId].Position,

@@ -1,5 +1,6 @@
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Domain;
+using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldSimulation.Movement;
 
@@ -44,6 +45,11 @@ internal static class MovementConcern
         }
 
         var events = new List<SimEvent>();
+        if (plan.TargetKind == LocalMoveTargetKind.Pursuit)
+        {
+            AbandonJourney(creature, at, events);
+        }
+
         if (creature.LocalMove is not null)
         {
             InterruptLocalMove(creature, at, events);
@@ -66,7 +72,33 @@ internal static class MovementConcern
     }
 
     private static bool CanPursue(SimulatedCreature creature, LocalMovePlan plan) =>
-        plan.TargetKind == LocalMoveTargetKind.Pursuit && creature.Journey is null;
+        plan.TargetKind == LocalMoveTargetKind.Pursuit;
+
+    private static void AbandonJourney(
+        SimulatedCreature creature,
+        GameInstant at,
+        ICollection<SimEvent> events
+    )
+    {
+        if (creature.Journey is not { } journey)
+        {
+            return;
+        }
+
+        journey.Status = JourneyStatus.Cancelled;
+        events.Add(
+            new JourneyCheckpoint(
+                creature.Id,
+                at,
+                creature.LocationId,
+                journey.Id,
+                JourneyStatus.Cancelled,
+                journey.LegIndex,
+                journey.LegWalkedMeters
+            )
+        );
+        creature.Journey = null;
+    }
 
     public static IReadOnlyList<SimEvent> Engage(SimulatedCreature creature, GameInstant at)
     {
@@ -143,7 +175,8 @@ internal static class MovementConcern
                 creature.Id,
                 at,
                 creature.LocationId,
-                LocalMoveWalker.Position(localMove)
+                LocalMoveWalker.Position(localMove),
+                LocalMoveWalker.Heading(localMove.Plan.Path, localMove.WalkedMeters)
             )
         );
         creature.LocalMove = null;

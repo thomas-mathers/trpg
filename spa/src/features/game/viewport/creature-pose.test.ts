@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { creatureAppearance } from './creature-appearance';
 import { creatureBodyGeometry } from './creature-body-geometry';
 import { resolveGear } from './creature-gear';
-import { applyPose, SEATED_POSE } from './creature-pose';
+import { applyPose, SEATED_POSE, strikeSwing } from './creature-pose';
 import { BONE_NAMES, createCreatureRig, JOINTS } from './creature-rig';
 import { EYE_HEIGHT } from './layout-math';
 
@@ -141,5 +141,17 @@ describe('looking pose', () => {
       expect(onScreen.y).toBeGreaterThan(-1);
       expect(onScreen.y).toBeLessThan(0.2);
     }
+  });
+});
+
+describe('strikeSwing', () => {
+  it('is at rest outside the strike', () => {
+    expect([strikeSwing(0), strikeSwing(1)]).toEqual([0, 0]);
+  });
+
+  it('peaks at the end of the wind-up, then swings past rest and recovers', () => {
+    expect(strikeSwing(0.3)).toBeCloseTo(1);
+    expect(strikeSwing(0.5)).toBeLessThan(0);
+    expect(strikeSwing(0.99)).toBeCloseTo(0, 1);
   });
 });

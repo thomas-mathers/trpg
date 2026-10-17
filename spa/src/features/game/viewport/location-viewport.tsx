@@ -13,6 +13,7 @@ import {
   type CreatureInteractionPanelProps,
 } from '../components/creature-interaction-panel';
 import { useScene } from '../contexts/scene-context';
+import { useEngagedCreatureIds } from '../hooks/use-combat-effects';
 import { useChatHub } from '../hooks/use-game-hub-connection';
 import { useTarget } from '../hooks/use-target';
 import { runAction } from '../run-action';
@@ -113,6 +114,7 @@ export function LocationViewport({
     targetId: target?.id,
     onTarget: setTargetId,
   });
+  const engagedIds = useEngagedCreatureIds();
   const handleSeatInteraction = useSeatInteraction(seated, canInteract);
   const [nearbySeat, setNearbySeat] = useState<ViewportSeat>();
   const [locked, setLocked] = useState(false);
@@ -247,6 +249,7 @@ export function LocationViewport({
             creatures={creatures}
             statuses={scene.nearbyCreatures}
             enabled={!hasActiveEncounter && !restoring}
+            engagedIds={engagedIds}
             onTarget={setLookedAtId}
             onFocus={setFocus}
             onRestored={() => setRestoring(false)}

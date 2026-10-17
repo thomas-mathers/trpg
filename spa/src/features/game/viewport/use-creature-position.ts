@@ -17,7 +17,7 @@ import {
   walkSignature,
 } from './walk-playback';
 
-const BLEND_MILLISECONDS = 200;
+const BLEND_MILLISECONDS = 400;
 
 interface Planar {
   x: number;

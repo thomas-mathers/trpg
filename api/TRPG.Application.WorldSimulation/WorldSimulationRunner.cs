@@ -136,7 +136,9 @@ public sealed class WorldSimulationRunner(
             return;
         }
 
+        var mailboxStartedAt = Stopwatch.GetTimestamp();
         now = await DrainMailbox(now, cancellationToken);
+        var mailboxElapsed = Stopwatch.GetElapsedTime(mailboxStartedAt);
         if (_isRecovering)
         {
             return;
@@ -154,7 +156,9 @@ public sealed class WorldSimulationRunner(
         await _sceneResync.Run(cancellationToken);
         await _activeLocationPasses.Run(now, cancellationToken);
         await FlushPlayerPoses(cancellationToken);
+        var fightsStartedAt = Stopwatch.GetTimestamp();
         await TickFights(now, cancellationToken);
+        var fightsElapsed = Stopwatch.GetElapsedTime(fightsStartedAt);
         var planningStartedAt = Stopwatch.GetTimestamp();
         var planning = await PlanMovements(now, cancellationToken);
         var planningElapsed = Stopwatch.GetElapsedTime(planningStartedAt);
@@ -170,7 +174,12 @@ public sealed class WorldSimulationRunner(
             && _unpublishedCreatureIdsByLocationId.Count == 0
         )
         {
-            LogTick(now, planning, planningElapsed, eventCount, tickStartedAt);
+            LogTick(
+                now,
+                new TickTimings(planning, planningElapsed, mailboxElapsed, fightsElapsed),
+                eventCount,
+                tickStartedAt
+            );
             return;
         }
 
@@ -186,7 +195,12 @@ public sealed class WorldSimulationRunner(
         }
 
         await PublishScenes(now, cancellationToken);
-        LogTick(now, planning, planningElapsed, eventCount, tickStartedAt);
+        LogTick(
+            now,
+            new TickTimings(planning, planningElapsed, mailboxElapsed, fightsElapsed),
+            eventCount,
+            tickStartedAt
+        );
     }
 
     private async Task<GameInstant> DrainMailbox(
@@ -547,19 +561,22 @@ public sealed class WorldSimulationRunner(
         }
     }
 
-    private void LogTick(
-        GameInstant now,
-        MovementPlanningSummary planning,
-        TimeSpan planningElapsed,
-        int eventCount,
-        long tickStartedAt
-    )
+    private sealed record TickTimings(
+        MovementPlanningSummary Planning,
+        TimeSpan PlanningElapsed,
+        TimeSpan MailboxElapsed,
+        TimeSpan FightsElapsed
+    );
+
+    private void LogTick(GameInstant now, TickTimings timings, int eventCount, long tickStartedAt)
     {
+        var planning = timings.Planning;
+        var planningElapsed = timings.PlanningElapsed;
         var elapsed = Stopwatch.GetElapsedTime(tickStartedAt);
         if (elapsed >= SlowTickThreshold)
         {
             logger.LogWarning(
-                "World simulation tick for {WorldId} at {GameTime} took {ElapsedMilliseconds:F0} ms; planning took {PlanningMilliseconds:F0} ms for {AwaitingCount} creatures, starting {LocalMoveCount} local moves and {JourneyCount} journeys; emitted {EventCount} events",
+                "World simulation tick for {WorldId} at {GameTime} took {ElapsedMilliseconds:F0} ms; planning took {PlanningMilliseconds:F0} ms for {AwaitingCount} creatures, starting {LocalMoveCount} local moves and {JourneyCount} journeys; emitted {EventCount} events; mailbox took {MailboxMilliseconds:F0} ms; fights took {FightsMilliseconds:F0} ms",
                 worldId,
                 now,
                 elapsed.TotalMilliseconds,
@@ -567,7 +584,9 @@ public sealed class WorldSimulationRunner(
                 planning.AwaitingCount,
                 planning.LocalMoveCount,
                 planning.JourneyCount,
-                eventCount
+                eventCount,
+                timings.MailboxElapsed.TotalMilliseconds,
+                timings.FightsElapsed.TotalMilliseconds
             );
             return;
         }

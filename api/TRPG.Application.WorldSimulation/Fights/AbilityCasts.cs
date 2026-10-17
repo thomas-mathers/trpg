@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using TRPG.Application.Common.Commands;
+using TRPG.Application.Common.Queries;
 using TRPG.Application.Encounters.Commands;
 using TRPG.Application.Encounters.Fights;
+using TRPG.Application.Routing.Queries;
 using TRPG.Application.Scenes.Queries;
 using TRPG.Application.WorldSimulation.LocalActivities;
 using TRPG.Application.WorldSimulation.Poses;
@@ -17,11 +19,11 @@ internal sealed class AbilityCasts(
     TransientCreatureWalkRegistry transientWalks
 )
 {
-    private const double ChaseRepathSlack = 1.0;
     private static readonly TimeSpan UnstartedChaseExpiry = TimeSpan.FromSeconds(2);
 
     private readonly Dictionary<Guid, ActiveFight> _fights = [];
     private readonly Dictionary<Guid, Chase> _chases = [];
+    private readonly Dictionary<Guid, Point> _journeyPositions = [];
 
     private sealed class Chase(Point destination, GameInstant issuedAt)
     {
@@ -110,6 +112,13 @@ internal sealed class AbilityCasts(
         }
 
         MarkStartedChases(fight, now);
+        await RefreshJourneyPositions(
+            scope.ServiceProvider,
+            fight.LocationId,
+            fight.CombatantIds,
+            now,
+            cancellationToken
+        );
         var result = await scope
             .ServiceProvider.GetRequiredService<
                 ICommandHandler<TickFightCommand, FightTickResult>
@@ -157,8 +166,13 @@ internal sealed class AbilityCasts(
     {
         var planner = services.GetRequiredService<ChasePathPlanner>();
         var pursuits = new List<LocalMovePlan>();
-        foreach (var order in orders.Where(order => NeedsChase(order, now)))
+        foreach (var order in orders)
         {
+            if (!NeedsChase(order, fight.LocationId, now))
+            {
+                continue;
+            }
+
             var path = await planner.Plan(
                 fight.LocationId,
                 fight.PositionOf(order.CreatureId),
@@ -188,7 +202,7 @@ internal sealed class AbilityCasts(
         return pursuits;
     }
 
-    private bool NeedsChase(ChaseOrder order, GameInstant now)
+    private bool NeedsChase(ChaseOrder order, Guid locationId, GameInstant now)
     {
         if (!_chases.TryGetValue(order.CreatureId, out var chase))
         {
@@ -200,7 +214,7 @@ internal sealed class AbilityCasts(
             return now - chase.IssuedAt > UnstartedChaseExpiry;
         }
 
-        return Distance(chase.Destination, order.Target) > order.StopDistance + ChaseRepathSlack;
+        return transientWalks.Find(order.CreatureId, locationId, now) is null;
     }
 
     private void MarkStartedChases(ActiveFight fight, GameInstant now)
@@ -217,6 +231,43 @@ internal sealed class AbilityCasts(
         }
     }
 
+    private async Task RefreshJourneyPositions(
+        IServiceProvider services,
+        Guid locationId,
+        IReadOnlyCollection<Guid> creatureIds,
+        GameInstant now,
+        CancellationToken cancellationToken
+    )
+    {
+        var positions = await services
+            .GetRequiredService<
+                IQueryHandler<
+                    GetCreatureJourneyPositionsQuery,
+                    IReadOnlyDictionary<Guid, CreatureJourneyPosition>
+                >
+            >()
+            .Handle(
+                new GetCreatureJourneyPositionsQuery
+                {
+                    LocationId = locationId,
+                    GameTime = now,
+                    CreatureIds = creatureIds,
+                },
+                cancellationToken
+            );
+        foreach (var creatureId in creatureIds)
+        {
+            if (positions.TryGetValue(creatureId, out var position))
+            {
+                _journeyPositions[creatureId] = position.Position;
+            }
+            else
+            {
+                _journeyPositions.Remove(creatureId);
+            }
+        }
+    }
+
     private Point? FindEnemyPosition(Guid creatureId, Guid locationId, GameInstant now)
     {
         var walking = transientWalks.Find(creatureId, locationId, now);
@@ -225,8 +276,13 @@ internal sealed class AbilityCasts(
             return walking.Position;
         }
 
-        return _chases.TryGetValue(creatureId, out var chase) && chase.Started
-            ? chase.Destination
+        if (_chases.TryGetValue(creatureId, out var chase) && chase.Started)
+        {
+            return chase.Destination;
+        }
+
+        return _journeyPositions.TryGetValue(creatureId, out var journeyPosition)
+            ? journeyPosition
             : null;
     }
 
@@ -235,6 +291,7 @@ internal sealed class AbilityCasts(
         foreach (var creatureId in fight.CombatantIds)
         {
             _chases.Remove(creatureId);
+            _journeyPositions.Remove(creatureId);
         }
     }
 
@@ -247,6 +304,16 @@ internal sealed class AbilityCasts(
     {
         var pose = poses.Find(message.PlayerId);
         await using var scope = serviceScopeFactory.CreateAsyncScope();
+        if (pose is not null)
+        {
+            await RefreshJourneyPositions(
+                scope.ServiceProvider,
+                pose.LocationId,
+                [message.TargetId],
+                now,
+                cancellationToken
+            );
+        }
 
         var result = await scope
             .ServiceProvider.GetRequiredService<

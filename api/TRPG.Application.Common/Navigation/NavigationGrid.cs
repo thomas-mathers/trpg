@@ -5,6 +5,8 @@ namespace TRPG.Application.Common.Navigation;
 
 public sealed class NavigationGrid
 {
+    public const double CellSize = 0.5;
+
     private const int NoCell = -1;
 
     private readonly double _cellSize;
@@ -26,6 +28,18 @@ public sealed class NavigationGrid
                 _blocked[column, row] = isBlocked(CentreOf(new Cell(column, row)));
             }
         }
+    }
+
+    public static NavigationGrid From(MovementSpace space)
+    {
+        var obstacles = space.Obstacles.Select(obstacle => new RotatedBounds(obstacle)).ToArray();
+
+        return new NavigationGrid(
+            space.Width,
+            space.Depth,
+            CellSize,
+            point => obstacles.Any(obstacle => obstacle.Contains(point))
+        );
     }
 
     public IReadOnlyList<Point> FindPath(Point from, Point to)
@@ -212,4 +226,18 @@ public sealed class NavigationGrid
         Math.Sqrt(Math.Pow(to.X - from.X, 2) + Math.Pow(to.Y - from.Y, 2));
 
     private readonly record struct Cell(int Column, int Row);
+
+    private readonly record struct RotatedBounds(MovementObstacle Obstacle)
+    {
+        public bool Contains(Point point)
+        {
+            var (sin, cos) = Math.SinCos(Obstacle.Angle);
+            var offsetX = point.X - Obstacle.X;
+            var offsetY = point.Y - Obstacle.Y;
+            var localX = (offsetX * cos) + (offsetY * sin);
+            var localY = (-offsetX * sin) + (offsetY * cos);
+
+            return Math.Abs(localX) < Obstacle.Width / 2 && Math.Abs(localY) < Obstacle.Depth / 2;
+        }
+    }
 }

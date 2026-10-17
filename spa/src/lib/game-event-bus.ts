@@ -1,4 +1,4 @@
-import type { CombatStarted } from '@/api/signalr-client/TRPG.Combat.Responses';
+import type { CombatActionResult, CombatStarted } from '@/api/signalr-client/TRPG.Combat.Responses';
 import type {
   CharacterLevelUp,
   CreatureVitalsUpdated,
@@ -56,6 +56,7 @@ interface GameEventMap {
   PropOccupancyChanged: PropOccupancyChangedPayload;
   CombatStarted: CombatStarted;
   CombatResolved: TerminalCombatOutcome;
+  CombatActions: CombatActionResult[];
   HostileEncounterStarted: HostileEncounterState;
   HostileEncounterResolved: HostileEncounterResolutionFact;
   ShakedownEncounterStarted: ShakedownEncounterState;

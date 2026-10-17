@@ -1,3 +1,4 @@
+using TRPG.Application.Abilities;
 using TRPG.Domain;
 using TRPG.Domain.Models;
 
@@ -52,6 +53,30 @@ internal static class LocalMoveWalker
         }
 
         return move.Plan.Path[^1];
+    }
+
+    public static double? Heading(IReadOnlyList<Point> path, double walked)
+    {
+        double? heading = null;
+        var remaining = walked;
+        foreach (var pair in path.Zip(path.Skip(1)))
+        {
+            var length = Distance(pair.First, pair.Second);
+            if (length == 0)
+            {
+                continue;
+            }
+
+            heading = AbilityFacing.HeadingToward(pair.First, pair.Second);
+            if (remaining <= length)
+            {
+                break;
+            }
+
+            remaining -= length;
+        }
+
+        return heading;
     }
 
     private static double Distance(Point first, Point second) =>

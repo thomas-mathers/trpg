@@ -1,3 +1,4 @@
+using TRPG.Application.Common.Navigation;
 using TRPG.Domain.Models;
 
 namespace TRPG.Application.WorldGeneration.Generators;
@@ -15,9 +16,16 @@ internal static class RoomPointConnectorGenerator
 
         foreach (var location in context.Locations.Where(location => IsWalkable(context, location)))
         {
-            var grid = RoomNavigationGrid.Build(
-                location,
-                [.. context.PropsByLocationId[location.Id], .. furnitureByLocationId[location.Id]]
+            var grid = NavigationGrid.From(
+                MovementSpaceBuilder.Build(
+                    location,
+                    [
+                        .. context.PropsByLocationId[location.Id],
+                        .. furnitureByLocationId[location.Id],
+                    ],
+                    [],
+                    []
+                )
             );
 
             connectors.AddRange(

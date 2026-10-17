@@ -24,7 +24,7 @@ internal sealed record AbilityUseValidation(
 
 internal static class AbilityUseValidator
 {
-    public const double RangeTolerance = 0.5;
+    public const double RangeTolerance = 0.25;
 
     public static AbilityUseValidation Validate(
         IReadOnlyList<Combatant> combatants,

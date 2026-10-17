@@ -171,6 +171,7 @@ function FocusedStage() {
             creatures={[scene.playerStatus, ...scene.nearbyCreatures]}
             statuses={scene.nearbyCreatures}
             enabled={false}
+            engagedIds={new Set()}
             onTarget={() => {}}
             onFocus={() => {}}
             onRestored={() => {}}

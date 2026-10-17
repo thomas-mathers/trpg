@@ -30,6 +30,7 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             TransactionScopeAsyncFlowOption.Enabled
         );
 
+        await DeleteJourneys(ids, cancellationToken);
         await DeleteDirectReferences(ids, cancellationToken);
         await DeleteRelationships(ids, cancellationToken);
         await DeleteKnowledge(ids, cancellationToken);
@@ -41,6 +42,37 @@ internal class DeleteCreaturesCommandHandler(TrpgDbContext context)
             .ExecuteDeleteAsync(cancellationToken);
 
         transaction.Complete();
+    }
+
+    private async Task DeleteJourneys(
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken
+    )
+    {
+        var journeyIds = await context
+            .JourneyMembers.Where(member => ids.Contains(member.CreatureId))
+            .Select(member => member.JourneyId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        await context
+            .JourneyMembers.Where(member => ids.Contains(member.CreatureId))
+            .ExecuteDeleteAsync(cancellationToken);
+
+        var abandonedIds = await context
+            .Journeys.Where(journey =>
+                journeyIds.Contains(journey.Id)
+                && !context.JourneyMembers.Any(member => member.JourneyId == journey.Id)
+            )
+            .Select(journey => journey.Id)
+            .ToArrayAsync(cancellationToken);
+
+        await context
+            .JourneyLegs.Where(leg => abandonedIds.Contains(leg.JourneyId))
+            .ExecuteDeleteAsync(cancellationToken);
+        await context
+            .Journeys.Where(journey => abandonedIds.Contains(journey.Id))
+            .ExecuteDeleteAsync(cancellationToken);
     }
 
     private async Task DeleteDirectReferences(
