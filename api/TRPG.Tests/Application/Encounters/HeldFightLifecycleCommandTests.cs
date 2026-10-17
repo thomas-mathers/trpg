@@ -126,14 +126,22 @@ public sealed class HeldFightLifecycleCommandTests(DatabaseFixture db)
         return opened.Fight!;
     }
 
-    private TickFightCommand TickAt(GameInstant at, Point wolfPosition) =>
+    private TickFightCommand TickAt(
+        GameInstant at,
+        Point wolfPosition,
+        Guid? autoAttackTargetId = null
+    ) =>
         new()
         {
             Fight = _fight,
             GameTime = at,
             PlayerPlacement = new PlayerPlacement(PlayerPosition, 0),
             FindLiveCreaturePosition = _ => wolfPosition,
+            AutoAttackTargetId = autoAttackTargetId,
         };
+
+    private int WolfHp() =>
+        _fight.Combatants.Single(combatant => combatant.CreatureId == _wolf.Id).CurrentHp;
 
     private Task<FightEncounter> ReadFight() =>
         _context
@@ -191,7 +199,7 @@ public sealed class HeldFightLifecycleCommandTests(DatabaseFixture db)
         // Assert
         var wolf = _fight.Combatants.Single(combatant => combatant.CreatureId == _wolf.Id);
         Assert.True(result.Changed);
-        Assert.True(wolf.GlobalCooldownReadyAt > Later);
+        Assert.True(wolf.NextSwingAt > Later);
         Assert.Empty(result.Chases);
     }
 
@@ -212,6 +220,60 @@ public sealed class HeldFightLifecycleCommandTests(DatabaseFixture db)
         // Assert
         var chase = Assert.Single(result.Chases);
         Assert.Equal((_wolf.Id, PlayerPosition), (chase.CreatureId, chase.Target));
+    }
+
+    [Fact]
+    public async Task Tick_SwingsAtTheTarget_WhenTheSwingTimerIsReady()
+    {
+        // Arrange
+        var handler = _serviceProvider.GetRequiredService<
+            ICommandHandler<TickFightCommand, FightTickResult>
+        >();
+        var hpBefore = WolfHp();
+
+        // Act
+        await handler.Handle(
+            TickAt(Later, InReach, _wolf.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.True(WolfHp() < hpBefore);
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotSwing_WhenThePlayerHasNoTarget()
+    {
+        // Arrange
+        var handler = _serviceProvider.GetRequiredService<
+            ICommandHandler<TickFightCommand, FightTickResult>
+        >();
+        var hpBefore = WolfHp();
+
+        // Act
+        await handler.Handle(TickAt(Later, InReach), TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(hpBefore, WolfHp());
+    }
+
+    [Fact]
+    public async Task Tick_DoesNotSwing_WhenTheTargetIsOutOfReach()
+    {
+        // Arrange
+        var handler = _serviceProvider.GetRequiredService<
+            ICommandHandler<TickFightCommand, FightTickResult>
+        >();
+        var hpBefore = WolfHp();
+
+        // Act
+        await handler.Handle(
+            TickAt(Later, OutOfReach, _wolf.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        Assert.Equal(hpBefore, WolfHp());
     }
 
     [Fact]

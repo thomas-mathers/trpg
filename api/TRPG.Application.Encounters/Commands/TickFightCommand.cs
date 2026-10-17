@@ -13,6 +13,7 @@ public class TickFightCommand
     public required GameInstant GameTime { get; init; }
     public required PlayerPlacement? PlayerPlacement { get; init; }
     public required Func<Guid, Point?> FindLiveCreaturePosition { get; init; }
+    public Guid? AutoAttackTargetId { get; init; }
 }
 
 public record ChaseOrder(Guid CreatureId, Point Target, double StopDistance);
@@ -49,8 +50,48 @@ internal class TickFightCommandHandler(
             return new FightTickResult(true, true, []);
         }
 
-        return await LetEnemiesAct(command, tick.EffectsChanged, cancellationToken);
+        var swing = await SwingForPlayer(command, cancellationToken);
+        if (swing is { Over: true })
+        {
+            return new FightTickResult(true, true, []);
+        }
+
+        return await LetEnemiesAct(
+            command,
+            tick.EffectsChanged || swing is not null,
+            cancellationToken
+        );
     }
+
+    private async Task<PlayerSwing?> SwingForPlayer(
+        TickFightCommand command,
+        CancellationToken cancellationToken
+    )
+    {
+        if (command.AutoAttackTargetId is not { } targetId)
+        {
+            return null;
+        }
+
+        var fight = command.Fight;
+        var player = fight.Combatants.Single(combatant => combatant.IsPlayer);
+        var use = combatEngine.AutoAttack(
+            fight.Combatants,
+            player.CreatureId,
+            targetId,
+            command.GameTime
+        );
+        if (use.State is not { } state)
+        {
+            return null;
+        }
+
+        await Resolve(command, state, cancellationToken);
+
+        return new PlayerSwing(IsOver(state));
+    }
+
+    private sealed record PlayerSwing(bool Over);
 
     private async Task<FightTickResult> LetEnemiesAct(
         TickFightCommand command,

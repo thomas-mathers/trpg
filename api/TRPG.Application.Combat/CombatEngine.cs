@@ -203,8 +203,27 @@ public class CombatEngine(
             actor.GlobalCooldownReadyAt = now + timeScale.Scale(CombatTiming.GlobalCooldown);
         }
 
+        if (use.Ability == AbilityCatalog.Strike)
+        {
+            actor.NextSwingAt = now + SwingInterval(actor);
+        }
+
         return AbilityUseResult.Used(ToState(combatants, events, true));
     }
+
+    public AbilityUseResult AutoAttack(
+        IReadOnlyList<Combatant> combatants,
+        Guid actorId,
+        Guid targetId,
+        GameInstant now
+    ) => UseAbility(combatants, actorId, targetId, AbilityCatalog.Strike.Name, now);
+
+    private TimeSpan SwingInterval(Combatant actor) =>
+        timeScale.Scale(
+            TimeSpan.FromSeconds(
+                optionsSnapshot.Value.AutoAttackIntervalSeconds / actor.AttackSpeedMultiplier
+            )
+        );
 
     private static CombatState ToState(
         IReadOnlyList<Combatant> combatants,

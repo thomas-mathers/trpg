@@ -19,6 +19,9 @@ public sealed class ActiveFight(
     public IReadOnlyList<Guid> CombatantIds =>
         [.. combatants.Select(combatant => combatant.CreatureId)];
 
+    public bool HasEnemy(Guid creatureId) =>
+        combatants.Any(combatant => combatant.CreatureId == creatureId && !combatant.IsPlayer);
+
     public Point PositionOf(Guid creatureId) =>
         combatants.Single(combatant => combatant.CreatureId == creatureId).Position;
 }

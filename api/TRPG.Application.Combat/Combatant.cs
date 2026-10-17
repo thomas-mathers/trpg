@@ -63,6 +63,7 @@ public class Combatant
     public Point Position { get; set; } = new(0, 0);
     public double Heading { get; set; }
     public GameInstant GlobalCooldownReadyAt { get; set; }
+    public GameInstant NextSwingAt { get; set; }
     public GameInstant ActsNotBefore { get; set; }
     public GameInstant ResourceRegenAt { get; set; }
     public IReadOnlyList<Item> EquippedItems { get; init; } = [];
@@ -109,6 +110,13 @@ public class Combatant
     public float PoisonResistance => CalculateEffectiveAttribute(AttributeName.PoisonResistance);
     public float MagicResistance => CalculateEffectiveAttribute(AttributeName.MagicResistance);
     public float TurnOrder => Dexterity;
+    public float AttackSpeedMultiplier =>
+        1f
+        + EquippedItems
+            .SelectMany(item => item.Modifiers)
+            .OfType<CombatSpeedModifier>()
+            .Where(modifier => modifier.SpeedType == CombatSpeedType.IncreasedAttackSpeed)
+            .Sum(modifier => modifier.Amount) / 100f;
     public Weapon? MainHandWeapon =>
         EquippedItems
             .OfType<Weapon>()

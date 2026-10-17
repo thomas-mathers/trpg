@@ -76,6 +76,11 @@ export type IChatHub = {
     */
     sendMovementInput(input: PlayerMovementInput): Promise<void>;
     /**
+    * @param targetId Transpiled from System.Guid?
+    * @returns Transpiled from System.Threading.Tasks.Task
+    */
+    sendSelectTarget(targetId: (string | undefined)): Promise<void>;
+    /**
     * @returns Transpiled from System.Threading.Tasks.Task
     */
     sendRefreshScene(): Promise<void>;

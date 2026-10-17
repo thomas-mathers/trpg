@@ -52,6 +52,8 @@ public sealed record CastAbilityMessage(
     TaskCompletionSource<AbilityCastResult> Completion
 ) : WorldSimulationMessage;
 
+public sealed record SelectTarget(Guid PlayerId, Guid? TargetId) : WorldSimulationMessage;
+
 public sealed record RefreshCreatureStatus(Guid LocationId, Guid CreatureId)
     : WorldSimulationMessage;
 

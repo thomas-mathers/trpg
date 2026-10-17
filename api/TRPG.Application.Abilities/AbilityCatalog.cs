@@ -17,6 +17,7 @@ public static class AbilityCatalog
             DamageType = DamageType.Physical,
             DamageAmount = 100,
             DamageAmountType = AmountType.Percent,
+            TriggersGlobalCooldown = false,
         };
 
     public static SupportAbility Block => Catalog.Block;
